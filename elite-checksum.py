@@ -67,7 +67,7 @@ data_block.append(0)
 
 # Append SHIPS file
 
-ships_file = open('data/SHIPS.bin', 'rb')
+ships_file = open('output/SHIPS.bin', 'rb')
 data_block.extend(ships_file.read())
 ships_file.close()
 

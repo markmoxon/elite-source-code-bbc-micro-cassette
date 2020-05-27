@@ -11867,7 +11867,7 @@ PRINT "G d."
 .checksum0
 SKIP 1
 .XX21                   ; Table of pointers to ships' data given to XX0
-INCBIN "data/SHIPS.bin"
+INCBIN "output/SHIPS.bin"
 
 PRINT "XX21=",~XX21
 PRINT "P%=",~P%
