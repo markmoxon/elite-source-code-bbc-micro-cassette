@@ -3,8 +3,9 @@ ORG &563A
 L%=&5822
 CODE%=P%
 
-\ This data is at .XX21
-\ It is loaded at &5822 and moved to &563A at runtime
+\ This data is loaded at .XX21 by elite-source.asm
+\ It is loaded at &5822 (L%) and moved down to &563A (ORG) at runtime
+
 \ The following lookup table points to the individual ship definitions
 
 EQUW &5654                          ; Sidewinder
@@ -883,10 +884,10 @@ EQUB &5F, &13, &33, &0F
 EQUB &9F, &38, &00, &00
 
 PRINT "output/SHIPS.bin"
-PRINT "ASSEMBLE AT W%=", ~CODE%
+PRINT "ASSEMBLE AT", ~CODE%
 PRINT "P%=",~P%
 PRINT "CODE SIZE=", ~(P%-CODE%)
-PRINT "RELOAD AT H%=", ~L%
+PRINT "RELOAD AT ", ~L%
 
 PRINT "S.SHIPS ",~CODE%," ",~P%," ",~L%," ",~L%
 
