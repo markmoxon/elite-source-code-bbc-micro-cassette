@@ -1,12 +1,50 @@
+\ *****************************************************************************
+\ ELITE SHIPS SOURCE
+\ *****************************************************************************
+
+\ This data is loaded at &5822 (L%) as part of elite-source.asm. It is then
+\ moved down to &563A (ORG), which is at the label .XX21.
+
 ORG &563A
+L% = &5822
+CODE% = P%
 
-L%=&5822
-CODE%=P%
+\ *****************************************************************************
+\ Ships in Elite
+\ *****************************************************************************
+\
+\ For each ship definition below, the first 20 bytes define the following:
+\
+\ Byte #0       High nibble determines cargo type if scooped, 0 = not scoopable
+\               Lower nibble determines maximum number of bits of debris shown
+\               when destroyed
+\ Byte #1-2     Area of ship that can be locked onto by a missle (lo, hi)
+\ Byte #3       Edges data offset lo (offset is from byte #0)
+\ Byte #4       Faces data offset lo (offset is from byte #0)
+\ Byte #5       Maximum heap size for plotting ship = 1 + 4 * max. no of
+\               visible edges
+\ Byte #6       Number * 4 of the vertex used for gun spike, if applicable
+\ Byte #7       Explosion count = 4 * n + 6, where n = number of vertices used
+\               as origins for explosion dust
+\ Byte #8       Number of vertices * 6
+\ Byte #10-11   Bounty awarded in Cr * 10 (lo, hi)
+\ Byte #12      Number of faces * 4
+\ Byte #13      Beyond this distance, show this ship as a dot
+\ Byte #14      Maximum energy/shields
+\ Byte #15      Maximum speed
+\ Byte #16      Edges data offset hi (if this is negative (&FF) it points to
+\               another ship's edge net)
+\ Byte #17      Faces data offset hi
+\ Byte #18      Q%: Normals are scaled by 2^Q% to make large objects' normals
+\               flare out further away (see .EE29)
+\ Byte #19      %00 lll mmm, where bits 0-2 = number of missiles,
+\               bits 3-5 = laser power
 
-\ This data is loaded at .XX21 by elite-source.asm
-\ It is loaded at &5822 (L%) and moved down to &563A (ORG) at runtime
+\ *****************************************************************************
+\ Ships lookup table
+\ *****************************************************************************
 
-\ The following lookup table points to the individual ship definitions
+\ The following lookup table points to the individual ship definitions below
 
 EQUW &5654                          ; Sidewinder
 EQUW &56FC                          ; Viper
@@ -14,7 +52,7 @@ EQUW &57D6                          ; Mamba
 EQUW &7F00                          ; Points to start of MODE 4 screen memory
 EQUW &5904                          ; Cobra Mk III
 EQUW &5A8C                          ; Thargoid
-EQUW &5904                          ; Cobra Mk III (again)
+EQUW &5904                          ; Cobra Mk III
 EQUW &5BA8                          ; Coriolis
 EQUW &5CC4                          ; Missile
 EQUW &5DC2                          ; Asteroid
@@ -22,29 +60,9 @@ EQUW &5E98                          ; Cargo
 EQUW &5F40                          ; Thargon
 EQUW &5FAC                          ; Escape pod
 
-\ Start Hull Data. For each ship, the first 20 bytes give header info:
-\
-\ hull byte#0       high nibble is scoop info, lower nibble is debris spin info
-\ hull byte#1-2     area, &for missile lock, lo, hi
-\ hull byte#3       edges data info offset lo
-\ hull byte#4       faces data info offset lo
-\ hull byte#5       4*maxlines+1, &for ship lines stack
-\ hull byte#6       gun vertex*4
-\ hull byte#7       explosion count e.g. &2A = 4*n+6
-\ hull byte#8       vertices*6		
-\ hull bytes#10-11  bounty lo hi
-\ hull byte#12      faces*4
-\ hull byte#13      dot beyond distance	
-\ hull byte#14      energy
-\ hull byte#15      speed (end of 4th row)
-\ hull byte#16      edges offset hi (goes -ve to use other's edge net).
-\ hull byte#17      faces offset hi
-\ hull byte#18      Q% scaling of normals to make large objects' normals flare out further away
-\ hull bute#19      laser|missile(=lower 3 bits)
-
+\ *****************************************************************************
 \ Sidewinder
-
-PRINT "Sidewinder=",~P%
+\ *****************************************************************************
 
 EQUB &00
 EQUB &81, &10
@@ -53,10 +71,10 @@ EQUB &8C
 EQUB &3D
 EQUB &00                            ; gun vertex = 0
 EQUB &1E
-EQUB &3C                            ; vertices = &3C/6 = 10
-EQUB &0F                            ; edges = &0F = 15
-EQUB &32, &00
-EQUB &1C                            ; faces = &1C/4 = 7
+EQUB &3C                            ; number of vertices = &3C / 6 = 10
+EQUB &0F                            ; number of edges = &0F = 15
+EQUB &32, &00                       ; bounty = &0032 = 50
+EQUB &1C                            ; number of faces = &1C / 4 = 7
 EQUB &14
 EQUB &46
 EQUB &25
@@ -104,9 +122,9 @@ EQUB &DF, &0C, &2F, &06
 EQUB &5F, &00, &20, &08
 EQUB &5F, &0C, &2F, &06
 
+\ *****************************************************************************
 \ Viper
-
-PRINT "Viper=",~P%
+\ *****************************************************************************
 
 EQUB &00
 EQUB &F9, &15
@@ -115,10 +133,10 @@ EQUB &BE
 EQUB &4D
 EQUB &00                            ; gun vertex = 0
 EQUB &2A
-EQUB &5A                            ; vertices = &5A/6 = 15
-EQUB &14                            ; edges = &14 = 20
+EQUB &5A                            ; number of vertices = &5A / 6 = 15
+EQUB &14                            ; number of edges = &14 = 20
 EQUB &00, &00                       ; bounty = 0
-EQUB &1C                            ; faces = &1C/4 = 7
+EQUB &1C                            ; number of faces = &1C / 4 = 7
 EQUB &17
 EQUB &78
 EQUB &20
@@ -178,28 +196,28 @@ EQUB &5F, &16, &21, &0B
 EQUB &5F, &00, &20, &00
 EQUB &3F, &00, &00, &30
 
+\ *****************************************************************************
 \ Mamba
+\ *****************************************************************************
 
-PRINT "Mamba=",~P%
-
-EQUB &01
+EQUB &01                            ; scoopable = 0, debris shown = 1
 EQUB &24, &13
 EQUB &AA
 EQUB &1A
 EQUB &5D
 EQUB &00                            ; gun vertex = 0
 EQUB &22
-EQUB &96                            ; vertices = &96/6 = 25
-EQUB &1C                            ; edges = &1C = 28
-EQUB &96, &00
-EQUB &14                            ; faces = &14/4 = 5
+EQUB &96                            ; number of vertices = &96 / 6 = 25
+EQUB &1C                            ; number of edges = &1C = 28
+EQUB &96, &00                       ; bounty = &0096 = 150
+EQUB &14                            ; number of faces = &14 / 4 = 5
 EQUB &19
 EQUB &5A
 EQUB &1E
 EQUB &00
 EQUB &01
 EQUB &02
-EQUB &12                            ; %10010, laser = 2, missiles = 2
+EQUB &12                            ; %00 0010 010, laser = 2, missiles = 2
 
 EQUB &00, &00, &40, &1F, &10, &32   ; vertices data (25*6)
 EQUB &40, &08, &20, &FF, &20, &44
@@ -271,28 +289,28 @@ EQUB &9E, &20, &40, &10
 EQUB &1E, &20, &40, &10
 EQUB &3E, &00, &00, &7F
 
+\ *****************************************************************************
 \ Cobra Mk III
+\ *****************************************************************************
 
-PRINT "CobraMkIII=",~P%
-
-EQUB &03                            ; scoop = 0, debris spin = 3
-EQUB &41, &23                       ; area for missile lock, lo, hi
-EQUB &BC                            ; edges data info offset lo
-EQUB &54                            ; faces data info offset lo
-EQUB &99                            ; 4*maxlines+1 for ship lines stack
-EQUB &54                            ; gun vertex = &54/4 = 21 = &15
-EQUB &2A                            ; explosion count, &2A = 4*n+6
-EQUB &A8                            ; vertices = &A8/6 = 28
-EQUB &26                            ; edges = &26 = 38
+EQUB &03                            ; scoopable = 0, debris shown = 3
+EQUB &41, &23                       ; area for missile lock = &2331
+EQUB &BC                            ; edges data offset = &00BC
+EQUB &54                            ; faces data offset = &0154
+EQUB &99                            ; max. edge count for heap = (&99 - 1) / 4 = 38
+EQUB &54                            ; gun vertex = &54 / 4 = 21
+EQUB &2A                            ; explosion count = (4 * n) + 6 = &2A, n = 9
+EQUB &A8                            ; number of vertices = &A8 / 6 = 28
+EQUB &26                            ; number of edges = &26 = 38
 EQUB &00, &00                       ; bounty = 0
-EQUB &34                            ; faces = &34/4 = 13
-EQUB &32
-EQUB &96
-EQUB &1C
-EQUB &00
-EQUB &01
-EQUB &01
-EQUB &13                            ; %10011, laser = 2, missiles = 3
+EQUB &34                            ; number of faces = &34 / 4 = 13
+EQUB &32                            ; show as a dot past a distance of 50
+EQUB &96                            ; maximum energy/shields = 150
+EQUB &1C                            ; maximum speed = 28
+EQUB &00                            ; edges data offset = &00BC
+EQUB &01                            ; faces data offset = &0154
+EQUB &01                            ; normals are scaled by 2^1 = 2
+EQUB &13                            ; &13 = %00 010 011, missiles = 3, laser power = 2
 
 EQUB &20, &00, &4C, &1F, &FF, &FF   ; vertices data (28*6)
 EQUB &20, &00, &4C, &9F, &FF, &FF
@@ -390,21 +408,21 @@ EQUB &DF, &07, &2A, &09
 EQUB &5F, &00, &1E, &06
 EQUB &5F, &07, &2A, &09
 
+\ *****************************************************************************
 \ Thargoid
-
-PRINT "Thargoid=",~P%
+\ *****************************************************************************
 
 EQUB &00
 EQUB &49, &26
 EQUB &8C
 EQUB &F4
 EQUB &65
-EQUB &3C                            ; gun vertex = &3C/4 = 15 = &0F
+EQUB &3C                            ; gun vertex = &3C / 4 = 15
 EQUB &26
-EQUB &78                            ; vertices = &78/6 = 20
-EQUB &1A                            ; edges = &1A = 26
-EQUB &F4, &01
-EQUB &28                            ; faces = &28/4 = 10
+EQUB &78                            ; number of vertices = &78 / 6 = 20
+EQUB &1A                            ; number of edges = &1A = 26
+EQUB &F4, &01                       ; bounty = &01F4 = 500
+EQUB &28                            ; number of faces = &28 / 4 = 10
 EQUB &37
 EQUB &F0
 EQUB &27
@@ -481,9 +499,9 @@ EQUB &1F, &67, &19, &3C
 EQUB &5F, &67, &19, &3C
 EQUB &9F, &30, &00, &00
 
-\ Coriolis
-
-PRINT "Coriolis=",~P%
+\ *****************************************************************************
+\ Coriolis space station
+\ *****************************************************************************
 
 EQUB &00
 EQUB &00, &64
@@ -492,10 +510,10 @@ EQUB &E4
 EQUB &55
 EQUB &00                            ; gun vertex = 0
 EQUB &36
-EQUB &60                            ; vertices = &60/6 = 16
-EQUB &1C                            ; edges = &1C = 28
-EQUB &00, &00
-EQUB &38                            ; faces = &38/4 = 14
+EQUB &60                            ; number of vertices = &60 / 6 = 16
+EQUB &1C                            ; number of edges = &1C = 28
+EQUB &00, &00                       ; bounty = 0
+EQUB &38                            ; number of faces = &38 / 4 = 14
 EQUB &78
 EQUB &F0
 EQUB &00
@@ -575,9 +593,9 @@ EQUB &3F, &6B, &6B, &6B
 EQUB &BF, &6B, &6B, &6B
 EQUB &3F, &00, &00, &A0
 
+\ *****************************************************************************
 \ Missile
-
-PRINT "Missile=",~P%
+\ *****************************************************************************
 
 EQUB &00
 EQUB &40, &06
@@ -586,10 +604,10 @@ EQUB &DA
 EQUB &51
 EQUB &00                            ; gun vertex = 0
 EQUB &0A
-EQUB &66                            ; vertices = &66/6 = 17
-EQUB &18                            ; edges = &18 = 24
+EQUB &66                            ; number of vertices = &66 / 6 = 17
+EQUB &18                            ; number of edges = &18 = 24
 EQUB &00, &00                       ; bounty = 0
-EQUB &24                            ; faces = &24/4 = 9
+EQUB &24                            ; number of faces = &24 / 4 = 9
 EQUB &0E
 EQUB &02
 EQUB &2C
@@ -659,9 +677,9 @@ EQUB &9F, &20, &00, &00
 EQUB &1F, &00, &20, &00
 EQUB &3F, &00, &00, &B0
 
+\ *****************************************************************************
 \ Asteroid
-
-PRINT "Asteroid=",~P%
+\ *****************************************************************************
 
 EQUB &00
 EQUB &00, &19
@@ -670,10 +688,10 @@ EQUB &9E
 EQUB &41
 EQUB &00                            ; gun vertex = 0
 EQUB &22
-EQUB &36                            ; vertices = &36/6 = 9
-EQUB &15                            ; edges = &15 = 21
-EQUB &05, &00
-EQUB &38                            ; faces = &38/4 = 14
+EQUB &36                            ; number of vertices = &36 / 6 = 9
+EQUB &15                            ; number of edges = &15 = 21
+EQUB &05, &00                       ; bounty = &0005 = 5
+EQUB &38                            ; number of faces = &38 / 4 = 14
 EQUB &32
 EQUB &3C
 EQUB &1E
@@ -736,9 +754,9 @@ EQUB &7F, &3A, &66, &33
 EQUB &3F, &51, &09, &43
 EQUB &3F, &2F, &5E, &3F
 
+\ *****************************************************************************
 \ Cargo cannister
-
-PRINT "Cargo=",~P%
+\ *****************************************************************************
 
 EQUB &00
 EQUB &90, &01
@@ -747,10 +765,10 @@ EQUB &8C
 EQUB &31
 EQUB &00                            ; gun vertex = 0
 EQUB &12
-EQUB &3C                            ; vertices = &3C/6 = 10
-EQUB &0F                            ; edges = &0F = 15
+EQUB &3C                            ; number of vertices = &3C / 6 = 10
+EQUB &0F                            ; number of edges = &0F = 15
 EQUB &00, &00                       ; bounty = 0
-EQUB &1C                            ; faces = &1C/4 = 7
+EQUB &1C                            ; number of faces = &1C / 4 = 7
 EQUB &0C
 EQUB &11
 EQUB &0F
@@ -798,25 +816,25 @@ EQUB &7F, &00, &12, &30
 EQUB &3F, &00, &29, &1E
 EQUB &9F, &60, &00, &00
 
+\ *****************************************************************************
 \ Thargon
-
-PRINT "Thargon=",~P%
+\ *****************************************************************************
 
 EQUB &00
 EQUB &40, &06
-EQUB &A8
+EQUB &A8                            ; use edge data from Thargoid at offset &FFA8 = -88
 EQUB &50
 EQUB &41
 EQUB &00                            ; gun vertex = 0
 EQUB &12
-EQUB &3C                            ; vertices = &3C/6 = 10
-EQUB &0F                            ; edges = &0F = 15
-EQUB &32, &00
-EQUB &1C                            ; faces = &1C/4 = 7
+EQUB &3C                            ; number of vertices = &3C / 6 = 10
+EQUB &0F                            ; number of edges = &0F = 15
+EQUB &32, &00                       ; bounty = &0032 = 50
+EQUB &1C                            ; number of faces = &1C / 4 = 7
 EQUB &14
 EQUB &14
 EQUB &1E
-EQUB &FF
+EQUB &FF                            ; use edge data from Thargoid at offset &FFA8 = -88
 EQUB &00
 EQUB &02
 EQUB &10
@@ -842,9 +860,9 @@ EQUB &3F, &2E, &2A, &0E
 EQUB &1F, &14, &05, &07
 EQUB &1F, &24, &00, &00
 
-\ Escape capsule
-
-PRINT "Escape capsule=",~P%
+\ *****************************************************************************
+\ Escape pod
+\ *****************************************************************************
 
 EQUB &00
 EQUB &00, &01
@@ -853,10 +871,10 @@ EQUB &44
 EQUB &19
 EQUB &00                            ; gun vertex = 0
 EQUB &16
-EQUB &18                            ; vertices = &18/6 = 4
-EQUB &06                            ; edges = &06 = 6
-EQUB &00, &00
-EQUB &10                            ; faces = &10/4 = 4
+EQUB &18                            ; number of vertices = &18 / 6 = 4
+EQUB &06                            ; number of edges = &06 = 6
+EQUB &00, &00                       ; bounty = 0
+EQUB &10                            ; number of faces = &10 / 4 = 4
 EQUB &08
 EQUB &11
 EQUB &08
@@ -882,6 +900,10 @@ EQUB &3F, &1A, &00, &3D             ; faces data (4*4)
 EQUB &1F, &13, &33, &0F
 EQUB &5F, &13, &33, &0F
 EQUB &9F, &38, &00, &00
+
+\ *****************************************************************************
+\ Save ship definitions as output/SHIPS.bin
+\ *****************************************************************************
 
 PRINT "output/SHIPS.bin"
 PRINT "ASSEMBLE AT", ~CODE%
