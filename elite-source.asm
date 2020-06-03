@@ -136,8 +136,40 @@ XX19=INWK+33
 XX1=INWK
 .LSP    skip 1          ; =FNZ
 .QQ15   skip 6          ; =FNZT(6)
+
+\ *****************************************************************************
+\ Variable: XX18 (shares location with QQ17)
+\ *****************************************************************************
+
 .XX18   skip 9          ; =FNZT(9)
+
+\ *****************************************************************************
+\ Variable: QQ17 (shares location with XX18)
+\
+\ QQ17 stores flags that affect how text tokens are printed, including the
+\ capitalisation setting
+\
+\ Setting QQ17 = &FF disables text printing entirely
+\
+\ Otherwise:
+\
+\ Bit 7 = 0 means ALL CAPS
+\ Bit 7 = 1 means Sentence Case, bit 6 determines case of next letter to print
+\
+\ Bit 6 = 0 means print the next letter in upper case
+\ Bit 6 = 1 means print the next letter in lower case
+\
+\ So:
+\ QQ17 = 0   (%00000000) means the case is set to ALL CAPS
+\ QQ17 = 128 (%10000000) means Sentence Case, currently printing upper case
+\ QQ17 = 192 (%11000000) means Sentence Case, currently printing lower case
+\
+\ If any of bits 0-5 are set and QQ17 is not &FF, we print in lower case
+\ *****************************************************************************
+
 QQ17=XX18
+
+
 QQ19=QQ17+1
 K5=XX18
 K6=K5+4
@@ -6999,93 +7031,228 @@ MAPCHAR '4', '4'
  LDA #226               ; token = ' CR'
 
 \ *****************************************************************************
-\ Print token followed by new line
+\ Subroutine: plf
+\
+\ Print a text token followed by a newline
+\
+\ Arguments:
+\   A   The text token to be printed
 \ *****************************************************************************
 
-.plf                    ; process text token then new line
- JSR TT27               ; process text token
- JMP TT67               ; next Row
+.plf
+ JSR TT27               ; Print the text token in Acc
+
+ JMP TT67               ; Jump to TT67, which prints a newline
 
 \ *****************************************************************************
-\ Print token followed by colon
+\ Subroutine: TT68
+\
+\ Print a text token followed by a colon
+\
+\ Arguments:
+\   A   The text token to be printed
 \ *****************************************************************************
 
-.TT68                   ; process token followed by colon
- JSR TT27               ; process text token
+.TT68
+ JSR TT27               ; Print the text token in Acc and fall through to TT73
 
 \ *****************************************************************************
-\ Print colon
+\ Subroutine: TT73
+\
+\ Print a colon
+\
+\ No arguments
 \ *****************************************************************************
 
 .TT73                   ; print Colon
- LDA #&3A               ; ascii ':'
+ LDA #':'               ; Set Acc = ASCII ':' and fall through to TT27
 
 \ *****************************************************************************
-\ Print token
+\ Subroutine: TT27
+\
+\ Print a text token (i.e. a character, control code, two-letter token or
+\ recursive token). See elite-words.asm for a discussion of the token system
+\ used in Elite.
+\
+\ Arguments:
+\   A   The text token to be printed
 \ *****************************************************************************
 
-.TT27                   ; process flight text Token in Acc
- TAX                    ; copy token to count down
- BEQ csh                ; Acc = 0, up to Cash
- BMI TT43               ; if token is >  127 down, page4 token or digram
- DEX
- BEQ tal                ; Acc == 1, up, print Galaxy number.
- DEX
- BEQ ypl                ; Acc == 2, up, present planet in QQ2.
- DEX
- BNE P%+5               ; hop over, else X == 0
- JMP cpl                ; Acc = 3 print Planet name for seed QQ15
- DEX
- BEQ cmn                ; Acc == 4, up, commander name.
- DEX
- BEQ fwl                ; Acc == 5, up, fuel followed by cash.
- DEX
- BNE P%+7               ; hop over, else X == 0
- LDA #128               ; Acc == 6, set bit 7 TT27m
- STA QQ17
- RTS
- DEX                    ; skip Acc ==7
- DEX
- BNE P%+5               ; hop over to continue Acc 9to127
- STX QQ17               ; else Acc ==8, QQ17 set to X = 0
- RTS
+.TT27
+ TAX                    ; Copy the token number from Acc to X. We can then keep
+                        ; decrementing X and testing it against zero, while
+                        ; keeping the original token number intact in Acc; this
+                        ; effectively implements a switch statement on the
+                        ; value of the token
 
- DEX                    ; continue 9to127 tokens
- BEQ crlf               ; Acc == 9, down, colon on right.
- CMP #&60               ; discard X, look at Acc = token >= 96
- BCS ex                 ; extra >= #&60, far down
- CMP #14                ; < 14 ?
- BCC P%+6               ; goes to Token < 14 or > 31
- CMP #32                ; < 32 ?
- BCC qw                 ; 14 <= token A < 32 becomes 128to145 page4 digram
-                        ; Token  < 14 or > 31
- LDX QQ17
- BEQ TT74               ; if QQ17 = 0 Upper case, jmp TT26, print character.
- BMI TT41               ; if bit7 set
- BIT QQ17               ; QQ17 has bit6 set too
- BVS TT46               ; If only bit6 set, clear bit6 and print as Upper
+ BEQ csh                ; If token = 0, this is control code 0 (current amount
+                        ; of cash), so jump to .csh
 
-.TT42                   ; Uppercase to lowercase
- CMP #65                ; < ascii 'A'
- BCC TT44               ; jmp TT26, print character
- CMP #&5B               ; >= ascii 'Z'+1
- BCS TT44               ; jmp TT26, print character
- ADC #32                ; else Upper to lowercase
+ BMI TT43               ; If token > 127, this is either a two-letter token
+                        ; (128-159) or a recursive token (160-255), so jump
+                        ; to .TT43 to process tokens
 
-.TT44                   ; print character as is with TT26
- JMP TT26               ; print character
+ DEX                    ; If token = 1, this is control code 1 (current
+ BEQ tal                ; galaxy number), so jump to .tal
+ 
+ DEX                    ; If token = 2, this is control code 2 (current system
+ BEQ ypl                ; name), so jump to .ypl
 
-.TT41                   ; QQ17 bit7 set
+ DEX
+ BNE P%+5               ; If token > 3, skip the following instruction
+ 
+ JMP cpl                ; This token is control code 3 (selected system name)
+                        ; so jump to .cpl
+
+ DEX                    ; If token = 4, this is control code 4 (commander
+ BEQ cmn                ; name), so jump to .cmm
+
+ DEX                    ; If token = 5, this is control code 5 (fuel, newline,
+ BEQ fwl                ; cash), so jump to .fwl
+
+ DEX
+ BNE P%+7               ; If token > 6, skip the following 3 instructions
+
+ LDA #128               ; This token is control code 6 (switch to sentence
+ STA QQ17               ; case), so store 128 (bit 7 set, bit 6 clear) in QQ17,
+ RTS                    ; which controls letter case, and return from the print
+                        ; subroutine as we are done
+
+ DEX
+ DEX
+ BNE P%+5               ; If token > 8, skip the following 2 instructions
+ 
+ STX QQ17               ; This token is control code 8 (switch to ALL CAPS)
+ RTS                    ; so store 0 in QQ17, which controls letter case, and
+                        ; return from the print subroutine as we are done
+
+ DEX                    ; If token = 9, this is control code 9 (tab to column
+ BEQ crlf               ; 21), so jump to .crlf
+ 
+ CMP #96                ; By this point, token is either 7, or in 10-127.
+ BCS ex                 ; Check token number in Acc and if token >= 96, then
+                        ; the token is in 96-127, which is a recursive token,
+                        ; so jump to .ex, which prints recursive tokens in this
+                        ; range (i.e. where the recursive token number is
+                        ; correct and doesn't need correcting)
+ 
+ CMP #14
+ BCC P%+6               ; If token < 14, skip the following 2 instructions
+ 
+ CMP #32                ; If token < 32, then this means token is in 14-31, so
+ BCC qw                 ; this is a recursive token that needs 114 adding to it
+                        ; to get the recursive token number, so jump to .qw
+                        ; which will do this
+
+                        ; By this point, token is either 7 (beep) or in 10-13
+                        ; (line feeds and carriage returns), or in 32-95
+                        ; (ASCII letters, numbers and punctuation)
+
+ LDX QQ17               ; Fetch QQ17, which controls letter case, into X
+ 
+ BEQ TT74               ; If QQ17 = 0, then ALL CAPS is set, so jump to TT27
+                        ; to print this character as is (i.e. as a capital)
+                        
+ BMI TT41               ; If QQ17 has bit 7 set, then we are using Sentence
+                        ; Case, so jump to TT41, which will print the
+                        ; character in upper or lower case, depending on
+                        ; whether this is the first letter in a word
+  
+ BIT QQ17               ; If we get here, QQ17 is not 0 and bit 7 is clear, so
+ BVS TT46               ; either it is bit 6 that is set, or some other flag in
+                        ; QQ17 is set (bits 0-5). So check whether bit 6 is set.
+                        ; If it is, then ALL CAPS has been set (as bit 7 is
+                        ; clear) but bit 6 is still indicating that the next
+                        ; character should be printed in lower case, so we need
+                        ; to fix this. We do this with a jump to TT46, which will
+                        ; print this character in upper case and clear bit 6, so
+                        ; the flags are consistent with ALL CAPS going forward
+
+                        ; If we get here, some other flag is set in QQ17 (one
+                        ; of bits 0-5 is set), which shouldn't happen in this
+                        ; version of Elite. If this were the case, then we
+                        ; would fall through to TT42 to print in lower case,
+                        ; which is how printing all words in lower case could
+                        ; be supported (by setting QQ17 to 1, say).
+
+\ *****************************************************************************
+\ Subroutine: TT42
+\
+\ Print a letter in lower case
+\
+\ Arguments:
+\   A   The character to be printed. Can be one of the following:
+\       * 7 (beep)
+\       * 10-13 (line feeds and carriage returns)
+\       * 32-95 (ASCII capital letters, numbers and most punctuation)
+\ *****************************************************************************
+
+.TT42
+ CMP #'A'               ; If Acc < ASCII 'A', then this is punctuation, so
+ BCC TT44               ; jump to TT26 (via TT44) to print the character as is,
+                        ; as we don't care about the character's case
+
+ CMP #'Z' + 1           ; If Acc >= (ASCII 'Z' + 1), then this is also
+ BCS TT44               ; punctuation, so jump to TT26 (via TT44) to print the
+                        ; character as is, as we don't care about the
+                        ; character's case
+                        
+ ADC #32                ; Add 32 to the character, to convert it from upper to
+                        ; to lower case
+
+.TT44
+ JMP TT26               ; Print the character in Acc
+
+\ *****************************************************************************
+\ Subroutine: TT41
+\
+\ Print a letter according to Sentence Case
+\
+\ If QQ17 bit 6 is set, print lower case (via TT45), otherwise:
+\ If QQ17 bit 6 clear, then:
+\   If character is punctuation, just print it
+\   If character is a letter, set bit 6 in QQ17 and print letter as a capital
+\
+\ Entry conditions:
+\   QQ17 bit 7 is set
+\   X contains the value of QQ17
+\
+\ Arguments:
+\   A   The character to be printed. Can be one of the following:
+\       * 7 (beep)
+\       * 10-13 (line feeds and carriage returns)
+\       * 32-95 (ASCII capital letters, numbers and most punctuation)
+\ *****************************************************************************
+
+.TT41                   ; If we get here, then QQ17 has bit 7 set, so we are in
+                        ; Sentence Case
+ 
  BIT QQ17
- BVS TT45               ; bit6 set too, Nothing or lower.
- CMP #65                ; < ascii 'A'
- BCC TT74               ; print as is using TT26
- PHA                    ; else store token Acc
- TXA                    ; QQ17 copy
- ORA #64                ; set bit6 in QQ17 so subsequent ones lower
- STA QQ17
- PLA                    ; restore token
- BNE TT44               ; guaranteed up, print as Uppercase with TT26.
+ BVS TT45               ; If QQ17 also has bit 6 set, jump to TT45 to print
+                        ; this character in lower case
+
+                        ; If we get here, then QQ17 has bit 6 clear and bit 7
+                        ; set, so we are in Sentence Case and we need to print
+                        ; the next letter in upper case
+
+ CMP #'A'               ; If Acc < ASCII 'A', then this is punctuation, so
+ BCC TT74               ; jump to TT26 (via TT44) to print the character as is,
+                        ; as we don't care about the character's case
+
+ PHA                    ; Otherwise this is a letter, so store the token number
+ 
+ TXA                    ; Set bit 6 in QQ17 (X contains the current QQ17)
+ ORA #64                ; so the next letter after this one is printed in lower
+ STA QQ17               ; case
+ 
+ PLA                    ; Restore the token number into Acc
+ 
+ BNE TT44               ; Jump to TT26 (via TT44) to print the character in Acc
+                        ; (this BNE is effectively a JMP as the Acc will never
+                        ; be zero)
+
+                        
+                        
 
 .qw
  ADC #114               ; A+=114 becomes 128to145 page4 digram
@@ -7096,45 +7263,134 @@ MAPCHAR '4', '4'
  STA XC
  BNE TT73               ; guaranteed up, print colon.
 
-.TT45                   ; QQ17 bits 7,6 set. Nothing or lower.
- CPX #FF                ; if QQ17 = #&FF
- BEQ TT48               ; rts
- CMP #65                ; >= ascii 'A' ?
- BCS TT42               ; Uppercase to lowercase, up.
-
-.TT46                   ; clear bit6 QQ17 and print as is using TT26
- PHA                    ; push token
- TXA                    ; QQ17 copy
- AND #191               ; clear bit6
- STA QQ17
- PLA                    ; pull token
-
-.TT74                   ; TT26, print character.
- JMP TT26
-
-.TT43                   ; Token > 127 page4 token or planet digram.
- CMP #160               ; >= #160 ?
- BCS TT47               ; more page4, subtract #160
- AND #127               ; else token 128to159  -> 0 to 31
- ASL A                  ; *= 2
- TAY                    ; digram index = 0to62
- LDA QQ16,Y             ; ALLEXEGEZACEBISOUSESARMAINDIREA?ER  etc.
-
- JSR TT27               ; process text token
- LDA QQ16+1,Y           ; 2nd character of diagram. Flight copied down from docked code.
- CMP #63                ; is second letter '?'
- BEQ TT48               ; rts, name has odd-number of letters.
- JMP TT27               ; process text token
-
-.TT47                   ; more page4, subtract #160
- SBC #160               ; -= 160
 
 \ *****************************************************************************
-\ DISPLAY STRING?
+\ Subroutine: TT45
+\
+\ If QQ17 = &FF, abort printing this character
+\ If a letter then print in lower case
+\ Otherwise this is punctuation, so clear bit 6 in QQ17 and print
+\
+\ Entry conditions:
+\   QQ17 bit 6 is set
+\   QQ17 bit 7 is set
+\   X contains the value of QQ17
+\
+\ Arguments:
+\   A   The character to be printed. Can be one of the following:
+\       * 7 (beep)
+\       * 10-13 (line feeds and carriage returns)
+\       * 32-95 (ASCII capital letters, numbers and most punctuation)
+\ *****************************************************************************
+
+.TT45                   ; If we get here, then QQ17 has bit 6 and 7 set, so we
+                        ; are in Sentence Case and we need to print the next
+                        ; letter in lower case
+
+ CPX #FF                ; If QQ17 = #&FF then return from the print subroutine
+ BEQ TT48               ; (as TT48 contains an RTS)
+
+ CMP #'A'               ; If Acc >= ASCII 'A', then jump to TT42, which will
+ BCS TT42               ; print the letter in lowercase
+ 
+                        ; Otherwise this is not a letter, it's punctuation, so
+                        ; this is effectively a word break. We therefore fall
+                        ; through to TT46 to print the character and set QQ17
+                        ; to ensure the next word starts with a capital letter
+
+\ *****************************************************************************
+\ Subroutine: TT46
+\
+\ Print character and clear bit 6 in QQ17, so that the next letter that gets
+\ printed after this will start with a capital letter
+\
+\ Entry conditions:
+\   QQ17 bit 6 is set
+\   QQ17 bit 7 is set
+\   X contains the value of QQ17
+\
+\ Arguments:
+\   A   The character to be printed. Can be one of the following:
+\       * 7 (beep)
+\       * 10-13 (line feeds and carriage returns)
+\       * 32-95 (ASCII capital letters, numbers and most punctuation)
+\ *****************************************************************************
+
+.TT46
+ PHA                    ; Store the token number
+ 
+ TXA                    ; Clear bit 6 in QQ17 (X contains the current QQ17)
+ AND #191               ; so the next letter after this one is printed in upper
+ STA QQ17               ; case
+ 
+ PLA                    ; Restore the token number into Acc
+
+                        ; Now fall through into TT74 to print the character
+
+\ *****************************************************************************
+\ Subroutine: TT74
+\
+\ Print a character
+\
+\ Arguments:
+\   A   The character to be printed
+\ *****************************************************************************
+
+.TT74
+ JMP TT26               ; Print the character in Acc
+
+\ *****************************************************************************
+\ Subroutine: TT43
+\
+\ Print a two-letter token or a recursive token
+\
+\ Arguments:
+\   A   The token to be printed. Can be in the following ranges:
+\       * 128-159 (two-letter token)
+\       * 160-255 (recursive token)
+\ *****************************************************************************
+
+.TT43
+ CMP #160               ; If token >= 160, then this is a recursive token, so
+ BCS TT47               ; jump to TT47 below to process it
+
+ AND #127               ; This is a two-letter token with number 128-159. The
+ ASL A                  ; set of two-letter tokens is stored as one long string
+                        ; ("ALLEXEGE...") at QQ16, so to convert this into the
+                        ; token's position in this string, we subtract 128 (or
+                        ; just clear bit 7) and multiply by 2 (or shift left)
+
+ TAY                    ; Transfer the token's position into Y so we can look
+                        ; up the token using absolute indexed mode
+
+ LDA QQ16,Y             ; Get the first letter of the token and print it
+ JSR TT27
+
+ LDA QQ16+1,Y           ; Get the second letter of the token
+
+ CMP #'?'               ; If the second letter of the token is a question mark
+ BEQ TT48               ; then just return from the print subroutine without
+                        ; printing, as this is a one-letter token (TT48
+                        ; contains an RTS)
+
+ JMP TT27               ; Print the second letter and return from the print
+                        ; subroutine
+
+.TT47
+ SBC #160               ; This is a recursive token in the range 160-255, so
+                        ; subtract 160 from the token number to get the token
+                        ; number 0-95 and fall through to ex to print it
+
+\ *****************************************************************************
+\ Subroutine: ex
+\
+\ Print a recursive token
+\
+\ Arguments:
+\   A   The recursive token to be printed, in the range 0-148
 \ *****************************************************************************
 
 .ex                     ; extra, token >= 96 or Acc = 128to145 or -=160
-{
  TAX                    ; copy of word index
  LDA #(QQ18 MOD256)     ; page 4 words lo  #QQ18 MOD 256
  STA V
@@ -7179,10 +7435,26 @@ MAPCHAR '4', '4'
  INC V+1
  LDA (V),Y
  BNE TT50               ; loop Y for next letter of page4 token
-}
 
-.TT48                   ; rts
+\ *****************************************************************************
+\ Subroutine: TT48
+\
+\ Performs a RTS to return from the print subroutine
+\
+\ This is so the print subroutine can perform a return using conditonal branch
+\ instructions, such as BEQ TT48, which will return from the print subroutine
+\ if the zero flag is set
+\ *****************************************************************************
+
+.TT48
  RTS                    ; end of flight token printing TT27
+
+
+
+
+
+
+
 
 .EX2                    ; ready to remove - Explosion Code
  LDA INWK+31            ; exploding/display state|missiles
@@ -9239,6 +9511,7 @@ H_F%=L%+P%-C_A%
  AND #192               ; short or long range chart?
  BEQ t95                ; no, rts
  JSR hm                 ; move hyperspace cross-hairs to QQ9,10 target
+                        ; hm always returns with A=0
  STA QQ17               ; All letters Uppercase
  JSR cpl                ; print Planet name for seed QQ15
  LDA #128               ; Only first letter Uppercase
