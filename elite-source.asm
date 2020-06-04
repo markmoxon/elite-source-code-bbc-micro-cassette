@@ -135,10 +135,30 @@ KY19=KL+15
 XX19=INWK+33
 XX1=INWK
 .LSP    skip 1          ; =FNZ
+
+\ *****************************************************************************
+\ Variable: QQ15
+\
+\ Contains the three two-byte seeds for the selected system, i.e. the one in
+\ the cross-hairs in the short range chart.
+\
+\ The seeds are stored as big-endian 16-bit numbers, so the low (least
+\ significant) byte is first followed by the high (most significant) byte.
+\ That means if the seeds are w0, w1 and w2, they are stored like this:
+\
+\       low byte  high byte
+\   w0  QQ15      QQ15+1
+\   w1  QQ15+2    QQ15+3
+\   w2  QQ15+4    QQ15+5
+\
+\ In this documentation, we denote the low byte of w0 as w0_lo and the high
+\ byte as w0_hi, and so on for w1_lo, w1_hi, w2_lo and w2_hi.
+\ *****************************************************************************
+
 .QQ15   skip 6          ; =FNZT(6)
 
 \ *****************************************************************************
-\ Variable: XX18 (shares location with QQ17)
+\ Variable: XX18 (shares location with QQ17 and QQ19)
 \ *****************************************************************************
 
 .XX18   skip 9          ; =FNZT(9)
@@ -160,6 +180,7 @@ XX1=INWK
 \ Bit 6 = 1 means print the next letter in lower case
 \
 \ So:
+\
 \ QQ17 = 0   (%00000000) means the case is set to ALL CAPS
 \ QQ17 = 128 (%10000000) means Sentence Case, currently printing upper case
 \ QQ17 = 192 (%11000000) means Sentence Case, currently printing lower case
@@ -169,8 +190,14 @@ XX1=INWK
 
 QQ17=XX18
 
+\ *****************************************************************************
+\ Variable: QQ19 (shares location with XX18)
+\
+\ Used as a temporary backup when twisting seeds (6 bytes) in cpl
+\ *****************************************************************************
 
 QQ19=QQ17+1
+
 K5=XX18
 K6=K5+4
 .ALP1   skip 1          ; =FNZ
@@ -233,7 +260,15 @@ CABTMP=MANY
 .EV     skip 1          ; =FNW
 .DLY    skip 1          ; =FNW
 .de     skip 1          ; =FNW
+
+\ *****************************************************************************
+\ Variable: T
+\
+\ Used as temporary storage (e.g. for the loop counter in cpl)
+\ *****************************************************************************
+
 T=&D1
+
 XX2=&D2
 K3=XX2
 K4=K3+14
@@ -272,7 +307,15 @@ LSX=LSO
 VEC=&7FFE
 svn=&7FFD
 
+\ *****************************************************************************
+\ Variable: QQ2
+\
+\ Contains the six seeds for the current system
+\ *****************************************************************************
+
 .QQ2    skip 6          ; =FNWT(6)
+
+
 .QQ3    skip 1          ; =FNW
 .QQ4    skip 1          ; =FNW
 .QQ5    skip 1          ; =FNW
@@ -295,9 +338,24 @@ ORG T%
 .QQ1    skip 1          ; =FNTP
 .QQ21   skip 6          ; =FNTPT(6)
 .CASH   skip 4          ; =FNTPT(4)
+
+\ *****************************************************************************
+\ Variable: QQ14
+\
+\ Contains the current fuel level
+\ *****************************************************************************
 .QQ14   skip 1          ; =FNTP
+
 .COK    skip 1          ; =FNTP
+
+\ *****************************************************************************
+\ Variable: GCNT
+\
+\ Contains the current galaxy number
+\ *****************************************************************************
+
 .GCNT   skip 1          ; =FNTP
+
 .LASER  skip 6          ; =FNTPT(6)
 .CRGO   skip 1          ; =FNTP
 .QQ20   skip 17         ; =FNTPT(17)
@@ -1661,6 +1719,9 @@ J%=P%
 
 \[OPTZ
 
+\ Commander's name is stored in NA%, up to 7 characters (DFS filename limit)
+\ Terminated with CR, 13
+
 .NA%
  EQUS "JAMESON"
  EQUB 13
@@ -2787,6 +2848,19 @@ NEXT                    ; allwk up to &0ABC while heap for edges working down fr
 .TENS                   ; print decimal data
  EQUD &E87648           ; TENS(0-3) \ 100Billion = 0x17 4876E800  => highest S=23
 
+\ *****************************************************************************
+\ Subroutine: pr2
+\
+\ Print the number in X to 3 digits, left-padding with spaces for numbers with
+\ fewer than 3 digits (so numbers < 100 are right-aligned). Optionally include
+\ a decimal point.
+\
+\ Arguments:
+\   X           The number to print
+\
+\   C flag      If set, include a decimal point
+\ *****************************************************************************
+
 .pr2                    ; number Xreg to printable characters, include decimal if carry set.
  LDA #3                 ; number of digits
  LDY #0                 ; hi byte = 0
@@ -2798,6 +2872,24 @@ NEXT                    ; allwk up to &0ABC while heap for edges working down fr
  STA K+1
  STY K+2
  STX K+3                ; lsb
+
+\ *****************************************************************************
+\ Subroutine: BPRNT
+\
+\ Print the four-byte number stored in K to K+3 to a specific number of digits,
+\ left-padding with spaces for numbers with fewer digits (so lower numbers are
+\ right-aligned). Optionally include a decimal point.
+\
+\ Arguments:
+\   K...K+3     The number to print, stored with the most significant byte in K
+\               and the least significant in K+3 (big-endian)
+\
+\   U           The maximum number of digits to print, including the decimal
+\               point (spaces will be used on the left to pad out the result to
+\               this width, so the number is right-aligned to this width)
+\
+\   C flag      If set, include a decimal point and one digit (1 decimal place)
+\ *****************************************************************************
 
 .BPRNT                  ; Buffer K print (for cash, A=U=9 cash stored in K buffer)
  LDX #11                ; maximum text width
@@ -4981,7 +5073,7 @@ NEXT
  STA SC+1
  LDA #7                 ; screen lo
  STA SC
- JSR TT67               ; Next row
+ JSR TT67               ; Next row ; Call TT67, which prints a newline
  LDA #0                 ; most of bytes on Row set to Acc
  JSR LYN                ; Row 1
  INC SC+1
@@ -5175,35 +5267,131 @@ H_D%=L%+P%-C_A%
  PLA                    ; scooping added one item
  RTS
 
-.TT20                   ; TWIST on QQ15 to next system
- JSR P%+3               ; do four times
- JSR P%+3               ; do twice
 
-.TT54                   ; Twist seed for next digram in QQ15
- LDA QQ15
+\ *****************************************************************************
+\ Subroutine: TT20
+\
+\ Twist seeds in QQ15 (selected system) four times, to generate the next system
+\ *****************************************************************************
+
+.TT20
+ JSR P%+3               ; This line calls the line below as a subroutine, which
+                        ; does two twists before returning here, and then we
+                        ; fall through to the line below for another two
+                        ; twists, so the net effect of these two consecutive
+                        ; JSR calls is four twists, not counting the ones
+                        ; inside your head as you try to follow this process
+
+ JSR P%+3               ; This line calls TT54 as a subroutine to do a twist,
+                        ; and then falls through into TT54 to do another twist
+                        ; before returning from the subroutine
+
+\ *****************************************************************************
+\ Subroutine: TT54
+\
+\ This routine twists the three two-byte seeds in QQ15. The three seeds
+\ represent three consecutive numbers in a Tribonacci sequence, where each
+\ number is equal to the sum of the preceding three numbers (the name is a play
+\ on Fibonacci sequence, in which each number is equal to the sum of the
+\ preceding two numbers). Twisting is the process of moving along the sequence
+\ by one place. So, say our seeds currently point to these numbers in the
+\ sequence:
+\
+\   0   0   1   1   2   4   7   13   24   44   ...
+\                       ^   ^    ^
+\
+\ so they are 4, 7 and 13, then twisting would move them all along by one
+\ place, like this:
+\
+\   0   0   1   1   2   4   7   13   24   44   ...
+\                           ^    ^    ^
+\
+\ giving us 7, 13 and 24. To generalise this, if we start with seeds w0, w1
+\ and w2 and we want to work out their new values after we perform a twist
+\ (let's call the new values x0, x1 and x2), then:
+\
+\   x0 = w1
+\   x1 = w2
+\   x2 = w0 + w1 + w2
+\ 
+\ So given an existing set of seeds in w0, w1 and w2, we can get the new values
+\ x0, x1 and x2 simply by doing the above sums. And if we want to do the above
+\ in-place without creating three new x variables, then we can do the
+\ following:
+\
+\   tmp = w0 + w1
+\   w0 = w1
+\   w1 = w2
+\   w2 = tmp + w1
+\
+\ In Elite, the numbers we're dealing with are two-byte, 16-bit numbers, and
+\ because these 16-bit numbers can only hold values up to 65535, the sequence
+\ wraps around at the end. But the maths is the same, it just has to be done
+\ on two-byte numbers, one byte at a time.
+\
+\ The seeds are stored as big-endian 16-bit numbers, so the low (least
+\ significant) byte is first followed by the high (most significant) byte.
+\ Taking the case of the currently selected system, whose seeds are stored
+\ in the six bytes from QQ15, that means our seed values are stored like this:
+\
+\       low byte  high byte
+\   w0  QQ15      QQ15+1
+\   w1  QQ15+2    QQ15+3
+\   w2  QQ15+4    QQ15+5
+\
+\ If we denote the low byte of w0 as w0_lo and the high byte as w0_hi, then
+\ the twist operation above can be rewritten on two-byte values like this,
+\ assuming the additions include the carry flag:
+\ 
+\   tmp_lo = w0_lo + w1_lo          ; tmp = w0 + w1
+\   tmp_hi = w0_hi + w1_hi
+\   w0_lo  = w1_lo                  ; w0 = w1
+\   w0_hi  = w1_hi
+\   w1_lo  = w2_lo                  ; w1 = w2
+\   w1_hi  = w2_hi
+\   w2_lo  = tmp_lo + w1_lo         ; w2 = tmp + w1
+\   w2_hi  = tmp_hi + w1_hi
+\
+\ And that's exactly what this subroutine does to twist our three two-byte
+\ seeds to the next values in the sequence, using X to store tmp_lo and Y to
+\ store tmp_hi.
+\ *****************************************************************************
+
+.TT54
+ LDA QQ15               ; X = tmp_lo = w0_lo + w1_lo
  CLC
  ADC QQ15+2
- TAX                    ; partial sum lo
- LDA QQ15+1
- ADC QQ15+3
- TAY                    ; partial sum hi
+ TAX
 
- LDA QQ15+2
+ LDA QQ15+1             ; Y = tmp_hi = w1_hi + w1_hi + carry
+ ADC QQ15+3
+ TAY
+
+ LDA QQ15+2             ; w0_lo = w1_lo
  STA QQ15
- LDA QQ15+3
+ 
+ LDA QQ15+3             ; w0_hi = w1_hi
  STA QQ15+1
- LDA QQ15+5
+ 
+ LDA QQ15+5             ; w1_hi = w2_hi
  STA QQ15+3
- LDA QQ15+4
+ 
+ LDA QQ15+4             ; w1_lo = w2_lo
  STA QQ15+2
- CLC
- TXA                    ; sum lo will be new w2_l
+ 
+ CLC                    ; w2_lo = X + w1_lo
+ TXA       
  ADC QQ15+2
  STA QQ15+4
- TYA                    ; sum hi will be new w2_h
+
+ TYA                    ; w2_hi = Y + w1_hi + carry
  ADC QQ15+3
  STA QQ15+5
- RTS
+
+ RTS                    ; Twist is complete so return from subroutine
+
+
+
 
 .TT146                  ; Distance in Light years
  LDA QQ8                ; distance in 0.1 LY units
@@ -5232,9 +5420,18 @@ H_D%=L%+P%-C_A%
  LDA #128               ; set bit7 for Upper case
  STA QQ17
 
-.TT67                   ; next Row
- LDA #13
- JMP TT27               ; process text token
+\ *****************************************************************************
+\ Subroutine: TT67
+\
+\ Print a newline
+\ *****************************************************************************
+
+.TT67
+ LDA #13                ; Load a newline character into the Acc
+
+ JMP TT27               ; Print the text token in Acc
+
+
 
 .TT70                   ; Economy is mainly..
  LDA #173               ; token for Economy = 'Mainly'
@@ -5631,7 +5828,7 @@ H_D%=L%+P%-C_A%
  JSR TT152              ; t kg g from QQ19+1
  LDA #&3F               ; ascii '?'
  JSR TT27
- JSR TT67               ; next Row
+ JSR TT67               ; next Row ; Call TT67, which prints a newline
  LDX #0                 ; input result returned (also done by gnum)
  STX R
  LDX #12                ; counter max
@@ -6637,7 +6834,7 @@ H_D%=L%+P%-C_A%
 
 .EQL1                   ; counter X
  STX XX13
- JSR TT67               ; next Row with QQ17 set
+ JSR TT67               ; next Row with QQ17 set ; Call TT67, which prints a newline
  LDX XX13
  CLC                    ; no decimal point
  JSR pr2                ; number X
@@ -6935,100 +7132,245 @@ MAPCHAR '9', '9'
 MAPCHAR '8', '8'
 MAPCHAR '4', '4'
 
-.cpl                    ; print Planet name for seed QQ15.  Acc == 3
- LDX #5                 ; 6 seeds
+\ *****************************************************************************
+\ Subroutine: cpl
+\
+\ Print control code 3 (selected system name, i.e. the one in the cross-hairs
+\ in the short range chart)
+\
+\ System names are generated from the three two-byte seeds for that system. In
+\ the case of the selected system, those seeds live at QQ15. The process works
+\ as follows, where w0, w1, w2 are the seeds for the system in question 
+\
+\   1. Check bit 6 of w0_lo. If it is set then we will generate four two-letter
+\      pairs for the name (8 characters in total), otherwise we will generate
+\      three pairs (6 characters).
+\
+\   2. Generate the first two letters by taking bits 0-4 of w2_hi. If this is
+\      zero, jump to the next step, otherwise we have a number in the range
+\      1-31. Add 128 to get a number in the range 129-159, and convert this to
+\      a two-letter token (see elite-words.asm for more on two-letter tokens).
+\
+\   3. Twist the seeds by calling TT54 and repeat the previous step, until we
+\      have processed three or four pairs, depending on step 1.
+\
+\ One final note. As the process above involves twisting the seeds three or
+\ four times, they will be changed, so we also need to back up the original
+\ seeds before starting the above process, and restore them afterwards.
+\ *****************************************************************************
 
-.TT53                   ; counter X
- LDA QQ15,X             ; system seeds
- STA QQ19,X             ; temp store
- DEX                    ; next seed
- BPL TT53               ; loop X
- LDY #3                 ; 4 pairs
- BIT QQ15
- BVS P%+3               ; 6th bit of w0_l set is all 4 pairs wanted.
- DEY                    ; else 3 pairs
- STY T
+.cpl
+ LDX #5                 ; First we need to backup the seeds in QQ15, so set up
+                        ; a counter in X to cover three two-byte seeds (i.e.
+                        ; 6 bytes)
 
-.TT55                   ; counter T digrams
- LDA QQ15+5
- AND #31                ; keep bottom 5 bits of w2_h (planet name)
- BEQ P%+7               ; lose 2 chars, twist.
- ORA #128               ; flight digram ..LA..
- JSR TT27               ; process text token
- JSR TT54               ; twist seed for next digram in QQ15
- DEC T                  ; next digram
- BPL TT55               ; loop T
- LDX #5                 ; 6 seeds
+.TT53
+ LDA QQ15,X             ; Copy byte X from QQ15 to QQ19
+ STA QQ19,X
 
-.TT56                   ; counter X
- LDA QQ19,X             ; restore
- STA QQ15,X             ; system seeds
- DEX                    ; next seed
- BPL TT56               ; loop X
- RTS
+ DEX                    ; Decrement the loop counter
 
-.cmn                    ; commander name Acc == 4
- LDY #0
+ BPL TT53               ; Loop back for the next byte to backup
 
-.QUL4                   ; counter Y
- LDA NA%,Y              ; NAME,Y
- CMP #13                ; end of string
- BEQ ypl-1              ; found, rts.
- JSR TT26               ; else print character
- INY                    ; next char
- BNE QUL4               ; loop Y
- RTS                    ; ypl-1
+ LDY #3                 ; Step 1: Now that the seeds are backed up, we can
+                        ; start the name-generation process. We will either
+                        ; need to loop three or four times, so for now set
+                        ; up a counter in Y to loop four times
 
-.ypl                    ; present, your, planet name 	Acc == 2
- LDA MJ
- BNE cmn-1
- JSR TT62               ; swop present QQ2 seeds into QQ15
- JSR cpl                ; Planet name for seed QQ15
+ BIT QQ15               ; Check bit 6 of w0_lo, which is stored in QQ15
 
-.TT62                   ; QQ2 present seeds swopped with QQ15
- LDX #5                 ; 6 bytes
+ BVS P%+3               ; If bit 6 is set then skip over the next instruction
 
-.TT78                   ; counter X
- LDA QQ15,X             ; planet seeds 6 bytes
- LDY QQ2,X              ; seeds for present system (6 bytes)
+ DEY                    ; Bit 6 is clear, so we only want to loop three times,
+                        ; so decrement the loop counter in Y
+
+ STY T                  ; Store the loop counter in T
+
+.TT55
+ LDA QQ15+5             ; Step 2: Load w2_hi, which is stored in QQ15+5, and
+ AND #31                ; extract bits 0-4 by AND'ing with %00011111 (31)
+
+ BEQ P%+7               ; If all those bits are zero, then skip the following
+                        ; 2 instructions to go to step 3
+
+ ORA #128               ; We now have a number in the range 1-31, which we can
+ JSR TT27               ; easily convert into a two-letter token, but first we
+                        ; need to add 128 to get a range of 129-159
+
+ JSR TT54               ; Step 3: twist the seeds in QQ15
+
+ DEC T                  ; Decrement the loop counter
+
+ BPL TT55               ; Loop back for the next two letters
+
+ LDX #5                 ; We have printed the system name, so we can now
+                        ; restore the seeds we backed up earlier. Set up a
+                        ; counter in X to cover three two-byte seeds (i.e. 6
+                        ; bytes)
+
+.TT56
+ LDA QQ19,X             ; Copy byte X from QQ19 to QQ15
+ STA QQ15,X
+
+ DEX                    ; Decrement the loop counter
+
+ BPL TT56               ; Loop back for the next byte to restore
+
+ RTS                    ; Once all the seeds are restored, return from the
+                        ; print subroutine
+
+\ *****************************************************************************
+\ Subroutine: cmn
+\
+\ Print control code 4 (commander's name)
+\ *****************************************************************************
+
+.cmn
+ LDY #0                 ; Set up a counter in Y, starting from 0
+
+.QUL4
+ LDA NA%,Y              ; The commander's name is stored at NA%, so load the
+                        ; Y-th character from NA%
+ 
+ CMP #13                ; If we have reached the end of the name, return from
+ BEQ ypl-1              ; the print subroutine (ypl-1 points to the RTS below)
+ 
+ JSR TT26               ; Print the character we just loaded
+ 
+ INY                    ; Increment the loop counter
+ 
+ BNE QUL4               ; Loop back for the next character
+ 
+ RTS                    ; Return from the print subroutine
+
+\ *****************************************************************************
+\ Subroutine: ypl
+\
+\ Print control code 2 (current system name)
+\ *****************************************************************************
+
+.ypl
+ LDA MJ                 ; Check the mis-jump flag at MJ, and if it is non-zero
+ BNE cmn-1              ; then return from the print subroutine, as we are in
+                        ; witchspace, and witchspace doesn't have a system name
+ 
+ JSR TT62               ; Call TT62 below to swap the three two-byte seeds in
+                        ; QQ2 and QQ15 (before the swap, QQ2 contains the seeds
+                        ; for the current system, while QQ15 contains the seeds
+                        ; for the selected system)
+ 
+ JSR cpl                ; Call cpl to print out the system name for the seeds
+                        ; in QQ15 (which now contains the seeds for the current
+                        ; system)
+                        
+                        ; Now we fall through into the TT62 subroutine, which
+                        ; will swap QQ2 and QQ15 once again, so everything goes
+                        ; back into the right place, and the RTS at the end of
+                        ; TT62 will return from the print subroutine
+
+.TT62
+ LDX #5                 ; Set up a counter in X for the three two-byte seeds we
+                        ; want to swap (i.e. 6 bytes)
+
+.TT78
+ LDA QQ15,X             ; Swap byte X between QQ2 and QQ15
+ LDY QQ2,X
  STA QQ2,X
  STY QQ15,X
- DEX                    ; next seed
- BPL TT78               ; loop X
- RTS
+ 
+ DEX                    ; Decrement the loop counter
+ 
+ BPL TT78               ; Loop back for the next byte to swap
+ 
+ RTS                    ; Once all bytes are swapped, return from the
+                        ; subroutine
 
-.tal                    ; print Galaxy number   Acc == 1
- CLC                    ; no decimal point
- LDX GCNT               ; galaxy count
- INX                    ; X is Galaxy number+1
- JMP pr2                ; number X to printable characters
+\ *****************************************************************************
+\ Subroutine: tal
+\
+\ Print control code 1 (current galaxy number, right-aligned to width 3)
+\ *****************************************************************************
 
-.fwl                    ; fuel and cash		Acc == 5
- LDA #105               ; token = FUEL
- JSR TT68               ; process token followed by colon
- LDX QQ14
- SEC                    ; light years with decimal point
- JSR pr2                ; number X to printable characters
- LDA #195               ; token = LIGHT YEARS
- JSR plf                ; TT27 text token followed by rtn then
+.tal
+ CLC                    ; We don't want to print the galaxy number with a
+                        ; decimal point, so clear the carry flag for pr2 to
+                        ; take as an argument
+ 
+ LDX GCNT               ; Load the current galaxy number from GCNT into X
+ 
+ INX                    ; Add 1 to the galaxy number, as the galaxy numbers
+                        ; are 0-7 internally, but we want to display them as
+                        ; galaxy 1 through 8
+ 
+ JMP pr2                ; Jump to pr2, which prints the number in X to a width
+                        ; of 3 figures, left-padding with spaces to a width of
+                        ; 3, and once done, return from the print subroutine
+                        ; (as pr2 ends with a RTS)
 
-.PCASH                  ; print Cash
- LDA #119               ; token = CASH colon
- BNE TT27               ; guaranteed hop to process text token
+\ *****************************************************************************
+\ Subroutine: fwl
+\
+\ Print control code 5 ("FUEL: ", fuel level, " LIGHT YEARS", newline, "CASH:",
+\ control code 0)
+\ *****************************************************************************
 
-.csh                    ; Cash, 'Cr' and return. Acc == 0
- LDX #3                 ; 4 bytes
+.fwl
+ LDA #105               ; Print recursive token 105 ("FUEL") followed by a
+ JSR TT68               ; colon
+ 
+ LDX QQ14               ; Load the current fuel level from QQ14
 
-.pc1                    ; counter X \ big endian
- LDA CASH,X
+ SEC                    ; We want to print the fuel level with a decimal point,
+                        ; so set the carry flag for pr2 to take as an argument
+
+ JSR pr2                ; Call pr2, which prints the number in X to a width of
+                        ; 3 figures (i.e. in the format x.x, which will always
+                        ; be exactly 3 characters as the maximum fuel is 7.0)
+
+ LDA #195               ; Print recursive token 35 ("LIGHT YEARS") followed by
+ JSR plf                ; a newline
+
+.PCASH                  ; This label is not used but is in the original source
+
+ LDA #119               ; Print recursive token 119 ("CASH:" then control code
+ BNE TT27               ; 0, which prints cash levels, then " CR" and newline)
+
+\ *****************************************************************************
+\ Subroutine: csh
+\
+\ Print control code 0 (current amount of cash, right-aligned to width 9,
+\ followed by " CR" and a newline)
+\ *****************************************************************************
+
+.csh
+ LDX #3                 ; We are going to use the BPRNT routine to print out
+                        ; the current amount of cash, which is stored as a
+                        ; four-byte number at location CASH. BPRNT prints out
+                        ; the four-byte number stored in K, so before we call
+                        ; BPRNT, we need to copy the four bytes from CASH into
+                        ; K, so first we set up a counter in X for the 4 bytes
+
+.pc1
+ LDA CASH,X             ; Copy byte X from CASH to K
  STA K,X
- DEX                    ; Cash to Kbuffer to print
- BPL pc1
- LDA #9                 ; print K, 9 sig figs.
- STA U
- SEC                    ; carry set for decimal point
- JSR BPRNT              ; Buffer print (4 bytes of K)
- LDA #226               ; token = ' CR'
+
+ DEX                    ; Decrement the loop counter
+ 
+ BPL pc1                ; Loop back for the next byte to copy
+
+ LDA #9                 ; We want to print the cash using up to 9 digits
+ STA U                  ; (including the decimal point), so store this in U
+                        ; for BRPNT to take as an argument
+ 
+ SEC                    ; We want to print the fuel level with a decimal point,
+                        ; so set the carry flag for BRPNT to take as an
+                        ; argument
+
+ JSR BPRNT              ; Print the amount of cash to 9 digits with a decimal
+                        ; point
+
+ LDA #226               ; Print recursive token 66 (" CR") followed by a
+                        ; newline by falling through into plf
 
 \ *****************************************************************************
 \ Subroutine: plf
@@ -7036,7 +7378,8 @@ MAPCHAR '4', '4'
 \ Print a text token followed by a newline
 \
 \ Arguments:
-\   A   The text token to be printed
+\
+\   Acc         The text token to be printed
 \ *****************************************************************************
 
 .plf
@@ -7050,22 +7393,23 @@ MAPCHAR '4', '4'
 \ Print a text token followed by a colon
 \
 \ Arguments:
-\   A   The text token to be printed
+\
+\   Acc         The text token to be printed
 \ *****************************************************************************
 
 .TT68
  JSR TT27               ; Print the text token in Acc and fall through to TT73
+                        ; to print a colon
 
 \ *****************************************************************************
 \ Subroutine: TT73
 \
 \ Print a colon
-\
-\ No arguments
 \ *****************************************************************************
 
-.TT73                   ; print Colon
- LDA #':'               ; Set Acc = ASCII ':' and fall through to TT27
+.TT73
+ LDA #':'               ; Set Acc to ASCII ':' and fall through to TT27 to
+                        ; actually print the colon
 
 \ *****************************************************************************
 \ Subroutine: TT27
@@ -7075,7 +7419,8 @@ MAPCHAR '4', '4'
 \ used in Elite.
 \
 \ Arguments:
-\   A   The text token to be printed
+\
+\   Acc         The text token to be printed
 \ *****************************************************************************
 
 .TT27
@@ -7086,62 +7431,62 @@ MAPCHAR '4', '4'
                         ; value of the token
 
  BEQ csh                ; If token = 0, this is control code 0 (current amount
-                        ; of cash), so jump to .csh
+                        ; of cash and newline), so jump to csh
 
  BMI TT43               ; If token > 127, this is either a two-letter token
                         ; (128-159) or a recursive token (160-255), so jump
                         ; to .TT43 to process tokens
 
  DEX                    ; If token = 1, this is control code 1 (current
- BEQ tal                ; galaxy number), so jump to .tal
+ BEQ tal                ; galaxy number), so jump to tal
  
  DEX                    ; If token = 2, this is control code 2 (current system
- BEQ ypl                ; name), so jump to .ypl
+ BEQ ypl                ; name), so jump to ypl
 
- DEX
- BNE P%+5               ; If token > 3, skip the following instruction
+ DEX                    ; If token > 3, skip the following instruction
+ BNE P%+5
  
  JMP cpl                ; This token is control code 3 (selected system name)
-                        ; so jump to .cpl
+                        ; so jump to cpl
 
  DEX                    ; If token = 4, this is control code 4 (commander
- BEQ cmn                ; name), so jump to .cmm
+ BEQ cmn                ; name), so jump to cmm
 
  DEX                    ; If token = 5, this is control code 5 (fuel, newline,
- BEQ fwl                ; cash), so jump to .fwl
+ BEQ fwl                ; cash, newline), so jump to fwl
 
- DEX
- BNE P%+7               ; If token > 6, skip the following 3 instructions
+ DEX                    ; If token > 6, skip the following 3 instructions
+ BNE P%+7
 
  LDA #128               ; This token is control code 6 (switch to sentence
  STA QQ17               ; case), so store 128 (bit 7 set, bit 6 clear) in QQ17,
  RTS                    ; which controls letter case, and return from the print
                         ; subroutine as we are done
 
+ DEX                    ; If token > 8, skip the following 2 instructions
  DEX
- DEX
- BNE P%+5               ; If token > 8, skip the following 2 instructions
+ BNE P%+5
  
  STX QQ17               ; This token is control code 8 (switch to ALL CAPS)
  RTS                    ; so store 0 in QQ17, which controls letter case, and
                         ; return from the print subroutine as we are done
 
  DEX                    ; If token = 9, this is control code 9 (tab to column
- BEQ crlf               ; 21), so jump to .crlf
+ BEQ crlf               ; 21 and print a colon), so jump to crlf
  
  CMP #96                ; By this point, token is either 7, or in 10-127.
  BCS ex                 ; Check token number in Acc and if token >= 96, then
                         ; the token is in 96-127, which is a recursive token,
-                        ; so jump to .ex, which prints recursive tokens in this
+                        ; so jump to ex, which prints recursive tokens in this
                         ; range (i.e. where the recursive token number is
                         ; correct and doesn't need correcting)
  
- CMP #14
- BCC P%+6               ; If token < 14, skip the following 2 instructions
+ CMP #14                ; If token < 14, skip the following 2 instructions
+ BCC P%+6
  
  CMP #32                ; If token < 32, then this means token is in 14-31, so
  BCC qw                 ; this is a recursive token that needs 114 adding to it
-                        ; to get the recursive token number, so jump to .qw
+                        ; to get the recursive token number, so jump to qw
                         ; which will do this
 
                         ; By this point, token is either 7 (beep) or in 10-13
@@ -7181,10 +7526,11 @@ MAPCHAR '4', '4'
 \ Print a letter in lower case
 \
 \ Arguments:
-\   A   The character to be printed. Can be one of the following:
-\       * 7 (beep)
-\       * 10-13 (line feeds and carriage returns)
-\       * 32-95 (ASCII capital letters, numbers and most punctuation)
+\
+\   Acc         The character to be printed. Can be one of the following:
+\                   * 7 (beep)
+\                   * 10-13 (line feeds and carriage returns)
+\                   * 32-95 (ASCII capital letters, numbers and punctuation)
 \ *****************************************************************************
 
 .TT42
@@ -7206,30 +7552,31 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: TT41
 \
-\ Print a letter according to Sentence Case
+\ Print a letter according to Sentence Case, as follows:
 \
-\ If QQ17 bit 6 is set, print lower case (via TT45), otherwise:
-\ If QQ17 bit 6 clear, then:
-\   If character is punctuation, just print it
-\   If character is a letter, set bit 6 in QQ17 and print letter as a capital
+\ * If QQ17 bit 6 is set, print lower case (via TT45), otherwise:
+\ * If QQ17 bit 6 clear, then:
+\     * If character is punctuation, just print it
+\     * If character is a letter, set QQ17 bit 6 and print letter as a capital
 \
 \ Entry conditions:
+\
 \   QQ17 bit 7 is set
 \   X contains the value of QQ17
 \
 \ Arguments:
-\   A   The character to be printed. Can be one of the following:
-\       * 7 (beep)
-\       * 10-13 (line feeds and carriage returns)
-\       * 32-95 (ASCII capital letters, numbers and most punctuation)
+\
+\   Acc         The character to be printed. Can be one of the following:
+\                   * 7 (beep)
+\                   * 10-13 (line feeds and carriage returns)
+\                   * 32-95 (ASCII capital letters, numbers and punctuation)
 \ *****************************************************************************
 
 .TT41                   ; If we get here, then QQ17 has bit 7 set, so we are in
                         ; Sentence Case
  
- BIT QQ17
- BVS TT45               ; If QQ17 also has bit 6 set, jump to TT45 to print
-                        ; this character in lower case
+ BIT QQ17               ; If QQ17 also has bit 6 set, jump to TT45 to print
+ BVS TT45               ; this character in lower case
 
                         ; If we get here, then QQ17 has bit 6 clear and bit 7
                         ; set, so we are in Sentence Case and we need to print
@@ -7248,21 +7595,40 @@ MAPCHAR '4', '4'
  PLA                    ; Restore the token number into Acc
  
  BNE TT44               ; Jump to TT26 (via TT44) to print the character in Acc
-                        ; (this BNE is effectively a JMP as the Acc will never
-                        ; be zero)
+                        ; (this BNE is effectively a JMP as Acc will never be
+                        ; zero)
 
-                        
-                        
+\ *****************************************************************************
+\ Subroutine: qw
+\
+\ Print a recursive token where the token number is in 128-145 (so the value
+\ passed to TT27 is in the range 14-31)
+\
+\ Arguments:
+\
+\   Acc         A value from 128-145, which refers to a recursive token in the
+\               range 14-31
+\ *****************************************************************************
 
 .qw
- ADC #114               ; A+=114 becomes 128to145 page4 digram
- BNE ex
+ ADC #114               ; This is a recursive token in the range 0-95, so add
+ BNE ex                 ; 114 to the argument to get the token number 128-145
+                        ; and jump to ex to print it
+
+\ *****************************************************************************
+\ Subroutine: crlf
+\
+\ Print control code 9 (tab to column 21 and print a colon). The subroutine
+\ label is pretty misleading, as it doesn't have anything to do with carriage
+\ returns or line feeds.
+\ *****************************************************************************
 
 .crlf
- LDA #21                ; on right
+ LDA #21                ; Set the X-column in XC to 21
  STA XC
- BNE TT73               ; guaranteed up, print colon.
 
+ BNE TT73               ; Jump to TT73, which prints a colon (this BNE is
+                        ; effectively a JMP as Acc is always non-zero)
 
 \ *****************************************************************************
 \ Subroutine: TT45
@@ -7272,15 +7638,17 @@ MAPCHAR '4', '4'
 \ Otherwise this is punctuation, so clear bit 6 in QQ17 and print
 \
 \ Entry conditions:
+\
 \   QQ17 bit 6 is set
 \   QQ17 bit 7 is set
 \   X contains the value of QQ17
 \
 \ Arguments:
-\   A   The character to be printed. Can be one of the following:
-\       * 7 (beep)
-\       * 10-13 (line feeds and carriage returns)
-\       * 32-95 (ASCII capital letters, numbers and most punctuation)
+\
+\   Acc         The character to be printed. Can be one of the following:
+\                   * 7 (beep)
+\                   * 10-13 (line feeds and carriage returns)
+\                   * 32-95 (ASCII capital letters, numbers and punctuation)
 \ *****************************************************************************
 
 .TT45                   ; If we get here, then QQ17 has bit 6 and 7 set, so we
@@ -7305,15 +7673,17 @@ MAPCHAR '4', '4'
 \ printed after this will start with a capital letter
 \
 \ Entry conditions:
+\
 \   QQ17 bit 6 is set
 \   QQ17 bit 7 is set
 \   X contains the value of QQ17
 \
 \ Arguments:
-\   A   The character to be printed. Can be one of the following:
-\       * 7 (beep)
-\       * 10-13 (line feeds and carriage returns)
-\       * 32-95 (ASCII capital letters, numbers and most punctuation)
+\
+\   Acc         The character to be printed. Can be one of the following:
+\                   * 7 (beep)
+\                   * 10-13 (line feeds and carriage returns)
+\                   * 32-95 (ASCII capital letters, numbers and punctuation)
 \ *****************************************************************************
 
 .TT46
@@ -7333,7 +7703,8 @@ MAPCHAR '4', '4'
 \ Print a character
 \
 \ Arguments:
-\   A   The character to be printed
+\
+\   Acc         The character to be printed
 \ *****************************************************************************
 
 .TT74
@@ -7342,12 +7713,15 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: TT43
 \
-\ Print a two-letter token or a recursive token
+\ Print a two-letter token, or a recursive token where the token number is in
+\ 0-95 (so the value passed to TT27 is in the range 160-255)
 \
 \ Arguments:
-\   A   The token to be printed. Can be in the following ranges:
-\       * 128-159 (two-letter token)
-\       * 160-255 (recursive token)
+\
+\   Acc         One of the following:
+\                   * 128-159 (two-letter token)
+\                   * 160-255 (the argument to TT27 that refers to a recursive
+\                     token in the range 0-95)
 \ *****************************************************************************
 
 .TT43
@@ -7378,7 +7752,7 @@ MAPCHAR '4', '4'
 
 .TT47
  SBC #160               ; This is a recursive token in the range 160-255, so
-                        ; subtract 160 from the token number to get the token
+                        ; subtract 160 from the argument to get the token
                         ; number 0-95 and fall through to ex to print it
 
 \ *****************************************************************************
@@ -7387,7 +7761,8 @@ MAPCHAR '4', '4'
 \ Print a recursive token
 \
 \ Arguments:
-\   A   The recursive token to be printed, in the range 0-148
+\
+\   Acc         The recursive token to be printed, in the range 0-148
 \ *****************************************************************************
 
 .ex                     ; extra, token >= 96 or Acc = 128to145 or -=160
@@ -9821,7 +10196,7 @@ ENDIF
  BCS TR1                ; else carry set if escape hit
  TYA                    ; accepted string length
  BEQ TR1                ; if 0 reset name from NA% to INWK+5
- JMP TT67
+ JMP TT67               ; Jump to TT67, which prints a newline
 
 .RLINE                  ; OSWORD block for gtnme
  EQUW INWK
@@ -9883,8 +10258,8 @@ ENDIF
  EOR TALLY+1            ; kills/256
  STA K+3
  JSR BPRNT              ; Buffer print ( 4 bytes of K)
- JSR TT67               ; next Row
- JSR TT67               ; next Row
+ JSR TT67               ; next Row ; Call TT67, which prints a newline
+ JSR TT67               ; next Row ; Call TT67, which prints a newline
  PLA                    ; pull check byte
  STA &B00+NT%
  EOR #&A9               ; check code2
