@@ -20,7 +20,7 @@ CODE% = P%
 \ generation.
 \ 
 \ To support tokenisation, characters are printed to the screen using a special
-\ subroutine (TT27),  which not only supports the usual range of letters,
+\ subroutine (TT27), which not only supports the usual range of letters,
 \ numbers and punctuation, but also three different types of token. When
 \ printed, these tokens get expanded into longer strings, which enables the
 \ game to squeeze a lot of text into a small amount of storage.
@@ -116,7 +116,7 @@ CODE% = P%
 \ Control codes are in the range 0 to 13, and expand to the following when
 \ printed via TT27:
 \ 
-\     0   Current amount of cash, right-aligned to width 9, followed by " CR"
+\     0   Current cash, right-aligned to width 9, then " CR", newline
 \     1   Current galaxy number, right-aligned to width 3
 \     2   Current system name
 \     3   Selected system name (the cross-hairs in the short range chart)
@@ -397,7 +397,7 @@ TWOK 146
 CHAR 'T'
 EQUB 0
 
-CHAR 'D'                            ; Token 3:      "DATA ON {chosen system name}"
+CHAR 'D'                            ; Token 3:      "DATA ON {selected system name}"
 TWOK 145                            ; Encoded as:   "D<145>A[131]{3}"
 CHAR 'A'
 RTOK 131
@@ -700,7 +700,7 @@ CHAR 'I'
 TWOK 159
 EQUB 0
 
-RTOK 122                            ; Token 39:     "GALACTIC CHART{galaxy number padded to width 3}"
+RTOK 122                            ; Token 39:     "GALACTIC CHART{galaxy number right-aligned to width 3}"
 RTOK 1                              ; Encoded as:   "[122][1]{1}"
 CTRL 1
 EQUB 0
@@ -745,7 +745,7 @@ CHAR 'E'                            ; Encoded as:   "SE[118]"
 RTOK 118
 EQUB 0
 
-CHAR ' '                            ; Token 46:     " CARGO{sentence case}"
+CHAR ' '                            ; Token 46:     " CARGO{switch to sentence case}"
 CHAR 'C'                            ; Encoded as:   " C<138>GO{6}"
 TWOK 138
 CHAR 'G'
@@ -1179,7 +1179,7 @@ CHAR 'I'
 TWOK 129
 EQUB 0
 
-RTOK 67                            ; Token 107:    "LARGE CARGO{sentence case} BAY"
+RTOK 67                            ; Token 107:    "LARGE CARGO{switch to sentence case} BAY"
 RTOK 46                            ; Encoded as:   "[67][46] BAY"
 CHAR ' '
 CHAR 'B'
@@ -1258,7 +1258,7 @@ CHAR 'L'                            ; Token 118:    "LL"
 CHAR 'L'                            ; Encoded as:   "LL"
 EQUB 0
 
-RTOK 37                             ; Token 119:    "CASH:{cash padded to width 11} CR"
+RTOK 37                             ; Token 119:    "CASH:{cash right-aligned to width 9} CR{crlf}"
 CHAR ':'                            ; Encoded as:   "[37]:{0}"
 CTRL 0
 EQUB 0
@@ -1305,7 +1305,7 @@ CHAR 'C'
 CHAR 'K'
 EQUB 0
 
-CTRL 5                              ; Token 125:    "FUEL: {fuel as x.x} LIGHT YEARS{crlf}LEGAL STATUS:"
+CTRL 5                              ; Token 125:    "FUEL: {fuel level} LIGHT YEARS{crlf}CASH:{cash right-aligned to width 9} CR{crlf}LEGAL STATUS:"
 TWOK 129                            ; Encoded as:   "{5}<129>G<128> [43]<145><136>:"
 CHAR 'G'
 TWOK 128
@@ -1316,7 +1316,7 @@ TWOK 136
 CHAR ':'
 EQUB 0
 
-RTOK 92                             ; Token 126:    "COMMANDER {cmdr name}{crlf}{crlf}{crlf}{sentence case}PRESENT SYSTEM{tab to col 21}:{current system name}{crlf}HYPERSPACE SYSTEM{tab to col 21}:{chosen system name}{crlf}CONDITION{tab to col 21}:"
+RTOK 92                             ; Token 126:    "COMMANDER {commander name}{crlf}{crlf}{crlf}{switch to sentence case}PRESENT SYSTEM{tab to column 21}:{current system name}{crlf}HYPERSPACE SYSTEM{tab to column 21}:{selected system name}{crlf}CONDITION{tab to column 21}:"
 CHAR ' '                            ; Encoded as:   "[92] {4}{13}{13}{13}{6}[145] [5]{9}{2}{13}[29][5]{9}{3}{13}C<159><141><151><159>{9}"
 CTRL 4
 CTRL 13
@@ -1365,7 +1365,7 @@ CTRL 13
 CTRL 13
 EQUB 0
 
-CTRL 6                              ; Token 129:    "{sentence case}DOCKED"
+CTRL 6                              ; Token 129:    "{switch to sentence case}DOCKED"
 RTOK 124                            ; Encoded as:   "{6}[124]<152>"
 TWOK 152
 EQUB 0
@@ -1382,7 +1382,7 @@ TWOK 159                            ; Encoded as:   " <159> "
 CHAR ' '
 EQUB 0
 
-CTRL 13                             ; Token 132:    "{crlf}{all caps}EQUIPMENT:{sentence case}"
+CTRL 13                             ; Token 132:    "{crlf}{switch to all caps}EQUIPMENT:{switch to sentence case}"
 CTRL 8                              ; Encoded as:   "{13}{8}[47]M<146>T:{6}"
 RTOK 47
 CHAR 'M'
@@ -1496,7 +1496,7 @@ TWOK 146
 CHAR 'T'
 EQUB 0
 
-CTRL 8                              ; Token 146:    "{all caps}GAME OVER"
+CTRL 8                              ; Token 146:    "{switch to all caps}GAME OVER"
 CHAR 'G'                            ; Encoded as:   "{8}GAME O<150>R"
 CHAR 'A'
 CHAR 'M'
