@@ -127,8 +127,8 @@ CODE% = P%
 \     8   Switch case to ALL CAPS
 \     9   Tab to column 21, then print a colon
 \     10  Line feed (i.e. move cursor down)
-\     11  (not used)
-\     12  (not used)
+\     11  (not used, does the same as 13)
+\     12  (not used, does the same as 13)
 \     13  Newline (i.e. carriage return and line feed)
 \ 
 \ So a value of 4 in a tokenised string will be expanded to the current

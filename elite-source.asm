@@ -79,7 +79,16 @@ org ZP
 .SC     skip 2          ; =FNZ2
 SCH=SC+1
 .XX16   skip 18         ; =FNZT(18)
+
+\ *****************************************************************************
+\ Variable: P
+\
+\ Temporary storage for a memory pointer (e.g. used in TT26 to store the
+\ address of character definitions)
+\ *****************************************************************************
+
 .P      skip 3          ; =FNZT(3)
+
 .XX0    skip 2          ; =FNZ2
 .INF    skip 2          ; =FNZ2
 .V      skip 2          ; =FNZ2
@@ -88,8 +97,25 @@ SCH=SC+1
 .SUNX   skip 2          ; =FNZ2
 .BETA   skip 1          ; =FNZ
 .BET1   skip 1          ; =FNZ
+
+\ *****************************************************************************
+\ Variable: XC
+\
+\ Contains the x-coordinate of the text cursor (i.e. the text column). A value
+\ of 1 demotes the leftmost column
+\ *****************************************************************************
+
 .XC     skip 1          ; =FNZ
+
+\ *****************************************************************************
+\ Variable: YC
+\
+\ Contains the y-coordinate of the text cursor (i.e. the text row). A value
+\ of 1 demotes the top row
+\ *****************************************************************************
+
 .YC     skip 1          ; =FNZ
+
 .QQ22   skip 2          ; =FNZ2
 .ECMA   skip 1          ; =FNZ
 .XX15   skip 6          ; =FNZT(6)
@@ -139,8 +165,8 @@ XX1=INWK
 \ *****************************************************************************
 \ Variable: QQ15
 \
-\ Contains the three two-byte seeds for the selected system, i.e. the one in
-\ the cross-hairs in the short range chart.
+\ Contains the three two-byte seeds (6 byytes) for the selected system, i.e.
+\ the one in the cross-hairs in the short range chart.
 \
 \ The seeds are stored as big-endian 16-bit numbers, so the low (least
 \ significant) byte is first followed by the high (most significant) byte.
@@ -181,9 +207,9 @@ XX1=INWK
 \
 \ So:
 \
-\ QQ17 = 0   (%00000000) means the case is set to ALL CAPS
-\ QQ17 = 128 (%10000000) means Sentence Case, currently printing upper case
-\ QQ17 = 192 (%11000000) means Sentence Case, currently printing lower case
+\ QQ17 = 0   (%0000 0000) means the case is set to ALL CAPS
+\ QQ17 = 128 (%1000 0000) means Sentence Case, currently printing upper case
+\ QQ17 = 192 (%1100 0000) means Sentence Case, currently printing lower case
 \
 \ If any of bits 0-5 are set and QQ17 is not &FF, we print in lower case
 \ *****************************************************************************
@@ -193,7 +219,8 @@ QQ17=XX18
 \ *****************************************************************************
 \ Variable: QQ19 (shares location with XX18)
 \
-\ Used as a temporary backup when twisting seeds (6 bytes) in cpl
+\ Temporary storage for seed pairs (e.g. used in cpl as a temporary backup when
+\ twisting three two-byte seeds)
 \ *****************************************************************************
 
 QQ19=QQ17+1
@@ -264,13 +291,21 @@ CABTMP=MANY
 \ *****************************************************************************
 \ Variable: T
 \
-\ Used as temporary storage (e.g. for the loop counter in cpl)
+\ Used as temporary storage (e.g. used in cpl for the loop counter)
 \ *****************************************************************************
 
 T=&D1
 
 XX2=&D2
+
+\ *****************************************************************************
+\ Variable: K3 (shares location with XX2)
+\
+\ Used as temporary storage (e.g. used in TT27 for the character to print)
+\ *****************************************************************************
+
 K3=XX2
+
 K4=K3+14
 
 .LSO    skip 192        ; =FNWT(192)
@@ -282,7 +317,22 @@ LSX=LSO
 .SZ     skip NOST+1     ; =FNWT(NOST+1)
 .SZL    skip NOST+1     ; =FNWT(NOST+1)
 
+\ *****************************************************************************
+\ Variable: XSAV2
+\
+\ Temporary storage for the X register (e.g. used in TT27 to store X while
+\ printing is performed)
+\ *****************************************************************************
+
 .XSAV2  skip 1          ; =FNW
+
+\ *****************************************************************************
+\ Variable: YSAV2
+\
+\ Temporary storage for the Y register (e.g. used in TT27 to store X while
+\ printing is performed)
+\ *****************************************************************************
+
 .YSAV2  skip 1          ; =FNW
 
 .MCH    skip 1          ; =FNWFNW
@@ -310,7 +360,9 @@ svn=&7FFD
 \ *****************************************************************************
 \ Variable: QQ2
 \
-\ Contains the six seeds for the current system
+\ Contains the three two-byte seeds (6 bytes) for the current system
+
+\ See QQ15 above for details of how the three seeds are stored in memory
 \ *****************************************************************************
 
 .QQ2    skip 6          ; =FNWT(6)
@@ -342,7 +394,8 @@ ORG T%
 \ *****************************************************************************
 \ Variable: QQ14
 \
-\ Contains the current fuel level
+\ Contains the current fuel level * 10 (so a 1 in QQ14 represents 0.1 light
+\ years)
 \ *****************************************************************************
 .QQ14   skip 1          ; =FNTP
 
@@ -351,7 +404,9 @@ ORG T%
 \ *****************************************************************************
 \ Variable: GCNT
 \
-\ Contains the current galaxy number
+\ Contains the current galaxy number, 0-7. Wheh this is displayed in-game, 1 is
+\ added to the number (so we start in galaxy 1 in-game, but it's stored as
+\ galaxy 0 internally)
 \ *****************************************************************************
 
 .GCNT   skip 1          ; =FNTP
@@ -3010,100 +3065,346 @@ NEXT                    ; allwk up to &0ABC while heap for edges working down fr
  JSR TT26               ; print character
  JMP TT35               ; multiply K(0:3) S, by (another) *10.
 
-.BELL                   ; VDU 7 sound
- LDA #7
+\ *****************************************************************************
+\ Subroutine: BELL
+\
+\ Make a beep sound
+\ *****************************************************************************
 
-.TT26                   ; PRINT character, also some cases Acc= 11to15.
- STA K3                 ; character
- STY YSAV2              ; store Yreg
- STX XSAV2              ; store Xreg
- LDY QQ17               ; printing flag, if 128 start Capital.
- CPY #FF                ; print nothing
- BEQ RR4                ; #&0D end, as QQ17 was #&FF
+.BELL
+ LDA #7                 ; Control code 7 makes a beep, so load this into the
+                        ; Acc so we can fall through into the TT27 print
+                        ; routine to actually make the sound
 
- CMP #7                 ; bell?
- BEQ R5                 ; further down, beep, restore.
- CMP #32                ; is Acc >= #32?
- BCS RR1                ; render this ascii character
- CMP #10                ; down to line
- BEQ RRX1               ; #&0A
- LDX #1                 ; others including #&0C to
- STX XC                 ; beginning of line
+\ *****************************************************************************
+\ Subroutine: TT26
+\
+\ Print a character at the text cursor (XC, YC), do a beep, print a newline,
+\ or delete left (backspace)
+\
+\ Entry conditions:
+\
+\   XC contains the text column to print at (the x-coordinate)
+\   YC contains the line number to print on (the y-coordinate)
+\
+\ Arguments:
+\
+\   Acc         The character to be printed. Can be one of the following:
+\                   * 7 (beep)
+\                   * 10-13 (line feeds and carriage returns)
+\                   * 32-95 (ASCII capital letters, numbers and punctuation)
+\                   * 127 (delete the character to the left of the text cursor
+\                     and move the cursor to the left)
+\ *****************************************************************************
 
-.RRX1                   ; #&0A down line
- INC YC                 ; next Y cursor line
- BNE RR4                ; prepare to exit including #&0D.
+.TT26
+ STA K3                 ; Store the Acc, X and Y registers, so we can restore
+ STY YSAV2              ; them at the end (so they don't get changed by this
+ STX XSAV2              ; routine)
 
-.RR1                    ; >= #&20, render this ascii character
-\LDX #(K3 MOD256)
-\INX
-\STX P+1
-\DEX
-\LDY #(K3 DIV256)
-\STY P+2
-\LDA #10
-\JSR OSWORD
- TAY
- LDX #&BF               ; first font page in ROM
- ASL A
- ASL A
- BCC P%+4               ; bit6 clear hop page #&C1
- LDX #&C1               ; font page
- ASL A
- BCC P%+3               ; if bit5 clear skip inx
- INX
- STA P+1                ; font address lo
- STX P+2                ; font address hi
+ LDY QQ17               ; Load the QQ17 flag, which contains the text printing
+                        ; flags
 
- LDA XC
- ASL A
- ASL A
- ASL A                  ; XC*8 is screen lo
- STA SC
- LDA YC
- CPY #&7F
- BNE RR2
- DEC XC
- ADC #&5E
- TAX
- LDY #&F8
- JSR ZES2
- BEQ RR4
+ CPY #FF                ; If QQ17 = #&FF, then jump to RR4, which doesn't print
+ BEQ RR4                ; anything, it just restore of the registers and
+                        ; returns from the subroutine
 
-.RR2                    ; next char
- INC XC
-\LDA YC
- CMP #24                ; Acc = YC has reached bottom?
- BCC RR3                ; text on this screen
- JSR TTX66              ; else new box border with QQ11 set to Acc
- JMP RR4                ; prepare to exit
+ CMP #7                 ; If this is a beep character (Acc = 7), jump to R5,
+ BEQ R5                 ; which will emit the beep, restore the registers and
+                        ; return from the subroutine
 
-.RR3                    ; text on this screen
- ORA #&60               ; screen hi byte
+ CMP #32                ; If this is an ASCII character (Acc >= 32), jump to
+ BCS RR1                ; RR1 below, which will print the character, restore
+                        ; the registers and return from the subroutine
 
-.RREN                   ; Acc has destination page for 8 bytes from (P+1)
- STA SC+1               ; screen hi
- LDY #7                 ; get 8 bytes of font char
+ CMP #10                ; If this is control code 10 (line feed) then jump to
+ BEQ RRX1               ; RRX1, which will move down a line, restore the
+                        ; registers and return from the subroutine
 
-.RRL1                   ; counter Y
- LDA (P+1),Y            ; font
- EOR (SC),Y
- STA (SC),Y
- DEY                    ; next byte
- BPL RRL1               ; loop Y
+ LDX #1                 ; If we get here, then this is control code 11-13, of
+ STX XC                 ; which only 13 is used. This code prints a newline,
+                        ; which we can achieve by moving the text cursor
+                        ; to the start of the line (carriage return) and down
+                        ; one line (line feed). These two lines do the first
+                        ; bit by setting XC = 1, and we then fall through into
+                        ; the line feed routine that's used by control code 10
 
-.RR4                    ; #&0D end, prepare to exit.
- LDY YSAV2
- LDX XSAV2
- LDA K3                 ; restore these earlier values.
+.RRX1
+ INC YC                 ; Print a line feed, simply by incrementing the row
+                        ; number (y-coordinate) of the text cursor, which is
+                        ; stored in YC
+
+ BNE RR4                ; Jump to RR4 to restore the registers and return from
+                        ; the subroutine (this BNE is effectively a JMP as Y
+                        ; will never be zero)
+
+.RR1                    ; If we get here, then the character to print is an
+                        ; ASCII character in the range 32-95. The quickest way
+                        ; to display text on screen is to poke the character
+                        ; pixel by pixel, directly into screen memory, so
+                        ; that's what the rest of this routine does.
+                        ; 
+                        ; The first step, then, is to get hold of the bitmap
+                        ; definition for the character we want to draw on the
+                        ; screen (i.e. we need the pixel shape of this
+                        ; character). The OS ROM contains bitmap definitions
+                        ; of the BBC's ASCII characters, starting from &C000
+                        ; for space (ASCII 32) and ending with the £ symbol
+                        ; (ASCII 126).
+                        ;
+                        ; There are 32 characters definitions in each page of
+                        ; memory, as each definition takes up 8 bytes (8 rows
+                        ; of 8 pixels) and 32 * 8 = 256 bytes = 1 page. So:
+                        ;
+                        ;   ASCII 32-63  are defined in &C000-&C0FF (page &C0)
+                        ;   ASCII 64-95  are defined in &C100-&C1FF (page &C1)
+                        ;   ASCII 96-126 are defined in &C200-&C2F0 (page &C2)
+                        ;
+                        ; The following code reads the relevant character
+                        ; bitmap from the above locations in ROM and pokes
+                        ; those values into the correct position in screen
+                        ; memory, thus printing the character on screen
+                        ;
+                        ; It's a long way from 10 PRINT "Hello world!":GOTO 10
+
+\LDX #(K3 MOD256)       ; These instructions are commented out in the original
+\INX                    ; source, but they call OSWORD &A, which reads the
+\STX P+1                ; character bitmap for the character number in K3 and
+\DEX                    ; stores it in the block at K3+1, while also setting
+\LDY #(K3 DIV256)       ; P+1 to point to the character definition. This is
+\STY P+2                ; exactly what the following uncommented code does,
+\LDA #10                ; just without calling OSWORD. Presumably the code
+\JSR OSWORD             ; below is faster than using the system call, as this
+                        ; version takes up 15 bytes, while the version below
+                        ; (which ends with STA P+1 and SYX P+2) is 17 bytes.
+                        ; Every efficiency saving helps, especially as this
+                        ; routine is run each time the game prints a character.
+                        ;
+                        ; If you want to switch this code back on, uncomment
+                        ; the above block, and comment out the code below from
+                        ; TAY to STX P+2. You will also need to uncomment the
+                        ; LDA YC instruction a few lines down (in RR2), just to
+                        ; make sure the rest of the code doesn't shift in
+                        ; memory. To be honest I can't see a massive difference
+                        ; in speed, but there you go.
+
+ TAY                    ; Copy the character number from Acc to Y, as we are
+                        ; about to pull Acc apart to work out where this
+                        ; character definition lives in the ROM
+
+                        ; Now we want to set X to point to the revevant page
+                        ; number for this character - i.e. &C0, &C1 or &C2.
+                        ; The following logic is easier to follow if we look
+                        ; at the three character number ranges in binary:
+                        ;
+                        ;   Bit # 7654 3210
+                        ; 
+                        ;   32  = 0010 0000     Page &C0
+                        ;   63  = 0011 1111
+                        ;
+                        ;   64  = 0100 0000     Page &C1
+                        ;   95  = 0101 1111
+                        ;
+                        ;   96  = 0110 0000     Page &C2
+                        ;   125 = 0111 1101
+                        ;
+                        ; We'll refer to this below.
+
+ LDX #&BF               ; Set X to point to the first font page in ROM minus 1,
+                        ; which is &C0 - 1, or &BF
+
+ ASL A                  ; If bit 6 of the character is clear (Acc is 32-63)
+ ASL A                  ; then skip the following instruction
+ BCC P%+4
+
+ LDX #&C1               ; Acc is 64-126, so set X to point to page &C1
+
+ ASL A                  ; If bit 5 of the character is clear (Acc is 64-95)
+ BCC P%+3               ; then skip the following instruction
+
+ INX                    ; Increment X
+                        ;
+                        ; By this point, we started with X = &BF, and then
+                        ; we did the following:
+                        ;
+                        ;   If Acc = 32-63:   skip    then INX  so X = &C0
+                        ;   If Acc = 64-95:   X = &C1 then skip so X = &C1
+                        ;   If Acc = 96-126:  X = &C1 then INX  so X = &C2
+                        ;
+                        ; In other words, X points to the relevant page. But
+                        ; what about the value of Acc? That gets shifted to
+                        ; the left three times during the above code, which
+                        ; multiplies the number by 8 but also drops bits 7, 6
+                        ; and 5 in the process. Look at the above binary
+                        ; figures and you can see that if we cleared bits 5-7,
+                        ; then that would change 32-53 to 0-31... but it would
+                        ; do exactly the same to 64-95 and 96-125. And because
+                        ; we also multiply this figure by 8, Acc now points to
+                        ; the start of the character's definition within its
+                        ; page (because there are 8 bytes per character
+                        ; definition).
+                        ;
+                        ; Or, to put it another way, X contains the high byte
+                        ; (the page) of the address of the definition that we
+                        ; want, while Acc contains the low byte (the offset
+                        ; into the page) of the address.
+ 
+ STA P+1                ; Store the address of this character's definition in
+ STX P+2                ; P+1 (low byte) and P+2 (high byte)
+
+ LDA XC                 ; Fetch XC, the x-coordinate (column) of the text
+ ASL A                  ; cursor, multiply by 8, and store in SC. As each
+ ASL A                  ; character is 8 bits wide, and the special screen mode
+ ASL A                  ; Elite uses for the top part of the screen is 256
+ STA SC                 ; bits across with one bit per pixel, this value is 
+                        ; not only the screen address offest of the text cursor
+                        ; from the left side of the screen, it's also the least
+                        ; significant byte of the screen address where we want
+                        ; to print this character, as each row of on-screen
+                        ; pixels corresponds to one page. To put this more
+                        ; explicitly, the screen starts at &6000, so the
+                        ; text rows are stored in screen memory like this:
+                        ;
+                        ;   Row 1: &6000 - &60FF    YC = 1, XC = 1 to 32
+                        ;   Row 2: &6100 - &61FF    YC = 2, XC = 1 to 32
+                        ;   Row 3: &6200 - &62FF    YC = 3, XC = 1 to 32
+                        ;
+                        ; and so on.
+ 
+ LDA YC                 ; Fetch YC, the y-coordinate (row) of the text cursor
+
+ CPY #127               ; If the character number (which is in Y) <> 127, then
+ BNE RR2                ; skip to RR2 to print that character, otherwise this is
+                        ; the delete character, so continue on
+
+ DEC XC                 ; We want to delete the character to the left of the
+                        ; text cursor and move the cursor back one, so let's
+                        ; do that by decrementing YC. Note that this doesn't
+                        ; have anything to do with the actual deletion below,
+                        ; we're just updating the cursor so it's in the right
+                        ; position following the deletion.
+
+ ADC #&5E               ; Acc contains YC (from above) and the carry flag is
+ TAX                    ; set (from the CPY #127 above), so these instructions
+                        ; do this: X = YC + &5E + 1 = YC + &5F
+                        ;
+                        ; Because YC starts at 1 for the first text row, this
+                        ; means that X will be &60 for row 1, &61 for row 2
+                        ; and so on. In other words, X is now set to the page
+                        ; number for the relevant row in screen memory (see
+                        ; the comment above).
+
+ LDY #&F8               ; Set Y = -8
+
+ JSR ZES2               ; Call ZES2, which zero-fills the page pointed to by X,
+                        ; from position SC + Y to SC - so that's the 8 bytes
+                        ; before SC. We set SC above to point to the current
+                        ; character, so this zero-fills the character before
+                        ; that, effectively deleting the character to the left
+
+ BEQ RR4                ; We are done deleting, so restore the registers and
+                        ; return from the subroutine (this BNE is effectively
+                        ; a JMP as ZES2 always returns with the zero flag set)
+
+.RR2                    ; Now to actually print the character
+
+ INC XC                 ; Once we print the character, we want to move the text
+                        ; cursor to the right, so we do this by incrementing
+                        ; XC. Note that this doesn't have anything to do
+                        ; with the actual printing below, we're just updating
+                        ; the cursor so it's in the right position following
+                        ; the print.
+
+\LDA YC                 ; This instruction is commented out in the original
+                        ; source. It isn't required because we only just did a
+                        ; LDA YC before jumping to RR2, so this is presumably
+                        ; an example of the authors squeezing the code to save
+                        ; 2 bytes and 3 cycles.
+                        ;
+                        ; If you want to re-enable the commented block near the
+                        ; start of this routine, you should uncomment this
+                        ; instruction as well
+
+ CMP #24                ; If the text cursor is on the screen (i.e. YC < 24, so
+ BCC RR3                ; we are on rows 1-23), then jump to RR3 to print the
+                        ; character
+
+ JSR TTX66              ; Otherwise we are off the bottom of the screen, so
+                        ; clear the screen and draw a box border
+
+ JMP RR4                ; And restore the registers and return from the
+                        ; subroutine
+
+.RR3
+ ORA #&60               ; Acc contains the value of YC - the screen row where
+                        ; we want to print this character - so now we need to
+                        ; convert this into a screen address, so we can poke
+                        ; the character data to the right place in screen
+                        ; memory. We already stored the least significant byte
+                        ; of this screen address in SC above (see the STA SC
+                        ; instruction above), so all we need is the most
+                        ; significant byte. As mentioned above, in Elite's
+                        ; square mode 4 screen, each row of text on screen
+                        ; takes up exactly one page, so the first row is page
+                        ; &60xx, the second row is page &61xx, so we can get
+                        ; the page for character (XC, YC) by OR-ing with &60.
+                        ; To see this in action, consider that our two values
+                        ; are, in binary:
+                        ;
+                        ;   YC is between:  %0000 0000
+                        ;             and:  %0001 0111
+                        ;          &60 is:  %0110 0000
+                        ;
+                        ; so YC OR &60 effectively adds &60 to YV, giving us
+                        ; the page number that we want
+
+.RREN
+ STA SC+1               ; Store the page number of the destination screen
+                        ; location in SC+1, so SC now points to the full screen
+                        ; location where this character should go
+
+ LDY #7                 ; We want to print the 8 bytes of character data to the
+                        ; screen (one byte per row), so set up a counter in Y
+                        ; to count these bytes
+
+.RRL1
+ LDA (P+1),Y            ; The character definition is at P+1 (low byte) and P+2
+                        ; (high byte) - we set this up above -  so load the
+                        ; Y-th byte from P+1
+
+ EOR (SC),Y             ; If we EOR this value with the existing screen
+                        ; contents, then it's reversible (so reprinting the
+                        ; same character in the same place will revert the
+                        ; screen to what it looked like before we printed
+                        ; anything); this means that printing a white pixel on
+                        ; onto a white background results in a black pixel, but
+                        ; that's a small price to pay for easily erasable text
+
+ STA (SC),Y             ; Store the Y-th byte at the screen address for this
+                        ; character location
+
+ DEY                    ; Decrement the loop counter
+
+ BPL RRL1               ; Loop back for the next byte to print to the screen
+
+.RR4
+ LDY YSAV2              ; We're done printing, so restore the values of the
+ LDX XSAV2              ; Acc, X and Y registers that we saved above and clear
+ LDA K3                 ; the carry flag, so everything is back to how it was
  CLC
 
 .rT9
- RTS
+ RTS                    ; Return from the subroutine
 
-.R5                     ; beep, restore.
- JSR BEEP
- JMP RR4                ; prepare to exit
+.R5
+ JSR BEEP               ; Call the BEEP subroutine, which uses the SOUND
+                        ; command to emit a beep
+
+ JMP RR4                ; Jump to RR4 to restore the registers and return from
+                        ; the subroutine
+
+\ *****************************************************************************
+\ *****************************************************************************
 
 .DIALS                  ; update displayed Dials
  LDA #&D0               ; screen lo
@@ -4988,6 +5289,12 @@ NEXT
 .TT66                   ; Box border with QQ11 set to Acc
  STA QQ11               ; menu id, zero is a titled space view.
 
+\ *****************************************************************************
+\ Subroutine: TTX66
+\
+\ Clear the top part of the screen (mode 4) and draw a box border
+\ *****************************************************************************
+
 .TTX66                  ; New box
  LDA #128               ; set bit7 One uppercase letter
  STA QQ17               ; flag for flight tokens
@@ -5330,7 +5637,7 @@ H_D%=L%+P%-C_A%
 \ on two-byte numbers, one byte at a time.
 \
 \ The seeds are stored as big-endian 16-bit numbers, so the low (least
-\ significant) byte is first followed by the high (most significant) byte.
+\ significant) byte is first, followed by the high (most significant) byte.
 \ Taking the case of the currently selected system, whose seeds are stored
 \ in the six bytes from QQ15, that means our seed values are stored like this:
 \
@@ -5340,7 +5647,7 @@ H_D%=L%+P%-C_A%
 \   w2  QQ15+4    QQ15+5
 \
 \ If we denote the low byte of w0 as w0_lo and the high byte as w0_hi, then
-\ the twist operation above can be rewritten on two-byte values like this,
+\ the twist operation above can be rewritten for two-byte values like this,
 \ assuming the additions include the carry flag:
 \ 
 \   tmp_lo = w0_lo + w1_lo          ; tmp = w0 + w1
@@ -5388,10 +5695,10 @@ H_D%=L%+P%-C_A%
  ADC QQ15+3
  STA QQ15+5
 
- RTS                    ; Twist is complete so return from subroutine
+ RTS                    ; The twist is complete so return from the subroutine
 
-
-
+\ *****************************************************************************
+\ *****************************************************************************
 
 .TT146                  ; Distance in Light years
  LDA QQ8                ; distance in 0.1 LY units
@@ -5431,7 +5738,8 @@ H_D%=L%+P%-C_A%
 
  JMP TT27               ; Print the text token in Acc
 
-
+\ *****************************************************************************
+\ *****************************************************************************
 
 .TT70                   ; Economy is mainly..
  LDA #173               ; token for Economy = 'Mainly'
@@ -7188,7 +7496,7 @@ MAPCHAR '4', '4'
 
 .TT55
  LDA QQ15+5             ; Step 2: Load w2_hi, which is stored in QQ15+5, and
- AND #31                ; extract bits 0-4 by AND'ing with %00011111 (31)
+ AND #31                ; extract bits 0-4 by AND-ing with %0001 1111 (31)
 
  BEQ P%+7               ; If all those bits are zero, then skip the following
                         ; 2 instructions to go to step 3
@@ -7217,7 +7525,7 @@ MAPCHAR '4', '4'
  BPL TT56               ; Loop back for the next byte to restore
 
  RTS                    ; Once all the seeds are restored, return from the
-                        ; print subroutine
+                        ; subroutine
 
 \ *****************************************************************************
 \ Subroutine: cmn
@@ -7233,7 +7541,7 @@ MAPCHAR '4', '4'
                         ; Y-th character from NA%
  
  CMP #13                ; If we have reached the end of the name, return from
- BEQ ypl-1              ; the print subroutine (ypl-1 points to the RTS below)
+ BEQ ypl-1              ; the subroutine (ypl-1 points to the RTS below)
  
  JSR TT26               ; Print the character we just loaded
  
@@ -7241,7 +7549,7 @@ MAPCHAR '4', '4'
  
  BNE QUL4               ; Loop back for the next character
  
- RTS                    ; Return from the print subroutine
+ RTS                    ; Return from the subroutine
 
 \ *****************************************************************************
 \ Subroutine: ypl
@@ -7251,7 +7559,7 @@ MAPCHAR '4', '4'
 
 .ypl
  LDA MJ                 ; Check the mis-jump flag at MJ, and if it is non-zero
- BNE cmn-1              ; then return from the print subroutine, as we are in
+ BNE cmn-1              ; then return from the subroutine, as we are in
                         ; witchspace, and witchspace doesn't have a system name
  
  JSR TT62               ; Call TT62 below to swap the three two-byte seeds in
@@ -7266,7 +7574,7 @@ MAPCHAR '4', '4'
                         ; Now we fall through into the TT62 subroutine, which
                         ; will swap QQ2 and QQ15 once again, so everything goes
                         ; back into the right place, and the RTS at the end of
-                        ; TT62 will return from the print subroutine
+                        ; TT62 will return from the subroutine
 
 .TT62
  LDX #5                 ; Set up a counter in X for the three two-byte seeds we
@@ -7304,8 +7612,8 @@ MAPCHAR '4', '4'
  
  JMP pr2                ; Jump to pr2, which prints the number in X to a width
                         ; of 3 figures, left-padding with spaces to a width of
-                        ; 3, and once done, return from the print subroutine
-                        ; (as pr2 ends with a RTS)
+                        ; 3, and once done, return from the subroutine (as pr2
+                        ; ends with an RTS)
 
 \ *****************************************************************************
 \ Subroutine: fwl
@@ -7460,7 +7768,7 @@ MAPCHAR '4', '4'
 
  LDA #128               ; This token is control code 6 (switch to sentence
  STA QQ17               ; case), so store 128 (bit 7 set, bit 6 clear) in QQ17,
- RTS                    ; which controls letter case, and return from the print
+ RTS                    ; which controls letter case, and return from the
                         ; subroutine as we are done
 
  DEX                    ; If token > 8, skip the following 2 instructions
@@ -7469,7 +7777,7 @@ MAPCHAR '4', '4'
  
  STX QQ17               ; This token is control code 8 (switch to ALL CAPS)
  RTS                    ; so store 0 in QQ17, which controls letter case, and
-                        ; return from the print subroutine as we are done
+                        ; return from the subroutine as we are done
 
  DEX                    ; If token = 9, this is control code 9 (tab to column
  BEQ crlf               ; 21 and print a colon), so jump to crlf
@@ -7655,8 +7963,8 @@ MAPCHAR '4', '4'
                         ; are in Sentence Case and we need to print the next
                         ; letter in lower case
 
- CPX #FF                ; If QQ17 = #&FF then return from the print subroutine
- BEQ TT48               ; (as TT48 contains an RTS)
+ CPX #FF                ; If QQ17 = #&FF then return from the subroutine (as)
+ BEQ TT48               ; TT48 contains an RTS)
 
  CMP #'A'               ; If Acc >= ASCII 'A', then jump to TT42, which will
  BCS TT42               ; print the letter in lowercase
@@ -7743,11 +8051,11 @@ MAPCHAR '4', '4'
  LDA QQ16+1,Y           ; Get the second letter of the token
 
  CMP #'?'               ; If the second letter of the token is a question mark
- BEQ TT48               ; then just return from the print subroutine without
+ BEQ TT48               ; then just return from the subroutine without
                         ; printing, as this is a one-letter token (TT48
                         ; contains an RTS)
 
- JMP TT27               ; Print the second letter and return from the print
+ JMP TT27               ; Print the second letter and return from the
                         ; subroutine
 
 .TT47
@@ -7814,22 +8122,18 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: TT48
 \
-\ Performs a RTS to return from the print subroutine
+\ Performs an RTS to return from the print subroutine
 \
 \ This is so the print subroutine can perform a return using conditonal branch
-\ instructions, such as BEQ TT48, which will return from the print subroutine
-\ if the zero flag is set
+\ instructions, such as BEQ TT48, which will return from the subroutine if the
+\ zero flag is set
 \ *****************************************************************************
 
 .TT48
  RTS                    ; end of flight token printing TT27
 
-
-
-
-
-
-
+\ *****************************************************************************
+\ *****************************************************************************
 
 .EX2                    ; ready to remove - Explosion Code
  LDA INWK+31            ; exploding/display state|missiles
@@ -10216,6 +10520,12 @@ ENDIF
 .ZES1                   ; Zero page X
  LDY #0                 ; pointer lo
  STY SC
+
+\ *****************************************************************************
+\ Subroutine: ZES2
+\
+\ Zero-fill page X, from position SC + Y to SC
+\ *****************************************************************************
 
 .ZES2                   ; zero Yto255 bytes on page SC.Xhi
  LDA #0
