@@ -21,7 +21,14 @@ HIMEM=W%
 WP=&D40
 K%=&900
 LS%=WP-1
-QQ18=&400               ; WORDS9
+\ *****************************************************************************
+\ Variable: QQ18
+\
+\ Points to the recursive token at &400 (WORDS9.bin)
+\ *****************************************************************************
+
+QQ18=&400
+
 T%=&300
 
 NOST=18
@@ -5670,6 +5677,9 @@ NEXT
  DEC X2
  JMP LOIN               ; line using (X1,Y1), (X2,Y2) Yreg protected.
 
+\ *****************************************************************************
+\ *****************************************************************************
+
  LDY #2
  EQUB &2C
 
@@ -8414,53 +8424,120 @@ MAPCHAR '4', '4'
 \ Arguments:
 \
 \   Acc         The recursive token to be printed, in the range 0-148
+\
+\ How it works:
+\
+\ This routine works its way through the recursive tokens that are stored in
+\ tokenised form in memory at &0400 - &06FF, and when it finds token number
+\ Acc, it prints it. Tokens are null-terminated in memory and fill three
+\ pages, but there is no lookup table as that would consume too much memory,
+\ so the only way to find the correct token is to start at the beginning and
+\ look through the table byte by byte, counting tokens as we go until we are
+\ in the right place. This approach might not be terribly speed efficient, but
+\ it is certainly memory-efficient.
+\
+\ The variable QQ18 points to the token table at &0400.
+\
+\ For details of the tokenisation system, see elite-words.asm.
 \ *****************************************************************************
 
-.ex                     ; extra, token >= 96 or Acc = 128to145 or -=160
- TAX                    ; copy of word index
- LDA #(QQ18 MOD256)     ; page 4 words lo  #QQ18 MOD 256
- STA V
- LDA #(QQ18 DIV256)     ; page 4 words hi  #QQ18 DIV 256
+.ex
+ TAX                    ; Copy the token number into X
+
+ LDA #LO(QQ18)          ; Set V, V+1 to point to the recursive token table at
+ STA V                  ; QQ18, which is assembled in elite-words.asm
+ LDA #HI(QQ18)
  STA V+1
- LDY #0
- TXA                    ; token = word index
- BEQ TT50               ; if X=0 then Y offset to word correct
 
-.TT51                   ; counters Y letter, X token
- LDA (V),Y
- BEQ TT49               ; exit as word ended
- INY                    ; letter count
- BNE TT51               ; loop Y
- INC V+1                ; next page as Y reached 256
- BNE TT51               ; guaranteed, loop Y letter
+ LDY #0                 ; Set a counter Y to point to the character offset
+                        ; as we scan through the table
 
-.TT49                   ; word ended
- INY
- BNE TT59               ; next word
- INC V+1                ; next page as Y reached 256
+ TXA                    ; Copy the token number back into Acc, so both Acc and
+                        ; X now contain the token number we want to print
 
-.TT59                   ; next word
- DEX                    ; token count
- BNE TT51               ; loop X token
+ BEQ TT50               ; If the token number we want is 0, then we have
+                        ; already found the token we are looking for, so jump
+                        ; to TT50, otherwise start working our way through the
+                        ; null-terminated token table until we find the X-th
+                        ; token
 
-.TT50                   ; token X = 0, counter Y offset to word correct
- TYA
- PHA                    ; store Yindex
- LDA V+1
- PHA                    ; correct pointer hi
- LDA (V),Y
- EOR #35                ; decode '#'
+.TT51
+ LDA (V),Y              ; Fetch the Y-th character from the token table page
+                        ; we are currently scanning
 
- JSR TT27               ; process text token to next depth
- PLA                    ; restore this depth's Vhi
- STA V+1
- PLA
- TAY                    ; restore this depth's Yindex
- INY                    ; next letter
- BNE P%+4               ; not zero so skip next page
- INC V+1
- LDA (V),Y
- BNE TT50               ; loop Y for next letter of page4 token
+ BEQ TT49               ; If the character is null, we've reached the end of
+                        ; this token, so jump to TT49
+
+ INY                    ; Increment character pointer and loop back round for
+ BNE TT51               ; the next character in this token, assuming Y hasn't
+                        ; yet wrapped around to 0
+
+ INC V+1                ; If it has wrapped round to 0, we have just crossed
+ BNE TT51               ; into a new page, so increment V+1 so that V points
+                        ; to the start of the new page
+
+.TT49
+ INY                    ; Increment the character pointer
+
+ BNE TT59               ; If Y hasn't just wrapped around to 0, skip the next
+                        ; instruction
+
+ INC V+1                ; We have just crossed into a new page, so increment
+                        ; V+1 so that V points to the start of the new page
+
+.TT59
+ DEX                    ; We have just reached a new token, so decrement the
+                        ; token number we are looking for
+
+ BNE TT51               ; Assuming we haven't yet reached the token number in
+                        ; X, look back up to keep fetching characters
+
+.TT50                   ; We have now reached the correct token in the token
+                        ; table, with Y pointing to the start of the token as
+                        ; an offset within the page pointed to by V, so let's
+                        ; print the recursive token. Because recursive tokens
+                        ; can contain other recursive tokens, we need to store
+                        ; our current state on the stack, so we can retrieve
+                        ; it after printing each character in this token.
+
+ TYA                    ; Store the offset in Y on the stack
+ PHA
+
+ LDA V+1                ; Store the high byte of V (the page containing the
+ PHA                    ; token we have found) on the stack, so the stack now
+                        ; contains the address of the start of this token
+
+ LDA (V),Y              ; Load the character at offset Y in the token table,
+                        ; which is the next character of this token that we
+                        ; want to print
+
+ EOR #35                ; Tokens are stored in memory having been EOR'd with 35
+                        ; (see elite-words.asm for details), so we repeat the
+                        ; EOR to get the actual character to print
+
+ JSR TT27               ; Print the text token in Acc, which could be a letter,
+                        ; number, control code, two-letter token or another
+                        ; recursive token
+
+ PLA                    ; Restore the high byte of V (the page containing the
+ STA V+1                ; token we have found) into V+1
+
+ PLA                    ; Restore the offset into Y
+ TAY
+
+ INY                    ; Increment Y to point to the next character in the
+                        ; token we are printing
+
+ BNE P%+4               ; If Y is zero then we have just crossed into a new
+ INC V+1                ; page, so increment V+1 so that V points to the start
+                        ; of the new page
+
+ LDA (V),Y              ; Load the next character we want to print into Acc
+
+ BNE TT50               ; If this is not the null character at the end of the
+                        ; token, jump back up to TT50 to print the next
+                        ; character, otherwise we are done printing and can
+                        ; fall through to TT48 to return from the subroutine
 
 \ *****************************************************************************
 \ Subroutine: TT48
@@ -8473,7 +8550,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .TT48
- RTS                    ; end of flight token printing TT27
+ RTS                    ; Return from the current subroutine
 
 \ *****************************************************************************
 \ *****************************************************************************
@@ -10851,34 +10928,77 @@ ENDIF
  EQUB 33                ; +4 max ascii
  EQUB &7A
 
-.ZERO                   ; Zero Pages &A,&B,&C,&D
- LDX #&D                ; Start at Page &0D
+\ *****************************************************************************
+\ Subroutine: ZERO
+\
+\ Zero-fill pages &9, &A, &B, &C and &D
+\ *****************************************************************************
+
+.ZERO
+ LDX #&D                ; Point X to page &D
 
 .ZEL
- JSR ZES1
- DEX                    ; Next Xreg = Page &0C
- CPX #9
- BNE ZEL
+ JSR ZES1               ; Call ZES1 below to zero-fill the page in X
 
-.ZES1                   ; Zero page X
- LDY #0                 ; pointer lo
- STY SC
+ DEX                    ; Decrement X to point to the next page
+
+ CPX #9                 ; If X is > 9 (i.e. is &A, &B or &C), then loop back
+ BNE ZEL                ; up to clear the next page
+
+                        ; Then fall through to ZES1 with X set to 9, so we
+                        ; clear page &9 too
+
+\ *****************************************************************************
+\ Subroutine: ZES1
+\
+\ Zero-fill page X
+\
+\ Arguments:
+\
+\   X           The page we want to zero-fill
+\ *****************************************************************************
+
+.ZES1
+ LDY #0                 ; If we set Y = SC = 0 and fall through into ZES2
+ STY SC                 ; below, then we will zero-fill 255 bytes starting from
+                        ; SC - in other words, we will zero-fill the whole of
+                        ; page X
 
 \ *****************************************************************************
 \ Subroutine: ZES2
 \
-\ Zero-fill page X, from position SC + Y to SC
+\ Zero-fill page X, from position SC to SC + Y
+\
+\ If Y is 0, this will zero-fill 255 bytes starting from SC
+\
+\ If Y is negative, this will zero-fill from SC + Y to SC - 1, i.e. the Y bytes
+\ before SC
+\
+\ Arguments:
+\
+\   X           The page where we want to zero-fill
+\   Y           A negative value denoting how many bytes before SC we want
+\               to start zeroing
+\   SC          The position in the page where we should zero fill up to
 \ *****************************************************************************
 
-.ZES2                   ; zero Yto255 bytes on page SC.Xhi
- LDA #0
- STX SC+1               ; pointer hi
+.ZES2
+ LDA #0                 ; Load X with the byte we want to fill the memory block
+                        ; with - i.e. zero
 
-.ZEL1                   ; counter Y
- STA (SC),Y
- INY                    ; next byte
- BNE ZEL1               ; loop Y
- RTS
+ STX SC+1               ; We want to zero-fill page X, so store this in the
+                        ; high byte of SC, so the two-byte address in SC and
+                        ; SC+1 is now pointing to the SC-th byte of page X
+
+.ZEL1
+ STA (SC),Y             ; Zero the Y-th byte of the block pointed to by SC,
+                        ; so that's effectively the Y-th byte before SC
+
+ INY                    ; Increment the loop counter
+
+ BNE ZEL1               ; Loop back to zero the next byte
+ 
+ RTS                    ; Return from the subroutine
 
 \ *****************************************************************************
 \ SAVE COMMANDER
@@ -10886,7 +11006,7 @@ ENDIF
 
 .SVE                    ; Disc service entry as key @ hit
 {
- JSR GTNME              ; zero pages &A,&B,&C,&D
+ JSR GTNME              ; zero pages &9,&A,&B,&C,&D
  JSR TRNME              ; Transfer commander name to Page &11
  JSR ZERO
  LSR SVC
@@ -10949,7 +11069,7 @@ ENDIF
 .LOD                    ; Load commander file then Page &B to Page &11, else carry set if invalid drive
  LDX #2
  JSR FX200
- JSR ZERO               ; Zero Pages &A,&B,&C,&D
+ JSR ZERO               ; Zero Pages &9,&A,&B,&C,&D
  LDY #&B
  STY &C03               ; load address is &0B00
  INC &C0B               ; length of file incremented
