@@ -3034,9 +3034,10 @@ NEXT                    ; allwk up to &0ABC while heap for edges working down fr
 \ So the third digit is 7 and we are done.
 \ 
 \ The BPRNT subroutine code does exactly this in its main loop at TT36, except
-\ instead of having a three-figure number and subtracting 100, we have a
-\ 12-figure number and subtract 10 billion, using four-byte arithmetic and an
-\ overflow byte, and that's where the complexity comes in.
+\ instead of having a three-digit number and subtracting 100, we have up to an
+\ 11-digit number and subtract 10 billion each time (as 10 billion has 11
+\ digits), using four-byte arithmetic and an overflow byte, and that's where
+\ the complexity comes in.
 \ 
 \ Given this, let's use some terminology to make it easier to talk about
 \ multi-byte numbers, and specifically the big-endian numbers that Elite uses
@@ -3085,6 +3086,29 @@ NEXT                    ; allwk up to &0ABC while heap for edges working down fr
 \ repeat this with each byte in turn, until we get to the overflow byte S. This
 \ has the effect of shifting the entire five-byte number one place to the left,
 \ which doubles it in-place.
+\ 
+\ Finally, there are three variables that are used as counters in the above
+\ loop, each of which gets decremented as we go work our way through the
+\ digits. Their starting values are:
+\ 
+\   XX17   The maximum number of characters to print in total (this is
+\          hard-coded to 11)
+\ 
+\   T      The maximum number of digits that we might end up printing (11 if
+\          there's no decimal point, 10 otherwise)
+\ 
+\   U      The loop number at which we should start printing digits or spaces
+\          (calculated from the U argument to BPRNT)
+\ 
+\ We do the loop XX11 times, once for each character that we might print. We
+\ start printing characters once we reach loop number U (at which point we
+\ print a space if there isn't a digit at that point, otherwise digits). As
+\ soon as we have printed our first digit we set T to 0 to indicate that we
+\ should print characters for all subsequent loops, so T is effectively a flag
+\ for denoting that we're switching from spaces to zeroes for zero values, and
+\ decrementing T ensures that we always have at least one digit in the number,
+\ even if it's a zero.
+
 \ *****************************************************************************
 
 .BPRNT
