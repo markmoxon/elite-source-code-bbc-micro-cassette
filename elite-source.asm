@@ -168,7 +168,7 @@ XX1=INWK
 \ Contains the three two-byte seeds (6 byytes) for the selected system, i.e.
 \ the one in the cross-hairs in the short range chart.
 \
-\ The seeds are stored as big-endian 16-bit numbers, so the low (least
+\ The seeds are stored as little-endian 16-bit numbers, so the low (least
 \ significant) byte is first followed by the high (most significant) byte.
 \ That means if the seeds are w0, w1 and w2, they are stored like this:
 \
@@ -232,13 +232,39 @@ K6=K5+4
 .BET2   skip 2          ; =FNZ2
 .DELTA  skip 1          ; =FNZ
 .DELT4  skip 2          ; =FNZ2
+
+\ *****************************************************************************
+\ Variable: U
+\
+\ Temporary storage (e.g. used in BPRNT to store the number of characters to
+\ print, minus the number of digits)
+\ *****************************************************************************
+
 .U      skip 1          ; =FNZ
+
 .Q      skip 1          ; =FNZ
 .R      skip 1          ; =FNZ
+
+\ *****************************************************************************
+\ Variable: S
+\
+\ Temporary storage (e.g. used in BPRNT)
+\ *****************************************************************************
+
 .S      skip 1          ; =FNZ
+
 .XSAV   skip 1          ; =FNZ
 .YSAV   skip 1          ; =FNZ
+
+\ *****************************************************************************
+\ Variable: XX17
+\
+\ Temporary storage (e.g. used in BPRNT to store the number of characters to
+\ print)
+\ *****************************************************************************
+
 .XX17   skip 1          ; =FNZ
+
 .QQ11   skip 1          ; =FNZ
 .ZZ     skip 1          ; =FNZ
 .XX13   skip 1          ; =FNZ
@@ -2900,8 +2926,25 @@ NEXT                    ; allwk up to &0ABC while heap for edges working down fr
  STX XC
  RTS
 
-.TENS                   ; print decimal data
- EQUD &E87648           ; TENS(0-3) \ 100Billion = 0x17 4876E800  => highest S=23
+\ *****************************************************************************
+\ Variable: TENS
+\
+\ Contains the four low bytes of the value 100,000,000,000 (100 billion).
+\
+\ The maximum number of digits that we can print with the the BPRNT routine
+\ below is 11, so the biggest number we can print is 99,999,999,999. This
+\ maximum number plus 1 is 100,000,000,000, which in hexadecimal is:
+\
+\   & 17 48 76 E8 00
+\
+\ The TENS variable contains the lowest four bytes in this number, with the
+\ least significant byte first, i.e. 00 E8 76 48. This value is used in the
+\ BPRNT routine when working out which decimal digits to print when printing a
+\ number.
+\ *****************************************************************************
+
+.TENS
+ EQUD &00E87648
 
 \ *****************************************************************************
 \ Subroutine: pr2
@@ -2911,22 +2954,32 @@ NEXT                    ; allwk up to &0ABC while heap for edges working down fr
 \ a decimal point.
 \
 \ Arguments:
+\
 \   X           The number to print
 \
 \   C flag      If set, include a decimal point
 \ *****************************************************************************
 
-.pr2                    ; number Xreg to printable characters, include decimal if carry set.
- LDA #3                 ; number of digits
- LDY #0                 ; hi byte = 0
+.pr2
+ LDA #3                 ; Set Acc to the number of digits (3)
 
-.TT11                   ; Print Xlo.Yhi, C set will make decimal point.
- STA U                  ; number of digits
- LDA #0
- STA K                  ; 4-byte Big-endian buffer
- STA K+1
- STY K+2
- STX K+3                ; lsb
+ LDY #0                 ; Zero the Y register (I don't know why)
+
+.TT11
+ STA U                  ; We are going to use the BPRNT routine (below) to
+                        ; print this number, so we store the number of digits
+                        ; in U, as that's what BPRNT takes as an argument
+ 
+ LDA #0                 ; BPRNT takes a four-byte number in K to K+3, with 
+ STA K                  ; the most significant byte first (big-endian), so we
+ STA K+1                ; set the three most significant bytes to zero (K, K+1
+ STY K+2                ; and K+3), and store X (the number we want to print)
+ STX K+3                ; in the least significant byte at K+3
+
+                        ; Finally we fall through into BPRNT to print out the
+                        ; number in K to K+3 (which now contains X) to 3 digits
+                        ; (as U = 3), using the same carry flag as when pr2
+                        ; was called to control the decimal point
 
 \ *****************************************************************************
 \ Subroutine: BPRNT
@@ -2936,134 +2989,373 @@ NEXT                    ; allwk up to &0ABC while heap for edges working down fr
 \ right-aligned). Optionally include a decimal point.
 \
 \ Arguments:
+\
 \   K...K+3     The number to print, stored with the most significant byte in K
-\               and the least significant in K+3 (big-endian)
+\               and the least significant in K+3 (big-endian, which is not the
+\               same way that 6502 assembler stores addresses)
 \
 \   U           The maximum number of digits to print, including the decimal
 \               point (spaces will be used on the left to pad out the result to
-\               this width, so the number is right-aligned to this width)
+\               this width, so the number is right-aligned to this width). The
+\               maximum number of characters including any decimal point must
+\               be 11 or less.
 \
-\   C flag      If set, include a decimal point and one digit (1 decimal place)
+\   C flag      If set, include a decimal point followed by one fractional
+\               digit (i.e. show the number to 1 decimal place). In this case,
+\               the number in K to K+3 contains 10 * the number we end up
+\               printing, so to print 123.4, we would pass 1234 in K to K+3 and
+\               would set the C flag.
+\
+\ How it works:
+\
+\ The algorithm is relatively simple, but it looks fairly complicated because
+\ we're dealing with four-byte numbers.
+\ 
+\ To see how it works, let's first consider a simple example with fewer digits.
+\ Let's say we want to print out the following number to three digits:
+\ 
+\   567
+\ 
+\ First we subtract 100 repeatedly until we can't do it any more, counting how
+\ many times we can do this:
+\ 
+\   567 - 100 - 100 - 100 - 100 - 100 = 67
+\ 
+\ Not surprisingly, we can subtract it 5 times, so our first digit is 5. Now we
+\ multiply the remaining number by 10 to get 670, and repeat the process:
+\ 
+\   670 - 100 - 100 - 100 - 100 - 100 - 100 = 70
+\ 
+\ We subtracted 100 6 times, so the second digit is 6. Now to multiply by 10
+\ again to get 700 and repeat the process:
+\ 
+\   700 - 100 - 100 - 100 - 100 - 100 - 100 - 100 = 0
+\ 
+\ So the third digit is 7 and we are done.
+\ 
+\ The BPRNT subroutine code does exactly this in its main loop at TT36, except
+\ instead of having a three-figure number and subtracting 100, we have a
+\ 12-figure number and subtract 10 billion, using four-byte arithmetic and an
+\ overflow byte, and that's where the complexity comes in.
+\ 
+\ Given this, let's use some terminology to make it easier to talk about
+\ multi-byte numbers, and specifically the big-endian numbers that Elite uses
+\ to store large numbers like the current cash amount (big-endian numbers store
+\ their most significant byte first, then the lowest significant bytes, which
+\ is different to how 6502 assembly stores it's two-byte numbers; Elite's large
+\ numbers are stored in the same way that we write numbers, with the largest
+\ digits first, while 6502 does it the other way round, where &30 &FE
+\ represents &FE30).
+\ 
+\ If K is made up of four bytes, then we may talk about K(0,1,2,3) as the
+\ four-byte number that is stored in memory at K thorough K+3, with the most
+\ significant byte in K and the least significant in K+3. If we want to add
+\ another significant byte to make this a five-byte number - an overflow byte
+\ in a memory location called S, say - then we might talk about K(S,0,1,2,3).
+\ Similarly, XX15(0,1,2,3,4) is a five-byte number stored in XX15 through
+\ XX15+4, from high byte to low byte. It might help to think of the numbers in
+\ brackets being written like in the same order that we would write them down
+\ digits as humans.
+\ 
+\ Now that we have some terminology, let's look at the above algorithm. We need
+\ multi-byte subtraction, which we can do byte-by-byte using the carry flag,
+\ but we also need to be able to multiply a multi-byte number by 10, which is
+\ slightly trickier. Multiplying by 10 isn't directly supported the 6502, but
+\ multiplying by 2 is, in the guise of shifting and rotating left, so we can do
+\ this to multiply K by 10:
+\ 
+\   K * 10 = K * (2 + 8)
+\          = (K * 2) + (K * 8)
+\          = (K * 2) + (K * 2 * 2 * 2)
+\ 
+\ And that's what we do in the TT35 subroutine below, just with four-byte
+\ numbers with a one-byte overflow. This doubling process is used quite a few
+\ times in the following, so let's look an an example, in which we double the
+\ number in K(S,0,1,2,3):
+\ 
+\   ASL K+3
+\   ROL K+2
+\   ROL K+1
+\   ROL K
+\   ROL S
+\ 
+\ First we use ASL K+3 to shift the least significant byte left (so bit 7 goes
+\ to the carry flag). Then we rotate the next most significant byte with ROL
+\ K+2 (so the carry flag goes into bit 0 and bit 7 goes into the carry), and we
+\ repeat this with each byte in turn, until we get to the overflow byte S. This
+\ has the effect of shifting the entire five-byte number one place to the left,
+\ which doubles it in-place.
 \ *****************************************************************************
 
-.BPRNT                  ; Buffer K print (for cash, A=U=9 cash stored in K buffer)
- LDX #11                ; maximum text width
- STX T
- PHP                    ; copy of Carry flag for decimal point
- BCC TT30               ; no decimal point for galaxy or equipment item
- DEC T
- DEC U                  ; number of digits
+.BPRNT
+ LDX #11                ; Set T to the maximum number of digits allowed (11
+ STX T                  ; characters, which is the number of digits in 10
+                        ; billion); we will use this as a flag when printing
+                        ; characters in TT37 below
 
-.TT30                   ; no decimal point
- LDA #11                ; text width
- SEC                    ; prepare subtraction
- STA XX17
- SBC U
- STA U
- INC U
- LDY #0
- STY S                  ; highest byte for buffer overflow
- JMP TT36               ; skip *10 down into loop
+ PHP                    ; Make a copy of the status register (in particular
+                        ; the carry flag) so we can retrieve it later
 
-.TT35                   ; another *10
- ASL K+3
- ROL K+2
- ROL K+1
- ROL K
- ROL S                  ; msb
- LDX #3                 ; use 5-byte buffer XX15
+ BCC TT30               ; If the carry flag is clear, we do not want to print a
+                        ; decimal point, so skip the next two instructions
 
-.tt35                   ; counter X  move K*2 to XX15
- LDA K,X
- STA XX15,X
- DEX
- BPL tt35               ; loop X
- LDA S                  ; msb
- STA XX15+4             ; overflow byte
+ DEC T                  ; As we are going to show a decimal point, decrement
+ DEC U                  ; both the number of characters and the number of
+                        ; digits (as one of them is now a decimal point)
 
- ASL K+3
- ROL K+2
+.TT30
+ LDA #11                ; Set Acc to 11, the maximum number of digits allowed
+
+ SEC                    ; Set the carry flag so we can do some subtraction
+                        ; arithmetic without the carry flag affecting the
+                        ; result
+
+ STA XX17               ; Store the maximum number of digits allowed (11) in
+                        ; XX17
+
+ SBC U                  ; Set U = 11 - U + 1, so U now contains the maximum 
+ STA U                  ; number of digits minus the number of digits we want
+ INC U                  ; to display, plus 1 (so this is the number of digits
+                        ; we should skip before starting to print the number
+                        ; itself, and the plus 1 is there to ensure we at least
+                        ; print one digit)
+
+ LDY #0                 ; In the main loop below, we use Y to count the number
+                        ; of times we subtract 10 billion to get the left-most
+                        ; digit, so set this to zero (see below TT36 for an
+                        ; of how this algorithm works)
+
+ STY S                  ; In the main loop below, we use location S as a
+                        ; one-byte overflow for the four-byte calculations, so
+                        ; we need to set this to 0 before joining the loop
+
+ JMP TT36               ; Jump to TT36 to start the process of printing this
+                        ; number's digits
+
+.TT35                   ; This subroutine multiplies K(S,0,1,2,3) by 10 and
+                        ; stores the result back in K(S,0,1,2,3), using the
+                        ; (K * 2) + (K * 2 * 2 * 2) approach described above
+
+ ASL K+3                ; Set K(S,0,1,2,3) = K(S,0,1,2,3) * 2 by rotating bits.
+ ROL K+2                ; See above for an explanation.
  ROL K+1
  ROL K
  ROL S
- ASL K+3
- ROL K+2
+
+ LDX #3                 ; Now we want to make a copy of the newly doubled K in
+                        ; XX15, so we can use it for the first (K * 2) in the
+                        ; equation above, so set up a counter in X for copying
+                        ; four bytes, starting with the last byte in memory
+                        ; (i.e. the least significant)
+
+.tt35
+ LDA K,X                ; Copy the X-th byte of K(0,1,2,3) to the X-th byte of
+ STA XX15,X             ; XX15(0,1,2,3), so that XX15 will contain a copy of
+                        ; K(0,1,2,3) once we've copied all four bytes
+
+ DEX                    ; Decrement the loop counter so we move to the next
+                        ; byte, going from least significant (3) to most
+                        ; significant (0)
+ 
+ BPL tt35               ; Loop back to copy the next byte
+ 
+ LDA S                  ; Store the value of location S, our overflow byte, in
+ STA XX15+4             ; XX15+4, so now XX15(0,1,2,3,4) contains a copy of
+                        ; K(S,0,1,2,3), which is the value of (K * 2) that we
+                        ; want
+
+ ASL K+3                ; Now to calculate the (K * 2 * 2 * 2) part. We still
+ ROL K+2                ; have (K * 2) in K(S,0,1,2,3), so we just need to
+ ROL K+1                ; it twice. This is the first one, so we do
+ ROL K                  ; K(S,0,1,2,3) = K(S,0,1,2,3) * 2 (i.e. K * 4)
+ ROL S
+
+ ASL K+3                ; And then we do it again, so that means
+ ROL K+2                ; K(S,0,1,2,3) = K(S,0,1,2,3) * 2 (i.e. K * 8)
  ROL K+1
  ROL K
  ROL S
- CLC                    ; K*=4 done
- LDX #3                 ; build K*8+K*2
 
-.tt36                   ; counter X   K=K*10
- LDA K,X
- ADC XX15,X
- STA K,X
- DEX
- BPL tt36               ; loop X
- LDA XX15+4             ; overflow byte
- ADC S
- STA S
+ CLC                    ; Clear the carry flag so we can do some additions
+                        ; without the carry flag affecting the result
+ 
+ LDX #3                 ; By now we've got (K * 2) in XX15(0,1,2,3,4) and
+                        ; (K * 8) in K(S,0,1,2,3), so the final step is to add
+                        ; these two four-byte numbers together to get K * 10.
+                        ; So we set a counter in X for four bytes, starting
+                        ; with the last byte in memory (i.e. the least
+                        ; significant)
 
- LDY #0                 ; K*10 to get next column's digit
+.tt36
+ LDA K,X                ; Fetch the X-th byte of K into Acc
 
-.TT36                   ; counter Y, skipped *10 done
- LDX#3
- SEC
+ ADC XX15,X             ; Add the X-th byte of XX15 to Acc, with carry
 
-.tt37                   ; counter X, subtract tens off.
- LDA K,X
- SBC TENS,X             ; 100 Billion = & 17 48 76 E8 00
- STA XX15,X
- DEX                    ; load XX15(3,2,1,0) with K(3,2,1,0) but with 'tens' subtracted off
- BPL tt37               ; loop X
- LDA S
- SBC #23                ; if reached 100 Billion C is still set.
- STA XX15+4             ; overflow byte
+ STA K,X                ; Store the result in the X-th byte of K
+ 
+ DEX                    ; Decrement the loop counter so we move to the next
+                        ; byte, going from least significant (3) to most
+                        ; significant (0)
+ 
+ BPL tt36               ; Loop back to add the next byte
 
- BCC TT37               ; exit, subtractions took Y loops
- LDX #3                 ; 4 bytes
+ LDA XX15+4             ; Finally, fetch the overflow byte from XX15(0,1,2,3,4)
 
-.tt38                   ; counter X, copy XX15(3,2,1,0) back to K(3,2,1,0)
- LDA XX15,X
- STA K,X
- DEX
- BPL tt38               ; loop X
- LDA XX15+4             ; overflow byte
- STA S                  ; XX15(4), with a '23' lopped off of it
- INY                    ; counter Y, build digit.
- JMP TT36               ; loop Y *10 done, up
+ ADC S                  ; And add it to the overflow byte from K(S,0,1,2,3),
+                        ; with carry
 
-.TT37                   ; subtractions took Y loops
- TYA                    ; loop count is digit
- BNE TT32               ; digit Acc to ascii
- LDA T                  ; (T=10 for fuel)
- BEQ TT32               ; =0 is digit Acc to ascii
- DEC U
- BPL TT34               ; U +ve with U =8 or 9 (for fuel)
- LDA #32                ; white space, no leading zeros.
- BNE tt34               ; guaranteed TT26 print charcter
+ STA S                  ; And store the result in the overflow byte from
+                        ; K(S,0,1,2,3), so now we have our desired result that
+                        ; K(S,0,1,2,3) is now K(S,0,1,2,3) * 10
 
-.TT32                   ; digit Acc to ascii
- LDY #0
- STY T                  ; = 0
- CLC                    ; add ascii '0'
- ADC #B                 ; base B
+ LDY #0                 ; In the main loop below, we use Y to count the number
+                        ; of times we subtract 10 billion to get the left-most
+                        ; digit, so set this to zero
 
-.tt34                   ; print character
- JSR TT26               ; print character
+.TT36                   ; This is the main loop of our digit-printing routine.
+                        ; In the following loop, we are going to count the
+                        ; number of times that we can subtract 10 million in Y,
+                        ; which we have already set to 0
+                        
+ LDX #3                 ; Our first calculation concerns four-byte numbers, so
+                        ; set up a counter for a four-byte loop
 
-.TT34                   ; U +ve
- DEC T
- BPL P%+4               ; skip inc
- INC T                  ; min 0
- DEC XX17               ; text width
- BMI RR3+1              ; rts
- BNE P%+10              ; jmp to TT35 *10 again
- PLP                    ; recall carry flag, if clear, no decimal point.
- BCC P%+7               ; jmp to TT35 *10 again
- LDA #&2E               ; char '.' is decimal point
- JSR TT26               ; print character
- JMP TT35               ; multiply K(0:3) S, by (another) *10.
+ SEC                    ; Set the carry flag so we can do some subtraction
+                        ; arithmetic without the carry flag affecting the
+                        ; result
+                        
+.tt37                   ; Now we loop thorough each byte in turn to do this:
+                        ;
+                        ; XX15(0,1,2,3,4) = K(S,0,1,2,3) - 100,000,000,000
+
+ LDA K,X                ; Subtract the X-th byte of TENS (i.e. 10 billion) from
+ SBC TENS,X             ; the X-th byte of K
+
+ STA XX15,X             ; Store the result in the X-th byte of XX15
+
+ DEX                    ; Decrement the loop counter so we move to the next
+                        ; byte, going from least significant (3) to most
+                        ; significant (0)
+
+ BPL tt37               ; Loop back to subtract from the next byte
+
+ LDA S                  ; Subtract the fifth byte of 10 billion (i.e. &17) from
+ SBC #&17               ; the fifth (overflow) byte of K, which is S
+ 
+ STA XX15+4             ; Store the result in the overflow byte of XX15
+
+ BCC TT37               ; If subtracting 10 billion took us below zero, jump to
+                        ; TT37 to print out this digit, which is now in Y
+
+ LDX #3                 ; We now want to copy XX15(0,1,2,3,4) back to
+                        ; K(S,0,1,2,3), so we can loop back up to do the next
+                        ; subtraction, so set up a counter for a four-byte loop
+
+.tt38
+ LDA XX15,X             ; Copy the X-th byte of XX15(0,1,2,3) to the X-th byte
+ STA K,X                ; of K(0,1,2,3), so that K will contain a copy of
+                        ; XX15(0,1,2,3) once we've copied all four bytes
+ 
+ DEX                    ; Decrement the loop counter so we move to the next
+                        ; byte, going from least significant (3) to most
+                        ; significant (0)
+ 
+ BPL tt38               ; Loop back to copy the next byte
+
+ LDA XX15+4             ; Store the value of location XX15+4, our overflow
+ STA S                  ; byte in S, so now K(S,1,2,3,4) contains a copy of
+                        ; XX15(0,1,2,3,4)
+ 
+ INY                    ; We have now managed to subtract 10 billion from our
+                        ; number, so increment Y, which is where we are keeping
+                        ; count of the number of subtractions so far
+ 
+ JMP TT36               ; Jump back to TT36 to subtract the next 10 billion
+
+.TT37
+ TYA                    ; If we get here then Y contains the digit that we want
+                        ; to print (as Y has now counted the total number of
+                        ; subtractions of 10 billion), so transfer Y into Acc
+
+ BNE TT32               ; If the digit is non-zero, jump to TT32 to print it
+
+ LDA T                  ; Otherwise the digit is zero. If we are already
+                        ; printing the number then we will want to print a 0,
+                        ; but if we haven't started printing the number yet,
+                        ; then we probbaly don't, as we don't want to print
+                        ; leading zeroes unless this is the only digit before
+                        ; the decimal point
+                        ; 
+                        ; To help with this, we are going to use T as a flag
+                        ; that tells us whether we have already started
+                        ; printing digits:
+                        ;
+                        ;   If T <> 0 we haven't printed anything yet
+                        ;   If T = 0 then we have started printing digits
+                        ;
+                        ; We initially set T to the maximum number of
+                        ; characters allowed at, less 1 if we are printing a
+                        ; decimal point, so the first time we enter the digit
+                        ; printing routine at TT37, it is definitely non-zero
+ 
+ BEQ TT32               ; If T = 0, jump straight to the print routine at TT32,
+                        ; as we have already started printing the number, so we
+                        ; definitely want to print this digit too
+
+ DEC U                  ; We initially set U to the number of digits we want to
+ BPL TT34               ; skip before starting to print the number. If we get
+                        ; here then we haven't printed any digits yet, so
+                        ; decrement U to see if we have reached the point where
+                        ; we should start printing the number, and if not, jump
+                        ; to TT34 to set up things for the next digit
+
+ LDA #' '               ; We haven't started printing any digits yet, but we
+ BNE tt34               ; have reached the point where we should start printing
+                        ; our number, so call TT26 (via tt34) to print a space
+                        ; so that the number is left-padded with spaces (this
+                        ; BNE is effectively a JMP as Acc will never be zero)
+
+.TT32
+ LDY #0                 ; We are printing an actual digit, so first set T to 0,
+ STY T                  ; to denote that we have now started printing digits as
+                        ; opposed to spaces
+
+ CLC                    ; The digit value is in Acc, so add ASCII '0' to get
+ ADC #'0'               ; get the ASCII character number to print
+
+.tt34
+ JSR TT26               ; Print the character in Acc and fall through into TT34
+                        ; to get things ready for the next digit
+
+.TT34
+ DEC T                  ; Decrement T but keep T >= 0 (by incrementing it
+ BPL P%+4               ; again if the above decrement made T negative)
+ INC T
+
+ DEC XX17               ; Decrement the total number of characters to print in
+                        ; XX17
+
+ BMI RR3+1              ; If it is negative, we have printed all the characters
+                        ; so return from the subroutine (as RR3 contains an
+                        ; ORA #&60 instruction, so RR3+1 is &60, which is the
+                        ; opcode for an RTS)
+
+ BNE P%+10              ; If it is positive (> 0) loop back to TT35 (via the
+                        ; last instruction in this subroutine) to print the
+                        ; next digit
+
+ PLP                    ; If we get here then we have printed the exact number
+                        ; of digits that we wanted to, so restore the carry
+                        ; flag that we stored at the start of BPRNT
+
+ BCC P%+7               ; If carry is clear, we don't want a decimal point, so
+                        ; look back to TT35 (via the last instruction in this
+                        ; subroutine) to print the next digit
+
+ LDA #'.'               ; Print the decimal point
+ JSR TT26
+
+ JMP TT35               ; Loop back to TT35 to print the next digit
 
 \ *****************************************************************************
 \ Subroutine: BELL
@@ -5596,13 +5888,37 @@ H_D%=L%+P%-C_A%
 \ *****************************************************************************
 \ Subroutine: TT54
 \
-\ This routine twists the three two-byte seeds in QQ15. The three seeds
-\ represent three consecutive numbers in a Tribonacci sequence, where each
-\ number is equal to the sum of the preceding three numbers (the name is a play
-\ on Fibonacci sequence, in which each number is equal to the sum of the
-\ preceding two numbers). Twisting is the process of moving along the sequence
-\ by one place. So, say our seeds currently point to these numbers in the
-\ sequence:
+\ This routine twists the three two-byte seeds in QQ15.
+\
+\ How it works:
+\
+\ Famously, the universe in Elite is generated procedurally, and the core of
+\ this process is the set of three two-byte seeds that describe each system in
+\ the universe. Each of the eight galaxies in the game is generated in the same
+\ way, by taking an initial set of seeds and "twisting" them to generate 256
+\ systems, one after the other (the actual twisting process is described
+\ below).
+
+\ Specifically, given the initial set of seeds, we can generate the next system
+\ in the sequence by twisting that system's seeds four times. As we do these
+\ twists, we can extract the system's data from the seed values - including the
+\ system name, which is generated by the subroutine cpl, where you can read
+\ about how this aspect works.
+\
+\ It is therefore no exaggeration that the twisting process implemented below
+\ is the fundamental building block of Elite's "universe in a bottle" approach,
+\ which enabled the authors to squeeze eight galaxies of 256 planets out of
+\ nothing more then three initial numbers and a short twisting routine (and
+\ they could have had far larger galaxies and many more of them, if they had
+\ wanted, but they made the wise decision to limit the number). Let's look at
+\ how this twisting proces works.
+\
+\ The three seeds that describe a system represent three consecutive numbers in
+\ a Tribonacci sequence, where each number is equal to the sum of the preceding
+\ three numbers (the name is a play on Fibonacci sequence, in which each number
+\ is equal to the sum of the preceding two numbers). Twisting is the process of
+\ moving along the sequence by one place. So, say our seeds currently point to
+\ these numbers in the sequence:
 \
 \   0   0   1   1   2   4   7   13   24   44   ...
 \                       ^   ^    ^
@@ -5636,7 +5952,7 @@ H_D%=L%+P%-C_A%
 \ wraps around at the end. But the maths is the same, it just has to be done
 \ on two-byte numbers, one byte at a time.
 \
-\ The seeds are stored as big-endian 16-bit numbers, so the low (least
+\ The seeds are stored as little-endian 16-bit numbers, so the low (least
 \ significant) byte is first, followed by the high (most significant) byte.
 \ Taking the case of the currently selected system, whose seeds are stored
 \ in the six bytes from QQ15, that means our seed values are stored like this:
@@ -7446,6 +7762,8 @@ MAPCHAR '4', '4'
 \ Print control code 3 (selected system name, i.e. the one in the cross-hairs
 \ in the short range chart)
 \
+\ How it works:
+\
 \ System names are generated from the three two-byte seeds for that system. In
 \ the case of the selected system, those seeds live at QQ15. The process works
 \ as follows, where w0, w1, w2 are the seeds for the system in question 
@@ -7817,9 +8135,10 @@ MAPCHAR '4', '4'
                         ; If it is, then ALL CAPS has been set (as bit 7 is
                         ; clear) but bit 6 is still indicating that the next
                         ; character should be printed in lower case, so we need
-                        ; to fix this. We do this with a jump to TT46, which will
-                        ; print this character in upper case and clear bit 6, so
-                        ; the flags are consistent with ALL CAPS going forward
+                        ; to fix this. We do this with a jump to TT46, which
+                        ; will print this character in upper case and clear bit
+                        ; 6, so the flags are consistent with ALL CAPS going
+                        ; forward.
 
                         ; If we get here, some other flag is set in QQ17 (one
                         ; of bits 0-5 is set), which shouldn't happen in this
