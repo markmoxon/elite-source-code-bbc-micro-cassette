@@ -21,6 +21,7 @@ HIMEM=W%
 WP=&D40
 K%=&900
 LS%=WP-1
+
 \ *****************************************************************************
 \ Variable: QQ18
 \
@@ -109,7 +110,7 @@ SCH=SC+1
 \ Variable: XC
 \
 \ Contains the x-coordinate of the text cursor (i.e. the text column). A value
-\ of 1 demotes the leftmost column
+\ of 0 denotes the leftmost column
 \ *****************************************************************************
 
 .XC     skip 1          ; =FNZ
@@ -118,7 +119,7 @@ SCH=SC+1
 \ Variable: YC
 \
 \ Contains the y-coordinate of the text cursor (i.e. the text row). A value
-\ of 1 demotes the top row
+\ of 1 denotes the top row
 \ *****************************************************************************
 
 .YC     skip 1          ; =FNZ
@@ -2956,9 +2957,9 @@ NEXT                    ; allwk up to &0ABC while heap for edges working down fr
 \ *****************************************************************************
 \ Subroutine: pr2
 \
-\ Print the number in X to 3 digits, left-padding with spaces for numbers with
-\ fewer than 3 digits (so numbers < 100 are right-aligned). Optionally include
-\ a decimal point.
+\ Print the one-byte number in X to 3 digits, left-padding with spaces for
+\ numbers with fewer than 3 digits (so numbers < 100 are right-aligned).
+\ Optionally include a decimal point.
 \
 \ Arguments:
 \
@@ -2970,7 +2971,27 @@ NEXT                    ; allwk up to &0ABC while heap for edges working down fr
 .pr2
  LDA #3                 ; Set Acc to the number of digits (3)
 
- LDY #0                 ; Zero the Y register (I don't know why)
+ LDY #0                 ; Zero the Y register (this instruction seems to be
+                        ; unnecessary, as the next operation that uses the Y
+                        ; register, in BPRNT below, is also an LDY #0)
+
+                        ; Now fall through to TT11 to print X to 3 digits
+
+\ *****************************************************************************
+\ Subroutine: TT11
+\
+\ Print the one-byte number in X to a specific number of digits, left-padding
+\ with spaces for numbers with fewer digits (so lower numbers are
+\ right-aligned). Optionally include a decimal point.
+\
+\ Arguments:
+\
+\   X           The number to print
+\
+\   Acc         The number of digits
+\
+\   C flag      If set, include a decimal point
+\ *****************************************************************************
 
 .TT11
  STA U                  ; We are going to use the BPRNT routine (below) to
@@ -3109,13 +3130,12 @@ NEXT                    ; allwk up to &0ABC while heap for edges working down fr
 \ 
 \ We do the loop XX11 times, once for each character that we might print. We
 \ start printing characters once we reach loop number U (at which point we
-\ print a space if there isn't a digit at that point, otherwise digits). As
-\ soon as we have printed our first digit we set T to 0 to indicate that we
-\ should print characters for all subsequent loops, so T is effectively a flag
-\ for denoting that we're switching from spaces to zeroes for zero values, and
-\ decrementing T ensures that we always have at least one digit in the number,
-\ even if it's a zero.
-
+\ print a space if there isn't a digit at that point, otherwise we print the
+\ calculated digit). As soon as we have printed our first digit we set T to 0
+\ to indicate that we should print characters for all subsequent loops, so T is
+\ effectively a flag for denoting that we're switching from spaces to zeroes
+\ for zero values, and decrementing T ensures that we always have at least one
+\ digit in the number, even if it's a zero.
 \ *****************************************************************************
 
 .BPRNT
@@ -3588,9 +3608,9 @@ NEXT                    ; allwk up to &0ABC while heap for edges working down fr
                         ; explicitly, the screen starts at &6000, so the
                         ; text rows are stored in screen memory like this:
                         ;
-                        ;   Row 1: &6000 - &60FF    YC = 1, XC = 1 to 32
-                        ;   Row 2: &6100 - &61FF    YC = 2, XC = 1 to 32
-                        ;   Row 3: &6200 - &62FF    YC = 3, XC = 1 to 32
+                        ;   Row 1: &6000 - &60FF    YC = 1, XC = 0 to 31
+                        ;   Row 2: &6100 - &61FF    YC = 2, XC = 0 to 31
+                        ;   Row 3: &6200 - &62FF    YC = 3, XC = 0 to 31
                         ;
                         ; and so on.
  
@@ -6084,9 +6104,10 @@ H_D%=L%+P%-C_A%
 \ *****************************************************************************
 
 .TT67
- LDA #13                ; Load a newline character into the Acc
+ LDA #13                ; Load a newline character into Acc
 
- JMP TT27               ; Print the text token in Acc
+ JMP TT27               ; Print the text token in Acc and return from the
+                        ; subroutine using a tail call
 
 \ *****************************************************************************
 \ *****************************************************************************
@@ -7089,18 +7110,64 @@ H_D%=L%+P%-C_A%
 .hy5
  RTS                    ; ee3-1
 
-.ee3                    ; digit in top left hand corner, using Xreg.
- LDY #1                 ; top left
+\ *****************************************************************************
+\ Subroutine: ee3
+\
+\ Print the one-byte number in X at text location (0, 1). Print the number to
+\ 5 digits, left-padding with spaces for numbers with fewer than 3 digits (so
+\ numbers < 10000 are right-aligned), with no decimal point.
+\
+\ Arguments:
+\
+\   X           The number to print
+\ *****************************************************************************
+
+.ee3
+ LDY #1                 ; Set YC = 1 (first row)
  STY YC
- DEY                    ; Yhi = 0
+
+ DEY                    ; Set XC = 0 (first character)
  STY XC
 
-.pr6                    ; 5 digits of Xlo.Yhi, no decimal point.
- CLC
+                        ; Fall through into pr6 to print X to 5 digits
 
-.pr5                    ; 5 digits
- LDA #5
- JMP TT11               ; print Xlo.Yhi, carry set will make decimal point.
+\ *****************************************************************************
+\ Subroutine: pr6
+\
+\ Print the one-byte number in X to 5 digits, left-padding with spaces for
+\ numbers with fewer than 3 digits (so numbers < 10000 are right-aligned),
+\ with no decimal point.
+\
+\ Arguments:
+\
+\   X           The number to print
+\ *****************************************************************************
+
+.pr6
+ CLC                    ; Do not display a decimal point when printing
+
+                        ; Fall through into pr5 to print X to 5 digits
+
+\ *****************************************************************************
+\ Subroutine: pr5
+\
+\ Print the one-byte number in X to 5 digits, left-padding with spaces for
+\ numbers with fewer than 3 digits (so numbers < 10000 are right-aligned).
+\ Optionally include a decimal point.
+\
+\ Arguments:
+\
+\   X           The number to print
+\
+\   C flag      If set, include a decimal point
+\ *****************************************************************************
+
+.pr5
+ LDA #5                 ; Print the number in X to a maximum of 5 digits
+ JMP TT11               ; (left-padded) with no decimal point
+ 
+\ *****************************************************************************
+\ *****************************************************************************
 
 .TT147                  ; hyperspace too far
  LDA #202               ; token = (HYPERSPACE) 'RANGE' (?)
@@ -7180,9 +7247,20 @@ H_D%=L%+P%-C_A%
 
  JSR TT16a              ; else 'g' for gram
 
-.TT162                  ; white space
- LDA #32                ; ascii ' '
- JMP TT27               ; process flight text token \ TT162+2
+\ *****************************************************************************
+\ Subroutine: TT162
+\
+\ Print a space
+\ *****************************************************************************
+
+.TT162
+ LDA #' '               ; Load a space character into Acc
+
+ JMP TT27               ; Print the character in Acc and return from the
+                        ; subroutine using a tail call
+
+\ *****************************************************************************
+\ *****************************************************************************
 
 .TT160                  ; 't' for tonne
  LDA #&74               ; ascii 't' for tonne
