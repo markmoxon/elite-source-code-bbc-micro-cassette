@@ -2,12 +2,13 @@
 \ ELITE SHIPS SOURCE
 \ *****************************************************************************
 
-\ This data is loaded at &5822 (L%) as part of elite-source.asm. It is then
-\ moved down to &563A (ORG), which is at the label .XX21.
+\ This data is loaded at &5822 (LOAD%) as part of elite-source.asm. It is then
+\ moved down to &563A (CODE%), which is at location XX21.
 
-ORG &563A
-L% = &5822
-CODE% = P%
+LOAD% = &5822
+CODE% = &563A
+
+ORG CODE%
 
 \ *****************************************************************************
 \ Ships in Elite
@@ -36,7 +37,7 @@ CODE% = P%
 \               another ship's edge net)
 \ Byte #17      Faces data offset hi
 \ Byte #18      Q%: Normals are scaled by 2^Q% to make large objects' normals
-\               flare out further away (see .EE29)
+\               flare out further away (see EE29)
 \ Byte #19      %00 lll mmm, where bits 0-2 = number of missiles,
 \               bits 3-5 = laser power
 
@@ -909,8 +910,8 @@ PRINT "output/SHIPS.bin"
 PRINT "ASSEMBLE AT", ~CODE%
 PRINT "P%=",~P%
 PRINT "CODE SIZE=", ~(P%-CODE%)
-PRINT "RELOAD AT ", ~L%
+PRINT "RELOAD AT ", ~LOAD%
 
-PRINT "S.SHIPS ",~CODE%," ",~P%," ",~L%," ",~L%
+PRINT "S.SHIPS ",~CODE%," ",~P%," ",~LOAD%," ",~LOAD%
 
-SAVE "output/SHIPS.bin", CODE%, P%, L%, L%
+SAVE "output/SHIPS.bin", CODE%, P%, LOAD%, LOAD%

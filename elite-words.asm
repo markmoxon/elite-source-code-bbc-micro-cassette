@@ -2,12 +2,13 @@
 \ ELITE WORDS SOURCE
 \ *****************************************************************************
 
-\ This data is loaded at &1100 (L%) as part of elite-loader.asm. It is then
-\ moved down to &0400 (ORG), which is at the label .QQ18.
+\ This data is loaded at &1100 (LOAD%) as part of elite-loader.asm. It is then
+\ moved down to &0400 (CODE%), which is at the location QQ18.
 
-ORG &0400
-L% = &1100
-CODE% = P%
+LOAD% = &1100
+CODE% = &0400
+
+ORG CODE%
 
 \ *****************************************************************************
 \ Tokens in Elite
@@ -25,7 +26,7 @@ CODE% = P%
 \ printed, these tokens get expanded into longer strings, which enables the
 \ game to squeeze a lot of text into a small amount of storage.
 \ 
-\ To print something, you pass a byte through to the printing routine at .TT27.
+\ To print something, you pass a byte through to the printing routine at TT27.
 \ The value of that byte determines what gets printed, as follows:
 \ 
 \     Value (n)   Type
@@ -67,7 +68,7 @@ CODE% = P%
 \ The TT27 print subroutine
 \ *****************************************************************************
 \ 
-\ Elite contains a subroutine at .TT27 that prints out the character given in
+\ Elite contains a subroutine at TT27 that prints out the character given in
 \ the accumulator, and if that number refers to a token, then the token is
 \ expanded before being printed. Whole strings can be printed by calling this
 \ subroutine on one character at a time, and this is how almost all of the text
@@ -88,7 +89,7 @@ CODE% = P%
 \     DATA ON TIONISLA
 \ 
 \ This is because token 3 expands to the string "DATA ON {current system}". You
-\ can see this very call being used in .TT25, which displays data on the
+\ can see this very call being used in TT25, which displays data on the
 \ selected system when F6 is pressed (this particular call is what prints the
 \ title at the top of the screen).
 \ 
@@ -100,7 +101,7 @@ CODE% = P%
 \ all our ASCII characters and tokens, except for recursive tokens 146, 147 and
 \ 148. How do we print these?
 \ 
-\ To print these tokens, there is another subroutine at .ex that always prints
+\ To print these tokens, there is another subroutine at ex that always prints
 \ the recursive token number in the accumulator, so we can use that to print
 \ these tokens.
 \ 
@@ -202,7 +203,7 @@ CODE% = P%
 \ tokens are shown as <n>, so <150> expands to VE.
 \ 
 \ The set of two-letter tokens is stored as one long string ("ALLEXEGE...") at
-\ .QQ16, in the main elite-source.asm. This string is also used to generate
+\ QQ16, in the main elite-source.asm. This string is also used to generate
 \ planet names procedurally, but that's a story for another time.
 \ 
 \ Note that question marks are not printed, so token <143> expands to A. This
@@ -261,7 +262,7 @@ CODE% = P%
 \ 
 \ To complicate matters, the strings themselves are all EOR'd with 35 before
 \ being stored, and this process is repeated when they are read from memory (as
-\ EOR is reversible). This is done in the routine at .TT50.
+\ EOR is reversible). This is done in the routine at TT50.
 \ 
 \ Note that if a recursive token contains another recursive token, then that
 \ token's number is stored as the number that would be sent to TT27, rather
@@ -288,7 +289,7 @@ CODE% = P%
 \ the entire list of tokens, character by character, counting all the nulls
 \ until it reaches the right spot. This might not be fast, but it is much more
 \ space-efficient than a lookup table; you can see this loop in the subroutine
-\ at .ex, which is where recursive tokens are printed.
+\ at ex, which is where recursive tokens are printed.
 \ 
 \ *****************************************************************************
 \ An example
@@ -1555,8 +1556,8 @@ PRINT "output/WORDS9.bin"
 PRINT "ASSEMBLE AT", ~CODE%
 PRINT "P%=",~P%
 PRINT "CODE SIZE=", ~(P%-CODE%)
-PRINT "RELOAD AT ", ~L%
+PRINT "RELOAD AT ", ~LOAD%
 
-PRINT "S.WORDS9 ",~CODE%," ",~P%," ",~L%," ",~L%
+PRINT "S.WORDS9 ",~CODE%," ",~P%," ",~LOAD%," ",~LOAD%
 
-SAVE "output/WORDS9.bin", CODE%, P%, L%, L%
+SAVE "output/WORDS9.bin", CODE%, P%, LOAD%, LOAD%
