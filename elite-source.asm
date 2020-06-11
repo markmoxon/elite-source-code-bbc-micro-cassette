@@ -32,8 +32,8 @@ QQ18 = &0400            ; &0400 to &07FF - Recursive token table, see
                         ; elite-words.asm for details of what is stored here
 
 K% = &0900              ; &0900 to &0CFF - Workspace K%, pointed to by table
-                        ; in UNIV, first 468 bytes holds 13 ships data, 36 (NI%)
-                        ; bytes each
+                        ; in UNIV, first 468 bytes holds 13 ships data, 36
+                        ; (NI%) bytes each
 
 WP = &0D40              ; &0D40 to &0F34 - Workspace WP, see below for details
                         ; of what is stored here
@@ -42,7 +42,7 @@ WP = &0D40              ; &0D40 to &0F34 - Workspace WP, see below for details
 \ Configuration variables
 \ *****************************************************************************
 
-NOST = 18               ; Max number of stars (i.e. dust particles)
+NOST = 18               ; Max number of stardust particles
 
 NOSH = 12               ; Max number of ships
 
@@ -77,7 +77,7 @@ VSCAN  = 57
 VEC    = &7FFE
 SVN    = &7FFD
 
-X = 128                 ; Screen size
+X = 128                 ; Screen centre
 Y = 96
 
 \ *****************************************************************************
@@ -258,7 +258,7 @@ QQ17 = XX18             ; Shares memory with XX18, K5
 
 QQ19 = QQ17 + 1         ; Shares memory with XX18+1, K5
                         ;
-                        ;Temporary storage for seed pairs (e.g. used in cpl
+                        ; Temporary storage for seed pairs (e.g. used in cpl
                         ; as a temporary backup when twisting three two-byte
                         ; seeds)
 
@@ -368,8 +368,8 @@ K6 = K5 + 4             ; Shares memory with XX18+4
 .RAT2                   ; 
  SKIP 1
 
-.K2
- SKIP 4                 ; 
+.K2                     ; 
+ SKIP 4
 
 T = &D1                 ; Used as temporary storage (e.g. used in cpl for the
                         ; loop counter)
@@ -386,7 +386,7 @@ K4 = K3 + 14            ; Shares memory with XX2+14
                         ; Used as temporary storage (e.g. used in TT27 for the
                         ; character to print)
 
-PRINT "ZERO PAGE VARIABLES FROM ",~ZP," to ",~P%
+PRINT "Zero page variables from ", ~ZP, " to ", ~P%
 
 \ *****************************************************************************
 \ Workspace at WP = &0D40 - &0F34
@@ -402,7 +402,7 @@ ORG WP
 
 CABTMP = MANY           ; Shares memory with MANY
 
-SSPR = MANY + SST       ; Shares memory with MANY+8
+SSPR = MANY + SST       ; Shares memory with MANY
 
 .ECMP                   ; 
  SKIP 1
@@ -548,7 +548,7 @@ LSX = LSO               ; Shares memory with LSO
 .NOSTM                   ; 
  SKIP 1
 
-PRINT "WP WORKSPACE FROM ",~WP," to ",~P%
+PRINT "WP workspace from  ", ~WP," to ", ~P%
 
 \ *****************************************************************************
 \ Workspace at T% = &300 - &035F
@@ -582,14 +582,14 @@ ORG T%
                         ; start in galaxy 1 in-game, but it's stored as galaxy
                         ; 0 internally)
 
-.LASER
- SKIP 6                 ; 
+.LASER                  ; 
+ SKIP 6
 
 .CRGO                   ; 
  SKIP 1
 
-.QQ20
- SKIP 17                ; 
+.QQ20                   ; 
+ SKIP 17
 
 .ECM                    ; 
  SKIP 1
@@ -634,24 +634,18 @@ NT% = SVC + 2 - TP      ; Set to the size of the workspace at T% (&300), from
                         ; the start of T% to the end of SVC
 
 SX = P%                 ; Size of data block at SX is NOST, so this is where we
-                        ; store star (dust) data
+                        ; store stardust data
 
-SXL = SX + NOST + 1     ; And this is the end of the star (dust) block
+SXL = SX + NOST + 1     ; And this is the end of the stardust block
 
-PRINT "T% WORKSPACE FROM ",~T%," to ",~P%," possibly ",~SXL
+PRINT "T% workspace from  ", ~T%, " to ", ~SXL
 
 \ *****************************************************************************
 \ ELITE A
 \ *****************************************************************************
 
 ORG CODE%
-LOAD_A% = LOAD%            ; +P%-C% as P%=C% above
-
-\ *****************************************************************************
-\ Variable: S%
-\
-\ 
-\ *****************************************************************************
+LOAD_A% = LOAD%
 
 .S%
  EQUW TT170             ; entry point for Elite game
@@ -659,87 +653,32 @@ LOAD_A% = LOAD%            ; +P%-C% as P%=C% above
  EQUW IRQ1              ; IRQ1V
  EQUW BR1               ; BRKV
 
+.COMC                   ; 
+ EQUB 0
 
-\ *****************************************************************************
-\ Variable: COMC
-\
-\ 
-\ *****************************************************************************
+.DNOIZ                  ; 
+ EQUB 0
 
-.COMC
- BRK
+.DAMP                   ; 
+ EQUB 0
 
-\ *****************************************************************************
-\ Variable: DNOIZ
-\
-\ 
-\ *****************************************************************************
+.DJD                    ; 
+ EQUB 0
 
-.DNOIZ
- BRK
+.PATG                   ; 
+ EQUB 0
 
-\ *****************************************************************************
-\ Variable: DAMP
-\
-\ 
-\ *****************************************************************************
+.FLH                    ; 
+ EQUB 0
 
-.DAMP
- BRK
+.JSTGY                  ; 
+ EQUB 0
 
-\ *****************************************************************************
-\ Variable: DJD
-\
-\ 
-\ *****************************************************************************
+.JSTE                   ; 
+ EQUB 0
 
-.DJD
- BRK
-
-\ *****************************************************************************
-\ Variable: PATG
-\
-\ 
-\ *****************************************************************************
-
-.PATG
- BRK
-
-\ *****************************************************************************
-\ Variable: FLH
-\
-\ 
-\ *****************************************************************************
-
-.FLH
- BRK
-
-\ *****************************************************************************
-\ Variable: JSTGY
-\
-\ 
-\ *****************************************************************************
-
-.JSTGY
- BRK
-
-\ *****************************************************************************
-\ Variable: JSTE
-\
-\ 
-\ *****************************************************************************
-
-.JSTE
- BRK
-
-\ *****************************************************************************
-\ Variable: JSTK
-\
-\ 
-\ *****************************************************************************
-
-.JSTK
- BRK
+.JSTK                   ; 
+ EQUB 0
 
 \ *****************************************************************************
 \ Subroutine: M%
@@ -808,7 +747,7 @@ LOAD_A% = LOAD%            ; +P%-C% as P%=C% above
  BCS MA17
  INC DELTA
 
-.MA17                   ; sped-up key
+.MA17                   ; speed-up key
  LDA KY1                ; key '?' slow-down
  BEQ MA4                ; speed done
  DEC DELTA              ; speed
@@ -2076,20 +2015,19 @@ LOAD_A% = LOAD%            ; +P%-C% as P%=C% above
  STA INWK+2             ; xsg \ X=X+aY \ their comment
 
  JMP MV45               ; move inwk by speed, end of MV40 move planet.
-\\]
 
 \ *****************************************************************************
 \ Save output/ELTA.bin
 \ *****************************************************************************
 
 PRINT "ELITE A"
-PRINT "ASSEMBLE AT ", ~CODE%
-PRINT "P%=",~P%
-PRINT "CODE SIZE=", ~(P%-CODE%)
-PRINT "EXECUTE AT LOAD%=", ~LOAD%
-PRINT "RELOAD AT H%=", ~LOAD_A%
+PRINT "Assembled at ", ~CODE%
+PRINT "Ends at ", ~P%
+PRINT "Code size is ", ~(P% - CODE%)
+PRINT "Execute at ", ~LOAD%
+PRINT "Reload at ", ~LOAD_A%
 
-PRINT "S.ELTA ",~CODE%," ",~P%," ",~LOAD%," ",~LOAD_A%
+PRINT "S.ELTA ", ~CODE%, " ", ~P%, " ", ~LOAD%, " ", ~LOAD_A%
 SAVE "output/ELTA.bin", CODE%, P%, LOAD%
 
 \ *****************************************************************************
@@ -2099,7 +2037,6 @@ SAVE "output/ELTA.bin", CODE%, P%, LOAD%
 CODE_B% = P%
 LOAD_B% = LOAD% + P% - CODE%
 Q% = _ENABLE_MAX_COMMANDER
-J% = P%
 
 \ *****************************************************************************
 \ Variable: NA%
@@ -2119,12 +2056,15 @@ J% = P%
  EQUB 173               ; QQ1
  EQUD &2485A4A          ; QQ21
  EQUW &B753             ; Base seed
+ 
 ;EQUD(((&E8030000)AND(NOTQ%))+((&CA9A3B)ANDQ%))\CASH,&80969800
+
 IF Q%
- EQUD &CA9A3B           ; CASH
+ EQUD &00CA9A3B         ; CASH
 ELSE
- EQUD &E8030000         ; CASH
+ EQUD &E8030000         ; 100 Cr CASH
 ENDIF
+
  EQUB 70                ; fuel
  EQUB 0                 ; COK-UP
  EQUB 0                 ; GALACTIC COUNT
@@ -2144,7 +2084,7 @@ ENDIF
  EQUB 0
  EQUB 0
  EQUW 0                 ; LASER
- EQUB 22+(15 ANDQ%)     ; 37 CRGO
+ EQUB 22 + (15 AND Q%)  ; 37 CRGO
  EQUD 0
  EQUD 0
  EQUD 0
@@ -2158,7 +2098,7 @@ ENDIF
  EQUB Q%                ; GHYP
  EQUB Q%                ; ESCP
  EQUD FALSE             ; EXPAND
- EQUB 3+(Q%AND1)        ; MISSILES
+ EQUB 3 + (Q% AND 1)    ; MISSILES
  EQUB FALSE             ; FIST
  EQUB 16
  EQUB 15
@@ -2194,18 +2134,44 @@ PRINT "CH% = ", ~CH%
 .CHK
  EQUB CH%
 
-.UNIV                   ; address pointers for 13 ships INF on pages &9 &A &B &C. 36 bytes each.
-FOR I%,0,12
- EQUW K% + I% * NI%     ; copied to inner worskpace INWK on zero page when needed
-NEXT                    ; allwk up to &0ABC while heap for edges working down from &CFF.
+\ *****************************************************************************
+\ Variable: UNIV
+\
+\ Address pointers for 13 ships INF on pages &9 &A &B &C. 36 bytes each.
+\ copied to inner worskpace INWK on zero page when needed. allwk up to &0ABC
+\ while heap for edges working down from &CFF.
+\ *****************************************************************************
+
+.UNIV
+FOR I%, 0, 12
+ EQUW K% + I% * NI%
+NEXT
+
+\ *****************************************************************************
+\ Variable: TWOS
+\
+\ Mode 4 single pixel
+\ *****************************************************************************
 
 .TWOS                   ; Mode 4 single pixel
  EQUD &10204080
  EQUD &01020408
 
+\ *****************************************************************************
+\ Variable: TWOS2
+\
+\ Mode 4 double-width pixel approx as contained in 1 column
+\ *****************************************************************************
+
 .TWOS2                  ; Mode 4 double-width pixel approx as contained in 1 column
  EQUD &183060C0
  EQUD &0303060C
+
+\ *****************************************************************************
+\ Variable: CTWOS
+\
+\ Mode 5 coloured pixel 
+\ *****************************************************************************
 
 .CTWOS                  ; Mode 5 coloured pixel
  EQUD &11224488
@@ -4536,13 +4502,13 @@ NEXT                    ; allwk up to &0ABC while heap for edges working down fr
 \ *****************************************************************************
 
 PRINT "ELITE B"
-PRINT "ASSEMBLE AT ", ~CODE_B%
-PRINT "P%=",~P%
-PRINT "CODE SIZE=", ~(P%-CODE_B%)
-PRINT "EXECUTE AT LOAD%=", ~LOAD%
-PRINT "RELOAD AT H%=", ~LOAD_B%
+PRINT "Assembled at ", ~CODE_B%
+PRINT "Ends at ", ~P%
+PRINT "Code size is ", ~(P% - CODE_B%)
+PRINT "Execute at ", ~LOAD%
+PRINT "Reload at ", ~LOAD_B%
 
-PRINT "S.ELTB ",~CODE_B%," ",~P%," ",~LOAD%," ",~LOAD_B%
+PRINT "S.ELTB ", ~CODE_B%, " ", ~P%, " ", ~LOAD%, " ", ~LOAD_B%
 SAVE "output/ELTB.bin", CODE_B%, P%, LOAD%
 
 \ *****************************************************************************
@@ -6746,13 +6712,13 @@ NEXT
 \ *****************************************************************************
 
 PRINT "ELITE C"
-PRINT "ASSEMBLE AT ", ~CODE_C%
-PRINT "P%=",~P%
-PRINT "CODE SIZE=", ~(P%-CODE_C%)
-PRINT "EXECUTE AT LOAD%=", ~LOAD%
-PRINT "RELOAD AT H%=", ~LOAD_C%
+PRINT "Assembled at ", ~CODE_C%
+PRINT "Ends at ", ~P%
+PRINT "Code size is ", ~(P% - CODE_C%)
+PRINT "Execute at ", ~LOAD%
+PRINT "Reload at ", ~LOAD_C%
 
-PRINT "S.ELTC ",~CODE_C%," ",~P%," ",~LOAD%," ",~LOAD_C%
+PRINT "S.ELTC ", ~CODE_C%, " ", ~P%, " ", ~LOAD%, " ", ~LOAD_C%
 SAVE "output/ELTC.bin", CODE_C%, P%, LOAD%
 
 \ *****************************************************************************
@@ -8974,13 +8940,13 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 PRINT "ELITE D"
-PRINT "ASSEMBLE AT ", ~CODE_D%
-PRINT "P%=",~P%
-PRINT "CODE SIZE=", ~(P%-CODE_D%)
-PRINT "EXECUTE AT LOAD%=", ~LOAD%
-PRINT "RELOAD AT H%=", ~LOAD_D%
+PRINT "Assembled at ", ~CODE_D%
+PRINT "Ends at ", ~P%
+PRINT "Code size is ", ~(P% - CODE_D%)
+PRINT "Execute at ", ~LOAD%
+PRINT "Reload at ", ~LOAD_D%
 
-PRINT "S.ELTD ",~CODE_D%," ",~P%," ",~LOAD%," ",~LOAD_D%
+PRINT "S.ELTD ", ~CODE_D%, " ", ~P%, " ", ~LOAD%, " ", ~LOAD_D%
 SAVE "output/ELTD.bin", CODE_D%, P%, LOAD%
 
 \ *****************************************************************************
@@ -11595,13 +11561,13 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 PRINT "ELITE E"
-PRINT "ASSEMBLE AT ", ~CODE_E%
-PRINT "P%=",~P%
-PRINT "CODE SIZE=", ~(P%-CODE_E%)
-PRINT "EXECUTE AT LOAD%=", ~LOAD%
-PRINT "RELOAD AT H%=", ~LOAD_E%
+PRINT "Assembled at ", ~CODE_E%
+PRINT "Ends at ", ~P%
+PRINT "Code size is ", ~(P% - CODE_E%)
+PRINT "Execute at ", ~LOAD%
+PRINT "Reload at ", ~LOAD_E%
 
-PRINT "S.ELTE ",~CODE_E%," ",~P%," ",~LOAD%," ",~LOAD_E%
+PRINT "S.ELTE ", ~CODE_E%, " ", ~P%, " ", ~LOAD%, " ", ~LOAD_E%
 SAVE "output/ELTE.bin", CODE_E%, P%, LOAD%
 
 \ *****************************************************************************
@@ -13718,13 +13684,13 @@ ENDIF
 \ *****************************************************************************
 
 PRINT "ELITE F"
-PRINT "ASSEMBLE AT ", ~CODE_F%
-PRINT "P%=",~P%
-PRINT "CODE SIZE=", ~(P%-CODE_F%)
-PRINT "EXECUTE AT LOAD%=", ~LOAD%
-PRINT "RELOAD AT H%=", ~LOAD_F%
+PRINT "Assembled at ", ~CODE_F%
+PRINT "Ends at ", ~P%
+PRINT "Code size is ", ~(P% - CODE_F%)
+PRINT "Execute at ", ~LOAD%
+PRINT "Reload at ", ~LOAD_F%
 
-PRINT "S.ELTF ",~CODE_F%," ",~P%," ",~LOAD%," ",~LOAD_F%
+PRINT "S.ELTF ", ~CODE_F%, " ", ~P%, " ", ~LOAD%, " ", ~LOAD_F%
 SAVE "output/ELTF.bin", CODE_F%, P%, LOAD%
 
 \ *****************************************************************************
@@ -15344,13 +15310,13 @@ F% = P%
 \ *****************************************************************************
 
 PRINT "ELITE G"
-PRINT "ASSEMBLE AT ", ~CODE_G%
-PRINT "P%=",~P%
-PRINT "CODE SIZE=", ~(P%-CODE_G%)
-PRINT "EXECUTE AT LOAD%=", ~LOAD%
-PRINT "RELOAD AT H%=", ~LOAD_G%
+PRINT "Assembled at ", ~CODE_G%
+PRINT "Ends at ", ~P%
+PRINT "Code size is ", ~(P% - CODE_G%)
+PRINT "Execute at ", ~LOAD%
+PRINT "Reload at ", ~LOAD_G%
 
-PRINT "S.ELTG ",~CODE_G%," ",~P%," ",~LOAD%," ",~LOAD_G%
+PRINT "S.ELTG ", ~CODE_G%, " ", ~P%, " ", ~LOAD%, " ", ~LOAD_G%
 SAVE "output/ELTG.bin", CODE_G%, P%, LOAD%
 
 \ *****************************************************************************
@@ -15372,7 +15338,7 @@ SKIP 1
 
 INCBIN "output/SHIPS.bin"
 
-PRINT "XX21=",~XX21
-PRINT "P%=",~P%
+PRINT "XX21 = ", ~XX21
+PRINT "Ends at ", ~P%
 
-PRINT "ELITE GAME CODE ", ~(&6000-P%), "BYTES FREE"
+PRINT "ELITE game code ", ~(&6000-P%), " bytes free"
