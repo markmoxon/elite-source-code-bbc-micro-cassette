@@ -2128,8 +2128,19 @@ ENDIF
  EQUB 70                ; fuel
  EQUB 0                 ; COK-UP
  EQUB 0                 ; GALACTIC COUNT
- EQUB POW+(128 ANDQ%)
- EQUB (POW+128)ANDQ%
+ 
+IF Q%
+ EQUB POW + 128         ; Front beam laser
+ EQUB POW + 128         ; Rear beam laser
+ELSE
+ EQUB POW               ; Front pulse laser
+ IF _FIX_REAR_LASER
+  EQUB 0                ; No rear laser
+ ELSE
+  EQUB POW              ; Rear pulse laser
+ ENDIF
+ENDIF
+
  EQUB 0
  EQUB 0
  EQUW 0                 ; LASER
@@ -2169,21 +2180,13 @@ ENDIF
  EQUW 0                 ; TALLY
  EQUB 128               ; SVC
 
-PRINT "NT%=", ~NT%
-PRINT "J%=", ~J%
-
-IF 0                    ; CHECKSUM PERFORMED IN BCFS.PY SCRIPT
- CH%=NT%-2
- CY%=0
- FOR I%,CH%+J%,1+J%,-1
-  CH%=CH%+CY%+(I%?7)
-  CY%=(CH%>255)AND1
-  CH%=CH%MOD256
-  CH%=CH%EOR(I%?8)
- NEXT
+IF _FIX_REAR_LASER
+ CH% = &3
 ELSE
- CH%=&03                ; HARDCODED CHECKSUM FOR BUILD
+ CH% = &92
 ENDIF
+
+PRINT "CH% = ", ~CH%
 
 .CHK2
  EQUB CH% EOR &A9
