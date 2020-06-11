@@ -39,5 +39,4 @@ extract:
 
 .PHONY:verify
 verify:
-	@$(PYTHON) crc32.py extracted
-	@$(PYTHON) crc32.py output
+	@$(PYTHON) crc32.py extracted output
