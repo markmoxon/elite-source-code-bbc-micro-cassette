@@ -9,7 +9,7 @@ def main():
     if len(sys.argv) <= 2:
         # Do CRC on single folder
         folder = sys.argv[1] if len(sys.argv) == 2 else "."
-        names = os.listdir(folder)
+        names = sorted(os.listdir(folder))
 
         print()
         print('Checksum   Size  Filename')
@@ -30,14 +30,17 @@ def main():
     else:
         # Do CRC on two folders
         folder1 = sys.argv[1]
-        names1 = os.listdir(folder1)
+        names1 = sorted(os.listdir(folder1))
         folder2 = sys.argv[2]
-        names2 = os.listdir(folder2)
+        names2 = sorted(os.listdir(folder2))
         names = list(names1)
         names.extend(x for x in names2 if x not in names)
 
+        src = '[{0: ^13}]'.format(folder1[0:13]).replace(' ', '-')
+        dest = '[{0: ^13}]'.format(folder2[0:13]).replace(' ', '-')
+
         print()
-        print('[{0: ^13}]  [{1: ^13}]'.format(folder1[0:13], folder2[0:13]))
+        print(src + '  ' + dest)
         print('Checksum   Size  Checksum   Size  Match  Filename')
         print('-----------------------------------------------------------')
 

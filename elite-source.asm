@@ -6158,7 +6158,7 @@ NEXT
  LDA MANY+AST
  CLC
  ADC MANY+ESC
- CLC                    ; NOT IN ELITEC.TXT but is in ELITE SOURCE IMAGE
+ CLC                    ; Not in ELITEC.TXT, but in ELTC source image
 
  ADC MANY+OIL
  TAX
@@ -6173,7 +6173,7 @@ NEXT
 \LSR A                  ; ignore lowest bit of sg
 \BEQ WA1                ; Warning, as planet too close
  CMP #2
- BCC WA1                ; NOT IN ELITEC.TXT but is in ELITE SOURCE IMAGE
+ BCC WA1                ; Not in ELITEC.TXT, but in ELTC source image
 
 .WA3                    ; planet behind
  LDY K%+NI%+8           ; Sun zsg
@@ -6183,7 +6183,7 @@ NEXT
 \LSR A                  ; ignore lowest bit of sg
 \BEQ WA1                ; Warning, as Sun too close
  CMP #2
- BCC WA1                ; NOT IN ELITEC.TXT but is in ELITE SOURCE IMAGE
+ BCC WA1                ; Not in ELITEC.TXT, but in ELTC source image
 
 .WA2                    ; sun behind, Shift.
  LDA #&81               ; shift sun and planet zsg
