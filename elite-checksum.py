@@ -10,9 +10,9 @@ import sys
 from os.path import basename
 
 if (sys.version_info > (3, 0)):
-	from io import BytesIO as ByteBuffer
+    from io import BytesIO as ByteBuffer
 else:
-	from StringIO import StringIO as ByteBuffer
+    from StringIO import StringIO as ByteBuffer
 
 argv = sys.argv
 argc = len(argv)

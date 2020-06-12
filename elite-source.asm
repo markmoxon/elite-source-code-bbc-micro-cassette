@@ -5819,9 +5819,10 @@ NEXT
  AND #127               ; hi T17
  SBC U
  BCS MU9                ; sign ok
+ 
  STA U
  TXA                    ; lo
- EOR #&FF                ; flip
+ EOR #&FF               ; flip
  ADC #1
  TAX                    ; negated lo
  LDA #0                 ; negate hi
