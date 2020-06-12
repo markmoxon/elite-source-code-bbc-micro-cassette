@@ -55,7 +55,7 @@ def main():
                     data2 = f.read()
                 crc1 = zlib.crc32(data1) & 0xffffffff
                 crc2 = zlib.crc32(data2) & 0xffffffff
-                match = ' Yes ' if crc1 == crc2 and len(data1) == len(data2) else ' No! '
+                match = ' Yes ' if crc1 == crc2 and len(data1) == len(data2) else ' No  '
                 print('%08x  %5d  %08x  %5d  %s  %s' % (
                       crc1,
                       len(data1),

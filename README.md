@@ -44,21 +44,21 @@ It totals ~10,000 lines of 6502 assembler.
 
 ### elite-ships.asm
 
-This contains the source for the ships and other 3D objects in Elite. It produces the `SHIPS` binary that is loaded by the `elite-bcfs.asm` builder.
+This is the BeebAsm source for the ships and other 3D objects in Elite. It produces the `SHIPS` binary that is loaded by the `elite-bcfs.asm` source file.
 
 ### elite-bcfs.asm
 
-The BASIC source file `S.BCFS` is responsible for creating the Big Code File, i.e. concatenating the `ELTA`...`ELTG` binaries plus the `SHIPS` data into a single executable for the Elite main game called `ELTcode`.
+This is the BeebAsm version of the BASIC source file `S.BCFS`, which is responsible for creating the Big Code File - i.e. concatenating the `ELTA`...`ELTG` binaries plus the `SHIPS` data into a single executable for the Elite main game called `ELTcode`.
 
 There is a simple checksum test added to the start of the code. The checksum function cannot be performed in the BeebAsm source so has been reproduced in the `elite-checksum.py` Python script described below.
 
 ### elite-words.asm
 
-This is the source for the Elite tokenisation system (which contains the game's text). It produces the `WORDS9` binary that is loaded by the Elite loader.
+This is the BeebAsm source for the Elite tokenisation system (which contains most of the game's text). It produces the `WORDS9` binary that is loaded by the `elite-loader.asm` source file.
 
 ### elite-loader.asm
 
-The BASIC source file `ELITES` creates the executable Elite loader `ELITE`. This is responsible for displaying the title screen and planet, drawing the initial (static) HUD, setting up interrupt routines (for the MODE 4/5 split in the HUD), relocating many routines to lower memory (below `PAGE`) and loading the main executable. It loads four image binaries from the `data` folder for the loading screen, and it also loads the `WORDS9` data file that contains the game's text.
+This is the BeebAsm version of the BASIC source file `ELITES`, which creates the executable Elite loader `ELITE`. This is responsible for displaying the title screen and planet, drawing the initial (static) HUD, setting up interrupt routines (for the MODE 4/5 split in the HUD), relocating many routines to lower memory (below `PAGE`) and loading the main executable. It loads four image binaries from the `data` folder for the loading screen, and it also loads the `WORDS9` data file that contains the game's text.
 
 There are a number of checksum and protection routines that XOR the code and data with other parts of memory in an attempt to obfuscate and protect the game from tampering. This cannot be done in the BeebAsm source so has been reproduced in the `elite-checksum.py` Python script below.
 
@@ -82,20 +82,31 @@ Secondly it performs the checksum and encryption functions from the `ELITES` loa
 - Reverse the bytes for a block of code that is placed on the stack
 - Compute checksum for MAINSUM
 - Poke checksum value into binary
-- Comuter checksum for CHECKbyt
+- Compute checksum for CHECKbyt
 - Poke checksum value into binary
 - Encrypt a block of code by XOR'ing with the code to be placed on the stack
 - Encrypt all code destined for lower RAM by XOR'ing with loader boot code
 - Encrypt binary data (HUD graphics etc.) by XOR'ing with loader boot code
 - Output `ELITE` binary (protected)
 
-## Build
+### elite-disc.asm
 
-There are three build targets available. They are:
+This script builds the final disk image. It copies the assembled `ELITE` and `ELTcode` binary files from the `output` folder to the disk image, and is passed as an argument to BeebAsm by the `Makefile` when it creates the disk image. The BeebAsm command is configured to add a `!Boot` file that `*RUN`s the `ELITE` binary, so the result is a bootable BBC Micro disk image that runs the tape version of Elite.
 
-- `build` - An unencrypted version, which will be different to the extracted binaries (as they are encrypted). This version should allow for more modifications to the source, though this is still a fairly brittle process.
-- `encrypt` - An encrypted version that exactly matches the released version of the game.
-- `extract` - An encrypted version that matches the cassette source files, which differ slightly from the released version (see the `ELTB` section below for more details).
+The disk image is called `elite.ssd`, and you can load it into an emulator, or into a real BBC Micro using a device like a Gotek.
+
+## Building Elite from the source
+
+There are two main build targets available. They are:
+
+- `build` - An unencrypted version
+- `encrypt` - An encrypted version that exactly matches the released version of the game
+
+The unencrypted version should be more useful for anyone who wants to make modifications to the game code. It includes a default Commander with lots of cash and equipment, which makes it easier to test the game. As this target produces unencrypted files, the binaries produced will be quite different to the extracted binaries, which are encrypted.
+
+The encrypted version produces the released version of Elite, along with the standard default Commander.
+
+(Note that there is a third build target, `extract`, which is explained in the Differences section below.)
 
 Builds are supported for both Windows and Mac/Linux systems. In all cases the build process is defined in the `Makefile` provided.
 
@@ -115,9 +126,13 @@ For Windows users, there is a batch file called `make.bat` to which you can pass
 
 All being well, doing one of the following:
 
-- `make.bat build`
-- `make.bat encrypt`
-- `make.bat extract`
+```
+make.bat build
+```
+
+```
+make.bat encrypt
+```
 
 will produce a file called `elite.ssd`, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
 
@@ -127,27 +142,45 @@ The build process uses a standard GNU `Makefile`, so you just need to install `m
 
 All being well, doing one of the following:
 
-- `make build`
-- `make encrypt`
-- `make extract`
+```
+make build
+```
+
+```
+make encrypt
+```
 
 will produce a file called `elite.ssd`, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
 
-## Verify
+## Verifying the output
 
-The build process also support a verification target that prints out checksums of all the generated files, along with the checksums of the files extracted from the original sources.
+The build process also supports a verification target that prints out checksums of all the generated files, along with the checksums of the files extracted from the original sources.
 
-You can run this verification step on its own, or you can run it once a build has finished. To run it on its own, use the following command:
+You can run this verification step on its own, or you can run it once a build has finished. To run it on its own, use the following command on Windows:
 
-- `make.bat verify` (Windows)
-- `make verify` (Mac/Linux)
+```
+make.bat verify
+```
 
-To run a build and then verify the results, you can add two targets, like this:
+or on Mac/Linux:
 
-- `make.bat encrypt verify` (Windows)
-- `make encrypt verify` (Mac/Linux)
+```
+make verify
+```
 
-The Python script `crc32.py` does the actual verification, and shows the checksums and file sizes of both sets of files, alongside each other, and with a Match column that shows any discrepancies. If you are building an unencrypted set of files then there will be lots of differences, while the encrypted files should mostly match (see the Differences section below for more on this).
+To run a build and then verify the results, you can add two targets, like this on Windows:
+
+```
+make.bat encrypt verify
+```
+
+or this on Mac/Linux:
+
+```
+make encrypt verify
+```
+
+The Python script `crc32.py` does the actual verification, and shows the checksums and file sizes of both sets of files, alongside each other, and with a Match column that flags any discrepancies. If you are building an unencrypted set of files then there will be lots of differences, while the encrypted files should mostly match (see the Differences section below for more on this).
 
 The binaries in the `extracted` folder were taken straight from the [cassette sources disk image](http://www.elitehomepage.org/archive/a/a4080602.zip), while those in the `output` folder are produced by the build process. For example, if you build with `make encrypt verify`, then this is the output of the verification process:
 
@@ -157,7 +190,7 @@ Checksum   Size  Checksum   Size  Match  Filename
 -----------------------------------------------------------
 a88ca82b   5426  a88ca82b   5426   Yes   ELITE.bin
 0f1ad255   2228  0f1ad255   2228   Yes   ELTA.bin
-0d6f4900   2600  e725760a   2600   No!   ELTB.bin
+0d6f4900   2600  e725760a   2600   No    ELTB.bin
 97e338e8   2735  97e338e8   2735   Yes   ELTC.bin
 322b174c   2882  322b174c   2882   Yes   ELTD.bin
 29f7b8cb   2663  29f7b8cb   2663   Yes   ELTE.bin
@@ -177,7 +210,7 @@ You can see that in this case, the `ELTB.bin` file produced by BeebAsm does not 
 
 ### ELITEC
 
-It was discovered that the [Text Files archive](http://www.elitehomepage.org/archive/a/a4080610.zip) does not contain an identical source to the binaries in the [Disk Image archive](http://www.elitehomepage.org/archive/a/a4080602.zip). Specifically, there are three instructions in the `ELTC` binary that are missing from the `ELITEC.TXT` source file:
+It was discovered that the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip) do not contain identical code to the binaries in the [cassette sources disk image](http://www.elitehomepage.org/archive/a/a4080602.zip). Specifically, there are three instructions in the `ELTC` binary that are missing from the `ELITEC.TXT` source file:
 
 ```
 .WARP
@@ -210,23 +243,43 @@ CMP #2
 BCC WA1         ; Not in ELITEC.TXT, but in ELTC source image
 ```
 
-These missing instructions have been added to the BeebAsm version so that the build process produce binaries that match the released version.
+These missing instructions have been added to the BeebAsm version so that the build process produce binaries that match the released version of the game.
 
 ### ELTB
 
-As noted above, the `ELTB` binary output from the build process is not identical to the extracted file from the [cassette sources disk image](http://www.elitehomepage.org/archive/a/a4080602.zip), yet the final `ELTcode` binary is. What gives?
+As noted above, the `ELTB` binary output from the build process is not identical to the `ELTB` file in the [cassette sources disk image](http://www.elitehomepage.org/archive/a/a4080602.zip), yet the final `ELTcode` binary from the build process does match. What gives?
 
-This comes down to a single byte in the default Commander data. This byte controls whether or not the Commander has a rear pulse laser, and is related to whether the BASIC variable `Q%` is TRUE or FALSE. This appears to be a cheat flag used during testing.
+It turns out there are two versions of the `ELITEB` BASIC source program on the cassette sources disk, `$.ELITEB` and `O.ELITEB`. These two versions of `ELITEB` differ by just one byte in the default Commander data. This byte controls whether or not the Commander has a rear pulse laser. In `O.ELITEB` this byte is generated by:
 
-The implication is that the `ELTB` binary file on the cassette sources disk was not produced at the same time as the `ELTcode` file in the released product, but was modified after the `ELTcode` file was created. (We can see that running the build process in an emulator results in a different output and checksum values.)
+```
+EQUB (POW + 128) AND Q%
+```
 
-To support this discrepancy, there are two build targets for building the encrypted game: `make encrypt` and `make extract`. The first target produces an `ELTcode` executable that is identical to the `ELTcode` file extracted from the cassette sources disk image (and which was released as the final game). The second target produces an `ELTB` binary file that is identical to the `ELTB` file extracted from the cassette sources disk image, though this means that the `ELTcode` executable produced by this build target is different to the released version (because the default Commander has the extra rear pulse laser).
+while in `$.ELITEB`, this byte is generated by:
 
-You can use the verify target above to confirm this. Doing `make encrypt verify` shows that all the generated files match the extracted ones except for `ELTB`, while `make extract verify` shows that the all the generated files match the extracted ones except for `ELTcode`.
+```
+EQUB POW
+```
+
+The BASIC variable `Q%` is a Boolean flag that, if `TRUE`, will create a default Commander with lots of cash and equipment, which is useful for testing. You can see this in action if you build an unencrypted binary with `make build`, as the unencrypted build sets `Q%` to `TRUE` for this build target.
+
+The BASIC variable `POW` has a value of 15, which is the power of a pulse laser. `POW + 128`, meanwhile, is the power of a beam laser.
+
+Given the above, we can see that `O.ELITEB` correctly produces a default Commander with no a rear laser if `Q%` is `FALSE`, but adds a rear beam laser if `Q%` is `TRUE`. This matches the released game, whose executable can be found as `ELTcode` on the same disk. The version of `ELITEB` in the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip) matches this version, `O.ELITEB`.
+
+In contrast, `$.ELITEB` will always produce a default Commander with a rear pulse laser, irrespective of the setting of `Q%`.
+
+The implication is that the `ELTB` binary file on the cassette sources disk was produced by `$.ELITEB`, while the `ELTcode` file (the released game) used `O.ELITEB`. Perhaps the released game was compiled, and then someone backed up the `ELITEB` source to `O.ELITEB`, edited the `$.ELITEB` to have a rear pulse laser, and then generated a new `ELTB` binary file. Who knows? Unfortunately, files on DFS disks don't have timestamps, so it's hard to tell.
+
+To support this discrepancy, there is an extra build target for building the `ELTB` binary as found on the sources disk, and as produced by `$.ELITEB`. You can build this version, which has the rear pulse laser, with:
+
+  `make extract`
+
+The `ELTcode` executable produced by this build target is different to the released version, because the default Commander has the extra rear pulse laser. You can use the verify target to confirm this. Doing `make encrypt verify` shows that all the generated files match the extracted ones except for `ELTB`, while `make extract verify` shows that the all the generated files match the extracted ones except for `ELTcode`.
 
 ## Next Steps
 
-Although the binary files output are identical, the build process is *brittle* meaning that the source cannot be altered. The main problem is that the encrytion process does not have knowledge of the symbols produced by the assembler, so these values have been hard coded for temporary convenience.
+Although the binary files output are identical, the build process is *brittle* meaning that the source cannot be altered. The main problem is that the encryption process does not have knowledge of the symbols produced by the assembler, so these values have been hard coded for temporary convenience.
 
 _Update:_ The checksum code and encryption has been removed to allow modification of the game code in `elite-source.asm`. However, the build process will likely fail if the `elite-loader.asm` file is modified in any non-trivial way.
 

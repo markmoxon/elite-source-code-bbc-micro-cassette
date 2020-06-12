@@ -2068,17 +2068,12 @@ ENDIF
  EQUB 70                ; fuel
  EQUB 0                 ; COK-UP
  EQUB 0                 ; GALACTIC COUNT
- 
-IF Q%
- EQUB POW + 128         ; Front beam laser
- EQUB POW + 128         ; Rear beam laser
+ EQUB POW + (128 AND Q%); Front laser
+
+IF Q% OR _FIX_REAR_LASER
+ EQUB (POW + 128) AND Q%; Rear laser, as in ELITEB source
 ELSE
- EQUB POW               ; Front pulse laser
- IF _FIX_REAR_LASER
-  EQUB 0                ; No rear laser
- ELSE
-  EQUB POW              ; Rear pulse laser
- ENDIF
+ EQUB POW               ; Rear pulse laser, as per extracted ELTB binary
 ENDIF
 
  EQUB 0
