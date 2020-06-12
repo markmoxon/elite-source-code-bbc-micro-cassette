@@ -1,6 +1,29 @@
 # elite-beebasm
 A port of the original BBC Elite source code from BASIC assembler to BeebAsm assembler for building in modern development environments.
 
+## Contents
+
+- [Background](#Background)
+- [Version](#Version)
+- [Source files](#Source-files)
+  - [elite-source.asm](#elite-source.asm)
+  - [elite-ships.asm](#elite-ships.asm)
+  - [elite-bcfs.asm](#elite-bcfs.asm)
+  - [elite-words.asm](#elite-words.asm)
+  - [elite-loader.asm](#elite-loader.asm)
+  - [elite-checksum.py](#elite-checksum.py)
+  - [elite-disc.asm](#elite-disc.asm)
+- [Building Elite from the source](#Building-Elite-from-the-source)
+  - [Requirements](#Requirements)
+  - [Build targets](#Build-targets)
+  - [Windows](#Windows)
+  - [Mac and Linux](#Mac-and-Linux)
+- [Verifying the output](#Verifying-the-output)
+- [Differences between the various source files](#Differences-between-the-various-source-files)
+  - [ELITEC](#ELITEC)
+  - [ELTB](#ELTB)
+- [Next steps](#Next-steps)
+
 ## Background
 The original source files for BBC Elite can be found on [Ian Bell's personal website](http://www.iancgbell.clara.net/elite/).
 
@@ -26,7 +49,7 @@ The BBC Cassette version of the game but built for disk was chosen as the initia
 
 Future versions may include BBC Disk, Master and 2nd processor configurations.
 
-## Files
+## Source files
 
 ### elite-source.asm
 
@@ -97,6 +120,16 @@ The disk image is called `elite.ssd`, and you can load it into an emulator, or i
 
 ## Building Elite from the source
 
+### Requirements
+
+You will need the following to build Elite from source:
+
+- BeebAsm, which can be downloaded from the [BeebAsm repository](https://github.com/stardot/beebasm). Mac and Linux users will have to build their own executable with `make code`, while Windows users can just download the `beebasm.exe` file.
+- Python. Both versions 2.7 and 3.x should work.
+- Mac and Linux users may need to install `make` if it isn't already present (for Windows users, `make.exe` is included in this repository).
+
+### Build targets
+
 There are two main build targets available. They are:
 
 - `build` - An unencrypted version
@@ -111,14 +144,6 @@ The encrypted version produces the released version of Elite, along with the sta
 Builds are supported for both Windows and Mac/Linux systems. In all cases the build process is defined in the `Makefile` provided.
 
 Note that the build ends with a warning that there is no `SAVE` command in the source file. You can ignore this, as the source file contains a `PUTFILE` command instead, but BeebAsm still reports this as a warning.
-
-### Requirements
-
-You will need the following to build Elite from source:
-
-- BeebAsm, which can be downloaded from the [BeebAsm repository](https://github.com/stardot/beebasm). Mac and Linux users will have to build their own executable, while Windows users can just download the `beebasm.exe` file.
-- Python. Both versions 2.7 and 3.x should work.
-- Mac and Linux users may need to install `make` if it isn't already present.
 
 ### Windows
 
@@ -206,7 +231,7 @@ c4547e5e   1023  c4547e5e   1023   Yes   WORDS9.bin
 
 You can see that in this case, the `ELTB.bin` file produced by BeebAsm does not match the `ELTB` binary extracted from the source disk, but the `ELTcode.bin` files do match. This is explained below.
 
-## Differences
+## Differences between the various source files
 
 ### ELITEC
 
@@ -277,7 +302,7 @@ To support this discrepancy, there is an extra build target for building the `EL
 
 The `ELTcode` executable produced by this build target is different to the released version, because the default Commander has the extra rear pulse laser. You can use the verify target to confirm this. Doing `make encrypt verify` shows that all the generated files match the extracted ones except for `ELTB`, while `make extract verify` shows that the all the generated files match the extracted ones except for `ELTcode`.
 
-## Next Steps
+## Next steps
 
 Although the binary files output are identical, the build process is *brittle* meaning that the source cannot be altered. The main problem is that the encryption process does not have knowledge of the symbols produced by the assembler, so these values have been hard coded for temporary convenience.
 
