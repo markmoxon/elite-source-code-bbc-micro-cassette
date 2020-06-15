@@ -687,6 +687,7 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 
 .M%
+{
  LDA K%
  STA RAND
  LDX JSTX
@@ -853,8 +854,10 @@ LOAD_A% = LOAD%
 
 .MA3                    ; skip laser
  LDX #0
+}
 
 .MAL1                   ; Counter X slot for each nearby ship
+{
  STX XSAV               ; save nearby slot
  LDA FRIN,X             ; nearby ship type
  BNE P%+5               ; skip exit
@@ -951,6 +954,7 @@ LOAD_A% = LOAD%
 
 .MA65                   ; ignored as far away
  JMP MA26               ; Try targeting missile, down.
+}
 
 \ *****************************************************************************
 \ Subroutine: ISDK
@@ -959,6 +963,7 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 
 .ISDK                   ; is docking to SST nearby
+{
  LDA K%+NI%+32          ; UNIV #SST last byte NEWB,  K%+NI%+36
  BMI MA62               ; Failed dock
  LDA INWK+14            ; rotmat0z hi, face normal
@@ -973,20 +978,25 @@ LOAD_A% = LOAD%
  AND #&7F               ; clear sign
  CMP #80                ; < #&60 ?
  BCC MA62               ; Failed dock
+}
 
 .GOIN                   ; do Dock entry, escape capsule arrives
+{
  LDA #0
  STA QQ22+1
  LDA #8                 ; octagon rings
  JSR LAUN               ; Launch rings from space station
  JSR RES4               ; Restore forward, aft shields, and energy
  JMP BAY                ; In Docking Bay
+}
 
 .MA62                   ; Failed dock
+{
  LDA DELTA              ; speed
  CMP #5                 ; < 5?
  BCC MA67               ; slow enough, only damage to player.
  JMP DEATH              ; else death
+}
 
 \ *****************************************************************************
 \ Subroutine: MA59
@@ -995,35 +1005,46 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 
 .MA59                   ; Scooping failed
+{
  JSR EXNO3              ; ominous noises
+}
 
 .MA60                   ; kill it
+{
  ASL INWK+31            ; display|missiles explosion state
  SEC                    ; set bit7 to kill it with debris
  ROR INWK+31
 
 .MA61
  BNE MA26               ; guaranteed, onto Try targeting missile.
+}
 
 .MA67                   ; slow enough, damage to player
+{
  LDA #1                 ; slow speed
  STA DELTA
  LDA #5                 ; small dent
  BNE MA63               ; guaranteed, little Oops.
+}
 
 .MA58                   ; Big Collision, cargo destroyed.
+{
  ASL INWK+31            ; display|missiles explosion state
  SEC                    ; set bit to kill it with debris
  ROR INWK+31
  LDA INWK+35            ; Energy of nearby ship
  SEC                    ; damage to player is
  ROR A                  ; dent = 128+energy/2
+}
 
 .MA63                   ; little Oops
+{
  JSR OOPS               ; Lose some shield strength, cargo, could die.
  JSR EXNO3              ; ominous noises
+}
 
 .MA26                   ; Try targeting missile, several arrive to continue.
+{
  LDA QQ11               ; NEWB bit 7 remove ship?
  BNE MA15               ; no skip scan
  JSR PLUT               ; inwk not forward view
@@ -1036,6 +1057,7 @@ LOAD_A% = LOAD%
  LDX XSAV               ; nearby ship slot id becomes missile target
  LDY #&E                ; missile red
  JSR ABORT2             ; missile found a target
+}
 
 \ *****************************************************************************
 \ Subroutine: MA47
@@ -1044,6 +1066,7 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 
 .MA47                   ; onto laser lock
+{
  LDA LAS                ; Laser power
  BEQ MA8                ; no laser, just draw object
  LDX #15                ; distance far
@@ -1081,11 +1104,15 @@ LOAD_A% = LOAD%
  STA INWK+35            ; update ship energy
  LDA TYPE               ; ship type
  JSR ANGRY
+}
 
 .MA8                    ; else just Draw object
+{
  JSR LL9                ; object ENTRY
+}
 
 .MA15                   ; maybe Remove ship, legal affect
+{
  LDY #35                ; hull byte#35
  LDA INWK+35            ; ship energy
  STA (INF),Y            ; update
@@ -1134,8 +1161,10 @@ LOAD_A% = LOAD%
  LDX XSAV               ; nearby ship slot count
  INX                    ; next nearby ship
  JMP MAL1               ; loop X
+}
 
 .MA18                   ; check Your ship
+{
  LDA BOMB
  BPL MA77               ; no working bomb
  ASL BOMB               ; else &FE -> & FC still on.
@@ -1297,6 +1326,7 @@ LOAD_A% = LOAD%
  LDA QQ11               ; menu i.d.
  BNE MA9                ; not a space view, rts
  JMP STARS              ; Dust Field
+}
 
 \ *****************************************************************************
 \ Subroutine: MAS1
@@ -1305,6 +1335,7 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 
 .MAS1                   ; Add 2*INWK(0to1+Y) to INWK(0to2+X), add x inc to x coord etc.
+{
  LDA INWK,Y             ; lo
  ASL A                  ; 2*lo
  STA K+1
@@ -1321,9 +1352,12 @@ LOAD_A% = LOAD%
  LDY K+2                ; coord hi
  STY INWK+1,X
  AND #127               ; Acc = big distance sg lower7
+}
 
 .MA9
+{
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: m
@@ -1332,14 +1366,18 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 
 .m                      ; max of x,y,z of &902+Y
+{
  LDA #0
+}
 
 .MAS2                   ; or'd x,y,z coordinate of &902+Y
+{
  ORA K%+2,Y             ; xsg
  ORA K%+5,Y             ; ysg
  ORA K%+8,Y             ; zsg
  AND #127               ; Acc is sg7 distance
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: MAS3
@@ -1348,6 +1386,7 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 
 .MAS3                   ; find hsb squared of &901+Y
+{
  LDA K%+1,Y             ; xhi
  JSR SQUA2              ; P.A =A*A unsigned
  STA R
@@ -1364,6 +1403,7 @@ LOAD_A% = LOAD%
 .MA30                   ; sat #&FF
  LDA #&FF
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: MVEIT
@@ -1372,6 +1412,7 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 
 .MVEIT                  ; Move It, data in INWK and hull XXX0
+{
  LDA INWK+31            ; exploding/display state|missiles
  AND #&A0               ; kill or in explosion?
  BNE MV30               ; Dumb ship or exploding
@@ -1528,8 +1569,10 @@ LOAD_A% = LOAD%
  STA INWK+1             ; xhi
  LDA P+1
  STA INWK               ; X=X+aY \ their comment
+}
 
 .MV45                   ; move inwk by speed
+{
  LDA DELTA              ; speed
  STA R
  LDA #128               ; force inc sign to be -ve
@@ -1607,8 +1650,10 @@ LOAD_A% = LOAD%
  RTS
 
  AND #128               ; use Abit7 for x+=R
+}
 
 .MVT1                   ; Add Rlo.Ahi.sg to inwk,x+0to2 ship translation
+{
  ASL A                  ; bit7 into carry
  STA S                  ; A6to0
  LDA #0
@@ -1659,8 +1704,10 @@ LOAD_A% = LOAD%
 
 .MV11
  RTS                    ; MVT1 done
+}
 
 .MVT3                   ; add INWK(0to2+X) to K(1to3) X = 0, 3, 6
+{
  LDA K+3
  STA S
  AND #128               ; sign only
@@ -1714,6 +1761,7 @@ LOAD_A% = LOAD%
 
 .MV14                   ; rts
  RTS                    ; MVT3 done
+}
 
 \ *****************************************************************************
 \ Subroutine: MVS4
@@ -1784,6 +1832,7 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 
 .MVS5                   ; Moveship5, small rotation in matrix (1-1/2/256 = cos  1/16 = sine)
+{
  LDA INWK+1,X
  AND #127               ; hi7
  LSR A                  ; hi7/2
@@ -1858,6 +1907,7 @@ LOAD_A% = LOAD%
  LDA K+1                ; Xindex one now updated by 1/16th of a radian rotation
  STA INWK+1,X
  RTS                    ; MVS5 done
+}
 
 \ *****************************************************************************
 \ Subroutine: MVT6
@@ -1866,6 +1916,7 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 
 .MVT6                   ; Planet P(1,2) += inwk,x for planet (Asg is protected but with new sign)
+{
  TAY                    ; Yreg = sg
  EOR INWK+2,X
  BMI MV50               ; sg -ve
@@ -1901,6 +1952,7 @@ LOAD_A% = LOAD%
  STA P+2
  TYA                    ; old Asg ok
  RTS                    ; MVT6 done.
+}
 
 \ *****************************************************************************
 \ Subroutine: MV40
@@ -1909,6 +1961,7 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 
 .MV40                   ; move Planet
+{
  LDA ALPHA
  EOR #128               ; flip roll
  STA Q
@@ -2015,6 +2068,7 @@ LOAD_A% = LOAD%
  STA INWK+2             ; xsg \ X=X+aY \ their comment
 
  JMP MV45               ; move inwk by speed, end of MV40 move planet.
+}
 
 \ *****************************************************************************
 \ Save output/ELTA.bin
@@ -2048,6 +2102,7 @@ Q% = _ENABLE_MAX_COMMANDER
 \ *****************************************************************************
 
 .NA%
+{
  EQUS "JAMESON"
  EQUB 13
  EQUB 0
@@ -2114,6 +2169,7 @@ ENDIF
  EQUB 0                 ; QQ26
  EQUW 0                 ; TALLY
  EQUB 128               ; SVC
+}
 
 IF _FIX_REAR_LASER
  CH% = &3
@@ -2124,10 +2180,14 @@ ENDIF
 PRINT "CH% = ", ~CH%
 
 .CHK2
+{
  EQUB CH% EOR &A9
+}
 
 .CHK
+{
  EQUB CH%
+}
 
 \ *****************************************************************************
 \ Variable: UNIV
@@ -2138,9 +2198,11 @@ PRINT "CH% = ", ~CH%
 \ *****************************************************************************
 
 .UNIV
+{
 FOR I%, 0, 12
  EQUW K% + I% * NI%
 NEXT
+}
 
 \ *****************************************************************************
 \ Variable: TWOS
@@ -2149,8 +2211,10 @@ NEXT
 \ *****************************************************************************
 
 .TWOS                   ; Mode 4 single pixel
+{
  EQUD &10204080
  EQUD &01020408
+}
 
 \ *****************************************************************************
 \ Variable: TWOS2
@@ -2159,8 +2223,10 @@ NEXT
 \ *****************************************************************************
 
 .TWOS2                  ; Mode 4 double-width pixel approx as contained in 1 column
+{
  EQUD &183060C0
  EQUD &0303060C
+}
 
 \ *****************************************************************************
 \ Variable: CTWOS
@@ -2169,8 +2235,10 @@ NEXT
 \ *****************************************************************************
 
 .CTWOS                  ; Mode 5 coloured pixel
+{
  EQUD &11224488
  EQUB &88               ; need extra for compass
+}
 
 \ *****************************************************************************
 \ Subroutine: LL30, LOIN
@@ -2179,8 +2247,8 @@ NEXT
 \ *****************************************************************************
 
 .LL30                   ; draw Line using (X1,Y1) , (X2,Y2)
-
 .LOIN
+{
  STY YSAV               ; will be restored at the end
 
  LDA #128               ; set bit7
@@ -2461,9 +2529,12 @@ NEXT
  DEX                    ; height
  BNE LIL6               ; loop X
  LDY YSAV               ; restore Yreg
+}
 
 .HL6
+{
  RTS                    ; end Line drawing
+}
 
 \ *****************************************************************************
 \ Subroutine: NLIN3
@@ -2472,23 +2543,31 @@ NEXT
 \ *****************************************************************************
 
 .NLIN3                  ; Title string and draw line underneath
+{
  JSR TT27               ; process flight token
+}
 
 .NLIN4                  ; draw Line at Y = #19
+{
  LDA #19
  BNE NLIN2              ; guaranteed, next horizontal line drawn at Y1=19.
+}
 
 .NLIN                   ; Horizontal line
+{
  LDA #23                ; at Y1 = 23.
  INC YC                 ; Y text cursor
+}
 
 .NLIN2                  ; Horizontal line at height Acc
+{
  STA Y1
  LDX #2                 ; left edge
  STX X1
  LDX #254               ; right edge
  STX X2
  BNE HLOIN              ; guaranteed, horizontal line only uses X1,Y1,X2.
+}
 
 \ *****************************************************************************
 \ Subroutine: HLOIN2
@@ -2497,10 +2576,12 @@ NEXT
 \ *****************************************************************************
 
 .HLOIN2                 ; Horizontal line X1,X2 using YY as mid-point, Acc is half-wdith.
+{
  JSR EDGES              ; Clips Horizontal lines
  STY Y1
  LDA #0                 ; flag in line buffer solar at height Y1
  STA LSO,Y
+}
 
 \ *****************************************************************************
 \ Subroutine: HLOIN
@@ -2509,6 +2590,7 @@ NEXT
 \ *****************************************************************************
 
 .HLOIN                  ; Draw a horizontal lines that only needs X1,Y1,X2
+{
  STY YSAV               ; protect Yreg
  LDX X1
  CPX X2
@@ -2599,6 +2681,7 @@ NEXT
  STA (SC),Y
  LDY YSAV               ; restore Y reg 
  RTS                    ; end horizontal line
+}
 
 \ *****************************************************************************
 \ Variable: TWFL
@@ -2607,9 +2690,11 @@ NEXT
 \ *****************************************************************************
 
 .TWFL                   ; mask left of horizontal line.
+{
  EQUD &F0E0C080
  EQUW &FCF8
  EQUB &FE
+}
 
 \ *****************************************************************************
 \ Variable: TWFR
@@ -2618,8 +2703,10 @@ NEXT
 \ *****************************************************************************
 
 .TWFR                   ; mask right of horizontal line.
+{
  EQUD &1F3F7FFF
  EQUD &0103070F
+}
 
 \ *****************************************************************************
 \ Subroutine: PX3
@@ -2628,11 +2715,13 @@ NEXT
 \ *****************************************************************************
 
 .PX3                    ; Draw 1 pixel for the case ZZ >= &90
+{
  LDA TWOS,X             ; Mode 4 single pixel
  EOR (SC),Y
  STA (SC),Y
  LDY T1                 ; restore Yreg
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: PIX1
@@ -2641,10 +2730,12 @@ NEXT
 \ *****************************************************************************
 
 .PIX1                   ; dust Pixel, Acc has ALPHA or BETA in it
+{
  JSR ADD                ; (A X) = (A P) + (S R)
  STA YY+1               ; hi
  TXA                    ; lo
  STA SYL,Y              ; dust ylo
+}
 
 \ *****************************************************************************
 \ Subroutine: PIXEL2
@@ -2653,6 +2744,7 @@ NEXT
 \ *****************************************************************************
 
 .PIXEL2                 ; dust (X1,Y1) from middle
+{
  LDA X1                 ; xscreen
  BPL PX1                ; +ve X dust
  EOR #&7F               ; else negate
@@ -2675,6 +2767,7 @@ NEXT
  STA T                  ; temp y dust
  LDA #97                ; #Y+1 above mid-point
  SBC T
+}
 
 \ *****************************************************************************
 \ Subroutine: PIXEL
@@ -2683,6 +2776,7 @@ NEXT
 \ *****************************************************************************
 
 .PIXEL                  ; at (X,A) ZZ away. Yreg protected
+{
  STY T1                 ; save Yreg
  TAY                    ; copy of ycoord
  LSR A
@@ -2720,9 +2814,12 @@ NEXT
 
 .PX13                   ; middle distance pixel ended
  LDY T1                 ; restore Yreg
+}
 
 .PX4                    ; rts
+{
  RTS                    ; end Pixel
+}
 
 \ *****************************************************************************
 \ Subroutine: BLINE
@@ -2731,6 +2828,7 @@ NEXT
 \ *****************************************************************************
 
 .BLINE                  ; Ball line for Circle2 uses (X.T) as next y offset for arc
+{
  TXA
  ADC K4                 ; y0 offset from circle2 is (X,T)
  STA K6+2               ; y2 lo = X + K4 lo
@@ -2822,6 +2920,7 @@ NEXT
  ADC STP                ; step for ring
  STA CNT
  RTS                    ; ball line done.
+}
 
 \ *****************************************************************************
 \ Subroutine: FLIP
@@ -2830,6 +2929,7 @@ NEXT
 \ *****************************************************************************
 
 .FLIP                   ; switch dusty and dustx
+{
 \LDA MJ
 \BNE FLIP-1
  LDY NOSTM              ; number of dust particles
@@ -2848,6 +2948,7 @@ NEXT
  DEY                    ; next buffer entry
  BNE FLL1               ; loop Y
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: STARS
@@ -2856,6 +2957,7 @@ NEXT
 \ *****************************************************************************
 
 .STARS                  ; Dust Field Enter
+{
 \LDA #&FF
 \STA COL
  LDX VIEW               ; laser mount
@@ -2869,8 +2971,10 @@ NEXT
 
 .STARS1                 ; Forward Dust
  LDY NOSTM              ; number of dust particles
+}
 
 .STL1                   ; counter Y
+{
  JSR DV42               ; P.R = speed/SZ(Y) \ travel step of dust particle front/rear
  LDA R                  ; remainder
  LSR P                  ; hi
@@ -2969,13 +3073,16 @@ NEXT
  CMP #16
  BCC KILL1              ; kill the forward dust
  STA ZZ                 ; old distance
+}
 
 .STC1                   ; Re-enter after kill
+{
  JSR PIXEL2             ; dust (X1,Y1) from middle
  DEY                    ; next dust particle
  BEQ P%+5               ; rts
  JMP STL1               ; loop Y forward dust
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: KILL1
@@ -2984,6 +3091,7 @@ NEXT
 \ *****************************************************************************
 
 .KILL1                  ; kill the forward dust
+{
  JSR DORND              ; do random, new A, X.
  ORA #4                 ; flick up/down
  STA Y1                 ; ydistance from middle
@@ -2998,6 +3106,7 @@ NEXT
  STA ZZ                 ; old distance
  LDA Y1                 ; ydistance from middle
  JMP STC1               ; guaranteed, Re-enter forward dust loop
+}
 
 \ *****************************************************************************
 \ Subroutine: STARS6
@@ -3006,9 +3115,12 @@ NEXT
 \ *****************************************************************************
 
 .STARS6                 ; Rear dust
+{
  LDY NOSTM              ; number of dust particles
+}
 
 .STL6                   ; counter Y
+{
  JSR DV42               ; travel step of dust particle front/rear
  LDA R                  ; remainder
  LSR P                  ; hi
@@ -3108,8 +3220,9 @@ NEXT
  CMP #160
  BCS KILL6              ; rear dust kill
  STA ZZ                 ; old distance
-
+}
 .STC6                   ; Re-enter after kill
+{
  JSR PIXEL2             ; dust (X1,Y1) from middle
  DEY
  BEQ ST3                ; rts
@@ -3117,6 +3230,7 @@ NEXT
 
 .ST3                    ; rts
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: KILL6
@@ -3125,6 +3239,7 @@ NEXT
 \ *****************************************************************************
 
 .KILL6                  ; rear dust kill
+{
  JSR DORND              ; do random, new A, X.
  AND #127
  ADC #10
@@ -3152,6 +3267,7 @@ NEXT
  STA Y1
  STA SY,Y               ; dusty
  BNE STC6               ; guaranteed, Re-enter rear loop
+}
 
 \ *****************************************************************************
 \ Variable: PRXS
@@ -3160,6 +3276,7 @@ NEXT
 \ *****************************************************************************
 
 .PRXS                   ; Equipment prices
+{
  EQUW 1                 ; PRXS(0) used for 2*fuel_needed, max 140
  EQUW 300               ; Missile                     30.0 Cr
  EQUW 4000              ; Large Cargo Bay            400.0 Cr
@@ -3172,6 +3289,7 @@ NEXT
  EQUW 15000             ; Energy Unit               1500.0 Cr
  EQUW 10000             ; Docking Computer          1000.0 Cr
  EQUW 50000             ; Galactic Hyperspace       5000.0 Cr
+}
 
 \ *****************************************************************************
 \ Subroutine: st4
@@ -3180,6 +3298,7 @@ NEXT
 \ *****************************************************************************
 
 .st4                    ; tally high of Status code
+{
  LDX #9                 ; Elite 9
  CMP #25                ; 256*25=6400 kills
  BCS st3                ; Xreg = 9 Elite
@@ -3191,6 +3310,7 @@ NEXT
  BCS st3                ; Xreg = 7 Dangerous
  DEX                    ; else Xreg = 6 Competent
  BNE st3                ; guaranteed down, tally continue
+}
 
 \ *****************************************************************************
 \ Subroutine: STATUS
@@ -3199,6 +3319,7 @@ NEXT
 \ *****************************************************************************
 
 .STATUS                 ; Status screen Start #f8 red key
+{
  LDA #8                 ; menu i.d.
  JSR TT66               ; box border with QQ11 set to Acc
  JSR TT111              ; closest to QQ9,10 target system
@@ -3243,8 +3364,10 @@ NEXT
  INX
  LSR A                  ; roll out tally lo bits
  BNE st5L               ; loop, max Xreg =5
+}
 
 .st3                    ; tally continue, also arrive from st4 tally hi
+{
  TXA                    ; tally status Xreg = 0 to 9
  CLC
  ADC #21                ; Acc = 30 is Elite
@@ -3307,6 +3430,7 @@ NEXT
  LDX #6                 ; indent for next item
  STX XC
  RTS
+}
 
 \ *****************************************************************************
 \ Variable: TENS
@@ -3326,7 +3450,9 @@ NEXT
 \ *****************************************************************************
 
 .TENS
+{
  EQUD &00E87648
+}
 
 \ *****************************************************************************
 \ Subroutine: pr2
@@ -3343,6 +3469,7 @@ NEXT
 \ *****************************************************************************
 
 .pr2
+{
  LDA #3                 ; Set A to the number of digits (3)
 
  LDY #0                 ; Zero the Y register (this instruction seems to be
@@ -3350,6 +3477,7 @@ NEXT
                         ; register, in BPRNT below, is also an LDY #0)
 
                         ; Now fall through to TT11 to print X to 3 digits
+}
 
 \ *****************************************************************************
 \ Subroutine: TT11
@@ -3368,6 +3496,7 @@ NEXT
 \ *****************************************************************************
 
 .TT11
+{
  STA U                  ; We are going to use the BPRNT routine (below) to
                         ; print this number, so we store the number of digits
                         ; in U, as that's what BPRNT takes as an argument
@@ -3382,6 +3511,7 @@ NEXT
                         ; number in K to K+3 (which now contains X) to 3 digits
                         ; (as U = 3), using the same carry flag as when pr2
                         ; was called to control the decimal point
+}
 
 \ *****************************************************************************
 \ Subroutine: BPRNT
@@ -3515,6 +3645,7 @@ NEXT
 \ *****************************************************************************
 
 .BPRNT
+{
  LDX #11                ; Set T to the maximum number of digits allowed (11
  STX T                  ; characters, which is the number of digits in 10
                         ; billion); we will use this as a flag when printing
@@ -3783,6 +3914,7 @@ NEXT
  JSR TT26
 
  JMP TT35               ; Loop back to TT35 to print the next digit
+}
 
 \ *****************************************************************************
 \ Subroutine: BELL
@@ -3791,9 +3923,11 @@ NEXT
 \ *****************************************************************************
 
 .BELL
+{
  LDA #7                 ; Control code 7 makes a beep, so load this into A so
                         ; we can fall through into the TT27 print routine to
                         ; actually make the sound
+}
 
 \ *****************************************************************************
 \ Subroutine: TT26
@@ -3817,6 +3951,7 @@ NEXT
 \ *****************************************************************************
 
 .TT26
+{
  STA K3                 ; Store the A, X and Y registers, so we can restore
  STY YSAV2              ; them at the end (so they don't get changed by this
  STX XSAV2              ; routine)
@@ -4053,8 +4188,10 @@ NEXT
 
  JMP RR4                ; And restore the registers and return from the
                         ; subroutine
+}
 
 .RR3
+{
  ORA #&60               ; A contains the value of YC - the screen row where we
                         ; want to print this character - so now we need to
                         ; convert this into a screen address, so we can poke
@@ -4076,8 +4213,10 @@ NEXT
                         ;
                         ; so YC OR &60 effectively adds &60 to YV, giving us
                         ; the page number that we want
+}
 
 .RREN
+{
  STA SC+1               ; Store the page number of the destination screen
                         ; location in SC+1, so SC now points to the full screen
                         ; location where this character should go
@@ -4105,22 +4244,29 @@ NEXT
  DEY                    ; Decrement the loop counter
 
  BPL RRL1               ; Loop back for the next byte to print to the screen
+}
 
 .RR4
+{
  LDY YSAV2              ; We're done printing, so restore the values of the
  LDX XSAV2              ; A, X and Y registers that we saved above and clear
  LDA K3                 ; the carry flag, so everything is back to how it was
  CLC
+}
 
 .rT9
+{
  RTS                    ; Return from the subroutine
+}
 
 .R5
+{
  JSR BEEP               ; Call the BEEP subroutine, which uses the SOUND
                         ; command to emit a beep
 
  JMP RR4                ; Jump to RR4 to restore the registers and return from
                         ; the subroutine
+}
 
 \ *****************************************************************************
 \ Subroutine: DIALS
@@ -4129,6 +4275,7 @@ NEXT
 \ *****************************************************************************
 
 .DIALS                  ; update displayed Dials
+{
  LDA #&D0               ; screen lo
  STA SC                 ; bottom console (SC) = &78D0
  LDA #&78               ; screen hi
@@ -4244,6 +4391,7 @@ NEXT
  EQUB &2C               ; bit2 skip load
  LDA #15                ; red
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: DILX
@@ -4252,12 +4400,15 @@ NEXT
 \ *****************************************************************************
 
 .DILX                   ; shield bar
+{
  LSR A                  ; /=  2
  LSR A                  ; fuel bar starts here
  LSR A                  ; DILX+2
  LSR A                  ; DIL-1
+}
 
 .DIL                    ; energy bank
+{
  STA Q                  ; bar value 0to15
  LDX #&FF               ; mask
  STX R
@@ -4320,6 +4471,7 @@ NEXT
 
 .DL9
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: DIL2
@@ -4328,6 +4480,7 @@ NEXT
 \ *****************************************************************************
 
 .DIL2                   ; roll/pitch indicator takes X.A
+{
  LDY #1                 ; counter Y = 1
  STA Q                  ; xpos
 
@@ -4363,6 +4516,7 @@ NEXT
  BCC DLL10              ; loop Y
  INC SC+1               ; next row, at end.
  RTS
+}
 
 \ *****************************************************************************
 \ Variable: TVT1
@@ -4389,6 +4543,7 @@ NEXT
 \ *****************************************************************************
 
 .LINSCN
+{
  LDA #30
  STA DL
  STA USVIA+4
@@ -4414,6 +4569,7 @@ NEXT
  LDA &FE41
  LDA &FC
  RTI
+}
 
 \ *****************************************************************************
 \ Subroutine: IRQ1
@@ -4422,6 +4578,7 @@ NEXT
 \ *****************************************************************************
 
 .IRQ1
+{
  TYA
  PHA
  LDY #11
@@ -4438,19 +4595,24 @@ NEXT
  STA &FE21
  DEY
  BPL P%-7
+}
 
 .jvec
+{
  PLA
  TAY
  JMP (VEC)
+}
 
 .VNT1
+{
  LDY #7
  LDA TVT1+8,Y
  STA &FE21
  DEY
  BPL VNT1+2
  BMI jvec
+}
 
 \ *****************************************************************************
 \ Subroutine: ESCAPE
@@ -4459,6 +4621,7 @@ NEXT
 \ *****************************************************************************
 
 .ESCAPE                 ; your Escape capsule launch
+{
  LDA MJ
  PHA
  JSR RES2               ; reset2
@@ -4493,6 +4656,7 @@ NEXT
  LDA #70                ; max fuel allowed #70 = #&46
  STA QQ14
  JMP BAY                ; dock code
+}
 
 \ *****************************************************************************
 \ Save output/ELTB.bin
@@ -4522,6 +4686,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .TA34                   ; Tactics, missile attacking player, from TA18
+{
  LDA #0                 ; all hi or'd
  JSR MAS4
  BEQ P%+5               ; this ship is nearby
@@ -4530,6 +4695,7 @@ LOAD_C% = LOAD% +P% - CODE%
  JSR EXNO3              ; ominous noises
  LDA #250               ; Huge dent in player's shield.
  JMP OOPS               ; Lose some shield strength, cargo, could die.
+}
 
 \ *****************************************************************************
 \ Subroutine: TA18
@@ -4538,6 +4704,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .TA18                   ; msl \ their comment \ Missile tactics
+{
  LDA ECMA               ; any ECM on ?
  BNE TA35               ; kill this missile
  LDA INWK+32            ; ai_attack_univ_ecm
@@ -4583,8 +4750,10 @@ LOAD_C% = LOAD% +P% - CODE%
  BNE TA87               ; far away, down, set bit7 of INWK+31, kill this missile with debris
  LDA #80                ; else near player so large dent
  JSR OOPS               ; Lose some shield strength, cargo, could die.
+}
 
 .TA87                   ; kill inwk with noise
+{
  JSR EXNO2              ; faint death noise, player killed inwk.
  ASL INWK+31            ; display explosion state|missiles
  SEC                    ; set bit7 to kill inwk with debris
@@ -4592,6 +4761,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .TA1
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: TA64
@@ -4600,16 +4770,20 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .TA64                   ; missile far away, maybe ecm, then K3 heading.
+{
  JSR DORND              ; do random, new A, X.
  CMP #16                ; rnd >= #16 most likely
  BCS TA19               ; down, Attack K3.
+}
 
 .M32                    ; else ship V activates its ecm
+{
  LDY #32                ; #&20 used as mask in bit5 test of TA18
  LDA (V),Y              ; ai_attack_univ_ecm for ship V
  LSR A                  ; does ship V has ecm in bit0 of ai?
  BCC TA19               ; down, Attack K3.
  JMP ECBLB2             ; ecm on, bulb2.
+}
 
 \ *****************************************************************************
 \ Subroutine: TACTICS
@@ -4619,6 +4793,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .TACTICS                ; Xreg is ship type, called by mveit if ai inwk+32 has bit7 set, slot in XSAV.
+{
  CPX #MSL               ; is missile?
  BEQ TA18               ; up, Missile tactics
 
@@ -4667,8 +4842,10 @@ LOAD_C% = LOAD% +P% - CODE%
  CMP (XX0),Y
  BCS TA21
  INC INWK+35            ; ship energy
+}
 
-.TA21                   ; also not Pirate attacking player 
+.TA21                   ; also not Pirate attacking player
+{
  LDX #8                 ; Build local XX15
 
 .TAL1                   ; counter X
@@ -4676,8 +4853,10 @@ LOAD_C% = LOAD% +P% - CODE%
  STA K3,X               ; K3(0to8) loaded with INWK(0to8) coords
  DEX
  BPL TAL1               ; loop X
+}
 
 .TA19                   ; Attack K3, spawn worms, others arrive.
+{
  JSR TAS2               ; XX15=r~96  \ their comment \ build XX15 max 0x60 from K3
  LDY #10
  JSR TAS3               ; Y = 10, for TAS3 XX15.inwk,y dot product. max Acc 0x24 = 36.
@@ -4788,8 +4967,10 @@ LOAD_C% = LOAD% +P% - CODE%
  LDA CNT
  EOR #128
  STA CNT
+}
 
 .TA15                   ; Near \^XX15, both towards and away from player
+{
  LDY #16                ; XX15.inwk,16 dot product
  JSR TAS3
  EOR #128
@@ -4828,9 +5009,12 @@ LOAD_C% = LOAD% +P% - CODE%
  BNE P%+3               ; skip asl if not missile
  ASL A                  ; #&FE = -2 for missile
  STA INWK+28            ; accel, #&FF=-1 if not missile.
+}
 
 .TA10
+{
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: TAS1
@@ -4839,6 +5023,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .TAS1                   ; K3(0to8) = inwk(0to8) -V_coords(0to8)
+{
  LDA (V),Y
  EOR #128               ; flip sg
  STA K+3
@@ -4859,6 +5044,7 @@ LOAD_C% = LOAD% +P% - CODE%
  LDA K+1
  STA K3,X               ; lo
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: HITCH
@@ -4867,6 +5053,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .HITCH                  ; Carry set if ship collides or missile locks.
+{
  CLC
  LDA INWK+8             ; zsg
  BNE HI1                ; rts with C clear as -ve or big zg
@@ -4901,9 +5088,12 @@ LOAD_C% = LOAD% +P% - CODE%
  DEY                    ; else hi equal, look at area lo, Hull byte#1
  LDA (XX0),Y
  CMP R                  ; carry set if Hull lo > area
+}
 
 .HI1                    ; rts
+{
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: FRS1
@@ -4912,6 +5102,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .FRS1                   ; escape capsule Launched, see Cobra Mk3 ahead, or player missile launch.
+{
  JSR ZINF               ; zero info
  LDA #28                ; ylo distance
  STA INWK+3
@@ -4923,8 +5114,10 @@ LOAD_C% = LOAD% +P% - CODE%
  ASL A                  ; convert to univ index, no ecm.
  ORA #128               ; set bit7, ai_active
  STA INWK+32
+}
 
 .fq1                    ; type Xreg cargo/alloys in explosion arrives here
+{
  LDA #96                ; unit +1
  STA INWK+14            ; rotmat0z hi
  ORA #128               ; unit -1
@@ -4934,6 +5127,7 @@ LOAD_C% = LOAD% +P% - CODE%
  STA INWK+27            ; speed
  TXA                    ; ship type
  JMP NWSHP              ; New ship type X
+}
 
 \ *****************************************************************************
 \ Subroutine: FRMIS
@@ -4942,6 +5136,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .FRMIS                  ; Player fires missile
+{
  LDX #MSL               ; Missile
  JSR FRS1               ; player missile launch attempt, up.
  BCC FR1                ; no room, missile jammed message, down.
@@ -4954,6 +5149,7 @@ LOAD_C% = LOAD% +P% - CODE%
  DEC NOMSL              ; reduce number of player's missles
  LDA #48                ; their comment
  JMP NOISE              ; for sound of missile launching
+}
 
 \ *****************************************************************************
 \ Subroutine: ANGRY
@@ -4962,6 +5158,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .ANGRY                  ; Acc already loaded with ship type
+{
  CMP #SST               ; #SST, space station.
  BEQ AN2                ; space station Angry
  BCS HI1
@@ -4987,6 +5184,7 @@ LOAD_C% = LOAD% +P% - CODE%
  ROR K%+NI%+32
  CLC
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: FR1
@@ -4995,8 +5193,10 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .FR1                    ; missile jammed message.
+{
  LDA #201               ; token = missile jammed
  JMP MESS               ; message
+}
 
 \ *****************************************************************************
 \ Subroutine: SESCP
@@ -5005,8 +5205,10 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .SESCP                  ; from tactics, ships launch Escape pod
+{
  LDX #ESC               ; #ESC type escape capsule. On next line missiles.
  LDA #&FE               ; SFRMIS arrives \ SFS1-2 \ ai has bit6 set, attack player. No ecm.
+}
 
 \ *****************************************************************************
 \ Subroutine: SFS1
@@ -5015,6 +5217,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .SFS1                   ; spawn ship from parent ship, Acc is ai, Xreg is type created.
+{
  STA T1                 ; daughter ai_attack_univ_ecm
  LDA XX0
  PHA                    ; pointer lo to Hull data
@@ -5091,6 +5294,7 @@ LOAD_C% = LOAD% +P% - CODE%
  PLA                    ; lo
  STA XX0
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: SFS2
@@ -5099,11 +5303,13 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .SFS2                   ; X=0,3,6 for Acc = inc added to x,y,z coords
+{
  ASL A                  ; sign into carry
  STA R                  ; inc
  LDA #0
  ROR A                  ; bring any carry back into bit 7
  JMP MVT1               ; Add R|sgnA to inwk,x+0to2
+}
 
 \ *****************************************************************************
 \ Subroutine: LL164
@@ -5112,6 +5318,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .LL164                  ; hyperspace noise and Tunnel inc. misjump
+{
  LDA #56                ; Hyperspace
  JSR NOISE
  LDA #1                 ; toggle Mode 4 to 5 colours for Hyperspace effects
@@ -5120,6 +5327,7 @@ LOAD_C% = LOAD% +P% - CODE%
  JSR HFS2
  DEC HFX                ; = 0
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: LAUN
@@ -5128,11 +5336,14 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .LAUN                   ; Launch rings from space station
+{
  LDA #48                ; noisfr
  JSR NOISE
  LDA #8                 ; crude octagon rings
+}
 
 .HFS2                   ; Rings for tunnel
+{
  STA STP                ; step for ring
  JSR TTX66              ; new box
  JSR HFS1
@@ -5174,6 +5385,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .HF8                    ; exit
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: STARS2
@@ -5182,6 +5394,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .STARS2                 ; Left view has Xreg=1, Right has Xreg=2.
+{
  LDA #0
  CPX #2                 ; if X >=2 then C is set
  ROR A                  ; if left view, RAT=0, if right view, RAT=128
@@ -5191,8 +5404,10 @@ LOAD_C% = LOAD% +P% - CODE%
  JSR ST2                ; flip alpha, bet2
 
  LDY NOSTM              ; number of stars
+}
 
 .STL2                   ; counter Y
+{
  LDA SZ,Y               ; dustz
  STA ZZ                 ; distance away of dust particles
  LSR A
@@ -5269,14 +5484,18 @@ LOAD_C% = LOAD% +P% - CODE%
  AND #127               ; Acc left with bottom 7 bits of Y hi
  CMP #116               ; approaching top or bottom of screen
  BCS ST5                ; ydust kill
+}
 
 .STC2                   ; Back in
+{
  JSR PIXEL2             ; dust (X1,Y1) from middle
  DEY                    ; next dust
  BEQ ST2                ; all dust done, exit loop
  JMP STL2               ; loop Y
+}
 
 .ST2                    ; exited dust loop, flip alpha, bet2
+{
  LDA ALPHA
  EOR RAT                ; view sign
  STA ALPHA
@@ -5291,6 +5510,7 @@ LOAD_C% = LOAD% +P% - CODE%
  EOR #128               ; flip
  STA BET2+1             ; flipped pitch sign
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: KILL2
@@ -5299,6 +5519,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .KILL2                  ; kill dust, left or right edge.
+{
  JSR DORND              ; do random, new A, X.
  STA Y1
  STA SY,Y               ; dusty rnd
@@ -5307,8 +5528,10 @@ LOAD_C% = LOAD% +P% - CODE%
  STA X1
  STA SX,Y               ; dustx
  BNE STF1               ; guaranteed, Set new distance
+}
 
 .ST5                    ; ydust kill
+{
  JSR DORND              ; do random, new A, X.
  STA X1
  STA SX,Y               ; dustx rnd
@@ -5316,13 +5539,16 @@ LOAD_C% = LOAD% +P% - CODE%
  ORA ALP2+1             ; flipped roll sign
  STA Y1
  STA SY,Y               ; dusty
+}
 
 .STF1                   ; Set new distance
+{
  JSR DORND              ; do random, new A, X.
  ORA #8                 ; not too close
  STA ZZ
  STA SZ,Y               ; dustz
  BNE STC2               ; guaranteed Back in for left/right dust
+}
 
 \ *****************************************************************************
 \ Variable: SNE
@@ -5331,6 +5557,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 
 .SNE
+{
 FOR I%,0,31
 N=ABS(SIN(I%/64*2*PI))
 IF N>=1
@@ -5342,6 +5569,7 @@ NEXT
 
 ;O%=O%+32
 ;P%=P%+32
+}
 
 \ *****************************************************************************
 \ Subroutine: MU5
@@ -5350,12 +5578,14 @@ NEXT
 \ *****************************************************************************
 
 .MU5                    ; load Acc into K(0to3)
+{
  STA K
  STA K+1                ; MU5+2 does K1to3
  STA K+2
  STA K+3
  CLC
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: MULT3
@@ -5364,6 +5594,7 @@ NEXT
 \ *****************************************************************************
 
 .MULT3                  ; K(4)=AP(2)*Q   Move planet
+{
  STA R                  ; sg
  AND #127
  STA K+2                ; hi
@@ -5399,6 +5630,7 @@ NEXT
  ORA T                  ; sg7
  STA K+3
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: MLS2
@@ -5407,10 +5639,12 @@ NEXT
 \ *****************************************************************************
 
 .MLS2                   ; assign from stars R.S = XX(0to1), and P.A = A*alp1 (alp1+<32)
+{
  LDX XX
  STX R                  ; lo
  LDX XX+1
  STX S                  ; hi
+}
 
 \ *****************************************************************************
 \ Subroutine: MLS1
@@ -5419,10 +5653,13 @@ NEXT
 \ *****************************************************************************
 
 .MLS1                   ; P.A = A*alp1 (alp1+<32)
+{
  LDX ALP1               ; roll magnitude
  STX P
+}
 
 .MULTS                  ; P.A =A*P(P+<32)
+{
  TAX                    ; Acc in
  AND #128
  STA T                  ; sign
@@ -5464,6 +5701,7 @@ NEXT
  ROR P
  ORA T
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: SQUA
@@ -5472,7 +5710,9 @@ NEXT
 \ *****************************************************************************
 
 .SQUA                   ; AP=A*ApresQ \ P.A =A7*A7
+{
  AND #127
+}
 
 \ *****************************************************************************
 \ Subroutine: SQUA2
@@ -5481,9 +5721,11 @@ NEXT
 \ *****************************************************************************
 
 .SQUA2                  ; AP=A*A unsigned
+{
  STA P
  TAX                    ; is 0?
  BNE MU11               ; X*A will be done
+}
 
 \ *****************************************************************************
 \ Subroutine: MU1
@@ -5492,10 +5734,12 @@ NEXT
 \ *****************************************************************************
 
 .MU1                    ; else P = Acc = Xreg
+{
  CLC
  STX P
  TXA                    ; Acc = Xreg
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: MLU1
@@ -5504,8 +5748,10 @@ NEXT
 \ *****************************************************************************
 
 .MLU1                   ; Y1 = SY,Y and P.A = Y1 7bit * Q
+{
  LDA SY,Y
  STA Y1                 ; dusty
+}
 
 \ *****************************************************************************
 \ Subroutine: MLU2
@@ -5514,8 +5760,10 @@ NEXT
 \ *****************************************************************************
 
 .MLU2                   ; P.A = A7*Q
+{
  AND #127
  STA P
+}
 
 \ *****************************************************************************
 \ Subroutine: MULTU
@@ -5524,8 +5772,10 @@ NEXT
 \ *****************************************************************************
 
 .MULTU                  ; AP=P*Qunsg
+{
  LDX Q
  BEQ MU1                ; up, P = Acc = Xreg = 0
+}
 
 \ *****************************************************************************
 \ Subroutine: MU11
@@ -5534,6 +5784,7 @@ NEXT
 \ *****************************************************************************
 
 .MU11                   ; P*X will be done
+{
  DEX                    ; Q-1 as carry will be set for addition
  STX T
  LDA #0
@@ -5549,6 +5800,7 @@ NEXT
  BNE MUL6               ; loop X unwind?
  RTS                    ; Xreg = 0
 }
+}
 
 \ *****************************************************************************
 \ Subroutine: MU6
@@ -5557,9 +5809,11 @@ NEXT
 \ *****************************************************************************
 
 .MU6                    ; set Plo.Phi = Acc
+{
  STA P+1
  STA P
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: FMLTU2
@@ -5568,11 +5822,13 @@ NEXT
 \ *****************************************************************************
 
 .FMLTU2                 ; for CIRCLE2,  A=K*sin(X)/256unsg
+{
  AND #31                ; table max #31
  TAX                    ; sine table index
  LDA SNE,X
  STA Q                  ; 0to255 for sine(0to pi)
  LDA K                  ; the radius
+}
 
 \ *****************************************************************************
 \ Subroutine: FMLTU
@@ -5581,6 +5837,7 @@ NEXT
 \ *****************************************************************************
 
 .FMLTU                  ; A=A*Q/256unsg  Fast multiply
+{
  EOR #&FF
  SEC
  ROR A                  ; bring a carry into bit7
@@ -5600,6 +5857,7 @@ NEXT
  LSR P
  BNE MUL3               ; loop P
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: MULTU6
@@ -5608,6 +5866,7 @@ NEXT
 \ *****************************************************************************
 
 .MULTU6                 ; AP=P*Qunsg \ Repeat of multu not needed?
+{
  LDX Q
  BEQ MU1                ; up, P = Acc = Xreg = 0
  
@@ -5627,6 +5886,7 @@ NEXT
  BNE MUL6               ; loop X
  RTS                    ; Repeat of mul6 not needed ?
 }
+}
 
 \ *****************************************************************************
 \ Subroutine: MLTU2-2
@@ -5643,6 +5903,7 @@ NEXT
 \ *****************************************************************************
 
 .MLTU2                  ; AP(2)= AP* Qunsg(EOR P)
+{
  EOR #&FF               ; use 2 bytes of P and A for result
  LSR A                  ; hi
  STA P+1
@@ -5667,6 +5928,7 @@ NEXT
  DEX
  BNE MUL7               ; loop X
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: MUT3
@@ -5676,8 +5938,10 @@ NEXT
 \ *****************************************************************************
 
 .MUT3                   ; R.S = XX(2), A.P=A*Q
+{
  LDX ALP1               ; roll magnitude
  STX P                  ; over-written
+}
 
 \ *****************************************************************************
 \ Subroutine: MUT2
@@ -5686,8 +5950,10 @@ NEXT
 \ *****************************************************************************
 
 .MUT2                   ; R.S = XX(2), A.P=A*Q
+{
  LDX XX+1
  STX S                  ; hi
+}
 
 \ *****************************************************************************
 \ Subroutine: MUT1
@@ -5696,8 +5962,10 @@ NEXT
 \ *****************************************************************************
 
 .MUT1                   ; Rlo = XX(1), A.P=A*Q
+{
  LDX XX
  STX R                  ; lo
+}
 
 \ *****************************************************************************
 \ Subroutine: MULT1
@@ -5706,6 +5974,7 @@ NEXT
 \ *****************************************************************************
 
 .MULT1                  ; A.P=Q*A first part of MAD, multiply and add. Visited Quite often.
+{
  TAX                    ; Acc in
  AND #127
  LSR A
@@ -5738,6 +6007,7 @@ NEXT
 .mu10                   ; zero down
  STA P
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: MULT12
@@ -5746,11 +6016,13 @@ NEXT
 \ *****************************************************************************
 
 .MULT12                 ; R.S = Q * A \ visited quite often
+{
  JSR MULT1              ; visit above,  (P,A)= Q * A
  STA S                  ; hi
  LDA P
  STA R                  ; lo
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: TAS3
@@ -5759,6 +6031,7 @@ NEXT
 \ *****************************************************************************
 
 .TAS3                   ; returns XX15.inwk,y  Dot product
+{
  LDX INWK,Y
  STX Q
  LDA XX15               ; xunit
@@ -5773,6 +6046,7 @@ NEXT
  LDX INWK+4,Y
  STX Q
  LDA XX15+2             ; zunit
+}
 
 \ *****************************************************************************
 \ Subroutine: MAD
@@ -5781,7 +6055,9 @@ NEXT
 \ *****************************************************************************
 
 .MAD                    ; Multiply and Add   X.A = Q*A + R.S
+{
  JSR MULT1              ; AP=Q * A, protects Y.
+}
 
 \ *****************************************************************************
 \ Subroutine: ADD
@@ -5849,6 +6125,7 @@ NEXT
 \ *****************************************************************************
 
 .ADD
+{
  STA T1                 ; Store argument A in T1
 
  AND #128               ; Extract the sign (bit 7) of A and store it in T
@@ -5942,6 +6219,7 @@ NEXT
                         ; negative)
 
  RTS                    ; Return from subroutine
+}
 
 \ *****************************************************************************
 \ Subroutine: TIS1
@@ -5950,6 +6228,7 @@ NEXT
 \ *****************************************************************************
 
 .TIS1                   ; Tidy subroutine 1  X.A =  (-X*A  + (R.S))/96
+{
  STX Q
  EOR #128               ; flip sign of Acc
  JSR MAD                ; multiply and add (X,A) =  -X*A  + (R,S)
@@ -5975,6 +6254,7 @@ NEXT
  LDA T1
  ORA T                  ; hi sign
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: DV42
@@ -5983,7 +6263,9 @@ NEXT
 \ *****************************************************************************
 
 .DV42                   ; travel step of dust particle front/rear
+{
  LDA SZ,Y               ; dustz
+}
 
 \ *****************************************************************************
 \ Subroutine: DV41
@@ -5992,8 +6274,10 @@ NEXT
 \ *****************************************************************************
 
 .DV41                   ; P.R = speed/ (ZZ/8) Called by STARS2 left/right
+{
  STA Q
  LDA DELTA              ; speed, how far has dust moved based on its z-coord
+}
 
 \ *****************************************************************************
 \ Subroutine: DVID4
@@ -6002,6 +6286,7 @@ NEXT
 \ *****************************************************************************
 
 .DVID4                  ; P-R=A/Qunsg \ P.R = A/Q unsigned  called by compass in Block E
+{
  LDX #8                 ; counter
  ASL A
  STA P
@@ -6022,6 +6307,7 @@ NEXT
  DEX
  BNE DVL4               ; loop X, hi left in P.
  JMP LL28+4             ; Block G remainder R for A*256/Q
+}
 
 \ *****************************************************************************
 \ Subroutine: DVID3B2
@@ -6030,6 +6316,7 @@ NEXT
 \ *****************************************************************************
 
 .DVID3B2                ; Divide 3 bytes by 2 bytes, K = P.A/INWK_z for planet, Xreg protected.
+{
  STA P+2                ; num sg
  LDA INWK+6             ; z coord lo
  STA Q
@@ -6119,6 +6406,7 @@ NEXT
  LDA T                  ; sign
  STA K+3
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: cntr
@@ -6127,6 +6415,7 @@ NEXT
 \ *****************************************************************************
 
 .cntr                   ; Center ship indicators
+{
  LDA DAMP               ; damping toggle
  BNE RE1                ; rts
  TXA
@@ -6144,6 +6433,7 @@ NEXT
 
 .RE1                    ; rts
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: BUMP2
@@ -6152,6 +6442,7 @@ NEXT
 \ *****************************************************************************
 
 .BUMP2                  ; increase X by A
+{
  STA T
  TXA
  CLC
@@ -6159,11 +6450,14 @@ NEXT
  TAX                    ; sum of A and X that BUMP2 was called with
  BCC RE2                ; not sat
  LDX #&FF               ; else sat
+}
 
 .RE2                    ; not sat
+{
  BPL RE3+2              ; if +ve, lda djd
  LDA T                  ; restore \ RE2+2 \ finish REDU2
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: REDU2
@@ -6172,6 +6466,7 @@ NEXT
 \ *****************************************************************************
 
 .REDU2                  ; reduce X by A
+{
  STA T
  TXA
  SEC
@@ -6179,13 +6474,16 @@ NEXT
  TAX                    ; subtracted
  BCS RE3                ; no underflow
  LDX #1                 ; else minimum
+}
 
 .RE3                    ; no underflow
+{
  BPL RE2+2              ; not negative up, finish.
  LDA DJD                ; Toggle Keyboard auto re-centering
  BNE RE2+2              ; no centering, finish.
  LDX #128               ; middle
  BMI RE2+2              ; guaranteed up, finish.
+}
 
 \ *****************************************************************************
 \ Subroutine: ARCTAN
@@ -6194,6 +6492,7 @@ NEXT
 \ *****************************************************************************
 
 .ARCTAN                 ; A=TAN-1(P/Q) \ A=arctan (P/Q)  called from block E
+{
  LDA P
  EOR Q
  STA T1                 ; quadrant info
@@ -6244,6 +6543,7 @@ NEXT
  TAX                    ; index into table at end of words data
  LDA ACT,X
  RTS
+}
 
 \ *****************************************************************************
 \ Variable: ACT
@@ -6252,12 +6552,14 @@ NEXT
 \ *****************************************************************************
 
 .ACT
+{
 FOR I%,0,31
 ;I%?O%=INT(128/PI*ATN(I%/32)+.5)
  EQUB  INT(128/PI*ATN(I%/32)+.5)
 NEXT
 ;P%=P%+32
 ;O%=O%+32
+}
 
 \ *****************************************************************************
 \ Subroutine: WARP
@@ -6266,6 +6568,7 @@ NEXT
 \ *****************************************************************************
 
 .WARP                   ; Jump J key was hit. Esc, cargo, asteroid, transporter dragged with you.
+{
  LDA MANY+AST
  CLC
  ADC MANY+ESC
@@ -6319,6 +6622,7 @@ NEXT
 .WA1                    ; Warning sound
  LDA #40                ; noise #40
  JMP NOISE
+}
 
 \ *****************************************************************************
 \ Subroutine: LASLI
@@ -6327,6 +6631,7 @@ NEXT
 \ *****************************************************************************
 
 .LASLI                  ; laser lines
+{
  JSR DORND              ; do random, new A, X.
  AND #7
  ADC #Y-4               ; below center of screen
@@ -6339,6 +6644,7 @@ NEXT
  ADC #8                 ; heat up laser temperature
  STA GNTMP
  JSR DENGY              ; drain energy by 1 for active ECM pulse
+}
 
 \ *****************************************************************************
 \ Subroutine: LASLI2
@@ -6347,6 +6653,7 @@ NEXT
 \ *****************************************************************************
 
 .LASLI2
+{
  LDA QQ11               ; If not zero then not a space view
  BNE PU1-1              ; rts
  LDA #32                ; xleft
@@ -6372,6 +6679,7 @@ NEXT
  LDA #2*Y-1
  STA Y2
  JMP LOIN
+}
 
 \ *****************************************************************************
 \ Subroutine: PLUT
@@ -6380,11 +6688,14 @@ NEXT
 \ *****************************************************************************
 
 .PLUT
+{
  LDX VIEW
  BNE PU1
  RTS
+}
 
 .PU1                    ; INWK not forward view, X >0
+{
  DEX                    ; view--
  BNE PU2                ; view was 2,3 not rear which needs x and z flipped
 
@@ -6459,9 +6770,12 @@ NEXT
  EOR RAT2               ; 0 for view 3, 128 for view 4
  STA INWK+1,Y
  STX INWK+5,Y
+}
 
 .LO2
+{
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: LQ
@@ -6470,10 +6784,12 @@ NEXT
 \ *****************************************************************************
 
 .LQ                     ; new view X, Acc = 0
+{
  STX VIEW               ; laser mount
  JSR TT66               ; box border with menu id QQ11 set to Acc
  JSR SIGHT              ; laser cross-hairs
  JMP NWSTARS            ; new dust field
+}
 
 \ *****************************************************************************
 \ Subroutine: LOOK1
@@ -6482,6 +6798,7 @@ NEXT
 \ *****************************************************************************
 
 .LOOK1                  ; Start view X
+{
  LDA #0                 ; menu id is space view
  LDY QQ11
  BNE LQ                 ; new view X, Acc = 0.
@@ -6491,6 +6808,7 @@ NEXT
  JSR TT66               ; box border with QQ11 set to Acc
  JSR FLIP               ; switch dusty and dustx
  JSR WPSHPS             ; wipe ships on scanner
+}
 
 \ *****************************************************************************
 \ Subroutine: SIGHT
@@ -6499,6 +6817,7 @@ NEXT
 \ *****************************************************************************
 
 .SIGHT                  ; Laser cross-hairs
+{
  LDY VIEW
  LDA LASER,Y
  BEQ LO2                ; no laser cross-hairs, rts
@@ -6512,6 +6831,7 @@ NEXT
  LDA #10                ; negate out small cross-hairs
  STA QQ19+2
  JMP TT15               ; again, negate out small cross-hairs.
+}
 
 \ *****************************************************************************
 \ Subroutine: TT66-2
@@ -6527,7 +6847,9 @@ NEXT
 \ *****************************************************************************
 
 .TT66                   ; Box border with QQ11 set to Acc
+{
  STA QQ11               ; menu id, zero is a titled space view.
+}
 
 \ *****************************************************************************
 \ Subroutine: TTX66
@@ -6536,6 +6858,7 @@ NEXT
 \ *****************************************************************************
 
 .TTX66                  ; New box
+{
  LDA #128               ; set bit7 One uppercase letter
  STA QQ17               ; flag for flight tokens
  ASL A
@@ -6553,8 +6876,10 @@ NEXT
  LDX QQ22+1
  BEQ BOX                ; skip if no outer hyperspace countdown
  JSR ee3                ; else reprint hyperspace countdown in X
+}
 
 .BOX                    ; front view box but no title if menu id > 0
+{
  LDY #1                 ; Y text cursor to top
  STY YC
  LDA QQ11               ; menu id
@@ -6593,6 +6918,7 @@ NEXT
  DEC X1
  DEC X2
  JMP LOIN               ; line using (X1,Y1), (X2,Y2) Yreg protected.
+}
 
 \ *****************************************************************************
 \ Subroutine: DELAY-5
@@ -6612,7 +6938,9 @@ NEXT
 \ *****************************************************************************
 
 .DEL8
+{
  LDY #8                 ; Delay counter = 8
+}
 
 \ *****************************************************************************
 \ Subroutine: DELAY
@@ -6621,10 +6949,12 @@ NEXT
 \ *****************************************************************************
 
 .DELAY                  ; Yreg loaded with length of delay counter
+{
  JSR WSCAN              ; Wait for line scan, ie whole frame completed.
  DEY
  BNE DELAY              ; loop Y
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: hm
@@ -6633,11 +6963,13 @@ NEXT
 \ *****************************************************************************
 
 .hm                     ; move hyperspace cross-hairs
+{
  JSR TT103              ; erase small cross hairs at target hyperspace system
  JSR TT111              ; closest to QQ9,10, then Sys Data.
  JSR TT103              ; draw small cross hairs at target hyperspace system
  LDA QQ11
  BEQ SC5
+}
 
 \ *****************************************************************************
 \ Subroutine: CLYNS
@@ -6646,6 +6978,7 @@ NEXT
 \ *****************************************************************************
 
 .CLYNS                  ; Clear screen rows, Yreg set to 0.
+{
  LDA #20                ; Y text cursor set few lines from bottom
  STA YC
  LDA #&75               ; page near bottom of screen
@@ -6660,6 +6993,7 @@ NEXT
  INC SC+1
  INY                    ; X text cursor = 1
  STY XC
+}
 
 \ *****************************************************************************
 \ Subroutine: LYN
@@ -6668,15 +7002,19 @@ NEXT
 \ *****************************************************************************
 
 .LYN                    ; most of bytes on Row (2) set to Acc.
+{
  LDY #233               ; near far right
 
 .EE2                    ; counter Y  233to0
  STA (SC),Y
  DEY                    ; next column to left
  BNE EE2                ; loop Y
+}
 
 .SC5
+{
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: SCAN
@@ -6685,6 +7023,7 @@ NEXT
 \ *****************************************************************************
 
 .SCAN                   ; ships on Scanner - last code written
+{
  LDA INWK+31            ; display explosion state|missiles
  AND #16                ; dont show on scanner if bit4 clear, invisible.
  BEQ SC5                ; rts
@@ -6804,6 +7143,7 @@ NEXT
  INX                    ; next dot of stick down
  BNE VLL2               ; loop X
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: WSCAN
@@ -6812,11 +7152,13 @@ NEXT
 \ *****************************************************************************
 
 .WSCAN                  ; Wait for line scan
+{
  LDA #0                 ; updated by interrupt routine
  STA DL
  LDA DL
  BEQ P%-2               ; loop DL
  RTS
+}
 
 \ *****************************************************************************
 \ Save output/ELTC.bin
@@ -6846,6 +7188,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .tnpr                   ; ton count, Acc = item. Exits with Acc = 1
+{
  PHA                    ; store #1
  LDX #12                ; above minerals
  CPX QQ29
@@ -6865,6 +7208,7 @@ LOAD_D% = LOAD% + P% - CODE%
  CMP #200               ; 199 kg max, carry set is too much.
  PLA                    ; scooping added one item
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: TT20
@@ -6873,6 +7217,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT20
+{
  JSR P%+3               ; This line calls the line below as a subroutine, which
                         ; does two twists before returning here, and then we
                         ; fall through to the line below for another two
@@ -6883,6 +7228,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR P%+3               ; This line calls TT54 as a subroutine to do a twist,
                         ; and then falls through into TT54 to do another twist
                         ; before returning from the subroutine
+}
 
 \ *****************************************************************************
 \ Subroutine: TT54
@@ -6980,6 +7326,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT54
+{
  LDA QQ15               ; X = tmp_lo = w0_lo + w1_lo
  CLC
  ADC QQ15+2
@@ -7011,6 +7358,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STA QQ15+5
 
  RTS                    ; The twist is complete so return from the subroutine
+}
 
 \ *****************************************************************************
 \ Subroutine: TT146
@@ -7043,7 +7391,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT60                   ; process TT27 token then next row
+{
  JSR TT27               ; process text token
+}
 
 \ *****************************************************************************
 \ Subroutine: TTX69
@@ -7052,7 +7402,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TTX69                  ; next Row
+{
  INC YC
+}
 
 \ *****************************************************************************
 \ Subroutine: TT69
@@ -7061,8 +7413,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT69                   ; next Row with QQ17 set
+{
  LDA #128               ; set bit7 for Upper case
  STA QQ17
+}
 
 \ *****************************************************************************
 \ Subroutine: TT67
@@ -7071,10 +7425,12 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT67
+{
  LDA #13                ; Load a newline character into A
 
  JMP TT27               ; Print the text token in A and return from the
                         ; subroutine using a tail call
+}
 
 \ *****************************************************************************
 \ Subroutine: TT70
@@ -7083,9 +7439,11 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT70                   ; Economy is mainly..
+{
  LDA #173               ; token for Economy = 'Mainly'
  JSR TT27               ; process text token
  JMP TT72               ; back down to work out if Ind or Agr
+}
 
 \ *****************************************************************************
 \ Subroutine: spc
@@ -7094,8 +7452,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .spc                    ; Acc to TT27, followed by white space
+{
  JSR TT27               ; process text token
  JMP TT162              ; then visit TT27 again but with A=#32, print white space.
+}
 
 \ *****************************************************************************
 \ Subroutine: TT25
@@ -7104,6 +7464,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT25                   ; DATA \ their comment \ display DATA on system
+{
  JSR TT66-2             ; box border with QQ11 set to Acc = 1
  LDA #9                 ; indent text xcursor
  STA XC
@@ -7131,8 +7492,10 @@ LOAD_D% = LOAD% + P% - CODE%
 .TT71
  ADC #170               ; #170 to #172  token = Rich Average Poor
  JSR TT27               ; process text token
+}
 
 .TT72                   ; Ind or Agr
+{
  LDA QQ3
  LSR A
  LSR A                  ; Economy/4
@@ -7243,8 +7606,10 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #&6D               ; ascii 'm'
  JMP TT26               ; print character
                         ; no planet description during flight
+}
 
 .TT24                   ; Calculate system Data
+{
  LDA QQ15+1             ; seed w0_h
  AND #7                 ; Economy build
  STA QQ3                ; 0 is Rich Industrial.
@@ -7301,6 +7666,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA P
  STA QQ7                ; 8*(P-A) = Productivity (768to56320) M Cr
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: TT22
@@ -7309,6 +7675,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT22                   ; Lng Sc \ their comment \ Long range galactic chart.
+{
  LDA #64                ; bit6 set for menu i.d.
  JSR TT66               ; box border with QQ11 set to A
  LDA #7                 ; indent
@@ -7347,6 +7714,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STA QQ19+1             ; Y1 calculated again with this
  LDA #4                 ; target cross-hair size
  STA QQ19+2
+}
 
 \ *****************************************************************************
 \ Subroutine: TT15
@@ -7355,6 +7723,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT15                   ; cross hair using QQ19(0to2) for laser or chart
+{
  LDA #24                ; default cross size
  LDX QQ11               ; menu i.d.
  BPL P%+4               ; if bit7 clear hop over lda #0
@@ -7407,8 +7776,10 @@ LOAD_D% = LOAD% + P% - CODE%
  STA XX15               ; X1
  STA XX15+2             ; X2
  JMP LL30               ; draw vertical line using (X1,Y1), (X2,Y2)
+}
 
 .TT126                  ; default  Circle with a cross-hair
+{
  LDA #104               ; Xorg
  STA QQ19
  LDA #90                ; Yorg
@@ -7419,6 +7790,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA QQ14               ; ship fuel #70 = #&46
  STA K                  ; radius
  JMP TT128              ; below. QQ19(0,1) and K for Circle
+}
 
 \ *****************************************************************************
 \ Subroutine: TT14
@@ -7427,6 +7799,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT14                   ; Crcl/+ \ their comment \ Circle with a cross hair
+{
  LDA QQ11               ; menu i.d.
  BMI TT126              ; if bit7 set up, Short range chart default.
  LDA QQ14               ; else ship fuel #70 = #&46
@@ -7445,6 +7818,7 @@ LOAD_D% = LOAD% + P% - CODE%
  CLC
  ADC #24
  STA QQ19+1             ; Ytop
+}
 
 \ *****************************************************************************
 \ Subroutine: TT128
@@ -7453,6 +7827,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT128                  ; QQ19(0,1) and K for circle
+{
  LDA QQ19
  STA K3                 ; Xorg
  LDA QQ19+1
@@ -7472,6 +7847,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \STA
 \LSX
  RTS                    ; could have used jmp
+}
 
 \ *****************************************************************************
 \ Subroutine: TT219
@@ -7480,6 +7856,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT219                  ; Buy \ their comment \ Buy cargo (#f1)
+{
 \LDA#2                  ; set menu i.d.
  JSR TT66-2             ; box border with QQ11 set to Acc
  JSR TT163              ; headings for market place
@@ -7566,12 +7943,16 @@ LOAD_D% = LOAD% + P% - CODE%
  CMP #17                ; max+1 items can purchase
  BCS BAY2               ; exit, all items done
  JMP TT220              ; loop up next item QQ29
+}
 
 .BAY2                   ; all items done, Back to
+{
  LDA #f9                ; red key #f9 Inventory page
  JMP FRCE               ; forced to enter Main loop
+}
 
 .gnum                   ; get number R for purchase, max quantity QQ25
+{
  LDX #0                 ; result returned
  STX R
  LDX #12                ; counter max
@@ -7609,6 +7990,7 @@ LOAD_D% = LOAD% + P% - CODE%
 .OUT                    ; exit
  LDA R                  ; return result R
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: TT208
@@ -7617,6 +7999,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT208                  ; Sel \ their comment \ Sell cargo (#f2)
+{
  LDA #4                 ; menu i.d. = 4
  JSR TT66               ; box border with QQ11 set to Acc
  LDA #4                 ; indent
@@ -7627,6 +8010,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR TT27               ; process text token
  LDA #206               ; token = CARGO
  JSR TT68               ; finish title string and draw line underneath
+}
 
 \ *****************************************************************************
 \ Subroutine: TT210
@@ -7635,6 +8019,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT210                  ; Crgo \ their comment \ Cargo list Inventory (no sell)
+{
  LDY #0
 
 .TT211                  ; counter Y = QQ29 for item
@@ -7702,6 +8087,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR dn2                ; All sells done - beep, delay.
  JMP BAY2               ; Inventory screen.
  RTS                    ; needed TT213-1
+}
 
 \ *****************************************************************************
 \ Subroutine: TT213
@@ -7710,6 +8096,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT213                  ; Invntry \ their comment \ Inventory
+{
  LDA #8                 ; menu i.d.
  JSR TT66               ; box border with QQ11 set to A
  LDA #11                ; indent
@@ -7725,6 +8112,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #&6B               ; token = Large cargo bay
  JSR TT27               ; process text token
  JMP TT210              ; List Cargo, up.
+}
 
 \ *****************************************************************************
 \ Subroutine: TT214
@@ -7733,6 +8121,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT214
+{
  PHA
  JSR TT162
  PLA
@@ -7753,6 +8142,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR TT26               ; print character
  SEC                    ; set carry
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: TT16
@@ -7761,6 +8151,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT16                   ; Arrive with X and Y values values to shift cross-hairs on charts by
+{
  TXA
  PHA                    ; Xinc
  DEY                    ; negate Yinc
@@ -7785,6 +8176,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA QQ19+4             ; result
  STA QQ9                ; target x
  STA QQ19               ; new X
+}
 
 \ *****************************************************************************
 \ Subroutine: TT103
@@ -7793,6 +8185,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT103                  ; Draw small cross hairs at target hyperspace system.
+{
  LDA QQ11               ; menu i.d.
  BEQ TT180
  BMI TT105              ; bit7 set is Short range chart cross-hair clip
@@ -7804,6 +8197,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #4                 ; small cross hair
  STA QQ19+2
  JMP TT15               ; cross hairs for laser or chart
+}
 
 \ *****************************************************************************
 \ Subroutine: TT123
@@ -7812,6 +8206,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT123                  ; coordinate update, fix overflow
+{
  STA QQ19+4             ; coordinate to update
  CLC                    ; add inc
  ADC QQ19+3
@@ -7825,9 +8220,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT125                  ; update ok
  STA QQ19+4             ; updated coordinate
+}
 
 .TT180                  ; rts
+{
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: TT105
@@ -7836,6 +8234,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT105                  ; Short range chart cross-hair clip
+{
  LDA QQ9                ; target X
  SEC
  SBC QQ0                ; present X
@@ -7866,6 +8265,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #8                 ; big cross
  STA QQ19+2
  JMP TT15               ; the cross hair using QQ19(0to2)
+}
 
 \ *****************************************************************************
 \ Subroutine: TT23
@@ -7874,6 +8274,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT23                   ; ShrtSc \ their comment \ Short range chart
+{
  LDA #128               ; Set bit7 of menu i.d.
  JSR TT66               ; box border with QQ11 set to A
  LDA #7                 ; indent
@@ -7979,14 +8380,17 @@ LOAD_D% = LOAD% + P% - CODE%
  INC XX20
  BEQ TT111-1            ; all 256 done, rts 
  JMP TT182              ; loop XX20 next star
+}
 
 .TT81                   ; QQ15 loaded with galaxy seeds
+{
  LDX #5                 ; Galaxy root seeds, counter X.
  LDA QQ21,X
  STA QQ15,X
  DEX                    ; to planet seeds to twist
  BPL TT81+2
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: TT111
@@ -7996,6 +8400,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT111                  ; rectangle Closest to QQ9,10. Could be arriving in new galaxy with initial (96,96)
+{
  JSR TT81               ; QQ15 loaded with galaxy seeds
  LDY #127               ; distance tracker, starts at half of screen width.
  STY T
@@ -8095,6 +8500,7 @@ LOAD_D% = LOAD% + P% - CODE%
  ROL QQ8+1
  STA QQ8                ; QQ8(0,1) is 4*distance in x-units
  JMP TT24               ; Calculate System Data from QQ15(0to5).
+}
 
 \ *****************************************************************************
 \ Subroutine: hy6
@@ -8103,10 +8509,12 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .hy6
+{
  JSR CLYNS              ; Clear some screen rows
  LDA #15
  STA XC
  JMP TT27               ; process flight text token
+}
 
 \ *****************************************************************************
 \ Subroutine: hyp
@@ -8115,6 +8523,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .hyp                    ; hyperspace start, key H hit.
+{
  LDA QQ12               ; hyp countdown hi
  BNE hy6
  LDA QQ22+1             ; hyp countdown lo
@@ -8144,8 +8553,10 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #&2D               ; ascii '-' in  "HYPERSPACE -ISINOR"
  JSR TT27
  JSR cpl                ; Planet name for seed QQ15
+}
 
 .wW                     ; Also Galactic hyperdrive countdown starting
+{
  LDA #15                ; counter for outer and inner hyperspace countdown loops
  STA QQ22+1
  STA QQ22               ; inner hyperspace countdown
@@ -8153,6 +8564,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JMP ee3                ; digit in top left hand corner, using Xreg.
 
 \hy5 RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: Ghy
@@ -8161,6 +8573,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .Ghy                    ; Galactic hyperdrive for ctrl-H
+{
 \JSR TT111              ; is in ELITED.TXT but not in ELITE SOURCE IMAGE
  LDX GHYP               ; possess galactic hyperdrive?
  BEQ hy5                ; rts
@@ -8183,23 +8596,30 @@ LOAD_D% = LOAD% + P% - CODE%
  DEX
  BPL G1                 ; loop X
 \JSR DORND
+}
 
 .zZ                     ; Arrive closest to (96,96)
+{
  LDA #&60               ; zZ+1 is an rts !
  STA QQ9
  STA QQ10
  JSR TT110              ; Launch ship decision
  LDA #116               ; token = Galactic Hyperspace
  JSR MESS               ; message
+}
 
 .jmp                    ; move target coordinates to become new present
+{
  LDA QQ9
  STA QQ0
  LDA QQ10
  STA QQ1
+}
 
 .hy5
+{
  RTS                    ; ee3-1
+}
 
 \ *****************************************************************************
 \ Subroutine: ee3
@@ -8214,6 +8634,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .ee3
+{
  LDY #1                 ; Set YC = 1 (first row)
  STY YC
 
@@ -8221,6 +8642,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STY XC
 
                         ; Fall through into pr6 to print X to 5 digits
+}
 
 \ *****************************************************************************
 \ Subroutine: pr6
@@ -8235,9 +8657,11 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .pr6
+{
  CLC                    ; Do not display a decimal point when printing
 
                         ; Fall through into pr5 to print X to 5 digits
+}
 
 \ *****************************************************************************
 \ Subroutine: pr5
@@ -8254,9 +8678,11 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .pr5
+{
  LDA #5                 ; Print the number in X to a maximum of 5 digits
  JMP TT11               ; (left-padded) with no decimal point
- 
+ }
+
 \ *****************************************************************************
 \ Subroutine: TT147
 \
@@ -8264,7 +8690,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT147                  ; hyperspace too far
+{
  LDA #202               ; token = (HYPERSPACE) 'RANGE' (?)
+}
 
 \ *****************************************************************************
 \ Subroutine: prq
@@ -8273,9 +8701,11 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .prq                    ; print Acc then question mark
+{
  JSR TT27               ; process text token
  LDA #&3F               ; ascii '?'
  JMP TT27
+}
 
 \ *****************************************************************************
 \ Subroutine: TT151
@@ -8284,6 +8714,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT151                  ; Pmk-A \ their comment \ Market prices on one item
+{
  PHA                    ; index for item
  STA QQ19+4
  ASL A                  ; build index for QQ23 table
@@ -8343,8 +8774,10 @@ LOAD_D% = LOAD% + P% - CODE%
  STA XC
  LDA #&2D               ; ascii '-'
  BNE TT162+2            ; guaranteed jmp TT27
+}
 
 .TT152                  ; t kg g from QQ19+1
+{
  LDA QQ19+1             ; byte1
  AND #96                ; mask info, no bits set?
  BEQ TT160              ; 't' for tonne
@@ -8352,6 +8785,7 @@ LOAD_D% = LOAD% + P% - CODE%
  BEQ TT161              ; 'kg'
 
  JSR TT16a              ; else 'g' for gram
+}
 
 \ *****************************************************************************
 \ Subroutine: TT162
@@ -8360,10 +8794,12 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT162
+{
  LDA #' '               ; Load a space character into A
 
  JMP TT27               ; Print the character in A and return from the
                         ; subroutine using a tail call
+}
 
 \ *****************************************************************************
 \ Subroutine: TT160
@@ -8372,9 +8808,11 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT160                  ; 't' for tonne
+{
  LDA #&74               ; ascii 't' for tonne
  JSR TT26               ; print character
  BCC TT162              ; guaranteed, trailing space.
+}
 
 \ *****************************************************************************
 \ Subroutine: TT161
@@ -8383,8 +8821,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT161                  ; 'kg'
+{
  LDA #&6B               ; ascii 'k'
  JSR TT26               ; print character lower case
+}
 
 \ *****************************************************************************
 \ Subroutine: TT16a
@@ -8393,8 +8833,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT16a
+{
  LDA #&67               ; ascii 'g'
  JMP TT26               ; print character lower case
+}
 
 \ *****************************************************************************
 \ Subroutine: TT163
@@ -8403,10 +8845,12 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT163                  ; table Headings for market place
+{
  LDA #17                ; indent
  STA XC
  LDA #&FF               ; token = unit  quantity product unit    price   for   sale
  BNE TT162+2
+}
 
 \ *****************************************************************************
 \ Subroutine: TT167
@@ -8415,6 +8859,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT167                  ; MktP \ their comment \ Market place menu screen
+{
  LDA #16                ; menu i.d. bit4 set
  JSR TT66               ; box border with QQ11 set to A
  LDA #5                 ; indent
@@ -8438,6 +8883,7 @@ LOAD_D% = LOAD% + P% - CODE%
  CMP #17                ; still <17 items?
  BCC TT168              ; loop QQ29
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: var
@@ -8446,6 +8892,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .var                    ; market price slope QQ19+3  = economy * gradient
+{
  LDA QQ19+1             ; byte1 gradient info bits.
  AND #31                ; gradient 0to31.
  LDY QQ28               ; the economy byte of present system (0 is Rich Ind.)
@@ -8463,6 +8910,7 @@ LOAD_D% = LOAD% + P% - CODE%
 .TT154                  ; exit product
  STA QQ19+3             ; economy * gradient
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: hyp1
@@ -8471,7 +8919,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .hyp1
+{
  JSR TT111              ; closest to QQ9,10
+}
 
 \ *****************************************************************************
 \ Subroutine: hyp1+3
@@ -8504,6 +8954,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .GVL
+{
  JSR DORND              ; do random, new A, X.
  STA QQ26               ; random byte for each system vist (for market)
  LDX #0                 ; set up availability
@@ -8543,9 +8994,12 @@ LOAD_D% = LOAD% + P% - CODE%
  TAX                    ; X = Y*4 to index table
  CMP #63                ; XX4 < 63?
  BCC hy9                ; loop XX4 availability
+}
 
 .hyR
+{
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: GTHG
@@ -8554,6 +9008,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .GTHG                   ; get Thargoid ship
+{
  JSR Ze                 ; Zero for new ship, new inwk coords, ends with dornd and T1 = rnd too.
  LDA #&FF               ; ai attack everyone, has ecm.
  STA INWK+32
@@ -8561,11 +9016,14 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR NWSHP              ; new ship type Acc
  LDA #TGL               ; accompanying thargon
  JMP NWSHP              ; new ship type Acc
+}
 
 .ptg                    ; shift forced hyperspace misjump
+{
  LSR COK                ; file check cash/competition
  SEC                    ; set bit0
  ROL COK
+}
 
 \ *****************************************************************************
 \ Subroutine: MJP
@@ -8574,6 +9032,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .MJP                    ; miss jump
+{
 \LDA #1                 ; not required as this is present at TT66-2
  JSR TT66-2             ; box border with QQ11 set to A = 1
  JSR LL164              ; hyperspace noise and tunnel
@@ -8592,6 +9051,7 @@ LOAD_D% = LOAD% + P% - CODE%
  EOR #31                ; flip lower y coord bits
  STA QQ1
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: TT18
@@ -8600,6 +9060,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT18                   ; HSPC \ their comment \ Countdown finished, (try) go through Hyperspace
+{
  LDA QQ14               ; ship fuel #70 = #&46
  SEC                    ; Subtract distance in 0.1 LY units
  SBC QQ8
@@ -8629,6 +9090,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA QQ11
  BNE TT114              ; menu i.d. not space view, a new chart.
  INC QQ11               ; else space, menu id = 1 for new dust view.
+}
 
 \ *****************************************************************************
 \ Subroutine: TT110
@@ -8638,6 +9100,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT110                  ; Launch ship decision. Also arrive here after galactic hyperdrive jump, and after f0 hit.
+{
  LDX QQ12               ; Docked flag
  BEQ NLUNCH             ; not launched
  JSR LAUN               ; launched from space station
@@ -8659,13 +9122,16 @@ LOAD_D% = LOAD% + P% - CODE%
  LDX #0                 ; forward
  STX QQ12               ; check messages
  JMP LOOK1              ; start view Xreg = 0
+}
 
 .TT114                  ; not space view, a chart.
+{
  BMI TT115              ; menu i.d. bit7 Short range chart
  JMP TT22               ; else Long range galactic chart
 
 .TT115                  ; Short range chart
  JMP TT23               ; Short range chart
+}
 
 \ *****************************************************************************
 \ Subroutine: LCASH
@@ -8674,6 +9140,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .LCASH                  ; Less X.Y cash
+{
  STX T1
  LDA CASH+3
  SEC                    ; subtract Xlo from CASH(3)
@@ -8692,6 +9159,7 @@ LOAD_D% = LOAD% + P% - CODE%
  BCS TT113              ; rts if no debt with carry set
 
                         ; else roll on to carry clear and restore cash
+}
 
 \ *****************************************************************************
 \ Subroutine: MCASH
@@ -8700,6 +9168,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .MCASH                  ; More cash, add Xlo.Yhi
+{
  TXA                    ; lo
  CLC                    ; add Xlo to CASH(3)
  ADC CASH+3
@@ -8714,9 +9183,12 @@ LOAD_D% = LOAD% + P% - CODE%
  ADC #0                 ; (big-endian)
  STA CASH
  CLC                    ; carry clear also means LCASH failed
+}
 
 .TT113
+{
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: GCASH
@@ -8725,7 +9197,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .GCASH                  ; Xlo.Yhi = P*Q*4
+{
  JSR MULTU              ; P.A = P*Q,  lsb in P.
+}
 
 \ *****************************************************************************
 \ Subroutine: GC2
@@ -8734,6 +9208,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .GC2                    ; Xlo.Yhi = P.A *=4
+{
  ASL P
  ROL A                  ; hi
  ASL P
@@ -8742,6 +9217,7 @@ LOAD_D% = LOAD% + P% - CODE%
  TAY                    ; Y hi
  LDX P                  ; X lo
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: bay
@@ -8750,7 +9226,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .bay                    ; error, back to Bay
+{
  JMP BAY                ; Start in Docking Bay
+}
 
 \ *****************************************************************************
 \ Subroutine: EQSHP
@@ -8759,6 +9237,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .EQSHP                  ; (#f3) Equip Ship
+{
  JSR DIALS
  LDA #32
  JSR TT66               ; flush keyboard
@@ -8900,8 +9379,10 @@ LOAD_D% = LOAD% + P% - CODE%
  BNE et6                ; else Escape pod
  LDX BST                ; barrel status, fuel scoops present
  BEQ ed9                ; empty so Fuel scoop awarded
+}
 
 .pres                   ; error, Token in Yreg is already 'present' on ship
+{
  STY K                  ; store equipment already present token
  JSR prx                ; return price in (X,Y) for item Acc
  JSR MCASH              ; add XloYhi to cash
@@ -8909,15 +9390,21 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR spc                ; Acc to TT27 followed by white space
  LDA #31                ; token = PRESENT
  JSR TT27               ; process text token
+}
 
 .err                    ; Also other errors
+{
  JSR dn2                ; beep and wait
  JMP BAY                ; start in Docking Bay
+}
 
 .ed9                    ; Fuel scoop awarded
+{
  DEC BST                ; #&FF = fuel scoops awarded
+}
 
 .et6                    ; Escape pod
+{
  INY                    ; token = escape pod
  CMP #7                 ; item Escape pod
  BNE et7                ; else Energy bomb
@@ -8961,16 +9448,21 @@ LOAD_D% = LOAD% + P% - CODE%
 .et9                    ; display cash and Loop
  JSR dn                 ; display cash
  JMP EQSHP              ; equip ship, new menu screen
+}
 
 .dn                     ; display cash
+{
  JSR TT162              ; white space
  LDA #119               ; token = CASH 0x00
  JSR spc                ; Acc to TT27 followed by white space
+}
 
 .dn2                    ; beep, delay. 
+{
  JSR BEEP
  LDY #50                ; moderate delay
  JMP DELAY              ; Yreg is length of delay counter
+}
 
 \ *****************************************************************************
 \ Subroutine: eq
@@ -8979,6 +9471,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .eq                     ; reduce cash for item Acc if enough
+{
  JSR prx                ; return price in (X,Y) for item Acc
  JSR LCASH              ; less cash
  BCS c                  ; rts if ok, else not enough
@@ -8989,6 +9482,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; return price in (X,Y) for item Acc-1
  SEC
  SBC #1
+}
 
 \ *****************************************************************************
 \ Subroutine: prx
@@ -8997,14 +9491,18 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .prx                    ; return price in (X,Y) for item Acc
+{
  ASL A
  TAY                    ; build index
  LDX PRXS,Y             ; equipment price lo
  LDA PRXS+1,Y           ; equipment price hi
  TAY
+}
 
 .c
+{
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: qv
@@ -9013,6 +9511,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .qv                     ; query which view for laser mount, returned in Xreg.
+{
  LDY #16                ; view options listed mid screen 
  STY YC
 
@@ -9045,7 +9544,7 @@ LOAD_D% = LOAD% + P% - CODE%
  BCS qv3                ; exit valid input < max view
  TAX                    ; Xreg has valid mount
  RTS
-
+}
 \ *****************************************************************************
 \ Save output/ELTD.bin
 \ *****************************************************************************
@@ -9132,6 +9631,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .cpl
+{
  LDX #5                 ; First we need to backup the seeds in QQ15, so set up
                         ; a counter in X to cover three 16-bit seeds (i.e.
                         ; 6 bytes)
@@ -9190,6 +9690,7 @@ MAPCHAR '4', '4'
 
  RTS                    ; Once all the seeds are restored, return from the
                         ; subroutine
+}
 
 \ *****************************************************************************
 \ Subroutine: cmn
@@ -9198,6 +9699,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .cmn
+{
  LDY #0                 ; Set up a counter in Y, starting from 0
 
 .QUL4
@@ -9214,6 +9716,7 @@ MAPCHAR '4', '4'
  BNE QUL4               ; Loop back for the next character
  
  RTS                    ; Return from the subroutine
+}
 
 \ *****************************************************************************
 \ Subroutine: ypl
@@ -9222,6 +9725,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .ypl
+{
  LDA MJ                 ; Check the mis-jump flag at MJ, and if it is non-zero
  BNE cmn-1              ; then return from the subroutine, as we are in
                         ; witchspace, and witchspace doesn't have a system name
@@ -9256,6 +9760,7 @@ MAPCHAR '4', '4'
  
  RTS                    ; Once all bytes are swapped, return from the
                         ; subroutine
+}
 
 \ *****************************************************************************
 \ Subroutine: tal
@@ -9264,6 +9769,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .tal
+{
  CLC                    ; We don't want to print the galaxy number with a
                         ; decimal point, so clear the carry flag for pr2 to
                         ; take as an argument
@@ -9278,6 +9784,7 @@ MAPCHAR '4', '4'
                         ; of 3 figures, left-padding with spaces to a width of
                         ; 3, and once done, return from the subroutine (as pr2
                         ; ends with an RTS)
+}
 
 \ *****************************************************************************
 \ Subroutine: fwl
@@ -9287,6 +9794,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .fwl
+{
  LDA #105               ; Print recursive token 105 ("FUEL") followed by a
  JSR TT68               ; colon
  
@@ -9306,6 +9814,7 @@ MAPCHAR '4', '4'
 
  LDA #119               ; Print recursive token 119 ("CASH:" then control code
  BNE TT27               ; 0, which prints cash levels, then " CR" and newline)
+}
 
 \ *****************************************************************************
 \ Subroutine: csh
@@ -9315,6 +9824,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .csh
+{
  LDX #3                 ; We are going to use the BPRNT routine to print out
                         ; the current amount of cash, which is stored as a
                         ; 32-bit number at location CASH. BPRNT prints out
@@ -9343,6 +9853,7 @@ MAPCHAR '4', '4'
 
  LDA #226               ; Print recursive token 66 (" CR") followed by a
                         ; newline by falling through into plf
+}
 
 \ *****************************************************************************
 \ Subroutine: plf
@@ -9355,9 +9866,11 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .plf
+{
  JSR TT27               ; Print the text token in A
 
  JMP TT67               ; Jump to TT67, which prints a newline
+}
 
 \ *****************************************************************************
 \ Subroutine: TT68
@@ -9370,8 +9883,10 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .TT68
+{
  JSR TT27               ; Print the text token in A and fall through to TT73 to
                         ; print a colon
+}
 
 \ *****************************************************************************
 \ Subroutine: TT73
@@ -9380,8 +9895,10 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .TT73
+{
  LDA #':'               ; Set A to ASCII ':' and fall through to TT27 to
                         ; actually print the colon
+}
 
 \ *****************************************************************************
 \ Subroutine: TT27
@@ -9396,6 +9913,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .TT27
+{
  TAX                    ; Copy the token number from A to X. We can then keep
                         ; decrementing X and testing it against zero, while
                         ; keeping the original token number intact in A; this
@@ -9492,6 +10010,7 @@ MAPCHAR '4', '4'
                         ; would fall through to TT42 to print in lower case,
                         ; which is how printing all words in lower case could
                         ; be supported (by setting QQ17 to 1, say).
+}
 
 \ *****************************************************************************
 \ Subroutine: TT42
@@ -9507,6 +10026,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .TT42
+{
  CMP #'A'               ; If A < ASCII 'A', then this is punctuation, so jump
  BCC TT44               ; to TT26 (via TT44) to print the character as is, as
                         ; we don't care about the character's case
@@ -9518,9 +10038,12 @@ MAPCHAR '4', '4'
                         
  ADC #32                ; Add 32 to the character, to convert it from upper to
                         ; to lower case
+}
 
 .TT44
+{
  JMP TT26               ; Print the character in A
+}
 
 \ *****************************************************************************
 \ Subroutine: TT41
@@ -9546,6 +10069,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .TT41                   ; If we get here, then QQ17 has bit 7 set, so we are in
+{
                         ; Sentence Case
  
  BIT QQ17               ; If QQ17 also has bit 6 set, jump to TT45 to print
@@ -9570,6 +10094,7 @@ MAPCHAR '4', '4'
  BNE TT44               ; Jump to TT26 (via TT44) to print the character in A
                         ; (this BNE is effectively a JMP as A will never be
                         ; zero)
+}
 
 \ *****************************************************************************
 \ Subroutine: qw
@@ -9584,9 +10109,11 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .qw
+{
  ADC #114               ; This is a recursive token in the range 0-95, so add
  BNE ex                 ; 114 to the argument to get the token number 128-145
                         ; and jump to ex to print it
+}
 
 \ *****************************************************************************
 \ Subroutine: crlf
@@ -9597,11 +10124,13 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .crlf
+{
  LDA #21                ; Set the X-column in XC to 21
  STA XC
 
  BNE TT73               ; Jump to TT73, which prints a colon (this BNE is
                         ; effectively a JMP as A is always non-zero)
+}
 
 \ *****************************************************************************
 \ Subroutine: TT45
@@ -9625,6 +10154,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .TT45                   ; If we get here, then QQ17 has bit 6 and 7 set, so we
+{
                         ; are in Sentence Case and we need to print the next
                         ; letter in lower case
 
@@ -9638,6 +10168,7 @@ MAPCHAR '4', '4'
                         ; this is effectively a word break. We therefore fall
                         ; through to TT46 to print the character and set QQ17
                         ; to ensure the next word starts with a capital letter
+}
 
 \ *****************************************************************************
 \ Subroutine: TT46
@@ -9660,6 +10191,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .TT46
+{
  PHA                    ; Store the token number
  
  TXA                    ; Clear bit 6 in QQ17 (X contains the current QQ17)
@@ -9669,6 +10201,7 @@ MAPCHAR '4', '4'
  PLA                    ; Restore the token number into A
 
                         ; Now fall through into TT74 to print the character
+}
 
 \ *****************************************************************************
 \ Subroutine: TT74
@@ -9681,7 +10214,9 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .TT74
+{
  JMP TT26               ; Print the character in A
+}
 
 \ *****************************************************************************
 \ Subroutine: TT43
@@ -9698,6 +10233,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .TT43
+{
  CMP #160               ; If token >= 160, then this is a recursive token, so
  BCS TT47               ; jump to TT47 below to process it
 
@@ -9727,6 +10263,7 @@ MAPCHAR '4', '4'
  SBC #160               ; This is a recursive token in the range 160-255, so
                         ; subtract 160 from the argument to get the token
                         ; number 0-95 and fall through to ex to print it
+}
 
 \ *****************************************************************************
 \ Subroutine: ex
@@ -9754,6 +10291,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .ex
+{
  TAX                    ; Copy the token number into X
 
  LDA #LO(QQ18)          ; Set V, V+1 to point to the recursive token table at
@@ -9850,7 +10388,7 @@ MAPCHAR '4', '4'
                         ; token, jump back up to TT50 to print the next
                         ; character, otherwise we are done printing and can
                         ; fall through to TT48 to return from the subroutine
-
+}
 \ *****************************************************************************
 \ Subroutine: TT48
 \
@@ -9862,7 +10400,9 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .TT48
+{
  RTS                    ; Return from the current subroutine
+}
 
 \ *****************************************************************************
 \ Subroutine: EX2
@@ -9872,10 +10412,12 @@ MAPCHAR '4', '4'
 
 
 .EX2                    ; ready to remove - Explosion Code
+{
  LDA INWK+31            ; exploding/display state|missiles
  ORA #&A0               ; bit7 to kill it, bit5 finished exploding.
  STA INWK+31
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: DOEXP
@@ -9884,6 +10426,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .DOEXP                  ; Do Explosion as bit5 set by LL9
+{
  LDA INWK+31
  AND #64                ; display state keep bit6
  BEQ P%+5               ; exploding not started, skip ptcls
@@ -10045,6 +10588,7 @@ MAPCHAR '4', '4'
  LDA S
  SBC #0                 ; Ahi = S
  RTS                    ; end of explosion code
+}
 
 \ *****************************************************************************
 \ Subroutine: SOS1
@@ -10053,6 +10597,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .SOS1                   ; Set up planet
+{
  JSR msblob             ; draw all missile blocks
  LDA #127               ; no damping of rotation
  STA INWK+29            ; rotx counter
@@ -10061,6 +10606,7 @@ MAPCHAR '4', '4'
  AND #2                 ; bit1 determines planet type 80..82
  ORA #128               ; type is planet
  JMP NWSHP              ; new ship type Acc
+}
 
 \ *****************************************************************************
 \ Subroutine: SOLAR
@@ -10069,6 +10615,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .SOLAR                  ; Set up planet and sun
+{
  LSR FIST               ; reduce Fugitative/Innocent legal status
  JSR ZINF               ; zero info
  LDA QQ15+1             ; w0_h is Economy
@@ -10094,6 +10641,7 @@ MAPCHAR '4', '4'
  STA INWK+30            ; rotz counter
  LDA #&81               ; type is Sun
  JSR NWSHP              ; new ship type Acc
+}
 
 \ *****************************************************************************
 \ Subroutine: NWSTARS
@@ -10102,9 +10650,11 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .NWSTARS                ; New dust field
+{
  LDA QQ11               ; menu i.d. QQ11 == 0 is space view
 \ORA MJ
  BNE WPSHPS             ; if not space view skip over to Wipe Ships
+}
 
 \ *****************************************************************************
 \ Subroutine: nWq
@@ -10113,6 +10663,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .nWq
+{
  LDY NOSTM              ; number of dust particles
 
 .SAL4                   ; counter Y
@@ -10129,6 +10680,7 @@ MAPCHAR '4', '4'
  JSR PIXEL2             ; dust (X1,Y1) from middle
  DEY                    ; next dust
  BNE SAL4               ; loop Y
+}
 
 \ *****************************************************************************
 \ Subroutine: WPSHPS
@@ -10137,6 +10689,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .WPSHPS                 ; Wipe Ships on scanner
+{
  LDX #0
 
 .WSL1                   ; outer counter X
@@ -10168,6 +10721,7 @@ MAPCHAR '4', '4'
  LDX #&FF               ; clear line buffers
  STX LSX2               ; lines X2
  STX LSY2               ; lines Y2
+}
 
 \ *****************************************************************************
 \ Subroutine: FLFLLS
@@ -10176,6 +10730,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .FLFLLS                 ; New Flood-filled Sun, ends with Acc=0
+{
  LDY #2*Y-1             ; #2*Y-1 is top of Yscreen
  LDA #0                 ; clear each line
 
@@ -10186,6 +10741,7 @@ MAPCHAR '4', '4'
  DEY                    ; Yreg = #&FF
  STY LSX                ; overlaps with LSO vector
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: DET1
@@ -10194,12 +10750,14 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .DET1                   ; Death with X = 24 text rows
+{
  LDA #6                 ; R6 number of displayed Character rows
  SEI                    ; disable other interrupts
  STA &FE00              ; 6845 register
  STX &FE01              ; 6845 data
  CLI                    ; enable interrupts
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: SHD-2
@@ -10207,8 +10765,10 @@ MAPCHAR '4', '4'
 \ cap Shield = #&FF \ SHD-2
 \ *****************************************************************************
 
+{
  DEX                    ; cap Shield = #&FF \ SHD-2
  RTS                    ; Shield = #&FF
+}
 
 \ *****************************************************************************
 \ Subroutine: SHD
@@ -10217,8 +10777,10 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .SHD                    ; let Shield X recharge
+{
  INX
  BEQ SHD-2              ; cap Shield up = #&FF if too big else
+}
 
 \ *****************************************************************************
 \ Subroutine: DENGY
@@ -10227,12 +10789,14 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .DENGY                  ; Drain player's Energy
+{
  DEC ENERGY
  PHP                    ; push dec flag
  BNE P%+5               ; skip inc, else underflowing
  INC ENERGY             ; energy set back to 1
  PLP                    ; pull dec flag
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: COMPAS
@@ -10241,11 +10805,13 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .COMPAS                 ; space Compass
+{
  JSR DOT                ; compass dot remove
  LDA SSPR               ; space station present? 0 is SUN.
  BNE SP1                ; compass point to space station, down.
  JSR SPS1               ; XX15 vector to planet
  JMP SP2                ; compass point to XX15
+}
 
 \ *****************************************************************************
 \ Subroutine: SPS2
@@ -10254,6 +10820,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .SPS2                   ; X.Y = A/10 for space compass display
+{
  ASL A                  ; A is signed unit vector
  TAX                    ; X = 7bits
  LDA #0                 ; Acc gets sign in bit7
@@ -10277,6 +10844,7 @@ MAPCHAR '4', '4'
  TAX                    ; flipped
  INX                    ; -ve P
  RTS                    ; X -> -X, Y = #&FF.
+}
 
 \ *****************************************************************************
 \ Subroutine: SPS4
@@ -10285,6 +10853,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .SPS4                   ; XX15 vector to #SST
+{
  LDX #8                 ; 9 coords
 
 .SPL1                   ; counter X
@@ -10293,6 +10862,7 @@ MAPCHAR '4', '4'
  DEX                    ; next coord
  BPL SPL1               ; loop X
  JMP TAS2               ; build XX15 from K3
+}
 
 \ *****************************************************************************
 \ Subroutine: SP1
@@ -10301,7 +10871,9 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .SP1                    ; compass point to space station
+{
  JSR SPS4               ; XX15 vector to #SST, up.
+}
 
 \ *****************************************************************************
 \ Subroutine: SP2
@@ -10310,6 +10882,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .SP2                    ; compass point to XX15
+{
  LDA XX15               ; xunit
  JSR SPS2               ; X.Y = xunit/10 for space compass display
  TXA                    ; left edge of compass
@@ -10327,6 +10900,7 @@ MAPCHAR '4', '4'
  BPL P%+4               ; its in front
  LDA #&FF               ; else behind colour is green
  STA COMC               ; compass colour
+}
 
 \ *****************************************************************************
 \ Subroutine: DOT
@@ -10335,6 +10909,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .DOT                    ; Compass dot
+{
  LDA COMY               ; compass-y
  STA Y1
  LDA COMX               ; compass-x
@@ -10343,6 +10918,7 @@ MAPCHAR '4', '4'
  STA COL                ; the colour
  CMP #&F0               ; yellow is in front?
  BNE CPIX2              ; hop ahead 4 lines if behind you, narrower bar
+}
 
 \ *****************************************************************************
 \ Subroutine: CPIX4
@@ -10351,8 +10927,10 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .CPIX4                  ; stick head on scanner at height Y1
+{
  JSR CPIX2              ; two visits, Y1 then Y1-1 to make twice as thick.
  DEC Y1                 ; next bar
+}
 
 \ *****************************************************************************
 \ Subroutine: CPIX2
@@ -10361,6 +10939,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .CPIX2                  ; Colour Pixel Mode 5
+{
  LDA Y1                 ; yscreen
 
 \.CPIX
@@ -10397,6 +10976,7 @@ MAPCHAR '4', '4'
  EOR (SC),Y
  STA (SC),Y
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: OOPS
@@ -10405,6 +10985,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .OOPS                   ; Lose some shield strength, cargo, could die.
+{
  STA T                  ; dent was in Acc
  LDY #8                 ; get zsg of ship hit
  LDX #0                 ; min
@@ -10440,6 +11021,7 @@ MAPCHAR '4', '4'
  JMP DEATH
  JSR EXNO3              ; ominous noises
  JMP OUCH               ; lose cargo/equipment
+}
 
 \ *****************************************************************************
 \ Subroutine: SPS3
@@ -10448,6 +11030,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .SPS3                   ; planet if Xreg=0 for space compass into K3(0to8)
+{
  LDA K%+1,X             ; allwk+1,X
  STA K3,X               ; hi
  LDA K%+2,X             ; allwk+2,X
@@ -10458,6 +11041,7 @@ MAPCHAR '4', '4'
  AND #128               ; bit7 sign
  STA K3+2,X
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: GINF
@@ -10466,6 +11050,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .GINF                   ; Get ship Info pointer into allwk for nearby ship X
+{
  TXA                    ; nearby slot
  ASL A                  ; X*2
  TAY                    ; index table at UNIV
@@ -10474,6 +11059,7 @@ MAPCHAR '4', '4'
  LDA UNIV+1,Y
  STA INF+1
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: NWSPS
@@ -10482,6 +11068,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .NWSPS                  ; New Space Station
+{
  JSR SPBLB              ; space station bulb
  LDX #1                 ; has ai and ecm
  STX INWK+32
@@ -10501,6 +11088,7 @@ MAPCHAR '4', '4'
  LDA #HI(LSO)
  STA INWK+34            ; pointer hi
  LDA #SST               ; Type is space station
+}
 
 \ *****************************************************************************
 \ Subroutine: NWSHP
@@ -10509,6 +11097,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .NWSHP                  ; New Ship, type Acc.
+{
  STA T                  ; Type stored
  LDX #0
 
@@ -10587,6 +11176,7 @@ MAPCHAR '4', '4'
  BPL NWL3               ; loop Y
  SEC                    ; success in creating new ship, keep carry set.
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: NwS1
@@ -10595,12 +11185,14 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .NwS1                   ; flip signs and X+=2 needed by new space station
+{
  LDA INWK,X
  EOR #128               ; flip sg coordinate
  STA INWK,X
  INX
  INX                    ; X+=2
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: ABORT
@@ -10609,20 +11201,38 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .ABORT                  ; draw Missile block, Unarm missile
+{
  LDX #&FF
+}
+
+\ *****************************************************************************
+\ Subroutine: ABORT2
+\
+\ missile found a target
+\ *****************************************************************************
 
 .ABORT2                 ; Xreg stored as Missile target
+{
  STX MSTG               ; missile targeted 12 choices
  LDX NOMSL              ; number of missiles
  JSR MSBAR              ; draw missile bar, returns with Y = 0.
  STY MSAR               ; missiles armed status
  RTS
+}
+
+\ *****************************************************************************
+\ Subroutine: ECBLB2
+\
+\ set ECM bulb
+\ *****************************************************************************
 
 .ECBLB2                 ; set ECM bulb
+{
  LDA #32
  STA ECMA               ; ECM on
  ASL A                  ; #64
  JSR NOISE
+}
 
 \ *****************************************************************************
 \ Subroutine: ECBLB
@@ -10631,10 +11241,12 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .ECBLB                  ; ECM bulb switch
+{
  LDA #7*8               ; SC lo for E on left of row
  LDX #LO(ECBT)
  LDY #HI(ECBT)
  BNE BULB-2             ; guaranteed, but assume same Y page
+}
 
 \ *****************************************************************************
 \ Subroutine: SPBLB
@@ -10643,16 +11255,35 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .SPBLB                  ; Space Station bulb
+{
  LDA #24*8              ; Screen lo destination SC on right of row
  LDX #LO(SPBT)          ; font source
+}
+
+\ *****************************************************************************
+\ Subroutine: BULB-2
+\
+\ Bulb
+\ *****************************************************************************
+
+{
  LDY #HI(SPBT)
+}
+
+\ *****************************************************************************
+\ Subroutine: BULB
+\
+\ Bulb
+\ *****************************************************************************
 
 .BULB
+{
  STA SC                 ; screen lo
  STX P+1                ; font pointer lo
  STY P+2                ; font pointer hi
  LDA #&7D               ; screen hi SC+1 destination (SC) = &7DC0
  JMP RREN               ; Acc has screen hi for 8 bytes from (P+1)
+}
 
 \ *****************************************************************************
 \ Variable: ECBT
@@ -10661,8 +11292,10 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .ECBT
+{
  EQUW &E0E0             ; 'E' displayed in lower console
  EQUB &80
+}
 
 \ *****************************************************************************
 \ Variable: SPBT
@@ -10671,8 +11304,10 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .SPBT                   ; make sure same page !
+{
  EQUD &E080E0E0         ; 'S' displayed in lower console
  EQUD &E0E020E0
+}
 
 \ *****************************************************************************
 \ Subroutine: MSBAR
@@ -10681,6 +11316,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .MSBAR                  ; draw Missile bar. X is number of missiles. Y is strip design.
+{
  TXA                    ; missile i.d.
  ASL A
  ASL A
@@ -10699,6 +11335,7 @@ MAPCHAR '4', '4'
  DEY                    ; next strip
  BNE MBL1               ; loop Y
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: PROJ
@@ -10707,6 +11344,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .PROJ                   ; Project K+INWK(x,y)/z to K3,K4 for center to screen
+{
  LDA INWK               ; xlo
  STA P
  LDA INWK+1             ; xhi
@@ -10737,6 +11375,7 @@ MAPCHAR '4', '4'
  STA K4+1
  CLC                    ; carry clear is center is on screen
  RTS                    ; PL2-1
+}
 
 \ *****************************************************************************
 \ Subroutine: PL2
@@ -10745,11 +11384,13 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .PL2                    ; planet/sun behind
+{
  LDA TYPE               ; ship type
  LSR A                  ; bit0
  BCS P%+5               ; sun has bit0 set
  JMP WPLS2              ; bit0 clear Wipe Planet
  JMP WPLS               ; Wipe Sun
+}
 
 \ *****************************************************************************
 \ Subroutine: PLANET
@@ -10758,6 +11399,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .PLANET                 ; Planet or Sun type to screen
+{
  LDA INWK+8             ; zsg if behind
  BMI PL2                ; wipe planet/sun
  CMP #48                ; very far away?
@@ -10874,6 +11516,7 @@ MAPCHAR '4', '4'
  LDA #0                 ; no phase offset for crater ring
  STA CNT2
  JMP PLS22              ; guaranteed crater with TGT = #64
+}
 
 \ *****************************************************************************
 \ Subroutine: PLS1
@@ -10882,6 +11525,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .PLS1                   ; X = 9 etc. A.Y = INWK(X+=2)/INWK_z
+{
  LDA INWK,X
  STA P
  LDA INWK+1,X
@@ -10899,6 +11543,7 @@ MAPCHAR '4', '4'
  INX                    ; X+=2
  INX
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: PLS2
@@ -10907,8 +11552,10 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .PLS2                   ; Lave half ring, mags K2+0to3, signs XX16+0to3, xy(0)xy(1), phase offset CNT2
+{
  LDA #31                ; half-circle
  STA TGT                ; count target
+}
 
 \ *****************************************************************************
 \ Subroutine: PLS22
@@ -10917,6 +11564,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .PLS22                  ; also crater with TGT = #64
+{
  LDX #0
  STX CNT                ; count
  DEX                    ; X = #&FF
@@ -11024,6 +11672,7 @@ MAPCHAR '4', '4'
 
 .PL40
  RTS                    ; end Crater ring
+}
 
 \ *****************************************************************************
 \ Subroutine: PLF3-3
@@ -11031,7 +11680,9 @@ MAPCHAR '4', '4'
 \ Wipe Sun
 \ *****************************************************************************
 
+{
  JMP WPLS               ; Wipe Sun
+}
 
 \ *****************************************************************************
 \ Subroutine: PLF3
@@ -11040,15 +11691,25 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .PLF3                   ; flip height for planet/sun fill
+{
  TXA                    ; Yscreen height lo
  EOR #&FF               ; flip
  CLC
  ADC #1
  TAX                    ; height flipped
+}
+
+\ *****************************************************************************
+\ Subroutine: PLF17
+\
+\ up A = #&FF as Xlo =0
+\ *****************************************************************************
 
 .PLF17                  ; up A = #&FF as Xlo =0
+{
  LDA #&FF               ; fringe flag will run up
  JMP PLF5               ; guaranteed, Xreg = height ready
+}
 
 \ *****************************************************************************
 \ Subroutine: SUN
@@ -11057,6 +11718,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .SUN                    ; Sun with radius K
+{
  LDA #1
  STA LSX                ; overlaps with LSO vector
  JSR CHKON              ; P+1 set to maxY
@@ -11100,6 +11762,7 @@ MAPCHAR '4', '4'
 .PLF4                   ; height is full radius
  LDX K                  ; counter V height is radius
  LDA #0                 ; fringe flag will run down
+}
 
 \ *****************************************************************************
 \ Subroutine: PLF5
@@ -11108,6 +11771,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .PLF5                   ; Xreg = height ready, Acc is flag for run direction
+{
  STX V                  ; counter height
  STA V+1                ; flag 0 (up) or FF (down)
 
@@ -11241,9 +11905,18 @@ MAPCHAR '4', '4'
  STA SUNX
  LDA K3+1
  STA SUNX+1
+}
+
+\ *****************************************************************************
+\ Subroutine: RTS2
+\
+\ RTS
+\ *****************************************************************************
 
 .RTS2
+{
  RTS                    ; End of Sun fill
+}
 
 \ *****************************************************************************
 \ Subroutine: CIRCLE
@@ -11252,6 +11925,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .CIRCLE                 ; Circle for planet
+{
  JSR CHKON              ; P+1 set to maxY
  BCS RTS2               ; rts
 
@@ -11269,6 +11943,7 @@ MAPCHAR '4', '4'
 
 .PL89                   ; small
  STA STP                ; step for ring
+}
 
 \ *****************************************************************************
 \ Subroutine: CIRCLE2
@@ -11277,6 +11952,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .CIRCLE2                ; also on chart at origin (K3,K4) STP already set
+{
  LDX #&FF
  STX FLAG
  INX                    ; X = 0
@@ -11334,6 +12010,7 @@ MAPCHAR '4', '4'
  JMP PLL3               ; loop CNT back
  CLC
  RTS                    ; End Circle
+}
 
 \ *****************************************************************************
 \ Subroutine: WPLS2
@@ -11342,6 +12019,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .WPLS2                  ; Wipe Planet
+{
  LDY LSX2               ; 78 bytes used by bline Xcoords
  BNE WP1                ; Avoid lines down
 
@@ -11380,6 +12058,7 @@ MAPCHAR '4', '4'
  LDA #&FF
  STA LSX2
  RTS                    ; WPLS-1
+}
 
 \ *****************************************************************************
 \ Subroutine: WPLS
@@ -11388,6 +12067,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .WPLS                   ; Wipe Sun
+{
  LDA LSX                ; LSO
  BMI WPLS-1             ; rts
  LDA SUNX
@@ -11405,6 +12085,7 @@ MAPCHAR '4', '4'
  DEY                    ; Yreg = #&FF, solar empty.
  STY LSX                ; LSO
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: EDGES
@@ -11413,6 +12094,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .EDGES                  ; Clip Horizontal line centered on YY to X1 X2
+{
  STA T
  CLC                    ; trial halfwidth
  ADC YY                 ; add center of line X mid-point
@@ -11446,6 +12128,7 @@ MAPCHAR '4', '4'
  STA LSO,Y
  SEC                    ; dont draw
  RTS                    ; end of Clipped edges
+}
 
 \ *****************************************************************************
 \ Subroutine: CHKON
@@ -11454,6 +12137,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .CHKON                  ; check extent of circles, P+1 set to maxY, Y protected.
+{
  LDA K3                 ; Xorg
  CLC
  ADC K                  ; radius
@@ -11487,10 +12171,19 @@ MAPCHAR '4', '4'
  BNE PL21               ; bottom underflowed, sec rts
  CPX #2*Y-1             ; #2*Y-1, bottom Ylo >= screen Ytop?
  RTS
+}
+
+\ *****************************************************************************
+\ Subroutine: PL21
+\
+\ dont draw
+\ *****************************************************************************
 
 .PL21                   ; dont draw
+{
  SEC
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: PLS3
@@ -11499,6 +12192,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .PLS3                   ; only Crater uses this, A.Y = 222* INWK(X+=2)/INWK_z
+{
  JSR PLS1               ; A.Y = INWK(X+=2)/INWK_z
  STA P
  LDA #222               ; offset to crater, divide/256 * unit to offset crater center
@@ -11518,6 +12212,7 @@ MAPCHAR '4', '4'
 .PL12                   ; +ve
  LDY #0
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: PLS4
@@ -11526,6 +12221,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .PLS4                   ; CNT2 = angle of P_opp/A_adj for Lave
+{
  STA Q
  JSR ARCTAN             ; A=arctan (P/Q)
  LDX INWK+14            ; rotmat0z hi
@@ -11535,6 +12231,7 @@ MAPCHAR '4', '4'
  LSR A                  ; /4
  STA CNT2               ; phase offset
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: PLS5
@@ -11543,6 +12240,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .PLS5                   ; mag K2+2,3 sign XX16+2,3  = NWK(X+=2)/INWK_z for Lave
+{
  JSR PLS1               ; A.Y = INWK(X+=2)/INWK_z
  STA K2+2               ; mag
  STY XX16+2             ; sign
@@ -11550,6 +12248,7 @@ MAPCHAR '4', '4'
  STA K2+3               ; mag
  STY XX16+3             ; sign
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: PLS6
@@ -11558,6 +12257,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .PLS6                   ; visited from PROJ \ Klo.Xhi = P.A/INWK_z, C set if big
+{
  JSR DVID3B2            ; divide 3bytes by 2, K = P(2).A/INWK_z
  LDA K+3
  AND #127               ; sg 7bits
@@ -11577,6 +12277,7 @@ MAPCHAR '4', '4'
  EOR #&FF               ; flip hi
  ADC #0
  TAX                    ; X = K+1 hi flipped
+}
 
 \ *****************************************************************************
 \ Subroutine: PL44
@@ -11585,7 +12286,9 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .PL44                   ; ok to draw
+{
  CLC
+}
 
 \ *****************************************************************************
 \ Subroutine: PL6
@@ -11594,7 +12297,9 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .PL6
+{
  RTS                    ; end of Planet, onto keyboard block E ---
+}
 
 \ *****************************************************************************
 \ Subroutine: TT17
@@ -11603,6 +12308,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .TT17                   ; returns with X,Y from arrow keys or joystick used
+{
  JSR DOKEY              ; KL has force key
  LDA JSTK               ; or joystick used
  BEQ TJ1                ; hop down, Arrows from keyboard, else joystick
@@ -11650,6 +12356,7 @@ MAPCHAR '4', '4'
  BNE P%+3               ; skip dey
  DEY
  RTS                    ; no shift boost in Flight code
+}
 
 \ *****************************************************************************
 \ Subroutine: ping
@@ -11658,6 +12365,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .ping                   ; move to home coordinates
+{
  LDX #1
 
 .pl1                    ; counter X
@@ -11666,6 +12374,7 @@ MAPCHAR '4', '4'
  DEX                    ; next coord
  BPL pl1                ; loop X
  RTS
+}
 
 \ *****************************************************************************
 \ Save output/ELTE.bin
@@ -11695,11 +12404,13 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .KS3                    ; exit as end found, temp P correct.
+{
  LDA P                  ; temp pointer lo
  STA SLSP               ; last ship lines stack pointer
  LDA P+1                ; temp pointer hi
  STA SLSP+1
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: KS1
@@ -11708,10 +12419,12 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .KS1                    ; Kill ships from Block A loop Enters here
+{
  LDX XSAV               ; nearby ship index
  JSR KILLSHP            ; Kill target X, down.
  LDX XSAV               ; reload ship index
  JMP MAL1               ; rejoin loop in Block A
+}
 
 \ *****************************************************************************
 \ Subroutine: KS4
@@ -11720,6 +12433,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .KS4                    ; removing Space Station to make new Sun
+{
  JSR ZINF               ; zero info, ends with A = #&C0.
  JSR FLFLLS             ; ends with A=0
  STA FRIN+1             ; #SST slot emptied
@@ -11729,6 +12443,7 @@ LOAD_F% = LOAD% + P% - CODE%
  STA INWK+5             ; ysg
  LDA #&81               ; new Sun
  JMP NWSHP              ; new ship type Acc
+}
 
 \ *****************************************************************************
 \ Subroutine: KS2
@@ -11737,6 +12452,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .KS2                    ; frin shuffled, update Missiles
+{
  LDX #&FF
 
 .KSL4                   ; counter X
@@ -11771,6 +12487,7 @@ LOAD_F% = LOAD% + P% - CODE%
  LDA #0                 ; missile dumb, no attack target.
  STA (SC),Y
  BEQ KSL4               ; guaranteed loop X
+}
 
 \ *****************************************************************************
 \ Subroutine: KILLSHP
@@ -11779,6 +12496,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .KILLSHP                ; Kill target X Entry
+{
  STX XX4                ; store kill target slot id
 \CPX MSTG
  LDA MSTG               ; NOT IN ELITEF.TXT but is in ELITE SOURCE IMAGE
@@ -11869,6 +12587,7 @@ LOAD_F% = LOAD% + P% - CODE%
  TYA
  BNE KSL3               ; loop Y
  BEQ KSL1               ; guaranteed up, shuffle higher slots remaining
+}
 
 \ *****************************************************************************
 \ Variable: SFX
@@ -11877,6 +12596,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .SFX                    ; block F1 Sound data
+{
  EQUS  &12,&01,&00,&10  ; FNS("12010010") Laser you fired  Flush2 uses Envelope #1  Acc= 0
  EQUS  &12,&02,&2C,&08  ; FNS("12022C08") Laset hit you    Flush2 uses Envelope #2  Acc= 4
  EQUS  &11,&03,&F0,&18  ; FNS("1103F018") Death_initial    Flush1 uses Envelope #3  Acc= 8
@@ -11888,6 +12608,7 @@ LOAD_F% = LOAD% + P% - CODE%
  EQUS  &10,&02,&60,&10  ; FNS("10026010") Hyperspace       Flush0 uses Envelope #2  Acc=28
  EQUS  &13,&04,&C2,&FF  ; FNS("1304C2FF") ECM_ON           Flush3 uses Envelope #4  Acc=32
  EQUS  &13,&00,&00,&00  ; FNS("13000000") ECM_OFF				                    Acc=36
+}
 
 \ *****************************************************************************
 \ Subroutine: RESET
@@ -11896,6 +12617,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .RESET                  ; New player ship, reset controls
+{
  JSR ZERO               ; zero-out &311-&34B
  LDX #6
 
@@ -11904,6 +12626,7 @@ LOAD_F% = LOAD% + P% - CODE%
  DEX
  BPL SAL3               ; loop X
  STX QQ12
+}
 
 \ *****************************************************************************
 \ Subroutine: RES4
@@ -11912,6 +12635,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .RES4
+{
  LDA #&FF
  LDX #2                 ; Restore forward, aft shields, and energy
 
@@ -11919,6 +12643,7 @@ LOAD_F% = LOAD% + P% - CODE%
  STA FSH,X              ; forward shield
  DEX
  BPL REL5               ; loop X
+}
 
 \ *****************************************************************************
 \ Subroutine: RES2
@@ -11927,6 +12652,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .RES2                   ; Reset2, done after launch or hyper, new dust.
+{
  LDA #NOST
  STA NOSTM              ; number of stars, dust.
  LDX #&FF               ; bline buffers cleared, 78 bytes.
@@ -11961,6 +12687,7 @@ LOAD_F% = LOAD% + P% - CODE%
  LDA #HI(WP-1)
  STA SLSP+1             ; hi
  JSR DIALS              ; update flight console
+}
 
 \ *****************************************************************************
 \ Subroutine: ZINF
@@ -11969,6 +12696,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .ZINF                   ; Zero information, ends with Acc = #&E0
+{
  LDY #NI%-1             ; NI%=36 is size of inner working space
  LDA #0
 
@@ -11982,6 +12710,7 @@ LOAD_F% = LOAD% + P% - CODE%
  ORA #128               ; -ve unity = #&E0
  STA INWK+14            ; rotmat0z hi = -1
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: msblob
@@ -11990,6 +12719,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .msblob                 ; update Missile blocks on console
+{
  LDX #4                 ; number of missile blocks
 
 .ss                     ; counter X
@@ -12007,6 +12737,7 @@ LOAD_F% = LOAD% + P% - CODE%
  DEX                    ; next missile
  BNE SAL8               ; loop X
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: me2
@@ -12015,11 +12746,13 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .me2                    ; erase message from TT100
+{
  LDA MCH                ; message id
  JSR MESS               ; message
  LDA #0
  STA DLY                ; delay printing = 0
  JMP me3                ; back to TT100
+}
 
 \ *****************************************************************************
 \ Subroutine: Ze
@@ -12028,6 +12761,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .Ze                     ; Zero ship and set coordinates, ends with dornd.
+{
  JSR ZINF               ; zero information
  JSR DORND              ; do random, new A, X.
  STA T1
@@ -12045,6 +12779,7 @@ LOAD_F% = LOAD% + P% - CODE%
  ROL A                  ; and goes into bit0, has ecm.
  ORA #&C0               ; set AI active and turn to attack 50% probability
  STA INWK+32            ; ai_attack_univ_ecm
+}
 
 \ *****************************************************************************
 \ Subroutine: DORND2
@@ -12053,7 +12788,9 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .DORND2                 ; Restricted for explosion dust.
+{
  CLC                    ; leave bit0 of RAND+2 at 0.
+}
 
 \ *****************************************************************************
 \ Subroutine: DORND
@@ -12062,6 +12799,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .DORND                  ; do random, new A, X.
+{
  LDA RAND               ; seed 0
  ROL A
  TAX                    ; double lo
@@ -12074,6 +12812,7 @@ LOAD_F% = LOAD% + P% - CODE%
  STA RAND+1             ; A rnd
  STX RAND+3             ; Xrnd = old A rnd
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: MTT4
@@ -12082,6 +12821,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .MTT4                   ; Spawn freighters
+{
  LSR A                  ; clear bit7, dumb ship, 50% prob has ecm.
  STA INWK+32            ; ai_attack_univ_ecm
  STA INWK+29            ; rotx counter, roll right usually damped
@@ -12091,6 +12831,7 @@ LOAD_F% = LOAD% + P% - CODE%
  STA INWK+27            ; speed
  LDA #CYL               ; Cobra Mk III
  JSR NWSHP              ; new ship type Acc 
+}
 
 \ *****************************************************************************
 \ Subroutine: TT100
@@ -12099,11 +12840,13 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT100                  ; Start MAIN LOOP Spawnings
+{
  JSR M%                 ; M% in Block A has some flight controls
  DEC DLY                ; reduce delay
  BEQ me2                ; if 0 erase messages, up
  BPL me3                ; Spawnings
  INC DLY                ; else undershot, set to 0.
+}
 
 \ *****************************************************************************
 \ Subroutine: me3
@@ -12112,6 +12855,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .me3                    ; Spawnings
+{
  DEC MCNT               ; move count
  BEQ P%+5               ; rarely do spawning, test misjump
 
@@ -12226,8 +12970,16 @@ LOAD_F% = LOAD% + P% - CODE%
 
  DEC XX13               ; next ship needed
  BPL mt3                ; loop XX13
+}
+
+\ *****************************************************************************
+\ Subroutine: MLOOP
+\
+\ MAIN loop ending
+\ *****************************************************************************
 
 .MLOOP                  ; MAIN loop ending
+{
  LDA #1
  STA VIA+&E
  LDX #&FF               ; Clear Stack
@@ -12246,6 +12998,7 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR DELAY-5            ; small length of delay counter
 
  JSR TT17               ; returns with X,Y from arrow keys or joystick used
+}
 
 \ *****************************************************************************
 \ Subroutine: FRCE
@@ -12254,10 +13007,12 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .FRCE                   ; forced Key entry into main loop
+{
  JSR TT102              ; Switchyard for Red keys
  LDA QQ12
  BNE MLOOP
  JMP TT100              ; loop up to Start MAIN LOOP Spawnings
+}
 
 \ *****************************************************************************
 \ Subroutine: tha
@@ -12266,11 +13021,13 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .tha
+{
  JSR DORND
  CMP #200
  BCC P%+5
  JSR GTHG
  JMP MLOOP
+}
 
 \ *****************************************************************************
 \ Subroutine: TT102
@@ -12279,6 +13036,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT102                  ; Switchyard for Red keys
+{
  CMP #f8                ; red key #f8
  BNE P%+5
  JMP STATUS             ; commander
@@ -12386,6 +13144,7 @@ LOAD_F% = LOAD% + P% - CODE%
  STA XC
  INC YC                 ; next row
  JMP TT146              ; Non-zero distance in Light years
+}
 
 \ *****************************************************************************
 \ Subroutine: BAD
@@ -12394,12 +13153,14 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .BAD                    ; Legal status from Cargo scan
+{
  LDA QQ20+3             ; cargo slaves
  CLC
  ADC QQ20+6             ; narcotics
  ASL A                  ; slaves and narcotics penalty doubled
  ADC QQ20+10            ; add firearms
  RTS                    ; FIST = 64 is cop-killer. Same as 32 tons of Slave or Narcotics.
+}
 
 \ *****************************************************************************
 \ Subroutine: FAROF
@@ -12408,7 +13169,9 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .FAROF                  ; for docking computer, Carry is clear if hi >= #&E0
+{
  LDA #&E0               ; distance hi far enough away
+}
 
 \ *****************************************************************************
 \ Subroutine: FAROF2
@@ -12417,6 +13180,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .FAROF2                 ; carry set if Acc >= hi
+{
  CMP INWK+1             ; xhi
  BCC MA34               ; rts
  CMP INWK+4             ; yhi
@@ -12425,6 +13189,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
 .MA34                   ; rts
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: MAS4
@@ -12433,10 +13198,12 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .MAS4                   ; All hi coord or'd
+{
  ORA INWK+1             ; xhi
  ORA INWK+4             ; yhi
  ORA INWK+7             ; zhi
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: DEATH
@@ -12445,6 +13212,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .DEATH                  ; Player killed in Flight
+{
  JSR EXNO3              ; ominous noises
  JSR RES2               ; reset2
  ASL DELTA              ; speed
@@ -12503,6 +13271,7 @@ LOAD_F% = LOAD% + P% - CODE%
  BNE D2                 ; loop
  LDX #31                ; restore all 31
  JSR DET1               ; text rows
+}
 
 \ *****************************************************************************
 \ Subroutine: DEATH2
@@ -12511,7 +13280,9 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .DEATH2                 ; reset2, onto Docked code.
+{
  JSR RES2               ; reset2
+}
 
 \ *****************************************************************************
 \ Subroutine: TT170
@@ -12520,8 +13291,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT170                  ; reset stack and Reload Title. After Death in flight arrives Here.
+{
  LDX #&FF               ; Reset stack
  TXS
+}
 
 \ *****************************************************************************
 \ Subroutine: BR1
@@ -12530,6 +13303,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .BR1                    ; break1 Soft, stack not reset, Reload Title. Frozen escape key arrives.
+{
  LDX #3                 ; small indent and complete reset
  STX XC
  JSR FX200              ; MOS *FX200,Xreg
@@ -12589,6 +13363,7 @@ ENDIF
  JSR TITLE              ; Xreg is type of ship, Acc is last token it will show
  JSR ping               ; move to present coordinates
  JSR hyp1               ; arrive in system
+}
 
 \ *****************************************************************************
 \ Subroutine: BAY
@@ -12597,10 +13372,12 @@ ENDIF
 \ *****************************************************************************
 
 .BAY                    ; In Docking Bay also after errors
+{
  LDA #&FF
  STA QQ12               ; Docked flag
  LDA #f8                ; red key #f8 = Status
  JMP FRCE               ; Forced to enter main loop
+}
 
 \ *****************************************************************************
 \ Subroutine: TITLE
@@ -12609,6 +13386,7 @@ ENDIF
 \ *****************************************************************************
 
 .TITLE                  ; Xreg is type of ship, Acc is last token shown
+{
  PHA                    ; push token
  STX TYPE               ; of ship to display
  JSR RESET              ; Total reset, New ship.
@@ -12677,6 +13455,7 @@ ENDIF
 .TL2                    ; joystick fire button pressed
  DEC JSTK               ; joystick active
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: CHECK
@@ -12685,6 +13464,7 @@ ENDIF
 \ *****************************************************************************
 
 .CHECK                  ; Acc gets check byte
+{
  LDX #NT%-2
  CLC                    ; Elite-A uses sec
  TXA                    ; used as start
@@ -12695,6 +13475,7 @@ ENDIF
  DEX                    ; next commander file byte
  BNE QUL2               ; loop X
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: TRNME
@@ -12703,6 +13484,7 @@ ENDIF
 \ *****************************************************************************
 
 .TRNME                  ; Transfer commander name to page &11 and &3
+{
  LDX #7                 ; 8 chars max
 
 .GTL1                   ; counter X
@@ -12710,6 +13492,7 @@ ENDIF
  STA NA%,X
  DEX                    ; next char
  BPL GTL1               ; loop X
+}
 
 \ *****************************************************************************
 \ Subroutine: TR1
@@ -12718,6 +13501,7 @@ ENDIF
 \ *****************************************************************************
 
 .TR1                    ; reset name from NA% to INWK+5 but not flight's page &3
+{
  LDX #7                 ; 8 chars max
 
 .GTL2                   ; counter X
@@ -12726,6 +13510,7 @@ ENDIF
  DEX
  BPL GTL2               ; loop X
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: GTNME
@@ -12734,6 +13519,7 @@ ENDIF
 \ *****************************************************************************
 
 .GTNME                  ; Get Commander Name
+{
  LDA #1
  JSR TT66
  LDA #123
@@ -12754,6 +13540,7 @@ ENDIF
  TYA                    ; accepted string length
  BEQ TR1                ; if 0 reset name from NA% to INWK+5
  JMP TT67               ; Jump to TT67, which prints a newline
+}
 
 \ *****************************************************************************
 \ Variable: RLINE
@@ -12762,10 +13549,12 @@ ENDIF
 \ *****************************************************************************
 
 .RLINE                  ; OSWORD block for gtnme
+{
  EQUW INWK
  EQUB 7                 ; +3 min ascii
  EQUB 33                ; +4 max ascii
  EQUB &7A
+}
 
 \ *****************************************************************************
 \ Subroutine: ZERO
@@ -12774,6 +13563,7 @@ ENDIF
 \ *****************************************************************************
 
 .ZERO
+{
  LDX #&D                ; Point X to page &D
 
 .ZEL
@@ -12786,6 +13576,7 @@ ENDIF
 
                         ; Then fall through to ZES1 with X set to 9, so we
                         ; clear page &9 too
+}
 
 \ *****************************************************************************
 \ Subroutine: ZES1
@@ -12798,10 +13589,12 @@ ENDIF
 \ *****************************************************************************
 
 .ZES1
+{
  LDY #0                 ; If we set Y = SC = 0 and fall through into ZES2
  STY SC                 ; below, then we will zero-fill 255 bytes starting from
                         ; SC - in other words, we will zero-fill the whole of
                         ; page X
+}
 
 \ *****************************************************************************
 \ Subroutine: ZES2
@@ -12822,6 +13615,7 @@ ENDIF
 \ *****************************************************************************
 
 .ZES2
+{
  LDA #0                 ; Load X with the byte we want to fill the memory block
                         ; with - i.e. zero
 
@@ -12838,6 +13632,7 @@ ENDIF
  BNE ZEL1               ; Loop back to zero the next byte
  
  RTS                    ; Return from the subroutine
+}
 
 \ *****************************************************************************
 \ Subroutine: SVE
@@ -12846,6 +13641,7 @@ ENDIF
 \ *****************************************************************************
 
 .SVE                    ; Disc service entry as key @ hit
+{
 {
  JSR GTNME              ; zero pages &9,&A,&B,&C,&D
  JSR TRNME              ; Transfer commander name to Page &11
@@ -12896,6 +13692,7 @@ ENDIF
  STX SVN
  JMP BAY
 }
+}
 
 \ *****************************************************************************
 \ Subroutine: QUS1
@@ -12904,10 +13701,12 @@ ENDIF
 \ *****************************************************************************
 
 .QUS1                   ; File Ops,  Acc=OSFILE in, valid drive is carry clear.
+{
  LDX #INWK
  STX &C00               ; pointer to filename string
  LDX #0                 ; lo
  JMP OSFILE             ; block &0C00
+}
 
 \ *****************************************************************************
 \ Subroutine: LOD
@@ -12916,6 +13715,7 @@ ENDIF
 \ *****************************************************************************
 
 .LOD                    ; Load commander file then Page &B to Page &11, else carry set if invalid drive
+{
  LDX #2
  JSR FX200
  JSR ZERO               ; Zero Pages &9,&A,&B,&C,&D
@@ -12935,6 +13735,7 @@ ENDIF
  DEX
  BPL LOL1               ; loop X
  LDX #3
+}
 
 \ *****************************************************************************
 \ Subroutine: FX200
@@ -12943,11 +13744,13 @@ ENDIF
 \ *****************************************************************************
 
 .FX200                  ; MOS *FX200,Xreg (or something else like 2),0
+{
  LDY #0                 ; Break/Escape action is xor Xreg.
  LDA #200               ; 3=>0 = Normal. 2=>1 MOS ESCAPE disabled
  JMP OSBYTE
 
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: SPS1
@@ -12956,12 +13759,14 @@ ENDIF
 \ *****************************************************************************
 
 .SPS1                   ; XX15 vector to planet
+{
  LDX #0                 ; xcoord planet
  JSR SPS3               ; planet for space compass into K3(0to8)
  LDX #3                 ; ycoord
  JSR SPS3
  LDX #6                 ; zcoord
  JSR SPS3
+}
 
 \ *****************************************************************************
 \ Subroutine: TAS2
@@ -12970,6 +13775,7 @@ ENDIF
 \ *****************************************************************************
 
 .TAS2                   ; XX15=r~96 \ their comment \ build XX15 from K3
+{
  LDA K3
  ORA K3+3
  ORA K3+6
@@ -13004,6 +13810,7 @@ ENDIF
  LSR A
  ORA K3+8               ; zsg
  STA XX15+2             ; zunit, bit7 is zsign
+}
 
 \ *****************************************************************************
 \ Subroutine: NORM
@@ -13012,6 +13819,7 @@ ENDIF
 \ *****************************************************************************
 
 .NORM                   ; Normalize 3-vector length of XX15
+{
  LDA XX15
  JSR SQUA               ; P.A =A7*A7  x^2
  STA R                  ; hi sum
@@ -13049,9 +13857,12 @@ ENDIF
  LDA XX15+2
  JSR TIS2
  STA XX15+2             ; zunit
+}
 
 .NO1
+{
  RTS                    ; end of norm
+}
 
 \ *****************************************************************************
 \ Subroutine: RDKEY
@@ -13060,6 +13871,7 @@ ENDIF
 \ *****************************************************************************
 
 .RDKEY                  ; read Key from #16 upwards
+{
 \OSBYTE 7A
  LDX #16                ; Keyboard Scan will start from #16, Q,3,4 etc
 .Rd1
@@ -13073,6 +13885,7 @@ ENDIF
  EOR #128               ; #&7F is nothing found
  TAX                    ; Xreg is key for storing in KL
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: ECMOF
@@ -13081,12 +13894,14 @@ ENDIF
 \ *****************************************************************************
 
 .ECMOF                  ; Sound of ECM system off
+{
  LDA #0                 ; not active
  STA ECMA
  STA ECMP               ; player's not on
  JSR ECBLB              ; ecm bulb switch
  LDA #72                ; becomes noise Yindex = 39
  BNE NOISE              ; guaranteed hop
+}
 
 \ *****************************************************************************
 \ Subroutine: EXNO3
@@ -13095,10 +13910,12 @@ ENDIF
 \ *****************************************************************************
 
 .EXNO3                  ; called when DEATH occurs. Ominous noises, two noises, A=16,24
+{
  LDA #16                ; becomes Yindex = 11
  JSR NOISE
  LDA #24                ; becomes Yindex = 15 rumble
  BNE NOISE              ; guaranteed hop
+}
 
 \ *****************************************************************************
 \ Subroutine: SFRMIS
@@ -13107,6 +13924,7 @@ ENDIF
 \ *****************************************************************************
 
 .SFRMIS                 ; Sound fire missile
+{
  LDX #MSL               ; #MSL missile
  JSR SFS1-2             ; spawn missile with ai=#&FE max but no ecm
  BCC NO1                ; rts as failed to launch
@@ -13114,6 +13932,7 @@ ENDIF
  JSR MESS               ; message
  LDA #48                ; becomes Y = 27
  BNE NOISE              ; guaranteed hop
+}
 
 \ *****************************************************************************
 \ Subroutine: EXNO2
@@ -13122,12 +13941,14 @@ ENDIF
 \ *****************************************************************************
 
 .EXNO2                  ; faint death noise, player killed ship.
+{
  INC TALLY              ; kills lo
  BNE EXNO-2             ; no carry hop to ldx #7
  INC TALLY+1            ; kills hi
  LDA #101               ; token = right on commander !
  JSR MESS               ; message
  LDX #7                 ; mask for sound distance
+}
 
 \ *****************************************************************************
 \ Subroutine: EXNO
@@ -13136,6 +13957,7 @@ ENDIF
 \ *****************************************************************************
 
 .EXNO                   ; Explosion noise distance X
+{
  STX T                  ; distance
  LDA #24                ; Rumble later becomes Yindex = 15
  JSR NOS1               ; build sound y index
@@ -13149,6 +13971,7 @@ ENDIF
  LDA #16                ; becomes Yindex = 11
 
  EQUB &2C
+}
 
 \ *****************************************************************************
 \ Subroutine: BEEP
@@ -13157,7 +13980,9 @@ ENDIF
 \ *****************************************************************************
 
 .BEEP                   ; Missile lock target
+{
  LDA #32                ; becomes Y= 19
+}
 
 \ *****************************************************************************
 \ Subroutine: NOISE
@@ -13166,7 +13991,9 @@ ENDIF
 \ *****************************************************************************
 
 .NOISE                  ; Sound based on Acc
+{
  JSR NOS1               ; build sound y index
+}
 
 \ *****************************************************************************
 \ Subroutine: NO3
@@ -13175,12 +14002,14 @@ ENDIF
 \ *****************************************************************************
 
 .NO3                    ; Sound block ready
+{
  LDX DNOIZ              ; sound toggle
  BNE NO1                ; rts
  LDX #LO(XX16)
  LDY #HI(XX16)
  LDA #7                 ; SOUND
  JMP OSWORD
+}
 
 \ *****************************************************************************
 \ Subroutine: NOS1
@@ -13189,6 +14018,7 @@ ENDIF
 \ *****************************************************************************
 
 .NOS1                   ; build sound y index
+{
  LSR A                  ; /=2 and carry cleared
  ADC #3                 ; +=3 top of block
  TAY                    ; Yindex = last byte needed from group of
@@ -13203,9 +14033,12 @@ ENDIF
  DEY                    ; next lo
  DEX                    ; next byte
  BPL NOL1               ; loop Y,X
+}
 
 .KYTB                   ; Starting point for keyboard table
+{
  RTS
+}
 
  \ *****************************************************************************
 \ Variable: KYTB
@@ -13213,6 +14046,7 @@ ENDIF
 \ keyboard table
 \ *****************************************************************************
 
+{
  EQUB &E8               ; ? <>XSA.FBRLtabescTUMEJC
  EQUB &E2
  EQUB &E6
@@ -13224,6 +14058,7 @@ ENDIF
  EQUW &2265
  EQUB &45
  EQUB &52
+}
 
 \ *****************************************************************************
 \ Subroutine: DKS1
@@ -13232,12 +14067,14 @@ ENDIF
 \ *****************************************************************************
 
 .DKS1                   ; Detect flight keystroke Y for use in MPERC M%
+{
  LDX KYTB,Y
  JSR DKS4               ; scan from key X, returned in X and A.
  BPL DKS2-1             ; rts
  LDX #&FF               ; keyboard logger	
  STX KL,Y
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: CTRL
@@ -13246,7 +14083,9 @@ ENDIF
 \ *****************************************************************************
 
 .CTRL                   ; Scan all keys from Ctrl upwards
+{
  LDX #1
+}
 
 \ *****************************************************************************
 \ Subroutine: DKS4
@@ -13255,6 +14094,7 @@ ENDIF
 \ *****************************************************************************
 
 .DKS4                   ; Keyboard scan from X upwards, returned in X and A.
+{
  LDA #3
  SEI                    ; set interrupt
  STA &FE40              ; keyboard write enable
@@ -13267,6 +14107,7 @@ ENDIF
  CLI                    ; clear interrupt
  TXA                    ; Acc = -ve if key hit
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: DKS2
@@ -13275,11 +14116,13 @@ ENDIF
 \ *****************************************************************************
 
 .DKS2                   ; Joystick *FX 128 channel X
+{
  LDA #&80               ; return 16bit ADC value X-low Y-high (all filled ADC 10 bit)
  JSR OSBYTE             ; OSBYTE #&80
  TYA                    ; if 1-4 ADVAL channels will return 16bit ADC value X-low Y-high (all filled ADC 10 bit)
  EOR JSTE               ; move Y to A then EOR A with JSTE if flip toggle needed
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: DKS3
@@ -13288,6 +14131,7 @@ ENDIF
 \ *****************************************************************************
 
 .DKS3                   ; toggle Damping key Y whilst game frozen
+{
  STY T                  ; store Y to compare to key hit X
  CPX T                  ; test against CAPS-LOCK, A, X, F, Y, J, K.
  BNE Dk3
@@ -13300,6 +14144,7 @@ ENDIF
 
 .Dk3
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: DKJ1
@@ -13317,6 +14162,7 @@ ENDIF
 \ *****************************************************************************
 
 .DKJ1                   ; JSTK not zero. Joystick option - but speed still done by ? and SPACE
+{
  LDY #1                 ; Key '?' = slow down
  JSR DKS1               ; Detect keystroke Y
  INY                    ; #2 Key SPACE = speed up
@@ -13336,6 +14182,7 @@ ENDIF
  EOR JSTGY              ; Y reverse joystick Y channel
  STA JSTY               ; joystick Y
  JMP DK4                ; done pitch & roll, keys need to be scanned.
+}
 
 \ *****************************************************************************
 \ Subroutine: U%
@@ -13344,6 +14191,7 @@ ENDIF
 \ *****************************************************************************
 
 .U%                     ; Clear keyboard logger
+{
  LDA #0
  LDY #15                ; set all 15 (not 16 of disc) keys to zero
 
@@ -13352,6 +14200,7 @@ ENDIF
  DEY                    ; next key
  BNE DKL3               ; loop Y
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: DOKEY
@@ -13360,6 +14209,7 @@ ENDIF
 \ *****************************************************************************
 
 .DOKEY                  ; return with X,Y from arrow keys or joystick used. KL has force key.
+{
  JSR U%                 ; Clear keyboard logger
  LDA JSTK               ; K toggle keyboard/joystick
  BNE DKJ1               ; not zero is Joystick option, up. Speed still done by ? and SPACE
@@ -13389,6 +14239,7 @@ ENDIF
  BEQ P%+5               ; skip bump2
  JSR BUMP2              ; increase X by Acc
  STX JSTY               ; Pitch updated
+}
 
 \ *****************************************************************************
 \ Subroutine: DK4
@@ -13397,6 +14248,7 @@ ENDIF
 \ *****************************************************************************
 
 .DK4                    ; also Other keys need to be scanned
+{
  JSR RDKEY              ; read key from #16 upwards
  STX KL                 ; store X in keyboard logger
  CPX #&69               ; key 'COPY', the freeze game key.
@@ -13450,6 +14302,7 @@ ENDIF
 
 .DK5                    ; rts
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: TT217
@@ -13458,6 +14311,7 @@ ENDIF
 \ *****************************************************************************
 
 .TT217                  ; get ascii from keyboard, store in X and A
+{
  STY YSAV               ; store
 
 .t                      ; wait for key hit
@@ -13472,9 +14326,12 @@ ENDIF
  LDA (TRTB%),Y          ; Acc = ascii keyboard (TRTB%),Y
  LDY YSAV               ; restore
  TAX                    ; Xreg = Acc = ascii key hit
+}
 
 .out                    ; rts
+{
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: me1
@@ -13483,19 +14340,25 @@ ENDIF
 \ *****************************************************************************
 
 .me1                    ; onto new message
+{
  STX DLY                ; delay set to 0
  PHA                    ; store new token
  LDA MCH                ; old message to erase
  JSR mes9               ; message output now
  PLA                    ; restore new token
  EQUB &2C
+}
 
 .ou2                    ; equipment lost is ecm
+{
  LDA #108               ; token =  ecm
  EQUB &2C               ; bit2 skip lda
+}
 
 .ou3                    ; equipment lost is fuel scoops
+{
  LDA #111               ; token = fuel_scoops
+}
 
 \ *****************************************************************************
 \ Subroutine: MESS
@@ -13504,6 +14367,7 @@ ENDIF
 \ *****************************************************************************
 
 .MESS                   ; Message start
+{
  LDX #0                 ; all capital letters
  STX QQ17
  LDY #9                 ; indent
@@ -13514,13 +14378,16 @@ ENDIF
  BNE me1
  STY DLY                ; new delay set to 22
  STA MCH                ; copy of token to erase
+}
 
 .mes9                   ; also message to erase
+{
  JSR TT27               ; process text token
  LSR de                 ; message flag for item + destroyed
  BCC out                ; rts, else append
  LDA #253               ; token = ' DESTROYED'
  JMP TT27
+}
 
 \ *****************************************************************************
 \ Subroutine: OUCH
@@ -13529,6 +14396,7 @@ ENDIF
 \ *****************************************************************************
 
 .OUCH                   ; Shield depleted and taking hits to energy, lose cargo/equipment.
+{
  JSR DORND              ; do random, new A, X.
  BMI out                ; rts, 50% prob
  CPX #22                ; max equipment
@@ -13553,6 +14421,7 @@ ENDIF
  TXA                    ; else carry set probably
  ADC #113-20            ; #113-20, token = Bomb, energy unit, docking computer
  BNE MESS               ; guaranteed up, Message start.
+}
 
 \ *****************************************************************************
 \ Variable: QQ16
@@ -13561,7 +14430,9 @@ ENDIF
 \ *****************************************************************************
 
 .QQ16                   ; onto regular planet name flight diagrams
+{
  EQUS "ALLEXEGEZACEBISOUSESARMAINDIREA?ERATENBERALAVETIEDORQUANTEISRION"
+}
 
 \ *****************************************************************************
 \ Variable: QQ23
@@ -13570,6 +14441,7 @@ ENDIF
 \ *****************************************************************************
 
 .QQ23                   ; Prxs -> &4619 \ Market prices info
+{
                         ; base_price, gradient sign+5bits, base_quantity, mask, units 2bits
  EQUD &01068213         ; Food
  EQUD &030A8114         ; Textiles
@@ -13588,6 +14460,7 @@ ENDIF
  EQUD &1F37A2AB         ; Platinum
  EQUD &0FFAC12D         ; Gem-Stones
  EQUD &07C00F35         ; Alien Items
+}
 
 \ *****************************************************************************
 \ Subroutine: TI2
@@ -13596,11 +14469,13 @@ ENDIF
 \ *****************************************************************************
 
 .TI2                    ; Tidy2 \ yunit small, used to renormalize rotation matrix Xreg = index1 = 0
+{
  TYA                    ; Acc  index3 = 4
  LDY #2                 ; Yreg index2 = 2
  JSR TIS3               ; below, denom is z
  STA INWK+20            ; Uz=-(FxUx+FyUy)/Fz \ their comment \ rotmat1z hi
  JMP TI3                ; Tidy3
+}
 
 \ *****************************************************************************
 \ Subroutine: TI1
@@ -13609,6 +14484,7 @@ ENDIF
 \ *****************************************************************************
 
 .TI1                    ; Tidy1 \ xunit small, with Y = 4
+{
  TAX                    ; Xreg = index1 = 0
  LDA XX15+1
  AND #&60               ; is yunit vector small
@@ -13617,6 +14493,7 @@ ENDIF
  JSR TIS3               ; below, denom is y
  STA INWK+18            ; rotmat1 hi
  JMP TI3                ; Tidy3
+}
 
 \ *****************************************************************************
 \ Subroutine: TIDY
@@ -13627,6 +14504,7 @@ ENDIF
 \ *****************************************************************************
 
 .TIDY                   ; Orthogonalize rotation matrix that uses 0x60 as unity
+{
  LDA INWK+10            ; rotmat0x hi
  STA XX15               ; XX15(0,1,2) = Fx,Fy,Fz
  LDA INWK+12            ; rotmat0y hi
@@ -13649,8 +14527,10 @@ ENDIF
  LDA #0                 ; index3 = 0
  JSR TIS3               ; below with Yreg = index2 = 4, denom = x
  STA INWK+16            ; rotmat1x hi
+}
 
 .TI3                    ; Tidy3  \ All 3 choices continue with rotmat1? updated
+{
  LDA INWK+16            ; rotmat1x hi
  STA XX15
  LDA INWK+18            ; rotmat1y hi
@@ -13696,8 +14576,10 @@ ENDIF
  DEX                    ; skip hi's
  BPL TIL1               ; loop X
  RTS
+}
 
 .TIS2                   ; Reduce Acc in NORM routine i.e. *96/Q
+{
  TAY                    ; copy of Acc
  AND #127               ; ignore sign
  CMP Q
@@ -13730,6 +14612,7 @@ ENDIF
  AND #128               ; sign
  ORA #96                ; +/- unity
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: TIS3
@@ -13740,6 +14623,7 @@ ENDIF
 \ *****************************************************************************
 
 .TIS3                   ; visited by TI1,TI2
+{
  STA P+2                ; store index3
  LDA INWK+10,X          ; rotmat0x,X hi
  STA Q
@@ -13755,6 +14639,7 @@ ENDIF
  LDX INWK+10,Y          ; rotmat0x,A hi
  STX Q                  ; is denominator
  EOR #128               ; num -hi
+}
 
 \ *****************************************************************************
 \ Subroutine: DVIDT
@@ -13763,6 +14648,7 @@ ENDIF
 \ *****************************************************************************
 
 .DVIDT                  ; A=AP/Q \ their comment.  A = (P,A)/Q
+{
  STA P+1                ; num hi
  EOR Q
  AND #128               ; sign bit
@@ -13787,6 +14673,7 @@ ENDIF
  ORA T                  ; sign bit
  RTS                    ; -- end of TIDY 
 
+}
 
 \ *****************************************************************************
 \ Save output/ELTF.bin
@@ -13816,6 +14703,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .SHPPT                  ; ship plot as point from LL10
+{
  JSR EE51               ; if bit3 set draw to erase lines in XX19 heap
  JSR PROJ               ; Project K+INWK(x,y)/z to K3,K4 for craft center
  ORA K3+1
@@ -13836,6 +14724,7 @@ LOAD_G% = LOAD% + P% - CODE%
  JMP LL81+2             ; skip first two edges on XX19 heap
  PLA                    ; nono-2 \ Changing return address
  PLA                    ; ending routine early
+}
 
 \ *****************************************************************************
 \ Subroutine: nono
@@ -13844,10 +14733,12 @@ LOAD_G% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .nono                   ; clear bit3 nothing to erase in next round, no draw.
+{
  LDA #&F7               ; clear bit3
  AND XX1+31             ; display/exploding state|missiles
  STA XX1+31
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: Shpt
@@ -13856,6 +14747,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .Shpt                   ; ship is point at screen center
+{
  STA (XX19),Y
  INY
  INY                    ; next Y coord
@@ -13869,6 +14761,7 @@ LOAD_G% = LOAD% + P% - CODE%
  DEY                    ; first entry in group of 4 added to ship line heap
  STA (XX19),Y
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: LL5
@@ -13877,6 +14770,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .LL5                    ; 2BSQRT Q=SQR(RQ) \ two-byte square root, R is hi, Q is lo.
+{
  LDY R                  ; hi
  LDA Q
  STA S                  ; lo
@@ -13919,6 +14813,7 @@ LOAD_G% = LOAD% + P% - CODE%
  DEC T
  BNE LL6                ; loop T
  RTS                    ; Q left with root
+}
 
 \ *****************************************************************************
 \ Subroutine: LL28
@@ -13927,12 +14822,15 @@ LOAD_G% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .LL28                   ; BFRDIV R=A*256/Q \ byte from remainder of division
+{
  CMP Q                  ; is A >=  Q ?
  BCS LL2                ; if yes, answer too big for 1 byte, R=#&FF
  LDX #254               ; remainder R for AofQ *256/Q
  STX R                  ; div roll counter
+}
 
 .LL31                   ; roll R
+{
  ASL A
  BCS LL29               ; hop to Reduce
  CMP Q
@@ -13948,11 +14846,14 @@ LOAD_G% = LOAD% + P% - CODE%
  ROL R
  BCS LL31               ; loop R
  RTS                    ; R left with remainder of division
+}
 
 .LL2                    ; answer too big for 1 byte, R=#&FF
+{
  LDA #&FF
  STA R
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: LL38
@@ -13961,6 +14862,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .LL38                   ; BADD(S)A=R+Q(SA) \ byte add (subtract)   (Sign S)A = R + Q*(Sign from A^S)
+{
  EOR S                  ; sign of operator is A xor S
  BMI LL39               ; 1 byte subtraction
  LDA Q                  ; else addition, S already correct
@@ -13983,6 +14885,7 @@ LOAD_G% = LOAD% + P% - CODE%
  EOR #255
  ADC #1                 ; negate
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: LL51
@@ -13994,6 +14897,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .LL51                   ; XX12=XX15.XX16  each vector is 16-bit x,y,z
+{
  LDX #0
  LDY #0
 
@@ -14039,6 +14943,7 @@ LOAD_G% = LOAD% + P% - CODE%
  CMP #17                ; X finished?
  BCC ll51               ; loop for second half of matrix
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: LL25
@@ -14047,7 +14952,9 @@ LOAD_G% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .LL25                   ; planet
+{
  JMP PLANET
+}
 
 \ *****************************************************************************
 \ Subroutine: LL9
@@ -14056,6 +14963,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .LL9                    ; object ENTRY for displaying, including debris.
+{
  LDA TYPE               ; ship type
  BMI LL25               ; planet as bit7 set
  LDA #31                ; max visibility
@@ -14097,8 +15005,10 @@ LOAD_G% = LOAD% + P% - CODE%
 
 .EE49                   ; In view?
  BPL LL10               ; hop over as object in front
+}
 
 .LL14                   ; Test to remove object
+{
  LDA XX1+31             ; display explosion state|missiles
  AND #32                ; bit5 ongoing explosion?
  BEQ EE51               ; if no then if bit3 set erase old lines in XX19 heap
@@ -14106,8 +15016,10 @@ LOAD_G% = LOAD% + P% - CODE%
  AND #&F7               ; clear bit3
  STA XX1+31
  JMP DOEXP              ; Explosion
+}
 
 .EE51                   ; if bit3 set draw lines in XX19 heap
+{
  LDA #8                 ; mask for bit 3
  BIT XX1+31             ; exploding/display state|missiles
  BEQ LL10-1             ; if bit3 clear, just rts
@@ -14117,8 +15029,10 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \LL24
  RTS                    ; needed by beq \ LL10-1 
+}
 
 .LL10                   ; object in front of you
+{
  LDA XX1+7              ; zhi
  CMP #&C0               ; far in front
  BCS LL14               ; test to remove object
@@ -14491,8 +15405,10 @@ LOAD_G% = LOAD% + P% - CODE%
  STA V+1
  LDY #0                 ; index for XX3 heap
  STY CNT
+}
 
 .LL48                   ; Start loop on Nodes for visibility, each node has 4 faces associated with it.
+{
  STY XX17               ; vertex*6 counter
  LDA (V),Y
  STA XX15               ; xlo
@@ -14629,6 +15545,7 @@ LOAD_G% = LOAD% + P% - CODE%
  ADC #0                 ; hi
  STA U                  ; z new hi
  JMP LL57               ; Node additions done, z = U.T case
+}
 
 \ *****************************************************************************
 \ Subroutine: LL61
@@ -14998,6 +15915,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .LL118                  ; Trim XX15,XX15+2 to screen grad=XX12+2 for CLIP
+{
  LDA XX15+1             ; x1 hi
  BPL LL119              ; x1 hi+ve skip down
  STA S                  ; else x1 hi -ve
@@ -15076,6 +15994,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 .LL136                  ; rts
  RTS                    ; -- trim for CLIP done
+}
 
 \ *****************************************************************************
 \ Subroutine: LL120
@@ -15084,6 +16003,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .LL120                  ; X.Y=x1lo.S*M/256  	\ where M/256 is gradient
+{
  LDA XX15               ; x1 lo
  STA R
 
@@ -15092,8 +16012,10 @@ LOAD_G% = LOAD% + P% - CODE%
  PHA                    ; store Acc = hsb x1 EOR quadrant_info, Q = (1/)gradient
  LDX T                  ; steep toggle = 0 or FF for steep/shallow down
  BNE LL121              ; down Steep
+}
 
 .LL122                  ; else Shallow return step, also arrive from LL123 for steep stepX
+{
  LDA #0
  TAX
  TAY                    ; all = 0 at start
@@ -15120,6 +16042,7 @@ LOAD_G% = LOAD% + P% - CODE%
  PLA                    ; restore quadrant info
  BPL LL133              ; flip XY sign
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: LL123
@@ -15128,12 +16051,15 @@ LOAD_G% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .LL123                  ; X.Y=R.S*256/M (M=grad.)	\ where 256/M is gradient
+{
  JSR LL129              ; RS = abs(y1=RS) and return with
  PHA                    ; store  Acc = hsb x1 EOR hi, Q = (1/)gradient
  LDX T                  ; steep toggle = 0 or FF for steep/shallow up
  BNE LL122              ; up Shallow
+}
 
 .LL121                  ; T = #&FF for Steep return stepY, shallow stepX
+{
  LDA #255
  TAY
  ASL A                  ; #&FE
@@ -15165,8 +16091,10 @@ LOAD_G% = LOAD% + P% - CODE%
  BCS LL130              ; loop Y if bit fell out of Y
  PLA                    ; restore quadrant info
  BMI LL128              ; down rts
+}
 
 .LL133                  ; flip XY sign, quadrant info +ve in LL120 arrives here too
+{
  TXA
  EOR #&FF
 \CLC
@@ -15176,9 +16104,12 @@ LOAD_G% = LOAD% + P% - CODE%
  EOR #&FF
  ADC #0
  TAY                    ; flip sign of y
+}
 
 .LL128
+{
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: LL129
@@ -15187,6 +16118,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .LL129                  ; RS = abs(RS) and return Acc = hsb x1 EOR hi, Q = (1/)gradient
+{
  LDX XX12+2             ; gradient
  STX Q
  LDA S                  ; hi
@@ -15205,6 +16137,7 @@ LOAD_G% = LOAD% + P% - CODE%
 .LL127
  EOR XX12+3             ; Acc ^= quadrant info
  RTS                    ; -- CLIP, bounding box is now done,
+}
 
 \ *****************************************************************************
 \ Subroutine: LL145
@@ -15213,13 +16146,16 @@ LOAD_G% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .LL145                  ; -> &4E19  CLIP  XX15 XX12 line
+{
                         ; also called by BLINE, waiting for (X1,Y1), (X2,Y2) to draw a line.
                         ; Before clipping,  XX15(0,1) was x1.  XX15(2,3) was y1. XX15(4,5) was x2. XX12(0,1) was y2.
  LDA #0
  STA SWAP
  LDA XX15+5             ; x2 hi
+}
 
 .LL147                  ; CLIP2 arrives from LL79 to do swop and clip
+{
  LDX #Y*2-1             ; #Y*2-1 yClip = screen height
  ORA XX12+1             ; y2 hi
  BNE LL107              ; skip yClip
@@ -15413,6 +16349,7 @@ LOAD_G% = LOAD% + P% - CODE%
  RTS                    ; -- Finished clipping
 
 F% = P%
+}
 
 \ *****************************************************************************
 \ Save output/ELTG.bin
@@ -15435,7 +16372,9 @@ SAVE "output/ELTG.bin", CODE_G%, P%, LOAD%
 \ *****************************************************************************
 
 .checksum0
+{
 SKIP 1
+}
 
 \ *****************************************************************************
 \ Variable: XX21
