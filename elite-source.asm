@@ -3932,6 +3932,8 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: TT26
 \
+\ Exposed labels: RR3, RREN, RR4, rT9, R5
+\
 \ Print a character at the text cursor (XC, YC), do a beep, print a newline,
 \ or delete left (backspace)
 \
@@ -4188,10 +4190,8 @@ NEXT
 
  JMP RR4                ; And restore the registers and return from the
                         ; subroutine
-}
 
-.RR3
-{
+.^RR3
  ORA #&60               ; A contains the value of YC - the screen row where we
                         ; want to print this character - so now we need to
                         ; convert this into a screen address, so we can poke
@@ -4213,10 +4213,8 @@ NEXT
                         ;
                         ; so YC OR &60 effectively adds &60 to YV, giving us
                         ; the page number that we want
-}
 
-.RREN
-{
+.^RREN
  STA SC+1               ; Store the page number of the destination screen
                         ; location in SC+1, so SC now points to the full screen
                         ; location where this character should go
@@ -4243,24 +4241,18 @@ NEXT
 
  DEY                    ; Decrement the loop counter
 
- BPL RRL1               ; Loop back for the next byte to print to the screen
-}
+ BPL RRL1               ; Loop back for the next byte to print to the screen=
 
-.RR4
-{
+.^RR4
  LDY YSAV2              ; We're done printing, so restore the values of the
  LDX XSAV2              ; A, X and Y registers that we saved above and clear
  LDA K3                 ; the carry flag, so everything is back to how it was
  CLC
-}
 
-.rT9
-{
+.^rT9
  RTS                    ; Return from the subroutine
-}
 
-.R5
-{
+.^R5
  JSR BEEP               ; Call the BEEP subroutine, which uses the SOUND
                         ; command to emit a beep
 
@@ -8681,7 +8673,7 @@ LOAD_D% = LOAD% + P% - CODE%
 {
  LDA #5                 ; Print the number in X to a maximum of 5 digits
  JMP TT11               ; (left-padded) with no decimal point
- }
+}
 
 \ *****************************************************************************
 \ Subroutine: TT147
@@ -9545,6 +9537,7 @@ LOAD_D% = LOAD% + P% - CODE%
  TAX                    ; Xreg has valid mount
  RTS
 }
+
 \ *****************************************************************************
 \ Save output/ELTD.bin
 \ *****************************************************************************
@@ -9811,7 +9804,6 @@ MAPCHAR '4', '4'
  JSR plf                ; a newline
 
 .PCASH                  ; This label is not used but is in the original source
-
  LDA #119               ; Print recursive token 119 ("CASH:" then control code
  BNE TT27               ; 0, which prints cash levels, then " CR" and newline)
 }
@@ -10015,6 +10007,8 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: TT42
 \
+\ Exposed labels: TT44
+\
 \ Print a letter in lower case
 \
 \ Arguments:
@@ -10038,10 +10032,8 @@ MAPCHAR '4', '4'
                         
  ADC #32                ; Add 32 to the character, to convert it from upper to
                         ; to lower case
-}
 
-.TT44
-{
+.^TT44
  JMP TT26               ; Print the character in A
 }
 
@@ -10268,6 +10260,8 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: ex
 \
+\ Exposed labels: TT48
+\
 \ Print a recursive token
 \
 \ Arguments:
@@ -10386,21 +10380,9 @@ MAPCHAR '4', '4'
 
  BNE TT50               ; If this is not the null character at the end of the
                         ; token, jump back up to TT50 to print the next
-                        ; character, otherwise we are done printing and can
-                        ; fall through to TT48 to return from the subroutine
-}
-\ *****************************************************************************
-\ Subroutine: TT48
-\
-\ Performs an RTS to return from the print subroutine
-\
-\ This is so the print subroutine can perform a return using conditonal branch
-\ instructions, such as BEQ TT48, which will return from the subroutine if the
-\ zero flag is set
-\ *****************************************************************************
+                        ; character, otherwise we are done printing
 
-.TT48
-{
+.^TT48
  RTS                    ; Return from the current subroutine
 }
 
@@ -13642,7 +13624,6 @@ ENDIF
 
 .SVE                    ; Disc service entry as key @ hit
 {
-{
  JSR GTNME              ; zero pages &9,&A,&B,&C,&D
  JSR TRNME              ; Transfer commander name to Page &11
  JSR ZERO
@@ -13691,7 +13672,6 @@ ENDIF
  \DEX
  STX SVN
  JMP BAY
-}
 }
 
 \ *****************************************************************************
