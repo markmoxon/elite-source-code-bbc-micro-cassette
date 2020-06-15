@@ -207,7 +207,7 @@ XX19 = INWK + 33        ; Shares memory with INWK+33
 .LSP                    ; 
  SKIP 1
 
-.QQ15                   ; Contains the three two-byte seeds (6 byytes) for the
+.QQ15                   ; Contains the three 16-bit seeds (6 bytes) for the
  SKIP 6                 ; selected system, i.e. the one in the cross-hairs in
                         ; the short range chart.
                         ;
@@ -259,7 +259,7 @@ QQ17 = XX18             ; Shares memory with XX18, K5
 QQ19 = QQ17 + 1         ; Shares memory with XX18+1, K5
                         ;
                         ; Temporary storage for seed pairs (e.g. used in cpl
-                        ; as a temporary backup when twisting three two-byte
+                        ; as a temporary backup when twisting three 16-bit
                         ; seeds)
 
 K5 = XX18               ; Shares memory with XX18, QQ17, QQ19
@@ -517,7 +517,7 @@ LSX = LSO               ; Shares memory with LSO
 .ALTIT                  ; 
  SKIP 1
 
-.QQ2                    ; Contains the three two-byte seeds (6 bytes) for the
+.QQ2                    ; Contains the three 16-bit seeds (6 bytes) for the
  SKIP 6                 ; current system. See QQ15 above for details of how the
                         ; three seeds are stored in memory
 
@@ -1342,7 +1342,7 @@ LOAD_A% = LOAD%
  RTS
 
 \ *****************************************************************************
-\ Subroutine: MAS 3
+\ Subroutine: MAS3
 \
 \ Find hsb squared of &901+Y
 \ *****************************************************************************
@@ -1473,7 +1473,7 @@ LOAD_A% = LOAD%
  STA INWK+8             ; zsg
  LDA P+1
  STA INWK+6             ; zlo
- EOR #&FF                ; flip
+ EOR #&FF               ; flip
  STA P
  LDA P+2
  STA INWK+7             ; zhi \ Z=Z+bK2 \ their comment
@@ -1514,7 +1514,7 @@ LOAD_A% = LOAD%
 .MV44                   ; roll&pitch continue
  LDX ALP1               ; roll mag lower7 bits
  LDA INWK+3
- EOR #&FF                ; flip ylo
+ EOR #&FF               ; flip ylo
  STA P
  LDA INWK+4             ; yhi
  JSR MLTU2-2            ; AP(2)= AP* alp1_unsg(EOR P)
@@ -1813,7 +1813,7 @@ LOAD_A% = LOAD%
  ORA T                  ; sign bit
  EOR RAT2               ; rot sign
  STX Q                  ; protect Xindex
- JSR ADD                ; X.A = P.A + R.S
+ JSR ADD                ; (A X) = (A P) + (S R)
  STA K+1                ; hi
  STX K                  ; lo, save for later
 
@@ -1849,7 +1849,7 @@ LOAD_A% = LOAD%
  EOR RAT2               ; rot sign
 
  STX Q                  ; protect Xindex
- JSR ADD                ; X.A = P.A + R.S
+ JSR ADD                ; (A X) = (A P) + (S R)
  STA INWK+1,Y
  STX INWK,Y             ; Yindex one now updated by 1/16th of a radian rotation
  LDX Q                  ; restore Xindex
@@ -2190,7 +2190,7 @@ NEXT
  LDA X2
  SBC X1
  BCS LI1                ; deltaX
- EOR #&FF                ; else negate
+ EOR #&FF               ; else negate
  ADC #1
  SEC
 
@@ -2200,7 +2200,7 @@ NEXT
  LDA Y2
  SBC Y1
  BCS LI2                ; deltaY
- EOR #&FF                ; else negate
+ EOR #&FF               ; else negate
  ADC #1
 
 .LI2                    ; deltaY
@@ -2565,7 +2565,7 @@ NEXT
  CLC
 
 .HLL1                   ; counter X wide count
- LDA #&FF                ; mask full line
+ LDA #&FF               ; mask full line
  EOR (SC),Y
  STA (SC),Y
  TYA
@@ -2641,7 +2641,7 @@ NEXT
 \ *****************************************************************************
 
 .PIX1                   ; dust Pixel, Acc has ALPHA or BETA in it
- JSR ADD                ; X.A = P.A + R.S
+ JSR ADD                ; (A X) = (A P) + (S R)
  STA YY+1               ; hi
  TXA                    ; lo
  STA SYL,Y              ; dust ylo
@@ -2912,13 +2912,13 @@ NEXT
 
  EOR ALP2+1             ; roll sign
  JSR MLS1               ; P.A = A*alp1 (alp1+<32)
- JSR ADD                ; X.A = P.A + R.S
+ JSR ADD                ; (A X) = (A P) + (S R)
  STA YY+1
  STX YY
 
  EOR ALP2               ; roll sign
  JSR MLS2               ; R.S = XX(0to1) and P.A = A*alp1 (alp1+<32)
- JSR ADD                ; X.A = P.A + R.S
+ JSR ADD                ; (A X) = (A P) + (S R)
  STA XX+1
  STX XX
 
@@ -2934,7 +2934,7 @@ NEXT
  LDA #0
  ROR A
  ORA T
- JSR ADD                ; X.A = P.A + R.S
+ JSR ADD                ; (A X) = (A P) + (S R)
  STA XX+1
  TXA
  STA SXL,Y              ; dust xlo
@@ -3051,13 +3051,13 @@ NEXT
  LDA XX+1
  EOR ALP2               ; roll sign
  JSR MLS1               ; P.A = A*alp1 (alp1+<32)
- JSR ADD                ; X.A = P.A + R.S
+ JSR ADD                ; (A X) = (A P) + (S R)
  STA YY+1
  STX YY
 
  EOR ALP2+1             ; flipped roll sign
  JSR MLS2               ; R.S = XX(0to1) and P.A = A*alp1 (alp1+<32)
- JSR ADD                ; X.A = P.A + R.S
+ JSR ADD                ; (A X) = (A P) + (S R)
  STA XX+1
  STX XX
 
@@ -3076,7 +3076,7 @@ NEXT
  LDA #0
  ROR A
  ORA T
- JSR ADD                ; X.A = P.A + R.S
+ JSR ADD                ; (A X) = (A P) + (S R)
  STA XX+1
  TXA
  STA SXL,Y              ; dust xlo
@@ -3331,9 +3331,9 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: pr2
 \
-\ Print the one-byte number in X to 3 digits, left-padding with spaces for
-\ numbers with fewer than 3 digits (so numbers < 100 are right-aligned).
-\ Optionally include a decimal point.
+\ Print the 8-bit number in X to 3 digits, left-padding with spaces for numbers
+\ with fewer than 3 digits (so numbers < 100 are right-aligned). Optionally
+\ include a decimal point.
 \
 \ Arguments:
 \
@@ -3343,7 +3343,7 @@ NEXT
 \ *****************************************************************************
 
 .pr2
- LDA #3                 ; Set Acc to the number of digits (3)
+ LDA #3                 ; Set A to the number of digits (3)
 
  LDY #0                 ; Zero the Y register (this instruction seems to be
                         ; unnecessary, as the next operation that uses the Y
@@ -3354,15 +3354,15 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: TT11
 \
-\ Print the one-byte number in X to a specific number of digits, left-padding
-\ with spaces for numbers with fewer digits (so lower numbers are
-\ right-aligned). Optionally include a decimal point.
+\ Print the 8-bit number in X to a specific number of digits, left-padding with
+\ spaces for numbers with fewer digits (so lower numbers are right-aligned).
+\ Optionally include a decimal point.
 \
 \ Arguments:
 \
 \   X           The number to print
 \
-\   Acc         The number of digits
+\   A           The number of digits
 \
 \   C flag      If set, include a decimal point
 \ *****************************************************************************
@@ -3372,11 +3372,11 @@ NEXT
                         ; print this number, so we store the number of digits
                         ; in U, as that's what BPRNT takes as an argument
  
- LDA #0                 ; BPRNT takes a four-byte number in K to K+3, with 
- STA K                  ; the most significant byte first (big-endian), so we
- STA K+1                ; set the three most significant bytes to zero (K, K+1
- STY K+2                ; and K+3), and store X (the number we want to print)
- STX K+3                ; in the least significant byte at K+3
+ LDA #0                 ; BPRNT takes a 32-bit number in K to K+3, with the
+ STA K                  ; most significant byte first (big-endian), so we set
+ STA K+1                ; the three most significant bytes to zero (K, K+1 and
+ STY K+2                ; K+2), and store X (the number we want to print) in
+ STX K+3                ; the least significant byte at K+3
 
                         ; Finally we fall through into BPRNT to print out the
                         ; number in K to K+3 (which now contains X) to 3 digits
@@ -3386,7 +3386,7 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: BPRNT
 \
-\ Print the four-byte number stored in K to K+3 to a specific number of digits,
+\ Print the 32-bit number stored in K to K+3 to a specific number of digits,
 \ left-padding with spaces for numbers with fewer digits (so lower numbers are
 \ right-aligned). Optionally include a decimal point.
 \
@@ -3411,7 +3411,7 @@ NEXT
 \ How it works:
 \
 \ The algorithm is relatively simple, but it looks fairly complicated because
-\ we're dealing with four-byte numbers.
+\ we're dealing with 32-bit numbers.
 \ 
 \ To see how it works, let's first consider a simple example with fewer digits.
 \ Let's say we want to print out the following number to three digits:
@@ -3438,27 +3438,29 @@ NEXT
 \ The BPRNT subroutine code does exactly this in its main loop at TT36, except
 \ instead of having a three-digit number and subtracting 100, we have up to an
 \ 11-digit number and subtract 10 billion each time (as 10 billion has 11
-\ digits), using four-byte arithmetic and an overflow byte, and that's where
+\ digits), using 32-bit arithmetic and an overflow byte, and that's where
 \ the complexity comes in.
 \ 
 \ Given this, let's use some terminology to make it easier to talk about
 \ multi-byte numbers, and specifically the big-endian numbers that Elite uses
 \ to store large numbers like the current cash amount (big-endian numbers store
 \ their most significant byte first, then the lowest significant bytes, which
-\ is different to how 6502 assembly stores it's two-byte numbers; Elite's large
+\ is different to how 6502 assembly stores it's 16-bit numbers; Elite's large
 \ numbers are stored in the same way that we write numbers, with the largest
 \ digits first, while 6502 does it the other way round, where &30 &FE
-\ represents &FE30).
+\ represents &FE30, for example).
 \ 
-\ If K is made up of four bytes, then we may talk about K(0,1,2,3) as the
-\ four-byte number that is stored in memory at K thorough K+3, with the most
+\ If K is made up of four bytes, then we may talk about K(0 1 2 3) as the
+\ 32-bit number that is stored in memory at K thorough K+3, with the most
 \ significant byte in K and the least significant in K+3. If we want to add
 \ another significant byte to make this a five-byte number - an overflow byte
-\ in a memory location called S, say - then we might talk about K(S,0,1,2,3).
-\ Similarly, XX15(0,1,2,3,4) is a five-byte number stored in XX15 through
-\ XX15+4, from high byte to low byte. It might help to think of the numbers in
-\ brackets being written like in the same order that we would write them down
-\ digits as humans.
+\ in a memory location called S, say - then we might talk about K(S 0 1 2 3).
+\ Similarly, XX15(4 0 1 2 3) is a five-byte number stored with the highest byte
+\ in XX15+4, then the next most significant in XX15, then XX15+1 and XX15+2,
+\ through to the lowest byte in XX15+3 (yes, the following code does store one
+\ of its numbers like this). It might help to think of the digits listed in
+\ the brackets as being written down in the same order that we would write them
+\ down as humans.
 \ 
 \ Now that we have some terminology, let's look at the above algorithm. We need
 \ multi-byte subtraction, which we can do byte-by-byte using the carry flag,
@@ -3471,10 +3473,10 @@ NEXT
 \          = (K * 2) + (K * 8)
 \          = (K * 2) + (K * 2 * 2 * 2)
 \ 
-\ And that's what we do in the TT35 subroutine below, just with four-byte
-\ numbers with a one-byte overflow. This doubling process is used quite a few
+\ And that's what we do in the TT35 subroutine below, just with 32-bit
+\ numbers with an 8-bit overflow. This doubling process is used quite a few
 \ times in the following, so let's look an an example, in which we double the
-\ number in K(S,0,1,2,3):
+\ number in K(S 0 1 2 3):
 \ 
 \   ASL K+3
 \   ROL K+2
@@ -3529,7 +3531,7 @@ NEXT
                         ; digits (as one of them is now a decimal point)
 
 .TT30
- LDA #11                ; Set Acc to 11, the maximum number of digits allowed
+ LDA #11                ; Set A to 11, the maximum number of digits allowed
 
  SEC                    ; Set the carry flag so we can do some subtraction
                         ; arithmetic without the carry flag affecting the
@@ -3550,18 +3552,18 @@ NEXT
                         ; digit, so set this to zero (see below TT36 for an
                         ; of how this algorithm works)
 
- STY S                  ; In the main loop below, we use location S as a
-                        ; one-byte overflow for the four-byte calculations, so
+ STY S                  ; In the main loop below, we use location S as an
+                        ; 8-bit overflow for the 32-bit calculations, so
                         ; we need to set this to 0 before joining the loop
 
  JMP TT36               ; Jump to TT36 to start the process of printing this
                         ; number's digits
 
-.TT35                   ; This subroutine multiplies K(S,0,1,2,3) by 10 and
-                        ; stores the result back in K(S,0,1,2,3), using the
+.TT35                   ; This subroutine multiplies K(S 0 1 2 3) by 10 and
+                        ; stores the result back in K(S 0 1 2 3), using the
                         ; (K * 2) + (K * 2 * 2 * 2) approach described above
 
- ASL K+3                ; Set K(S,0,1,2,3) = K(S,0,1,2,3) * 2 by rotating bits.
+ ASL K+3                ; Set K(S 0 1 2 3) = K(S 0 1 2 3) * 2 by rotating bits.
  ROL K+2                ; See above for an explanation.
  ROL K+1
  ROL K
@@ -3574,9 +3576,9 @@ NEXT
                         ; (i.e. the least significant)
 
 .tt35
- LDA K,X                ; Copy the X-th byte of K(0,1,2,3) to the X-th byte of
- STA XX15,X             ; XX15(0,1,2,3), so that XX15 will contain a copy of
-                        ; K(0,1,2,3) once we've copied all four bytes
+ LDA K,X                ; Copy the X-th byte of K(0 1 2 3) to the X-th byte of
+ STA XX15,X             ; XX15(0 1 2 3), so that XX15 will contain a copy of
+                        ; K(0 1 2 3) once we've copied all four bytes
 
  DEX                    ; Decrement the loop counter so we move to the next
                         ; byte, going from least significant (3) to most
@@ -3585,18 +3587,18 @@ NEXT
  BPL tt35               ; Loop back to copy the next byte
  
  LDA S                  ; Store the value of location S, our overflow byte, in
- STA XX15+4             ; XX15+4, so now XX15(0,1,2,3,4) contains a copy of
-                        ; K(S,0,1,2,3), which is the value of (K * 2) that we
+ STA XX15+4             ; XX15+4, so now XX15(4 0 1 2 3) contains a copy of
+                        ; K(S 0 1 2 3), which is the value of (K * 2) that we
                         ; want
 
  ASL K+3                ; Now to calculate the (K * 2 * 2 * 2) part. We still
- ROL K+2                ; have (K * 2) in K(S,0,1,2,3), so we just need to
+ ROL K+2                ; have (K * 2) in K(S 0 1 2 3), so we just need to
  ROL K+1                ; it twice. This is the first one, so we do
- ROL K                  ; K(S,0,1,2,3) = K(S,0,1,2,3) * 2 (i.e. K * 4)
+ ROL K                  ; K(S 0 1 2 3) = K(S 0 1 2 3) * 2 (i.e. K * 4)
  ROL S
 
  ASL K+3                ; And then we do it again, so that means
- ROL K+2                ; K(S,0,1,2,3) = K(S,0,1,2,3) * 2 (i.e. K * 8)
+ ROL K+2                ; K(S 0 1 2 3) = K(S 0 1 2 3) * 2 (i.e. K * 8)
  ROL K+1
  ROL K
  ROL S
@@ -3604,17 +3606,17 @@ NEXT
  CLC                    ; Clear the carry flag so we can do some additions
                         ; without the carry flag affecting the result
  
- LDX #3                 ; By now we've got (K * 2) in XX15(0,1,2,3,4) and
-                        ; (K * 8) in K(S,0,1,2,3), so the final step is to add
-                        ; these two four-byte numbers together to get K * 10.
+ LDX #3                 ; By now we've got (K * 2) in XX15(4 0 1 2 3) and
+                        ; (K * 8) in K(S 0 1 2 3), so the final step is to add
+                        ; these two 32-bit numbers together to get K * 10.
                         ; So we set a counter in X for four bytes, starting
                         ; with the last byte in memory (i.e. the least
                         ; significant)
 
 .tt36
- LDA K,X                ; Fetch the X-th byte of K into Acc
+ LDA K,X                ; Fetch the X-th byte of K into A
 
- ADC XX15,X             ; Add the X-th byte of XX15 to Acc, with carry
+ ADC XX15,X             ; Add the X-th byte of XX15 to A, with carry
 
  STA K,X                ; Store the result in the X-th byte of K
  
@@ -3624,14 +3626,14 @@ NEXT
  
  BPL tt36               ; Loop back to add the next byte
 
- LDA XX15+4             ; Finally, fetch the overflow byte from XX15(0,1,2,3,4)
+ LDA XX15+4             ; Finally, fetch the overflow byte from XX15(4 0 1 2 3)
 
- ADC S                  ; And add it to the overflow byte from K(S,0,1,2,3),
+ ADC S                  ; And add it to the overflow byte from K(S 0 1 2 3),
                         ; with carry
 
  STA S                  ; And store the result in the overflow byte from
-                        ; K(S,0,1,2,3), so now we have our desired result that
-                        ; K(S,0,1,2,3) is now K(S,0,1,2,3) * 10
+                        ; K(S 0 1 2 3), so now we have our desired result that
+                        ; K(S 0 1 2 3) is now K(S 0 1 2 3) * 10
 
  LDY #0                 ; In the main loop below, we use Y to count the number
                         ; of times we subtract 10 billion to get the left-most
@@ -3642,7 +3644,7 @@ NEXT
                         ; number of times that we can subtract 10 million in Y,
                         ; which we have already set to 0
                         
- LDX #3                 ; Our first calculation concerns four-byte numbers, so
+ LDX #3                 ; Our first calculation concerns 32-bit numbers, so
                         ; set up a counter for a four-byte loop
 
  SEC                    ; Set the carry flag so we can do some subtraction
@@ -3651,7 +3653,7 @@ NEXT
                         
 .tt37                   ; Now we loop thorough each byte in turn to do this:
                         ;
-                        ; XX15(0,1,2,3,4) = K(S,0,1,2,3) - 100,000,000,000
+                        ; XX15(4 0 1 2 3) = K(S 0 1 2 3) - 100,000,000,000
 
  LDA K,X                ; Subtract the X-th byte of TENS (i.e. 10 billion) from
  SBC TENS,X             ; the X-th byte of K
@@ -3672,14 +3674,14 @@ NEXT
  BCC TT37               ; If subtracting 10 billion took us below zero, jump to
                         ; TT37 to print out this digit, which is now in Y
 
- LDX #3                 ; We now want to copy XX15(0,1,2,3,4) back to
-                        ; K(S,0,1,2,3), so we can loop back up to do the next
+ LDX #3                 ; We now want to copy XX15(4 0 1 2 3) back to
+                        ; K(S 0 1 2 3), so we can loop back up to do the next
                         ; subtraction, so set up a counter for a four-byte loop
 
 .tt38
- LDA XX15,X             ; Copy the X-th byte of XX15(0,1,2,3) to the X-th byte
- STA K,X                ; of K(0,1,2,3), so that K will contain a copy of
-                        ; XX15(0,1,2,3) once we've copied all four bytes
+ LDA XX15,X             ; Copy the X-th byte of XX15(0 1 2 3) to the X-th byte
+ STA K,X                ; of K(0 1 2 3), so that K will contain a copy of
+                        ; XX15(0 1 2 3) once we've copied all four bytes
  
  DEX                    ; Decrement the loop counter so we move to the next
                         ; byte, going from least significant (3) to most
@@ -3688,8 +3690,8 @@ NEXT
  BPL tt38               ; Loop back to copy the next byte
 
  LDA XX15+4             ; Store the value of location XX15+4, our overflow
- STA S                  ; byte in S, so now K(S,1,2,3,4) contains a copy of
-                        ; XX15(0,1,2,3,4)
+ STA S                  ; byte in S, so now K(S 0 1 2 3) contains a copy of
+                        ; XX15(4 0 1 2 3)
  
  INY                    ; We have now managed to subtract 10 billion from our
                         ; number, so increment Y, which is where we are keeping
@@ -3700,7 +3702,7 @@ NEXT
 .TT37
  TYA                    ; If we get here then Y contains the digit that we want
                         ; to print (as Y has now counted the total number of
-                        ; subtractions of 10 billion), so transfer Y into Acc
+                        ; subtractions of 10 billion), so transfer Y into A
 
  BNE TT32               ; If the digit is non-zero, jump to TT32 to print it
 
@@ -3738,18 +3740,18 @@ NEXT
  BNE tt34               ; have reached the point where we should start printing
                         ; our number, so call TT26 (via tt34) to print a space
                         ; so that the number is left-padded with spaces (this
-                        ; BNE is effectively a JMP as Acc will never be zero)
+                        ; BNE is effectively a JMP as A will never be zero)
 
 .TT32
  LDY #0                 ; We are printing an actual digit, so first set T to 0,
  STY T                  ; to denote that we have now started printing digits as
                         ; opposed to spaces
 
- CLC                    ; The digit value is in Acc, so add ASCII '0' to get
- ADC #'0'               ; get the ASCII character number to print
+ CLC                    ; The digit value is in A, so add ASCII '0' to get the
+ ADC #'0'               ; ASCII character number to print
 
 .tt34
- JSR TT26               ; Print the character in Acc and fall through into TT34
+ JSR TT26               ; Print the character in A and fall through into TT34
                         ; to get things ready for the next digit
 
 .TT34
@@ -3789,9 +3791,9 @@ NEXT
 \ *****************************************************************************
 
 .BELL
- LDA #7                 ; Control code 7 makes a beep, so load this into the
-                        ; Acc so we can fall through into the TT27 print
-                        ; routine to actually make the sound
+ LDA #7                 ; Control code 7 makes a beep, so load this into A so
+                        ; we can fall through into the TT27 print routine to
+                        ; actually make the sound
 
 \ *****************************************************************************
 \ Subroutine: TT26
@@ -3806,7 +3808,7 @@ NEXT
 \
 \ Arguments:
 \
-\   Acc         The character to be printed. Can be one of the following:
+\   A           The character to be printed. Can be one of the following:
 \                   * 7 (beep)
 \                   * 10-13 (line feeds and carriage returns)
 \                   * 32-95 (ASCII capital letters, numbers and punctuation)
@@ -3815,24 +3817,24 @@ NEXT
 \ *****************************************************************************
 
 .TT26
- STA K3                 ; Store the Acc, X and Y registers, so we can restore
+ STA K3                 ; Store the A, X and Y registers, so we can restore
  STY YSAV2              ; them at the end (so they don't get changed by this
  STX XSAV2              ; routine)
 
  LDY QQ17               ; Load the QQ17 flag, which contains the text printing
                         ; flags
 
- CPY #&FF                ; If QQ17 = #&FF, then jump to RR4, which doesn't print
+ CPY #&FF               ; If QQ17 = #&FF, then jump to RR4, which doesn't print
  BEQ RR4                ; anything, it just restore of the registers and
                         ; returns from the subroutine
 
- CMP #7                 ; If this is a beep character (Acc = 7), jump to R5,
+ CMP #7                 ; If this is a beep character (A = 7), jump to R5,
  BEQ R5                 ; which will emit the beep, restore the registers and
                         ; return from the subroutine
 
- CMP #32                ; If this is an ASCII character (Acc >= 32), jump to
- BCS RR1                ; RR1 below, which will print the character, restore
-                        ; the registers and return from the subroutine
+ CMP #32                ; If this is an ASCII character (A >= 32), jump to RR1
+ BCS RR1                ; below, which will print the character, restore the
+                        ; registers and return from the subroutine
 
  CMP #10                ; If this is control code 10 (line feed) then jump to
  BEQ RRX1               ; RRX1, which will move down a line, restore the
@@ -3905,8 +3907,8 @@ NEXT
                         ; memory. To be honest I can't see a massive difference
                         ; in speed, but there you go.
 
- TAY                    ; Copy the character number from Acc to Y, as we are
-                        ; about to pull Acc apart to work out where this
+ TAY                    ; Copy the character number from A to Y, as we are
+                        ; about to pull A apart to work out where this
                         ; character definition lives in the ROM
 
                         ; Now we want to set X to point to the revevant page
@@ -3930,13 +3932,13 @@ NEXT
  LDX #&BF               ; Set X to point to the first font page in ROM minus 1,
                         ; which is &C0 - 1, or &BF
 
- ASL A                  ; If bit 6 of the character is clear (Acc is 32-63)
+ ASL A                  ; If bit 6 of the character is clear (A is 32-63)
  ASL A                  ; then skip the following instruction
  BCC P%+4
 
- LDX #&C1               ; Acc is 64-126, so set X to point to page &C1
+ LDX #&C1               ; A is 64-126, so set X to point to page &C1
 
- ASL A                  ; If bit 5 of the character is clear (Acc is 64-95)
+ ASL A                  ; If bit 5 of the character is clear (A is 64-95)
  BCC P%+3               ; then skip the following instruction
 
  INX                    ; Increment X
@@ -3944,27 +3946,27 @@ NEXT
                         ; By this point, we started with X = &BF, and then
                         ; we did the following:
                         ;
-                        ;   If Acc = 32-63:   skip    then INX  so X = &C0
-                        ;   If Acc = 64-95:   X = &C1 then skip so X = &C1
-                        ;   If Acc = 96-126:  X = &C1 then INX  so X = &C2
+                        ;   If A = 32-63:   skip    then INX  so X = &C0
+                        ;   If A = 64-95:   X = &C1 then skip so X = &C1
+                        ;   If A = 96-126:  X = &C1 then INX  so X = &C2
                         ;
                         ; In other words, X points to the relevant page. But
-                        ; what about the value of Acc? That gets shifted to
-                        ; the left three times during the above code, which
+                        ; what about the value of A? That gets shifted to the
+                        ; left three times during the above code, which
                         ; multiplies the number by 8 but also drops bits 7, 6
                         ; and 5 in the process. Look at the above binary
                         ; figures and you can see that if we cleared bits 5-7,
                         ; then that would change 32-53 to 0-31... but it would
                         ; do exactly the same to 64-95 and 96-125. And because
-                        ; we also multiply this figure by 8, Acc now points to
+                        ; we also multiply this figure by 8, A now points to
                         ; the start of the character's definition within its
                         ; page (because there are 8 bytes per character
                         ; definition).
                         ;
                         ; Or, to put it another way, X contains the high byte
                         ; (the page) of the address of the definition that we
-                        ; want, while Acc contains the low byte (the offset
-                        ; into the page) of the address.
+                        ; want, while A contains the low byte (the offset into
+                        ; the page) of the address.
  
  STA P+1                ; Store the address of this character's definition in
  STX P+2                ; P+1 (low byte) and P+2 (high byte)
@@ -4001,9 +4003,9 @@ NEXT
                         ; we're just updating the cursor so it's in the right
                         ; position following the deletion.
 
- ADC #&5E               ; Acc contains YC (from above) and the carry flag is
- TAX                    ; set (from the CPY #127 above), so these instructions
-                        ; do this: X = YC + &5E + 1 = YC + &5F
+ ADC #&5E               ; A contains YC (from above) and the carry flag is set
+ TAX                    ; (from the CPY #127 above), so these instructions do
+                        ; this: X = YC + &5E + 1 = YC + &5F
                         ;
                         ; Because YC starts at 1 for the first text row, this
                         ; means that X will be &60 for row 1, &61 for row 2
@@ -4053,8 +4055,8 @@ NEXT
                         ; subroutine
 
 .RR3
- ORA #&60               ; Acc contains the value of YC - the screen row where
-                        ; we want to print this character - so now we need to
+ ORA #&60               ; A contains the value of YC - the screen row where we
+                        ; want to print this character - so now we need to
                         ; convert this into a screen address, so we can poke
                         ; the character data to the right place in screen
                         ; memory. We already stored the least significant byte
@@ -4106,7 +4108,7 @@ NEXT
 
 .RR4
  LDY YSAV2              ; We're done printing, so restore the values of the
- LDX XSAV2              ; Acc, X and Y registers that we saved above and clear
+ LDX XSAV2              ; A, X and Y registers that we saved above and clear
  LDA K3                 ; the carry flag, so everything is back to how it was
  CLC
 
@@ -4150,13 +4152,13 @@ NEXT
  LSR A
  ORA ALP2               ; roll sign
  EOR #128               ; flipped
- JSR ADD                ; X.A = P.A + R.S
+ JSR ADD                ; (A X) = (A P) + (S R)
  JSR DIL2               ; roll/pitch indicator takes X.A
  LDA BETA               ; pitch
  LDX BET1               ; pitch sign
  BEQ P%+4               ; skip sbc #1
  SBC #1                 ; will add S=8 to Acc to center
- JSR ADD                ; X.A = P.A + R.S
+ JSR ADD                ; (A X) = (A P) + (S R)
  JSR DIL2               ; roll/pitch indicator takes X.A
 
  LDA MCNT               ; movecount
@@ -4257,7 +4259,7 @@ NEXT
 
 .DIL                    ; energy bank
  STA Q                  ; bar value 0to15
- LDX #&FF                ; mask
+ LDX #&FF               ; mask
  STX R
  CMP T1                 ; threshold to change bar colour
  BCS DL30               ; Acc >= threshold colour will be K
@@ -4334,7 +4336,7 @@ NEXT
  LDA Q                  ; xpos
  SBC #4                 ; xpos-4
  BCS DLL11              ; blank
- LDA #&FF                ; else indicator
+ LDA #&FF               ; else indicator
  LDX Q                  ; palette index
  STA Q                  ; = #&FF
  LDA CTWOS,X
@@ -4820,7 +4822,7 @@ LOAD_C% = LOAD% +P% - CODE%
  AND #127               ; drop dot product sign
  CMP #18                ; angle to axis not too large
  BCC TA10               ; slow enough, rts
- LDA #&FF                ; slow
+ LDA #&FF               ; slow
  LDX TYPE               ; ship type
  CPX #MSL               ; missile
  BNE P%+3               ; skip asl if not missile
@@ -5065,7 +5067,7 @@ LOAD_C% = LOAD% +P% - CODE%
  TXA                    ; Xrnd
  AND #15                ; keep lower 4 bits as
  STA INWK+27            ; speed
- LDA #&FF                ; no damping
+ LDA #&FF               ; no damping
  ROR A                  ; rnd carry gives sign
  STA INWK+29            ; rotx counter roll has no damping
  LDA #OIL
@@ -5204,7 +5206,7 @@ LOAD_C% = LOAD% +P% - CODE%
  STA P
  LDA SX,Y               ; dustx
  STA X1                 ; x middle
- JSR ADD                ; X.A = P.A + R.S = dustx+delta/z_distance
+ JSR ADD                ; (A X) = (A P) + (S R) = dustx+delta/z_distance
 
  STA S                  ; new x hi
  STX R                  ; new x lo
@@ -5213,7 +5215,7 @@ LOAD_C% = LOAD% +P% - CODE%
  EOR BET2               ; pitch sign
  LDX BET1               ; lower7 bits
  JSR MULTS-2            ; AP=A*bet1 (bet1+<32)
- JSR ADD                ; X.A = P.A + R.S
+ JSR ADD                ; (A X) = (A P) + (S R)
  STX XX
  STA XX+1
 
@@ -5224,7 +5226,7 @@ LOAD_C% = LOAD% +P% - CODE%
  LDX BET1               ; lower7 bits
  EOR BET2+1             ; flipped pitch sign
  JSR MULTS-2            ; AP=A*~bet1 (~bet1+<32)
- JSR ADD                ; X.A = P.A + R.S
+ JSR ADD                ; (A X) = (A P) + (S R)
  STX YY                 ; ylo
  STA YY+1               ; yhi
 
@@ -5641,7 +5643,7 @@ NEXT
 \ *****************************************************************************
 
 .MLTU2                  ; AP(2)= AP* Qunsg(EOR P)
- EOR #&FF                ; use 2 bytes of P and A for result
+ EOR #&FF               ; use 2 bytes of P and A for result
  LSR A                  ; hi
  STA P+1
  LDA #0
@@ -6043,7 +6045,7 @@ NEXT
  ADC T
  TAX                    ; sum of A and X that BUMP2 was called with
  BCC RE2                ; not sat
- LDX #&FF                ; else sat
+ LDX #&FF               ; else sat
 
 .RE2                    ; not sat
  BPL RE3+2              ; if +ve, lda djd
@@ -6187,10 +6189,10 @@ NEXT
  STA R                  ; lo
  STA P                  ; lo
  LDA K%+8               ; planet zsg
- JSR ADD                ; X.A = P.A + R.S = &81.zsg + &81.&81
+ JSR ADD                ; (A X) = (A P) + (S R) = &81.zsg + &81.&81
  STA K%+8               ; allwk+8
  LDA K%+NI%+8           ; Sun zsg
- JSR ADD                ; X.A = P.A + R.S
+ JSR ADD                ; (A X) = (A P) + (S R)
  STA K%+NI%+8           ; allwk+37+8
 
  LDA #1                 ; menu id
@@ -6575,7 +6577,7 @@ NEXT
  BEQ SC5                ; rts
  LDA TYPE               ; ship type
  BMI SC5                ; dont show planet, rts
- LDX #&FF                ; default scanner colour Yellow
+ LDX #&FF               ; default scanner colour Yellow
 \CMP #TGL
 \BEQ SC49
  CMP #MSL               ; missile
@@ -6596,7 +6598,7 @@ NEXT
  CLC                    ; build stick xcoord
  LDX INWK+2             ; xsg
  BPL SC2                ; xsg +ve
- EOR #&FF                ; else flip
+ EOR #&FF               ; else flip
  ADC #1
 
 .SC2                    ; xsg +ve
@@ -6609,12 +6611,12 @@ NEXT
  CLC                    ; onto zsg
  LDX INWK+8
  BPL SC3                ; z +ve
- EOR #&FF                ; else
+ EOR #&FF               ; else
  SEC                    ; flip zhi/4
 
 .SC3                    ; z +ve
  ADC #35                ; zhi/4+ #35
- EOR #&FF                ; flip to screen lo
+ EOR #&FF               ; flip to screen lo
  STA SC                 ; store Z component of stick base
 
  LDA INWK+4             ; yhi
@@ -6622,7 +6624,7 @@ NEXT
  CLC                    ; onto ysg
  LDX INWK+5
  BMI SCD6               ; y +ve
- EOR #&FF                ; else flip yhi/2
+ EOR #&FF               ; else flip yhi/2
  SEC
 
 .SCD6                   ; y +ve , now add to z-component
@@ -6772,12 +6774,12 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT54
 \
-\ This routine twists the three two-byte seeds in QQ15.
+\ This routine twists the three 16-bit seeds in QQ15.
 \
 \ How it works:
 \
 \ Famously, the universe in Elite is generated procedurally, and the core of
-\ this process is the set of three two-byte seeds that describe each system in
+\ this process is the set of three 16-bit seeds that describe each system in
 \ the universe. Each of the eight galaxies in the game is generated in the same
 \ way, by taking an initial set of seeds and "twisting" them to generate 256
 \ systems, one after the other (the actual twisting process is described
@@ -6834,7 +6836,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ In Elite, the numbers we're dealing with are two-byte, 16-bit numbers, and
 \ because these 16-bit numbers can only hold values up to 65535, the sequence
 \ wraps around at the end. But the maths is the same, it just has to be done
-\ on two-byte numbers, one byte at a time.
+\ on 16-bit numbers, one byte at a time.
 \
 \ The seeds are stored as little-endian 16-bit numbers, so the low (least
 \ significant) byte is first, followed by the high (most significant) byte.
@@ -6847,7 +6849,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \   w2  QQ15+4    QQ15+5
 \
 \ If we denote the low byte of w0 as w0_lo and the high byte as w0_hi, then
-\ the twist operation above can be rewritten for two-byte values like this,
+\ the twist operation above can be rewritten for 16-bit values like this,
 \ assuming the additions include the carry flag:
 \ 
 \   tmp_lo = w0_lo + w1_lo          ; tmp = w0 + w1
@@ -6859,7 +6861,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \   w2_lo  = tmp_lo + w1_lo         ; w2 = tmp + w1
 \   w2_hi  = tmp_hi + w1_hi
 \
-\ And that's exactly what this subroutine does to twist our three two-byte
+\ And that's exactly what this subroutine does to twist our three 16-bit
 \ seeds to the next values in the sequence, using X to store tmp_lo and Y to
 \ store tmp_hi.
 \ *****************************************************************************
@@ -6956,9 +6958,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT67
- LDA #13                ; Load a newline character into Acc
+ LDA #13                ; Load a newline character into A
 
- JMP TT27               ; Print the text token in Acc and return from the
+ JMP TT27               ; Print the text token in A and return from the
                         ; subroutine using a tail call
 
 \ *****************************************************************************
@@ -7257,7 +7259,7 @@ LOAD_D% = LOAD% + P% - CODE%
  CLC                    ; Xorg+cross-hair size
  ADC QQ19+2
  BCC P%+4               ; no X overflow
- LDA #&FF                ; else right edge
+ LDA #&FF               ; else right edge
  STA XX15+2
 
  LDA QQ19+1
@@ -7783,7 +7785,7 @@ LOAD_D% = LOAD% + P% - CODE%
  SEC                    ; Xcoord of star
  SBC QQ0
  BCS TT184              ; xsubtracted
- EOR #&FF                ; else negate
+ EOR #&FF               ; else negate
  ADC #1
 
 .TT184                  ; xsubtracted
@@ -7793,7 +7795,7 @@ LOAD_D% = LOAD% + P% - CODE%
  SEC                    ; Ycoord of star
  SBC QQ1                ; Ypresent
  BCS TT186              ; ysubtracted
- EOR #&FF                ; else negate
+ EOR #&FF               ; else negate
  ADC #1
 
 .TT186                  ; ysubstracted
@@ -7942,7 +7944,7 @@ LOAD_D% = LOAD% + P% - CODE%
  SEC                    ; present X
  SBC QQ0
  BCS TT139              ; x dist-org
- EOR #&FF                ; else negate
+ EOR #&FF               ; else negate
  ADC #1
 
 .TT139                  ; x dist-org
@@ -7955,7 +7957,7 @@ LOAD_D% = LOAD% + P% - CODE%
  SEC                    ; Y subtracted
  SBC QQ1
  BCS TT141              ; y dist-org
- EOR #&FF                ; else negate
+ EOR #&FF               ; else negate
  ADC #1
 
 .TT141                  ; y dist-org
@@ -8089,7 +8091,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: ee3
 \
-\ Print the one-byte number in X at text location (0, 1). Print the number to
+\ Print the 8-bit number in X at text location (0, 1). Print the number to
 \ 5 digits, left-padding with spaces for numbers with fewer than 3 digits (so
 \ numbers < 10000 are right-aligned), with no decimal point.
 \
@@ -8110,7 +8112,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: pr6
 \
-\ Print the one-byte number in X to 5 digits, left-padding with spaces for
+\ Print the 8-bit number in X to 5 digits, left-padding with spaces for
 \ numbers with fewer than 3 digits (so numbers < 10000 are right-aligned),
 \ with no decimal point.
 \
@@ -8127,7 +8129,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: pr5
 \
-\ Print the one-byte number in X to 5 digits, left-padding with spaces for
+\ Print the 8-bit number in X to 5 digits, left-padding with spaces for
 \ numbers with fewer than 3 digits (so numbers < 10000 are right-aligned).
 \ Optionally include a decimal point.
 \
@@ -8245,9 +8247,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .TT162
- LDA #' '               ; Load a space character into Acc
+ LDA #' '               ; Load a space character into A
 
- JMP TT27               ; Print the character in Acc and return from the
+ JMP TT27               ; Print the character in A and return from the
                         ; subroutine using a tail call
 
 \ *****************************************************************************
@@ -8290,7 +8292,7 @@ LOAD_D% = LOAD% + P% - CODE%
 .TT163                  ; table Headings for market place
  LDA #17                ; indent
  STA XC
- LDA #&FF                ; token = unit  quantity product unit    price   for   sale
+ LDA #&FF               ; token = unit  quantity product unit    price   for   sale
  BNE TT162+2
 
 \ *****************************************************************************
@@ -8440,7 +8442,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .GTHG                   ; get Thargoid ship
  JSR Ze                 ; Zero for new ship, new inwk coords, ends with dornd and T1 = rnd too.
- LDA #&FF                ; ai attack everyone, has ecm.
+ LDA #&FF               ; ai attack everyone, has ecm.
  STA INWK+32
  LDA #THG               ; thargoid ship
  JSR NWSHP              ; new ship type Acc
@@ -8579,7 +8581,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; else roll on to carry clear and restore cash
 
 \ *****************************************************************************
-\ Subroutine: 
+\ Subroutine: MCASH
 \
 \ More cash, add Xlo.Yhi
 \ *****************************************************************************
@@ -8995,7 +8997,7 @@ MAPCHAR '4', '4'
 \
 \ How it works:
 \
-\ System names are generated from the three two-byte seeds for that system. In
+\ System names are generated from the three 16-bit seeds for that system. In
 \ the case of the selected system, those seeds live at QQ15. The process works
 \ as follows, where w0, w1, w2 are the seeds for the system in question 
 \
@@ -9018,7 +9020,7 @@ MAPCHAR '4', '4'
 
 .cpl
  LDX #5                 ; First we need to backup the seeds in QQ15, so set up
-                        ; a counter in X to cover three two-byte seeds (i.e.
+                        ; a counter in X to cover three 16-bit seeds (i.e.
                         ; 6 bytes)
 
 .TT53
@@ -9062,7 +9064,7 @@ MAPCHAR '4', '4'
 
  LDX #5                 ; We have printed the system name, so we can now
                         ; restore the seeds we backed up earlier. Set up a
-                        ; counter in X to cover three two-byte seeds (i.e. 6
+                        ; counter in X to cover three 16-bit seeds (i.e. 6
                         ; bytes)
 
 .TT56
@@ -9111,7 +9113,7 @@ MAPCHAR '4', '4'
  BNE cmn-1              ; then return from the subroutine, as we are in
                         ; witchspace, and witchspace doesn't have a system name
  
- JSR TT62               ; Call TT62 below to swap the three two-byte seeds in
+ JSR TT62               ; Call TT62 below to swap the three 16-bit seeds in
                         ; QQ2 and QQ15 (before the swap, QQ2 contains the seeds
                         ; for the current system, while QQ15 contains the seeds
                         ; for the selected system)
@@ -9126,7 +9128,7 @@ MAPCHAR '4', '4'
                         ; TT62 will return from the subroutine
 
 .TT62
- LDX #5                 ; Set up a counter in X for the three two-byte seeds we
+ LDX #5                 ; Set up a counter in X for the three 16-bit seeds we
                         ; want to swap (i.e. 6 bytes)
 
 .TT78
@@ -9202,8 +9204,8 @@ MAPCHAR '4', '4'
 .csh
  LDX #3                 ; We are going to use the BPRNT routine to print out
                         ; the current amount of cash, which is stored as a
-                        ; four-byte number at location CASH. BPRNT prints out
-                        ; the four-byte number stored in K, so before we call
+                        ; 32-bit number at location CASH. BPRNT prints out
+                        ; the 32-bit number stored in K, so before we call
                         ; BPRNT, we need to copy the four bytes from CASH into
                         ; K, so first we set up a counter in X for the 4 bytes
 
@@ -9236,11 +9238,11 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   Acc         The text token to be printed
+\   A           The text token to be printed
 \ *****************************************************************************
 
 .plf
- JSR TT27               ; Print the text token in Acc
+ JSR TT27               ; Print the text token in A
 
  JMP TT67               ; Jump to TT67, which prints a newline
 
@@ -9251,12 +9253,12 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   Acc         The text token to be printed
+\   A           The text token to be printed
 \ *****************************************************************************
 
 .TT68
- JSR TT27               ; Print the text token in Acc and fall through to TT73
-                        ; to print a colon
+ JSR TT27               ; Print the text token in A and fall through to TT73 to
+                        ; print a colon
 
 \ *****************************************************************************
 \ Subroutine: TT73
@@ -9265,7 +9267,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 
 .TT73
- LDA #':'               ; Set Acc to ASCII ':' and fall through to TT27 to
+ LDA #':'               ; Set A to ASCII ':' and fall through to TT27 to
                         ; actually print the colon
 
 \ *****************************************************************************
@@ -9277,13 +9279,13 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   Acc         The text token to be printed
+\   A           The text token to be printed
 \ *****************************************************************************
 
 .TT27
- TAX                    ; Copy the token number from Acc to X. We can then keep
+ TAX                    ; Copy the token number from A to X. We can then keep
                         ; decrementing X and testing it against zero, while
-                        ; keeping the original token number intact in Acc; this
+                        ; keeping the original token number intact in A; this
                         ; effectively implements a switch statement on the
                         ; value of the token
 
@@ -9332,9 +9334,9 @@ MAPCHAR '4', '4'
  BEQ crlf               ; 21 and print a colon), so jump to crlf
  
  CMP #96                ; By this point, token is either 7, or in 10-127.
- BCS ex                 ; Check token number in Acc and if token >= 96, then
-                        ; the token is in 96-127, which is a recursive token,
-                        ; so jump to ex, which prints recursive tokens in this
+ BCS ex                 ; Check token number in A and if token >= 96, then the
+                        ; token is in 96-127, which is a recursive token, so
+                        ; jump to ex, which prints recursive tokens in this
                         ; range (i.e. where the recursive token number is
                         ; correct and doesn't need correcting)
  
@@ -9385,18 +9387,18 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   Acc         The character to be printed. Can be one of the following:
+\   A           The character to be printed. Can be one of the following:
 \                   * 7 (beep)
 \                   * 10-13 (line feeds and carriage returns)
 \                   * 32-95 (ASCII capital letters, numbers and punctuation)
 \ *****************************************************************************
 
 .TT42
- CMP #'A'               ; If Acc < ASCII 'A', then this is punctuation, so
- BCC TT44               ; jump to TT26 (via TT44) to print the character as is,
-                        ; as we don't care about the character's case
+ CMP #'A'               ; If A < ASCII 'A', then this is punctuation, so jump
+ BCC TT44               ; to TT26 (via TT44) to print the character as is, as
+                        ; we don't care about the character's case
 
- CMP #'Z' + 1           ; If Acc >= (ASCII 'Z' + 1), then this is also
+ CMP #'Z' + 1           ; If A >= (ASCII 'Z' + 1), then this is also
  BCS TT44               ; punctuation, so jump to TT26 (via TT44) to print the
                         ; character as is, as we don't care about the
                         ; character's case
@@ -9405,7 +9407,7 @@ MAPCHAR '4', '4'
                         ; to lower case
 
 .TT44
- JMP TT26               ; Print the character in Acc
+ JMP TT26               ; Print the character in A
 
 \ *****************************************************************************
 \ Subroutine: TT41
@@ -9424,7 +9426,7 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   Acc         The character to be printed. Can be one of the following:
+\   A           The character to be printed. Can be one of the following:
 \                   * 7 (beep)
 \                   * 10-13 (line feeds and carriage returns)
 \                   * 32-95 (ASCII capital letters, numbers and punctuation)
@@ -9440,9 +9442,9 @@ MAPCHAR '4', '4'
                         ; set, so we are in Sentence Case and we need to print
                         ; the next letter in upper case
 
- CMP #'A'               ; If Acc < ASCII 'A', then this is punctuation, so
- BCC TT74               ; jump to TT26 (via TT44) to print the character as is,
-                        ; as we don't care about the character's case
+ CMP #'A'               ; If A < ASCII 'A', then this is punctuation, so jump
+ BCC TT74               ; to TT26 (via TT44) to print the character as is, as
+                        ; we don't care about the character's case
 
  PHA                    ; Otherwise this is a letter, so store the token number
  
@@ -9450,10 +9452,10 @@ MAPCHAR '4', '4'
  ORA #64                ; so the next letter after this one is printed in lower
  STA QQ17               ; case
  
- PLA                    ; Restore the token number into Acc
+ PLA                    ; Restore the token number into A
  
- BNE TT44               ; Jump to TT26 (via TT44) to print the character in Acc
-                        ; (this BNE is effectively a JMP as Acc will never be
+ BNE TT44               ; Jump to TT26 (via TT44) to print the character in A
+                        ; (this BNE is effectively a JMP as A will never be
                         ; zero)
 
 \ *****************************************************************************
@@ -9464,7 +9466,7 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   Acc         A value from 128-145, which refers to a recursive token in the
+\   A           A value from 128-145, which refers to a recursive token in the
 \               range 14-31
 \ *****************************************************************************
 
@@ -9486,7 +9488,7 @@ MAPCHAR '4', '4'
  STA XC
 
  BNE TT73               ; Jump to TT73, which prints a colon (this BNE is
-                        ; effectively a JMP as Acc is always non-zero)
+                        ; effectively a JMP as A is always non-zero)
 
 \ *****************************************************************************
 \ Subroutine: TT45
@@ -9503,7 +9505,7 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   Acc         The character to be printed. Can be one of the following:
+\   A           The character to be printed. Can be one of the following:
 \                   * 7 (beep)
 \                   * 10-13 (line feeds and carriage returns)
 \                   * 32-95 (ASCII capital letters, numbers and punctuation)
@@ -9513,10 +9515,10 @@ MAPCHAR '4', '4'
                         ; are in Sentence Case and we need to print the next
                         ; letter in lower case
 
- CPX #&FF                ; If QQ17 = #&FF then return from the subroutine (as)
+ CPX #&FF               ; If QQ17 = #&FF then return from the subroutine (as)
  BEQ TT48               ; TT48 contains an RTS)
 
- CMP #'A'               ; If Acc >= ASCII 'A', then jump to TT42, which will
+ CMP #'A'               ; If A >= ASCII 'A', then jump to TT42, which will
  BCS TT42               ; print the letter in lowercase
  
                         ; Otherwise this is not a letter, it's punctuation, so
@@ -9538,7 +9540,7 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   Acc         The character to be printed. Can be one of the following:
+\   A           The character to be printed. Can be one of the following:
 \                   * 7 (beep)
 \                   * 10-13 (line feeds and carriage returns)
 \                   * 32-95 (ASCII capital letters, numbers and punctuation)
@@ -9551,7 +9553,7 @@ MAPCHAR '4', '4'
  AND #191               ; so the next letter after this one is printed in upper
  STA QQ17               ; case
  
- PLA                    ; Restore the token number into Acc
+ PLA                    ; Restore the token number into A
 
                         ; Now fall through into TT74 to print the character
 
@@ -9562,11 +9564,11 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   Acc         The character to be printed
+\   A           The character to be printed
 \ *****************************************************************************
 
 .TT74
- JMP TT26               ; Print the character in Acc
+ JMP TT26               ; Print the character in A
 
 \ *****************************************************************************
 \ Subroutine: TT43
@@ -9576,7 +9578,7 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   Acc         One of the following:
+\   A           One of the following:
 \                   * 128-159 (two-letter token)
 \                   * 160-255 (the argument to TT27 that refers to a recursive
 \                     token in the range 0-95)
@@ -9620,18 +9622,18 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   Acc         The recursive token to be printed, in the range 0-148
+\   A           The recursive token to be printed, in the range 0-148
 \
 \ How it works:
 \
 \ This routine works its way through the recursive tokens that are stored in
-\ tokenised form in memory at &0400 - &06FF, and when it finds token number
-\ Acc, it prints it. Tokens are null-terminated in memory and fill three
-\ pages, but there is no lookup table as that would consume too much memory,
-\ so the only way to find the correct token is to start at the beginning and
-\ look through the table byte by byte, counting tokens as we go until we are
-\ in the right place. This approach might not be terribly speed efficient, but
-\ it is certainly memory-efficient.
+\ tokenised form in memory at &0400 - &06FF, and when it finds token number A,
+\ it prints it. Tokens are null-terminated in memory and fill three pages,
+\ but there is no lookup table as that would consume too much memory, so the
+\ only way to find the correct token is to start at the beginning and look
+\ through the table byte by byte, counting tokens as we go until we are in the
+\ right place. This approach might not be terribly speed efficient, but it is
+\ certainly memory-efficient.
 \
 \ The variable QQ18 points to the token table at &0400.
 \
@@ -9649,8 +9651,8 @@ MAPCHAR '4', '4'
  LDY #0                 ; Set a counter Y to point to the character offset
                         ; as we scan through the table
 
- TXA                    ; Copy the token number back into Acc, so both Acc and
-                        ; X now contain the token number we want to print
+ TXA                    ; Copy the token number back into A, so both A and X
+                        ; now contain the token number we want to print
 
  BEQ TT50               ; If the token number we want is 0, then we have
                         ; already found the token we are looking for, so jump
@@ -9712,7 +9714,7 @@ MAPCHAR '4', '4'
                         ; (see elite-words.asm for details), so we repeat the
                         ; EOR to get the actual character to print
 
- JSR TT27               ; Print the text token in Acc, which could be a letter,
+ JSR TT27               ; Print the text token in A, which could be a letter,
                         ; number, control code, two-letter token or another
                         ; recursive token
 
@@ -9729,7 +9731,7 @@ MAPCHAR '4', '4'
  INC V+1                ; page, so increment V+1 so that V points to the start
                         ; of the new page
 
- LDA (V),Y              ; Load the next character we want to print into Acc
+ LDA (V),Y              ; Load the next character we want to print into A
 
  BNE TT50               ; If this is not the null character at the end of the
                         ; token, jump back up to TT50 to print the next
@@ -9838,7 +9840,7 @@ MAPCHAR '4', '4'
  INY                    ; ship byte1 = Cloud counter
  LDA (XX19),Y
  BPL P%+4               ; Cloud counter not half way, skip flip
- EOR #&FF                ; else more than half way through cloud counter
+ EOR #&FF               ; else more than half way through cloud counter
  LSR A
  LSR A
  LSR A                  ; cloud counter/8 max = 15 pixels
@@ -10050,12 +10052,12 @@ MAPCHAR '4', '4'
  BNE WSL1               ; outer loop X
 
 .WS2                    ; exit as Nothing
- LDX #&FF                ; clear line buffers
+ LDX #&FF               ; clear line buffers
  STX LSX2               ; lines X2
  STX LSY2               ; lines Y2
 
 \ *****************************************************************************
-\ Subroutine: 
+\ Subroutine: FLFLLS
 \
 \ New Flood-filled Sun, ends with Acc=0
 \ *****************************************************************************
@@ -10156,7 +10158,7 @@ MAPCHAR '4', '4'
  RTS
 
 .LL163                  ; flip sign of X
- LDY #&FF                ; hi -ve
+ LDY #&FF               ; hi -ve
  TXA                    ; 7bits
  EOR #&FF
  TAX                    ; flipped
@@ -10210,7 +10212,7 @@ MAPCHAR '4', '4'
  LDA #&F0               ; default compass colour yellow
  LDX XX15+2             ; zunit
  BPL P%+4               ; its in front
- LDA #&FF                ; else behind colour is green
+ LDA #&FF               ; else behind colour is green
  STA COMC               ; compass colour
 
 \ *****************************************************************************
@@ -10926,13 +10928,13 @@ MAPCHAR '4', '4'
 
 .PLF3                   ; flip height for planet/sun fill
  TXA                    ; Yscreen height lo
- EOR #&FF                ; flip
+ EOR #&FF               ; flip
  CLC
  ADC #1
  TAX                    ; height flipped
 
 .PLF17                  ; up A = #&FF as Xlo =0
- LDA #&FF                ; fringe flag will run up
+ LDA #&FF               ; fringe flag will run up
  JMP PLF5               ; guaranteed, Xreg = height ready
 
 \ *****************************************************************************
@@ -11037,7 +11039,7 @@ MAPCHAR '4', '4'
  CLC
  ADC Q                  ; new extent
  BCC PLF44              ; not saturated
- LDA #&FF                ; fringe max extent
+ LDA #&FF               ; fringe max extent
 
 .PLF44                  ; fringes not saturated
  LDX LSO,Y
@@ -11175,10 +11177,10 @@ MAPCHAR '4', '4'
  LDX CNT                ; the count around the circle
  CPX #33                ; <= #32 ?
  BCC PL37               ; right-half of circle
- EOR #&FF                ; else Xreg = A lo flipped
+ EOR #&FF               ; else Xreg = A lo flipped
  ADC #0
  TAX                    ; lo
- LDA #&FF                ; hi flipped
+ LDA #&FF               ; hi flipped
  ADC #0                 ; any carry
  STA T
  TXA                    ; lo flipped, later moved into K6(0,1) for BLINE x offset
@@ -11204,10 +11206,10 @@ MAPCHAR '4', '4'
  CMP #33                ; <= 32 ?
  BCC PL38               ; if true skip y flip
  TXA                    ; Ylo
- EOR #&FF                ; flip
+ EOR #&FF               ; flip
  ADC #0
  TAX                    ; Ylo flipped
- LDA #&FF                ; hi flipped
+ LDA #&FF               ; hi flipped
  ADC #0                 ; any carry
  STA T
  CLC
@@ -11234,7 +11236,7 @@ MAPCHAR '4', '4'
  CPY LSP
  BCS WP1                ; arc step reached, exit to Avoid lines.
  LDA LSY2,Y             ; buffer Ycoords
- CMP #&FF                ; flag
+ CMP #&FF               ; flag
  BEQ WP2                ; move into X1,Y1
  STA Y2                 ; else move into X2,Y2
  LDA LSX2,Y             ; buffer Xcoords
@@ -11393,11 +11395,11 @@ MAPCHAR '4', '4'
  LDX U                  ; restore index
  LDY K+3                ; sign
  BPL PL12               ; +ve
- EOR #&FF                ; else flip A hi
+ EOR #&FF               ; else flip A hi
  CLC
  ADC #1
  BEQ PL12               ; +ve
- LDY #&FF                ; else A flipped
+ LDY #&FF               ; else A flipped
  RTS
 
 .PL12                   ; +ve
@@ -11459,7 +11461,7 @@ MAPCHAR '4', '4'
  ADC #1                 ; flipped lo
  STA K
  TXA                    ; K+1
- EOR #&FF                ; flip hi
+ EOR #&FF               ; flip hi
  ADC #0
  TAX                    ; X = K+1 hi flipped
 
@@ -11492,7 +11494,7 @@ MAPCHAR '4', '4'
  LDA JSTK               ; or joystick used
  BEQ TJ1                ; hop down, Arrows from keyboard, else joystick
  LDA JSTX
- EOR #&FF                ; flip sign
+ EOR #&FF               ; flip sign
  JSR TJS1               ; Yreg = -2 to +2 for -JSTX
  TYA                    ; Acc  = -2 to +2 for -JSTX
  TAX                    ; Xreg = -2 to +2 for -JSTX
@@ -11814,7 +11816,7 @@ LOAD_F% = LOAD% + P% - CODE%
 .RES2                   ; Reset2, done after launch or hyper, new dust.
  LDA #NOST
  STA NOSTM              ; number of stars, dust.
- LDX #&FF                ; bline buffers cleared, 78 bytes.
+ LDX #&FF               ; bline buffers cleared, 78 bytes.
  STX LSX2
  STX LSY2
  STX MSTG               ; missile has no target
@@ -12115,7 +12117,7 @@ LOAD_F% = LOAD% + P% - CODE%
 .MLOOP                  ; MAIN loop ending
  LDA #1
  STA VIA+&E
- LDX #&FF                ; Clear Stack
+ LDX #&FF               ; Clear Stack
  TXS                    ; to Stack
  LDX GNTMP              ; gun temperature
  BEQ EE20               ; cold laser
@@ -12488,10 +12490,6 @@ ENDIF
  JMP FRCE               ; Forced to enter main loop
 
 \ *****************************************************************************
-\ TITLE SCREEN, X=SHIP TYPE, A=MESSAGE STRING
-\ *****************************************************************************
-
-\ *****************************************************************************
 \ Subroutine: TITLE
 \
 \ Yitle screen, X=ship type, A=message string
@@ -12715,7 +12713,7 @@ ENDIF
                         ; with - i.e. zero
 
  STX SC+1               ; We want to zero-fill page X, so store this in the
-                        ; high byte of SC, so the two-byte address in SC and
+                        ; high byte of SC, so the 16-bit address in SC and
                         ; SC+1 is now pointing to the SC-th byte of page X
 
 .ZEL1
@@ -13124,7 +13122,7 @@ ENDIF
  LDX KYTB,Y
  JSR DKS4               ; scan from key X, returned in X and A.
  BPL DKS2-1             ; rts
- LDX #&FF                ; keyboard logger	
+ LDX #&FF               ; keyboard logger	
  STX KL,Y
  RTS
 
@@ -13181,7 +13179,7 @@ ENDIF
  CPX T                  ; test against CAPS-LOCK, A, X, F, Y, J, K.
  BNE Dk3
  LDA DAMP-&40,X
- EOR #&FF                ; flip toggle
+ EOR #&FF               ; flip toggle
  STA DAMP-&40,X
  JSR BELL               ; vdu 7
  JSR DELAY              ; with large Y = #40 to #48
@@ -13192,6 +13190,8 @@ ENDIF
 
 \ *****************************************************************************
 \ Subroutine: DKJ1
+\
+\ Key logger
 \
 \  #&46 Does K toggle keyboard/joystick control - certainly makes keyboard not work anymore.
 \  #&45 Does J reverse both joystick channels
@@ -13322,7 +13322,7 @@ ENDIF
  LDA QQ11               ; menu i.d.
  BNE DK5                ; not a space view, rts
  LDY #15                ; Space view. Y = Top of logged keys
- LDA #&FF                ; flag for keyboard logger
+ LDA #&FF               ; flag for keyboard logger
 
 .DKL1                   ; counter Y for Upper logged keys needed for flight
  LDX KYTB,Y
@@ -14099,7 +14099,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LSR A                  ; else do explosion needs all vertices
  LSR A                  ; /=4
  TAX                    ; Xreg = number of normals, faces
- LDA #&FF                ; all faces visible
+ LDA #&FF               ; all faces visible
 
 .EE30                   ; counter X  for each face
  STA XX2,X
@@ -14458,7 +14458,7 @@ LOAD_G% = LOAD% + P% - CODE%
  SBC #0                 ; hi x
  STA XX15+1
  BCS LL53               ; usually ok Onto y
- EOR #&FF                ; else fix x negative
+ EOR #&FF               ; else fix x negative
  STA XX15+1
  LDA #1                 ; negate
  SBC XX15
@@ -14913,7 +14913,7 @@ LOAD_G% = LOAD% + P% - CODE%
  TYA                    ; step Y1 hi
  ADC XX15+3             ; Y1 hi
  STA XX15+3
- LDX #&FF                ; xright max
+ LDX #&FF               ; xright max
  STX XX15               ; X1 lo = 255
  INX                    ; = 0
  STX XX15+1             ; X1 hi
