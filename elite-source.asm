@@ -3886,11 +3886,11 @@ NEXT
                         ;
                         ; It's a long way from 10 PRINT "Hello world!":GOTO 10
 
-\LDX #(K3 MOD256)       ; These instructions are commented out in the original
+\LDX #LO(K3)            ; These instructions are commented out in the original
 \INX                    ; source, but they call OSWORD &A, which reads the
 \STX P+1                ; character bitmap for the character number in K3 and
 \DEX                    ; stores it in the block at K3+1, while also setting
-\LDY #(K3 DIV256)       ; P+1 to point to the character definition. This is
+\LDY #HI(K3)            ; P+1 to point to the character definition. This is
 \STY P+2                ; exactly what the following uncommented code does,
 \LDA #10                ; just without calling OSWORD. Presumably the code
 \JSR OSWORD             ; below is faster than using the system call, as this
@@ -10496,9 +10496,9 @@ MAPCHAR '4', '4'
  JSR NwS1               ; Flip sign of INWK(12)
  JSR NwS1               ; Flip sign of INWK(14)
 
- LDA #(LSO MOD256)      ; solar line buffer
+ LDA #LO(LSO)           ; solar line buffer
  STA INWK+33            ; SST pointer lo
- LDA #(LSO DIV256)
+ LDA #HI(LSO)
  STA INWK+34            ; pointer hi
  LDA #SST               ; Type is space station
 
@@ -10632,8 +10632,8 @@ MAPCHAR '4', '4'
 
 .ECBLB                  ; ECM bulb switch
  LDA #7*8               ; SC lo for E on left of row
- LDX #(ECBT MOD256)
- LDY #(ECBT DIV256)
+ LDX #LO(ECBT)
+ LDY #HI(ECBT)
  BNE BULB-2             ; guaranteed, but assume same Y page
 
 \ *****************************************************************************
@@ -10644,8 +10644,8 @@ MAPCHAR '4', '4'
 
 .SPBLB                  ; Space Station bulb
  LDA #24*8              ; Screen lo destination SC on right of row
- LDX #(SPBT MOD256)     ; font source
- LDY #(SPBT DIV256)
+ LDX #LO(SPBT)          ; font source
+ LDY #HI(SPBT)
 
 .BULB
  STA SC                 ; screen lo
@@ -12744,8 +12744,8 @@ ENDIF
  LDA #15
  TAX
  JSR OSBYTE
- LDX #(RLINE MOD256)
- LDY #(RLINE DIV256)
+ LDX #LO(RLINE)
+ LDY #HI(RLINE)
  LDA #0                 ; RLINE at &39E9 for OSWORD = 0
  JSR OSWORD             ; read input string
  \LDA #1
@@ -13177,8 +13177,8 @@ ENDIF
 .NO3                    ; Sound block ready
  LDX DNOIZ              ; sound toggle
  BNE NO1                ; rts
- LDX #(XX16 MOD256)
- LDY #(XX16 DIV256)
+ LDX #LO(XX16)
+ LDY #HI(XX16)
  LDA #7                 ; SOUND
  JMP OSWORD
 
