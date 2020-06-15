@@ -5786,49 +5786,162 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: ADD
 \
-\ X.A = P.A + R.S
+\ Add two signed 16-bit numbers together, making sure the result has the
+\ correct sign: (A X) = (A P) + (S R)
+\
+\ How it works:
+\
+\ When adding two signed numbers using two's complement, the result can have
+\ the wrong sign when an overflow occurs. The classic example in 8-bit signed
+\ arithmetic is 127 + 1, which doesn't give the expected 128, but instead gives
+\ -128. In binary the sum looks like this:
+\ 
+\   0111 1111 + 0000 0001 = 1000 0000
+\ 
+\ The result has bit 7 set, so it is a negative number, 127 + 1 gives -128.
+\ This is where the overflow flag V comes in - V would be set by the above sum
+\ - but this means that every time you do a sum, you have to check the overflow
+\ flag and deal with the overflow.
+\ 
+\ Elite doesn't want to have to bother with this overhead, so the ADD
+\ subroutine, which adds two signed 16-bit numbers, instead ensures that the
+\ result always had the correct sign, even in the event of an overflow, though
+\ if the addition does overflow, the result still won't be correct. It will
+\ have the right sign, though.
+\ 
+\ To implement this, the algorithm goes as follows. We want to add A and S, so:
+\ 
+\   * If both A and S are positive, just add them as normal
+\ 
+\   * If both A and S are negative, then add them and make sure the result is
+\     negative
+\ 
+\   * If A and S have different signs, then we can use the absolute values of A
+\     and S to work out the sum, as follows:
+\ 
+\     * Subtract the smaller absolute value from the larger absolute value
+\ 
+\     * Give the answer the same sign as the argument with the larger absolute
+\       value
+\ 
+\ To see why this works, try visualising a number line containing the two
+\ numbers A and S, with one to the left of zero and one to the right. Adding
+\ the numbers is a bit like moving the number with the larger absolute value
+\ towards zero on the number line, moving it by the amount of the smaller
+\ absolute number; so it's like subtracting the smaller absolute value from the
+\ larger one. You can also see that the sum of the two numbers will be on the
+\ same side of zero as the number that is furthest from zero, so that's why the
+\ answer should have the same sign as the argument with the larger absolute
+\ value.
+\ 
+\ We can implement these steps like this:
+\   
+\   * If |A| = |S|, then the result is 0
+\ 
+\   * If |A| > |S|, then the result is |A| - |S|, with the sign set to the same
+\     sign as A
+\ 
+\   * If |S| > |A|, then the result is |S| - |A|, with the sign set to the same
+\     sign as S
+\  
+\ So that's what we do below to implement 16-bit signed addition that produces
+\ results with the correct sign.
 \ *****************************************************************************
 
-.ADD                    ; X.A = P.A + R.S
- STA T1                 ; store hi
- AND #128               ; extract sign
+.ADD
+ STA T1                 ; Store argument A in T1
+
+ AND #128               ; Extract the sign (bit 7) of A and store it in T
  STA T
- EOR S
- BMI MU8                ; different signs
- LDA R                  ; lo
- CLC                    ; add lo
- ADC P
- TAX                    ; Xreg=lo
- LDA S                  ; hi
- ADC T1                 ; stored hi
- ORA T                  ; sign
- RTS
 
-.MU8                    ; different signs
- LDA S                  ; hi
- AND #127               ; hi S7
- STA U
- LDA P                  ; lo
- SEC                    ; sub
- SBC R
- TAX                    ; Xreg=lo
- LDA T1                 ; restore hi
- AND #127               ; hi T17
- SBC U
- BCS MU9                ; sign ok
+ EOR S                  ; EOR bit 7 of A with S. If they have different bit 7s
+ BMI MU8                ; (i.e. they have different signs) then bit 7 in the
+                        ; EOR result will be 1, which means the EOR result is
+                        ; negative. So the AND, EOR and BMI together mean "jump
+                        ; to MU8 if A and S have different signs".
  
- STA U
- TXA                    ; lo
- EOR #&FF               ; flip
- ADC #1
- TAX                    ; negated lo
- LDA #0                 ; negate hi
- SBC U
- ORA #128               ; set sign
+                        ; If we reach here, then A and S have the same sign, so
+                        ; we can add them and set the sign to get the result
 
-.MU9                    ; sign ok
- EOR T
- RTS
+ LDA R                  ; Add the least significant bytes together into X, so
+ CLC                    ;
+ ADC P                  ;   X = P + R
+ TAX
+ 
+ LDA S                  ; Add the most significant bytes together into A. We
+ ADC T1                 ; stored the original argument A in T1 earlier, so we
+                        ; can do this with:
+                        ;
+                        ;   A = A  + S + carry
+                        ;     = T1 + S + carry
+
+ ORA T                  ; If argument A was negative (and therefore S was also
+                        ; negative) then make sure result A is negative by
+                        ; OR-ing the result with the sign bit from argument A
+                        ; (which we stored in T)
+
+ RTS                    ; Return from subroutine
+
+.MU8                    ; If we reach here, then A and S have different signs,
+                        ; so we can subtract their absolute values and set the
+                        ; sign to get the result
+
+ LDA S                  ; Clear the sign (bit 7) in S and store the result in
+ AND #127               ; U, so U now contains |S|
+ STA U
+
+ LDA P                  ; Subtract the least significant bytes into X, so
+ SEC                    ;   X = P - R
+ SBC R
+ TAX
+
+ LDA T1                 ; Restore the A of the argument (A P) from T1 and
+ AND #127               ; clear the sign (bit 7), so A now contains |A|
+
+ SBC U                  ; Set A = |A| - |S|
+
+                        ; At this point we have |A P| - |S R| in (A X), so we
+                        ; need to check whether the subtraction above was the
+                        ; the right way round (i.e. that we subtracted the
+                        ; smaller absolute value from the larger absolute
+                        ; value)
+
+ BCS MU9                ; If |A| >= |S|, our subtraction was the right way
+                        ; round, so jump to MU9 to set the sign
+
+                        ; If we get here, then |A| < |S|, so our subtraction
+                        ; above was the wrong way round (we actually subtracted
+                        ; the larger absolute value from the smaller absolute
+                        ; value. So let's subtract the result we have in (A X)
+                        ; from zero, so that the subtraction is the right way
+                        ; round
+
+ STA U                  ; Store A in U
+
+ TXA                    ; Set X = 0 - X using two's complement (to negate a
+ EOR #&FF               ; number in two's complement, you can invert the bits
+ ADC #1                 ; and add one - and we know carry is clear as we didn't
+ TAX                    ; take the BCS branch above, so ADC will do the job)
+
+ LDA #0                 ; Set A = 0 - A, which we can do this time using a
+ SBC U                  ; a subtraction with carry clear
+ 
+ ORA #128               ; We now set the sign bit of A, so that the EOR on the
+                        ; next line wil give the result the opposite sign to
+                        ; argument A (as T contains the sign bit of argument
+                        ; A). This is the same as giving the result the same
+                        ; sign as argument S (as A and S have different signs),
+                        ; which is what we want, as S has the larger absolute
+                        ; value.
+
+.MU9
+ EOR T                  ; If we get here from the BCS above, then |A| >= |S|,
+                        ; so we want to give the result the same sign as
+                        ; argument A, so if argument A was negative, we flip
+                        ; the sign of the result with an EOR (to make it
+                        ; negative)
+
+ RTS                    ; Return from subroutine
 
 \ *****************************************************************************
 \ Subroutine: TIS1
