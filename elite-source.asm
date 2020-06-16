@@ -331,7 +331,7 @@ K6 = K5 + 4             ; Shares memory with XX18+4
 .ALPHA                  ; 
  SKIP 1
 
-.QQ12                   ; 
+.QQ12                   ; Docked flag, &FF = docked
  SKIP 1
 
 .TGT                    ; 
@@ -592,7 +592,7 @@ ORG T%
                         ; 0 internally)
 
 .LASER                  ; Lasers (0 = front, 1 = rear, 2 = left, 3 = right,
- SKIP 6                 ; 4/5 not sure)
+ SKIP 6                 ; 4/5 not used)
 
 .CRGO                   ; Cargo capacity
  SKIP 1
@@ -619,7 +619,9 @@ ORG T%
  SKIP 1
 
 .ESCP                   ; Escape pod
- SKIP 5
+ SKIP 1
+
+ SKIP 4                 ; Not used
 
 .NOMSL                  ; Number of missiles
  SKIP 1
@@ -2122,6 +2124,8 @@ Q% = _ENABLE_MAX_COMMANDER
 \ *****************************************************************************
 \ Variable: NA%
 \
+\ Exposed labels: CHK, CHK2
+\
 \ Contains the last saved commander data, with the name at NA% and the data at
 \ NA%+8 onwards. The size of the data block is given in NT%. This block is
 \ initially set up with the default commander, which can be maxed out for
@@ -2133,12 +2137,30 @@ Q% = _ENABLE_MAX_COMMANDER
 
 .NA%
 {
- EQUS "JAMESON"
- EQUB 13
+ EQUS "JAMESON"         ; Default commander name
+ EQUB 13                ; Terminated by a carriage return; commander name can
+                        ; be up to 7 characters
+ 
  EQUB 0                 ; NA%+8 - the start of the commander data block
+                        ;
+                        ; This block contains the last saved commander data
+                        ; block. As the game is played it uses an identical
+                        ; block at location TP to store the current commander
+                        ; state, and that block is copied here when the game is
+                        ; saved. Conversely, when the game starts up, the block
+                        ; here is copied to TP, which restores the last saved
+                        ; commander when the player dies.
+                        ;
+                        ; The intial state of this block defines the default
+                        ; commander. Q% can be set to TRUE to give the default
+                        ; commander lots of credits and equipment.
+                        ;
+                        ; The first byte of the block should not have bit 7
+                        ; set, or loading it will cause the game to restart
 
  EQUB 20                ; QQ0 = current system X-coordinate (Lave)
  EQUB 173               ; QQ1 = current system Y-coordinate (Lave)
+
  EQUW &5A4A             ; QQ21 = Seed w0 for system 0 in galaxy 0 (Tibedied)
  EQUW &0248             ; QQ21 = Seed w1 for system 0 in galaxy 0 (Tibedied)
  EQUW &B753             ; QQ21 = Seed w2 for system 0 in galaxy 0 (Tibedied)
@@ -2150,8 +2172,11 @@ ELSE
 ENDIF
 
  EQUB 70                ; QQ14 = Fuel level
+
  EQUB 0                 ; COK = Competition code
+
  EQUB 0                 ; GCNT = Galaxy number, 0-7
+
  EQUB POW+(128 AND Q%)  ; LASER = Front laser
 
 IF Q% OR _FIX_REAR_LASER
@@ -2161,24 +2186,40 @@ ELSE
 ENDIF
 
  EQUB 0                 ; LASER+2 = Left laser
+
  EQUB 0                 ; LASER+3 = Right laser
- EQUW 0                 ; LASER+4 = ?
+
+ EQUB 0                 ; LASER+4 not used
+ EQUB 0                 ; LASER+5 not used
+
  EQUB 22+(15 AND Q%)    ; CRGO = Cargo capacity
+
  EQUD 0                 ; QQ20 = Contents of cargo hold (17 bytes)
  EQUD 0
  EQUD 0
  EQUD 0
  EQUB 0
+
  EQUB Q%                ; ECM = E.C.M.
+
  EQUB Q%                ; BST = Fuel scoops ("barrel status")
+
  EQUB Q% AND 127        ; BOMB = Energy bomb
+
  EQUB Q% AND 1          ; ENGY = Energy/shield level
+
  EQUB Q%                ; DKCMP = Docking computer
+
  EQUB Q%                ; GHYP = Galactic hyperdrive
+
  EQUB Q%                ; ESCP = Escape pod
- EQUD FALSE             ; EXPAND = ?
+
+ EQUD FALSE             ; Not used
+
  EQUB 3+(Q% AND 1)      ; NOMSL = Number of missiles
+
  EQUB FALSE             ; FIST = Legal status ("fugitive/innocent status")
+
  EQUB 16                ; AVL = Market availability (17 bytes)
  EQUB 15
  EQUB 17
@@ -2195,11 +2236,13 @@ ENDIF
  EQUB 9
  EQUB 8
  EQUB 0
+
  EQUB 0                 ; QQ26 = Random byte that changes for each visit to a
                         ; system, for randomising market prices
+
  EQUW 0                 ; TALLY = Number of kills
+
  EQUB 128               ; SVC = Save count
-}
 
 IF _FIX_REAR_LASER
  CH% = &3
@@ -2209,14 +2252,11 @@ ENDIF
 
 PRINT "CH% = ", ~CH%
 
-.CHK2
-{
- EQUB CH% EOR &A9
-}
+.^CHK2                  ; Commander checksum byte, EOR'd with &A9 to make it
+ EQUB CH% EOR &A9       ; harder to tamper with the checksum byte
 
-.CHK
-{
- EQUB CH%
+.^CHK                   ; Commander checksum byte, see elite-checksum.py for
+ EQUB CH%               ; more details
 }
 
 \ *****************************************************************************
@@ -13472,15 +13512,22 @@ ENDIF
 \ *****************************************************************************
 \ Subroutine: BAY
 \
-\ In Docking Bay also after errors
+\ Go to docking bay (i.e. show Status Mode)
+\
+\ We end up here after the startup process (load commander etc.), as well as
+\ after a successful save, an escape pod launch, a successful docking, the end
+\ of a cargo sell, and various errors (such as not having enough cash, entering
+\ too many items when buying, trying to fit an item to your ship when you
+\ already have it, running out of cargo space, and so on)
 \ *****************************************************************************
 
-.BAY                    ; In Docking Bay also after errors
+.BAY
 {
- LDA #&FF
- STA QQ12               ; Docked flag
- LDA #f8                ; red key #f8 = Status
- JMP FRCE               ; Forced to enter main loop
+ LDA #&FF               ; Set QQ12 = &FF (the docked flag) to indicate that we
+ STA QQ12               ; are docked
+
+ LDA #f8                ; Jump into the main loop at FRCE, setting the key
+ JMP FRCE               ; "pressed" to red key F8 (so we show Status Mode)
 }
 
 \ *****************************************************************************
