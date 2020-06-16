@@ -23,17 +23,18 @@ ZP = 0                  ; &0000 to &00B0 - Zero page variables, see below for
                         ; details of what is stored here
 
 XX3 = &0100             ; &0100 to &01FF - Used as heap space for storing
-                        ; temporary data during calculations
+                        ; temporary data during calculations; shared with the
+                        ; descending 6502 stack, which works down from &01FF
 
-T% = &0300              ; &0300 to &035F - Workspace T%, see below for details
-                        ; of what is stored here
+T% = &0300              ; &0300 to &035F - Workspace T%, contains the current
+                        ; commander data and the stardust data block
 
 QQ18 = &0400            ; &0400 to &07FF - Recursive token table, see
                         ; elite-words.asm for details of what is stored here
 
-K% = &0900              ; &0900 to &0CFF - Workspace K%, pointed to by table
-                        ; in UNIV, first 468 bytes holds 13 ships data, 36
-                        ; (NI%) bytes each
+K% = &0900              ; &0900 to &0CFF - Workspace K%, pointed to by the
+                        ; lookup table at location UNIV, the first 468 bytes
+                        ; of which holds data on 13 ships, 36 (NI%) bytes each
 
 WP = &0D40              ; &0D40 to &0F34 - Workspace WP, see below for details
                         ; of what is stored here
@@ -47,6 +48,7 @@ NOST = 18               ; Max number of stardust particles
 NOSH = 12               ; Max number of ships
 
 COPS = 2                ; Viper
+MAM = 3                 ; Mamba
 CYL = 7                 ; Cobra Mk III
 THG = 6                 ; Thargoid
 SST = 8                 ; Space station
@@ -302,7 +304,7 @@ K6 = K5 + 4             ; Shares memory with XX18+4
 .XX17                   ; Temporary storage (e.g. used in BPRNT to store the
  SKIP 1                 ; number of characters to print)
 
-.QQ11                   ; 
+.QQ11                   ; Current view (0 = space view)
  SKIP 1
 
 .ZZ                     ; 
@@ -539,10 +541,10 @@ LSX = LSO               ; Shares memory with LSO
 .QQ8                    ; 
  SKIP 2
 
-.QQ9                    ; 
+.QQ9                    ; Target system X-coordinate
  SKIP 1
 
-.QQ10                   ; 
+.QQ10                   ; Target system Y-coordinate
  SKIP 1
 
 .NOSTM                   ; 
@@ -552,91 +554,102 @@ PRINT "WP workspace from  ", ~WP," to ", ~P%
 
 \ *****************************************************************************
 \ Workspace at T% = &300 - &035F
+\
+\ Contains the current commander data (NT% bytes at location TP), and the
+\ stardust data block (NOST bytes at location SX)
 \ *****************************************************************************
 
 ORG T%
 
-.TP                     ; 
+.TP                     ; Start of the commander block
  SKIP 1
 
-.QQ0                    ; 
+.QQ0                    ; Current system X-coordinate
  SKIP 1
 
-.QQ1                    ; 
+.QQ1                    ; Current system Y-coordinate
  SKIP 1
 
-.QQ21                   ; 
+.QQ21                   ; Three 16-bit seeds for current system
  SKIP 6
 
-.CASH                   ; 
+.CASH                   ; Cash as a 32-bit unsigned integer
  SKIP 4
 
 .QQ14                   ; Contains the current fuel level * 10 (so a 1 in QQ14
  SKIP 1                 ; represents 0.1 light years)
 
-.COK                    ; 
- SKIP 1
+.COK                    ; Competition code
+ SKIP 1                 ;   Bit 7 is set on start-up if CHK and CHK2 do not
+                        ;     match, which might indicate shenanigans
+                        ;   Bit 1 is set on start-up
+                        ;   Bit 0 is set in ptg if player holds X during
+                        ;     hyperspace to force a mis-jump
 
 .GCNT                   ; Contains the current galaxy number, 0-7. When this is
  SKIP 1                 ; displayed in-game, 1 is added to the number (so we
                         ; start in galaxy 1 in-game, but it's stored as galaxy
                         ; 0 internally)
 
-.LASER                  ; 
- SKIP 6
+.LASER                  ; Lasers (0 = front, 1 = rear, 2 = left, 3 = right,
+ SKIP 6                 ; 4/5 not sure)
 
-.CRGO                   ; 
+.CRGO                   ; Cargo capacity
  SKIP 1
 
-.QQ20                   ; 
+.QQ20                   ; Contents of cargo hold
  SKIP 17
 
-.ECM                    ; 
+.ECM                    ; E.C.M.
  SKIP 1
 
-.BST                    ; 
+.BST                    ; Fuel scoops ("barrel status")
  SKIP 1
 
-.BOMB                   ; 
+.BOMB                   ; Energy bomb
  SKIP 1
 
-.ENGY                   ; 
+.ENGY                   ; Energy/shield level
  SKIP 1
 
-.DKCMP                  ; 
+.DKCMP                  ; Docking computer
  SKIP 1
 
-.GHYP                   ; 
+.GHYP                   ; Galactic hyperdrive
  SKIP 1
 
-.ESCP                   ; 
+.ESCP                   ; Escape pod
  SKIP 5
 
-.NOMSL                  ; 
+.NOMSL                  ; Number of missiles
  SKIP 1
 
-.FIST                   ; 
+.FIST                   ; Legal status ("fugitive/innocent status")
  SKIP 1
 
-.AVL                    ; 
+.AVL                    ; Market availability
  SKIP 17
 
-.QQ26                   ; 
- SKIP 1
+.QQ26                   ; Random byte that changes for each visit to a system,
+ SKIP 1                 ; for randomising market prices
 
-.TALLY                  ; 
+.TALLY                  ; Number of kills
  SKIP 2
 
-.SVC                    ; 
- SKIP 3
+.SVC                    ; Save count, gets halved with each save
+ SKIP 1
 
-NT% = SVC + 2 - TP      ; Set to the size of the workspace at T% (&300), from
-                        ; the start of T% to the end of SVC
+ SKIP 2                 ; Reserve two bytes for commander checksum, so when
+                        ; current commander block is copied to the last saved
+                        ; commnder block at NA%, CHK and CHK2 get overwritten
 
-SX = P%                 ; Size of data block at SX is NOST, so this is where we
-                        ; store stardust data
+NT% = SVC + 2 - TP      ; Set to the size of the commander block, which starts
+                        ; at T% (&300) and goes to SVC+3
 
-SXL = SX + NOST + 1     ; And this is the end of the stardust block
+SX = P%                 ; SX points to the stardust data block, which is NOST
+                        ; bytes (NOST = "number of stars")
+
+SXL = SX + NOST + 1     ; SXL points to the end of the stardust data block
 
 PRINT "T% workspace from  ", ~T%, " to ", ~SXL
 
@@ -648,37 +661,51 @@ ORG CODE%
 LOAD_A% = LOAD%
 
 .S%
- EQUW TT170             ; entry point for Elite game
- EQUW TT26              ; WRCHV
- EQUW IRQ1              ; IRQ1V
- EQUW BR1               ; BRKV
+ EQUW TT170             ; Entry point for Elite game; once the main code has
+                        ; been loaded, decrypted and moved to the right place
+                        ; by elite-loader.asm, the game is started by a
+                        ; JMP (S%) instruction, which jumps to the main entry
+                        ; point TT170 via this location
 
-.COMC                   ; 
+ EQUW TT26              ; WRCHV is set to point here by elite-loader.asm
+
+ EQUW IRQ1              ; IRQ1V is set to point here by elite-loader.asm
+
+ EQUW BR1               ; BRKV is set to point here by elite-loader.asm
+
+.COMC                   ; Compass colour, &F0 = in front, &FF = behind
  EQUB 0
 
-.DNOIZ                  ; 
- EQUB 0
+.DNOIZ                  ; Sound on/off, 0 = on, non-zero = off
+ EQUB 0                 ; Toggled by S when paused, see DK4
 
-.DAMP                   ; 
- EQUB 0
+.DAMP                   ; Keyboard damping, 0 = no, &FF = yes
+ EQUB 0                 ; Toggled by Caps Lock when paused, see DKS3
 
-.DJD                    ; 
- EQUB 0
+.DJD                    ; Keyboard auto-recentering, 0 = no, &FF = yes
+ EQUB 0                 ; Toggled by A when paused, see DKS3
 
-.PATG                   ; 
- EQUB 0
+.PATG                   ; Display authors on start screen, 0 = no, &FF = yes
+ EQUB 0                 ; Toggled by X when paused, see DKS3
+                        ;
+                        ; This needs to be set to &FF for manual mis-jumps to
+                        ; be possible; to do a manual mis-jump, first toggle
+                        ; the author display with Pause (Copy) then X, and then
+                        ; hold down Ctrl-X during the next hyperspace to force
+                        ; a mis-jump; see ee5 for the AND PATG instruction that
+                        ; implements this
 
-.FLH                    ; 
- EQUB 0
+.FLH                    ; Flashing console bars, 0 = no, &FF = yes
+ EQUB 0                 ; Toggled by F when paused, see DKS3
 
-.JSTGY                  ; 
- EQUB 0
+.JSTGY                  ; Reverse joystick Y channel, 0 = no, &FF = yes
+ EQUB 0                 ; Toggled by Y when paused, see DKS3
 
-.JSTE                   ; 
- EQUB 0
+.JSTE                   ; Reverse both joystick channels, 0 = no, &FF = yes
+ EQUB 0                 ; Toggled by J when paused, see DKS3
 
-.JSTK                   ; 
- EQUB 0
+.JSTK                   ; Keyboard or joystick, 0 = keyboard, &FF = joystick
+ EQUB 0                 ; Toggled by K when paused, see DKS3
 
 \ *****************************************************************************
 \ Subroutine: M%
@@ -2095,7 +2122,10 @@ Q% = _ENABLE_MAX_COMMANDER
 \ *****************************************************************************
 \ Variable: NA%
 \
-\ Contains commander details (save file)
+\ Contains the last saved commander data, with the name at NA% and the data at
+\ NA%+8 onwards. The size of the data block is given in NT%. This block is
+\ initially set up with the default commander, which can be maxed out for
+\ testing purposes by setting Q% to TRUE.
 \
 \ Commander's name is stored at NA%, up to 7 characters (DFS filename limit)
 \ Terminated with CR, 13
@@ -2105,52 +2135,51 @@ Q% = _ENABLE_MAX_COMMANDER
 {
  EQUS "JAMESON"
  EQUB 13
- EQUB 0
+ EQUB 0                 ; NA%+8 - the start of the commander data block
 
- EQUB 20                ; QQ0
- EQUB 173               ; QQ1
- EQUD &2485A4A          ; QQ21
- EQUW &B753             ; Base seed
- 
-;EQUD(((&E8030000)AND(NOTQ%))+((&CA9A3B)ANDQ%))\CASH,&80969800
+ EQUB 20                ; QQ0 = current system X-coordinate (Lave)
+ EQUB 173               ; QQ1 = current system Y-coordinate (Lave)
+ EQUW &5A4A             ; QQ21 = Seed w0 for system 0 in galaxy 0 (Tibedied)
+ EQUW &0248             ; QQ21 = Seed w1 for system 0 in galaxy 0 (Tibedied)
+ EQUW &B753             ; QQ21 = Seed w2 for system 0 in galaxy 0 (Tibedied)
 
 IF Q%
- EQUD &00CA9A3B         ; CASH
+ EQUD &00CA9A3B         ; CASH = Amount of cash (100,000,000 Cr)
 ELSE
- EQUD &E8030000         ; 100 Cr CASH
+ EQUD &E8030000         ; CASH = Amount of cash (100 Cr)
 ENDIF
 
- EQUB 70                ; fuel
- EQUB 0                 ; COK-UP
- EQUB 0                 ; GALACTIC COUNT
- EQUB POW + (128 AND Q%); Front laser
+ EQUB 70                ; QQ14 = Fuel level
+ EQUB 0                 ; COK = Competition code
+ EQUB 0                 ; GCNT = Galaxy number, 0-7
+ EQUB POW+(128 AND Q%)  ; LASER = Front laser
 
 IF Q% OR _FIX_REAR_LASER
- EQUB (POW + 128) AND Q%; Rear laser, as in ELITEB source
+ EQUB (POW+128) AND Q%  ; LASER+1 = Rear laser, as in ELITEB source
 ELSE
- EQUB POW               ; Rear pulse laser, as per extracted ELTB binary
+ EQUB POW               ; LASER+1 = Rear pulse laser, as per extracted ELTB binary
 ENDIF
 
+ EQUB 0                 ; LASER+2 = Left laser
+ EQUB 0                 ; LASER+3 = Right laser
+ EQUW 0                 ; LASER+4 = ?
+ EQUB 22+(15 AND Q%)    ; CRGO = Cargo capacity
+ EQUD 0                 ; QQ20 = Contents of cargo hold (17 bytes)
+ EQUD 0
+ EQUD 0
+ EQUD 0
  EQUB 0
- EQUB 0
- EQUW 0                 ; LASER
- EQUB 22 + (15 AND Q%)  ; 37 CRGO
- EQUD 0
- EQUD 0
- EQUD 0
- EQUD 0
- EQUB 0                 ; crgo
- EQUB Q%                ; ECM
- EQUB Q%                ; BST
- EQUB Q% AND 127        ; BOMB
- EQUB Q% AND 1          ; ENGY++
- EQUB Q%                ; DCK COMP
- EQUB Q%                ; GHYP
- EQUB Q%                ; ESCP
- EQUD FALSE             ; EXPAND
- EQUB 3 + (Q% AND 1)    ; MISSILES
- EQUB FALSE             ; FIST
- EQUB 16
+ EQUB Q%                ; ECM = E.C.M.
+ EQUB Q%                ; BST = Fuel scoops ("barrel status")
+ EQUB Q% AND 127        ; BOMB = Energy bomb
+ EQUB Q% AND 1          ; ENGY = Energy/shield level
+ EQUB Q%                ; DKCMP = Docking computer
+ EQUB Q%                ; GHYP = Galactic hyperdrive
+ EQUB Q%                ; ESCP = Escape pod
+ EQUD FALSE             ; EXPAND = ?
+ EQUB 3+(Q% AND 1)      ; NOMSL = Number of missiles
+ EQUB FALSE             ; FIST = Legal status ("fugitive/innocent status")
+ EQUB 16                ; AVL = Market availability (17 bytes)
  EQUB 15
  EQUB 17
  EQUB 0
@@ -2166,9 +2195,10 @@ ENDIF
  EQUB 9
  EQUB 8
  EQUB 0
- EQUB 0                 ; QQ26
- EQUW 0                 ; TALLY
- EQUB 128               ; SVC
+ EQUB 0                 ; QQ26 = Random byte that changes for each visit to a
+                        ; system, for randomising market prices
+ EQUW 0                 ; TALLY = Number of kills
+ EQUB 128               ; SVC = Save count
 }
 
 IF _FIX_REAR_LASER
@@ -8907,20 +8937,22 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: hyp1
 \
-\ Arrive in system closest to QQ9,10
+\ Arrive in the system closest to (QQ9, QQ10)
 \ *****************************************************************************
 
 .hyp1
 {
- JSR TT111              ; closest to QQ9,10
+ JSR TT111              ; Calculate closest system to (QQ9, QQ10) and then fall
+                        ; through into arrival routine below
 }
 
 \ *****************************************************************************
 \ Subroutine: hyp1+3
 \
-\ Don't move to QQ9,10 but do Arrive in system.
+\ Arrive in the system at (QQ9, QQ10)
 \ *****************************************************************************
 
+{
  JSR jmp                ; move target coordinates to present
  LDX #5                 ; 6 bytes
 
@@ -8938,6 +8970,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA QQ4                ; Government, 0 is Anarchy
  STA gov                ; gov of present system
  RTS
+}
 
 \ *****************************************************************************
 \ Subroutine: GVL
@@ -9012,8 +9045,8 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .ptg                    ; shift forced hyperspace misjump
 {
- LSR COK                ; file check cash/competition
- SEC                    ; set bit0
+ LSR COK                ; Set bit 0 of COK, the competition code
+ SEC
  ROL COK
 }
 
@@ -9804,6 +9837,7 @@ MAPCHAR '4', '4'
  JSR plf                ; a newline
 
 .PCASH                  ; This label is not used but is in the original source
+
  LDA #119               ; Print recursive token 119 ("CASH:" then control code
  BNE TT27               ; 0, which prints cash levels, then " CR" and newline)
 }
@@ -12343,19 +12377,26 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: ping
 \
-\ Move to home coordinates
+\ Set the target system to the current system
 \ *****************************************************************************
 
-.ping                   ; move to home coordinates
+.ping
 {
- LDX #1
+ LDX #1                 ; We want to copy the X- and Y-coordinates of the
+                        ; current system in (QQ0, QQ1) to the target system's
+                        ; coordinates in (QQ9, QQ10), so set up a counter to
+                        ; copy two bytes
 
-.pl1                    ; counter X
- LDA QQ0,X              ; present system
- STA QQ9,X              ; target system
- DEX                    ; next coord
- BPL pl1                ; loop X
- RTS
+.pl1
+ LDA QQ0,X              ; Load byte X from the current system in QQ0/QQ1
+
+ STA QQ9,X              ; Store byte X in the target system in QQ9/QQ10
+ 
+ DEX                    ; Decrement the loop counter
+
+ BPL pl1                ; Loop back for the next byte to copy
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -12697,7 +12738,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: msblob
 \
-\ Update Missile blocks on console
+\ Update the dashboard's missile indicators
 \ *****************************************************************************
 
 .msblob                 ; update Missile blocks on console
@@ -13269,82 +13310,163 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT170
 \
-\ Entry point for Elite game code
-\ *****************************************************************************
-
-.TT170                  ; reset stack and Reload Title. After Death in flight arrives Here.
-{
- LDX #&FF               ; Reset stack
- TXS
-}
-
-\ *****************************************************************************
-\ Subroutine: BR1
+\ Exposed labels: BR1
 \
-\ BRKV, break1 Soft, stack not reset, Reload Title. Frozen escape key arrives.
+\ Entry point for Elite game code. Also called following death or quit.
 \ *****************************************************************************
 
-.BR1                    ; break1 Soft, stack not reset, Reload Title. Frozen escape key arrives.
+.TT170
 {
- LDX #3                 ; small indent and complete reset
+ LDX #&FF               ; Set stack pointer to &01FF, so stack is in page 1
+ TXS                    ; (this is the standard location for the 6502 stack)
+
+.^BR1                   ; BRKV is set to point here
+
+ LDX #3                 ; Set XC = 3 (set text cursor to column 3)
  STX XC
- JSR FX200              ; MOS *FX200,Xreg
 
- LDX #CYL               ; ship type #11 = #CYL cylon Cobra Mk3
- LDA #128               ; token = LOAD NEW COMMANDER (Y/N)?x02x
- JSR TITLE              ; Xreg is type of ship, Acc is last token it will show
- CMP #&44               ; inkey 'Y'
- BNE QU5                ; skip disc service
-\BR1
-\LDX #3
-\STX XC
-\JSR FX200
-\LDA #1
-\JSR TT66
-\JSR FLKB
-\LDA #14
-\JSR TT214
-\BCC QU5
-                        ; Load new Commander
- JSR GTNME              ; commander from page &11 to page &3
- JSR LOD                ; service disk, if load chosen then Page &B to Page &11
- JSR TRNME              ; Transfer commander name to page &11 and &3
- JSR TTX66              ; New box
+ JSR FX200              ; Disable Escape key and clear memory if Break key is
+                        ; pressed (*FX 200, 3)
 
-.QU5                    ; Also Disc service success, onwards.
-\JSR TTX66
- LDX #NT%
+ LDX #CYL               ; Call the TITLE subroutine to show the rotating ship
+ LDA #128               ; and load prompt. The arguments sent to TITLE are:
+ JSR TITLE              ; 
+                        ;   X = type of ship to show, CYL is Cobra Mk III
+                        ;   A = text token to show below the rotating ship, 128
+                        ;       is "  LOAD NEW COMMANDER (Y/N)?{crlf}{crlf}"
+                        ;
+                        ; The TITLE subroutine returns with the internal value
+                        ; of the key pressed in A (see p.142 of the Advanced
+                        ; User Guide for a list of internal key values)
 
-.QUL1                   ; counter X
- LDA NA%+7,X            ; from page &11
- STA TP-1,X             ; to page &3
- DEX                    ; next commander byte
- BNE QUL1               ; loop X
- STX QQ11               ; menu id, 0 = space view
-                        ; check again
- JSR CHECK              ; Acc gets check byte
- CMP CHK                ; commander file corruption check
+ CMP #&44               ; Did the player press 'Y'?
+
+ BNE QU5                ; If they didn't press 'Y', jump to QU5
+
+\BR1                    ; These instructions are commented out in the original
+\LDX #3                 ; source. This block starts with the same *FX call as
+\STX XC                 ; above, then clears the screen, calls a routine to
+\JSR FX200              ; flush the keyboard buffer (FLKB) that isn't present
+\LDA #1                 ; in the tape version but is in the disk version, and 
+\JSR TT66               ; then it displays "LOAD NEW COMMANDER (Y/N)?" and
+\JSR FLKB               ; lists the current cargo, before falling straight into
+\LDA #14                ; the load routine below, whether or not the player has
+\JSR TT214              ; pressed Y. This may be a testing loop for testing the
+\BCC QU5                ; cargo aspect of loading commander files.
+
+ JSR GTNME              ; The player wants to load a new commander, so first we
+                        ; ask them for the commander name to load
+
+ JSR LOD                ; We then call the LOD subroutine to load the commander
+                        ; file to address NA%+8, which is where we store the
+                        ; commander save file
+
+ JSR TRNME              ; Once loaded, we copy the commander name to NA%
+
+ JSR TTX66              ; And we clear the top part of the screen and draw a
+                        ; box border
+
+.QU5                    ; By the time we get here, the correct commander name
+                        ; is at NA% and the correct commander data is at NA%+8.
+                        ; Specifically:
+                        ;
+                        ; If the player loaded a commander file, then the name
+                        ; and data from that file will be at NA% and NA%+8.
+                        ;
+                        ; If this is a brand new game, then NA% will contain
+                        ; the default starting commander name ("JAMESON") and
+                        ; NA%+8 will contain the default commander data.
+                        ;
+                        ; If this is not a new game (because they died or quit)
+                        ; and the player didn't want to load a commander file,
+                        ; then NA% will contain the last saved commander name,
+                        ; and NA%+8 the last saved commander data. If the game
+                        ; has never been saved, this will still be the default
+                        ; commander.
+
+\JSR TTX66              ; This instruction is commented out in the original
+                        ; source; it clears the screen and draws a border
+
+ LDX #NT%               ; The size of the commander data block is NT% bytes,
+                        ; and it starts at NA%+8, so we need to copy the data
+                        ; from the 'last saved' buffer at NA%+8 to the current
+                        ; commander workspace at TP. So we set up a counter in X
+                        ; for the NT% bytes that we want to copy.
+
+.QUL1
+ LDA NA%+7,X            ; Copy the X-th byte of NA%+7 to the X-th byte of TP-1,
+ STA TP-1,X             ; (the -1 is because X is counting down from NT% to 1)
+
+ DEX                    ; Decrement the loop counter
+
+ BNE QUL1               ; Loop back for the next byte of the commander file
+
+ STX QQ11               ; X is 0 by the end of the above loop, so this sets QQ11
+                        ; to 0, which means we will be showing a view without a
+                        ; boxed title at the top (i.e. we're going to use the
+                        ; screen layout of a space view in the following)
+ 
+                        ; If the commander check below fails, we keep jumping
+                        ; back to here to crash the game with an infinite loop
+
+ JSR CHECK              ; Call the CHECK subroutine to calculate the checksum
+                        ; for the current commander block at NA%+8 and put it
+                        ; in A
+
+ CMP CHK                ; Test the calculated checksum against CHK
+
 IF _REMOVE_COMMANDER_CHECK
- NOP:NOP
+
+ NOP                    ; If we have disabled the commander check, then ignore
+ NOP                    ; the checksum and fall through to the next part
+
 ELSE
- BNE P%-6               ; check again loop
+
+ BNE P%-6               ; If commander check is enabled and the calculated
+                        ; checksum does not match CHK, then loop back to repeat
+                        ; the check - in other words, we enter an infinite loop
+                        ; here, as the checksum routine will keep returning the
+                        ; same incorrect value
+
 ENDIF
- EOR #&A9               ; ok
- TAX                    ; other check EOR #&A9
- LDA COK                ; Acc = competition
- CPX CHK2               ; Xreg has version eor #&A9
- BEQ tZ                 ; check2 matched
- ORA #128               ; else set bit7 of COK
+
+                        ; The checksum CHK is correct, so now we check whether
+                        ; CHK2 = CHK EOR A9, and if this check fails, bit 7 of
+                        ; the competition code COK gets set, presumably to
+                        ; indicate shenanigans were afoot when the competition
+                        ; code was submitted
+
+ EOR #&A9               ; X = checksum EOR A9
+ TAX
+
+ LDA COK                ; Set A = competition code in COK
+
+ CPX CHK2               ; If X = CHK2, then skip the next instruction
+ BEQ tZ
+
+ ORA #128               ; Set bit 7 of A
 
 .tZ
- ORA #2                 ; both choices set bit 1 of COK
- STA COK                ; competition byte affected by checks
- JSR msblob             ; update missile blocks on console
- LDA #147
- LDX #3
- JSR TITLE              ; Xreg is type of ship, Acc is last token it will show
- JSR ping               ; move to present coordinates
- JSR hyp1               ; arrive in system
+ ORA #2                 ; Set bit 1 of A
+
+ STA COK                ; Store the competition code A in COK
+
+ JSR msblob             ; Update the dashboard's missile indicators
+
+ LDA #147               ; Call the TITLE subroutine to show the rotating ship
+ LDX #MAM               ; and fire/space prompt. The arguments sent to TITLE
+ JSR TITLE              ; are:
+                        ; 
+                        ;   X = type of ship to show, MAM is Mamba
+                        ;   A = text token to show below the rotating ship, 147
+                        ;       is "PRESS FIRE OR SPACE,COMMANDER.{crlf}{crlf}"
+ 
+ JSR ping               ; Set the target system coordinates (QQ9, QQ10) to the
+                        ; current system coordinates (QQ0, QQ1) we just loaded
+
+ JSR hyp1               ; Arrive in the system closest to (QQ9, QQ10) and then
+                        ; and then fall through to the docking bay routine
+                        ; below
 }
 
 \ *****************************************************************************
@@ -13696,8 +13818,9 @@ ENDIF
 
 .LOD                    ; Load commander file then Page &B to Page &11, else carry set if invalid drive
 {
- LDX #2
- JSR FX200
+ LDX #2                 ; Enable Escape key and clear memory if Break key is
+ JSR FX200              ; pressed (*FX 200, 2)
+
  JSR ZERO               ; Zero Pages &9,&A,&B,&C,&D
  LDY #&B
  STY &C03               ; load address is &0B00
@@ -13720,16 +13843,17 @@ ENDIF
 \ *****************************************************************************
 \ Subroutine: FX200
 \
-\ *FX 200,X
+\ Performs a *FX 200, X command, which controls the behaviour of the Escape
+\ and Break keys
 \ *****************************************************************************
 
-.FX200                  ; MOS *FX200,Xreg (or something else like 2),0
+.FX200
 {
- LDY #0                 ; Break/Escape action is xor Xreg.
- LDA #200               ; 3=>0 = Normal. 2=>1 MOS ESCAPE disabled
+ LDY #0                 ; Call OSBYTE &C8 (200) with Y = 0, so new value is
+ LDA #200               ; set to X
  JMP OSBYTE
 
- RTS
+ RTS                    ; Return from subroutine
 }
 
 \ *****************************************************************************
@@ -14108,6 +14232,15 @@ ENDIF
 \ Subroutine: DKS3
 \
 \ Toggle Damping key Y whilst game frozen
+\
+\  #&46 Does K toggle keyboard/joystick control - certainly makes keyboard not work anymore.
+\  #&45 Does J reverse both joystick channels
+\  #&44 Does Y reverse joystick Y channel
+\  #&43 Does F toggle flashing information
+\  #&42 Does X toggle startup message display ? PATG?
+\  #&41 Does A toggle keyboard auto-recentering ?
+\  #&40 Caps-lock toggles keyboard flight damping
+\ 
 \ *****************************************************************************
 
 .DKS3                   ; toggle Damping key Y whilst game frozen
@@ -14130,15 +14263,6 @@ ENDIF
 \ Subroutine: DKJ1
 \
 \ Key logger
-\
-\  #&46 Does K toggle keyboard/joystick control - certainly makes keyboard not work anymore.
-\  #&45 Does J reverse both joystick channels
-\  #&44 Does Y reverse joystick Y channel
-\  #&43 Does F toggle flashing information
-\  #&42 Does X toggle startup message display ? PATG?
-\  #&41 Does A toggle keyboard auto-recentering ?
-\  #&40 Caps-lock toggles keyboard flight damping
-\ 
 \ *****************************************************************************
 
 .DKJ1                   ; JSTK not zero. Joystick option - but speed still done by ? and SPACE
