@@ -200,7 +200,60 @@ KY19 = KL + 15
  SKIP 1
 
 .INWK                   ; Shares memory with XX1, XX19
- SKIP NI%
+ SKIP NI%               ; Workspace for a ship
+
+                        ; x-coordinate = (INWK+1 INWK+0), sign in INWK+2
+                        ; y-coordinate = (INWK+4 INWK+3), sign in INWK+5
+                        ; y-coordinate = (INWK+7 INWK+6), sign in INWK+8
+                        ;
+                        ;                   (rotmat0x rotmat0y rotmat0z)
+                        ; Rotation matrix = (rotmat1x rotmat1y rotmat1z)
+                        ;                   (rotmat2x rotmat2y rotmat2z)
+                        ;
+                        ;                   (INWK+10,9  INWK+12,11 INWK+14,13)
+                        ;                 = (INWK+16,15 INWK+18,17 INWK+20,19)
+                        ;                   (INWK+22,21 INWK+24,23 INWK+26,25)
+                        ;
+                        ;                   (0    0  &E0)   ( 0  0 -1)
+                        ; Zero'd in ZINF to (0   &60   0) = ( 0  1  0)
+                        ;                   (&E0  0    0)   (-1  0  0)
+
+                        ; INWK    = x_lo
+                        ; INWK+1  = x_hi
+                        ; INWK+2  = x_sign
+                        ; INWK+3  = y_lo
+                        ; INWK+4  = y_hi
+                        ; INWK+5  = y_sign
+                        ; INWK+6  = z_lo
+                        ; INWK+7  = z_hi
+                        ; INWK+8  = z_sign
+                        ; INWK+9  = rotmat0x_lo
+                        ; INWK+10 = rotmat0x_hi     xincrot_hi
+                        ; INWK+11 = rotmat0y_lo
+                        ; INWK+12 = rotmat0y_hi     yincrot_hi
+                        ; INWK+13 = rotmat0z_lo
+                        ; INWK+14 = rotmat0z_hi     zincrot_hi
+                        ; INWK+15 = rotmat1x_lo
+                        ; INWK+16 = rotmat1x_hi
+                        ; INWK+17 = rotmat1y_lo
+                        ; INWK+18 = rotmat1y_hi
+                        ; INWK+19 = rotmat1z_lo
+                        ; INWK+20 = rotmat1z_hi
+                        ; INWK+21 = rotmat2x_lo
+                        ; INWK+22 = rotmat2x_hi
+                        ; INWK+23 = rotmat2y_lo
+                        ; INWK+24 = rotmat2y_hi
+                        ; INWK+25 = rotmat2z_lo
+                        ; INWK+26 = rotmat2z_hi
+                        ; INWK+27 = speed (32 quite fast)
+                        ; INWK+28 = accel
+                        ; INWK+29 = rotx counter, 127 for no damping, controls roll
+                        ; INWK+30 = rotz counter, 127 for no damping, controls pitch
+                        ; INWK+31 = exploding/display state, or missile count
+                        ; INWK+32 = ai counter, ai_attack_univ_ecm, bit6 set = missile attacking player, &FF = ai attack everyone, has ecm., 1 = ai and ecm
+                        ; INWK+33 = ship lines pointer lo, points to LSO for station
+                        ; INWK+34 = ship lines pointer hi, points to LSO for station
+                        ; INWK+35 = ship energy
 
 XX1 = INWK              ; Shares memory with INWK
 
