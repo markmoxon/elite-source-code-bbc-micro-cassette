@@ -45,21 +45,23 @@ ORG CODE%
 \ Ships lookup table
 \ *****************************************************************************
 
-\ The following lookup table points to the individual ship definitions below
+\ The following lookup table points to the individual ship definitions below.
+\ The ship types and corresponding variable names are also shown, as defined in
+\ elite-source.asm.
 
-EQUW &5654                          ; Sidewinder
-EQUW &56FC                          ; Viper
-EQUW &57D6                          ; Mamba
-EQUW &7F00                          ; Points to start of MODE 4 screen memory
-EQUW &5904                          ; Cobra Mk III
-EQUW &5A8C                          ; Thargoid
-EQUW &5904                          ; Cobra Mk III
-EQUW &5BA8                          ; Coriolis
-EQUW &5CC4                          ; Missile
-EQUW &5DC2                          ; Asteroid
-EQUW &5E98                          ; Cargo
-EQUW &5F40                          ; Thargon
-EQUW &5FAC                          ; Escape pod
+EQUW &5654                          ;         1 = Sidewinder
+EQUW &56FC                          ; COPS =  2 = Viper
+EQUW &57D6                          ; MAM  =  3 = Mamba
+EQUW &7F00                          ;         4 = &7F00
+EQUW &5904                          ;         5 = Points to Cobra Mk III
+EQUW &5A8C                          ; THG  =  6 = Thargoid
+EQUW &5904                          ; CYL  =  7 = Cobra Mk III
+EQUW &5BA8                          ; SST  =  8 = Coriolis space station
+EQUW &5CC4                          ; MSL  =  9 = Missile
+EQUW &5DC2                          ; AST  = 10 = Asteroid
+EQUW &5E98                          ; OIL  = 11 = Cargo
+EQUW &5F40                          ; TGL  = 12 = Thargon
+EQUW &5FAC                          ; ESC  = 13 = Escape pod
 
 \ *****************************************************************************
 \ Sidewinder
