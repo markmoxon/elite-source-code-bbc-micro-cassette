@@ -49,8 +49,8 @@ NOSH = 12               ; Max number of ships
 
 COPS = 2                ; Viper
 MAM = 3                 ; Mamba
-CYL = 7                 ; Cobra Mk III
 THG = 6                 ; Thargoid
+CYL = 7                 ; Cobra Mk III
 SST = 8                 ; Space station
 MSL = 9                 ; Missile
 AST = 10                ; Asteroid
@@ -106,8 +106,9 @@ ORG ZP
 .RAND                   ; 
  SKIP 4
 
-.TRTB%                  ; 
- SKIP 2
+.TRTB%                  ; Set by elite-loader.asm to point to the MOS key
+ SKIP 2                 ; translation table, used to translate internal key
+                        ; values to ASCII
 
 .T1                     ; 
  SKIP 1
@@ -149,15 +150,15 @@ SCH = SC+1              ; Second byte of SC is SCH
 
 .XC                     ; Contains the x-coordinate of the text cursor (i.e.
  SKIP 1                 ; the text column). A value of 0 denotes the leftmost
-                        ; column
+                        ; column.
 
 .YC                     ; Contains the y-coordinate of the text cursor (i.e.
- SKIP 1                 ; the text row). A value of 1 denotes the top row
+ SKIP 1                 ; the text row). A value of 0 denotes the top row.
 
-.QQ22                   ; 
+.QQ22                   ; Hyperspace countdown
  SKIP 2
 
-.ECMA                   ; 
+.ECMA                   ; E.C.M. status; 0 is off
  SKIP 1
 
 .XX15                   ; 
@@ -321,16 +322,16 @@ K5 = XX18               ; Shares memory with XX18, QQ17, QQ19
 
 K6 = K5 + 4             ; Shares memory with XX18+4
 
-.ALP1                   ; 
+.ALP1                   ; Roll?
  SKIP 1
 
-.ALP2                   ; 
+.ALP2                   ; Roll sign?
  SKIP 2
 
-.BET2                   ; 
+.BET2                   ; Pitch sign?
  SKIP 2
 
-.DELTA                  ; 
+.DELTA                  ; Speed?
  SKIP 1
 
 .DELT4                  ; 
@@ -366,7 +367,7 @@ K6 = K5 + 4             ; Shares memory with XX18+4
 .XX13                   ; 
  SKIP 1
 
-.MCNT                   ; 
+.MCNT                   ; Move counter
  SKIP 1
 
 .DL                     ; 
@@ -7122,6 +7123,8 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: LYN
 \
+\ Exposed labels: SC5
+\
 \ Most of bytes on Row (2) set to Acc.
 \ *****************************************************************************
 
@@ -7133,11 +7136,9 @@ NEXT
  STA (SC),Y
  DEY                    ; next column to left
  BNE EE2                ; loop Y
-}
 
-.SC5
-{
- RTS
+.^SC5
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -10519,7 +10520,7 @@ MAPCHAR '4', '4'
                         ; character, otherwise we are done printing
 
 .^TT48
- RTS                    ; Return from the current subroutine
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -12738,25 +12739,47 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: RESET
 \
-\ New player ship, reset controls
+\ Reset the player ship and various controls, then fall through to RES4 to
+\ restore shields and energy, and reset stardust and INWK.
+\
+\ In this subroutine, this means zero-filling the following locations:
+\
+\   * Pages &9, &A, &B, &C and &D
+\
+\   * BETA to BETA+6, so that's:
+\
+\     * BETA, BET1 - Set pitch to 0
+\     * XC, YC - Set text cursor to (0, 0)
+\     * QQ22 - Stop hyperspace countdown
+\     * ECMA - Turn E.C.M. off
+\
+\ and setting QQ12 to &FF (to indicate we are docked).
 \ *****************************************************************************
 
-.RESET                  ; New player ship, reset controls
+.RESET
 {
- JSR ZERO               ; zero-out &311-&34B
- LDX #6
+ JSR ZERO               ; Zero-fill pages &9, &A, &B, &C and &D
 
-.SAL3                   ; counter X
- STA BETA,X
- DEX
- BPL SAL3               ; loop X
- STX QQ12
+ LDX #6                 ; Set up a counter for zeroing BETA through BETA+6
+
+.SAL3
+ STA BETA,X             ; Zero the X-th byte after BETA         
+
+ DEX                    ; Decrement the loop counter
+
+ BPL SAL3               ; Loop back for the next byte to zero
+
+ STX QQ12               ; X is now negative - i.e. &FF - so this sets QQ12 to
+                        ; &FF to indicate we are docked
+
+                        ; Fall through to RES4 to restore shields and energy,
+                        ; and reset stardust and INWK
 }
 
 \ *****************************************************************************
 \ Subroutine: RES4
 \
-\ Restore forward, aft shields, and energy
+\ Restore shields and energy, and reset stardust and INWK
 \ *****************************************************************************
 
 .RES4
@@ -13090,7 +13113,7 @@ LOAD_F% = LOAD% + P% - CODE%
 .mt3                    ; counter XX13 ships needed
  JSR DORND              ; do random, new A, X.
  AND #3
- ORA #1
+ ORA #1                 ; Sidewinder or Mamba
  JSR NWSHP              ; New Ship type Acc
 
  DEC XX13               ; next ship needed
@@ -13595,79 +13618,139 @@ ENDIF
 \ *****************************************************************************
 \ Subroutine: TITLE
 \
-\ Yitle screen, X=ship type, A=message string
+\ Display the title screen, with a rotating ship and a recursive text token at
+\ the bottom of the screen
+\
+\ Arguments:
+\
+\   A           The number of the recursive token to show below the rotating
+\               ship (see elite-words.asm for details of recursive tokens)
+\
+\   X           The type of the ship to show (see elite-ships.asm for a list of
+\               ship types)
 \ *****************************************************************************
 
-.TITLE                  ; Xreg is type of ship, Acc is last token shown
+.TITLE
 {
- PHA                    ; push token
- STX TYPE               ; of ship to display
- JSR RESET              ; Total reset, New ship.
- LDA #1                 ; menu id QQ11 will be set to #1
- JSR TT66               ; box border with QQ11 set to A
- DEC QQ11               ; menu id = #0
- LDA #96                ; rotation unity
- STA INWK+14
-\LSR A
- STA INWK+7             ; zhi set to #&DB
- LDX #127               ; no damping of rotation
- STX INWK+29            ; rotx counter
- STX INWK+30            ; rotz counter
- INX                    ; Xreg = #&80
- STX QQ17               ; first token Uppercase
- LDA TYPE               ; of ship
- JSR NWSHP              ; new ship
+ PHA                    ; Store the token number on the stack for later
 
- LDY #6                 ; indent
+ STX TYPE               ; Store the ship type in location TYPE
+
+ JSR RESET              ; Reset the player ship so we can use it for our
+                        ; rotating title ship
+
+ LDA #1                 ; Clear the top part of the screen and draw a box
+ JSR TT66               ; border, with QQ11 set to 1 (so TT66 does not show the
+                        ; name of the space view at the bottom)
+
+ DEC QQ11               ; Decrement QQ11 to 0, so from here on we are using a
+                        ; space view
+
+ LDA #96                ; Set rotmat0z hi = 96 (96 is the value of unity in the
+ STA INWK+14            ; rotation vector)
+
+\LSR A                  ; This instruction is commented out in the original
+                        ; source. It would halve the value of zhi to 48, so the
+                        ; ship would start off closer to the viewer.
+
+ STA INWK+7             ; Set z_hi, the high byte of the ship's z-coordinate,
+                        ; to 96, which is the distance at which the rotating
+                        ; ship starts out before coming towards us
+
+ LDX #127
+ STX INWK+29            ; Set rotx counter = 127, so don't dampen the roll
+ STX INWK+30            ; Set rotz counter = 127, so don't dampen the pitch
+
+ INX                    ; Set QQ17 = 128, which sets Sentence Case, with the
+ STX QQ17               ; next letter printing in upper case
+
+ LDA TYPE               ; Set up a new ship, using the ship type in TYPE
+ JSR NWSHP
+
+ LDY #6                 ; Set the text cursor to column 6
  STY XC
- JSR DELAY
- LDA #30                ; token = ---- E L I T E ----
- JSR plf                ; TT27 text token followed by rtn
- LDY #6                 ; indent
+
+ JSR DELAY              ; Delay for Y (i.e. 6) line scans
+ 
+ LDA #30                ; Print recursive token 144 ("---- E L I T E ----")
+ JSR plf                ; followed by a newline
+
+ LDY #6                 ; Set the text cursor to column 6 again
  STY XC
- INC YC
- LDA PATG               ; toggle startup message display
- BEQ awe                ; skip credits
- LDA #254
- JSR TT27               ; TT27 text token followed by rtn
+ 
+ INC YC                 ; Move the text cursor down a row
+
+ LDA PATG               ; If PATG = 0, skip the following two lines, which
+ BEQ awe                ; print the author credits (PATG can be toggled by the
+                        ; player pausing the game and pressing X)
+
+ LDA #254               ; Print recursive token 94, "BY D.BRABEN & I.BELL"
+ JSR TT27
 
 .awe
- JSR CLYNS              ; clear some screen lines
- STY DELTA              ; Yreg = 0
- STY JSTK               ; Joystick not active
- PLA                    ; last token that was sent to TITLE
- JSR ex                 ; extra tokens
- LDA #148
- LDX #7                 ; indent
+ JSR CLYNS              ; Clear some screen rows, exists with Y = 0
+
+ STY DELTA              ; Set DELTA = 0 (i.e. ship speed = 0)
+
+ STY JSTK               ; Set KSTK = 0 (i.e. keyboard, not joystick)
+
+ PLA                    ; Restore the recursive token number we stored on the
+ JSR ex                 ; stack at the start of this subroutine, and print that
+                        ; token
+
+ LDA #148               ; Move the text cursor to column 7 and print recursive
+ LDX #7                 ; token 148 ("(C) ACORNSOFT 1984")
  STX XC
- JSR ex                 ; extra tokens
+ JSR ex
 
-.TLL2                   ; Repeat key read
- LDA INWK+7             ; zhi
- CMP #1                 ; ship is now
- BEQ TL1                ; close enough
- DEC INWK+7
+.TLL2
+ LDA INWK+7             ; If z_hi (the ship's distance) is 1, jump to TL1 to
+ CMP #1                 ; skip the following decrement
+ BEQ TL1
 
-.TL1                    ; close enough
- JSR MVEIT              ; move it
- LDA #128               ; half hi
- STA INWK+6             ; zlo
- ASL A                  ; Acc = 0 for center of screen
- STA INWK               ; xlo
- STA INWK+3             ; ylo
- JSR LL9                ; object entry
- DEC MCNT               ; move count
- LDA &FE40              ; User VIA Output Register B
- AND #16                ; pull out PB4 = Joystick 1 fire button,
-\TAX
- BEQ TL2                ; changes to zero when button pressed.
- JSR RDKEY              ; If key hit was DELETE ( #00),  else got #&7F
- BEQ TLL2               ; Until key read
- RTS
+ DEC INWK+7             ; Decrement the ship's distance, to bring the ship
+                        ; a bit closer to us
 
-.TL2                    ; joystick fire button pressed
- DEC JSTK               ; joystick active
- RTS
+.TL1
+ JSR MVEIT              ; Move the ship in space according to the rotation
+                        ; matrix and the new value in z_hi
+
+ LDA #128               ; Set z_lo = 128 (so the closest the ship gets to us is
+ STA INWK+6             ; z_hi = 1, z_lo = 128, or 256 + 128 = 384
+
+ ASL A                  ; Set A = 0
+
+ STA INWK               ; Set x_lo = 0, so ship remains in the screen centre
+
+ STA INWK+3             ; Set y_lo = 0, so ship remains in the screen centre
+
+ JSR LL9                ; Call LL9 to display the ship
+
+ DEC MCNT               ; Decrement the move counter
+
+ LDA &FE40              ; Set A = Sheila address &40, the system VIA port B
+
+ AND #16                ; Bit 4 (PB4) is clear if joystick 1's fire button is
+                        ; pressed, otherwise it is set
+
+\TAX                    ; This instruction is commented out in the original
+                        ; source
+
+ BEQ TL2                ; If the joystick fire button is pressed, jump to BL2
+
+ JSR RDKEY              ; Scan the keyboard for a keypress
+
+ BEQ TLL2               ; If no key was pressed, loop back up to move/rotate
+                        ; the ship and check again for a key press
+
+ RTS                    ; Return from the subroutine
+
+.TL2
+ DEC JSTK               ; Joystick fire button was pressed, so set JSTK to &FF
+                        ; (it was set to 0 above), to disable keyboard and
+                        ; enable joysticks
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -14108,12 +14191,13 @@ ENDIF
  LDX #16                ; Keyboard Scan will start from #16, Q,3,4 etc
 .Rd1
  JSR DKS4               ; keyboard scan from X, returned in X and A.
- BMI Rd2
- INX                    ; = 0?
- BPL Rd1
- TXA                    ; #&FF if nothing found
+ BMI Rd2                ; Jump to Rd2 if key is hit
+ INX                    ; #&FF if nothing found, so increment to 0 if nothing found
+ BPL Rd1                ; Nothing found, so go round again
 
-.Rd2                    ; -ve Acc key
+ TXA
+
+.Rd2                    ; -ve Acc if key hit
  EOR #128               ; #&7F is nothing found
  TAX                    ; Xreg is key for storing in KL
  RTS
