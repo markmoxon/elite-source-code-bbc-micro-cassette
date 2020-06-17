@@ -1071,7 +1071,7 @@ TWOK 152
 EQUB 0
 
 CHAR 'B'                            ; Token 94:     "BY D.BRABEN & I.BELL"
-CHAR 'Y'                            ; Encoded:    "BY D.B<148><147>N & I.<147>[118]"
+CHAR 'Y'                            ; Encoded:      "BY D.B<148><147>N & I.<147>[118]"
 CHAR ' '
 CHAR 'D'
 CHAR '.'
