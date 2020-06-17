@@ -559,9 +559,9 @@ PRINT "WP workspace from  ", ~WP," to ", ~P%
 \ stardust data block (NOST bytes at location SX)
 \ *****************************************************************************
 
-ORG T%
+ORG T%                  ; Start of the commander block
 
-.TP                     ; Start of the commander block
+.TP                     ; Mission status, always 0 for tape version
  SKIP 1
 
 .QQ0                    ; Current system X-coordinate
@@ -591,9 +591,11 @@ ORG T%
                         ; start in galaxy 1 in-game, but it's stored as galaxy
                         ; 0 internally)
 
-.LASER                  ; Lasers (0 = front, 1 = rear, 2 = left, 3 = right,
- SKIP 6                 ; 4/5 not used)
+.LASER                  ; Laser power, 0 means no laser
+ SKIP 4                 ; (byte 0 = front, 1 = rear, 2 = left, 3 = right)
 
+ SKIP 2                 ; Not used (reserved for up/down lasers, maybe?)
+ 
 .CRGO                   ; Cargo capacity
  SKIP 1
 
@@ -2139,9 +2141,9 @@ Q% = _ENABLE_MAX_COMMANDER
 {
  EQUS "JAMESON"         ; Default commander name
  EQUB 13                ; Terminated by a carriage return; commander name can
-                        ; be up to 7 characters
+                        ; be up to 7 characters (the DFS limit for file names)
  
- EQUB 0                 ; NA%+8 - the start of the commander data block
+                        ; NA%+8 - the start of the commander data block
                         ;
                         ; This block contains the last saved commander data
                         ; block. As the game is played it uses an identical
@@ -2154,9 +2156,16 @@ Q% = _ENABLE_MAX_COMMANDER
                         ; The intial state of this block defines the default
                         ; commander. Q% can be set to TRUE to give the default
                         ; commander lots of credits and equipment.
+
+ EQUB 0                 ; Mission status. The disk version of the game has two
+                        ; missions, and this byte contains the status of those
+                        ; missions (the possible values are 0, 1, 2, &A, &E). As
+                        ; the tape version doesn't have missions, this byte will
+                        ; always be zero, which means no missions have been
+                        ; started.
                         ;
-                        ; The first byte of the block should not have bit 7
-                        ; set, or loading it will cause the game to restart
+                        ; Note that this byte must not have bit 7 set, or
+                        ; loading this commander will cause the game to restart
 
  EQUB 20                ; QQ0 = current system X-coordinate (Lave)
  EQUB 173               ; QQ1 = current system Y-coordinate (Lave)
@@ -2182,15 +2191,14 @@ ENDIF
 IF Q% OR _FIX_REAR_LASER
  EQUB (POW+128) AND Q%  ; LASER+1 = Rear laser, as in ELITEB source
 ELSE
- EQUB POW               ; LASER+1 = Rear pulse laser, as per extracted ELTB binary
+ EQUB POW               ; LASER+1 = Rear laser, as in extracted ELTB binary
 ENDIF
 
  EQUB 0                 ; LASER+2 = Left laser
 
  EQUB 0                 ; LASER+3 = Right laser
 
- EQUB 0                 ; LASER+4 not used
- EQUB 0                 ; LASER+5 not used
+ EQUW 0                 ; Not used (reserved for up/down lasers, maybe?)
 
  EQUB 22+(15 AND Q%)    ; CRGO = Cargo capacity
 
@@ -2227,7 +2235,8 @@ ENDIF
  EQUB 3
  EQUB 28
  EQUB 14
- EQUW 0
+ EQUB 0
+ EQUB 0
  EQUB 10
  EQUB 0
  EQUB 17
@@ -13611,21 +13620,40 @@ ENDIF
 \ *****************************************************************************
 \ Subroutine: CHECK
 \
-\ Commander file corruption check
+\ Calculate the checksum for the last saved commander data block, to protect
+\ against corruption and tampering. The checksum is returned in A.
+\
+\ This algorithm is also implemented in elite-checksum.py.
 \ *****************************************************************************
 
-.CHECK                  ; Acc gets check byte
+.CHECK
 {
- LDX #NT%-2
- CLC                    ; Elite-A uses sec
- TXA                    ; used as start
+ LDX #NT%-2             ; Set X to the size of the commander data block, less
+                        ; 2 (as there are two checksum bytes)
 
-.QUL2                   ; counter X
- ADC NA%+7,X
- EOR NA%+8,X
- DEX                    ; next commander file byte
- BNE QUL2               ; loop X
- RTS
+ CLC                    ; Clear the carry flag so we can do some additions
+                        ; without the carry flag affecting the result
+
+ TXA                    ; Seed the checksum calculation by setting A to the
+                        ; size of the commander data block, less 2
+
+                        ; We now loop through the commander data block,
+                        ; starting at the end and looping down to the start
+                        ; (so at the start of this loop, the X-th byte is the
+                        ; last byte of the commander data block, i.e. the save
+                        ; count)
+
+.QUL2
+ ADC NA%+7,X            ; Add the X-1-th byte of the data block to A, plus
+                        ; carry
+
+ EOR NA%+8,X            ; EOR A with the X-th byte of the data block
+
+ DEX                    ; Decrement the loop counter
+
+ BNE QUL2               ; Loop back for the next byte in the data block
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
