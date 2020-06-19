@@ -158,7 +158,7 @@ SCH = SC+1              ; Second byte of SC is SCH
 .QQ22                   ; Hyperspace countdown
  SKIP 2
 
-.ECMA                   ; E.C.M. status; 0 is off
+.ECMA                   ; E.C.M. status flag; 0 is off, non-zero is on
  SKIP 1
 
 .XX15                   ; 
@@ -241,7 +241,7 @@ Y2 = X2 + 1
 .LAS                    ; 
  SKIP 1
 
-.MSTG                   ; 
+.MSTG                   ; Missile target (&FF = no target)
  SKIP 1
 
 .INWK                   ; Shares memory with XX1, XX19
@@ -259,9 +259,12 @@ Y2 = X2 + 1
                         ;                 = (INWK+16,15 INWK+18,17 INWK+20,19)
                         ;                   (INWK+22,21 INWK+24,23 INWK+26,25)
                         ;
-                        ;                   (0    0  &E0)   ( 0  0 -1)
-                        ; Zero'd in ZINF to (0   &60   0) = ( 0  1  0)
-                        ;                   (&E0  0    0)   (-1  0  0)
+                        ;                   (0    0  &E0)   (0  0 -1)
+                        ; Zero'd in ZINF to (0   &60   0) = (0  1  0)
+                        ;                   (&60  0    0)   (1  0  0)
+                        ;
+                        ; &60 (96) is the figure we use to represent 1 in the
+                        ; rotation matrix, while &E0 9224) is -1
 
                         ; INWK    = x_lo
                         ; INWK+1  = x_hi
@@ -414,7 +417,7 @@ K6 = K5 + 4             ; Shares memory with XX18+4
 .MCNT                   ; Move counter
  SKIP 1
 
-.DL                     ; 
+.DL                     ; Line scan counter. This is updated
  SKIP 1
 
 .TYPE                   ; 
@@ -511,6 +514,12 @@ ORG WP
 CABTMP = MANY           ; Shares memory with MANY
 
 SSPR = MANY + SST       ; Shares memory with MANY
+                        ;
+                        ; "Space station present" flag
+                        ;
+                        ; Non-zero if we are inside the space station safe zone
+                        ;
+                        ; 0 if we aren't (in which case we can show the sun)
 
 .ECMP                   ; 
  SKIP 1
@@ -577,13 +586,13 @@ LSX = LSO               ; Shares memory with LSO
 .MCH                    ; 
  SKIP 1
 
-.FSH                    ; 
+.FSH                    ; Forward shields
  SKIP 1
 
-.ASH                    ; 
+.ASH                    ; Aft shields
  SKIP 1
 
-.ENERGY                 ; 
+.ENERGY                 ; Energy banks
  SKIP 1
 
 .LASX                   ; 
@@ -616,7 +625,7 @@ LSX = LSO               ; Shares memory with LSO
 .tek                    ; 
  SKIP 1
 
-.SLSP                   ; 
+.SLSP                   ; Ship lines pointer
  SKIP 2
 
 .XX24                   ; 
@@ -1123,7 +1132,7 @@ LOAD_A% = LOAD%
  BCC MA62               ; Failed dock
 }
 
-.GOIN                   ; do Dock entry, escape capsule arrives
+.GOIN                   ; do Dock entry, escape pod arrives
 {
  LDA #0
  STA QQ22+1
@@ -4127,6 +4136,8 @@ NEXT
 \ Print a character at the text cursor (XC, YC), do a beep, print a newline,
 \ or delete left (backspace).
 \
+\ WRCHV is set to point here by elite-loader.asm.
+\
 \ Entry conditions:
 \
 \   * XC contains the text column to print at (the x-coordinate)
@@ -4762,6 +4773,8 @@ NEXT
 \ Subroutine: IRQ1
 \
 \ Interrupt handler, might be a screen mode thing?
+\
+\ IRQ1V is set to point here by elite-loader.asm.
 \ *****************************************************************************
 
 .IRQ1
@@ -4782,17 +4795,13 @@ NEXT
  STA &FE21
  DEY
  BPL P%-7
-}
 
-.jvec
-{
+.^jvec
  PLA
  TAY
  JMP (VEC)
-}
 
-.VNT1
-{
+.^VNT1
  LDY #7
  LDA TVT1+8,Y
  STA &FE21
@@ -4804,17 +4813,17 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: ESCAPE
 \
-\ Escape capsule launch
+\ Escape pod launch
 \ *****************************************************************************
 
-.ESCAPE                 ; your Escape capsule launch
+.ESCAPE                 ; your Escape pod launch
 {
  LDA MJ
  PHA
  JSR RES2               ; reset2
  LDX #CYL               ; Cobra Mk3
  STX TYPE
- JSR FRS1               ; escape capsule launch, missile launch.
+ JSR FRS1               ; escape pod launch, missile launch.
  LDA #8                 ; modest speed 
  STA INWK+27
  LDA #&C2               ; rotz, pitch counter
@@ -5285,10 +5294,10 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 \ Subroutine: FRS1
 \
-\ Escape capsule Launched, see Cobra Mk3 ahead, or player missile launch.
+\ Escape pod Launched, see Cobra Mk3 ahead, or player missile launch.
 \ *****************************************************************************
 
-.FRS1                   ; escape capsule Launched, see Cobra Mk3 ahead, or player missile launch.
+.FRS1                   ; escape pod Launched, see Cobra Mk3 ahead, or player missile launch.
 {
  JSR ZINF               ; zero info
  LDA #28                ; ylo distance
@@ -5393,7 +5402,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .SESCP                  ; from tactics, ships launch Escape pod
 {
- LDX #ESC               ; #ESC type escape capsule. On next line missiles.
+ LDX #ESC               ; #ESC type escape pod. On next line missiles.
  LDA #&FE               ; SFRMIS arrives \ SFS1-2 \ ai has bit6 set, attack player. No ecm.
 }
 
@@ -5462,7 +5471,7 @@ LOAD_C% = LOAD% +P% - CODE%
  STA INWK+29            ; rotx counter roll has no damping
  LDA #OIL
 
-.NOIL                   ; not cargo, launched missile or escape capsule.
+.NOIL                   ; not cargo, launched missile or escape pod.
  JSR NWSHP              ; New ship type Acc
 
  PLA                    ; restore parent info pointer
@@ -9665,7 +9674,7 @@ LOAD_D% = LOAD% + P% - CODE%
  INY                    ; token = escape pod
  CMP #7                 ; item Escape pod
  BNE et7                ; else Energy bomb
- LDX ESCP               ; escape capsule
+ LDX ESCP               ; escape pod
  BNE pres               ; error, Token in Y is already 'present' on ship
  DEC ESCP               ; #&FF = escape pod awarded
 
@@ -12893,7 +12902,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: RESET
 \
 \ Reset the player ship and various controls, then fall through into RES4 to
-\ restore shields and energy, and reset stardust and INWK.
+\ restore shields and energy, and reset the stardust and the ship workspace at
+\ INWK.
 \
 \ In this subroutine, this means zero-filling the following locations:
 \
@@ -12930,91 +12940,152 @@ LOAD_F% = LOAD% + P% - CODE%
                         ; &FF to indicate we are docked
 
                         ; Fall through into RES4 to restore shields and energy,
-                        ; and reset stardust and INWK
+                        ; and reset the stardust and ship workspace at INWK
 }
 
 \ *****************************************************************************
 \ Subroutine: RES4
 \
-\ Restore shields and energy, and reset stardust and INWK
+\ Reset the shields and energy banks, then fall through into RES2 to reset the
+\ stardust and the ship workspace at INWK.
 \ *****************************************************************************
 
 .RES4
 {
- LDA #&FF
- LDX #2                 ; Restore forward, aft shields, and energy
+ LDA #&FF               ; Set A to &FF so we can fill up the shields and energy
+                        ; bars with a full charge
 
-.REL5                   ; counter X
- STA FSH,X              ; forward shield
- DEX
- BPL REL5               ; loop X
+ LDX #2                 ; The two shields and energy bank levels are stored in
+                        ; three consecutive bytes, at FSH through FSH+2, so set
+                        ; up a counter in X to index these three bytes
+
+.REL5
+ STA FSH,X              ; Set the X-th byte in the FSH block to &FF
+
+ DEX                    ; Decrement the loop counter
+
+ BPL REL5               ; Loop back to do the next byte, until we have done
+                        ; all three
+
+                        ; Fall through into RES2 to reset stardust and INWK
 }
 
 \ *****************************************************************************
 \ Subroutine: RES2
 \
-\ Reset2, done after launch or hyper, new dust.
+\ Reset a number of flight variables and workspaces.
+\
+\ This is called after we launch from a space station, arrive in a new system
+\ after hyperspace, launch an escape pod, or die a cold, lonely death in the
+\ depths of space.
 \ *****************************************************************************
 
-.RES2                   ; Reset2, done after launch or hyper, new dust.
+.RES2
 {
- LDA #NOST
- STA NOSTM              ; number of stars, dust.
- LDX #&FF               ; bline buffers cleared, 78 bytes.
- STX LSX2
+ LDA #NOST              ; Reset NOSTM, the number of stardust particles, to the
+ STA NOSTM              ; maximum allowed (18)
+
+ LDX #&FF               ; Reset LSX2 and LSY2, the buffers used by the BLINE
+ STX LSX2               ; routine for drawing the planet's ball line, to &FF
  STX LSY2
- STX MSTG               ; missile has no target
- LDA #128               ; center joysticks
- STA JSTY               ; joystick X
- STA ALP2               ; joystick Y
+
+ STX MSTG               ; Reset MSTG, the missile target, to &FF (no target)
+
+ LDA #128               ; Set the current pitch rate to the mid-point, 128
+ STA JSTY
+
+ STA ALP2               ; Reset the roll and pitch signs to (&00 &FF)
  STA BET2
- ASL A                  ; = 0
- STA ALP2+1             ; outer hyperspace countdown
+ ASL A                  ; This sets A to 0
+ STA ALP2+1
  STA BET2+1
- STA MCNT               ; move count
- LDA #3                 ; speed, but not alpha gentle roll
+
+ STA MCNT               ; Reset MCNT, the move count, to 0
+
+ LDA #3                 ; Reset DELTA (speed), ALPHA and ALP1 to 3
  STA DELTA
  STA ALPHA
  STA ALP1
 
- LDA SSPR               ; space station present, 0 is SUN.
- BEQ P%+5               ; if none, leave bulb off
- JSR SPBLB              ; space station bulb
- LDA ECMA               ; any ECM on?
- BEQ yu                 ; hop over as ECM not on
- JSR ECMOF              ; silence E.C.M. sound
+ LDA SSPR               ; Fetch the "space station present" flag, and if we are
+ BEQ P%+5               ; not inside the safe zone, skip the next instruction
 
-.yu                     ; hopped over
- JSR WPSHPS             ; wipe ships on scanner
- JSR ZERO               ; update flight console
- LDA #LO(WP-1)
- STA SLSP               ; ship lines pointer reset to top
+ JSR SPBLB              ; Light up the space station bulb on the dashboard
+
+ LDA ECMA               ; Fetch the E.C.M. status flag, and if E.C.M. is off,
+ BEQ yu                 ; skip the next instruction
+
+ JSR ECMOF              ; Turn off the E.C.M. sound
+
+.yu
+ JSR WPSHPS             ; Wipe all ships from the scanner
+
+ JSR ZERO               ; Zero-fill pages &9, &A, &B, &C and &D.
+
+ LDA #LO(WP-1)          ; Reset the ship lines pointer to point to the byte
+ STA SLSP               ; before the WP workspace
  LDA #HI(WP-1)
- STA SLSP+1             ; hi
- JSR DIALS              ; update flight console
+ STA SLSP+1
+
+ JSR DIALS              ; Update the dashboard
+
+                        ; Finally, fall through into ZINF to reset the INWK
+                        ; ship workspace
 }
 
 \ *****************************************************************************
 \ Subroutine: ZINF
 \
-\ Zero information, ends with Acc = #&E0
+\ Zero-fill the INWK ship workspace and reset the rotation matrix.
 \ *****************************************************************************
 
-.ZINF                   ; Zero information, ends with Acc = #&E0
+.ZINF
 {
- LDY #NI%-1             ; NI%=36 is size of inner working space
- LDA #0
+ LDY #NI%-1             ; There are NI% bytes in the INWK workspace, so set a
+                        ; counter in Y so we can loop through them
 
-.ZI1                    ; counter Y
- STA INWK,Y
- DEY
- BPL ZI1                ; loop Y
- LDA #96                ; unity in rotation matrix
- STA INWK+18            ; rotmat1y hi
- STA INWK+22            ; rotmat2x hi
- ORA #128               ; -ve unity = #&E0
- STA INWK+14            ; rotmat0z hi = -1
- RTS
+ LDA #0                 ; Set A to 0 so we can zero-fill the workspace
+
+.ZI1
+ STA INWK,Y             ; Zero the Y-th byte of the INWK workspace
+
+ DEY                    ; Decrement the loop counter
+
+ BPL ZI1                ; Loop back for the next byte, ending when we have
+                        ; zero-filled the last byte at INWK
+
+                        ; Finally, we reset the rotation matrix to unity,
+                        ; as follows:
+                        ;
+                        ;                   (rotmat0x rotmat0y rotmat0z)
+                        ; Rotation matrix = (rotmat1x rotmat1y rotmat1z)
+                        ;                   (rotmat2x rotmat2y rotmat2z)
+                        ;
+                        ;                   (INWK+10,9  INWK+12,11 INWK+14,13)
+                        ;                 = (INWK+16,15 INWK+18,17 INWK+20,19)
+                        ;                   (INWK+22,21 INWK+24,23 INWK+26,25)
+                        ;
+                        ;                   (0    0  &E0)   (0  0 -1)
+                        ;                 = (0   &60   0) = (0  1  0)
+                        ;                   (&60  0    0)   (1  0  0)
+                        ;
+                        ; &60 represents 1 in the rotation matrix, while &E0
+                        ; represents -1
+                        ;
+                        ; We already set the whole matrix to zero above, so
+                        ; we just need to set up the diagonal values and we're
+                        ; done.
+
+ LDA #&60               ; Set A to represent a 1 in the matrix
+
+ STA INWK+18            ; Set INWK+18 = rotmat1y_hi = &60 = 1 in the matrix
+ STA INWK+22            ; Set INWK+22 = rotmat2x_hi = &60 = 1 in the matrix
+
+ ORA #128               ; Flip the sign of A to represent a -1 in the matrix
+
+ STA INWK+14            ; Set INWK+14 = rotmat0z_hi = &E0 = -1 in the matrix
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -13613,6 +13684,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Entry point for Elite game code. Also called following death or quitting a
 \ game (by pressing Escape when paused).
+\
+\ BRKV is set to point to BR1 by elite-loader.asm.
 \ *****************************************************************************
 
 .TT170
@@ -13620,7 +13693,7 @@ LOAD_F% = LOAD% + P% - CODE%
  LDX #&FF               ; Set stack pointer to &01FF, so stack is in page 1
  TXS                    ; (this is the standard location for the 6502 stack)
 
-.^BR1                   ; BRKV is set to point here
+.^BR1                   ; BRKV is set to point here by elite-loader.asm
 
  LDX #3                 ; Set XC = 3 (set text cursor to column 3)
  STX XC
