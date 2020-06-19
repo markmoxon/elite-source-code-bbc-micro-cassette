@@ -175,24 +175,68 @@ Y2 = X2 + 1
 .K                      ; 
  SKIP 4
 
-.KL                     ; 
- SKIP 16
+.KL                     ; If a key is being pressed that is not in the keyboard
+ SKIP 1                 ; table at KYTB, it can be stored here (as seen in
+                        ; routine DK4, for example)
 
-KY1 = KL + 1            ; Bytes of KL are KY1-KY7, then KY12-KY19
-KY2 = KL + 2
-KY3 = KL + 3
-KY4 = KL + 4
-KY5 = KL + 5
-KY6 = KL + 6
-KY7 = KL + 7
-KY12 = KL + 8
-KY13 = KL + 9
-KY14 = KL + 10
-KY15 = KL + 11
-KY16 = KL + 12
-KY17 = KL + 13
-KY18 = KL + 14
-KY19 = KL + 15
+                        ; The following bytes implement a key logger that
+                        ; enables Elite to scan for concurrent key presses of
+                        ; all the flight keys (so this effectively implements
+                        ; a 15-key rollover for the flight keys listed in the
+                        ; keyboard table at KYTB, enabling players to roll,
+                        ; pitch, change speed and fire lasers at the same, all
+                        ; while targeting missiles and setting off their E.C.M.
+                        ; and energy bomb, without the keyboard ignoring them).
+                        ; The various keyboard canning routines, such as the one
+                        ; at DKS1, can set the relevant byte in this table to
+                        ; &FF to denote that that particular key is being
+                        ; pressed. The logger is cleared to zero (no keys are
+                        ; being pressed) by the U% routine.
+
+.KY1                    ; ? key pressed (0 = no, non-zero = yes)
+ SKIP 1
+
+.KY2                    ; Space key pressed (0 = no, non-zero = yes)
+ SKIP 1
+
+.KY3                    ; < key pressed (0 = no, non-zero = yes)
+ SKIP 1
+
+.KY4                    ; > key pressed (0 = no, non-zero = yes)
+ SKIP 1
+
+.KY5                    ; X key pressed (0 = no, non-zero = yes)
+ SKIP 1
+
+.KY6                    ; S key pressed (0 = no, non-zero = yes)
+ SKIP 1
+
+.KY7                    ; A key pressed (0 = no, non-zero = yes)
+ SKIP 1                 ; Also, joystick fire button pressed
+
+.KY12                   ; Tab key pressed (0 = no, non-zero = yes)
+ SKIP 1
+
+.KY13                   ; Escape key pressed (0 = no, non-zero = yes)
+ SKIP 1
+
+.KY14                   ; T key pressed (0 = no, non-zero = yes)
+ SKIP 1
+
+.KY15                   ; U key pressed (0 = no, non-zero = yes)
+ SKIP 1
+
+.KY16                   ; M key pressed (0 = no, non-zero = yes)
+ SKIP 1
+
+.KY17                   ; E key pressed (0 = no, non-zero = yes)
+ SKIP 1
+
+.KY18                   ; J key pressed (0 = no, non-zero = yes)
+ SKIP 1
+
+.KY19                   ; C key pressed (0 = no, non-zero = yes)
+ SKIP 1
 
 .LAS                    ; 
  SKIP 1
@@ -331,7 +375,7 @@ K6 = K5 + 4             ; Shares memory with XX18+4
 .BET2                   ; Pitch sign?
  SKIP 2
 
-.DELTA                  ; Speed?
+.DELTA                  ; Current speed
  SKIP 1
 
 .DELT4                  ; 
@@ -349,10 +393,10 @@ K6 = K5 + 4             ; Shares memory with XX18+4
 .S                      ; Temporary storage (e.g. used in BPRNT)
  SKIP 1
 
-.XSAV                   ; 
+.XSAV                   ; Temporary storage for X
  SKIP 1
 
-.YSAV                   ; 
+.YSAV                   ; Temporary storage for Y (e.g. used in TT27)
  SKIP 1
 
 .XX17                   ; Temporary storage (e.g. used in BPRNT to store the
@@ -376,11 +420,19 @@ K6 = K5 + 4             ; Shares memory with XX18+4
 .TYPE                   ; 
  SKIP 1
 
-.JSTX                   ; 
- SKIP 1
+.JSTX                   ; Current rate of roll being applied by the controls
+ SKIP 1                 ; (as shown in the dashboard's RL indicator), ranging
+                        ; from 1 to 255 with 128 as the centre point (so 1
+                        ; means roll is decreasing at the maximum rate, 128
+                        ; means roll is not changing, and 255 means roll is
+                        ; increasing at the maximum rate)
 
-.JSTY                   ; 
- SKIP 1
+.JSTY                   ; Current rate of pitch being applied by the controls
+ SKIP 1                 ; (as shown in the dashboard's DC indicator), ranging
+                        ; from 1 to 255 with 128 as the centre point (so 1
+                        ; means pitch is decreasing at the maximum rate, 128
+                        ; means pitch is not changing, and 255 means pitch is
+                        ; increasing at the maximum rate)
 
 .ALPHA                  ; 
  SKIP 1
@@ -633,12 +685,17 @@ ORG T%                  ; Start of the commander block
 .QQ14                   ; Contains the current fuel level * 10 (so a 1 in QQ14
  SKIP 1                 ; represents 0.1 light years)
 
-.COK                    ; Competition code
- SKIP 1                 ;   Bit 7 is set on start-up if CHK and CHK2 do not
-                        ;     match, which might indicate shenanigans
-                        ;   Bit 1 is set on start-up
-                        ;   Bit 0 is set in ptg if player holds X during
-                        ;     hyperspace to force a mis-jump
+.COK                    ; Competition code flags
+ SKIP 1                 ;
+                        ; Bit 7 is set on start-up if CHK and CHK2 do not match,
+                        ; which presumably indicates that there may have been
+                        ; some cheatimg going on
+                        ;
+                        ; Bit 1 is set on start-up
+                        ;
+                        ; Bit 0 is set in routine ptg if player holds X during
+                        ; hyperspace to force a mis-jump (having first paused
+                        ; the game and toggled on the author credits with X)
 
 .GCNT                   ; Contains the current galaxy number, 0-7. When this is
  SKIP 1                 ; displayed in-game, 1 is added to the number (so we
@@ -740,18 +797,19 @@ LOAD_A% = LOAD%
 .DAMP                   ; Keyboard damping, 0 = no, &FF = yes
  EQUB 0                 ; Toggled by Caps Lock when paused, see DKS3
 
-.DJD                    ; Keyboard auto-recentering, 0 = no, &FF = yes
+.DJD                    ; Keyboard auto-recentre, 0 = no, &FF = yes
  EQUB 0                 ; Toggled by A when paused, see DKS3
 
-.PATG                   ; Display authors on start screen, 0 = no, &FF = yes
- EQUB 0                 ; Toggled by X when paused, see DKS3
+.PATG                   ; Display authors on start-up screen, 0 = no, &FF = yes
+ EQUB 0                 ;
+                        ; Toggled by X when paused, see DKS3
                         ;
                         ; This needs to be set to &FF for manual mis-jumps to
                         ; be possible; to do a manual mis-jump, first toggle
-                        ; the author display with Pause (Copy) then X, and then
-                        ; hold down Ctrl-X during the next hyperspace to force
-                        ; a mis-jump; see ee5 for the AND PATG instruction that
-                        ; implements this
+                        ; the author display by pausing the game (Copy) and
+                        ; pressing X, and then hold down CTRL during the next
+                        ; hyperspace to force a mis-jump; see routine ee5 for
+                        ; the "AND PATG" instruction that implements this
 
 .FLH                    ; Flashing console bars, 0 = no, &FF = yes
  EQUB 0                 ; Toggled by F when paused, see DKS3
@@ -826,17 +884,17 @@ LOAD_A% = LOAD%
  ORA BET2
  STA BETA
 
- LDA KY2
- BEQ MA17
- LDA DELTA
+ LDA KY2                ; Is Space key being pressed?
+ BEQ MA17               ; If not, jump to MA17
+ LDA DELTA              ; Speed-up key is being pressed, so speed up
  CMP #40
  BCS MA17
  INC DELTA
 
-.MA17                   ; speed-up key
- LDA KY1                ; key '?' slow-down
- BEQ MA4                ; speed done
- DEC DELTA              ; speed
+.MA17
+ LDA KY1                ; Is ? key being pressed?
+ BEQ MA4                ; If not, jump to MA4
+ DEC DELTA              ; Slow-down key is being pressed, so slow down
  BNE MA4                ; speed done
  INC DELTA              ; speed back to 1
 
@@ -2187,8 +2245,9 @@ Q% = _ENABLE_MAX_COMMANDER
 \ initially set up with the default commander, which can be maxed out for
 \ testing purposes by setting Q% to TRUE.
 \
-\ Commander's name is stored at NA%, up to 7 characters (DFS filename limit)
-\ Terminated with CR, 13
+\ The commander's name is stored at NA%, and can be up to 7 characters long
+\ (the DFS filename limit). It is terminated with a carriage return character,
+\ ASCII 13.
 \ *****************************************************************************
 
 .NA%
@@ -2340,7 +2399,7 @@ NEXT
 \ *****************************************************************************
 \ Variable: TWOS
 \
-\ Mode 4 single pixel
+\ Mode 4 single pixel.
 \ *****************************************************************************
 
 .TWOS                   ; Mode 4 single pixel
@@ -2352,7 +2411,7 @@ NEXT
 \ *****************************************************************************
 \ Variable: TWOS2
 \
-\ Mode 4 double-width pixel approx as contained in 1 column
+\ Mode 4 double-width pixel approx as contained in 1 column.
 \ *****************************************************************************
 
 .TWOS2                  ; Mode 4 double-width pixel approx as contained in 1 column
@@ -2364,7 +2423,7 @@ NEXT
 \ *****************************************************************************
 \ Variable: CTWOS
 \
-\ Mode 5 coloured pixel 
+\ Mode 5 coloured pixel.
 \ *****************************************************************************
 
 .CTWOS                  ; Mode 5 coloured pixel
@@ -2376,7 +2435,7 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: LL30, LOIN
 \
-\ Draw Line using (X1,Y1) , (X2,Y2)
+\ Draw Line using (X1,Y1) , (X2,Y2).
 \ *****************************************************************************
 
 .LL30                   ; draw Line using (X1,Y1) , (X2,Y2)
@@ -3405,7 +3464,7 @@ NEXT
 \ *****************************************************************************
 \ Variable: PRXS
 \
-\ Equipment prices
+\ Equipment prices.
 \ *****************************************************************************
 
 .PRXS                   ; Equipment prices
@@ -3609,7 +3668,7 @@ NEXT
                         ; unnecessary, as the next operation that uses the Y
                         ; register, in BPRNT below, is also an LDY #0)
 
-                        ; Now fall through to TT11 to print X to 3 digits
+                        ; Now fall through into TT11 to print X to 3 digits
 }
 
 \ *****************************************************************************
@@ -3797,9 +3856,8 @@ NEXT
 .TT30
  LDA #11                ; Set A to 11, the maximum number of digits allowed
 
- SEC                    ; Set the carry flag so we can do some subtraction
-                        ; arithmetic without the carry flag affecting the
-                        ; result
+ SEC                    ; Set the carry flag so we can do subtraction without
+                        ; the carry flag affecting the result
 
  STA XX17               ; Store the maximum number of digits allowed (11) in
                         ; XX17
@@ -3867,8 +3925,8 @@ NEXT
  ROL K
  ROL S
 
- CLC                    ; Clear the carry flag so we can do some additions
-                        ; without the carry flag affecting the result
+ CLC                    ; Clear the carry flag so we can do addition without
+                        ; the carry flag affecting the result
  
  LDX #3                 ; By now we've got (K * 2) in XX15(4 0 1 2 3) and
                         ; (K * 8) in K(S 0 1 2 3), so the final step is to add
@@ -3911,9 +3969,8 @@ NEXT
  LDX #3                 ; Our first calculation concerns 32-bit numbers, so
                         ; set up a counter for a four-byte loop
 
- SEC                    ; Set the carry flag so we can do some subtraction
-                        ; arithmetic without the carry flag affecting the
-                        ; result
+ SEC                    ; Set the carry flag so we can do subtraction without
+                        ; the carry flag affecting the result
                         
 .tt37                   ; Now we loop thorough each byte in turn to do this:
                         ;
@@ -4052,7 +4109,7 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: BELL
 \
-\ Make a beep sound
+\ Make a beep sound.
 \ *****************************************************************************
 
 .BELL
@@ -4068,21 +4125,26 @@ NEXT
 \ Exposed labels: RR3, RREN, RR4, rT9, R5
 \
 \ Print a character at the text cursor (XC, YC), do a beep, print a newline,
-\ or delete left (backspace)
+\ or delete left (backspace).
 \
 \ Entry conditions:
 \
-\   XC contains the text column to print at (the x-coordinate)
-\   YC contains the line number to print on (the y-coordinate)
+\   * XC contains the text column to print at (the x-coordinate)
+\
+\   * YC contains the line number to print on (the y-coordinate)
 \
 \ Arguments:
 \
 \   A           The character to be printed. Can be one of the following:
-\                   * 7 (beep)
-\                   * 10-13 (line feeds and carriage returns)
-\                   * 32-95 (ASCII capital letters, numbers and punctuation)
-\                   * 127 (delete the character to the left of the text cursor
-\                     and move the cursor to the left)
+\
+\                 * 7 (beep)
+\
+\                 * 10-13 (line feeds and carriage returns)
+\
+\                 * 32-95 (ASCII capital letters, numbers and punctuation)
+\
+\                 * 127 (delete the character to the left of the text cursor
+\                   and move the cursor to the left)
 \ *****************************************************************************
 
 .TT26
@@ -5678,7 +5740,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 \ Variable: SNE
 \
-\ Sine table
+\ Sine table.
 \ *****************************************************************************
 
 .SNE
@@ -6188,7 +6250,9 @@ NEXT
 \ Subroutine: ADD
 \
 \ Add two signed 16-bit numbers together, making sure the result has the
-\ correct sign: (A X) = (A P) + (S R)
+\ correct sign. Specifically:
+\
+\   (A X) = (A P) + (S R)
 \
 \ How it works:
 \
@@ -6563,51 +6627,115 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: BUMP2
 \
-\ Increase X by A
+\ Exposed labels: RE2
+\
+\ Increase ("bump up") X by A, where X is either the current rate of pitch or
+\ the current rate of roll.
+\
+\ The rate of pitch or roll ranges from 1 to 255 with 128 as the centre point.
+\ This is the amount by which the pitch or roll is currently changing, so 1
+\ means it is decreasing at the maximum rate, 128 means it is not changing,
+\ and 255 means it is increasing at the maximum rate. These values correspond
+\ to the line on the DC or RL indicators on the dashboard, with 1 meaning full
+\ left, 128 meaning the middle, and 255 meaning full right.
+\
+\ If bumping up X would push it past 255, then X is set to 255.
+\
+\ If keyboard auto-recentre is configured and the result is less than 128, we
+\ bump X up to the mid-point, 128. This is the equivalent of having a roll or
+\ pitch in the left half of the indicator, when increasing the roll or pitch
+\ should jump us straight to the mid-point.
 \ *****************************************************************************
 
-.BUMP2                  ; increase X by A
+.BUMP2
 {
- STA T
- TXA
- CLC
- ADC T
- TAX                    ; sum of A and X that BUMP2 was called with
- BCC RE2                ; not sat
- LDX #&FF               ; else sat
-}
+ STA T                  ; Store argument A in T so we can restore it later
 
-.RE2                    ; not sat
-{
- BPL RE3+2              ; if +ve, lda djd
- LDA T                  ; restore \ RE2+2 \ finish REDU2
- RTS
+ TXA                    ; Copy argument X into A
+
+ CLC                    ; Clear the carry flag so we can do addition without
+                        ; the carry flag affecting the result
+                    
+ ADC T                  ; Set X = A = argument X + argument A
+ TAX
+
+ BCC RE2                ; If carry is clear, then we didn't overflow, so jump
+                        ; to RE2 to auto-recentre and return the result
+
+ LDX #255               ; We have an overflow, so set X to the maximum possible
+                        ; value, 255
+
+.^RE2
+ BPL RE3+2              ; If X has bit 7 clear (i.e. the result < 128), then
+                        ; jump to RE3+2 below to do an auto-recentre, if
+                        ; configured, because the result is on the left side of
+                        ; the centre point of 128
+
+                        ; Jumps to RE2+2 end up here
+
+ LDA T                  ; Restore the original argument A into A
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
 \ Subroutine: REDU2
 \
-\ Reduce X by A
+\ Exposed labels: RE3
+\
+\ Reduce X by A, where X is either the current rate of pitch or the current
+\ rate of roll.
+\
+\ The rate of pitch or roll ranges from 1 to 255 with 128 as the centre point.
+\ This is the amount by which the pitch or roll is currently changing, so 1
+\ means it is decreasing at the maximum rate, 128 means it is not changing,
+\ and 255 means it is increasing at the maximum rate. These values correspond
+\ to the line on the DC or RL indicators on the dashboard, with 1 meaning full
+\ left, 128 meaning the middle, and 255 meaning full right.
+\
+\ If reducing X would bring it below 1, then X is set to 1.
+\
+\ If keyboard auto-recentre is configured and the result is greater than 128, we
+\ reduce X down to the mid-point, 128. This is the equivalent of having a roll or
+\ pitch in the right half of the indicator, when decreasing the roll or pitch
+\ should jump us straight to the mid-point.
 \ *****************************************************************************
 
-.REDU2                  ; reduce X by A
+.REDU2
 {
- STA T
- TXA
- SEC
- SBC T
- TAX                    ; subtracted
- BCS RE3                ; no underflow
- LDX #1                 ; else minimum
-}
+ STA T                  ; Store argument A in T so we can restore it later
 
-.RE3                    ; no underflow
-{
- BPL RE2+2              ; not negative up, finish.
- LDA DJD                ; Toggle Keyboard auto re-centering
- BNE RE2+2              ; no centering, finish.
- LDX #128               ; middle
- BMI RE2+2              ; guaranteed up, finish.
+ TXA                    ; Copy argument X into A
+
+ SEC                    ; Set the carry flag so we can do subtraction without
+                        ; the carry flag affecting the result
+
+ SBC T                  ; Set X = A = argument X - argument A
+ TAX
+
+ BCS RE3                ; If carry is set, then we didn't underflow, so jump
+                        ; to RE3 to auto-recentre and return the result
+
+ LDX #1                 ; We have an underflow, so set X to the minimum possible
+                        ; value, 1
+
+.^RE3
+ BPL RE2+2              ; If X has bit 7 clear (i.e. the result < 128), then
+                        ; jump to RE2+2 above to return the result as is,
+                        ; because the result is on the left side of the centre
+                        ; point of 128, so we don't need to auto-centre
+
+                        ; Jumps to RE3+2 end up here
+
+                        ; If we get here, then we need to apply auto-recentre, if
+                        ; it is configured
+
+ LDA DJD                ; If keyboard auto-recentre is not configured, then
+ BNE RE2+2              ; jump to RE2+2 to restore A and return
+
+ LDX #128               ; If keyboard auto-recentre is configured, set X to 128
+ BMI RE2+2              ; (the middle of our range) and jump to RE2+2 to
+                        ; restore A and return
 }
 
 \ *****************************************************************************
@@ -6673,7 +6801,7 @@ NEXT
 \ *****************************************************************************
 \ Variable: ACT
 \
-\ Arctan table
+\ Arctan table.
 \ *****************************************************************************
 
 .ACT
@@ -7338,7 +7466,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT20
 \
-\ Twist seeds in QQ15 (selected system) four times, to generate the next system
+\ Twist the three 16-bit seeds in QQ15 (selected system) four times, to
+\ generate the next system.
 \ *****************************************************************************
 
 .TT20
@@ -7358,7 +7487,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT54
 \
-\ This routine twists the three 16-bit seeds in QQ15.
+\ This routine twists the three 16-bit seeds in QQ15 once.
 \
 \ How it works:
 \
@@ -8915,7 +9044,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT162
 \
-\ Print a space
+\ Print a space.
 \ *****************************************************************************
 
 .TT162
@@ -9200,7 +9329,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .ee5                    ; not a space view
  JSR CTRL               ; scan from ctrl on keyboard
- AND PATG               ; toggle to scan keyboard X-key, for misjump.
+ AND PATG               ; PATG = &FF if credits have been enabled
  BMI ptg                ; shift key forced misjump, up.
  JSR DORND              ; do random, new A, X.
  CMP #253               ; also small chance that
@@ -9733,8 +9862,8 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: cpl
 \
-\ Print control code 3 (selected system name, i.e. the one in the cross-hairs
-\ in the short range chart)
+\ Print control code 3 (the selected system name, i.e. the one in the
+\ cross-hairs in the short range chart).
 \
 \ How it works:
 \
@@ -9824,7 +9953,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: cmn
 \
-\ Print control code 4 (commander's name)
+\ Print control code 4 (the commander's name).
 \ *****************************************************************************
 
 .cmn
@@ -9850,7 +9979,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: ypl
 \
-\ Print control code 2 (current system name)
+\ Print control code 2 (the current system name).
 \ *****************************************************************************
 
 .ypl
@@ -9894,7 +10023,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: tal
 \
-\ Print control code 1 (current galaxy number, right-aligned to width 3)
+\ Print control code 1 (the current galaxy number, right-aligned to width 3).
 \ *****************************************************************************
 
 .tal
@@ -9919,7 +10048,7 @@ MAPCHAR '4', '4'
 \ Subroutine: fwl
 \
 \ Print control code 5 ("FUEL: ", fuel level, " LIGHT YEARS", newline, "CASH:",
-\ control code 0)
+\ control code 0).
 \ *****************************************************************************
 
 .fwl
@@ -9948,8 +10077,8 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: csh
 \
-\ Print control code 0 (current amount of cash, right-aligned to width 9,
-\ followed by " CR" and a newline)
+\ Print control code 0 (the current amount of cash, right-aligned to width 9,
+\ followed by " CR" and a newline).
 \ *****************************************************************************
 
 .csh
@@ -9987,7 +10116,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: plf
 \
-\ Print a text token followed by a newline
+\ Print a text token followed by a newline.
 \
 \ Arguments:
 \
@@ -10004,7 +10133,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: TT68
 \
-\ Print a text token followed by a colon
+\ Print a text token followed by a colon.
 \
 \ Arguments:
 \
@@ -10013,19 +10142,19 @@ MAPCHAR '4', '4'
 
 .TT68
 {
- JSR TT27               ; Print the text token in A and fall through to TT73 to
-                        ; print a colon
+ JSR TT27               ; Print the text token in A and fall through into TT73
+                        ; to print a colon
 }
 
 \ *****************************************************************************
 \ Subroutine: TT73
 \
-\ Print a colon
+\ Print a colon.
 \ *****************************************************************************
 
 .TT73
 {
- LDA #':'               ; Set A to ASCII ':' and fall through to TT27 to
+ LDA #':'               ; Set A to ASCII ':' and fall through into TT27 to
                         ; actually print the colon
 }
 
@@ -10136,7 +10265,7 @@ MAPCHAR '4', '4'
                         ; If we get here, some other flag is set in QQ17 (one
                         ; of bits 0-5 is set), which shouldn't happen in this
                         ; version of Elite. If this were the case, then we
-                        ; would fall through to TT42 to print in lower case,
+                        ; would fall through into TT42 to print in lower case,
                         ; which is how printing all words in lower case could
                         ; be supported (by setting QQ17 to 1, say).
 }
@@ -10146,14 +10275,17 @@ MAPCHAR '4', '4'
 \
 \ Exposed labels: TT44
 \
-\ Print a letter in lower case
+\ Print a letter in lower case.
 \
 \ Arguments:
 \
 \   A           The character to be printed. Can be one of the following:
-\                   * 7 (beep)
-\                   * 10-13 (line feeds and carriage returns)
-\                   * 32-95 (ASCII capital letters, numbers and punctuation)
+\
+\                 * 7 (beep)
+\
+\                 * 10-13 (line feeds and carriage returns)
+\
+\                 * 32-95 (ASCII capital letters, numbers and punctuation)
 \ *****************************************************************************
 
 .TT42
@@ -10177,24 +10309,31 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: TT41
 \
-\ Print a letter according to Sentence Case, as follows:
+\ Print a letter according to Sentence Case. The rules are as follows:
 \
-\ * If QQ17 bit 6 is set, print lower case (via TT45), otherwise:
-\ * If QQ17 bit 6 clear, then:
-\     * If character is punctuation, just print it
-\     * If character is a letter, set QQ17 bit 6 and print letter as a capital
+\   * If QQ17 bit 6 is set, print lower case (via TT45)
+\
+\   * If QQ17 bit 6 clear, then:
+\
+\       * If character is punctuation, just print it
+\
+\       * If character is a letter, set QQ17 bit 6 and print letter as a capital
 \
 \ Entry conditions:
 \
-\   QQ17 bit 7 is set
-\   X contains the value of QQ17
+\   * QQ17 bit 7 is set
+\
+\   * X contains the value of QQ17
 \
 \ Arguments:
 \
 \   A           The character to be printed. Can be one of the following:
-\                   * 7 (beep)
-\                   * 10-13 (line feeds and carriage returns)
-\                   * 32-95 (ASCII capital letters, numbers and punctuation)
+\
+\                 * 7 (beep)
+\
+\                 * 10-13 (line feeds and carriage returns)
+\
+\                 * 32-95 (ASCII capital letters, numbers and punctuation)
 \ *****************************************************************************
 
 .TT41                   ; If we get here, then QQ17 has bit 7 set, so we are in
@@ -10229,7 +10368,7 @@ MAPCHAR '4', '4'
 \ Subroutine: qw
 \
 \ Print a recursive token where the token number is in 128-145 (so the value
-\ passed to TT27 is in the range 14-31)
+\ passed to TT27 is in the range 14-31).
 \
 \ Arguments:
 \
@@ -10248,7 +10387,7 @@ MAPCHAR '4', '4'
 \ Subroutine: crlf
 \
 \ Print control code 9 (tab to column 21 and print a colon). The subroutine
-\ label is pretty misleading, as it doesn't have anything to do with carriage
+\ name is pretty misleading, as it doesn't have anything to do with carriage
 \ returns or line feeds.
 \ *****************************************************************************
 
@@ -10264,22 +10403,31 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: TT45
 \
-\ If QQ17 = &FF, abort printing this character
-\ If a letter then print in lower case
-\ Otherwise this is punctuation, so clear bit 6 in QQ17 and print
+\ Print a letter in lower case. Specifically:
+\
+\   * If QQ17 = &FF, abort printing this character
+\
+\   * If a letter then print in lower case
+\
+\   * Otherwise this is punctuation, so clear bit 6 in QQ17 and print
 \
 \ Entry conditions:
 \
-\   QQ17 bit 6 is set
-\   QQ17 bit 7 is set
-\   X contains the value of QQ17
+\   * QQ17 bit 6 is set
+\
+\   * QQ17 bit 7 is set
+\
+\   * X contains the value of QQ17
 \
 \ Arguments:
 \
 \   A           The character to be printed. Can be one of the following:
-\                   * 7 (beep)
-\                   * 10-13 (line feeds and carriage returns)
-\                   * 32-95 (ASCII capital letters, numbers and punctuation)
+\
+\                 * 7 (beep)
+\
+\                 * 10-13 (line feeds and carriage returns)
+\
+\                 * 32-95 (ASCII capital letters, numbers and punctuation)
 \ *****************************************************************************
 
 .TT45                   ; If we get here, then QQ17 has bit 6 and 7 set, so we
@@ -10303,20 +10451,25 @@ MAPCHAR '4', '4'
 \ Subroutine: TT46
 \
 \ Print character and clear bit 6 in QQ17, so that the next letter that gets
-\ printed after this will start with a capital letter
+\ printed after this will start with a capital letter.
 \
 \ Entry conditions:
 \
-\   QQ17 bit 6 is set
-\   QQ17 bit 7 is set
-\   X contains the value of QQ17
+\   * QQ17 bit 6 is set
+\
+\   * QQ17 bit 7 is set
+\
+\   * X contains the value of QQ17
 \
 \ Arguments:
 \
 \   A           The character to be printed. Can be one of the following:
-\                   * 7 (beep)
-\                   * 10-13 (line feeds and carriage returns)
-\                   * 32-95 (ASCII capital letters, numbers and punctuation)
+\
+\                 * 7 (beep)
+\
+\                 * 10-13 (line feeds and carriage returns)
+\
+\                 * 32-95 (ASCII capital letters, numbers and punctuation)
 \ *****************************************************************************
 
 .TT46
@@ -10335,7 +10488,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: TT74
 \
-\ Print a character
+\ Print a character.
 \
 \ Arguments:
 \
@@ -10351,14 +10504,14 @@ MAPCHAR '4', '4'
 \ Subroutine: TT43
 \
 \ Print a two-letter token, or a recursive token where the token number is in
-\ 0-95 (so the value passed to TT27 is in the range 160-255)
+\ 0-95 (so the value passed to TT27 is in the range 160-255).
 \
 \ Arguments:
 \
 \   A           One of the following:
-\                   * 128-159 (two-letter token)
-\                   * 160-255 (the argument to TT27 that refers to a recursive
-\                     token in the range 0-95)
+\                 * 128-159 (two-letter token)
+\                 * 160-255 (the argument to TT27 that refers to a recursive
+\                   token in the range 0-95)
 \ *****************************************************************************
 
 .TT43
@@ -10391,7 +10544,7 @@ MAPCHAR '4', '4'
 .TT47
  SBC #160               ; This is a recursive token in the range 160-255, so
                         ; subtract 160 from the argument to get the token
-                        ; number 0-95 and fall through to ex to print it
+                        ; number 0-95 and fall through into ex to print it
 }
 
 \ *****************************************************************************
@@ -10399,7 +10552,7 @@ MAPCHAR '4', '4'
 \
 \ Exposed labels: TT48
 \
-\ Print a recursive token
+\ Print a recursive token.
 \
 \ Arguments:
 \
@@ -11407,7 +11560,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Variable: ECBT
 \
-\ 'E' displayed in lower console
+\ 'E' displayed in lower console.
 \ *****************************************************************************
 
 .ECBT
@@ -11419,7 +11572,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Variable: SPBT
 \
-\ 'S' displayed in lower console
+\ 'S' displayed in lower console.
 \ *****************************************************************************
 
 .SPBT                   ; make sure same page !
@@ -12480,7 +12633,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: ping
 \
-\ Set the target system to the current system
+\ Set the target system to the current system.
 \ *****************************************************************************
 
 .ping
@@ -12718,7 +12871,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Variable: SFX
 \
-\ Sound data
+\ Sound data.
 \ *****************************************************************************
 
 .SFX                    ; block F1 Sound data
@@ -12739,21 +12892,25 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: RESET
 \
-\ Reset the player ship and various controls, then fall through to RES4 to
+\ Reset the player ship and various controls, then fall through into RES4 to
 \ restore shields and energy, and reset stardust and INWK.
 \
 \ In this subroutine, this means zero-filling the following locations:
 \
 \   * Pages &9, &A, &B, &C and &D
 \
-\   * BETA to BETA+6, so that's:
+\   * BETA to BETA+6, which covers the following:
 \
 \     * BETA, BET1 - Set pitch to 0
+\
 \     * XC, YC - Set text cursor to (0, 0)
+\
 \     * QQ22 - Stop hyperspace countdown
+\
 \     * ECMA - Turn E.C.M. off
 \
-\ and setting QQ12 to &FF (to indicate we are docked).
+\ It also sets QQ12 to &FF, to indicate we are docked, and then falls through
+\ into RES4.
 \ *****************************************************************************
 
 .RESET
@@ -12772,7 +12929,7 @@ LOAD_F% = LOAD% + P% - CODE%
  STX QQ12               ; X is now negative - i.e. &FF - so this sets QQ12 to
                         ; &FF to indicate we are docked
 
-                        ; Fall through to RES4 to restore shields and energy,
+                        ; Fall through into RES4 to restore shields and energy,
                         ; and reset stardust and INWK
 }
 
@@ -13140,7 +13297,7 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR DIALS              ; update flight console
  LDA QQ11               ; menu i.d.
  BEQ P%+11              ; if space view skip small delay and visit TT17
- AND PATG               ; Mask to scan keyboard X-key, for misjump.
+ AND PATG               ; PATG = &FF if credits have been enabled
  LSR A                  ; carry loaded?
  BCS P%+5               ; skip delay
  JSR DELAY-5            ; small length of delay counter
@@ -13151,15 +13308,28 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: FRCE
 \
-\ Forced Key entry into main loop
+\ Join the main game loop with a key already "pressed". This lets us jump into
+\ the loop with a specific action to perform, as defined by the value of the
+\ fake key press. In practice, this is used when we enter the docking bay in
+\ BAY to display Status Mode (red key F8), and when we finish buying or selling
+\ cargo in BAY2 to jump to the Inventory (red key F9). This subroutine also
+\ forms the end of the main game loop.
+\
+\ Arguments:
+\
+\   A           The internal key number of the key we want to "press"
 \ *****************************************************************************
 
-.FRCE                   ; forced Key entry into main loop
+.FRCE
 {
- JSR TT102              ; Switchyard for Red keys
- LDA QQ12
- BNE MLOOP
- JMP TT100              ; loop up to Start MAIN LOOP Spawnings
+ JSR TT102              ; Call TT102 to process the keypress in A
+
+ LDA QQ12               ; Fetch the docked flag from QQ12 into A
+
+ BNE MLOOP              ; If we are docked, loop back up to MLOOP just above
+                        ; to join the main loop
+
+ JMP TT100              ; Otherwise jump to TT100 to start spawning ships
 }
 
 \ *****************************************************************************
@@ -13181,6 +13351,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: TT102
 \
 \ Switchyard for Red keys
+\
+\ Arguments:
+\
+\   A           The internal key number of the key pressed
 \ *****************************************************************************
 
 .TT102                  ; Switchyard for Red keys
@@ -13437,7 +13611,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Exposed labels: BR1
 \
-\ Entry point for Elite game code. Also called following death or quit.
+\ Entry point for Elite game code. Also called following death or quitting a
+\ game (by pressing Escape when paused).
 \ *****************************************************************************
 
 .TT170
@@ -13460,9 +13635,9 @@ LOAD_F% = LOAD% + P% - CODE%
                         ;   A = text token to show below the rotating ship, 128
                         ;       is "  LOAD NEW COMMANDER (Y/N)?{crlf}{crlf}"
                         ;
-                        ; The TITLE subroutine returns with the internal value
+                        ; The TITLE subroutine returns with the internal number
                         ; of the key pressed in A (see p.142 of the Advanced
-                        ; User Guide for a list of internal key values)
+                        ; User Guide for a list of internal key number)
 
  CMP #&44               ; Did the player press 'Y'?
 
@@ -13543,7 +13718,7 @@ LOAD_F% = LOAD% + P% - CODE%
 IF _REMOVE_COMMANDER_CHECK
 
  NOP                    ; If we have disabled the commander check, then ignore
- NOP                    ; the checksum and fall through to the next part
+ NOP                    ; the checksum and fall through into the next part
 
 ELSE
 
@@ -13558,10 +13733,10 @@ ENDIF
                         ; The checksum CHK is correct, so now we check whether
                         ; CHK2 = CHK EOR A9, and if this check fails, bit 7 of
                         ; the competition code COK gets set, presumably to
-                        ; indicate shenanigans were afoot when the competition
-                        ; code was submitted
+                        ; indicate to Acornsoft that there may have been some
+                        ; hacking going on with this competition entry
 
- EOR #&A9               ; X = checksum EOR A9
+ EOR #&A9               ; X = checksum EOR &A9
  TAX
 
  LDA COK                ; Set A = competition code in COK
@@ -13590,20 +13765,20 @@ ENDIF
                         ; current system coordinates (QQ0, QQ1) we just loaded
 
  JSR hyp1               ; Arrive in the system closest to (QQ9, QQ10) and then
-                        ; and then fall through to the docking bay routine
+                        ; and then fall through into the docking bay routine
                         ; below
 }
 
 \ *****************************************************************************
 \ Subroutine: BAY
 \
-\ Go to docking bay (i.e. show Status Mode)
+\ Go to the docking bay (i.e. show Status Mode).
 \
 \ We end up here after the startup process (load commander etc.), as well as
 \ after a successful save, an escape pod launch, a successful docking, the end
 \ of a cargo sell, and various errors (such as not having enough cash, entering
 \ too many items when buying, trying to fit an item to your ship when you
-\ already have it, running out of cargo space, and so on)
+\ already have it, running out of cargo space, and so on).
 \ *****************************************************************************
 
 .BAY
@@ -13619,7 +13794,7 @@ ENDIF
 \ Subroutine: TITLE
 \
 \ Display the title screen, with a rotating ship and a recursive text token at
-\ the bottom of the screen
+\ the bottom of the screen.
 \
 \ Arguments:
 \
@@ -13670,7 +13845,7 @@ ENDIF
  LDY #6                 ; Set the text cursor to column 6
  STY XC
 
- JSR DELAY              ; Delay for Y (i.e. 6) line scans
+ JSR DELAY              ; Delay for Y line scans (i.e. 6 line scans)
  
  LDA #30                ; Print recursive token 144 ("---- E L I T E ----")
  JSR plf                ; followed by a newline
@@ -13728,10 +13903,11 @@ ENDIF
 
  DEC MCNT               ; Decrement the move counter
 
- LDA &FE40              ; Set A = Sheila address &40, the system VIA port B
+ LDA &FE40              ; Read 6522 System VIA input register IRB (SHEILA &40)
 
- AND #16                ; Bit 4 (PB4) is clear if joystick 1's fire button is
-                        ; pressed, otherwise it is set
+ AND #16                ; Bit 4 of IRB (PB4) is clear if joystick 1's fire
+                        ; button is pressed, otherwise it is set, so AND'ing
+                        ; the value of IRB with 16 (%10000) extracts this bit
 
 \TAX                    ; This instruction is commented out in the original
                         ; source
@@ -13767,8 +13943,8 @@ ENDIF
  LDX #NT%-2             ; Set X to the size of the commander data block, less
                         ; 2 (as there are two checksum bytes)
 
- CLC                    ; Clear the carry flag so we can do some additions
-                        ; without the carry flag affecting the result
+ CLC                    ; Clear the carry flag so we can do addition without
+                        ; the carry flag affecting the result
 
  TXA                    ; Seed the checksum calculation by setting A to the
                         ; size of the commander data block, less 2
@@ -13860,7 +14036,7 @@ ENDIF
 \ *****************************************************************************
 \ Variable: RLINE
 \
-\ OSWORD block for gtnme
+\ OSWORD block for gtnme.
 \ *****************************************************************************
 
 .RLINE                  ; OSWORD block for gtnme
@@ -13874,7 +14050,7 @@ ENDIF
 \ *****************************************************************************
 \ Subroutine: ZERO
 \
-\ Zero-fill pages &9, &A, &B, &C and &D
+\ Zero-fill pages &9, &A, &B, &C and &D.
 \ *****************************************************************************
 
 .ZERO
@@ -13889,14 +14065,14 @@ ENDIF
  CPX #9                 ; If X is > 9 (i.e. is &A, &B or &C), then loop back
  BNE ZEL                ; up to clear the next page
 
-                        ; Then fall through to ZES1 with X set to 9, so we
+                        ; Then fall through into ZES1 with X set to 9, so we
                         ; clear page &9 too
 }
 
 \ *****************************************************************************
 \ Subroutine: ZES1
 \
-\ Zero-fill page X
+\ Zero-fill the page whose number is in X.
 \
 \ Arguments:
 \
@@ -13914,7 +14090,7 @@ ENDIF
 \ *****************************************************************************
 \ Subroutine: ZES2
 \
-\ Zero-fill page X, from position SC to SC + Y
+\ Zero-fill the page whose number is in X, from position SC to SC + Y.
 \
 \ If Y is 0, this will zero-fill 255 bytes starting from SC
 \
@@ -13924,8 +14100,10 @@ ENDIF
 \ Arguments:
 \
 \   X           The page where we want to zero-fill
+\
 \   Y           A negative value denoting how many bytes before SC we want
 \               to start zeroing
+\
 \   SC          The position in the page where we should zero fill up to
 \ *****************************************************************************
 
@@ -14055,7 +14233,7 @@ ENDIF
 \ Subroutine: FX200
 \
 \ Performs a *FX 200, X command, which controls the behaviour of the Escape
-\ and Break keys
+\ and Break keys.
 \ *****************************************************************************
 
 .FX200
@@ -14182,25 +14360,49 @@ ENDIF
 \ *****************************************************************************
 \ Subroutine: RDKEY
 \
-\ Read Key from #16 upwards
+\ Scan the keyboard, starting with internal key number 16 (Q) and working
+\ through the set of internal key numbers (see p.142 of the Advanced User Guide
+\ for a list of internal key values).
+\
+\ This routine is effectively the same as OSBYTE &7A, though the OSBYTE call
+\ preserves A, unlike this routine.
+\
+\ Returns:
+\
+\   X           If a key is being pressed, X contains the internal key number,
+\               otherwise it contains 0
+\
+\   A           Contains the same as X
 \ *****************************************************************************
 
-.RDKEY                  ; read Key from #16 upwards
+.RDKEY
 {
-\OSBYTE 7A
- LDX #16                ; Keyboard Scan will start from #16, Q,3,4 etc
+ LDX #16                ; Start the scan with internal key number 16 (Q)
+
 .Rd1
- JSR DKS4               ; keyboard scan from X, returned in X and A.
- BMI Rd2                ; Jump to Rd2 if key is hit
- INX                    ; #&FF if nothing found, so increment to 0 if nothing found
- BPL Rd1                ; Nothing found, so go round again
+ JSR DKS4               ; Scan the keyboard to see if the key in X is currently
+                        ; being pressed
 
- TXA
+ BMI Rd2                ; Jump to Rd2 if this key is being pressed (in which
+                        ; case DKS4 will have returned a negative value,
+                        ; specifically 128 + X)
 
-.Rd2                    ; -ve Acc if key hit
- EOR #128               ; #&7F is nothing found
- TAX                    ; Xreg is key for storing in KL
- RTS
+ INX                    ; Increment the key number
+
+ BPL Rd1                ; Loop back to test the next key, ending the loop when
+                        ; X is negative (i.e. 128)
+
+ TXA                    ; If we get here, nothing is being pressed, so copy X
+                        ; into A so that X = A = 128
+
+.Rd2
+ EOR #128               ; EOR A with 128, to switch off bit 7, so A now
+                        ; contains 0 if no key has been pressed, or the
+                        ; internal key number if it has been pressed
+
+ TAX                    ; Copy A into X
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -14349,304 +14551,582 @@ ENDIF
  DEY                    ; next lo
  DEX                    ; next byte
  BPL NOL1               ; loop Y,X
-}
-
-.KYTB                   ; Starting point for keyboard table
-{
  RTS
 }
 
- \ *****************************************************************************
+\ *****************************************************************************
 \ Variable: KYTB
 \
-\ keyboard table
+\ Keyboard table for in-flight controls. This table contains the internal key
+\ codes for the flight keys (see p.142 of the Advanced User Guide for a list of
+\ internal key values).
+\
+\ The pitch, roll, speed and laser keys (i.e. the seven primary flight
+\ control keys) have bit 7 set, so they have 128 added to their internal
+\ values. This doesn't appear to be used anywhere.
+\
+\ Note that KYTB actually points to the byte before the start of the table, so
+\ the offset of the first key value is 1 (i.e. KYTB+1), not 0.
 \ *****************************************************************************
 
+KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 {
- EQUB &E8               ; ? <>XSA.FBRLtabescTUMEJC
- EQUB &E2
- EQUB &E6
- EQUB &E7
- EQUB &C2
- EQUB &D1
- EQUB &C1
- EQUD &35237060
- EQUW &2265
- EQUB &45
- EQUB &52
+                        ; These are the primary flight controls (pitch, roll,
+                        ; speed and lasers)
+
+ EQUB &68 + 128         ; ?         KYTB+1      Slow down
+ EQUB &62 + 128         ; Space     KYTB+2      Speed up
+ EQUB &66 + 128         ; <         KYTB+3      Roll left
+ EQUB &67 + 128         ; >         KYTB+4      Roll right
+ EQUB &42 + 128         ; X         KYTB+5      Pitch up
+ EQUB &51 + 128         ; S         KYTB+6      Pitch down
+ EQUB &41 + 128         ; A         KYTB+7      Fire lasers
+
+                        ; These are the secondary flight controls
+
+ EQUB &60               ; Tab       KYTB+8      Energy bomb
+ EQUB &70               ; Escape    KYTB+9      Launch escape pod
+ EQUB &23               ; T         KYTB+10     Arm missile
+ EQUB &35               ; U         KYTB+11     Unarm missile
+ EQUB &65               ; M         KYTB+12     Fire missile
+ EQUB &22               ; E         KYTB+13     E.C.M.
+ EQUB &45               ; J         KYTB+14     In-system jump
+ EQUB &52               ; C         KYTB+15     Docking computer
 }
 
 \ *****************************************************************************
 \ Subroutine: DKS1
 \
-\ Detect flight keystroke Y for use in MPERC M%
+\ Scan the keyboard for the flight key given in register Y, where Y is the
+\ offset into the KYTB table above (so we can scan for Space by setting Y to
+\ 2, for example). If the key is pressed, set the corresponding byte in the
+\ key logger at KL to &FF.
+\
+\ Arguments:
+\
+\   Y           The offset into the KYTB table above of the key that we want to
+\               scan on the keyboard
 \ *****************************************************************************
 
-.DKS1                   ; Detect flight keystroke Y for use in MPERC M%
+.DKS1
 {
- LDX KYTB,Y
- JSR DKS4               ; scan from key X, returned in X and A.
- BPL DKS2-1             ; rts
- LDX #&FF               ; keyboard logger	
+ LDX KYTB,Y             ; Get the internal key number from the Y-th byte of the
+                        ; KYTB table above
+
+ JSR DKS4               ; Call DKS4, which will set A and X to a negative value
+                        ; if the key is being pressed
+
+ BPL DKS2-1             ; The key is not being pressed, so return from the
+                        ; subroutine (as DKS2-1 contains an RTS instruction)
+
+ LDX #&FF               ; Store &FF in the Y-th byte of the key logger at KL
  STX KL,Y
- RTS
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
 \ Subroutine: CTRL
 \
-\ Scan all keys from Ctrl upwards
+\ Scan the keyboard to see if CTRL is currently pressed.
 \ *****************************************************************************
 
-.CTRL                   ; Scan all keys from Ctrl upwards
+.CTRL
 {
- LDX #1
+ LDX #1                 ; Set X to the internal key number for CTRL and fall
+                        ; through to DSK4 to scan the keyboard
 }
 
 \ *****************************************************************************
 \ Subroutine: DKS4
 \
-\ Keyboard scan from X upwards, returned in X and A.
+\ Scan the keyboard to see if the key specified in X is currently being
+\ pressed.
+\
+\ Arguments:
+\
+\   X           The internal number of the key to check (see p.142 of the
+\               Advanced User Guide for a list of internal key values)
+\
+\ Returns:
+\
+\   X           If the key in X is being pressed, X contains the original
+\               argument X, but with bit 7 set (i.e. X + 128). If the key in
+\               X is not being pressed, the value in X is unchanged.
+\
+\   A           Contains the same as X
 \ *****************************************************************************
 
-.DKS4                   ; Keyboard scan from X upwards, returned in X and A.
+.DKS4
 {
- LDA #3
- SEI                    ; set interrupt
- STA &FE40              ; keyboard write enable
- LDA #&7F
- STA &FE43              ; set write to 7 lines of DDRA
- STX &FE4F              ; send #1 (CTRL (scan from 1)) or #16 (Q,3,4 (scan from 16))) or >&80 to ORA
- LDX &FE4F              ; read whole IRA, A searched key found gives -ve. Otherwise get the key hit. Or #&FF for nothing.
- LDA #&B                ; Send 1 to bit3 as latch bit
- STA &FE40              ; to ORB so keyboard write disable
- CLI                    ; clear interrupt
- TXA                    ; Acc = -ve if key hit
+ LDA #3                 ; Set A to 3, so it's ready to send to SHEILA once
+                        ; interrupts have been disabled
+
+ SEI                    ; Disable interrupts so we can scan the keyboard
+                        ; without being hijacked
+
+ STA &FE40              ; Set 6522 System VIA output register ORB (SHEILA &40)
+                        ; to %0011 to stop auto scan of keyboard
+
+ LDA #&7F               ; Set 6522 System VIA data direction register DDRA
+ STA &FE43              ; (SHEILA &43) to %0111 1111. This sets the A registers
+                        ; (IRA and ORA) so that 
+                        ;
+                        ; Bits 0-6 of ORA will sent to the keyboard
+                        ;
+                        ; Bit 7 of IRA will be read from the keyboard
+
+ STX &FE4F              ; Set 6522 System VIA output register ORA (SHEILA &4F)
+                        ; to X, the key we want to scan for; bits 0-6 will be
+                        ; sent to the keyboard, of which bits 0-3 determine the
+                        ; keyboard column, and bits 4-6 the keyboard row
+
+ LDX &FE4F              ; Read 6522 System VIA output register IRA (SHEILA &4F)
+                        ; into X; bit 7 is the only bit that will have changed.
+                        ; If the key is pressed, then bit 7 will be set (so X
+                        ; will contain 128 + X), otherwise it will be clear (so
+                        ; X will be unchanged).
+ 
+ LDA #&B                ; Set 6522 System VIA output register ORB (SHEILA &40)
+ STA &FE40              ; to %1011 to restart auto scan of keyboard
+
+ CLI                    ; Allow interrupts again
+
+ TXA                    ; Transfer X into A
+
  RTS
 }
 
 \ *****************************************************************************
 \ Subroutine: DKS2
 \
-\ Joystick *FX 128 channel X
+\ Return the value of ADC channel in X (used to read the joystick). The value
+\ will be inverted if the game has been configured to reverse both joystick
+\ channels (which can be done by pausing the game and pressing J).
+\
+\ Arguments:
+\
+\   X           The ADC channel to read (1 = joystick X, 2 = joystick Y)
+\
+\ Returns:
+\
+\   (A X)       The 16-bit value read from channel X, with the value inverted
+\               if the game has been configured to reverse the joystick
 \ *****************************************************************************
 
-.DKS2                   ; Joystick *FX 128 channel X
+.DKS2
 {
- LDA #&80               ; return 16bit ADC value X-low Y-high (all filled ADC 10 bit)
- JSR OSBYTE             ; OSBYTE #&80
- TYA                    ; if 1-4 ADVAL channels will return 16bit ADC value X-low Y-high (all filled ADC 10 bit)
- EOR JSTE               ; move Y to A then EOR A with JSTE if flip toggle needed
- RTS
+ LDA #&80               ; Call OSBYTE &80 to fetch the 16-bit value from ADC
+ JSR OSBYTE             ; channel X, returning (Y X), i.e. the high byte in Y
+                        ; and the low byte in X
+
+ TYA                    ; Copy Y to A, so the result is now in (A X)
+
+ EOR JSTE               ; The high byte A is now EOR'd with the value in
+                        ; location JSTE, which contains &FF if both joystick
+                        ; channels are reversed and 0 otherwise (so A now 
+                        ; contains the high byte but inverted, if that's what
+                        ; the current settings say)
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
 \ Subroutine: DKS3
 \
-\ Toggle Damping key Y whilst game frozen
+\ Toggle a configuration setting and emit a beep. This is called when the game
+\ is paused and a key is pressed that changes the games's configuration.
+\ Specifically, this routine toggles the configuration settings for the
+\ following keys:
 \
-\  #&46 Does K toggle keyboard/joystick control - certainly makes keyboard not work anymore.
-\  #&45 Does J reverse both joystick channels
-\  #&44 Does Y reverse joystick Y channel
-\  #&43 Does F toggle flashing information
-\  #&42 Does X toggle startup message display ? PATG?
-\  #&41 Does A toggle keyboard auto-recentering ?
-\  #&40 Caps-lock toggles keyboard flight damping
-\ 
+\   * Caps Lock toggles keyboard flight damping (&40)
+\   * A toggles keyboard auto-recentre (&41)
+\   * X toggles author names on start-up screen (&42)
+\   * F toggles flashing console bars (&43)
+\   * Y toggles reverse joystick Y channel (&44)
+\   * J toggles reverse both joystick channels (&45)
+\   * K toggles keyboard and joystick (&46)
+\
+\ The numbers in brackets are the internal key numbers (see p.142 of the
+\ Advanced User Guide for a list of internal key values). We pass the key that
+\ has been pressed in X, and the configuration option to check it against in Y,
+\ so this routine is typically called in a loop that loops through the various
+\ configuration options.
+\
+\ Arguments:
+\
+\   X           The internal number of the key that's been pressed
+\
+\   Y           The internal number of the configuration key to check against,
+\               from the list above (i.e. Y must be from &40 to &46)
 \ *****************************************************************************
 
-.DKS3                   ; toggle Damping key Y whilst game frozen
+.DKS3
 {
- STY T                  ; store Y to compare to key hit X
- CPX T                  ; test against CAPS-LOCK, A, X, F, Y, J, K.
+ STY T                  ; Store the configuration key argument in T
+
+ CPX T                  ; If X <> Y, jump to Dk3 to return from the subroutine
  BNE Dk3
- LDA DAMP-&40,X
- EOR #&FF               ; flip toggle
- STA DAMP-&40,X
- JSR BELL               ; vdu 7
- JSR DELAY              ; with large Y = #40 to #48
- LDY T                  ; restore key
+
+                        ; We have a match between X and Y, so now to toggle
+                        ; the relevant configuration byte. Caps Lock has a key
+                        ; value of &40 and has its configuration byte at
+                        ; location DAMP, A has a value of &41 and has its byte
+                        ; at location DJD, which is DAMP+1, and so on. So we
+                        ; can toggle the configuration byte by changing the
+                        ; byte at DAMP + (X - &40), or to put it in indexing
+                        ; terms, DAMP-&40,X. It's no coincidence that the
+                        ; game's configuration bytes are set up in this order
+                        ; and with these keys (and this is also why the sound
+                        ; on/off keys are dealt with elsewhere, as the internal
+                        ; key for S and Q are &51 and &10, which don't fit
+                        ; nicely into this approach).
+
+ LDA DAMP-&40,X         ; Fetch the byte from DAMP + (X - &40), invert it and
+ EOR #&FF               ; put it back (0 means no and &FF means yes in the
+ STA DAMP-&40,X         ; configuration bytes, so this toggles the setting)
+
+ JSR BELL               ; Make a beep sound so the player knows something has
+                        ; happened
+
+ JSR DELAY              ; Wait for Y line scans (Y is between 64 and 70, so
+                        ; this is always a bit longer than a second)
+
+ LDY T                  ; Restore the configuration key argument into Y
 
 .Dk3
- RTS
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
 \ Subroutine: DKJ1
 \
-\ Key logger
+\ Read joystick flight controls. Specifically, scan the keyboard for the speed
+\ up and slow down keys, and read the joystick's fire button and X and Y axes,
+\ storing the results in the key logger and the joystick position variables.
+\
+\ This routine is only called if joysticks are enabled (JSTK = &FF).
 \ *****************************************************************************
 
-.DKJ1                   ; JSTK not zero. Joystick option - but speed still done by ? and SPACE
+.DKJ1
 {
- LDY #1                 ; Key '?' = slow down
- JSR DKS1               ; Detect keystroke Y
- INY                    ; #2 Key SPACE = speed up
- JSR DKS1               ; Detect keystroke Y
-                        ; Bitpaddle
- LDA &FE40              ; ORB. PB4,5 Joystick 1,2 fire buttons, to zero when button pressed.
- TAX                    ; not used?
- AND #16                ; bit4
- EOR #16                ; flipped
- STA KL+7               ; keyboard logger
- LDX #1                 ; *FX #&80,1 ADC channel 1
- JSR DKS2
- ORA #1                 ; hi is at least 1
- STA JSTX               ; joystick X
- LDX #2                 ; *FX #&80,1 ADC channel 2
- JSR DKS2
- EOR JSTGY              ; Y reverse joystick Y channel
- STA JSTY               ; joystick Y
- JMP DK4                ; done pitch & roll, keys need to be scanned.
+ LDY #1                 ; Update the key logger for key 1 in the KYTB table, so
+ JSR DKS1               ; KY1 will be &FF if ? (slow down) is being pressed
+
+ INY                    ; Update the key logger for key 2 in the KYTB table, so
+ JSR DKS1               ; KY2 will be &FF if Space (speed up) is being pressed
+
+ LDA &FE40              ; Read 6522 System VIA input register IRB (SHEILA &40)
+
+ TAX                    ; This instruction doesn't seem to have any effect, as
+                        ; X is overwritten in a few instructions. When the
+                        ; joystick is checked in a similar way in the TITLE
+                        ; subroutine for the "Press Fire Or Space,Commander."
+                        ; stage of the start-up screen, there's another
+                        ; unnecessary TAX instruction present, but there it's
+                        ; commented out.
+
+ AND #16                ; Bit 4 of IRB (PB4) is clear if joystick 1's fire
+                        ; button is pressed, otherwise it is set, so AND'ing
+                        ; the value of IRB with 16 (%10000) extracts this bit
+
+ EOR #16                ; Flip bit 4 so that it's set if the fire button has
+ STA KY7                ; been pressed, and store the result in the keyboard
+                        ; logger at location KY7, which is also where the A key
+                        ; (fire lasers) key is logged
+
+ LDX #1                 ; Call DKS2 to fetch the value of ADC channel 1 (the
+ JSR DKS2               ; joystick X value) into (A X), and OR A with 1. This
+ ORA #1                 ; ensures that the high byte is at least 1, and then we
+ STA JSTX               ; store the result in JSTX.
+
+ LDX #2                 ; Call DKS2 to fetch the value of ADC channel 2 (the
+ JSR DKS2               ; joystick Y value) into (A X), and EOR A with JSTGY.
+ EOR JSTGY              ; JSTGY will be &FF if the game is configured to
+ STA JSTY               ; reverse the joystick Y channel, so this EOR does
+                        ; exactly that, and then we store the result in JSTY.
+
+ JMP DK4                ; We are done scanning the joystick flight controls,
+                        ; so jump to DK4 to scan for other keys, using a tail
+                        ; call so we can return from the subroutine there.
 }
 
 \ *****************************************************************************
 \ Subroutine: U%
 \
-\ Clear keyboard logger
+\ Clear the key logger (from KY1 through KY19).
 \ *****************************************************************************
 
-.U%                     ; Clear keyboard logger
+.U%
 {
- LDA #0
- LDY #15                ; set all 15 (not 16 of disc) keys to zero
+ LDA #0                 ; Set A to 0, as this means "key not pressed" in the
+                        ; key logger at KL
 
-.DKL3                   ; counter Y
- STA KL,Y               ; keyboard logger
- DEY                    ; next key
- BNE DKL3               ; loop Y
+ LDY #15                ; We want to clear the 15 key logger locations from
+                        ; KY1 to KY19, so set a counter in Y. We don't want to
+                        ; clear the first key logger location, at KL, as the
+                        ; keyboard table at KYTB starts with offset 1, not 0,
+                        ; so KL is not technically part of the key logger
+                        ; (it's actually used for logging keys that don't
+                        ; appear in the keyboard table, and which therefore
+                        ; don't use the key logger)
+
+.DKL3
+ STA KL,Y               ; Store 0 in the Y-th byte of the key logger
+
+ DEY                    ; Decrement the counter
+
+ BNE DKL3               ; And loop back for the next key
+
  RTS
 }
 
 \ *****************************************************************************
 \ Subroutine: DOKEY
 \
-\ Return with X,Y from arrow keys or joystick used. KL has force key.
+\ Scan for the seven primary flight controls (or the equivalent on joystick).
+\ Specifically:
+\
+\   * If we are on keyboard configuration, clear the key logger and update it
+\     for the seven primary flight controls, and update the roll and pitch
+\     rates accordingly.
+\
+\   * If we are on joystick configuration, clear the key logger and jump to
+\     DKJ1, which reads the joystick equivalents of the primary flight
+\     controls.
+\
+\ Both options end up at DK4 to scan for other keys, beyond the seven primary
+\ flight controls.
 \ *****************************************************************************
 
-.DOKEY                  ; return with X,Y from arrow keys or joystick used. KL has force key.
+.DOKEY
 {
- JSR U%                 ; Clear keyboard logger
- LDA JSTK               ; K toggle keyboard/joystick
- BNE DKJ1               ; not zero is Joystick option, up. Speed still done by ? and SPACE
- LDY #7                 ; key 'A' fire the laser.
+ JSR U%                 ; Call U% to clear the key logger
 
-.DKL2                   ; counter Y, first 7 keys are primary flight controls
- JSR DKS1               ; Detect keystroke Y
- DEY                    ; next primary flight controls
- BNE DKL2               ; loop Y
+ LDA JSTK               ; If JSTK is non-zero, then we are configured to use
+ BNE DKJ1               ; the joystick rather than keyboard, so jump to DKJ1
+                        ; to read the joystick flight controls, before jumping
+                        ; to DK4 below
 
- LDX JSTX
- LDA #7                 ; twitch size
- LDY KL+3               ; used '<' ?
- BEQ P%+5               ; else skip bump2
- JSR BUMP2              ; increase X by Acc
- LDY KL+4               ; used '>' ?
- BEQ P%+5               ; else skip redu2
- JSR REDU2              ; reduce X by Acc
- STX JSTX               ; Roll updated
+ LDY #7                 ; We're going to work our way through the primary flight
+                        ; control keys (pitch, roll, speed and laser), so set a
+                        ; counter in Y so we can loop through all 7
 
- ASL A                  ; twitch = #14
- LDX JSTY
- LDY KL+5               ; used 'X' for climb?
- BEQ P%+5               ; else skip redu2
- JSR REDU2              ; reduce X by Acc
- LDY KL+6               ; used 'S' for dive?
- BEQ P%+5               ; skip bump2
- JSR BUMP2              ; increase X by Acc
- STX JSTY               ; Pitch updated
+.DKL2
+ JSR DKS1               ; Call DKS1 to see if the KYTB key at offset Y is being
+                        ; pressed, and set the key logger accordingly
+
+ DEY                    ; Decrement the loop counter
+
+ BNE DKL2               ; Loop back for the next key, working our way from A at
+                        ; KYTB+7 down to ? at KYTB+1
+
+ LDX JSTX               ; Set X = JSTX, the current roll rate (as shown in the
+                        ; RL indicator on the dashboard)
+
+ LDA #7                 ; Set A to 7, which is the amount we want to alter the
+                        ; roll rate by if the roll keys are being pressed
+
+ LDY KL+3               ; If the < key is being pressed, then call the BUMP2
+ BEQ P%+5               ; routine to increase the roll rate in X by A
+ JSR BUMP2
+
+ LDY KL+4               ; If the > key is being pressed, then call the REDU2
+ BEQ P%+5               ; routine to decrease the roll rate in X by A, taking
+ JSR REDU2              ; the keyboard auto re-centre setting into account
+
+ STX JSTX               ; Store the updated roll rate in JSTX
+
+ ASL A                  ; Double the value of A, to 14
+
+ LDX JSTY               ; Set X = JSTY, the current pitch rate (as shown in the
+                        ; DC indicator on the dashboard)
+
+ LDY KL+5               ; If the > key is being pressed, then call the REDU2
+ BEQ P%+5               ; routine to decrease the pitch rate in X by A, taking
+ JSR REDU2              ; the keyboard auto re-centre setting into account
+
+ LDY KL+6               ; If the S key is being pressed, then call the BUMP2
+ BEQ P%+5               ; routine to increase the pitch rate in X by A
+ JSR BUMP2
+
+ STX JSTY               ; Store the updated roll rate in JSTY
+
+                        ; Fall through into DK4 to scan for other keys
 }
 
 \ *****************************************************************************
 \ Subroutine: DK4
 \
-\ Other keys need to be scanned
+\ Scan for pause and configuration keys, and if this is a space view, also scan
+\ for secondary flight controls.
+\
+\ Specifically:
+\
+\   * Scan for the pause button (COPY) and if it's pressed, pause the game and
+\     process any configuration key presses until the game is unpaused (DELETE)
+\
+\   * If this is a space view, scan for secondary flight keys and update the
+\     relevant bytes in the key logger
 \ *****************************************************************************
 
-.DK4                    ; also Other keys need to be scanned
+.DK4
 {
- JSR RDKEY              ; read key from #16 upwards
- STX KL                 ; store X in keyboard logger
- CPX #&69               ; key 'COPY', the freeze game key.
- BNE DK2                ; if no freeze requested Skip over
+ JSR RDKEY              ; Scan the keyboard from Q upwards and fetch any key
+                        ; press into X
 
-.FREEZE                 ; start loop while game frozen, key X not 'DELETE'
- JSR WSCAN              ; Wait for line scan, ie whole frame completed.
- JSR RDKEY              ; read key from #16 upwards
- CPX #&51               ; key 'S'
- BNE DK6                ; not S
- LDA #0                 ; if non-zero will end noise
- STA DNOIZ              ; toggle
+ STX KL                 ; Store X in KL, byte 0 of the key logger
 
-.DK6                    ; not S
- LDY #&40               ; key CAPS-LOCK
+ CPX #&69               ; If COPY is not being pressed, jump to DK2 below,
+ BNE DK2                ; otherwise let's process the configuration keys
 
-.DKL4                   ; counter Y toggle
- JSR DKS3               ; Toggle Damping key Y whilst game frozen
- INY                    ; Counter Y increments through inkeys of A, X, F, Y, J, K
- CPY #&47               ; until in-key value '@'
- BNE DKL4               ; loop Y, fall through afterwards.
+.FREEZE                 ; COPY is being pressed, so we enter a loop that
+                        ; listens for configuration keys, and we keep looping
+                        ; until we detect a DELETE keypress. This effectively
+                        ; pauses the game when COPY is pressed, and unpauses
+                        ; it when DELETE is pressed.
+
+ JSR WSCAN              ; Wait for line scan, so the whole frame is completed
+
+ JSR RDKEY              ; Scan the keyboard from Q upwards and fetch any key
+                        ; press into X
+
+ CPX #&51               ; If S is not being pressed, skip to DK6
+ BNE DK6
+
+ LDA #0                 ; S is being pressed, so set DNOIZ to 0 to turn the
+ STA DNOIZ              ; sound on
+
+.DK6
+ LDY #&40               ; We now want to loop through the keys that toggle
+                        ; various settings. These have internal key numbers
+                        ; between &40 (Caps Lock) and &46 (K), so we set up the
+                        ; first key number in Y to act as a loop counter. See
+                        ; subroutine DKS3 for more details on this.
+
+.DKL4
+ JSR DKS3               ; Call DKS3 to scan for the key given in Y, and toggle
+                        ; the relevant setting if it is pressed
+
+ INY                    ; Increment Y to point to the next toggle key
+
+ CPY #&47               ; The last toggle key is &46 (K), so check whether we
+                        ; have just done that one
+
+ BNE DKL4               ; If not, loop back to check for the next toggle key
 
 .DK55
- CPX #&10               ; key 'Q' quiet
- BNE DK7                ; not Q
- STX DNOIZ              ; if non-zero will end noise
+ CPX #&10               ; If Q is not being pressed, skip to DK7
+ BNE DK7
 
-.DK7                    ; not Q
- CPX #&70               ; key 'ESCAPE'
- BNE P%+5               ; Hop over jmp death2
- JMP DEATH2             ; reset2 maybe load dock code
- CPX #&59               ; key 'DELETE' was hit to un-freeze
- BNE FREEZE             ; loop key X
+ STX DNOIZ              ; S is being pressed, so set DNOIZ to X, which is
+                        ; non-zero (&10), so this will turn the sound off
 
-.DK2                    ; else freeze Skipped over
- LDA QQ11               ; menu i.d.
- BNE DK5                ; not a space view, rts
- LDY #15                ; Space view. Y = Top of logged keys
- LDA #&FF               ; flag for keyboard logger
+.DK7
+ CPX #&70               ; If Escape is not being pressed, skip over the next
+ BNE P%+5               ; instruction
 
-.DKL1                   ; counter Y for Upper logged keys needed for flight
- LDX KYTB,Y
- CPX KL                 ; key stored in keyboard logger
- BNE DK1                ; hop key hit
- STA KL,Y               ; flag key X to keyboard logger
+ JMP DEATH2             ; Escape is being pressed, so jump to DEATH2 to end
+                        ; the game
 
-.DK1                    ; hopped key hit
- DEY
- CPY #7                 ; only Upper logged keys
- BNE DKL1               ; loop Y
+ CPX #&59               ; If DELETE is not being pressed, we are still paused,
+ BNE FREEZE             ; so loop back up to keep listening for configuration
+                        ; keys, otherwise fall through into the rest of the
+                        ; key detection code, which unpauses the game
 
-.DK5                    ; rts
- RTS
+.DK2
+ LDA QQ11               ; If the current view is non-zero (i.e. not a space
+ BNE DK5                ; view), return from the subroutine (via DK5, which
+                        ; contains an RTS)
+
+ LDY #15                ; This is a space view, so now we want to check for all
+                        ; the secondary flight keys. The internal key numbers
+                        ; are in the keyboard table KYTB from KYTB+8 to
+                        ; KYTB+15, and their key logger locations are from KL+8
+                        ; to KL+15. So set a decreasing counter in Y for the
+                        ; index, starting at 15, so we can loop through them.
+
+ LDA #&FF               ; Set A to &FF so we can store this in the keyboard
+                        ; logger for keys that are being pressed
+
+.DKL1
+ LDX KYTB,Y             ; Get the internal key value of the Y-th flight key
+                        ; the KYTB keyboard table
+
+ CPX KL                 ; We stored the key that's being pressed in Kl above,
+                        ; so check to see if the Y-th flight key is being
+                        ; pressed
+
+ BNE DK1                ; If it is not being pressed, skip to DK1 below
+
+ STA KL,Y               ; The Y-th flight key is being pressed, so set that
+                        ; key's location in the key logger to &FF
+
+.DK1
+ DEY                    ; Decrement the loop counter
+
+ CPY #7                 ; Have we just done the last key?
+
+ BNE DKL1               ; If not, loop back to process the next key
+
+.DK5
+ RTS                    ; Return from subroutine
 }
 
 \ *****************************************************************************
 \ Subroutine: TT217
 \
-\ Get ascii from keyboard, store in X and A
+\ Exposed labels: out
+\
+\ Scan the keyboard until a key is pressed, and return the key's ASCII code.
+\ If, om entry, a key is already being held down, then wait until that key is
+\ released first (so this routine detects the first key down event following
+\ the subroutine call).
+\
+\ Returns:
+\
+\   X           The ASCII code of the key that was pressed
+\
+\   A           Contains the same as X
+\
+\   Y           Y is preserved
 \ *****************************************************************************
 
-.TT217                  ; get ascii from keyboard, store in X and A
+.TT217
 {
- STY YSAV               ; store
+ STY YSAV               ; Store Y in temporary storage, so we can restore it
+                        ; later
 
-.t                      ; wait for key hit
- JSR DELAY-5            ; short delay
- JSR RDKEY              ; read key from #16 upwards
- BNE t                  ; loop, roll on
+.t
+ JSR DELAY-5            ; Delay for 8 line scans, so we don't take up too much
+                        ; CPU time while looping round
 
-.t2                     ; wait for second key hit
- JSR RDKEY              ; read key from #16 upwards
- BEQ t2                 ; loop
- TAY                    ; Yreg is internal inkey hit
- LDA (TRTB%),Y          ; Acc = ascii keyboard (TRTB%),Y
- LDY YSAV               ; restore
- TAX                    ; Xreg = Acc = ascii key hit
-}
+ JSR RDKEY              ; Scan the keyboard, starting from Q
 
-.out                    ; rts
-{
- RTS
+ BNE t                  ; If a key was already being held down when we entered
+                        ; this routine, keep looping back up to t, until the
+                        ; key is released
+
+.t2
+ JSR RDKEY              ; Any pre-existing key press is now gone, so we can
+                        ; start scanning the keyboard again, starting from Q
+
+ BEQ t2                 ; Keep looping up to t2 until a key is pressed
+
+ TAY                    ; Copy A to Y, so Y contains the internal key number
+                        ; of the key pressed
+
+ LDA (TRTB%),Y          ; The address in TRTB% points to the MOS key
+                        ; translation table, which is used to translate
+                        ; internal key values to ASCII, so this fetches the
+                        ; key's ASCII code into A
+ 
+ LDY YSAV               ; Restore the original value of Y we stored above
+
+ TAX                    ; Copy A into X
+
+.^out
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -14742,7 +15222,7 @@ ENDIF
 \ *****************************************************************************
 \ Variable: QQ16
 \
-\ Two-letter token lookup string
+\ Two-letter token lookup string.
 \ *****************************************************************************
 
 .QQ16                   ; onto regular planet name flight diagrams
@@ -14753,7 +15233,7 @@ ENDIF
 \ *****************************************************************************
 \ Variable: QQ23
 \
-\ Market prices info
+\ Market prices info.
 \ *****************************************************************************
 
 .QQ23                   ; Prxs -> &4619 \ Market prices info
@@ -16695,7 +17175,7 @@ SKIP 1
 \ *****************************************************************************
 \ Variable: XX21
 \
-\ Table of pointers to ships' data given to XX0
+\ Table of pointers to ships' data given to XX0.
 \ *****************************************************************************
 
 .XX21                   ; Table of pointers to ships' data given to XX0
