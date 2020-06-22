@@ -110,13 +110,14 @@ ORG ZP
  SKIP 2                 ; translation table, used to translate internal key
                         ; values to ASCII
 
-.T1                     ; 
+.T1                     ; Temporary storage, used quite a lot
  SKIP 1
 
-.SC                     ; Screen address
- SKIP 2
+.SC                     ; Screen address (low byte)
+ SKIP 1
 
-SCH = SC+1              ; Second byte of SC is SCH
+.SCH                    ; Screen address (high byte)
+ SKIP 1
 
 .XX16                   ; 
  SKIP 18
@@ -124,11 +125,11 @@ SCH = SC+1              ; Second byte of SC is SCH
 .P                      ; Temporary storage for a memory pointer (e.g. used in
  SKIP 3                 ; TT26 to store the address of character definitions)
 
-.XX0                    ; 
+.XX0                    ; Stores address of ship definition in NWSHP
  SKIP 2
 
-.INF                    ; 
- SKIP 2
+.INF                    ; Stores address of new ship data block when adding a
+ SKIP 2                 ; new ship
 
 .V                      ; 
  SKIP 2
@@ -161,13 +162,21 @@ SCH = SC+1              ; Second byte of SC is SCH
 .ECMA                   ; E.C.M. status flag; 0 is off, non-zero is on
  SKIP 1
 
-.XX15                   ; 
- SKIP 6
+.XX15                   ; Shares location with X1, Y1, X2, Y2
 
-X1 = XX15               ; First four bytes of XX15 are X1, Y1, X2, Y2
-Y1 = X1 + 1
-X2 = Y1 + 1
-Y2 = X2 + 1
+.X1
+ SKIP 1
+
+.Y1
+ SKIP 1
+
+.X2
+ SKIP 1
+
+.Y2
+ SKIP 1
+
+ SKIP 2                 ; Last 2 bytes of XX15
 
 .XX12                   ; 
  SKIP 6
@@ -244,6 +253,8 @@ Y2 = X2 + 1
 .MSTG                   ; Missile target (&FF = no target)
  SKIP 1
 
+.XX1
+ 
 .INWK                   ; Shares memory with XX1, XX19
  SKIP NI%               ; Workspace for a ship
 
@@ -293,17 +304,18 @@ Y2 = X2 + 1
                         ; INWK+24 = rotmat2y_hi
                         ; INWK+25 = rotmat2z_lo
                         ; INWK+26 = rotmat2z_hi
-                        ; INWK+27 = speed (32 quite fast)
-                        ; INWK+28 = accel
-                        ; INWK+29 = rotx counter, 127 for no damping, controls roll
-                        ; INWK+30 = rotz counter, 127 for no damping, controls pitch
+                        ; INWK+27 = speed (32 = quite fast)
+                        ; INWK+28 = acceleration
+                        ; INWK+29 = rotx counter, 127 = no damping, damps roll
+                        ; INWK+30 = rotz counter, 127 = no damping, damps pitch
                         ; INWK+31 = exploding/display state, or missile count
-                        ; INWK+32 = ai counter, ai_attack_univ_ecm, bit6 set = missile attacking player, &FF = ai attack everyone, has ecm., 1 = ai and ecm
-                        ; INWK+33 = ship lines pointer lo, points to LSO for station
-                        ; INWK+34 = ship lines pointer hi, points to LSO for station
+                        ; INWK+32 = ai counter, ai_attack_univ_ecm
+                        ;           bit6 set = missile attacking player
+                        ;           &FF = ai attack everyone, has ecm
+                        ;           1 = ai and ecm
+                        ; INWK+33 = ship lines heap space pointer lo
+                        ; INWK+34 = ship lines heap space pointer hi
                         ; INWK+35 = ship energy
-
-XX1 = INWK              ; Shares memory with INWK
 
 XX19 = INWK + 33        ; Shares memory with INWK+33
 
@@ -505,11 +517,14 @@ PRINT "Zero page variables from ", ~ZP, " to ", ~P%
 
 ORG WP
 
-.FRIN                   ; 
- SKIP NOSH + 1
+.FRIN                   ; Contains the ship type for each of the ships in UNIV
+ SKIP NOSH + 1          ; (0 means that slot is empty)
 
 .MANY                   ; Shares memory with CABTMP, SSPR
- SKIP 14
+ SKIP 14                ; Contains a count of the number of ships of type X at
+                        ; offset X, so the current number of Sidewinders in our
+                        ; bubble of universe is at MANY+1, the number of Mambas
+                        ; is at MANY+2, and so on
 
 CABTMP = MANY           ; Shares memory with MANY
 
@@ -625,8 +640,10 @@ LSX = LSO               ; Shares memory with LSO
 .tek                    ; 
  SKIP 1
 
-.SLSP                   ; Ship lines pointer
- SKIP 2
+.SLSP                   ; Points to the start of the ship lines heap space,
+ SKIP 2                 ; which is a block that starts at SLSP and ends at
+                        ; WP, and which can be extended downwards by lowering
+                        ; SLSP if more heap space is required
 
 .XX24                   ; 
  SKIP 1
@@ -638,31 +655,31 @@ LSX = LSO               ; Shares memory with LSO
  SKIP 6                 ; current system. See QQ15 above for details of how the
                         ; three seeds are stored in memory
 
-.QQ3                    ; 
+.QQ3                    ; Selected system's economy (0-7)
  SKIP 1
 
-.QQ4                    ; 
+.QQ4                    ; Selected system's government (0-7)
  SKIP 1
 
-.QQ5                    ; 
+.QQ5                    ; Selected system's tech level (1-14)
  SKIP 1
 
-.QQ6                    ; 
+.QQ6                    ; Selected system's population * 10 in billions (1-71)
  SKIP 2
 
-.QQ7                    ; 
+.QQ7                    ; Selected system's productivity in M CR (96-62480)
  SKIP 2
 
-.QQ8                    ; 
- SKIP 2
+.QQ8                    ; Distance to the selected system (0 if this is the
+ SKIP 2                 ; current system)
 
-.QQ9                    ; Target system X-coordinate
+.QQ9                    ; Selected system's X-coordinate
  SKIP 1
 
-.QQ10                   ; Target system Y-coordinate
+.QQ10                   ; Selected system's Y-coordinate
  SKIP 1
 
-.NOSTM                   ; 
+.NOSTM                  ; Number of stardust particles
  SKIP 1
 
 PRINT "WP workspace from  ", ~WP," to ", ~P%
@@ -835,7 +852,7 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: M%
 \
-\ Read keyboard for flight controls and move ship
+\ Read keyboard for flight controls
 \ *****************************************************************************
 
 .M%
@@ -1007,6 +1024,12 @@ LOAD_A% = LOAD%
 .MA3                    ; skip laser
  LDX #0
 }
+
+\ *****************************************************************************
+\ Subroutine: MAL1
+\
+\ Moving things?
+\ *****************************************************************************
 
 .MAL1                   ; Counter X slot for each nearby ship
 {
@@ -1214,7 +1237,7 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: MA47
 \
-\ Laser lock
+\ Laser lock, fighting, altitude checks, fuel scooping
 \ *****************************************************************************
 
 .MA47                   ; onto laser lock
@@ -2393,15 +2416,28 @@ PRINT "CH% = ", ~CH%
 \ *****************************************************************************
 \ Variable: UNIV
 \
-\ Address pointers for 13 ships INF on pages &9 &A &B &C. 36 bytes each.
-\ copied to inner worskpace INWK on zero page when needed. allwk up to &0ABC
-\ while heap for edges working down from &CFF.
+\ The little bubble of the universe that we simulate in Elite can contain up to
+\ 13 ships. Each of those ships has its own block of 36 (NI%) bytes that
+\ contains information such as the ship's position in space, speed, rotation,
+\ energy and so on, as well as a pointer to the line data for plotting it on
+\ screen. These 13 blocks of ship data live in the first 468 bytes of the
+\ workspace at K% (&0900 to &0AD4).
+\
+\ In order to update the ship data, the whole block is copied to the INWK ship
+\ workspace in zero page, as it's easier and quicker to work with zero page
+\ locations. See the INWK documentation for details of the 36 bytes and the
+\ information that they contain.
+\
+\ UNIV contains a table of address pointers to these data blocks, one for each
+\ of the 13 ships. So if we want to read the data for ship number 3 in our
+\ little bubble of the universe, we would look at the address held in UNIV+3
+\ (ship numbers start at 0).
 \ *****************************************************************************
 
 .UNIV
 {
 FOR I%, 0, 12
- EQUW K% + I% * NI%
+ EQUW K% + I% * NI%     ; Address of block no. I%, of size NI%, in workspace K%
 NEXT
 }
 
@@ -2753,6 +2789,12 @@ NEXT
  LDA #19
  BNE NLIN2              ; guaranteed, next horizontal line drawn at Y1=19.
 }
+
+\ *****************************************************************************
+\ Subroutine: NLIN
+\
+\ Draw a horizontal line at text row 23
+\ *****************************************************************************
 
 .NLIN                   ; Horizontal line
 {
@@ -3673,23 +3715,24 @@ NEXT
 {
  LDA #3                 ; Set A to the number of digits (3)
 
- LDY #0                 ; Zero the Y register (this instruction seems to be
-                        ; unnecessary, as the next operation that uses the Y
-                        ; register, in BPRNT below, is also an LDY #0)
-
-                        ; Now fall through into TT11 to print X to 3 digits
+ LDY #0                 ; Zero the Y register, so we can fall through into TT11
+                        ; to print the 16-bit number (Y X) to 3 digits, which
+                        ; effectively prints X to 3 digits as the high byte is
+                        ; zero
 }
 
 \ *****************************************************************************
 \ Subroutine: TT11
 \
-\ Print the 8-bit number in X to a specific number of digits, left-padding with
-\ spaces for numbers with fewer digits (so lower numbers are right-aligned).
+\ Print the 16-bit number in (Y X) to a specific number of digits, left-padding
+\ with spaces for numbers with fewer digits (so lower numbers are right-aligned).
 \ Optionally include a decimal point.
 \
 \ Arguments:
 \
-\   X           The number to print
+\   X           The low byte of the number to print
+\
+\   Y           The high byte of the number to print
 \
 \   A           The number of digits
 \
@@ -3704,14 +3747,15 @@ NEXT
  
  LDA #0                 ; BPRNT takes a 32-bit number in K to K+3, with the
  STA K                  ; most significant byte first (big-endian), so we set
- STA K+1                ; the three most significant bytes to zero (K, K+1 and
- STY K+2                ; K+2), and store X (the number we want to print) in
- STX K+3                ; the least significant byte at K+3
+ STA K+1                ; the two most significant bytes to zero (K and K+1)
+ STY K+2                ; and store (Y X) in the least two significant bytes
+ STX K+3                ; (K+2 and K+3), so we are going to print the 32-bit
+                        ; number (0 0 Y X)
 
                         ; Finally we fall through into BPRNT to print out the
-                        ; number in K to K+3 (which now contains X) to 3 digits
-                        ; (as U = 3), using the same carry flag as when pr2
-                        ; was called to control the decimal point
+                        ; number in K to K+3, which now contains (Y X), to 3
+                        ; digits (as U = 3), using the same carry flag as when
+                        ; pr2 was called to control the decimal point
 }
 
 \ *****************************************************************************
@@ -3739,7 +3783,7 @@ NEXT
 \               printing, so to print 123.4, we would pass 1234 in K to K+3 and
 \               would set the C flag.
 \
-\ How it works:
+\ *****************************************************************************
 \
 \ The algorithm is relatively simple, but it looks fairly complicated because
 \ we're dealing with 32-bit numbers.
@@ -6263,7 +6307,7 @@ NEXT
 \
 \   (A X) = (A P) + (S R)
 \
-\ How it works:
+\ *****************************************************************************
 \
 \ When adding two signed numbers using two's complement, the result can have
 \ the wrong sign when an overflow occurs. The classic example in 8-bit signed
@@ -7498,7 +7542,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ This routine twists the three 16-bit seeds in QQ15 once.
 \
-\ How it works:
+\ *****************************************************************************
 \
 \ Famously, the universe in Elite is generated procedurally, and the core of
 \ this process is the set of three 16-bit seeds that describe each system in
@@ -7626,7 +7670,13 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT146
 \
-\ Display distance in Light years
+\ Print the distance to the selected system in light years, if non-zero. If
+\ zero, just move the text cursor down a line.
+\
+\ Specifically, if the distance in QQ8 is non-zero, print token 31 ("DISTANCE"),
+\ then a colon, then the distance to one decimal place, then token 35 ("LIGHT
+\ YEARS"). If the distance is zero, move the cursor down one
+\ line.
 \ *****************************************************************************
 
 
@@ -7650,35 +7700,46 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT60
 \
-\ Print a token, then a newline, set QQ17 and increment YC
+\ Print a text token (i.e. a character, control code, two-letter token or
+\ recursive token). Then print a paragraph break (a blank line between
+\ paragraphs) by moving the cursor down a line, setting Sentence Case, and then
+\ printing a newline.
+\
+\ Arguments:
+\
+\   A           The text token to be printed
 \ *****************************************************************************
 
-.TT60                   ; process TT27 token then next row
+.TT60
 {
- JSR TT27               ; process text token
+ JSR TT27               ; Print the text token in A and fall through into TTX69
+                        ; to print the paragraph break
 }
 
 \ *****************************************************************************
 \ Subroutine: TTX69
 \
-\ Print a newline, set QQ17 and increment YC
+\ Print a paragraph break (a blank line between paragraphs) by moving the cursor
+\ down a line, setting Sentence Case, and then printing a newline.
 \ *****************************************************************************
 
-.TTX69                  ; next Row
+.TTX69
 {
- INC YC
+ INC YC                 ; Move the text cursor down a line and then fall
+                        ; through into TT69 to set Sentence Case and print a
+                        ; newline
 }
 
 \ *****************************************************************************
 \ Subroutine: TT69
 \
-\ Print a newline and set QQ17
+\ Set Sentence Case and print a newline.
 \ *****************************************************************************
 
-.TT69                   ; next Row with QQ17 set
+.TT69
 {
- LDA #128               ; set bit7 for Upper case
- STA QQ17
+ LDA #128               ; Set QQ17 to 128, which denotes Sentence Case, and
+ STA QQ17               ; fall througn into TT67 to print a newline
 }
 
 \ *****************************************************************************
@@ -7698,237 +7759,607 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT70
 \
-\ Display Economy is mainly
+\ Display "MAINLY " and jump to TT72. This subroutine is called by TT25 when
+\ displaying a system's economy.
+\
 \ *****************************************************************************
 
-.TT70                   ; Economy is mainly..
+.TT70
 {
- LDA #173               ; token for Economy = 'Mainly'
- JSR TT27               ; process text token
- JMP TT72               ; back down to work out if Ind or Agr
+ LDA #173               ; Print recursive token 13 ("MAINLY ")
+ JSR TT27
+
+ JMP TT72               ; Jump to TT72 to continue printing system data as part
+                        ; of routine TT25
 }
 
 \ *****************************************************************************
 \ Subroutine: spc
 \
-\ Acc to TT27, followed by white space
+\ Print a text token (i.e. a character, control code, two-letter token or
+\ recursive token) followed by a space.
+\
+\ Arguments:
+\
+\   A           The text token to be printed
 \ *****************************************************************************
 
-.spc                    ; Acc to TT27, followed by white space
+.spc
 {
- JSR TT27               ; process text token
- JMP TT162              ; then visit TT27 again but with A=#32, print white space.
+ JSR TT27               ; Print the text token in A
+
+ JMP TT162              ; Print a space and return from the subroutine using a
+                        ; tail call
 }
 
 \ *****************************************************************************
 \ Subroutine: TT25
 \
-\ Display DATA on system
+\ Exposed labels: TT72
+\
+\ Display Data on System (red key f6).
+\
+\ *****************************************************************************
+\
+\ Although most system data is calculated in TT24 below and stored in locations
+\ QQ3 to QQ7, the species type and average radius are not. Here's how they are
+\ calculated.
+\
+\ Species type
+\ ------------
+\ The species type is either Human Colonials, or it's an alien species that
+\ consists of up to three adjectives and a species name (so you can get
+\ anything from "Rodents" and "Fierce Frogs" to "Black Fat Felines" and "Small
+\ Yellow Bony Lobsters").
+\ 
+\ As with the rest of the system data, the species is built from various bits
+\ in the seeds. Specifically, all the bits in w2_hi are used, along with bits
+\ 0-2 of w0_hi and w1_hi, and bit 7 of w2_lo.
+\ 
+\ First, we check bit 7 of w2_lo. It it is clear, print "Human Colonials" and
+\ stop, otherwise this is an alien species, so we move onto the following
+\ steps. (In the following steps, the potential range of the calculated value
+\ of A is 0-7, and if a match isn't made, nothing is printed for that step.)
+\ 
+\   1. Set A = bits 2-4 of w2_hi
+\   
+\     * If A = 0,  print "Large "
+\     * If A = 1,  print "Fierce "
+\     * If A = 2,  print "Small "
+\   
+\   2. Set A = bits 5-7 of w2_hi
+\   
+\     * If A = 0,  print "Green "
+\     * If A = 1,  print "Red "
+\     * If A = 2,  print "Yellow "
+\     * If A = 3,  print "Blue "
+\     * If A = 4,  print "Black "
+\     * If A = 5,  print "Harmless "
+\   
+\   3. Set A = bits 0-2 of (w0_hi EOR w1_hi)
+\   
+\     * If A = 0,  print "Slimy "
+\     * If A = 1,  print "Bug-Eyed "
+\     * If A = 2,  print "Horned "
+\     * If A = 3,  print "Bony "
+\     * If A = 4,  print "Fat "
+\     * If A = 5,  print "Furry "
+\   
+\   4. Add bits 0-1 of w2_hi to A from step 3, and take bits 0-2 of the result
+\   
+\     * If A = 0,  print "Rodents"
+\     * If A = 1,  print "Frogs"
+\     * If A = 2,  print "Lizards"
+\     * If A = 3,  print "Lobsters"
+\     * If A = 4,  print "Birds"
+\     * If A = 5,  print "Humanoids"
+\     * If A = 6,  print "Felines"
+\     * If A = 7,  print "Insects"
+\ 
+\ So if we print an adjective at step 3, then the only options for the species
+\ name are from A to A + 3 (because we add a 2-bit number) in step 4. So only
+\ certain combinations are possible:
+\ 
+\   * Only rodents, frogs, lizards and lobsters can be slimy
+\   * Only frogs, lizards, lobsters and birds can be bug-eyed
+\   * Only lizards, lobsters, birds and humanoids can be horned
+\   * Only lobsters, birds, humanoids and felines can be bony
+\   * Only birds, humanoids, felines and insects can be fat
+\   * Only humanoids, felines, insects and rodents can be furry
+\ 
+\ So however hard you look, you will never find slimy humanoids, bony insects,
+\ fat rodents or furry frogs, which is probably for the best.
+\
+\ Average radius
+\ --------------
+\ The average radius is calculated as follows:
+\ 
+\   ((w2_hi AND %1111) + 11) * 256 + w1_hi
+\ 
+\ The highest average radius is (15 + 11) * 256 + 255 = 6911 km, and the lowest
+\ is 11 * 256 = 2816 km.
 \ *****************************************************************************
 
-.TT25                   ; DATA \ their comment \ display DATA on system
+.TT25
 {
- JSR TT66-2             ; box border with QQ11 set to Acc = 1
- LDA #9                 ; indent text xcursor
+ JSR TT66-2             ; Clear the top part of the screen and draw a box
+                        ; border, with QQ11 set to 1 (so TT66 does not show the
+                        ; name of the space view at the bottom)
+
+ LDA #9                 ; Set the text cursor XC to column 9
  STA XC
- LDA #163               ; token = DATA ON ..
- JSR TT27               ; process text token (could have used nlin3)
- JSR NLIN               ; no token just horizontal line at 23
- JSR TTX69              ; next row then tab
- INC YC                 ; Y cursor
- JSR TT146              ; Non-zero distance in Light years
- LDA #194               ; token = ECONOMY
 
- JSR TT68               ; process token followed by colon
- LDA QQ3                ; Economy of target system
- CLC
- ADC #1                 ; Economy+1
- LSR A
- CMP #2                 ; is Economy 'mainly..' ?
- BEQ TT70               ; hop up several lines then down to TT72
- LDA QQ3                ; else reload Economy
- BCC TT71               ; hop over sbc if QQ3 was <4, Industrial
+ LDA #163               ; Print recursive token 3 as a title in capitals at
+ JSR TT27               ; the top ("DATA ON {selected system name}")
 
- SBC #5                 ; else Agricultural
- CLC
+ JSR NLIN               ; Draw a horizontal line underneath the title
+
+ JSR TTX69              ; Print a paragraph break and set Sentence Case
+
+ INC YC                 ; Move the text cursor down one more line
+
+ JSR TT146              ; If the distance to this system is non-zero, print
+                        ; "DISTANCE", then the distance, "LIGHT YEARS" and a
+                        ; paragraph break, otherwise just move the cursor down
+                        ; a line
+
+ LDA #194               ; Print recursive token 34 ("ECONOMY") followed by
+ JSR TT68               ; a colon
+
+ LDA QQ3                ; The system economy is determined by the value in QQ3,
+                        ; so fetch it into A. First we work out the system's
+                        ; prosperity as follows:
+                        ;
+                        ;   QQ3 = 0 or 5 = %000 or %101 = Rich
+                        ;   QQ3 = 1 or 6 = %001 or %110 = Average
+                        ;   QQ3 = 2 or 7 = %010 or %111 = Poor
+                        ;   QQ3 = 3 or 4 = %011 or %100 = Mainly
+        
+ CLC                    ; If (QQ3 + 1) >> 1 = %10, i.e. if QQ3 = %011 or %100
+ ADC #1                 ; (3 or 4), then call TT70, which prints "MAINLY " and
+ LSR A                  ; jumps down to TT72 to print the type of economy
+ CMP #2
+ BEQ TT70
+ 
+ LDA QQ3                ; The LSR A above shifted bit 0 of QQ3 into the carry
+ BCC TT71               ; flag, so this jumps to TT71 if bit 0 of QQ3 is 0,
+                        ; i.e. if QQ3 = %000, %001 or %010 (0, 1 or 2)
+
+ SBC #5                 ; Here QQ3 = %101, %110 or %111 (5, 6 or 7), so
+ CLC                    ; subtract 5 to bring it down to 0, 1 or 2 (the carry
+                        ; flag is already set so the SBC will be correct)
 
 .TT71
- ADC #170               ; #170 to #172  token = Rich Average Poor
- JSR TT27               ; process text token
+ ADC #170               ; A is now 0, 1 or 2, so print recursive token 10 + A.
+ JSR TT27               ; This means that:
+                        ;
+                        ;   QQ3 = 0 or 5 prints token 10 ("RICH ")
+                        ;   QQ3 = 1 or 6 prints token 11 ("AVERAGE ")
+                        ;   QQ3 = 2 or 7 prints token 12 ("POOR ")
+
+.^TT72
+ LDA QQ3                ; Now to work out the type of economy, which is
+ LSR A                  ; determined by bit 2 of QQ3, as follows:
+ LSR A                  ;
+                        ;   QQ3 bit 2 = 0 = Industrial
+                        ;   QQ3 bit 2 = 1 = Agricultural
+                        ;
+                        ; So we fetch QQ3 into A and set A = bit 2 of QQ3 using
+                        ; two right shifts (which will work as QQ3 is only a
+                        ; 3-bit number)
+
+ CLC                    ; Print recursive token 8 + A, followed by a paragraph
+ ADC #168               ; break and Sentence Case, so:
+ JSR TT60               ;
+                        ;   QQ3 bit 2 = 0 prints token 8 ("INDUSTRIAL")
+                        ;   QQ3 bit 2 = 1 prints token 9 ("AGRICULTURAL")
+
+ LDA #162               ; Print recursive token 2 ("GOVERNMENT") followed by
+ JSR TT68               ; a colon
+
+ LDA QQ4                ; The system economy is determined by the value in QQ4,
+                        ; so fetch it into A
+
+ CLC                    ; Print recursive token 17 + A, followed by a paragraph
+ ADC #177               ; break and Sentence Case, so:
+ JSR TT60               ;
+                        ;   QQ4 = 0 prints token 17 ("ANARCHY")
+                        ;   QQ4 = 1 prints token 18 ("FEUDAL")
+                        ;   QQ4 = 2 prints token 19 ("MULTI-GOVERNMENT")
+                        ;   QQ4 = 3 prints token 20 ("DICTATORSHIP")
+                        ;   QQ4 = 4 prints token 21 ("COMMUNIST")
+                        ;   QQ4 = 5 prints token 22 ("CONFEDERACY")
+                        ;   QQ4 = 6 prints token 23 ("DEMOCRACY")
+                        ;   QQ4 = 7 prints token 24 ("CORPORATE STATE")
+
+ LDA #196               ; Print recursive token 36 ("TECH.LEVEL") followed by a
+ JSR TT68               ; colon
+
+ LDX QQ5                ; Fetch the tech level from QQ5 and increment it, as it
+ INX                    ; is stored in the range 0-14 but the displayed range
+                        ; should be 1-15
+
+ CLC                    ; Call pr2 to print the technology level as a 3-digit
+ JSR pr2                ; number without a decimal point (by clearing the carry
+                        ; flag)
+
+ JSR TTX69              ; Print a paragraph break and set Sentence Case
+
+ LDA #192               ; Print recursive token 32 ("POPULATION") followed by a
+ JSR TT68               ; colon
+
+ SEC                    ; Call pr2 to print the population as a 3-digit number
+ LDX QQ6                ; with a decimal point (by setting the carry flag), so
+ JSR pr2                ; the number printed will be population / 10
+
+ LDA #198               ; Print recursive token 38 (" BILLION"), followed by a
+ JSR TT60               ; paragraph break and Sentence Case
+
+ LDA #'('               ; Print an opening bracket
+ JSR TT27
+
+ LDA QQ15+4             ; Now to calculate the species, so first check bit 7 of
+ BMI TT75               ; w2_lo, and if it is set, jump to TT75 as this is an
+                        ; alien species
+
+ LDA #188               ; Bit 7 of w2_lo is clear, so print recursive token 28
+ JSR TT27               ; ("HUMAN COLONIAL")
+
+ JMP TT76               ; Jump to TT76 to print "S)" and a paragraph break, so
+                        ; the whole species string is "(HUMAN COLONIALS)"
+
+.TT75
+ LDA QQ15+5             ; This is an alien species, and we start with the first
+ LSR A                  ; adjective, so fetch bits 2-7 of w2_hi into A and push
+ LSR A                  ; onto the stack so we can use this later
+ PHA
+
+ AND #7                 ; Set A = bits 0-2 of A (so that's bits 2-4 of w2_hi)
+
+ CMP #3                 ; If A >= 3, jump to TT205 to skip the first adjective,
+ BCS TT205
+
+ ADC #227               ; Otherwise A = 0, 1 or 2, so print recursive token
+ JSR spc                ; 67 + A, followed by a space, so:
+                        ;
+                        ;   A = 0 prints token 67 ("LARGE") and a space
+                        ;   A = 1 prints token 67 ("FIERCE") and a space
+                        ;   A = 2 prints token 67 ("SMALL") and a space
+
+.TT205
+ PLA                    ; Now for the second adjective, so restore A to bits
+ LSR A                  ; 2-7 of w2_hi, and throw away bits 2-4 to leave
+ LSR A                  ; A = bits 5-7 of w2_hi
+ LSR A
+
+ CMP #6                 ; If A >= 6, jump to TT206 to skip the second adjective
+ BCS TT206
+
+ ADC #230               ; Otherwise A = 0 to 5, so print recursive token
+ JSR spc                ; 70 + A, followed by a space, so:
+                        ;
+                        ;   A = 0 prints token 70 ("GREEN") and a space
+                        ;   A = 1 prints token 71 ("RED") and a space
+                        ;   A = 2 prints token 72 ("YELLOW") and a space
+                        ;   A = 3 prints token 73 ("BLUE") and a space
+                        ;   A = 4 prints token 74 ("BLACK") and a space
+                        ;   A = 5 prints token 75 ("HARMLESS") and a space
+
+.TT206
+ LDA QQ15+3             ; Now for the third adjective, so EOR the high bytes of
+ EOR QQ15+1             ; w0 and w1 and extract bits 0-2 of the result:
+ AND #7                 ;
+ STA QQ19               ;   A = (w0_hi EOR w1_hi) AND %111
+                        ;
+                        ; storing the result in QQ19 so we can use it later
+
+ CMP #6                 ; If A >= 6, jump to TT207 to skip the third adjective
+ BCS TT207
+
+ ADC #236               ; Otherwise A = 0 to 5, so print recursive token
+ JSR spc                ; 76 + A, followed by a space, so:
+                        ;
+                        ;   A = 0 prints token 76 ("SLIMY") and a space
+                        ;   A = 1 prints token 77 ("BUG-EYED") and a space
+                        ;   A = 2 prints token 78 ("HORNED") and a space
+                        ;   A = 3 prints token 79 ("BONY") and a space
+                        ;   A = 4 prints token 80 ("FAT") and a space
+                        ;   A = 5 prints token 81 ("FURRY") and a space
+
+.TT207
+ LDA QQ15+5             ; Now for the actual species, so take bits 0-1 of
+ AND #3                 ; w2_hi, add this to the value of A that we used for
+ CLC                    ; the third adjective, and take bits 0-2 of the result
+ ADC QQ19
+ AND #7
+
+ ADC #242               ; A = 0 to 7, so print recursive token 82 + A, so:
+ JSR TT27               ;
+                        ;   A = 0 prints token 76 ("RODENT")
+                        ;   A = 1 prints token 76 ("FROG")
+                        ;   A = 2 prints token 76 ("LIZARD")
+                        ;   A = 3 prints token 76 ("LOBSTER")
+                        ;   A = 4 prints token 76 ("BIRD")
+                        ;   A = 5 prints token 76 ("HUMANOID")
+                        ;   A = 6 prints token 76 ("FELINE")
+                        ;   A = 7 prints token 76 ("INSECT")
+
+.TT76
+ LDA #'S'               ; Print an 'S' to pluralise the species
+ JSR TT27
+
+ LDA #')'               ; And finally, print a closing bracket, followed by a
+ JSR TT60               ; paragraph break and Sentence Case, to end the species
+                        ; section
+
+ LDA #193               ; Print recursive token 33 ("GROSS PRODUCTIVITY"),
+ JSR TT68               ; followed by colon
+
+ LDX QQ7                ; Fetch the 16-bit productivity value from QQ7 into
+ LDY QQ7+1              ; (Y X)
+
+ JSR pr6                ; Print (Y X) to 5 digits with no decimal point
+
+ JSR TT162              ; Print a space
+
+ LDA #0                 ; Set QQ17 = 0 for ALL CAPS
+ STA QQ17
+
+ LDA #'M'               ; Print 'M'
+ JSR TT27
+
+ LDA #226               ; Print recursive token 66 (" CR"), followed by a
+ JSR TT60               ; paragraph break and Sentence Case
+
+ LDA #250               ; Print recursive token 90 ("AVERAGE RADIUS"), followed
+ JSR TT68               ; by a colon
+
+                        ; The average radius is calculated like this:
+                        ;
+                        ;   ((w2_hi AND %1111) + 11) * 256 + w1_hi
+                        ;
+                        ; or, in terms of memory locations:
+                        ;
+                        ;   ((QQ15+5 AND %1111) + 11) * 256 + QQ15+3
+                        ;
+                        ; Because the multiplication is by 256, this is the
+                        ; same as saying a 16-bit number, with high byte:
+                        ;
+                        ;   (QQ15+5 AND %1111) + 11
+                        ;
+                        ; and low byte:
+                        ;
+                        ;   QQ15+3
+                        ;
+                        ; so we can set this up in (Y X) and call the pr5
+                        ; routine to print it out.
+
+ LDA QQ15+5             ; Set A = QQ15+5
+ LDX QQ15+3             ; Set X = QQ15+3
+
+ AND #15                ; Set Y = (A AND %1111) + 11
+ CLC
+ ADC #11
+ TAY
+
+ JSR pr5                ; Print (Y X) to 5 digits, including a decimal point
+                        ; if the carry flag is set
+
+ JSR TT162              ; Print a space
+
+ LDA #'k'               ; Print 'km', returning from the subroutine using a
+ JSR TT26               ; tail call
+ LDA #'m'
+ JMP TT26
 }
 
-.TT72                   ; Ind or Agr
+\ *****************************************************************************
+\ Subroutine: TT24
+\
+\ Calculate system data from the seeds in QQ15 and store them in the relevant
+\ locations. Specifically, this routine calculates the following from the three
+\ 16-bit seeds in QQ15 (using only w0_hi, w1_hi and w1_lo):
+\
+\   QQ3 = economy (0-7)
+\   QQ4 = government (0-7)
+\   QQ5 = technology level (0-14)
+\   QQ6 = population * 10 (1-71)
+\   QQ7 = productivity (96-62480)
+\
+\ The ranges of the various values are shown in brackets. Note that the radius
+\ and type of inhabitant are calculated on-the-fly in the TT25 routine when
+\ the system data gets displayed, so they aren't calculated here.
+\
+\ *****************************************************************************
+\
+\ The above system statistics are generated from the system seeds, specifically
+\ from parts of w0_hi, w1_hi and w1_lo. Here's how it all works.
+\ 
+\ Government
+\ ----------
+\ The government is given by a 3-bit value, taken from bits 3-5 of w1_lo. This
+\ value determine the type of government as follows:
+\ 
+\   0 = Anarchy
+\   1 = Feudal
+\   2 = Multi-government
+\   3 = Dictatorship
+\   4 = Communist
+\   5 = Confederacy
+\   6 = Democracy
+\   7 = Corporate State
+\ 
+\ The highest government value is 7 and the lowest is 0.
+\
+\ Economy
+\ -------
+\ The economy is given by a 3-bit value, taken from bits 0-2 of w0_hi. This
+\ value determine the prosperity of the economy:
+\ 
+\   0 or 5 = %000 or %101 = Rich
+\   1 or 6 = %001 or %110 = Average
+\   2 or 7 = %010 or %111 = Poor
+\   3 or 4 = %011 or %100 = Mainly
+\ 
+\ while bit 2 determines the type of economy:
+\ 
+\   bit 2 = %0 = Industrial
+\   bit 2 = %1 = Agricultural
+\ 
+\ If the government is an anarchy or feudal state, we need to fix the economy
+\ so it can't be rich (as that wouldn't make sense). We do this by setting bit
+\ 1 of the economy value, giving possible values of %010, %011, %110, %111.
+\ Looking at the prosperity list above, we can see this forces the economy to
+\ be poor, mainly, average, or poor respectively, so there's now a 50% chance
+\ of the system being poor, a 25% chance of it being average, and a 25% chance
+\ of it being "Mainly Agricultural" or "Mainly Industrial".
+\ 
+\ The highest economy value is 7 and the lowest is 0.
+\ 
+\ Technology level
+\ ----------------
+\ The tech level is calculated as follows:
+\ 
+\   flipped economy + (w1_hi AND %11) + (government / 2)
+\ 
+\ where "flipped economy" is the economy value with its bits inverted (keeping
+\ it as a 3-bit value, so if the economy is %001, the flipped economy is %110).
+\ The division is done using LSR and the addition uses ADC, so this rounds up
+\ the division for odd-numbered government types.
+\ 
+\ Flipping the three economy bits gives the following spread of numbers:
+\ 
+\   7 or 2 = %111 or %010 = Rich
+\   6 or 1 = %110 or %001 = Average
+\   5 or 0 = %101 or %000 = Poor
+\   4 or 3 = %100 or %011 = Mainly
+\ 
+\ This, on average, gives a higher number to rich states compared with poor
+\ states, as well as giving higher values to industrial economies compared to
+\ agricultural, all of which makes a reasonable basis for a measurement of
+\ technology level.
+\ 
+\ The highest tech level is 7 + 3 + (7 / 2) = 14 (when rounded up) and the
+\ lowest is 0.
+\ 
+\ Population
+\ ----------
+\ The population is calculated as follows:
+\ 
+\   (tech level * 4) + economy + government + 1
+\ 
+\ This means that systems with higher tech levels, better economies and more
+\ stable governments have higher populations, with the tech level having the
+\ most influence. The number stored is actually the population * 10 (in
+\ billions), so we can display it to one decimal place by calling the pr2
+\ subroutine (so if the population value is 52, it means 5.2 billion).
+\ 
+\ The highest population is 14 * 4 + 7 + 7 + 1 = 71 (7.1 billion) and the
+\ lowest is 1 (0.1 billion).
+\ 
+\ Productivity
+\ ------------
+\ The productivity is calculated as follows:
+\ 
+\   (flipped economy + 3) * (government + 4) * population * 8
+\ 
+\ Productivity is measured in millions of credits, so a productivity of 23740
+\ would be displayed as "23740 M CR".
+\ 
+\ The highest productivity is 10 * 11 * 71 * 8 = 62480, while the lowest is 3 *
+\ 4 * 1 * 8 = 96 (so the range is between 96 and 62480 million credits).
+\ *****************************************************************************
+
+.TT24
 {
- LDA QQ3
+ LDA QQ15+1             ; Fetch w0_hi and extract bits 0-2 to determine the
+ AND #7                 ; system's economy, and store in QQ3
+ STA QQ3
+ 
+ LDA QQ15+2             ; Fetch w1_lo and extract bits 3-5 to determine the
+ LSR A                  ; system's government, and store in QQ4
  LSR A
- LSR A                  ; Economy/4
- CLC
- ADC #168               ; token = Ind..Agr
- JSR TT60               ; = TT27 token then next row
- LDA #162               ; token = GOVERNMENT
- JSR TT68               ; process token followed by colon
- LDA QQ4                ; Government, 0 is Anarchy.
- CLC
- ADC #177               ; token = Anarchy..Corporate State
- JSR TT60               ; = TT27 token then next row
- LDA #196               ; token = TECH.LEVEL
- JSR TT68               ; process token followed by colon
-
- LDX QQ5                ; TechLevel-1
- INX                    ; displayed tech level is 1 higher
- CLC                    ; no decimal point
- JSR pr2                ; number X to printable characters
- JSR TTX69              ; next row then tab
- LDA #192               ; token = POPULATION
- JSR TT68               ; process token followed by colon
- SEC                    ; decimal point
- LDX QQ6                ; population*10
- JSR pr2                ; number X to printable characters
- LDA #198               ; token = BILLION
- JSR TT60               ; process TT27 token then next row
- LDA #&28               ; ascii '('
- JSR TT27               ; process text token
- LDA QQ15+4             ; seed w2_l for species type
- BMI TT75               ; bit7 set Other species
- LDA #188               ; else token = HUMAN COLONIAL
- JSR TT27               ; process text token
- JMP TT76               ; jump over Other to Both species
-
-.TT75                   ; bit7 set, Other species
- LDA QQ15+5             ; seed w2 hsb for Other species
  LSR A
- LSR A                  ; bits 8,9 dropped,
- PHA                    ; upper 6 onto stack.
  AND #7
- CMP #3                 ; >=3 ?
- BCS TT205              ; skip first adjective
- ADC #227               ; else 0=Large, 1=Fierce, 2=Small -> 227,228,229
- JSR spc                ; Acc to TT27 followed by white space
+ STA QQ4
+ 
+ LSR A                  ; If government isn't anarchy or feudal, skip to TT77,
+ BNE TT77               ; as we need to fix the economy of anarchy and feudal
+                        ; systems so they can't be rich
 
-.TT205                  ; skipped first adjective
- PLA                    ; restore upper 6 bits of w2 hsb
- LSR A
- LSR A
- LSR A                  ; throw 3 used bits away
- CMP #6                 ; >=6?
- BCS TT206              ; skip second adjective
- ADC #230               ; else Green=0, Red=1, Yellow=2, Blue=3, Black=4, Harmless=5
- JSR spc                ; Acc to TT27 followed by white space
-
-.TT206                  ; skipped second adjective
- LDA QQ15+3
- EOR QQ15+1
- AND #7
-
- STA QQ19               ; temp
- CMP #6                 ; >=6?
- BCS TT207              ; skip third adjective
- ADC #236               ; else Slimy=0, Bug-Eyed=1, 2=Horned, 3=Bony, 4=Fat, 5=Furry
- JSR spc                ; Acc to TT27 followed by white space
-
-.TT207                  ; skipped third adjective
- LDA QQ15+5             ; w2_h
- AND #3
- CLC
- ADC QQ19               ; temp 0to7
- AND #7                 ; some adjective combinations not allowed
- ADC #242               ; 0=Rodents 1=Frogs 2=Lizards 3=Lobsters 4=Birds 5=Humanoids 6=Felines 7=Insects
- JSR TT27               ; process text token
-
-.TT76                   ; Both species options arrive here
- LDA #&53               ; ascii  'S'
- JSR TT27               ; process text token
- LDA #&29               ; ascii ')'
- JSR TT60               ; TT27 token then next row
-
- LDA #193               ; token = GROSS PRODUCTIVITY
- JSR TT68               ; process token followed by colon
- LDX QQ7                ; productivity*10
- LDY QQ7+1              ; hi
- JSR pr6                ; 5 digits of XloYhi, no decimal point.
- JSR TT162              ; white space
- LDA #0                 ; clear
- STA QQ17               ; printing format for all Upper Case
- LDA #&4D               ; ascii 'M'
- JSR TT27               ; process text token
- LDA #226               ; token = 'CR'
- JSR TT60               ; TT27 token then next row
- LDA #250               ; token = AVERAGE RADIUS
- JSR TT68               ; process token followed by colon
- LDA QQ15+5             ; seed w2_h
- LDX QQ15+3             ; seed w1_h radius lo
- AND #15                ; lower 4 bits of w2_h determine planet radius
- CLC
- ADC #11                ; radius min = 256*11 = 2816 km
- TAY                    ; radius hi
-
- JSR pr5                ; print 4 digits of XloYhi
- JSR TT162              ; white space
- LDA #&6B               ; ascii 'k'
- JSR TT26               ; print character
- LDA #&6D               ; ascii 'm'
- JMP TT26               ; print character
-                        ; no planet description during flight
-}
-
-.TT24                   ; Calculate system Data
-{
- LDA QQ15+1             ; seed w0_h
- AND #7                 ; Economy build
- STA QQ3                ; 0 is Rich Industrial.
- LDA QQ15+2             ; seed w1_l
- LSR A                  ; Gov build
- LSR A
- LSR A                  ; /=8
- AND #7
- STA QQ4                ; Government, 0 is Anarchy
- LSR A
- BNE TT77               ; above feudal, economy can be Rich.
- LDA QQ3                ; else reload economy build
- ORA #2                 ; Adjust Eco for Anarchy and Feudal, set bit 1.
+ LDA QQ3                ; Set bit 1 of the economy in QQ3 to fix the economy
+ ORA #2                 ; for anarchy and feudal governments
  STA QQ3
 
-.TT77                   ; above Feudal, can be Rich.
- LDA QQ3                ; Economy of target system
- EOR #7                 ; flip economy so Rich is now 7
- CLC                    ; onto tech level
- STA QQ5                ; Flipped Eco, EcoEOR7, Rich Ind = 7
- LDA QQ15+3             ; seed w1_h
- AND #3                 ; add flipped eco
+.TT77
+ LDA QQ3                ; Now to work out the tech level, which we do like this:
+ EOR #7                 ; 
+ CLC                    ;   flipped economy + (w1_hi AND %11) + (government / 2)
+ STA QQ5                ;
+                        ; or, in terms of memory locations:
+                        ;
+                        ;   QQ5 = (QQ3 EOR %111) + (QQ15+3 AND %11) + (QQ4 / 2)
+                        ;
+                        ; We start by setting QQ5 = QQ3 EOR %111
+
+ LDA QQ15+3             ; We then take the first 2 bits of w1_hi (QQ15+3) and
+ AND #3                 ; add it into QQ5
  ADC QQ5
  STA QQ5
 
- LDA QQ4                ; Government, 0 is Anarchy
- LSR A                  ; gov/2
- ADC QQ5
- STA QQ5                ; Techlevel-1 = 0to14
- ASL A                  ; Onto Population
- ASL A                  ; (TL-1)*= 4
- ADC QQ3                ; TechLevel*4 + Eco   7-56
- ADC QQ4                ; Government, 0 is Anarchy.
- ADC #1                 ; +1 = population*10
- STA QQ6
- LDA QQ3                ; Economy
- EOR #7                 ; Onto productivity
- ADC #3                 ; (Flipped eco +3)
- STA P
- LDA QQ4                ; Government, 0 is Anarchy
- ADC #4                 ; = (Gov +4)
- STA Q
- JSR MULTU              ; P.A = P*Q, Productivity part 1. has hsb in A, lsb in P.
- LDA QQ6                ; population*10
- STA Q                  ; Population, P retains (3to10)*(4to11) = 110 max
- JSR MULTU              ; P.A = P*Q  = Productivity part 1 * Population
- ASL P
- ROL A                  ; hi *=2
+ LDA QQ4                ; And finally we add QQ4 / 2 and store the result in
+ LSR A                  ; QQ5, using LSR then ADC to divide by 2, which rounds
+ ADC QQ5                ; up the result for odd-numbered government types
+ STA QQ5 
+ 
+ ASL A                  ; Now to work out the population, like so:
+ ASL A                  ;
+ ADC QQ3                ;   (tech level * 4) + economy + government + 1
+ ADC QQ4                ;
+ ADC #1                 ; or, in terms of memory locations:
+ STA QQ6                ;
+                        ;   QQ6 = (QQ5 * 4) + QQ3 + QQ4 + 1
+
+
+ LDA QQ3                ; Finally, we work out productivity, like this:
+ EOR #7                 ;
+ ADC #3                 ;  (flipped economy + 3) * (government + 4)
+ STA P                  ;                        * population
+ LDA QQ4                ;                        * 8
+ ADC #4                 ;
+ STA Q                  ; or, in terms of memory locations:
+ JSR MULTU              ;
+                        ;   QQ7 = (QQ3 EOR %111 + 3) * (QQ4 + 4) * QQ6 * 8
+                        ;
+                        ; We do the first step by setting P to the first
+                        ; expression in brackets and Q to the second, and
+                        ; calling MULTU, so now (A P) = P * Q. The highest this
+                        ; can be is 10 * 11 (as the maximum values of economy
+                        ; and government are 7), so the high byte of the result
+                        ; will always be 0, so we actually have:
+                        ;
+                        ;   P = P * Q
+                        ;     = (flipped economy + 3) * (government + 4)
+
+ LDA QQ6                ; We now take the result in P and multiply by the
+ STA Q                  ; population to get the productivity, by setting Q to
+ JSR MULTU              ; the population from QQ6 and calling MULTU again, so
+                        ; now we have:
+                        ;
+                        ;   (A P) = P * population
+
+ ASL P                  ; Next we multiply the result by 8, as a 16-bit number,
+ ROL A                  ; so we shift both bytes to the left three times,
+ ASL P                  ; using the carry flag to carry bits from bit 7 of the
+ ROL A                  ; low byte into bit 0 of the high byte
  ASL P
  ROL A
- ASL P
- ROL A                  ; *= 8  hi
- STA QQ7+1              ; have to use 2 bytes for Productivity, max 7041
- LDA P
- STA QQ7                ; 8*(P-A) = Productivity (768to56320) M Cr
- RTS
+
+ STA QQ7+1              ; Finally, we store the productivity in two bytes, with
+ LDA P                  ; the low byte in QQ7 and the high byte in QQ7+1
+ STA QQ7
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -8910,13 +9341,15 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: pr6
 \
-\ Print the 8-bit number in X to 5 digits, left-padding with spaces for
+\ Print the 16-bit number in (Y X) to 5 digits, left-padding with spaces for
 \ numbers with fewer than 3 digits (so numbers < 10000 are right-aligned),
 \ with no decimal point.
 \
 \ Arguments:
 \
-\   X           The number to print
+\   X           The low byte of the number to print
+\
+\   Y           The high byte of the number to print
 \ *****************************************************************************
 
 .pr6
@@ -8929,21 +9362,25 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: pr5
 \
-\ Print the 8-bit number in X to 5 digits, left-padding with spaces for
+\ Print the 16-bit number in (Y X) to 5 digits, left-padding with spaces for
 \ numbers with fewer than 3 digits (so numbers < 10000 are right-aligned).
 \ Optionally include a decimal point.
 \
 \ Arguments:
 \
-\   X           The number to print
+\   X           The low byte of the number to print
+\
+\   Y           The high byte of the number to print
 \
 \   C flag      If set, include a decimal point
 \ *****************************************************************************
 
 .pr5
 {
- LDA #5                 ; Print the number in X to a maximum of 5 digits
- JMP TT11               ; (left-padded) with no decimal point
+ LDA #5                 ; Set the number of digits to print to 5
+
+ JMP TT11               ; Call TT11 to print (Y X) to 5 digits and return from
+                        ; the subroutine using a tail call
 }
 
 \ *****************************************************************************
@@ -9874,7 +10311,7 @@ MAPCHAR '4', '4'
 \ Print control code 3 (the selected system name, i.e. the one in the
 \ cross-hairs in the short range chart).
 \
-\ How it works:
+\ *****************************************************************************
 \
 \ System names are generated from the three 16-bit seeds for that system. In
 \ the case of the selected system, those seeds live at QQ15. The process works
@@ -10567,7 +11004,7 @@ MAPCHAR '4', '4'
 \
 \   A           The recursive token to be printed, in the range 0-148
 \
-\ How it works:
+\ *****************************************************************************
 \
 \ This routine works its way through the recursive tokens that are stored in
 \ tokenised form in memory at &0400 - &06FF, and when it finds token number A,
@@ -11327,19 +11764,28 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: GINF
 \
-\ Get ship Info pointer into allwk for nearby ship X
+\ Get the address of the data block for ship number X and store it in INF. This
+\ address is fetched from the UNIV table, which stores the addresses of the 13
+\ ship data blocks in workspace K%.
+\
+\ Arguments:
+\
+\   X           The ship number for which we want the data block address
 \ *****************************************************************************
 
-.GINF                   ; Get ship Info pointer into allwk for nearby ship X
+.GINF
 {
- TXA                    ; nearby slot
- ASL A                  ; X*2
- TAY                    ; index table at UNIV
- LDA UNIV,Y
- STA INF
- LDA UNIV+1,Y
- STA INF+1
- RTS
+ TXA                    ; Set Y = X * 2
+ ASL A
+ TAY
+
+ LDA UNIV,Y             ; Get the high byte of the address of the X-th ship
+ STA INF                ; from UNIV and store it in INF
+
+ LDA UNIV+1,Y           ; Get the low byte of the address of the X-th ship
+ STA INF+1              ; from UNIV and store it in INF
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -11374,89 +11820,232 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: NWSHP
 \
-\ New Ship, type Acc.
+\ Add a new ship to the universe. This creates a block of ship data in the
+\ workspace at K% (where we store the ships in our current bubble of universe),
+\ and we also add the ship type into the slot index table at FRIN. We can
+\ retrieve this block of ship data later using the lookup table at UNIV.
+\
+\ Arguments:
+\
+\   A           The type of the ship to add (see elite-ships.asm for a list of
+\               ship types)
+\
+\ Returns:
+\
+\   C flag      Set if the ship was successfully added, clear if it wasn't
+\               (as there wasn't enough free memory)
 \ *****************************************************************************
 
-.NWSHP                  ; New Ship, type Acc.
+.NWSHP
 {
- STA T                  ; Type stored
- LDX #0
+ STA T                  ; Store the ship type in location T
 
-.NWL1                   ; while slot occupied, counter X
- LDA FRIN,X
- BEQ NW1                ; if empty, found Room for Xth ship to be added
- INX                    ; next slot
- CPX #NOSH              ; < #NOSH max number of ships
- BCC NWL1               ; loop X
+ LDX #0                 ; Before we can add a new ship, we need to check
+                        ; whether we have an empty slot we can put it in. To do
+                        ; this, we need to loop through all the slots to look
+                        ; for an empty one, so set a counter in X that starts
+                        ; from the first slot at 0. When ships are killed, then
+                        ; the slots are shuffled down by the KILLSHP routine, so
+                        ; the first empty slot will always come after the last
+                        ; filled slot. This allows us to tack the new ship's
+                        ; data block and ship lines heap onto the end of the
+                        ; existing ship data and heap, as shown in the memory
+                        ; map below.
 
-.NW3                    ; else exited loop with no slot found, so ship not added.
- CLC                    ; ship not added
- RTS                    ; NW3+1
+.NWL1
+ LDA FRIN,X             ; Load the ship type for the X-th slot
 
-.NW1                    ; found Room, a FRIN(X) that is still empty. Allowed to add ship, type is in T.
- JSR GINF               ; Get INFo pointer for slot X from UNIV
- LDA T                  ; the ship type
- BMI NW2                ; Planet/sun, hop inner workspace to just store ship type.
- ASL A                  ; type*=2 to get
- TAY                    ; hull index for table at XX21= &5600
- LDA XX21-2,Y 
- STA XX0                ; hull pointer lo
- LDA XX21-1,Y
- STA XX0+1              ; hull pointer hi
- CPY #2*SST
- BEQ NW6                ; if ship type #SST space station
- LDY #5                 ; hull byte#5 = maxlines for using ship lines stack
- LDA (XX0),Y
- STA T1
- LDA SLSP               ; ship lines pointer
- SEC                    ; ship lines pointer - maxlines
- SBC T1
- STA INWK+33            ; temp pointer lo for lines
+ BEQ NW1                ; If it is zero, then this slot is empty and we can use
+                        ; it for our new ship, so jump down to NW1
+
+ INX                    ; Otherwise increment X to point to the next slot
+
+ CPX #NOSH              ; If we haven't reached the last slot yet, loop back up
+ BCC NWL1               ; to NWL1 to check the next slot
+
+.NW3                    ; Otherwise we don't have an empty slot, so we can't
+ CLC                    ; add a new ship, so clear the carry flag to indicate
+ RTS                    ; that we have not managed to create the new ship, and
+                        ; return from the subroutine
+
+.NW1                    ; If we get here, then we have found an empty slot at
+                        ; index X, so we can go ahead and create our new ship.
+                        ; We do that by creating a ship data block at INWK and,
+                        ; when we are done, copying the block from INWK into
+                        ; the workspace at K% (specifically, to INF).
+
+ JSR GINF               ; Get the address of the data block for ship X (which
+                        ; is in workspace K%) and store it in INF
+
+ LDA T                  ; If the type of ship that we want to create is
+ BMI NW2                ; negative, then this indicates a planet or sun, so
+                        ; jump down to NW2, as the next section sets up a ship
+                        ; data block, which doesn't apply to planets and suns,
+                        ; as they don't have things like shields, missiles,
+                        ; vertices and edges.
+
+                        ; This is a ship, so first we need to set up various
+                        ; pointers to the ship data we will need. Ship data is
+                        ; assembled by elite-ships.asm and is loaded at
+                        ; location XX21, so refer to that file for more details
+                        ; on the data we're about to access.
+
+ ASL A                  ; Set Y = ship type * 2
+ TAY
+
+ LDA XX21-2,Y           ; The ship definitions at XX21 start with a lookup
+ STA XX0                ; table that points to the individual ship definitions,
+                        ; so this fetches the low byte of this particular ship
+                        ; type's definition and stores it in XX0
+
+ LDA XX21-1,Y           ; Fetch the high byte of this particular ship type's 
+ STA XX0+1              ; definition and store it in XX0+1
+
+ CPY #2*SST             ; If the ship type is a space station (SST), then jump
+ BEQ NW6                ; to NW6, skipping the heap space steps below
+
+                        ; We now want to allocate a heap space that we can use
+                        ; while drawing our new ship - the ship lines heap
+                        ; space. SLSP points to the start of the current
+                        ; heap space, and we can extend it downwards with the
+                        ; heap for our new ship (as the heap space always ends
+                        ; just before the workspace at WP).
+
+ LDY #5                 ; Fetch ship definition byte #5, which contains the
+ LDA (XX0),Y            ; maximum heap size required for plotting the new ship,
+ STA T1                 ; and store it in T1
+
+ LDA SLSP               ; Take the 16-bit address in SLSP and subtract T1,
+ SEC                    ; storing the 16-bit result in (INWK+34 INWK+33),
+ SBC T1                 ; so this now points to the start of the heap space
+ STA INWK+33            ; for our new ship
  LDA SLSP+1
- SBC #0                 ; hi
+ SBC #0
  STA INWK+34
 
- LDA INWK+33
-\SEC
- SBC INF                ; info pointer gives present top of all workspace heap
- TAY                    ; compare later to number of bytes, 37, needed for ship workspace
- LDA INWK+34
- SBC INF+1
- BCC NW3+1              ; rts if too low, not enough space.
- BNE NW4                ; enough space, else if hi match look at lo
- CPY #NI%               ; NI% = #37 each ship workspace size
- BCC NW3+1              ; rts if too low, not enough space
+                        ; We now need to check that there is enough free space
+                        ; for both this new heap space and the new data block
+                        ; for our ship. In memory, this is the layout of the
+                        ; ship data and heap space:
+                        ;
+                        ;   High address
+                        ;
+                        ;   +-----------------------------------+   &0F34
+                        ;   |                                   |
+                        ;   | WP workspace                      |
+                        ;   |                                   |
+                        ;   +-----------------------------------+   &0D40 = WP
+                        ;   |                                   |
+                        ;   | Current ship lines heap           |
+                        ;   |                                   |
+                        ;   +-----------------------------------+   SLSP
+                        ;   |                                   |
+                        ;   | Proposed heap for new ship        |
+                        ;   |                                   |
+                        ;   +-----------------------------------+   INWK+33
+                        ;   |                                   |
+                        ;   .                                   .
+                        ;   .                                   .
+                        ;   .                                   .
+                        ;   .                                   .
+                        ;   .                                   .
+                        ;   |                                   |
+                        ;   +-----------------------------------+   INF+NI%
+                        ;   |                                   |
+                        ;   | Proposed data block for new ship  |
+                        ;   |                                   |
+                        ;   +-----------------------------------+   INF
+                        ;   |                                   |
+                        ;   | Existing ship data blocks         |
+                        ;   |                                   |
+                        ;   +-----------------------------------+   &0900 = K%
+                        ;
+                        ;   Low address
+                        ;
+                        ; So, to work out if we have enough space, we have to
+                        ; make sure there is room between the end of our new
+                        ; ship data block at INF+NI%, and the start of the
+                        ; proposed heap for our new ship at INWK+33. Or, to
+                        ; put it another way, we need to make sure that:
+                        ;
+                        ;   INWK+33 > INF+NI%
+                        ;
+                        ; which is the same as saying:
+                        ;
+                        ;   INWK+33 - INF > NI%
 
-.NW4                    ; Enough space for lines
- LDA INWK+33            ; temp pointer lo for lines
- STA SLSP               ; ship lines pointer
- LDA INWK+34            ; XX19+1
- STA SLSP+1
 
-.NW6                    ; also New Space Station #SST arrives here
- LDY #14                ; Hull byte#14 = energy
- LDA (XX0),Y
- STA INWK+35            ; energy
- LDY #19                ; Hull byte#19 = laser|missile info
- LDA (XX0),Y
- AND #7                 ; only lower 3 bits are number of missiles
- STA INWK+31            ; display exploding state|missiles
- LDA T                  ; reload ship Type
+ LDA INWK+33            ; Calculate INWK+33 - INF, again using 16-bit
+\SEC                    ; arithmetic, and put the result in (A Y), so the high
+ SBC INF                ; byte is in A and the low byte in Y. The SEC
+ TAY                    ; instruction is commented out in the original source;
+ LDA INWK+34            ; as the previous subtraction will never underflow, it
+ SBC INF+1              ; is superfluous.
 
-.NW2                    ; also Planet/sun store ship type
- STA FRIN,X             ; the type for each nearby ship
- TAX                    ; slot info lost, X is now ship type.
- BMI P%+5               ; hop over as planet
- INC MANY,X             ; the total number of ships of type X
- LDY #(NI%-1)           ; start Y counter for inner workspace
+ BCC NW3+1              ; If we have an underflow from the subtraction, then
+                        ; INF > INWK+33 and we definitely don't have enough
+                        ; room for this ship, so jump to NW3+1, which clears
+                        ; the carry flag and returns from the subroutine
 
-.NWL3                   ; move workspace out, counter Y
- LDA INWK,Y
- STA (INF),Y
- DEY                    ; next byte
- BPL NWL3               ; loop Y
- SEC                    ; success in creating new ship, keep carry set.
- RTS
+ BNE NW4                ; If the subtraction of the high bytes in A is not
+                        ; zero, and we don't have underflow, then we definitely
+                        ; have enough space, so jump to NW4 to continue setting
+                        ; up the new ship
+
+ CPY #NI%               ; Otherwise the high bytes are the same in our
+ BCC NW3+1              ; subtraction, so now we compare the low byte of the
+                        ; result (which is in Y) with NI%. This is the same as
+                        ; doing INWK+33 - INF > NI% (see above). If this isn't
+                        ; true, the carry flag will be clear and we don't have
+                        ; enough space, so we jump to NW3+1, which clears the
+                        ; carry flag and returns from the subroutine.
+
+.NW4
+ LDA INWK+33            ; If we get here then we do have enough space for our
+ STA SLSP               ; new ship, so store the new bottom of the ship lines
+ LDA INWK+34            ; heap space (i.e. INWK+33) in SLSP, doing both the
+ STA SLSP+1             ; high and low bytes
+
+.NW6
+ LDY #14                ; Fetch ship definition byte #14, which contains the
+ LDA (XX0),Y            ; ship's energy, and store it in INWK+35
+ STA INWK+35
+
+ LDY #19                ; Fetch ship definition byte #19, which contains the
+ LDA (XX0),Y            ; number of missiles and laser power, and AND with %111
+ AND #7                 ; to extract the number of missiles before storing in
+ STA INWK+31            ; INWK+31
+
+ LDA T                  ; Restore the ship type we stored above
+
+.NW2
+ STA FRIN,X             ; Store the ship type in the X-th byte of FRIN, so the
+                        ; this slot is now shown as occupied in the index table
+ 
+ TAX                    ; Copy the ship type into X
+
+ BMI P%+5               ; If the ship type is negative (planet or sun), then
+                        ; skip the following instruction
+
+ INC MANY,X             ; Increment the total number of ships of type X
+
+ LDY #(NI%-1)           ; The final step is to copy the new ship's data block
+                        ; from INWK to INF, so set up a counter for NI% bytes
+                        ; in Y
+
+.NWL3
+ LDA INWK,Y             ; Load the Y-th byte of INWK and store in the Y-th byte
+ STA (INF),Y            ; of the workspace pointed to by INF
+ 
+ DEY                    ; Decrement the loop counter
+ 
+ BPL NWL3               ; Loop back for the next byte until we have copied them
+                        ; all over
+
+ SEC                    ; We have successfuly created our new ship, so set the
+                        ; carry flag to indicate success
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -13022,8 +13611,8 @@ LOAD_F% = LOAD% + P% - CODE%
 
  JSR ZERO               ; Zero-fill pages &9, &A, &B, &C and &D.
 
- LDA #LO(WP-1)          ; Reset the ship lines pointer to point to the byte
- STA SLSP               ; before the WP workspace
+ LDA #LO(WP-1)          ; Reset the ship lines pointer to be empty, so point
+ STA SLSP               ; SLSP to the byte before the WP workspace
  LDA #HI(WP-1)
  STA SLSP+1
 
@@ -15295,10 +15884,11 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \ *****************************************************************************
 \ Variable: QQ16
 \
-\ Two-letter token lookup string.
+\ Two-letter token lookup string for tokens 128-159. See elite-words.asm for
+\ details of how the two-letter token system works.
 \ *****************************************************************************
 
-.QQ16                   ; onto regular planet name flight diagrams
+.QQ16
 {
  EQUS "ALLEXEGEZACEBISOUSESARMAINDIREA?ERATENBERALAVETIEDORQUANTEISRION"
 }
@@ -17248,10 +17838,10 @@ SKIP 1
 \ *****************************************************************************
 \ Variable: XX21
 \
-\ Table of pointers to ships' data given to XX0.
+\ Table of pointers to ship definitions. See elite-ships.asm for details.
 \ *****************************************************************************
 
-.XX21                   ; Table of pointers to ships' data given to XX0
+.XX21                   ; See elite-ships.asm for details of what goes here
 
 INCBIN "output/SHIPS.bin"
 

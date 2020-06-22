@@ -29,14 +29,14 @@ ORG CODE%
 \ To print something, you pass a byte through to the printing routine at TT27.
 \ The value of that byte determines what gets printed, as follows:
 \ 
-\     Value (n)   Type
-\     ---------   -------------------------------------------------------
-\     0-13        Control codes 0-13
-\     14-31       Recursive tokens 128-145 (i.e. token number = n + 114)
-\     32-95       Normal ASCII characters 32-95 (0-9, A-Z and most punctuation)
-\     96-127      Recursive tokens 96-127 (i.e. token number = n)
-\     128-159     Two-letter tokens 128-159
-\     160-255     Recursive tokens 0-95 (i.e. token number = n - 160)
+\   Value (n)     Type
+\   ---------     -------------------------------------------------------
+\   0-13          Control codes 0-13
+\   14-31         Recursive tokens 128-145 (i.e. token number = n + 114)
+\   32-95         Normal ASCII characters 32-95 (0-9, A-Z and most punctuation)
+\   96-127        Recursive tokens 96-127 (i.e. token number = n)
+\   128-159       Two-letter tokens 128-159
+\   160-255       Recursive tokens 0-95 (i.e. token number = n - 160)
 \ 
 \ Characters with codes 32-95 represent the normal ASCII characters from ' ' to
 \ '_', so a value of 65 in an Elite string represents the letter A (as 'A' has
@@ -51,9 +51,9 @@ ORG CODE%
 \ To make things easier to follow in the discussion and comments below, let's
 \ refer to the three token types like this, where n is the character code:
 \ 
-\     {n}    Control codes        n = 0 to 13
-\     <n>    Two-letter token     n = 128 to 159
-\     [n]    Recursive token      n = 0 to 148
+\   {n}           Control codes             n = 0 to 13
+\   <n>           Two-letter token          n = 128 to 159
+\   [n]           Recursive token           n = 0 to 148
 \ 
 \ So when we say {13} we're talking about control code 13 ("crlf"), while <141>
 \ is the two-letter token 141 ("DI"), and [3] is the recursive token 3 ("DATA
@@ -74,19 +74,19 @@ ORG CODE%
 \ subroutine on one character at a time, and this is how almost all of the text
 \ in the game gets put on screen. For example, the following code:
 \ 
-\     LDA #65
-\     JSR TT27
+\   LDA #65
+\   JSR TT27
 \ 
 \ prints a capital A, while this code:
 \ 
-\     LDA #163
-\     JSR TT27
+\   LDA #163
+\   JSR TT27
 \ 
 \ prints recursive token number 3 (see below for more on why we pass #163
 \ instead of #3). This would produce the following if we were currently
 \ visiting Tionisla:
 \ 
-\     DATA ON TIONISLA
+\   DATA ON TIONISLA
 \ 
 \ This is because token 3 expands to the string "DATA ON {current system}". You
 \ can see this very call being used in TT25, which displays data on the
@@ -117,20 +117,20 @@ ORG CODE%
 \ Control codes are in the range 0 to 13, and expand to the following when
 \ printed via TT27:
 \ 
-\     0   Current cash, right-aligned to width 9, then " CR", newline
-\     1   Current galaxy number, right-aligned to width 3
-\     2   Current system name
-\     3   Selected system name (the cross-hairs in the short range chart)
-\     4   Commander's name
-\     5   "FUEL: ", fuel level, " LIGHT YEARS", newline, "CASH:", {0}, newline
-\     6   Switch case to Sentence Case
-\     7   Beep
-\     8   Switch case to ALL CAPS
-\     9   Tab to column 21, then print a colon
-\     10  Line feed (i.e. move cursor down)
-\     11  (not used, does the same as 13)
-\     12  (not used, does the same as 13)
-\     13  Newline (i.e. carriage return and line feed)
+\   0   Current cash, right-aligned to width 9, then " CR", newline
+\   1   Current galaxy number, right-aligned to width 3
+\   2   Current system name
+\   3   Selected system name (the cross-hairs in the short range chart)
+\   4   Commander's name
+\   5   "FUEL: ", fuel level, " LIGHT YEARS", newline, "CASH:", {0}, newline
+\   6   Switch case to Sentence Case
+\   7   Beep
+\   8   Switch case to ALL CAPS
+\   9   Tab to column 21, then print a colon
+\   10  Line feed (i.e. move cursor down)
+\   11  (not used, does the same as 13)
+\   12  (not used, does the same as 13)
+\   13  Newline (i.e. carriage return and line feed)
 \ 
 \ So a value of 4 in a tokenised string will be expanded to the current
 \ commander's name, while a value of 5 will print the current fuel level in the
@@ -140,8 +140,8 @@ ORG CODE%
 \ off with " CR" and another newline. The result is something like this, when
 \ displayed in Sentence Case:
 \ 
-\     Fuel: 6.7 Light Years
-\     Cash:    1234.5 Cr
+\   Fuel: 6.7 Light Years
+\   Cash:    1234.5 Cr
 \ 
 \ If you press F8 to show the Status Mode screen, you can see control code 4
 \ being used to show the commander's name in the title, while control code 5 is
@@ -165,38 +165,38 @@ ORG CODE%
 \ 
 \ Two-letter tokens expand to the following:
 \ 
-\     128     AL
-\     129     LE
-\     130     XE
-\     131     GE
-\     132     ZA
-\     133     CE
-\     134     BI
-\     135     SO
-\     136     US
-\     137     ES
-\     138     AR
-\     139     MA
-\     140     IN
-\     141     DI
-\     142     RE
-\     143     A?
-\     144     ER
-\     145     AT
-\     146     EN
-\     147     BE
-\     148     RA
-\     149     LA
-\     150     VE
-\     151     TI
-\     152     ED
-\     153     OR
-\     154     QU
-\     155     AN
-\     156     TE
-\     157     IS
-\     158     RI
-\     159     ON
+\   128     AL
+\   129     LE
+\   130     XE
+\   131     GE
+\   132     ZA
+\   133     CE
+\   134     BI
+\   135     SO
+\   136     US
+\   137     ES
+\   138     AR
+\   139     MA
+\   140     IN
+\   141     DI
+\   142     RE
+\   143     A?
+\   144     ER
+\   145     AT
+\   146     EN
+\   147     BE
+\   148     RA
+\   149     LA
+\   150     VE
+\   151     TI
+\   152     ED
+\   153     OR
+\   154     QU
+\   155     AN
+\   156     TE
+\   157     IS
+\   158     RI
+\   159     ON
 \ 
 \ So a value of 150 in the tokenised string would expand to VE, for example.
 \ When talking about encoded strings in the code comments below, two-letter
@@ -231,11 +231,11 @@ ORG CODE%
 \ recursive token 65). So instead, we use the table above to work out what to
 \ send to TT27; here are the relevant lines:
 \ 
-\     Value (n)   Type
-\     ---------   -------------------------------------------------------
-\     14-31       Recursive tokens 128-145 (i.e. token number = n + 114)
-\     96-127      Recursive tokens 96-127 (i.e. token number = n)
-\     160-255     Recursive tokens 0-95 (i.e. token number = n - 160)
+\   Value (n)     Type
+\   ---------     -------------------------------------------------------
+\   14-31         Recursive tokens 128-145 (i.e. token number = n + 114)
+\   96-127        Recursive tokens 96-127 (i.e. token number = n)
+\   160-255       Recursive tokens 0-95 (i.e. token number = n - 160)
 \ 
 \ The first column is the number we need to send to TT27 to print the token
 \ mentioned in the second column.
@@ -272,10 +272,10 @@ ORG CODE%
 \ specific token in memory, which is why this file uses a handful of macros to
 \ make life easier. They are:
 \ 
-\     CHAR n      ; insert ASCII character n      n = 32 to 95
-\     CTRL n      ; insert control code n         n = 0 to 13
-\     TWOK n      ; insert two-letter token n     n = 128 to 159
-\     RTOK n      ; insert recursive token n      n = 0 to 148
+\   CHAR n        ; insert ASCII character n        n = 32 to 95
+\   CTRL n        ; insert control code n           n = 0 to 13
+\   TWOK n        ; insert two-letter token n       n = 128 to 159
+\   RTOK n        ; insert recursive token n        n = 0 to 148
 \ 
 \ A side effect of all this obfuscation is that tokenised strings can't contain
 \ ASCII 35 characters ("#"). This is because ASCII "#" EOR 35 is 0, and the
@@ -299,37 +299,37 @@ ORG CODE%
 \ using the following code (remember, we have to add 160 to 3 to pass through
 \ to TT27):
 \ 
-\     LDA #163
-\     JSR TT27
+\   LDA #163
+\   JSR TT27
 \ 
 \ Token 3 is stored in the tokenised form:
 \ 
-\     D<145>A[131]{3}
+\   D<145>A[131]{3}
 \ 
 \ which we could store in memory using the following (adding in the null
 \ terminator at the end):
 \ 
-\     CHAR 'D'
-\     TWOK 145
-\     CHAR 'A'
-\     RTOK 131
-\     CTRL 3
-\     EQUB 0
+\   CHAR 'D'
+\   TWOK 145
+\   CHAR 'A'
+\   RTOK 131
+\   CTRL 3
+\   EQUB 0
 \ 
 \ As mentioned above, the values that are actually stored are EOR'd with 35,
 \ and token [131] has to have 114 taken off it before it's ready for TT27, so
 \ the bytes that are actually stored in memory for this token are:
 \ 
-\     EQUB 'D' EOR 35
-\     EQUB 145 EOR 35
-\     EQUB 'A' EOR 35
-\     EQUB (131 - 114) EOR 35
-\     EQUB 3 EOR 35
-\     EQUB 0
+\   EQUB 'D' EOR 35
+\   EQUB 145 EOR 35
+\   EQUB 'A' EOR 35
+\   EQUB (131 - 114) EOR 35
+\   EQUB 3 EOR 35
+\   EQUB 0
 \ 
 \ or, as they would appear in the raw WORDS9.bin file, this:
 \ 
-\     EQUB &67, &B2, &62, &32, &20, &00
+\   EQUB &67, &B2, &62, &32, &20, &00
 \ 
 \ These all produce the same output, but the first version is rather easier to
 \ understand.
@@ -337,11 +337,11 @@ ORG CODE%
 \ Now that the token is stored in memory, we can call TT27 with the accumulator
 \ set to 163, and the token will be printed as follows:
 \ 
-\     D       The letter D                        "D"
-\     <145>   Two-letter token 145                "AT"
-\     A       The letter A                        "A"
-\     [131]   Recursive token 131                 " ON "
-\     {3}     Control character 3                 The selected system name
+\   D             The letter D                      "D"
+\   <145>         Two-letter token 145              "AT"
+\   A             The letter A                      "A"
+\   [131]         Recursive token 131               " ON "
+\   {3}           Control character 3               The selected system name
 \ 
 \ So if the system under the cross-hairs in the short range chart is Tionisla,
 \ this expands into "DATA ON TIONISLA".
