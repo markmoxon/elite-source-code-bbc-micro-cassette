@@ -93,6 +93,32 @@ f8 = &76
 f9 = &77
 
 \ *****************************************************************************
+\ Macro definitions
+\ *****************************************************************************
+
+MACRO CHAR x                        ; Insert ASCII character 'x'
+  EQUB x EOR 35
+ENDMACRO
+
+MACRO TWOK n                        ; Insert two-letter token <n>
+  EQUB n EOR 35
+ENDMACRO
+
+MACRO CTRL n                        ; Insert control code {n}
+  EQUB n EOR 35
+ENDMACRO
+
+MACRO RTOK n                        ; Insert recursive token [n]
+  IF n >= 0 AND n <= 95             ; Tokens 0-95 get stored as token number + 160
+    EQUB (n + 160) EOR 35
+  ELIF n >= 128
+    EQUB (n - 114) EOR 35           ; Tokens 128-145 get stored as token number - 114
+  ELSE
+    EQUB n EOR 35                   ; Tokens 96-127 get stored as token number
+  ENDIF
+ENDMACRO
+
+\ *****************************************************************************
 \ Zero page workspace at &0000 - &00B0
 \ *****************************************************************************
 
@@ -623,9 +649,17 @@ PRINT "T% workspace from  ", ~T%, " to ", ~SXL
 ORG CODE_WORDS%
 
 \ *****************************************************************************
-\ Tokens in Elite
+\ Variable: QQ18
+\
+\ Recursive token table for tokens 0-148.
 \ *****************************************************************************
-\ 
+\
+\ This table contains data for the recursive token system used in Elite. There
+\ are actually three types of token used by Elite - recursive, two-letter and
+\ control codes - so let's look at all of them in one go.
+\
+\ Tokens in Elite
+\ ---------------
 \ Elite uses a tokenisation system to store the text it displays during the
 \ game. This enables the game to store strings more efficiently than would be
 \ the case if they were simply inserted into the source code using EQUS, and it
@@ -676,10 +710,8 @@ ORG CODE_WORDS%
 \ We'll take a look at each of the three token types in more detail below, but
 \ first a word about how characters get printed in Elite.
 \ 
-\ *****************************************************************************
 \ The TT27 print subroutine
-\ *****************************************************************************
-\ 
+\ -------------------------
 \ Elite contains a subroutine at TT27 that prints out the character given in
 \ the accumulator, and if that number refers to a token, then the token is
 \ expanded before being printed. Whole strings can be printed by calling this
@@ -705,10 +737,8 @@ ORG CODE_WORDS%
 \ selected system when F6 is pressed (this particular call is what prints the
 \ title at the top of the screen).
 \ 
-\ *****************************************************************************
 \ The ex print subroutine
-\ *****************************************************************************
-\ 
+\ -----------------------
 \ You may have noticed that in the table above, there are character codes for
 \ all our ASCII characters and tokens, except for recursive tokens 146, 147 and
 \ 148. How do we print these?
@@ -722,10 +752,8 @@ ORG CODE_WORDS%
 \ or added 114 as appropriate to get the token number, so calling it directly
 \ with 146-148 in the accumulator is acceptable.)
 \ 
-\ *****************************************************************************
 \ Control codes: {n}
-\ *****************************************************************************
-\ 
+\ ------------------
 \ Control codes are in the range 0 to 13, and expand to the following when
 \ printed via TT27:
 \ 
@@ -771,10 +799,8 @@ ORG CODE_WORDS%
 \ Case. Tokens are stored in capital letters only, and each letter's case is
 \ set by the logic in TT27.
 \ 
-\ *****************************************************************************
 \ Two-letter tokens: <n>
-\ *****************************************************************************
-\ 
+\ ----------------------
 \ Two-letter tokens expand to the following:
 \ 
 \   128     AL
@@ -815,17 +841,15 @@ ORG CODE_WORDS%
 \ tokens are shown as <n>, so <150> expands to VE.
 \ 
 \ The set of two-letter tokens is stored as one long string ("ALLEXEGE...") at
-\ QQ16, in the main elite-source.asm. This string is also used to generate
-\ planet names procedurally, but that's a story for another time.
+\ location QQ16. This string is also used to generate system names
+\ procedurally, as described in routine cpl.
 \ 
 \ Note that question marks are not printed, so token <143> expands to A. This
 \ allows names with an odd number of characters to be generated from sequences
 \ of two-letter tokens, though only if they contain the letter A.
 \ 
-\ *****************************************************************************
 \ Recursive tokens: [n]
-\ *****************************************************************************
-\ 
+\ ---------------------
 \ The binary file that is assembled by this source file (WORDS9.bin) contains
 \ 149 recursive tokens, numbered from 0 to 148, which are stored from &0400 to
 \ &06FF in a tokenised form. These tokenised strings can include references to
@@ -865,9 +889,8 @@ ORG CODE_WORDS%
 \ recursive tokens 146-148, but instead you need to call the ex subroutine, so
 \ the method described here only applies to recursive tokens 0-145.
 \ 
-\ *****************************************************************************
 \ How recursive tokens are stored in memory
-\ *****************************************************************************
+\ -----------------------------------------
 \ 
 \ The 149 recursive tokens are stored one after the other in memory, starting
 \ at &0400, with each token being terminated by a null character (EQUB 0).
@@ -903,9 +926,8 @@ ORG CODE_WORDS%
 \ space-efficient than a lookup table; you can see this loop in the subroutine
 \ at ex, which is where recursive tokens are printed.
 \ 
-\ *****************************************************************************
 \ An example
-\ *****************************************************************************
+\ ----------
 \ 
 \ Given all this, let's consider recursive token 3 again, which is printed
 \ using the following code (remember, we have to add 160 to 3 to pass through
@@ -957,35 +979,6 @@ ORG CODE_WORDS%
 \ 
 \ So if the system under the cross-hairs in the short range chart is Tionisla,
 \ this expands into "DATA ON TIONISLA".
-
-\ *****************************************************************************
-\ Macros for inserting tokens into memory
-\ *****************************************************************************
-
-MACRO CHAR x                        ; Insert ASCII character 'x'
-  EQUB x EOR 35
-ENDMACRO
-
-MACRO TWOK n                        ; Insert two-letter token <n>
-  EQUB n EOR 35
-ENDMACRO
-
-MACRO CTRL n                        ; Insert control code {n}
-  EQUB n EOR 35
-ENDMACRO
-
-MACRO RTOK n                        ; Insert recursive token [n]
-  IF n >= 0 AND n <= 95             ; Tokens 0-95 get stored as token number + 160
-    EQUB (n + 160) EOR 35
-  ELIF n >= 128
-    EQUB (n - 114) EOR 35           ; Tokens 128-145 get stored as token number - 114
-  ELSE
-    EQUB n EOR 35                   ; Tokens 96-127 get stored as token number
-  ENDIF
-ENDMACRO
-
-\ *****************************************************************************
-\ Recursive tokens 0-148
 \ *****************************************************************************
 
 RTOK 111                            ; Token 0:      "FUEL SCOOPS ON {beep}"
@@ -11877,7 +11870,7 @@ MAPCHAR '4', '4'
 \   2. Generate the first two letters by taking bits 0-4 of w2_hi. If this is
 \      zero, jump to the next step, otherwise we have a number in the range
 \      1-31. Add 128 to get a number in the range 129-159, and convert this to
-\      a two-letter token (see elite-words.asm for more on two-letter tokens).
+\      a two-letter token (see variable QQ18 for more on two-letter tokens).
 \
 \   3. Twist the seeds by calling TT54 and repeat the previous step, until we
 \      have processed three or four pairs, depending on step 1.
@@ -12161,7 +12154,7 @@ MAPCHAR '4', '4'
 \ Subroutine: TT27
 \
 \ Print a text token (i.e. a character, control code, two-letter token or
-\ recursive token). See elite-words.asm for a discussion of the token system
+\ recursive token). See variable QQ18 for a discussion of the token system
 \ used in Elite.
 \
 \ Arguments:
@@ -12570,7 +12563,7 @@ MAPCHAR '4', '4'
 \
 \ The variable QQ18 points to the token table at &0400.
 \
-\ For details of the tokenisation system, see elite-words.asm.
+\ For details of the tokenisation system, see variable QQ18.
 \ *****************************************************************************
 
 .ex
@@ -12578,7 +12571,7 @@ MAPCHAR '4', '4'
  TAX                    ; Copy the token number into X
 
  LDA #LO(QQ18)          ; Set V, V+1 to point to the recursive token table at
- STA V                  ; QQ18, which is assembled in elite-words.asm
+ STA V                  ; location QQ18
  LDA #HI(QQ18)
  STA V+1
 
@@ -12645,7 +12638,7 @@ MAPCHAR '4', '4'
                         ; want to print
 
  EOR #35                ; Tokens are stored in memory having been EOR'd with 35
-                        ; (see elite-words.asm for details), so we repeat the
+                        ; (see variable QQ18 for details), so we repeat the
                         ; EOR to get the actual character to print
 
  JSR TT27               ; Print the text token in A, which could be a letter,
@@ -16014,7 +16007,7 @@ ENDIF
 \ Arguments:
 \
 \   A           The number of the recursive token to show below the rotating
-\               ship (see elite-words.asm for details of recursive tokens)
+\               ship (see variable QQ18 for details of recursive tokens)
 \
 \   X           The type of the ship to show (see variable XX21 for a list of
 \               ship types)
@@ -17437,7 +17430,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \ *****************************************************************************
 \ Variable: QQ16
 \
-\ Two-letter token lookup string for tokens 128-159. See elite-words.asm for
+\ Two-letter token lookup string for tokens 128-159. See variable QQ18 for
 \ details of how the two-letter token system works.
 \ *****************************************************************************
 
