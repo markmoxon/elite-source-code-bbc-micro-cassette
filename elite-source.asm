@@ -7,35 +7,6 @@ INCLUDE "elite-header.h.asm"
 _REMOVE_COMMANDER_CHECK = TRUE AND _REMOVE_CHECKSUMS
 _ENABLE_MAX_COMMANDER   = TRUE AND _REMOVE_CHECKSUMS
 
-\ *****************************************************************************
-\ Workspace pointers
-\ *****************************************************************************
-
-ZP = 0                  ; &0000 to &00B0 - Zero page variables, see below for
-                        ; details of what is stored here
-
-XX3 = &0100             ; &0100 to &01FF - Used as heap space for storing
-                        ; temporary data during calculations; shared with the
-                        ; descending 6502 stack, which works down from &01FF
-
-T% = &0300              ; &0300 to &035F - Workspace T%, contains the current
-                        ; commander data and the stardust data block
-
-QQ18 = &0400            ; &0400 to &07FF - The recursive token table is loaded
-CODE_WORDS% = QQ18      ; at &1100 and is moved down to &0400 as part of
-LOAD_WORDS% = &1100     ; elite-loader.asm
-
-K% = &0900              ; &0900 to &0CFF - Workspace K%, pointed to by the
-                        ; lookup table at location UNIV, the first 468 bytes
-                        ; of which holds data on 13 ships, 36 (NI%) bytes each
-
-WP = &0D40              ; &0D40 to &0F34 - Workspace WP, see below for details
-                        ; of what is stored here
-
-CODE% = &0F40           ; &0F40 to &6000 - The main game code is loaded at
-LOAD% = &1128           ; &1128 and is moved down to &0F40 as part of
-                        ; elite-loader.asm
-
 GUARD &6000             ; Screen buffer starts here
 
 \ *****************************************************************************
@@ -119,94 +90,128 @@ MACRO RTOK n                        ; Insert recursive token [n]
 ENDMACRO
 
 \ *****************************************************************************
-\ Zero page workspace at &0000 - &00B0
+\ Zero page workspace ZP at &0000 - &00B0
 \ *****************************************************************************
 
-ORG ZP
+ORG &0000
 
-.RAND                   ; 
- SKIP 4
+.ZP                     ; Zero page workspace
 
-.TRTB%                  ; Set by elite-loader.asm to point to the MOS key
- SKIP 2                 ; translation table, used to translate internal key
+.RAND
+
+ SKIP 4                 ; 
+
+.TRTB%
+
+ SKIP 2                 ; Set by elite-loader.asm to point to the MOS key
+                        ; translation table, used to translate internal key
                         ; values to ASCII
 
-.T1                     ; Temporary storage, used quite a lot
- SKIP 1
+.T1
 
-.SC                     ; Screen address (low byte)
- SKIP 1
+ SKIP 1                 ; Temporary storage, used quite a lot
 
-.SCH                    ; Screen address (high byte)
- SKIP 1
+.SC
 
-.XX16                   ; 
- SKIP 18
+ SKIP 1                 ; Screen address (low byte)
 
-.P                      ; Temporary storage for a memory pointer (e.g. used in
- SKIP 3                 ; TT26 to store the address of character definitions)
+.SCH
 
-.XX0                    ; Stores address of ship definition in NWSHP
- SKIP 2
+ SKIP 1                 ; Screen address (high byte)
 
-.INF                    ; Stores address of new ship data block when adding a
- SKIP 2                 ; new ship
+.XX16
 
-.V                      ; 
- SKIP 2
+ SKIP 18                ; 
 
-.XX                     ; 
- SKIP 2
+.P
 
-.YY                     ; 
- SKIP 2
+ SKIP 3                 ; Temporary storage for a memory pointer (e.g. used in
+                        ; TT26 to store the address of character definitions)
 
-.SUNX                   ; 
- SKIP 2
+.XX0
 
-.BETA                   ; 
- SKIP 1
+ SKIP 2                 ; Stores address of ship definition in NWSHP
 
-.BET1                   ; 
- SKIP 1
+.INF
 
-.XC                     ; Contains the x-coordinate of the text cursor (i.e.
- SKIP 1                 ; the text column). A value of 0 denotes the leftmost
+ SKIP 2                 ; Stores address of new ship data block when adding a
+                        ; new ship
+
+.V
+
+ SKIP 2                 ;
+
+.XX
+
+ SKIP 2                 ;
+
+.YY
+
+ SKIP 2                 ;
+
+.SUNX
+
+ SKIP 2                 ;
+
+.BETA
+
+ SKIP 1                 ;
+
+.BET1
+
+ SKIP 1                 ;
+
+.XC
+
+ SKIP 1                 ; Contains the x-coordinate of the text cursor (i.e.
+                        ; the text column). A value of 0 denotes the leftmost
                         ; column.
 
-.YC                     ; Contains the y-coordinate of the text cursor (i.e.
- SKIP 1                 ; the text row). A value of 0 denotes the top row.
+.YC
 
-.QQ22                   ; Hyperspace countdown
- SKIP 2
+ SKIP 1                 ; Contains the y-coordinate of the text cursor (i.e.
+                        ; the text row). A value of 0 denotes the top row.
 
-.ECMA                   ; E.C.M. status flag; 0 is off, non-zero is on
- SKIP 1
+.QQ22
 
-.XX15                   ; Shares location with X1, Y1, X2, Y2
+ SKIP 2                 ; Hyperspace countdown
+
+.ECMA
+
+ SKIP 1                 ; E.C.M. status flag; 0 is off, non-zero is on
+
+.XX15                   ; 
 
 .X1
- SKIP 1
+
+ SKIP 1                 ; 
 
 .Y1
- SKIP 1
+
+ SKIP 1                 ; 
 
 .X2
- SKIP 1
+
+ SKIP 1                 ; 
 
 .Y2
- SKIP 1
+
+ SKIP 1                 ; 
 
  SKIP 2                 ; Last 2 bytes of XX15
 
-.XX12                   ; 
- SKIP 6
+.XX12
 
-.K                      ; 
- SKIP 4
+ SKIP 6                 ; 
 
-.KL                     ; If a key is being pressed that is not in the keyboard
- SKIP 1                 ; table at KYTB, it can be stored here (as seen in
+.K
+
+ SKIP 4                 ; 
+
+.KL
+
+ SKIP 1                 ; If a key is being pressed that is not in the keyboard
+                        ; table at KYTB, it can be stored here (as seen in
                         ; routine DK4, for example)
 
                         ; The following bytes implement a key logger that
@@ -223,62 +228,81 @@ ORG ZP
                         ; pressed. The logger is cleared to zero (no keys are
                         ; being pressed) by the U% routine.
 
-.KY1                    ; ? key pressed (0 = no, non-zero = yes)
- SKIP 1
+.KY1
 
-.KY2                    ; Space key pressed (0 = no, non-zero = yes)
- SKIP 1
+ SKIP 1                 ; ? key pressed (0 = no, non-zero = yes)
 
-.KY3                    ; < key pressed (0 = no, non-zero = yes)
- SKIP 1
+.KY2
 
-.KY4                    ; > key pressed (0 = no, non-zero = yes)
- SKIP 1
+ SKIP 1                 ; Space key pressed (0 = no, non-zero = yes)
 
-.KY5                    ; X key pressed (0 = no, non-zero = yes)
- SKIP 1
+.KY3
 
-.KY6                    ; S key pressed (0 = no, non-zero = yes)
- SKIP 1
+ SKIP 1                 ; < key pressed (0 = no, non-zero = yes)
 
-.KY7                    ; A key pressed (0 = no, non-zero = yes)
- SKIP 1                 ; Also, joystick fire button pressed
+.KY4
 
-.KY12                   ; Tab key pressed (0 = no, non-zero = yes)
- SKIP 1
+ SKIP 1                 ; > key pressed (0 = no, non-zero = yes)
 
-.KY13                   ; Escape key pressed (0 = no, non-zero = yes)
- SKIP 1
+.KY5
 
-.KY14                   ; T key pressed (0 = no, non-zero = yes)
- SKIP 1
+ SKIP 1                 ; X key pressed (0 = no, non-zero = yes)
 
-.KY15                   ; U key pressed (0 = no, non-zero = yes)
- SKIP 1
+.KY6
 
-.KY16                   ; M key pressed (0 = no, non-zero = yes)
- SKIP 1
+ SKIP 1                 ; S key pressed (0 = no, non-zero = yes)
 
-.KY17                   ; E key pressed (0 = no, non-zero = yes)
- SKIP 1
+.KY7
 
-.KY18                   ; J key pressed (0 = no, non-zero = yes)
- SKIP 1
+ SKIP 1                 ; A key pressed (0 = no, non-zero = yes)
+                        ; Also, joystick fire button pressed
 
-.KY19                   ; C key pressed (0 = no, non-zero = yes)
- SKIP 1
+.KY12
 
-.LAS                    ; 
- SKIP 1
+ SKIP 1                 ; Tab key pressed (0 = no, non-zero = yes)
 
-.MSTG                   ; Missile target (&FF = no target)
- SKIP 1
+.KY13
+
+ SKIP 1                 ; Escape key pressed (0 = no, non-zero = yes)
+
+.KY14
+
+ SKIP 1                 ; T key pressed (0 = no, non-zero = yes)
+
+.KY15
+
+ SKIP 1                 ; U key pressed (0 = no, non-zero = yes)
+
+.KY16
+
+ SKIP 1                 ; M key pressed (0 = no, non-zero = yes)
+
+.KY17
+
+ SKIP 1                 ; E key pressed (0 = no, non-zero = yes)
+
+.KY18
+
+ SKIP 1                 ; J key pressed (0 = no, non-zero = yes)
+
+.KY19
+
+ SKIP 1                 ; C key pressed (0 = no, non-zero = yes)
+
+.LAS
+
+ SKIP 1                 ; 
+
+.MSTG
+
+ SKIP 1                 ; Missile target (&FF = no target)
 
 .XX1
  
-.INWK                   ; Shares memory with XX1, XX19
- SKIP NI%               ; Workspace for a ship
+.INWK
 
+ SKIP 33                ; Workspace for a ship
+                        ;
                         ; x-coordinate = (INWK+1 INWK+0), sign in INWK+2
                         ; y-coordinate = (INWK+4 INWK+3), sign in INWK+5
                         ; y-coordinate = (INWK+7 INWK+6), sign in INWK+8
@@ -297,7 +321,7 @@ ORG ZP
                         ;
                         ; &60 (96) is the figure we use to represent 1 in the
                         ; rotation matrix, while &E0 9224) is -1
-
+                        ;
                         ; INWK    = x_lo
                         ; INWK+1  = x_hi
                         ; INWK+2  = x_sign
@@ -338,13 +362,18 @@ ORG ZP
                         ; INWK+34 = ship lines heap space pointer hi
                         ; INWK+35 = ship energy
 
-XX19 = INWK + 33        ; Shares memory with INWK+33
+.XX19
 
-.LSP                    ; 
- SKIP 1
+ SKIP NI% - 33          ; XX19 shares location with INWK+33
 
-.QQ15                   ; Contains the three 16-bit seeds (6 bytes) for the
- SKIP 6                 ; selected system, i.e. the one in the cross-hairs in
+.LSP
+
+ SKIP 1                 ;
+
+.QQ15
+
+ SKIP 6                 ; Contains the three 16-bit seeds (6 bytes) for the
+                        ; selected system, i.e. the one in the cross-hairs in
                         ; the short range chart.
                         ;
                         ; The seeds are stored as little-endian 16-bit numbers,
@@ -362,12 +391,13 @@ XX19 = INWK + 33        ; Shares memory with INWK+33
                         ; as w0_lo and the high byte as w0_hi, and so on for
                         ; w1_lo, w1_hi, w2_lo and w2_hi.
 
-.XX18                   ; Shares memory with QQ17, QQ19
- SKIP 9
+.K5
 
-QQ17 = XX18             ; Shares memory with XX18, K5
-                        ;
-                        ; QQ17 stores flags that affect how text tokens are
+.XX18
+
+.QQ17
+
+ SKIP 1                 ; QQ17 stores flags that affect how text tokens are
                         ; printed, including the capitalisation setting
                         ;
                         ; Setting QQ17 = &FF disables text printing entirely
@@ -392,175 +422,241 @@ QQ17 = XX18             ; Shares memory with XX18, K5
                         ; If any of bits 0-5 are set and QQ17 is not &FF, we
                         ; print in lower case
 
-QQ19 = QQ17 + 1         ; Shares memory with XX18+1, K5
-                        ;
-                        ; Temporary storage for seed pairs (e.g. used in cpl
+.QQ19
+
+ SKIP 3                 ; Temporary storage (e.g. used in TT25 to store results
+                        ; when calculating adjectives to show for system species
+                        ; names)
+
+.K6
+
+ SKIP 5                 ; Temporary storage for seed pairs (e.g. used in cpl
                         ; as a temporary backup when twisting three 16-bit
                         ; seeds)
 
-K5 = XX18               ; Shares memory with XX18, QQ17, QQ19
+.ALP1
 
-K6 = K5 + 4             ; Shares memory with XX18+4
+ SKIP 1                 ; Roll?
 
-.ALP1                   ; Roll?
- SKIP 1
+.ALP2
 
-.ALP2                   ; Roll sign?
- SKIP 2
+ SKIP 2                 ; Roll sign?
 
-.BET2                   ; Pitch sign?
- SKIP 2
+.BET2
 
-.DELTA                  ; Current speed
- SKIP 1
+ SKIP 2                 ; Pitch sign?
 
-.DELT4                  ; 
- SKIP 2
+.DELTA
 
-.U                      ; Temporary storage (e.g. used in BPRNT to store the
- SKIP 1                 ; last position at which we must start printing digits)
+ SKIP 1                 ; Current speed
 
-.Q                      ; 
- SKIP 1
+.DELT4
 
-.R                      ; 
- SKIP 1
+ SKIP 2                 ; 
 
-.S                      ; Temporary storage (e.g. used in BPRNT)
- SKIP 1
+.U
 
-.XSAV                   ; Temporary storage for X
- SKIP 1
+ SKIP 1                 ; Temporary storage (e.g. used in BPRNT to store the
+                        ; last position at which we must start printing digits)
 
-.YSAV                   ; Temporary storage for Y (e.g. used in TT27)
- SKIP 1
+.Q
 
-.XX17                   ; Temporary storage (e.g. used in BPRNT to store the
- SKIP 1                 ; number of characters to print)
+ SKIP 1                 ; 
 
-.QQ11                   ; Current view (0 = space view)
- SKIP 1
+.R
 
-.ZZ                     ; 
- SKIP 1
+ SKIP 1                 ; 
 
-.XX13                   ; 
- SKIP 1
+.S
 
-.MCNT                   ; Move counter
- SKIP 1
+ SKIP 1                 ; Temporary storage (e.g. used in BPRNT)
 
-.DL                     ; Line scan counter. This is updated
- SKIP 1
+.XSAV
 
-.TYPE                   ; 
- SKIP 1
+ SKIP 1                 ; Temporary storage for X
 
-.JSTX                   ; Current rate of roll being applied by the controls
- SKIP 1                 ; (as shown in the dashboard's RL indicator), ranging
+.YSAV
+
+ SKIP 1                 ; Temporary storage for Y (e.g. used in TT27)
+
+.XX17
+
+ SKIP 1                 ; Temporary storage (e.g. used in BPRNT to store the
+                        ; number of characters to print)
+
+.QQ11
+
+ SKIP 1                 ; Current view (0 = space view)
+
+.ZZ
+
+ SKIP 1                 ; 
+
+.XX13
+
+ SKIP 1                 ; 
+
+.MCNT
+
+ SKIP 1                 ; Move counter
+
+.DL
+
+ SKIP 1                 ; Line scan counter
+
+.TYPE
+
+ SKIP 1                 ; 
+
+.JSTX
+
+ SKIP 1                 ; Current rate of roll being applied by the controls
+                        ; (as shown in the dashboard's RL indicator), ranging
                         ; from 1 to 255 with 128 as the centre point (so 1
                         ; means roll is decreasing at the maximum rate, 128
                         ; means roll is not changing, and 255 means roll is
                         ; increasing at the maximum rate)
 
-.JSTY                   ; Current rate of pitch being applied by the controls
- SKIP 1                 ; (as shown in the dashboard's DC indicator), ranging
+.JSTY
+
+ SKIP 1                 ; Current rate of pitch being applied by the controls
+                        ; (as shown in the dashboard's DC indicator), ranging
                         ; from 1 to 255 with 128 as the centre point (so 1
                         ; means pitch is decreasing at the maximum rate, 128
                         ; means pitch is not changing, and 255 means pitch is
                         ; increasing at the maximum rate)
 
-.ALPHA                  ; 
- SKIP 1
+.ALPHA
 
-.QQ12                   ; Docked flag, &FF = docked
- SKIP 1
+ SKIP 1                 ; 
 
-.TGT                    ; 
- SKIP 1
+.QQ12
 
-.SWAP                   ; 
- SKIP 1
+ SKIP 1                 ; Docked flag, &FF = docked
 
-.COL                    ; 
- SKIP 1
+.TGT
 
-.FLAG                   ; 
- SKIP 1
+ SKIP 1                 ; 
 
-.CNT                    ; 
- SKIP 1
+.SWAP
 
-.CNT2                   ; 
- SKIP 1
+ SKIP 1                 ; 
 
-.STP                    ; 
- SKIP 1
+.COL
 
-.XX4                    ; 
- SKIP 1
+ SKIP 1                 ; 
 
-.XX20                   ; 
- SKIP 1
+.FLAG
 
-.XX14                   ; 
- SKIP 1
+ SKIP 1                 ; 
 
-.RAT                    ; 
- SKIP 1
+.CNT
 
-.RAT2                   ; 
- SKIP 1
+ SKIP 1                 ; 
 
-.K2                     ; 
+.CNT2
+
+ SKIP 1                 ; 
+
+.STP
+
+ SKIP 1                 ; 
+
+.XX4
+
+ SKIP 1                 ; 
+
+.XX20
+
+ SKIP 1                 ; 
+
+.XX14
+
+ SKIP 1                 ; 
+
+.RAT
+
+ SKIP 1                 ; 
+
+.RAT2
+
+ SKIP 1                 ; 
+
+.K2
+
  SKIP 4
 
-T = &D1                 ; Used as temporary storage (e.g. used in cpl for the
+ORG &D1
+
+.T
+
+ SKIP 1                 ; Used as temporary storage (e.g. used in cpl for the
                         ; loop counter)
 
-XX2 = &D2               ; Shares memory with K3, K4
 
-K3 = XX2                ; Shares memory with XX2
-                        ;
-                        ; Used as temporary storage (e.g. used in TT27 for the
+.K3                     ; Used as temporary storage (e.g. used in TT27 for the
                         ; character to print)
 
-K4 = K3 + 14            ; Shares memory with XX2+14
-                        ;
-                        ; Used as temporary storage (e.g. used in TT27 for the
+.XX2
+
+ SKIP 14
+
+.K4                     ; Used as temporary storage (e.g. used in TT27 for the
                         ; character to print)
 
 PRINT "Zero page variables from ", ~ZP, " to ", ~P%
 
 \ *****************************************************************************
-\ Workspace at T% = &300 - &035F
+\ Workspace XX3 at &0100
+\
+\ Used as heap space for storing temporary data during calculations shared with
+\ the descending 6502 stack, which works down from &01FF.
+\ *****************************************************************************
+
+ORG &0100
+
+.XX3                    ; Temporary heap space
+
+\ *****************************************************************************
+\ Workspace T% at &0300 - &035F
 \
 \ Contains the current commander data (NT% bytes at location TP), and the
 \ stardust data block (NOST bytes at location SX)
 \ *****************************************************************************
 
-ORG T%                  ; Start of the commander block
+ORG &0300               ; Start of the commander block
 
-.TP                     ; Mission status, always 0 for tape version
- SKIP 1
+.T%                     ; Start of workspace T%
 
-.QQ0                    ; Current system X-coordinate
- SKIP 1
+.TP
 
-.QQ1                    ; Current system Y-coordinate
- SKIP 1
+ SKIP 1                 ; Mission status, always 0 for tape version
 
-.QQ21                   ; Three 16-bit seeds for current system
- SKIP 6
+.QQ0
 
-.CASH                   ; Cash as a 32-bit unsigned integer
- SKIP 4
+ SKIP 1                 ; Current system X-coordinate
 
-.QQ14                   ; Contains the current fuel level * 10 (so a 1 in QQ14
- SKIP 1                 ; represents 0.1 light years)
+.QQ1
 
-.COK                    ; Competition code flags
- SKIP 1                 ;
+ SKIP 1                 ; Current system Y-coordinate
+
+.QQ21
+
+ SKIP 6                 ; Three 16-bit seeds for current system
+
+.CASH
+
+ SKIP 4                 ; Cash as a 32-bit unsigned integer
+
+.QQ14
+
+ SKIP 1                 ; Contains the current fuel level * 10 (so a 1 in QQ14
+                        ; represents 0.1 light years)
+
+.COK
+
+ SKIP 1                 ; Competition code flags
+                        ;
                         ; Bit 7 is set on start-up if CHK and CHK2 do not match,
                         ; which presumably indicates that there may have been
                         ; some cheatimg going on
@@ -571,62 +667,82 @@ ORG T%                  ; Start of the commander block
                         ; hyperspace to force a mis-jump (having first paused
                         ; the game and toggled on the author credits with X)
 
-.GCNT                   ; Contains the current galaxy number, 0-7. When this is
- SKIP 1                 ; displayed in-game, 1 is added to the number (so we
+.GCNT
+
+ SKIP 1                 ; Contains the current galaxy number, 0-7. When this is
+                        ; displayed in-game, 1 is added to the number (so we
                         ; start in galaxy 1 in-game, but it's stored as galaxy
                         ; 0 internally)
 
-.LASER                  ; Laser power, 0 means no laser
- SKIP 4                 ; (byte 0 = front, 1 = rear, 2 = left, 3 = right)
+.LASER
+
+ SKIP 4                 ; Laser power, 0 means no laser
+                        ; (byte 0 = front, 1 = rear, 2 = left, 3 = right)
 
  SKIP 2                 ; Not used (reserved for up/down lasers, maybe?)
  
-.CRGO                   ; Cargo capacity
- SKIP 1
+.CRGO
 
-.QQ20                   ; Contents of cargo hold
- SKIP 17
+ SKIP 1                 ; Cargo capacity
 
-.ECM                    ; E.C.M.
- SKIP 1
+.QQ20
 
-.BST                    ; Fuel scoops ("barrel status")
- SKIP 1
+ SKIP 17                ; Contents of cargo hold
 
-.BOMB                   ; Energy bomb
- SKIP 1
+.ECM
 
-.ENGY                   ; Energy/shield level
- SKIP 1
+ SKIP 1                 ; E.C.M.
 
-.DKCMP                  ; Docking computer
- SKIP 1
+.BST
 
-.GHYP                   ; Galactic hyperdrive
- SKIP 1
+ SKIP 1                 ; Fuel scoops ("barrel status")
 
-.ESCP                   ; Escape pod
- SKIP 1
+.BOMB
+
+ SKIP 1                 ; Energy bomb
+
+.ENGY
+
+ SKIP 1                 ; Energy/shield level
+
+.DKCMP
+
+ SKIP 1                 ; Docking computer
+
+.GHYP
+
+ SKIP 1                 ; Galactic hyperdrive
+
+.ESCP
+
+ SKIP 1                 ; Escape pod
 
  SKIP 4                 ; Not used
 
-.NOMSL                  ; Number of missiles
- SKIP 1
+.NOMSL
 
-.FIST                   ; Legal status ("fugitive/innocent status")
- SKIP 1
+ SKIP 1                 ; Number of missiles
 
-.AVL                    ; Market availability
- SKIP 17
+.FIST
 
-.QQ26                   ; Random byte that changes for each visit to a system,
- SKIP 1                 ; for randomising market prices
+ SKIP 1                 ; Legal status ("fugitive/innocent status")
 
-.TALLY                  ; Number of kills
- SKIP 2
+.AVL
 
-.SVC                    ; Save count, gets halved with each save
- SKIP 1
+ SKIP 17                ; Market availability
+
+.QQ26
+
+ SKIP 1                 ; Random byte that changes for each visit to a system,
+                        ; for randomising market prices
+
+.TALLY
+
+ SKIP 2                 ; Number of kills
+
+.SVC
+
+ SKIP 1                 ; Save count, gets halved with each save
 
  SKIP 2                 ; Reserve two bytes for commander checksum, so when
                         ; current commander block is copied to the last saved
@@ -643,8 +759,16 @@ SXL = SX + NOST + 1     ; SXL points to the end of the stardust data block
 PRINT "T% workspace from  ", ~T%, " to ", ~SXL
 
 \ *****************************************************************************
-\ ELITE WORDS SOURCE
+\ ELITE WORDS9 at &0400 - &07FF
+\
+\ Produces the binary file WORDS9.bin which gets loaded by elite-loader.asm.
+\
+\ The recursive token table is loaded at &1100 and is moved down to &0400 as
+\ part of elite-loader.asm.
 \ *****************************************************************************
+
+CODE_WORDS% = &0400
+LOAD_WORDS% = &1100
 
 ORG CODE_WORDS%
 
@@ -980,6 +1104,8 @@ ORG CODE_WORDS%
 \ So if the system under the cross-hairs in the short range chart is Tionisla,
 \ this expands into "DATA ON TIONISLA".
 \ *****************************************************************************
+
+.QQ18
 
  RTOK 111                           ; Token 0:      "FUEL SCOOPS ON {beep}"
  RTOK 131                           ; Encoded as:   "[111][131]{7}"
@@ -2168,188 +2294,267 @@ PRINT "S.WORDS9 ",~CODE%," ",~P%," ",~LOAD%," ",~LOAD_WORDS%
 SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 
 \ *****************************************************************************
-\ Workspace at WP = &0D40 - &0F34
+\ Workspace K% at &0900
+\
+\ Pointed to by the lookup table at location UNIV, the first 468 bytes of which
+\ holds data on 13 ships, 36 (NI%) bytes each.
 \ *****************************************************************************
 
-ORG WP
+ORG &0900
 
-.FRIN                   ; Contains the ship type for each of the ships in UNIV
- SKIP NOSH + 1          ; (0 means that slot is empty)
+.K%                     ; Ship data blocks and ship lines heap space
 
-.MANY                   ; Shares memory with CABTMP, SSPR
- SKIP 14                ; Contains a count of the number of ships of type X at
+\ *****************************************************************************
+\ Workspace WP at &0D40 - &0F34
+\ *****************************************************************************
+
+ORG &0D40
+
+.WP                     ; Start of workspace WP
+
+.FRIN
+
+ SKIP NOSH + 1          ; Contains the ship type for each of the ships in UNIV
+                        ;
+                        ; 0 means that slot is empty, non-zero is ship type
+
+.CABTMP
+
+.MANY
+
+ SKIP SST               ; Contains a count of the number of ships of type X at
                         ; offset X, so the current number of Sidewinders in our
                         ; bubble of universe is at MANY+1, the number of Mambas
                         ; is at MANY+2, and so on
 
-CABTMP = MANY           ; Shares memory with MANY
+.SSPR
 
-SSPR = MANY + SST       ; Shares memory with MANY
-                        ;
-                        ; "Space station present" flag
+ SKIP 14 - SST          ; "Space station present" flag
                         ;
                         ; Non-zero if we are inside the space station safe zone
                         ;
                         ; 0 if we aren't (in which case we can show the sun)
 
-.ECMP                   ; 
- SKIP 1
+.ECMP
 
-.MJ                     ; 
- SKIP 1
+ SKIP 1                 ; 
 
-.LAS2                   ; 
- SKIP 1
+.MJ
 
-.MSAR                   ; 
- SKIP 1
+ SKIP 1                 ; 
 
-.VIEW                   ; 
- SKIP 1
+.LAS2
 
-.LASCT                  ; 
- SKIP 1
+ SKIP 1                 ; 
 
-.GNTMP                  ; 
- SKIP 1
+.MSAR
 
-.HFX                    ; 
- SKIP 1
+ SKIP 1                 ; 
 
-.EV                     ; 
- SKIP 1
+.VIEW
 
-.DLY                    ; 
- SKIP 1
+ SKIP 1                 ; 
 
-.de                     ; 
- SKIP 1
+.LASCT
 
-.LSO                    ; Shares memory with LSX
+ SKIP 1                 ; 
+
+.GNTMP
+
+ SKIP 1                 ; 
+
+.HFX
+
+ SKIP 1                 ; 
+
+.EV
+
+ SKIP 1                 ; 
+
+.DLY
+
+ SKIP 1                 ; 
+
+.de
+
+ SKIP 1                 ; 
+
+.LSX
+.LSO
+
  SKIP 192
 
-LSX = LSO               ; Shares memory with LSO
+.LSX2
 
-.LSX2                   ; 
  SKIP 78
 
-.LSY2                   ; 
+.LSY2
+
  SKIP 78
 
-.SY                     ; 
+.SY
+
  SKIP NOST + 1
 
-.SYL                    ; 
+.SYL
+
  SKIP NOST + 1
 
-.SZ                     ; 
+.SZ
+
  SKIP NOST + 1
 
-.SZL                    ; 
+.SZL
+
  SKIP NOST + 1
 
-.XSAV2                  ; Temporary storage for the X register (e.g. used in
- SKIP 1                 ; TT27 to store X while printing is performed)
+.XSAV2
 
-.YSAV2                  ; Temporary storage for the Y register (e.g. used in
- SKIP 1                 ; TT27 to store X while printing is performed)
+ SKIP 1                 ; Temporary storage for the X register (e.g. used in
+                        ; TT27 to store X while printing is performed)
 
-.MCH                    ; 
- SKIP 1
+.YSAV2
 
-.FSH                    ; Forward shields
- SKIP 1
+ SKIP 1                 ; Temporary storage for the Y register (e.g. used in
+                        ; TT27 to store X while printing is performed)
 
-.ASH                    ; Aft shields
- SKIP 1
+.MCH
 
-.ENERGY                 ; Energy banks
- SKIP 1
+ SKIP 1                 ; 
 
-.LASX                   ; 
- SKIP 1
+.FSH
 
-.LASY                   ; 
- SKIP 1
+ SKIP 1                 ; Forward shields
 
-.COMX                   ; 
- SKIP 1
+.ASH
 
-.COMY                   ; 
- SKIP 1
+ SKIP 1                 ; Aft shields
 
-.QQ24                   ; 
- SKIP 1
+.ENERGY
 
-.QQ25                   ; 
- SKIP 1
+ SKIP 1                 ; Energy banks
 
-.QQ28                   ; 
- SKIP 1
+.LASX
 
-.QQ29                   ; 
- SKIP 1
+ SKIP 1                 ; 
 
-.gov                    ; 
- SKIP 1
+.LASY
 
-.tek                    ; 
- SKIP 1
+ SKIP 1                 ; 
 
-.SLSP                   ; Points to the start of the ship lines heap space,
- SKIP 2                 ; which is a block that starts at SLSP and ends at
+.COMX
+
+ SKIP 1                 ; 
+
+.COMY
+
+ SKIP 1                 ; 
+
+.QQ24
+
+ SKIP 1                 ; 
+
+.QQ25
+
+ SKIP 1                 ; 
+
+.QQ28
+
+ SKIP 1                 ; 
+
+.QQ29
+
+ SKIP 1                 ; 
+
+.gov
+
+ SKIP 1                 ; 
+
+.tek
+
+ SKIP 1                 ; 
+
+.SLSP
+
+ SKIP 2                 ; Points to the start of the ship lines heap space,
+                        ; which is a block that starts at SLSP and ends at
                         ; WP, and which can be extended downwards by lowering
                         ; SLSP if more heap space is required
 
-.XX24                   ; 
- SKIP 1
+.XX24
 
-.ALTIT                  ; 
- SKIP 1
+ SKIP 1                 ; 
 
-.QQ2                    ; Contains the three 16-bit seeds (6 bytes) for the
- SKIP 6                 ; current system. See QQ15 above for details of how the
+.ALTIT
+
+ SKIP 1                 ; 
+
+.QQ2
+
+ SKIP 6                 ; Contains the three 16-bit seeds (6 bytes) for the
+                        ; current system. See QQ15 above for details of how the
                         ; three seeds are stored in memory
 
-.QQ3                    ; Selected system's economy (0-7)
- SKIP 1
+.QQ3
 
-.QQ4                    ; Selected system's government (0-7)
- SKIP 1
+ SKIP 1                 ; Selected system's economy (0-7)
 
-.QQ5                    ; Selected system's tech level (1-14)
- SKIP 1
+.QQ4
 
-.QQ6                    ; Selected system's population * 10 in billions (1-71)
- SKIP 2
+ SKIP 1                 ; Selected system's government (0-7)
 
-.QQ7                    ; Selected system's productivity in M CR (96-62480)
- SKIP 2
+.QQ5
 
-.QQ8                    ; Distance to the selected system (0 if this is the
- SKIP 2                 ; current system)
+ SKIP 1                 ; Selected system's tech level (1-14)
 
-.QQ9                    ; Selected system's X-coordinate
- SKIP 1
+.QQ6
 
-.QQ10                   ; Selected system's Y-coordinate
- SKIP 1
+ SKIP 2                 ; Selected system's population * 10 in billions (1-71)
 
-.NOSTM                  ; Number of stardust particles
- SKIP 1
+.QQ7
+
+ SKIP 2                 ; Selected system's productivity in M CR (96-62480)
+
+.QQ8
+
+ SKIP 2                 ; Distance to the selected system (0 if this is the
+                        ; current system)
+
+.QQ9
+
+ SKIP 1                 ; Selected system's X-coordinate
+
+.QQ10
+
+ SKIP 1                 ; Selected system's Y-coordinate
+
+.NOSTM
+
+ SKIP 1                 ; Number of stardust particles
 
 PRINT "WP workspace from  ", ~WP," to ", ~P%
 
 \ *****************************************************************************
 \ ELITE A
+\
+\ Produces the binary file ELTA.bin which gets loaded by elite-bcfs.asm.
+\
+\ The main game code (ELITE A through G, plus the ship data) is loaded at &1128
+\ and is moved down to &0F40 as part of elite-loader.asm.
 \ *****************************************************************************
 
+CODE% = &0F40
+LOAD% = &1128
+
 ORG CODE%
+
 LOAD_A% = LOAD%
 
-.S%                     ; Entry point for Elite game; once the main code has
+.S%
+
+ EQUW TT170             ; Entry point for Elite game; once the main code has
                         ; been loaded, decrypted and moved to the right place
- EQUW TT170             ; by elite-loader.asm, the game is started by a
+                        ; by elite-loader.asm, the game is started by a
                         ; JMP (S%) instruction, which jumps to the main entry
                         ; point TT170 via this location
 
@@ -2359,25 +2564,33 @@ LOAD_A% = LOAD%
 
  EQUW BR1               ; BRKV is set to point here by elite-loader.asm
 
-.COMC                   ; Compass colour, &F0 = in front, &FF = behind
+.COMC
 
- EQUB 0
+ EQUB 0                ; Compass colour, &F0 = in front, &FF = behind
 
-.DNOIZ                  ; Sound on/off, 0 = on, non-zero = off
+.DNOIZ
+
+ EQUB 0                 ; Sound on/off, 0 = on, non-zero = off
                         ;
- EQUB 0                 ; Toggled by S when paused, see DK4
+                        ; Toggled by S when paused, see DK4
 
-.DAMP                   ; Keyboard damping, 0 = no, &FF = yes
-                        ;
- EQUB 0                 ; Toggled by Caps Lock when paused, see DKS3
+.DAMP
 
-.DJD                    ; Keyboard auto-recentre, 0 = no, &FF = yes
+ EQUB 0                 ; Keyboard damping, 0 = no, &FF = yes
                         ;
- EQUB 0                 ; Toggled by A when paused, see DKS3
+                        ; Toggled by Caps Lock when paused, see DKS3
 
-.PATG                   ; Display authors on start-up screen, 0 = no, &FF = yes
+.DJD
+
+ EQUB 0                 ; Keyboard auto-recentre, 0 = no, &FF = yes
                         ;
- EQUB 0                 ; Toggled by X when paused, see DKS3
+                        ; Toggled by A when paused, see DKS3
+
+.PATG
+
+ EQUB 0                 ; Display authors on start-up screen, 0 = no, &FF = yes
+                        ;
+                        ; Toggled by X when paused, see DKS3
                         ;
                         ; This needs to be set to &FF for manual mis-jumps to
                         ; be possible; to do a manual mis-jump, first toggle
@@ -2386,21 +2599,29 @@ LOAD_A% = LOAD%
                         ; hyperspace to force a mis-jump; see routine ee5 for
                         ; the "AND PATG" instruction that implements this
 
-.FLH                    ; Flashing console bars, 0 = no, &FF = yes
-                        ;
- EQUB 0                 ; Toggled by F when paused, see DKS3
+.FLH
 
-.JSTGY                  ; Reverse joystick Y channel, 0 = no, &FF = yes
+ EQUB 0                 ; Flashing console bars, 0 = no, &FF = yes
                         ;
- EQUB 0                 ; Toggled by Y when paused, see DKS3
+                        ; Toggled by F when paused, see DKS3
 
-.JSTE                   ; Reverse both joystick channels, 0 = no, &FF = yes
-                        ;
- EQUB 0                 ; Toggled by J when paused, see DKS3
+.JSTGY
 
-.JSTK                   ; Keyboard or joystick, 0 = keyboard, &FF = joystick
+ EQUB 0                 ; Reverse joystick Y channel, 0 = no, &FF = yes
                         ;
- EQUB 0                 ; Toggled by K when paused, see DKS3
+                        ; Toggled by Y when paused, see DKS3
+
+.JSTE
+
+ EQUB 0                 ; Reverse both joystick channels, 0 = no, &FF = yes
+                        ;
+                        ; Toggled by J when paused, see DKS3
+
+.JSTK
+
+ EQUB 0                 ; Keyboard or joystick, 0 = keyboard, &FF = joystick
+                        ;
+                        ; Toggled by K when paused, see DKS3
 
 \ *****************************************************************************
 \ Subroutine: M%
@@ -2870,9 +3091,9 @@ LOAD_A% = LOAD%
  BPL MAC1               ; maybe far away, else bit7 set, kill with debris
  AND #&20               ; is bit5 set, explosion finished?
  BEQ NBOUN              ; maybe far away. Else #&A0, explosion done, you killed it.
- LDA TYPE       
+ LDA TYPE
  CMP #COPS              ; was victim a cop? 
- BNE q2         
+ BNE q2
  LDA FIST
  ORA #64                ; fugitative/innocent status
  STA FIST
@@ -3871,6 +4092,8 @@ SAVE "output/ELTA.bin", CODE%, P%, LOAD%
 
 \ *****************************************************************************
 \ ELITE B
+\
+\ Produces the binary file ELTB.bin which gets loaded by elite-bcfs.asm.
 \ *****************************************************************************
 
 CODE_B% = P%
@@ -5692,13 +5915,13 @@ NEXT
                         ; In the following loop, we are going to count the
                         ; number of times that we can subtract 10 million in Y,
                         ; which we have already set to 0
-                        
+
  LDX #3                 ; Our first calculation concerns 32-bit numbers, so
                         ; set up a counter for a four-byte loop
 
  SEC                    ; Set the carry flag so we can do subtraction without
                         ; the carry flag affecting the result
-                        
+
 .tt37                   ; Now we loop thorough each byte in turn to do this:
 
                         ;
@@ -6630,6 +6853,8 @@ SAVE "output/ELTB.bin", CODE_B%, P%, LOAD%
 
 \ *****************************************************************************
 \ ELITE C
+\
+\ Produces the binary file ELTC.bin which gets loaded by elite-bcfs.asm.
 \ *****************************************************************************
 
 CODE_C% = P%
@@ -6843,7 +7068,7 @@ LOAD_C% = LOAD% +P% - CODE%
  BCC TA3                ; Good energy
  LSR A
  LSR A                  ; Acc = max_energy/8
- CMP INWK+35    
+ CMP INWK+35
  BCC ta3                ; not Low energy, else ship in trouble ..
  JSR DORND              ; do random, new A, X.
  CMP #230               ; likely
@@ -7548,9 +7773,6 @@ ELSE
     EQUB INT(256*N+.5)
 ENDIF
 NEXT
-
-;O%=O%+32
-;P%=P%+32
 }
 
 \ *****************************************************************************
@@ -8105,7 +8327,7 @@ NEXT
 \ value.
 \ 
 \ We can implement these steps like this:
-\   
+\ 
 \   * If |A| = |S|, then the result is 0
 \ 
 \   * If |A| > |S|, then the result is |A| - |S|, with the sign set to the same
@@ -8113,7 +8335,7 @@ NEXT
 \ 
 \   * If |S| > |A|, then the result is |S| - |A|, with the sign set to the same
 \     sign as S
-\  
+\ 
 \ So that's what we do below to implement 16-bit signed addition that produces
 \ results with the correct sign.
 \ *****************************************************************************
@@ -8479,7 +8701,7 @@ NEXT
 
  CLC                    ; Clear the carry flag so we can do addition without
                         ; the carry flag affecting the result
-                    
+
  ADC T                  ; Set X = A = argument X + argument A
  TAX
 
@@ -9286,6 +9508,8 @@ SAVE "output/ELTC.bin", CODE_C%, P%, LOAD%
 
 \ *****************************************************************************
 \ ELITE D
+\
+\ Produces the binary file ELTD.bin which gets loaded by elite-bcfs.asm.
 \ *****************************************************************************
 
 CODE_D% = P%
@@ -9462,7 +9686,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STA QQ15+2
  
  CLC                    ; w2_lo = X + w1_lo
- TXA       
+ TXA
  ADC QQ15+2
  STA QQ15+4
 
@@ -9630,31 +9854,31 @@ LOAD_D% = LOAD% + P% - CODE%
 \ of A is 0-7, and if a match isn't made, nothing is printed for that step.)
 \ 
 \   1. Set A = bits 2-4 of w2_hi
-\   
+\ 
 \     * If A = 0,  print "Large "
 \     * If A = 1,  print "Fierce "
 \     * If A = 2,  print "Small "
-\   
+\ 
 \   2. Set A = bits 5-7 of w2_hi
-\   
+\ 
 \     * If A = 0,  print "Green "
 \     * If A = 1,  print "Red "
 \     * If A = 2,  print "Yellow "
 \     * If A = 3,  print "Blue "
 \     * If A = 4,  print "Black "
 \     * If A = 5,  print "Harmless "
-\   
+\ 
 \   3. Set A = bits 0-2 of (w0_hi EOR w1_hi)
-\   
+\ 
 \     * If A = 0,  print "Slimy "
 \     * If A = 1,  print "Bug-Eyed "
 \     * If A = 2,  print "Horned "
 \     * If A = 3,  print "Bony "
 \     * If A = 4,  print "Fat "
 \     * If A = 5,  print "Furry "
-\   
+\ 
 \   4. Add bits 0-1 of w2_hi to A from step 3, and take bits 0-2 of the result
-\   
+\ 
 \     * If A = 0,  print "Rodents"
 \     * If A = 1,  print "Frogs"
 \     * If A = 2,  print "Lizards"
@@ -9722,7 +9946,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ;   QQ3 = 1 or 6 = %001 or %110 = Average
                         ;   QQ3 = 2 or 7 = %010 or %111 = Poor
                         ;   QQ3 = 3 or 4 = %011 or %100 = Mainly
-        
+
  CLC                    ; If (QQ3 + 1) >> 1 = %10, i.e. if QQ3 = %011 or %100
  ADC #1                 ; (3 or 4), then call TT70, which prints "MAINLY " and
  LSR A                  ; jumps down to TT72 to print the type of economy
@@ -10909,7 +11133,7 @@ LOAD_D% = LOAD% + P% - CODE%
  AND #1                 ; use lowest bit of w2_h for star size, lowest 4 did planet radius
  ADC #2                 ; sun radius
  STA K
- JSR FLFLLS             ; clear array  
+ JSR FLFLLS             ; clear array
  JSR SUN                ; clear lines
  JSR FLFLLS
 
@@ -12154,6 +12378,8 @@ SAVE "output/ELTD.bin", CODE_D%, P%, LOAD%
 
 \ *****************************************************************************
 \ ELITE E
+\
+\ Produces the binary file ELTE.bin which gets loaded by elite-bcfs.asm.
 \ *****************************************************************************
 
 CODE_E% = P%
@@ -12335,7 +12561,7 @@ MAPCHAR '4', '4'
  JSR cpl                ; Call cpl to print out the system name for the seeds
                         ; in QQ15 (which now contains the seeds for the current
                         ; system)
-                        
+
                         ; Now we fall through into the TT62 subroutine, which
                         ; will swap QQ2 and QQ15 once again, so everything goes
                         ; back into the right place, and the RTS at the end of
@@ -12592,7 +12818,7 @@ MAPCHAR '4', '4'
                         ; Case, so jump to TT41, which will print the
                         ; character in upper or lower case, depending on
                         ; whether this is the first letter in a word
-  
+
  BIT QQ17               ; If we get here, QQ17 is not 0 and bit 7 is clear, so
  BVS TT46               ; either it is bit 6 that is set, or some other flag in
                         ; QQ17 is set (bits 0-5). So check whether bit 6 is set.
@@ -12640,7 +12866,7 @@ MAPCHAR '4', '4'
  BCS TT44               ; punctuation, so jump to TT26 (via TT44) to print the
                         ; character as is, as we don't care about the
                         ; character's case
-                        
+
  ADC #32                ; Add 32 to the character, to convert it from upper to
                         ; to lower case
 
@@ -15246,6 +15472,8 @@ SAVE "output/ELTE.bin", CODE_E%, P%, LOAD%
 
 \ *****************************************************************************
 \ ELITE F
+\
+\ Produces the binary file ELTF.bin which gets loaded by elite-bcfs.asm.
 \ *****************************************************************************
 
 CODE_F% = P%
@@ -15503,7 +15731,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
 .SAL3
 
- STA BETA,X             ; Zero the X-th byte after BETA         
+ STA BETA,X             ; Zero the X-th byte after BETA
 
  DEX                    ; Decrement the loop counter
 
@@ -15903,7 +16131,7 @@ LOAD_F% = LOAD% + P% - CODE%
  AND #3                 ; rnd3 for bounty hunter
  ADC #3
  TAY                    ; store type hunter
- TXA            
+ TXA
  CMP #200
  ROL A
  ORA #&C0
@@ -18196,6 +18424,8 @@ SAVE "output/ELTF.bin", CODE_F%, P%, LOAD%
 
 \ *****************************************************************************
 \ ELITE G
+\
+\ Produces the binary file ELTG.bin which gets loaded by elite-bcfs.asm.
 \ *****************************************************************************
 
 CODE_G% = P%
@@ -18924,7 +19154,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \XX16 got INWK 9..21..26 up at LL15  . The ROTMAT has 18 bytes, for 3x3 matrix
 \XX16_lsb[   0  2  4    highest XX16 done below is 5, then X taken up by 6, Y taken up by 2.
-\            6  8 10    
+\            6  8 10
 \	    12 14 16=0 ?]
 
  LDY #8                 ; Hull byte#8 = number of vertices *6
@@ -19973,7 +20203,9 @@ SKIP 1
 }
 
 \ *****************************************************************************
-\ ELITE SHIPS SOURCE
+\ ELITE SHIPS
+\
+\ Produces the binary file SHIPS.bin which gets loaded by elite-bcfs.asm.
 \ *****************************************************************************
 
 CODE_SHIPS% = P%
