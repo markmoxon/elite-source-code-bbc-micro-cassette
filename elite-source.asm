@@ -66,14 +66,10 @@ NI% = 36                ; Number of bytes for each object in our universe (as
 \ MOS definitions
 \ *****************************************************************************
 
-OSWRCH = &FFEE
 OSBYTE = &FFF4
 OSWORD = &FFF1
 OSFILE = &FFDD
-SCLI   = &FFF7
-VIA    = &FE40
-USVIA  = VIA
-IRQ1V  = &204
+SHEILA = &FE00
 VSCAN  = 57
 VEC    = &7FFE
 SVN    = &7FFD
@@ -6345,16 +6341,16 @@ NEXT
 {
  LDA #30
  STA DL
- STA USVIA+4
+ STA SHEILA+&44
  LDA #VSCAN
- STA USVIA+5
+ STA SHEILA+&45
  LDA HFX
  BNE VNT1
  LDA #8
- STA &FE20
+ STA SHEILA+&20
 .VNT3
  LDA TVT1+16,Y
- STA &FE21
+ STA SHEILA+&21
  DEY
  BPL VNT3
  LDA LASCT
@@ -6365,7 +6361,7 @@ NEXT
  BNE jvec
  PLA
  TAY
- LDA &FE41
+ LDA SHEILA+&41
  LDA &FC
  RTI
 }
@@ -6384,7 +6380,7 @@ NEXT
  PHA
  LDY #11
  LDA #2
- BIT VIA+&D
+ BIT SHEILA+&4D
  BNE LINSCN
  BVC jvec
  ASL A\4
@@ -15503,7 +15499,7 @@ LOAD_F% = LOAD% + P% - CODE%
 .MLOOP                  ; MAIN loop ending
 {
  LDA #1
- STA VIA+&E
+ STA SHEILA+&4E
  LDX #&FF               ; Clear Stack
  TXS                    ; to Stack
  LDX GNTMP              ; gun temperature
@@ -16122,7 +16118,7 @@ ENDIF
 
  DEC MCNT               ; Decrement the move counter
 
- LDA &FE40              ; Read 6522 System VIA input register IRB (SHEILA &40)
+ LDA SHEILA+&40         ; Read 6522 System VIA input register IRB (SHEILA &40)
 
  AND #16                ; Bit 4 of IRB (PB4) is clear if joystick 1's fire
                         ; button is pressed, otherwise it is set, so AND'ing
@@ -16236,7 +16232,7 @@ ENDIF
  JSR TT27
  JSR DEL8
  LDA #&81
- STA VIA+&E
+ STA SHEILA+&4E
  LDA #15
  TAX
  JSR OSBYTE
@@ -16245,7 +16241,7 @@ ENDIF
  LDA #0                 ; RLINE at &39E9 for OSWORD = 0
  JSR OSWORD             ; read input string
  \LDA #1
- \STA VIA+&E
+ \STA SHEILA+&4E
  BCS TR1                ; else carry set if escape hit
  TYA                    ; accepted string length
  BEQ TR1                ; if 0 reset name from NA% to INWK+5
@@ -16393,12 +16389,12 @@ ENDIF
  STY &C0F               ; &0C00 is end address of data to save
 
  LDA #&81
- STA VIA+&E
+ STA SHEILA+&4E
  INC SVN
  LDA #0
  JSR QUS1
  LDX #0
- \STX VIA+&E
+ \STX SHEILA+&4E
  \DEX
  STX SVN
  JMP BAY
@@ -16884,30 +16880,30 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  SEI                    ; Disable interrupts so we can scan the keyboard
                         ; without being hijacked
 
- STA &FE40              ; Set 6522 System VIA output register ORB (SHEILA &40)
+ STA SHEILA+&40         ; Set 6522 System VIA output register ORB (SHEILA &40)
                         ; to %0011 to stop auto scan of keyboard
 
  LDA #&7F               ; Set 6522 System VIA data direction register DDRA
- STA &FE43              ; (SHEILA &43) to %0111 1111. This sets the A registers
+ STA SHEILA+&43         ; (SHEILA &43) to %0111 1111. This sets the A registers
                         ; (IRA and ORA) so that 
                         ;
                         ; Bits 0-6 of ORA will sent to the keyboard
                         ;
                         ; Bit 7 of IRA will be read from the keyboard
 
- STX &FE4F              ; Set 6522 System VIA output register ORA (SHEILA &4F)
+ STX SHEILA+&4F         ; Set 6522 System VIA output register ORA (SHEILA &4F)
                         ; to X, the key we want to scan for; bits 0-6 will be
                         ; sent to the keyboard, of which bits 0-3 determine the
                         ; keyboard column, and bits 4-6 the keyboard row
 
- LDX &FE4F              ; Read 6522 System VIA output register IRA (SHEILA &4F)
+ LDX SHEILA+&4F         ; Read 6522 System VIA output register IRA (SHEILA &4F)
                         ; into X; bit 7 is the only bit that will have changed.
                         ; If the key is pressed, then bit 7 will be set (so X
                         ; will contain 128 + X), otherwise it will be clear (so
                         ; X will be unchanged).
  
  LDA #&B                ; Set 6522 System VIA output register ORB (SHEILA &40)
- STA &FE40              ; to %1011 to restart auto scan of keyboard
+ STA SHEILA+&40         ; to %1011 to restart auto scan of keyboard
 
  CLI                    ; Allow interrupts again
 
@@ -17035,7 +17031,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  INY                    ; Update the key logger for key 2 in the KYTB table, so
  JSR DKS1               ; KY2 will be &FF if Space (speed up) is being pressed
 
- LDA &FE40              ; Read 6522 System VIA input register IRB (SHEILA &40)
+ LDA SHEILA+&40         ; Read 6522 System VIA input register IRB (SHEILA &40)
 
  TAX                    ; This instruction doesn't seem to have any effect, as
                         ; X is overwritten in a few instructions. When the
