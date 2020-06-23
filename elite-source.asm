@@ -2347,10 +2347,9 @@ PRINT "WP workspace from  ", ~WP," to ", ~P%
 ORG CODE%
 LOAD_A% = LOAD%
 
-.S%
- EQUW TT170             ; Entry point for Elite game; once the main code has
+.S%                     ; Entry point for Elite game; once the main code has
                         ; been loaded, decrypted and moved to the right place
-                        ; by elite-loader.asm, the game is started by a
+ EQUW TT170             ; by elite-loader.asm, the game is started by a
                         ; JMP (S%) instruction, which jumps to the main entry
                         ; point TT170 via this location
 
@@ -2361,20 +2360,24 @@ LOAD_A% = LOAD%
  EQUW BR1               ; BRKV is set to point here by elite-loader.asm
 
 .COMC                   ; Compass colour, &F0 = in front, &FF = behind
+
  EQUB 0
 
 .DNOIZ                  ; Sound on/off, 0 = on, non-zero = off
+                        ;
  EQUB 0                 ; Toggled by S when paused, see DK4
 
 .DAMP                   ; Keyboard damping, 0 = no, &FF = yes
+                        ;
  EQUB 0                 ; Toggled by Caps Lock when paused, see DKS3
 
 .DJD                    ; Keyboard auto-recentre, 0 = no, &FF = yes
+                        ;
  EQUB 0                 ; Toggled by A when paused, see DKS3
 
 .PATG                   ; Display authors on start-up screen, 0 = no, &FF = yes
- EQUB 0                 ;
-                        ; Toggled by X when paused, see DKS3
+                        ;
+ EQUB 0                 ; Toggled by X when paused, see DKS3
                         ;
                         ; This needs to be set to &FF for manual mis-jumps to
                         ; be possible; to do a manual mis-jump, first toggle
@@ -2384,15 +2387,19 @@ LOAD_A% = LOAD%
                         ; the "AND PATG" instruction that implements this
 
 .FLH                    ; Flashing console bars, 0 = no, &FF = yes
+                        ;
  EQUB 0                 ; Toggled by F when paused, see DKS3
 
 .JSTGY                  ; Reverse joystick Y channel, 0 = no, &FF = yes
+                        ;
  EQUB 0                 ; Toggled by Y when paused, see DKS3
 
 .JSTE                   ; Reverse both joystick channels, 0 = no, &FF = yes
+                        ;
  EQUB 0                 ; Toggled by J when paused, see DKS3
 
 .JSTK                   ; Keyboard or joystick, 0 = keyboard, &FF = joystick
+                        ;
  EQUB 0                 ; Toggled by K when paused, see DKS3
 
 \ *****************************************************************************
@@ -2464,6 +2471,7 @@ LOAD_A% = LOAD%
  INC DELTA
 
 .MA17
+
  LDA KY1                ; Is ? key being pressed?
  BEQ MA4                ; If not, jump to MA4
  DEC DELTA              ; Slow-down key is being pressed, so slow down
@@ -2471,6 +2479,7 @@ LOAD_A% = LOAD%
  INC DELTA              ; speed back to 1
 
 .MA4                    ; speed done
+
  LDA KY15               ; key 'U' unarm missile
  AND NOMSL              ; number of missiles
  BEQ MA20               ; check target a missile
@@ -2480,10 +2489,12 @@ LOAD_A% = LOAD%
  JSR NOISE
 
 .MA31                   ; disarm missile
+
  LDA #0                 ; missile disarmed
  STA MSAR               ; missiles are armed
 
 .MA20                   ; check target a missile
+
  LDA MSTG               ; = #&FF if missile NOT targeted
  BPL MA25               ; missile has target, can fire
  LDA KY14               ; key 'T' target missile
@@ -2495,6 +2506,7 @@ LOAD_A% = LOAD%
  JSR MSBAR              ; draw missile bar
 
 .MA25                   ; ignore T being hit, can fire missile
+
  LDA KY16               ; key 'M' for launch missile
  BEQ MA24               ; missile not fired
  LDA MSTG               ; #&FF if missile NOT targeted
@@ -2502,11 +2514,13 @@ LOAD_A% = LOAD%
  JSR FRMIS              ; Fire missile
 
 .MA24                   ; missile not fired
+
  LDA KY12               ; tab key
  BEQ MA76               ; none, onto docking
  ASL BOMB               ; *=2  &7F => &FE
 
 .MA76                   ; docking
+
  LDA KY13               ; auto docking
  AND ESCP
  BEQ P%+5
@@ -2523,6 +2537,7 @@ LOAD_A% = LOAD%
  JSR ECBLB2
 
 .MA64                   ; check dock C key
+
  LDA KY19               ; key 'C' docking computer
  AND DKCMP              ; have a docking computer?
  AND SSPR
@@ -2532,6 +2547,7 @@ LOAD_A% = LOAD%
  JMP GOIN
 
 .MA68                   ; onto Laser
+
  LDA #0                 ; Laser power per pulse
  STA LAS
  STA DELT4              ; dust speed lo
@@ -2564,10 +2580,12 @@ LOAD_A% = LOAD%
  LDA #0                 ; military or beam reset quick
 
 .ma1
+
  AND #&FA               ; gives 9 for pulse, 0 for beam
  STA LASCT              ; laser count =9 for pulse
 
 .MA3                    ; skip laser
+
  LDX #0
 }
 
@@ -2589,6 +2607,7 @@ LOAD_A% = LOAD%
  LDY #(NI%-1)           ; counter, last byte of inwk for ship
 
 .MAL2                   ; counter Y
+
  LDA (INF),Y            ; load ship's univ data into inwk
  STA INWK,Y             ; inner workspace
  DEY                    ; next byte
@@ -2615,10 +2634,12 @@ LOAD_A% = LOAD%
  JSR EXNO2              ; faint death noise, player killed ship.
 
 .MA21                   ; planet or sun, move it
+
  JSR MVEIT              ; move it
  LDY #(NI%-1)
 
 .MAL3                   ; counter Y
+
  LDA INWK,Y             ; store inwk back to ship's univ data
  STA (INF),Y
  DEY                    ; next byte
@@ -2655,10 +2676,12 @@ LOAD_A% = LOAD%
  BNE slvy2              ; guaranteed to hop to pieces to scoop
 
 .oily                   ; scoop cannister
+
  JSR DORND              ; do random, new A, X.
  AND #7                 ; 7 choices to scoop, computers max.
 
 .slvy2                  ; pieces to scoop
+
  STA QQ29
  LDA #1
  JSR tnpr               ; ton count, Acc = item becomes Acc = 1
@@ -2674,6 +2697,7 @@ LOAD_A% = LOAD%
  JMP MA60
 
 .MA65                   ; ignored as far away
+
  JMP MA26               ; Try targeting missile, down.
 }
 
@@ -2737,6 +2761,7 @@ LOAD_A% = LOAD%
  ROR INWK+31
 
 .MA61
+
  BNE MA26               ; guaranteed, onto Try targeting missile.
 }
 
@@ -2811,6 +2836,7 @@ LOAD_A% = LOAD%
  STA CNT
 
 .um
+
  BEQ oh
  LDX #OIL
  LDA #0
@@ -2819,9 +2845,11 @@ LOAD_A% = LOAD%
  BPL um
 
 .oh
+
  JSR EXNO2
 
 .MA14                   ; also Survived
+
  STA INWK+35            ; update ship energy
  LDA TYPE               ; ship type
  JSR ANGRY
@@ -2850,6 +2878,7 @@ LOAD_A% = LOAD%
  STA FIST
 
 .q2
+
  LDA DLY                ; delay printing as cash updating will scramble text
  ORA MJ                 ; mis-jump
  BNE KS1S               ; just Kill ship, else display bounty.
@@ -2865,17 +2894,20 @@ LOAD_A% = LOAD%
  JSR MESS               ; message
 
 .KS1S                   ; Kill ship1
+
  JMP KS1                ; Kill ship1
 
 .NBOUN
 
 .MAC1                   ; maybe far away
+
  LDA TYPE               ; ship type
  BMI MA27               ; planet
  JSR FAROF              ; carry cleared
  BCC KS1S               ; up, kill ship1 as far away.
 
 .MA27                   ; ship is near, or planet.
+
  LDY #31                ; (INF)#31 state|missiles explosion state
  LDA INWK+31            ; display|missiles explosion state
  STA (INF),Y            ; allwk state updated
@@ -2894,6 +2926,7 @@ LOAD_A% = LOAD%
  STA SHEILA+&21         ; Sheila+&21
 
 .MA77                   ; no working bomb
+
  LDA MCNT               ; move count
  AND #7
  BNE MA22               ; skip updates
@@ -2907,6 +2940,7 @@ LOAD_A% = LOAD%
  STX FSH
 
 .b                      ; recharge energy
+
  SEC
  LDA ENGY               ; energy unit recharge rate
  ADC ENERGY             ; player's energy
@@ -2927,6 +2961,7 @@ LOAD_A% = LOAD%
  LDX #28                ; planet 0 up to 28, dont need rot counters or state.
 
 .MAL4                   ; counter X
+
  LDA K%,X               ; planet coordinates
  STA INWK,X             ; template for space station
  DEX
@@ -2954,15 +2989,18 @@ LOAD_A% = LOAD%
  JSR NWSPS              ; New space station at INWK, S bulb appears.
 
 .MA23S                  ; jmp MA23 as big distance or mis-jump
+
  JMP MA23               ; big distance
 
 .MA22                   ; arrived from above when checking own ship and skipped updates.
+
  LDA MJ                 ; mis-jump
  BNE MA23               ; to MA23 big distance or mis-jump
  LDA MCNT               ; move count
  AND #31
 
 .MA93                   ; skipped space station check arrives here
+
  CMP #10                ; every MCNT tenth
  BNE MA29               ; skip altitude checks
  LDA #50                ; player's energy low?
@@ -2986,9 +3024,11 @@ LOAD_A% = LOAD%
  BNE MA23               ; big distance, else
 
 .MA28                   ; death, Crashed into planet
+
  JMP DEATH
 
 .MA29                   ; skipped altitude checks earlier
+
  CMP #20                ; every MCNT=20
  BNE MA23               ; skip to big distance, else check on Sun
  LDA #30                ; default cabin temperature
@@ -3019,6 +3059,7 @@ LOAD_A% = LOAD%
  JSR MESS               ; message
 
 .MA23                   ; big distance, many arrive here to continue.
+
  LDA LAS2
  BEQ MA16               ; already switched laser Off
  LDA LASCT              ; laser count
@@ -3029,21 +3070,25 @@ LOAD_A% = LOAD%
  STA LAS2               ; so pulse laser doesn't restart
 
 .MA16                   ; already switched laser Off
+
  LDA ECMP               ; ECM on is player's?
  BEQ MA69               ; ecm finished
  JSR DENGY              ; else drain energy by 1 for active ECM pulse
  BEQ MA70               ; no energy, ecm off.
 
 .MA69                   ; ecm finished
+
  LDA ECMA               ; someone's ECM active?
  BEQ MA66               ; skip ecm off
  DEC ECMA               ; ECM on counter was started at #32
  BNE MA66               ; skip ecm off
 
 .MA70                   ; ecm off
+
  JSR ECMOF
 
 .MA66                   ; skipped ecm off
+
  LDA QQ11               ; menu i.d.
  BNE MA9                ; not a space view, rts
  JMP STARS              ; Dust Field
@@ -3122,6 +3167,7 @@ LOAD_A% = LOAD%
  BCC P%+4
 
 .MA30                   ; sat #&FF
+
  LDA #&FF
  RTS
 }
@@ -3145,6 +3191,7 @@ LOAD_A% = LOAD%
  JSR TIDY               ; re-orthogonalize rotation matrix
 
 .MV3                    ; skipped tidy
+
  LDX TYPE               ; ship type
  BPL P%+5               ; not planet
  JMP MV40               ; else, move Planet.
@@ -3159,9 +3206,11 @@ LOAD_A% = LOAD%
  BNE MV30               ; Dumb ship
 
 .MV26                   ; missile done every mcnt
+
  JSR TACTICS
 
 .MV30                   ; Dumb ship or exploding
+
  JSR SCAN               ; erase inwk ship on scanner
 
  LDA INWK+27            ; speed
@@ -3256,6 +3305,7 @@ LOAD_A% = LOAD%
  JMP MV44               ; roll&pitch continue
 
 .MV43                   ; +ve ysg zsg
+
  LDA K2+1
  SBC P+1
  STA INWK+3             ; ylo
@@ -3274,6 +3324,7 @@ LOAD_A% = LOAD%
  STA INWK+5             ; ysg \ Y=K2-bZ \ their comment
 
 .MV44                   ; roll&pitch continue
+
  LDX ALP1               ; roll mag lower7 bits
  LDA INWK+3
  EOR #&FF               ; flip ylo
@@ -3306,6 +3357,7 @@ LOAD_A% = LOAD%
  RTS                    ; Z=Z-d \ their comment
 
 .notsun                 ; All except Suns
+
  LDY #9                 ; select row
  JSR MVS4               ; pitch&roll update to rotmat
  LDY #15
@@ -3334,6 +3386,7 @@ LOAD_A% = LOAD%
  JSR MVS5
 
 .MV8                    ; Other rotation, roll.
+
  LDA INWK+29            ; rotx counter
  AND #128               ; rotx sign
  STA RAT2
@@ -3356,6 +3409,7 @@ LOAD_A% = LOAD%
  JSR MVS5
 
 .MV5                    ; rotations Done
+
  LDA INWK+31            ; display explosion state|missiles
  AND #&A0               ; do kill at end of explosion
  BNE MVD1               ; end explosion
@@ -3365,6 +3419,7 @@ LOAD_A% = LOAD%
  JMP SCAN               ; ships inwk on scanner
 
 .MVD1                   ; end explosion
+
  LDA INWK+31
  AND #&EF               ; clear bit4, now invisible.
  STA INWK+31
@@ -3396,6 +3451,7 @@ LOAD_A% = LOAD%
  RTS
 
 .MV10                   ; -ve sg eor T
+
  LDA INWK,X             ; INWK+0,X
  SEC                    ; lo sub
  SBC R
@@ -3424,6 +3480,7 @@ LOAD_A% = LOAD%
  STA INWK+2,X
 
 .MV11
+
  RTS                    ; MVT1 done
 }
 
@@ -3450,6 +3507,7 @@ LOAD_A% = LOAD%
  RTS
 
 .MV13                   ; sg -ve
+
  LDA S
  AND #127               ; keep 7 bits
  STA S
@@ -3481,6 +3539,7 @@ LOAD_A% = LOAD%
  STA K+3
 
 .MV14                   ; rts
+
  RTS                    ; MVT3 done
 }
 
@@ -3496,6 +3555,7 @@ LOAD_A% = LOAD%
 \ [ -sa.sb ca.sb  cb ]    [-ab b  1]      [z]    [z + b(y - ax)]
 
 .MVS4                   ; Moveship4, Y is matrix row, pitch&roll update to coordinates
+
  LDA ALPHA
  STA Q                  ; player ship's roll
  LDX INWK+2,Y
@@ -3652,6 +3712,7 @@ LOAD_A% = LOAD%
  RTS
 
 .MV50                   ; sg -ve
+
  LDA INWK,X
  SEC                    ; sub lo
  SBC P+1
@@ -3665,6 +3726,7 @@ LOAD_A% = LOAD%
  RTS
 
 .MV51                   ; fix -ve
+
  LDA #1                 ; carry was clear
  SBC P+1
  STA P+1
@@ -3739,6 +3801,7 @@ LOAD_A% = LOAD%
  JMP MV2
 
 .MV1                    ; planet y = -Z*beta-K2
+
  LDA K
  SEC                    ; yre
  SBC K2
@@ -3768,6 +3831,7 @@ LOAD_A% = LOAD%
  ORA #128               ; set bit7
 
 .MV2                    ; continue pitch planet
+
  EOR T
  STA INWK+5             ; ysg \ Y=K2-bZ \ their comment
 
@@ -3952,11 +4016,15 @@ ENDIF
 
 PRINT "CH% = ", ~CH%
 
-.^CHK2                  ; Commander checksum byte, EOR'd with &A9 to make it
- EQUB CH% EOR &A9       ; harder to tamper with the checksum byte
+.^CHK2
 
-.^CHK                   ; Commander checksum byte, see elite-checksum.py for
- EQUB CH%               ; more details
+ EQUB CH% EOR &A9       ; Commander checksum byte, EOR'd with &A9 to make it
+                        ; harder to tamper with the checksum byte
+
+.^CHK
+
+ EQUB CH%               ; Commander checksum byte, see elite-checksum.py for
+                        ; more details
 }
 
 \ *****************************************************************************
@@ -4046,6 +4114,7 @@ NEXT
  SEC
 
 .LI1                    ; deltaX
+
  STA P                  ; delta-X
 
  LDA Y2
@@ -4055,12 +4124,14 @@ NEXT
  ADC #1
 
 .LI2                    ; deltaY
+
  STA Q                  ; delta-Y
  CMP P                  ; is Q < P ?
  BCC STPX               ; if yes will Step along x
  JMP STPY               ; else will step along y
 
 .STPX                   ; Step along x for line
+
  LDX X1
  CPX X2
  BCC LI3                ; is X1 < X2 ? hop down, order correct
@@ -4075,6 +4146,7 @@ NEXT
  STY Y2
 
 .LI3                    ; order correct    Xreg = X1
+
  LDA Y1
  LSR A                  ; build screen index
  LSR A
@@ -4099,16 +4171,19 @@ NEXT
  STX Q
 
 .LIL1                   ; roll Q
+
  ASL A                  ; highest bit of delta-Y
  BCS LI4                ; steep
  CMP P                  ; delta-X
  BCC LI5                ; shallow
 
 .LI4                    ; steep
+
  SBC P
  SEC
 
 .LI5                    ; shallow
+
  ROL Q
  BCS LIL1               ; loop Q, end with some low bits in Q
 
@@ -4123,11 +4198,13 @@ NEXT
  DEX
 
 .LIL2                   ; counter X width
+
  LDA R                  ; mask byte
  EOR (SC),Y
  STA (SC),Y
 
 .LI6                    ; Xreg correct
+
  LSR R                  ; mask byte
  BCC LI7                ; else moving to next column to right. Bring carry in back
  ROR R
@@ -4136,6 +4213,7 @@ NEXT
  STA SC
 
 .LI7                    ; S += Q. this is like an overflow monitor to update Y
+
  LDA S
  ADC Q                  ; some low bits
  STA S
@@ -4146,22 +4224,26 @@ NEXT
  LDY #7
 
 .LIC2                   ; skip Y adjustment
+
  DEX
  BNE LIL2               ; loop X width
  LDY YSAV               ; restore Yreg
  RTS
 
 .DOWN                   ; Line is going to the right and down
+
  LDA SWAP
  BEQ LI9                ; no swap
  DEX
 
 .LIL3                   ; counter X width
+
  LDA R                  ; mask byte
  EOR (SC),Y
  STA (SC),Y
 
 .LI9                    ; no swap
+
  LSR R
  BCC LI10               ; still in correct column, hop
  ROR R
@@ -4170,6 +4252,7 @@ NEXT
  STA SC
 
 .LI10                   ; this is like an overflow monitor to update Y
+
  LDA S
  ADC Q
  STA S
@@ -4181,12 +4264,14 @@ NEXT
  LDY #0
 
 .LIC3                   ; skipped Y adjustment
+
  DEX
  BNE LIL3               ; loop X width
  LDY YSAV               ; restore Yreg
  RTS
 
 .STPY                   ; Step along y for line, goes down and to right
+
  LDY Y1
  TYA
  LDX X1
@@ -4203,6 +4288,7 @@ NEXT
  TAY
 
 .LI15                   ; Y1 Y2 order is now correct
+
  LSR A
  LSR A
  LSR A
@@ -4226,16 +4312,19 @@ NEXT
  STX P
 
 .LIL4                   ; roll P
+
  ASL A
  BCS LI13               ; do subtraction
  CMP Q                  ; delta-Y
  BCC LI14               ; less than Q
 
 .LI13                   ; do subtraction
+
  SBC Q
  SEC
 
 .LI14                   ; less than Q
+
  ROL P
  BCC LIL4               ; loop P, end with some low bits in P
  LDX Q
@@ -4250,17 +4339,20 @@ NEXT
  DEX
 
 .LIL5                   ; skipped first point, counter X
+
  LDA R                  ; mask byte
  EOR (SC),Y
  STA (SC),Y
 
 .LI17                   ; skipped first point
+
  DEY
  BPL LI16               ; skip hi adjust
  DEC SCH
  LDY #7                 ; new char
 
 .LI16                   ; skipped hi adjust
+
  LDA S
  ADC P
  STA S
@@ -4273,28 +4365,33 @@ NEXT
  STA SC
 
 .LIC5                   ; same column
+
  DEX
  BNE LIL5               ; loop X height
  LDY YSAV               ; restore Yreg
  RTS
 
 .LFT                    ; going left
+
  LDA SWAP
  BEQ LI18               ; skip first point
  DEX                    ; reduce height
 
 .LIL6                   ; counter X height
+
  LDA R                  ; mask byte
  EOR (SC),Y
  STA (SC),Y
 
 .LI18
+
  DEY
  BPL LI19               ; skip hi adjust
  DEC SCH
  LDY #7                 ; rest char row
 
 .LI19                   ; skipped hi adjust
+
  LDA S
  ADC P                  ; some low bits
  STA S
@@ -4309,6 +4406,7 @@ NEXT
  CLC
 
 .LIC6                   ; no overflow
+
  DEX                    ; height
  BNE LIL6               ; loop X
  LDY YSAV               ; restore Yreg
@@ -4391,6 +4489,7 @@ NEXT
  TAX                    ; Xreg=X1
 
 .HL5                    ; no swap needed
+
  DEC X2
 
  LDA Y1
@@ -4407,6 +4506,7 @@ NEXT
  TAY                    ; upper 5 bits of X1
 
 .HL1
+
  TXA                    ; X1
  AND #&F8
  STA T
@@ -4436,6 +4536,7 @@ NEXT
  CLC
 
 .HLL1                   ; counter X wide count
+
  LDA #&FF               ; mask full line
  EOR (SC),Y
  STA (SC),Y
@@ -4446,6 +4547,7 @@ NEXT
  BNE HLL1               ; loop X wide
 
 .HL3                    ; approaching end R =1 in HL1
+
  LDA X2
  AND #7
  TAX                    ; mask index
@@ -4456,6 +4558,7 @@ NEXT
  RTS
 
 .HL2                    ; wide done, X1 and X2 within 1 column
+
  LDA X1
  AND #7
  TAX                    ; mask index
@@ -4541,6 +4644,7 @@ NEXT
  ADC #1
 
 .PX1                    ; +ve X dust
+
  EOR #128               ; flip bit7 of X1
  TAX                    ; xscreen
  LDA Y1
@@ -4553,6 +4657,7 @@ NEXT
  ADC #1
 
 .PX2                    ; +ve Y dust
+
  STA T                  ; temp y dust
  LDA #97                ; #Y+1 above mid-point
  SBC T
@@ -4597,11 +4702,13 @@ NEXT
  LDY #1                 ; add row above not below
 
 .PX14                   ; double size
+
  LDA TWOS2,X            ; double-width pixel
  EOR (SC),Y
  STA (SC),Y
 
 .PX13                   ; middle distance pixel ended
+
  LDY T1                 ; restore Yreg
 }
 
@@ -4630,6 +4737,7 @@ NEXT
  INC FLAG
 
 .BL5                    ; counter LSP supplied and updated
+
  LDY LSP
  LDA #&FF
  CMP LSY2-1,Y
@@ -4639,6 +4747,7 @@ NEXT
  BNE BL7                ; end, move K6 to K5
 
 .BL1                    ; flag 0 \ Prepare to clip
+
  LDA K5
  STA XX15               ; x1 lo
  LDA K5+1
@@ -4673,6 +4782,7 @@ NEXT
  STY Y1
 
 .BL9                    ; swap done
+
  LDY LSP
  LDA LSY2-1,Y
  CMP #&FF
@@ -4684,6 +4794,7 @@ NEXT
  INY                    ; LSP+1 other end of line segment
 
 .BL8                    ; skipped stores
+
  LDA X2
  STA LSX2,Y
  LDA Y2
@@ -4696,6 +4807,7 @@ NEXT
  BNE BL5                ; loop LSP as XX13 clip
 
 .BL7                    ; end, move K6 to K5, cnt+=stp
+
  LDA K6
  STA K5
  LDA K6+1
@@ -4724,6 +4836,7 @@ NEXT
  LDY NOSTM              ; number of dust particles
 
 .FLL1                   ; counter Y
+
  LDX SY,Y               ; dusty
  LDA SX,Y               ; dustx
  STA Y1
@@ -4756,9 +4869,11 @@ NEXT
  JMP STARS6             ; Rear dust
 
 .ST11                   ; Left or Right dust
+
  JMP STARS2             ; Left or Right dust
 
 .STARS1                 ; Forward Dust
+
  LDY NOSTM              ; number of dust particles
 }
 
@@ -5010,6 +5125,7 @@ NEXT
  BCS KILL6              ; rear dust kill
  STA ZZ                 ; old distance
 }
+
 .STC6                   ; Re-enter after kill
 {
  JSR PIXEL2             ; dust (X1,Y1) from middle
@@ -5018,6 +5134,7 @@ NEXT
  JMP STL6               ; loop Y rear dust
 
 .ST3                    ; rts
+
  RTS
 }
 
@@ -5047,6 +5164,7 @@ NEXT
  JMP STC6               ; Re-enter rear dust loop
 
 .ST4                    ; half of the new dust
+
  JSR DORND              ; do random, new A, X.
  STA X1
  STA SX,Y               ; dustx
@@ -5128,6 +5246,7 @@ NEXT
  ADC #1                 ; 1 or 2
 
 .st6                    ; have message
+
  JSR plf                ; TT27 process flight token followed by rtn
  LDA #125               ; token = LEGAL STATUS:
  JSR spc                ; Acc to TT27 process flight token, followed by white space
@@ -5138,6 +5257,7 @@ NEXT
  ADC #1                 ; token OFFENDER or FUGITIVE
 
 .st5                    ; clean
+
  JSR plf                ; TT27 process flight token followed by rtn
  LDA #16                ; token = RATING:
 
@@ -5150,6 +5270,7 @@ NEXT
  LSR A                  ; /=4 so keep upper 6 bits
 
 .st5L                   ; roll kills lo/4 highest bit 54321
+
  INX
  LSR A                  ; roll out tally lo bits
  BNE st5L               ; loop, max Xreg =5
@@ -5181,6 +5302,7 @@ NEXT
  STA XX4                ; equip start token
 
 .stqv                   ; counter XX4
+
  TAY                    ; equipment token
  LDX BOMB-113,Y         ; equipstart =#&382-#&71,Y
  BEQ P%+5               ; equip not present, skip item
@@ -5193,6 +5315,7 @@ NEXT
  LDX #0                 ; onto listing lasers
 
 .st                     ; counter X
+
  STX CNT                ; laser view counter
  LDY LASER,X
  BEQ st1                ; hop as no laser
@@ -5208,6 +5331,7 @@ NEXT
  JSR plf2               ; process flight token then rts then tab
 
 .st1                    ; hopped as no laser
+
  LDX CNT
  INX                    ; next laser view
  CPX #4                 ; 4 views max for lasers
@@ -5215,6 +5339,7 @@ NEXT
  RTS
 
 .plf2                   ; process flight text token then rts then tab
+
  JSR plf                ; TT27 flight token followed by rtn
  LDX #6                 ; indent for next item
  STX XC
@@ -5453,6 +5578,7 @@ NEXT
                         ; digits (as one of them is now a decimal point)
 
 .TT30
+
  LDA #11                ; Set A to 11, the maximum number of digits allowed
 
  SEC                    ; Set the carry flag so we can do subtraction without
@@ -5497,6 +5623,7 @@ NEXT
                         ; (i.e. the least significant)
 
 .tt35
+
  LDA K,X                ; Copy the X-th byte of K(0 1 2 3) to the X-th byte of
  STA XX15,X             ; XX15(0 1 2 3), so that XX15 will contain a copy of
                         ; K(0 1 2 3) once we've copied all four bytes
@@ -5535,6 +5662,7 @@ NEXT
                         ; significant)
 
 .tt36
+
  LDA K,X                ; Fetch the X-th byte of K into A
 
  ADC XX15,X             ; Add the X-th byte of XX15 to A, with carry
@@ -5572,6 +5700,7 @@ NEXT
                         ; the carry flag affecting the result
                         
 .tt37                   ; Now we loop thorough each byte in turn to do this:
+
                         ;
                         ; XX15(4 0 1 2 3) = K(S 0 1 2 3) - 100,000,000,000
 
@@ -5599,6 +5728,7 @@ NEXT
                         ; subtraction, so set up a counter for a four-byte loop
 
 .tt38
+
  LDA XX15,X             ; Copy the X-th byte of XX15(0 1 2 3) to the X-th byte
  STA K,X                ; of K(0 1 2 3), so that K will contain a copy of
                         ; XX15(0 1 2 3) once we've copied all four bytes
@@ -5620,6 +5750,7 @@ NEXT
  JMP TT36               ; Jump back to TT36 to subtract the next 10 billion
 
 .TT37
+
  TYA                    ; If we get here then Y contains the digit that we want
                         ; to print (as Y has now counted the total number of
                         ; subtractions of 10 billion), so transfer Y into A
@@ -5663,6 +5794,7 @@ NEXT
                         ; BNE is effectively a JMP as A will never be zero)
 
 .TT32
+
  LDY #0                 ; We are printing an actual digit, so first set T to 0,
  STY T                  ; to denote that we have now started printing digits as
                         ; opposed to spaces
@@ -5671,10 +5803,12 @@ NEXT
  ADC #'0'               ; ASCII character number to print
 
 .tt34
+
  JSR TT26               ; Print the character in A and fall through into TT34
                         ; to get things ready for the next digit
 
 .TT34
+
  DEC T                  ; Decrement T but keep T >= 0 (by incrementing it
  BPL P%+4               ; again if the above decrement made T negative)
  INC T
@@ -5782,6 +5916,7 @@ NEXT
                         ; the line feed routine that's used by control code 10
 
 .RRX1
+
  INC YC                 ; Print a line feed, simply by incrementing the row
                         ; number (y-coordinate) of the text cursor, which is
                         ; stored in YC
@@ -5988,6 +6123,7 @@ NEXT
                         ; subroutine
 
 .^RR3
+
  ORA #&60               ; A contains the value of YC - the screen row where we
                         ; want to print this character - so now we need to
                         ; convert this into a screen address, so we can poke
@@ -6011,6 +6147,7 @@ NEXT
                         ; the page number that we want
 
 .^RREN
+
  STA SC+1               ; Store the page number of the destination screen
                         ; location in SC+1, so SC now points to the full screen
                         ; location where this character should go
@@ -6020,6 +6157,7 @@ NEXT
                         ; to count these bytes
 
 .RRL1
+
  LDA (P+1),Y            ; The character definition is at P+1 (low byte) and P+2
                         ; (high byte) - we set this up above -  so load the
                         ; Y-th byte from P+1
@@ -6040,15 +6178,18 @@ NEXT
  BPL RRL1               ; Loop back for the next byte to print to the screen=
 
 .^RR4
+
  LDY YSAV2              ; We're done printing, so restore the values of the
  LDX XSAV2              ; A, X and Y registers that we saved above and clear
  LDA K3                 ; the carry flag, so everything is back to how it was
  CLC
 
 .^rT9
+
  RTS                    ; Return from the subroutine
 
 .^R5
+
  JSR BEEP               ; Call the BEEP subroutine, which uses the SOUND
                         ; command to emit a beep
 
@@ -6107,6 +6248,7 @@ NEXT
  STX T1                 ; threshold
 
 .DLL23                  ; counter X
+
  STY XX12,X
  DEX                    ; energy bank
  BPL DLL23              ; loop X
@@ -6117,6 +6259,7 @@ NEXT
  STA Q
 
 .DLL24                  ; counter X
+
  SEC
  SBC #16                ; each bank
  BCC DLL26              ; exit subtraction with valid Q, X
@@ -6129,10 +6272,12 @@ NEXT
  BMI DLL9               ; guaranteed hop, all full.
 
 .DLL26                  ; exit subtraction with valid Q, X
+
  LDA Q                  ; bank fraction
  STA XX12,X
 
 .DLL9                   ; all full, counter Y
+
  LDA XX12,Y
  STY P                  ; store Y
  JSR DIL                ; energy bank
@@ -6170,6 +6315,7 @@ NEXT
  JMP COMPAS             ; space compass.
 
 .PZW                    ; Flashing X.A = F0.0F or F0.0?
+
  LDX #&F0               ; yellow
  LDA MCNT               ; movecount
  AND #8
@@ -6206,14 +6352,17 @@ NEXT
  BNE DL31               ; skip lda K
 
 .DL30                   ; threshold colour will be K
+
  LDA K
 
 .DL31
+
  STA COL                ; the colour
  LDY #2                 ; height offset
  LDX #3                 ; height of bar-1
 
 .DL1                    ; counter X height
+
  LDA Q                  ; bar value 0to15
  CMP #4
  BCC DL2                ; exit, Q < 4
@@ -6222,6 +6371,7 @@ NEXT
  LDA R                  ; mask
 
 .DL5                    ; loop Mask
+
  AND COL
  STA (SC),Y
  INY
@@ -6237,11 +6387,13 @@ NEXT
  BPL DL1                ; else guaranteed loop X height
 
 .DL2                    ; exited, Q < 4
+
  EOR #3                 ; counter
  STA Q
  LDA R                  ; load up mask colour byte = &FF
 
 .DL3                    ; counter small Q
+
  ASL A                  ; empty out mask
  AND #239
  DEC Q
@@ -6255,9 +6407,11 @@ NEXT
  JMP DL5                ; up, loop mask
 
 .DL6                    ; next bar
+
  INC SC+1
 
 .DL9
+
  RTS
 }
 
@@ -6273,6 +6427,7 @@ NEXT
  STA Q                  ; xpos
 
 .DLL10                  ; counter Y til #30
+
  SEC
  LDA Q                  ; xpos
  SBC #4                 ; xpos-4
@@ -6285,10 +6440,12 @@ NEXT
  BNE DLL12              ; fill
 
 .DLL11                  ; blank
+
  STA Q                  ; new xpos
  LDA #0
 
 .DLL12                  ; fill
+
  STA (SC),Y
  INY
  STA (SC),Y
@@ -6314,12 +6471,17 @@ NEXT
 
 
 .TVT1
+
  EQUD &8494C4D4
+
 \TVT2
+
  EQUD &A5B5E5F5
  EQUD &26366676
  EQUD &A1B1F1E1
+
 \TVT3
+
  EQUD &A0B0E0F0
  EQUD &8090C0D0
  EQUD &27376777
@@ -6341,7 +6503,9 @@ NEXT
  BNE VNT1
  LDA #8
  STA SHEILA+&20
+
 .VNT3
+
  LDA TVT1+16,Y
  STA SHEILA+&21
  DEY
@@ -6380,18 +6544,22 @@ NEXT
  STA SHEILA+&20
  LDA ESCP
  BNE VNT1
+
 \VNT2
+
  LDA TVT1,Y
  STA SHEILA+&21
  DEY
  BPL P%-7
 
 .^jvec
+
  PLA
  TAY
  JMP (VEC)
 
 .^VNT1
+
  LDY #7
  LDA TVT1+8,Y
  STA SHEILA+&21
@@ -6422,6 +6590,7 @@ NEXT
  STA INWK+32
 
 .ESL1                   ; ai counter INWK+32, ship flys out of view.
+
  JSR MVEIT
  JSR LL9                ; object ENTRY
  DEC INWK+32
@@ -6434,6 +6603,7 @@ NEXT
  LDX #16
 
 .ESL2                   ; counter X
+
  STA QQ20,X             ; cargo
  DEX
  BPL ESL2               ; loop X
@@ -6530,6 +6700,7 @@ LOAD_C% = LOAD% +P% - CODE%
  STA (V),Y
 
 .TA35                   ; kill this missile
+
  LDA INWK               ; xlo
  ORA INWK+3             ; ylo
  ORA INWK+6             ; zlo
@@ -6546,6 +6717,7 @@ LOAD_C% = LOAD% +P% - CODE%
  ROR INWK+31
 
 .TA1
+
  RTS
 }
 
@@ -6602,6 +6774,7 @@ LOAD_C% = LOAD% +P% - CODE%
  JMP SFS1               ; spawn ship from parent ship, Acc is ai, Xreg is type created.
 
 .TA13                   ; not space station, Other craft.
+
  CPX #TGL
  BNE TA14               ; not thargon
  LDA MANY+THG           ; number of thargoids #THG so far?
@@ -6612,6 +6785,7 @@ LOAD_C% = LOAD% +P% - CODE%
  RTS
 
 .TA14                   ; not thargon
+
  CPX #CYL               ; is Cobra Mk III?
  BCS TA62
  CPX #COPS              ; is cop?
@@ -6623,6 +6797,7 @@ LOAD_C% = LOAD% +P% - CODE%
  STA INWK+32            ; because pirate in space station range.
 
 .TA62
+
  LDY #14                ; Hull byte#14 energy
  LDA INWK+35            ; ship energy
  CMP (XX0),Y
@@ -6635,6 +6810,7 @@ LOAD_C% = LOAD% +P% - CODE%
  LDX #8                 ; Build local XX15
 
 .TAL1                   ; counter X
+
  LDA INWK,X
  STA K3,X               ; K3(0to8) loaded with INWK(0to8) coords
  DEX
@@ -6659,6 +6835,7 @@ LOAD_C% = LOAD% +P% - CODE%
  STA INWK+29            ; rotx counter
 
 .TA7                    ; VRol  \ their comment \ likely
+
  LDY #14                ; Hull byte#14 energy
  LDA (XX0),Y
  LSR A                  ; Acc = max_energy/2
@@ -6679,6 +6856,7 @@ LOAD_C% = LOAD% +P% - CODE%
  JMP SESCP              ; ships launch Escape pod.
 
 .ta3                    ; not Low energy, try to fire missiles.
+
  LDA INWK+31            ; display explosion state|missiles
  AND #7                 ; number of missiles
  BEQ TA3                ; none, continue to Good energy
@@ -6698,9 +6876,11 @@ LOAD_C% = LOAD% +P% - CODE%
  JMP SFS1               ; spawn ship from parent ship, Acc is ai, Xreg is type created.
 
 .TA16                   ; not Thargoid, launch missile.
+
  JMP SFRMIS             ; Sound fire missile
 
 .TA3                    ; Good energy > max/2
+
  LDA #0
  JSR MAS4               ; all hi or'd
  AND #&E0               ; keep big distance bits
@@ -6715,6 +6895,7 @@ LOAD_C% = LOAD% +P% - CODE%
  BCC TA4                ; missed, onto Manoeuvre.
 
 .HIT                    ; laser Hitting player
+
  LDY #19
  LDA (XX0),Y
  LSR A                  ; laser power/2 = size of dent on player
@@ -6726,6 +6907,7 @@ LOAD_C% = LOAD% +P% - CODE%
  JMP NOISE
 
 .TA4                    ; Manoeuvre
+
  LDA INWK+7             ; zhi
  CMP #3
  BCS TA5                ; Far z
@@ -6735,12 +6917,14 @@ LOAD_C% = LOAD% +P% - CODE%
  BEQ TA15               ; Near
 
 .TA5                    ; Far z
+
  JSR DORND              ; do random, new A, X.
  ORA #128               ; set bit 7 as ai active.
  CMP INWK+32            ; compare to actual ai_attack_univ_ecm
  BCS TA15               ; weak (non-missile) ai head away, Near.
 
 .TA20                   ; Also arrive here if missile, heading XX15 and CNT has dot product
+
  LDA XX15
  EOR #128
  STA XX15
@@ -6777,6 +6961,7 @@ LOAD_C% = LOAD% +P% - CODE%
  STA INWK+29            ; new rotx counter roll 
 
 .TA6                    ; default, Far away.
+
  LDA CNT                ; dot product
  BMI TA9                ; target is far behind, maybe Slow down.
  CMP #22                ; angle in front not too large
@@ -6786,6 +6971,7 @@ LOAD_C% = LOAD% +P% - CODE%
  RTS                    ; TA9-1
 
 .TA9                    ; maybe Slow down
+
  AND #127               ; drop dot product sign
  CMP #18                ; angle to axis not too large
  BCC TA10               ; slow enough, rts
@@ -6965,6 +7151,7 @@ LOAD_C% = LOAD% +P% - CODE%
  RTS
 
 .AN2                    ; space station Angry
+
  ASL K%+NI%+32
  SEC
  ROR K%+NI%+32
@@ -7016,6 +7203,7 @@ LOAD_C% = LOAD% +P% - CODE%
  LDY #NI%-1             ; whole workspace
 
 .FRL2                   ; counter Y
+
  LDA INWK,Y
  STA XX3,Y              ; move inwk to heap
  LDA (INF),Y
@@ -7043,6 +7231,7 @@ LOAD_C% = LOAD% +P% - CODE%
  TAX                    ; second copy of type restored
 
 .rx                     ; skipped space station not parent
+
  LDA T1                 ; daughter ai_attack_univ_ecm.
  STA INWK+32            ; ai_attack_univ_ecm
  LSR INWK+29            ; rotx counter
@@ -7062,6 +7251,7 @@ LOAD_C% = LOAD% +P% - CODE%
  LDA #OIL
 
 .NOIL                   ; not cargo, launched missile or escape pod.
+
  JSR NWSHP              ; New ship type Acc
 
  PLA                    ; restore parent info pointer
@@ -7071,6 +7261,7 @@ LOAD_C% = LOAD% +P% - CODE%
  LDX #NI%-1             ; #(NI%-1) whole workspace
 
 .FRL3                   ; counter X
+
  LDA XX3,X              ; heap
  STA INWK,X             ; restore initial inwk.
  DEX                    ; next byte
@@ -7135,6 +7326,7 @@ LOAD_C% = LOAD% +P% - CODE%
  JSR HFS1
 
 .HFS1                   ; Rings of STP
+
  LDA #128               ; half of xcreen
  STA K3
  LDX #Y                 ; #Y half of yscreen
@@ -7145,6 +7337,7 @@ LOAD_C% = LOAD% +P% - CODE%
  STA K4+1               ; y hi
 
 .HFL5                   ; counter XX4 0..7
+
  JSR HFL1               ; One ring
  INC XX4
  LDX XX4
@@ -7153,6 +7346,7 @@ LOAD_C% = LOAD% +P% - CODE%
  RTS
 
 .HFL1                   ; One ring
+
  LDA XX4                ; ring counter
  AND #7
  CLC
@@ -7160,6 +7354,7 @@ LOAD_C% = LOAD% +P% - CODE%
  STA K
 
 .HFL2                   ; roll K radius
+
  LDA #1                 ; arc step
  STA LSP
  JSR CIRCLE2
@@ -7170,6 +7365,7 @@ LOAD_C% = LOAD% +P% - CODE%
  BCC HFL2               ; loop K
 
 .HF8                    ; exit
+
  RTS
 }
 
@@ -7401,6 +7597,7 @@ NEXT
  LDX #24                ; 3 bytes
 
 .MUL2                   ; counter X for 3 bytes
+
  BCC P%+4
  ADC T
  ROR A
@@ -7578,6 +7775,7 @@ NEXT
  LSR P
 {
 .MUL6                   ; counter X
+
  BCC P%+4               ; low bit of P lo clear
  ADC T                  ; +=Q as carry set
  ROR A                  ; hi
@@ -7631,6 +7829,7 @@ NEXT
  LDA #0
 
 .MUL3                   ; roll P
+
  BCS MU7                ; carry set, don't add Q
  ADC Q                  ; maybe a carry
  ROR A
@@ -7639,6 +7838,7 @@ NEXT
  RTS
 
 .MU7                    ; carry set, don't add Q
+
  LSR A                  ; not ROR A
  LSR P
  BNE MUL3               ; loop P
@@ -7657,6 +7857,7 @@ NEXT
  BEQ MU1                ; up, P = Acc = Xreg = 0
  
 .MU116	                ; P*X will be done
+
  DEX
  STX T                  ; = Q-1 as carry will be set for addition
  LDA #0
@@ -7664,6 +7865,7 @@ NEXT
  LSR P
 {
 .MUL6                   ; counter X
+
  BCC P%+4               ; low bit of P lo clear
  ADC T                  ; +=Q as carry set
  ROR A                  ; hi
@@ -7698,6 +7900,7 @@ NEXT
  ROR P                  ; lo
 
 .MUL7                   ; counter X
+
  BCS MU21               ; carry set, don't add Q
  ADC Q
  ROR A                  ; 3 byte result
@@ -7708,6 +7911,7 @@ NEXT
  RTS
 
 .MU21                   ; carry set, don't add Q
+
  LSR A                  ; not ROR A
  ROR P+1
  ROR P
@@ -7779,6 +7983,7 @@ NEXT
  LDX #7                 ; counter X
 
 .MUL4                   ; Could unroll this loop
+
  BCC P%+4               ; skip add
  ADC T1                 ; Q7-1 as carry set
  ROR A                  ; both arrive
@@ -7791,6 +7996,7 @@ NEXT
  RTS
 
 .mu10                   ; zero down
+
  STA P
  RTS
 }
@@ -7924,7 +8130,7 @@ NEXT
                         ; EOR result will be 1, which means the EOR result is
                         ; negative. So the AND, EOR and BMI together mean "jump
                         ; to MU8 if A and S have different signs".
- 
+
                         ; If we reach here, then A and S have the same sign, so
                         ; we can add them and set the sign to get the result
 
@@ -8000,6 +8206,7 @@ NEXT
                         ; value.
 
 .MU9
+
  EOR T                  ; If we get here from the BCS above, then |A| >= |S|,
                         ; so we want to give the result the same sign as
                         ; argument A, so if argument A was negative, we flip
@@ -8022,6 +8229,7 @@ NEXT
  JSR MAD                ; multiply and add (X,A) =  -X*A  + (R,S)
 
 .DVID96                 ; Their comment A=A/96: answer is A*255/96
+
  TAX
  AND #128               ; hi sign
  STA T
@@ -8031,12 +8239,14 @@ NEXT
  STX T1
 
 .DVL3                   ; roll T1  clamp Acc to #96 for rotation matrix unity
+
  ASL A
  CMP #96                ; max 96
  BCC DV4                ; skip subtraction
  SBC #96
 
 .DV4                    ; skip subtraction
+
  ROL T1
  BCS DVL3               ; loop T1
  LDA T1
@@ -8081,16 +8291,19 @@ NEXT
  LDA #0
 
 .DVL4                   ; counter X
+
  ROL A
  BCS DV8                ; Acc carried
  CMP Q
  BCC DV5                ; skip subtraction
 
 .DV8                    ; Acc carried
+
  SBC Q
  SEC                    ; carry gets set
 
 .DV5                    ; skip subtraction
+
  ROL P                  ; hi
  DEX
  BNE DVL4               ; loop X, hi left in P.
@@ -8114,6 +8327,7 @@ NEXT
  STA S
 
 .DVID3B                 ; K (3bytes)=P(3bytes)/S.R.Q. aprx  Acc equiv K(0)
+
  LDA P                  ; num lo
  ORA #1                 ; avoid 0
  STA P
@@ -8126,6 +8340,7 @@ NEXT
  AND #127               ; will look at lower 7 bits of Acc in.
 
 .DVL9                   ; counter Y up
+
  CMP #&40               ; object very far away?
  BCS DV14               ; scaled, exit Ycount
  ASL P
@@ -8135,12 +8350,14 @@ NEXT
  BNE DVL9               ; loop Y
 
 .DV14                   ; scaled, exited Ycount
+
  STA P+2                ; big numerator
  LDA S                  ; zsg
  AND #127               ; denom sg7
  BMI DV9                ; can't happen
 
 .DVL6                   ; counter Y back down, roll S.
+
  DEY                    ; scale Y back
  ASL Q                  ; denom lo
  ROL R
@@ -8148,6 +8365,7 @@ NEXT
  BPL DVL6               ; loop roll S until Abit7 set.
 
 .DV9                    ; bmi cant happen?
+
  STA Q                  ; mostly empty so now reuse as hi denom
  LDA #254               ; Xreg protected so can't LL28+4
  STA R
@@ -8163,6 +8381,7 @@ NEXT
  LDA R                  ; else Y count is -ve, Acc = remainder.
 
 .DVL8                   ; counter Y up
+
  ASL A                  ; boost up
  ROL K+1
  ROL K+2
@@ -8176,6 +8395,7 @@ NEXT
  RTS
 
 .DV13                   ; Ycount zero \ K(1to2) already = 0
+
  LDA R                  ; already correct
  STA K                  ; lo
  LDA T                  ; sign
@@ -8183,10 +8403,12 @@ NEXT
  RTS
 
 .DV12                   ; Ycount +ve
+
  BEQ DV13               ; Ycount zero, up.
  LDA R                  ; else reduce remainder
 
 .DVL10                  ; counter Y reduce
+
  LSR A
  DEY
  BNE DVL10              ; loop Y reduce
@@ -8212,14 +8434,17 @@ NEXT
  BMI RE1                ; rts
 
 .BUMP                   ; counter X  nudge up
+
  INX
  BNE RE1                ; rts
 
 .REDU                   ; reduce, nudge down.
+
  DEX
  BEQ BUMP               ; nudge up
 
 .RE1                    ; rts
+
  RTS
 }
 
@@ -8265,6 +8490,7 @@ NEXT
                         ; value, 255
 
 .^RE2
+
  BPL RE3+2              ; If X has bit 7 clear (i.e. the result < 128), then
                         ; jump to RE3+2 below to do an auto-recentre, if
                         ; configured, because the result is on the left side of
@@ -8319,6 +8545,7 @@ NEXT
                         ; value, 1
 
 .^RE3
+
  BPL RE2+2              ; If X has bit 7 clear (i.e. the result < 128), then
                         ; jump to RE2+2 above to return the result as is,
                         ; because the result is on the left side of the centre
@@ -8360,11 +8587,13 @@ NEXT
  SEC
 
 .AR4                    ; sub o.k
+
  LDX T1
  BMI AR3                ; -ve quadrant
  RTS
 
 .AR1                    ; swop A and Q
+
  LDX Q
  STA Q
  STX P
@@ -8376,10 +8605,12 @@ NEXT
  BCS AR4                ; sub o.k
 
 .AR2                    ; set angle to 90 degrees
+
  LDA #63
  RTS
 
 .AR3                    ; -ve quadrant
+
  STA T                  ; angle
  LDA #128               ; pi
 \SEC
@@ -8387,6 +8618,7 @@ NEXT
  RTS
 
 .ARS1                   ; get Angle for A*32/Q from table.
+
  JSR LL28               ; BFRDIV R=A*256/Q
  LDA R
  LSR A
@@ -8406,11 +8638,8 @@ NEXT
 .ACT
 {
 FOR I%,0,31
-;I%?O%=INT(128/PI*ATN(I%/32)+.5)
- EQUB  INT(128/PI*ATN(I%/32)+.5)
+ EQUB INT(128/PI*ATN(I%/32)+.5)
 NEXT
-;P%=P%+32
-;O%=O%+32
 }
 
 \ *****************************************************************************
@@ -8442,6 +8671,7 @@ NEXT
  BCC WA1                ; Not in ELITEC.TXT, but in ELTC source image
 
 .WA3                    ; planet behind
+
  LDY K%+NI%+8           ; Sun zsg
  BMI WA2                ; sun behind
  LDY #NI%               ; NI% for Sun
@@ -8452,6 +8682,7 @@ NEXT
  BCC WA1                ; Not in ELITEC.TXT, but in ELTC source image
 
 .WA2                    ; sun behind, Shift.
+
  LDA #&81               ; shift sun and planet zsg
  STA S                  ; hi
  STA R                  ; lo
@@ -8472,6 +8703,7 @@ NEXT
  JMP LOOK1              ; start view X
 
 .WA1                    ; Warning sound
+
  LDA #40                ; noise #40
  JMP NOISE
 }
@@ -8515,6 +8747,7 @@ NEXT
  LDY #208               ; new xright
 
 .las
+
  STA X2
  LDA LASX               ; center-X
  STA X1
@@ -8579,6 +8812,7 @@ NEXT
  RTS
 
 .PU2                    ; other views  2,3
+
  LDA #0
  CPX #2                 ; if X >= 2 then C set. Right View.
  ROR A                  ; any carry
@@ -8611,6 +8845,7 @@ NEXT
  LDY #21                ; rotmat2x lo
 
 .PUS1                   ; swop rotmat x and z
+
  LDA INWK,Y
  LDX INWK+4,Y
  STA INWK+4,Y
@@ -8720,6 +8955,7 @@ NEXT
  LDX #&60               ; screen hi page start
 
 .BOL1                   ; box loop 1, counter X
+
  JSR ZES1               ; zero page X
  INX                    ; next page
  CPX #&78               ; last screen page
@@ -8746,6 +8982,7 @@ NEXT
  JSR TT27
 
 .tt66                   ; no view title
+
  LDX #0                 ; top horizontal line
  STX X1
  STX Y1
@@ -8760,9 +8997,11 @@ NEXT
  JSR BOS2               ; do twice
 
 .BOS2
+
  JSR BOS1               ; do twice
 
 .BOS1
+
  LDA #0                 ; bottom of screen
  STA Y1
  LDA #2*Y-1             ; #(2*Y-1) is top of screen
@@ -8860,11 +9099,13 @@ NEXT
  LDY #233               ; near far right
 
 .EE2                    ; counter Y  233to0
+
  STA (SC),Y
  DEY                    ; next column to left
  BNE EE2                ; loop Y
 
 .^SC5
+
  RTS                    ; Return from the subroutine
 }
 
@@ -8890,7 +9131,9 @@ NEXT
 \CMP #AST
 \BCC P%+4
 \LDX #&F
+
 \.SC49
+
  STX COL                ; the colour for stick
  LDA INWK+1             ; xhi
  ORA INWK+4             ; yhi
@@ -8906,6 +9149,7 @@ NEXT
  ADC #1
 
 .SC2                    ; xsg +ve
+
  ADC #123               ; xhi+#123
  STA X1                 ; Xscreen for stick
 
@@ -8919,6 +9163,7 @@ NEXT
  SEC                    ; flip zhi/4
 
 .SC3                    ; z +ve
+
  ADC #35                ; zhi/4+ #35
  EOR #&FF               ; flip to screen lo
  STA SC                 ; store Z component of stick base
@@ -8932,6 +9177,7 @@ NEXT
  SEC
 
 .SCD6                   ; y +ve , now add to z-component
+
  ADC SC                 ; add Z component of stick base
  BPL ld246              ; stick goes up
  CMP #194               ; >= #194 ?
@@ -8941,6 +9187,7 @@ NEXT
  BCC P%+4               ; skip max at #246
 
 .ld246                  ; stick goes up
+
  LDA #246               ; clamp y max
  STA Y1                 ; Yscreen for stick head
  SEC                    ; sub z-component to leave y length
@@ -8949,7 +9196,9 @@ NEXT
 \BCS SC48
 \EOR #&FF
 \ADC #1
+
 .SC48
+
  PHA                    ; sub result used as counter
  JSR CPIX4              ; big flag on stick, at (X1,Y1)
  LDA CTWOS+1,X          ; recall mask
@@ -8962,19 +9211,26 @@ NEXT
  BCC RTS+1              ; -ve stick length
 
 .VLL1                   ; positive stick counter X.
+
  DEY                    ; Y was running through byte char in CPIX4
  BPL VL1                ; else reset Y to 7 for
  LDY #7                 ; next row
  DEC SC+1               ; screen hi
+
 .VL1                    ; Y reset done
+
  LDA X1                 ; colour temp for stick
  EOR (SC),Y
  STA (SC),Y
  DEX                    ; next dot of stick up
  BNE VLL1               ; loop X
+
 .RTS
+
  RTS
+
 \.SCRTS+1               ; -ve stick length
+
  INY                    ; Y was running through byte char in CPIX4
  CPY #8                 ; hop reset
  BNE P%+6               ; Y continue
@@ -8982,6 +9238,7 @@ NEXT
  INC SC+1               ; screen hi
 
 .VLL2                   ; Y continue, counter X
+
  INY                    ; Y was running through byte char in CPIX4
  CPY #8                 ; hop reset
  BNE VL2                ; same row
@@ -8989,6 +9246,7 @@ NEXT
  INC SC+1               ; screen hi
 
 .VL2                    ; same row
+
  LDA X1                 ; colour temp for stick
  EOR (SC),Y
  STA (SC),Y
@@ -9047,6 +9305,7 @@ LOAD_D% = LOAD% + P% - CODE%
  BCC kg                 ; treated as kg
 
 .Tml                    ; Count tonnes, counter X start at 12
+
  ADC QQ20,X             ; tonnes added to Acc initial =1
  DEX
  BPL Tml                ; loop X
@@ -9055,6 +9314,7 @@ LOAD_D% = LOAD% + P% - CODE%
  RTS
 
 .kg                     ; scooped item QQ29 > 12
+
  LDY QQ29               ; market item, 0to16
  ADC QQ20,Y
  CMP #200               ; 199 kg max, carry set is too much.
@@ -9227,6 +9487,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 
 .TT146                  ; Distance in Light years
+
  LDA QQ8                ; distance in 0.1 LY units
  ORA QQ8+1
  BNE TT63               ; if not zero, Distance in Light years
@@ -9234,6 +9495,7 @@ LOAD_D% = LOAD% + P% - CODE%
  RTS
 
 .TT63                   ; Distance in Light years
+
  LDA #191               ; token = DISTANCE
  JSR TT68               ; process token followed by colon
 
@@ -9476,6 +9738,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; flag is already set so the SBC will be correct)
 
 .TT71
+
  ADC #170               ; A is now 0, 1 or 2, so print recursive token 10 + A.
  JSR TT27               ; This means that:
                         ;
@@ -9484,6 +9747,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ;   QQ3 = 2 or 7 prints token 12 ("POOR ")
 
 .^TT72
+
  LDA QQ3                ; Now to work out the type of economy, which is
  LSR A                  ; determined by bit 2 of QQ3, as follows:
  LSR A                  ;
@@ -9555,6 +9819,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; the whole species string is "(HUMAN COLONIALS)"
 
 .TT75
+
  LDA QQ15+5             ; This is an alien species, and we start with the first
  LSR A                  ; adjective, so fetch bits 2-7 of w2_hi into A and push
  LSR A                  ; onto the stack so we can use this later
@@ -9573,6 +9838,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ;   A = 2 prints token 67 ("SMALL") and a space
 
 .TT205
+
  PLA                    ; Now for the second adjective, so restore A to bits
  LSR A                  ; 2-7 of w2_hi, and throw away bits 2-4 to leave
  LSR A                  ; A = bits 5-7 of w2_hi
@@ -9592,6 +9858,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ;   A = 5 prints token 75 ("HARMLESS") and a space
 
 .TT206
+
  LDA QQ15+3             ; Now for the third adjective, so EOR the high bytes of
  EOR QQ15+1             ; w0 and w1 and extract bits 0-2 of the result:
  AND #7                 ;
@@ -9613,6 +9880,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ;   A = 5 prints token 81 ("FURRY") and a space
 
 .TT207
+
  LDA QQ15+5             ; Now for the actual species, so take bits 0-1 of
  AND #3                 ; w2_hi, add this to the value of A that we used for
  CLC                    ; the third adjective, and take bits 0-2 of the result
@@ -9631,6 +9899,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ;   A = 7 prints token 76 ("INSECT")
 
 .TT76
+
  LDA #'S'               ; Print an 'S' to pluralise the species
  JSR TT27
 
@@ -9838,6 +10107,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STA QQ3
 
 .TT77
+
  LDA QQ3                ; Now to work out the tech level, which we do like this:
  EOR #7                 ; 
  CLC                    ;   flipped economy + (w1_hi AND %11) + (government / 2)
@@ -9929,7 +10199,9 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR TT14               ; Circle with a cross hair
 
  LDX #0
+
 .TT83                   ; counter X   256 systems
+
  STX XSAV               ; store counter
  LDX QQ15+3             ; seed w1_h is Xcoord of star
  LDY QQ15+4             ; seed w2_l is star size
@@ -9976,6 +10248,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #0
 
 .TT84                   ; Xorg-cross-hair ok
+
  STA XX15               ; left
  LDA QQ19               ; Xorg
  CLC                    ; Xorg+cross-hair size
@@ -9996,6 +10269,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #0
 
 .TT86                   ; Yorg-cross-hair ok
+
  CLC
  ADC QQ19+5             ; could be #24
  STA XX15+1             ; the top-most extent
@@ -10011,6 +10285,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #151               ; else ymax
 
 .TT87                   ; Yscreen sum ok
+
  STA XX15+3             ; Y cross top
  LDA QQ19               ; Xorg
  STA XX15               ; X1
@@ -10107,23 +10382,28 @@ LOAD_D% = LOAD% + P% - CODE%
  STA QQ29
 
 .TT220                  ; List items, counter QQ29
+
  JSR TT151              ; Pmk-A  display the line for one market item
  LDA QQ25
  BNE TT224              ; Quantity of item not zero
  JMP TT222              ; else skip item
 
 .TQ4                    ; try Quantity again
+
  LDY #176               ; token = QUANTITY
 
 .Tc                     ; white space, Y token then question mark
+
  JSR TT162              ; white space
  TYA                    ; Y token
  JSR prq                ; print Yreg then question mark.
 
 .TTX224
+
  JSR dn2                ; beep, delay.
 
 .TT224                  ; also Quantity not zero
+
  JSR CLYNS              ; clear some rows
  LDA #204               ; token = QUANTITY OF
  JSR TT27               ; process flight token
@@ -10172,6 +10452,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR dn                 ; else display remaining cash
 
 .TT222                  ; skipped item
+
  LDA QQ29               ; cargo item of interest
  CLC                    ; Y text cursor
  ADC #5                 ; move to correct row
@@ -10199,6 +10480,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STX T1
 
 .TT223                  ; counter T1
+
  JSR TT217              ; get ascii from keyboard, store in X and A
  STA Q                  ; ascii accepted
  SEC                    ; was hit key a digit
@@ -10222,12 +10504,14 @@ LOAD_D% = LOAD% + P% - CODE%
  BCS OUT                ; if R > QQ25, exit
 
 .TT226                  ; accept key Q
+
  LDA Q                  ; ascii accepted
  JSR TT26               ; print character
  DEC T1                 ; loop T1
  BNE TT223              ; 12 times max.
 
 .OUT                    ; exit
+
  LDA R                  ; return result R
  RTS
 }
@@ -10241,6 +10525,7 @@ LOAD_D% = LOAD% + P% - CODE%
 .TT208                  ; Sel \ their comment \ Sell cargo (#f2)
 {
  LDA #4                 ; menu i.d. = 4
+
  JSR TT66               ; box border with QQ11 set to Acc
  LDA #4                 ; indent
  STA YC 
@@ -10263,6 +10548,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDY #0
 
 .TT211                  ; counter Y = QQ29 for item
+
  STY QQ29               ; in sell list, Yreg = QQ29 is item index
  LDX QQ20,Y             ; ship cargo count
  BEQ TT212              ; skip cargo item
@@ -10316,6 +10602,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STA QQ17
 
 .TT212                  ; skipped (sell) item
+
  LDY QQ29               ; market item index
  INY                    ; next market item
  CPY #17                ; last cargo type?
@@ -10367,6 +10654,7 @@ LOAD_D% = LOAD% + P% - CODE%
  PLA
 
 .TT221                  ; called by anyone?  token Acc Y/N ?
+
  JSR TT27               ; process flight text Token in Acc
  LDA #225               ; token = x01 (Y/N)?
  JSR TT27               ; process flight text Token in Acc
@@ -10379,6 +10667,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JMP TT26               ; print character
 
 .TT218                  ; yes, set carry
+
  JSR TT26               ; print character
  SEC                    ; set carry
  RTS
@@ -10456,9 +10745,11 @@ LOAD_D% = LOAD% + P% - CODE%
  RTS
 
 .TT124                  ; shift was -ve
+
  BCC TT180              ; shift was -ve,  RTS.
 
 .TT125                  ; update ok
+
  STA QQ19+4             ; updated coordinate
 }
 
@@ -10484,6 +10775,7 @@ LOAD_D% = LOAD% + P% - CODE%
  BCC TT180              ; rts
 
 .TT179                  ; X is close
+
  ASL A
  ASL A                  ; X*4
  CLC
@@ -10530,11 +10822,13 @@ LOAD_D% = LOAD% + P% - CODE%
  LDX #24                ; Clear 24 row to label stars
 
 .EE3                    ; counter X
+
  STA INWK,X
  DEX
  BPL EE3                ; loop X
 
 .TT182                  ; Counter XX20 through 256 stars
+
  LDA QQ15+3
  SEC                    ; Xcoord of star
  SBC QQ0
@@ -10543,6 +10837,7 @@ LOAD_D% = LOAD% + P% - CODE%
  ADC #1
 
 .TT184                  ; xsubtracted
+
  CMP #20                ; x distance close?
  BCS TT187              ; skip star plotting
  LDA QQ15+1
@@ -10553,6 +10848,7 @@ LOAD_D% = LOAD% + P% - CODE%
  ADC #1
 
 .TT186                  ; ysubstracted
+
  CMP #38                ; y distance close?
  BCS TT187              ; skip star plotting
 
@@ -10590,6 +10886,7 @@ LOAD_D% = LOAD% + P% - CODE%
  BNE ee1
 
 .EE4                    ; found empty label row
+
  STY YC
  CPY #3                 ; < 3rd row?
  BCC TT187              ; skip star plotting
@@ -10601,6 +10898,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR cpl
 
 .ee1                    ; bigstars \ their comment \ no label, just the star.
+
  LDA #0                 ; hi = 0
  STA K3+1
  STA K4+1
@@ -10616,6 +10914,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR FLFLLS
 
 .TT187                  ; skipped star plotting
+
  JSR TT20               ; Twist galaxy seed
  INC XX20
  BEQ TT111-1            ; all 256 done, rts 
@@ -10648,6 +10947,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STA U
 
 .TT130                  ; counter U, visit each trial system.
+
  LDA QQ15+3
  SEC                    ; Xsystem
  SBC QQ9
@@ -10656,6 +10956,7 @@ LOAD_D% = LOAD% + P% - CODE%
  ADC #1
 
 .TT132                  ; skip xnegate
+
  LSR A                  ; halve this x-distance
  STA S
  LDA QQ15+1
@@ -10666,6 +10967,7 @@ LOAD_D% = LOAD% + P% - CODE%
  ADC #1
 
 .TT134                  ; skip ynegate
+
  LSR A                  ; halve y distance,
  CLC                    ; so total mag will fit in 1 byte
  ADC S                  ; sum of abs(delta_x/2) + abs(delta_y/4)
@@ -10676,18 +10978,21 @@ LOAD_D% = LOAD% + P% - CODE%
  LDX #5                 ; and new best seeds update
 
 .TT136                  ; counter X
+
  LDA QQ15,X
  STA QQ19,X
  DEX                    ; present best system seed values
  BPL TT136              ; loop X for 6 bytes.
 
 .TT135                  ; not close
+
  JSR TT20               ; Twist galaxy seed
  INC U
  BNE TT130              ; loop U next sys id, not 256 yet.
  LDX #5                 ; finished
 
 .TT137                  ; counter X, copy out present best seeds
+
  LDA QQ19,X
  STA QQ15,X
  DEX
@@ -10706,6 +11011,7 @@ LOAD_D% = LOAD% + P% - CODE%
  ADC #1
 
 .TT139                  ; x dist-org
+
  JSR SQUA2              ; (P,A) = A*A
  STA K+1
  LDA P                  ; xlo
@@ -10719,6 +11025,7 @@ LOAD_D% = LOAD% + P% - CODE%
  ADC #1
 
 .TT141                  ; y dist-org
+
  LSR A                  ; Acc = abs(delta_y)/2
  JSR SQUA2              ; (P,A) = A*A
  PHA                    ; highest bytes for delta_y ^2
@@ -10830,6 +11137,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STA GCNT
 
 .G1                     ; counter X  ROLL galaxy seeds
+
  LDA QQ21,X             ; Galaxy seeds, 6 bytes
  ASL A                  ; to get carry to load back into bit 0
  ROL QQ21,X             ; rolled galaxy seeds
@@ -10992,17 +11300,20 @@ LOAD_D% = LOAD% + P% - CODE%
  JMP TT156              ; both prices
 
 .TT155                  ; subtract QQ19,3 from QQ24
+
  LDA QQ24               ; price
  SEC
  SBC QQ19+3             ; economy * gradient
 
 .TT156                  ; both price cases
+
  STA QQ24               ; price
  STA P                  ; price_lo
  LDA #0
  JSR GC2                ; get cash Xlo.Yhi = P.A *=4  max 1024
 
  SEC                    ; decimal point in max 102.4
+
  JSR pr5                ; 4 digits of XloYhi
  LDY QQ19+4             ; index for item
  LDA #5                 ; 5 digits
@@ -11015,6 +11326,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JMP TT152              ; t kg g from QQ19+1
 
 .TT172                  ; tab '-' as none available
+
  LDA XC
  ADC #4                 ; move by 4
  STA XC
@@ -11119,6 +11431,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STA QQ29
 
 .TT168                  ; counter QQ29 market items
+
  LDX #128               ; set bit7, first letter Upper case.
  STX QQ17
  JSR TT151              ; Pmk-A  display the line for one market item
@@ -11148,12 +11461,14 @@ LOAD_D% = LOAD% + P% - CODE%
  STA AVL+16
 
 .TT153                  ; counter Y, eco
+
  DEY                    ; Take economy byte down by 1
  BMI TT154              ; exit product
  ADC QQ19+2             ; gradient 0to31
  JMP TT153              ; guaranteed loop Y to build product
 
 .TT154                  ; exit product
+
  STA QQ19+3             ; economy * gradient
  RTS
 }
@@ -11181,6 +11496,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDX #5                 ; 6 bytes
 
 .TT112                  ; counter X
+
  LDA QQ15,X             ; safehouse,X  target seeds
  STA QQ2,X              ; copied over to home seeds
  DEX                    ; next seed
@@ -11210,6 +11526,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STX XX4
 
 .hy9                    ; counter XX4  availability table
+
  LDA QQ23+1,X
  STA QQ19+1
  JSR var                ; slope QQ19+3  = economy * gradient
@@ -11224,14 +11541,17 @@ LOAD_D% = LOAD% + P% - CODE%
  JMP TT158              ; hop over to both avail
 
 .TT157                  ; -ve byte1
+
  CLC                    ; add slope
  ADC QQ19+3
 
 .TT158                  ; both avail
+
  BPL TT159
  LDA #0                 ; else negative avail, set to zero.
 
 .TT159                  ; both options arrive here
+
  LDY XX4                ; counter as index
  AND #63                ; take lower 6 bits as quantity available
  STA AVL,Y              ; availability
@@ -11289,6 +11609,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STY MJ                 ; mis-jump flag set #&FF
 
 .MJP1                   ; counter MANY + #29 thargoids
+
  JSR GTHG               ; get Thargoid ship
  LDA #3                 ; 3 Thargoid ships
  CMP MANY+THG           ; thargoids
@@ -11320,6 +11641,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR LL164              ; hyperspace noise and tunnel
 
 .ee5                    ; not a space view
+
  JSR CTRL               ; scan from ctrl on keyboard
  AND PATG               ; PATG = &FF if credits have been enabled
  BMI ptg                ; shift key forced misjump, up.
@@ -11368,6 +11690,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STA FIST
 
 .NLUNCH                 ; also not launched
+
  LDX #0                 ; forward
  STX QQ12               ; check messages
  JMP LOOK1              ; start view Xreg = 0
@@ -11376,9 +11699,11 @@ LOAD_D% = LOAD% + P% - CODE%
 .TT114                  ; not space view, a chart.
 {
  BMI TT115              ; menu i.d. bit7 Short range chart
+
  JMP TT22               ; else Long range galactic chart
 
 .TT115                  ; Short range chart
+
  JMP TT23               ; Short range chart
 }
 
@@ -11517,6 +11842,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDX #1                 ; equip counter
 
 .EQL1                   ; counter X
+
  STX XX13
  JSR TT67               ; next Row with QQ17 set ; Call TT67, which prints a newline
  LDX XX13
@@ -11558,6 +11884,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STX QQ14               ; ship fuel. Acc=0 so rattle through ..
 
 .et0                    ; Missile
+
  CMP #1                 ; item missile?
  BNE et1                ; else Large cargo bay
  LDX NOMSL              ; number of missiles
@@ -11570,6 +11897,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR msblob             ; draw all missile blocks
 
 .et1                    ; Large cargo bay
+
  LDY #&6B               ; token = Large cargo bay
  CMP #2                 ; item Large cargo bay? 
  BNE et2                ; else E.C.M.
@@ -11579,6 +11907,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STX CRGO
 
 .et2                    ; E.C.M.
+
  CMP #3                 ; item E.C.M.
  BNE et3                ; else extra Pulse
  INY                    ; token = E.C.C.system
@@ -11587,6 +11916,7 @@ LOAD_D% = LOAD% + P% - CODE%
  DEC ECM                ; #&FF = ECM now present
 
 .et3                    ; extra Pulse
+
  CMP #4                 ; item extra pulse laser
  BNE et4                ; else extra Beam
  JSR qv                 ; query view, new mount in X
@@ -11595,15 +11925,18 @@ LOAD_D% = LOAD% + P% - CODE%
  BEQ ed4
 
 .ed7
+
  LDY #187               ; beam laser power
  BNE pres               ; Token in Y is already 'present' on ship
 
 .ed4
+
  LDA #POW               ; pulse laser power
  STA LASER,X
  LDA #4                 ; to allow rattle through
 
 .et4                    ; extra Beam
+
  CMP #5                 ; item extra beam laser
  BNE et5                ; else Fuel scoop
  JSR qv                 ; query view, new mount in X
@@ -11618,11 +11951,13 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR MCASH              ; add XloYhi to cash
 
 .ed5
+
  LDA #POW+128
  LDX T1
  STA LASER,X
 
 .et5                    ; Fuel scoop
+
  LDY #&6F               ; token = FUEL SCOOPS
  CMP #6                 ; item fuel scoop
  BNE et6                ; else Escape pod
@@ -11662,6 +11997,7 @@ LOAD_D% = LOAD% + P% - CODE%
  DEC ESCP               ; #&FF = escape pod awarded
 
 .et7                    ; Energy bomb
+
  INY                    ; token = energy bomb
  CMP #8                 ; item Energy bomb
  BNE et8                ; Energy recharge unit
@@ -11671,6 +12007,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STX BOMB               ; random hyperspace unit in Elite-A
 
 .et8                    ; Energy recharge unit
+
  INY                    ; token = energy unit
  CMP #9                 ; item Energy unit
  BNE etA                ; else Docking computer
@@ -11679,6 +12016,7 @@ LOAD_D% = LOAD% + P% - CODE%
  INC ENGY               ; increase extra energy unit/ recharge rate
 
 .etA                    ; Docking computer
+
  INY                    ; token = docking computer
  CMP #10                ; item docking computer
  BNE etB                ; else Galactic hyperdrive
@@ -11687,6 +12025,7 @@ LOAD_D% = LOAD% + P% - CODE%
  DEC DKCMP              ; #&FF = docking computer awarded
 
 .etB                    ; Galactic hyperdrive
+
  INY                    ; token = galactic hyperdrive
  CMP #11                ; item galactic hyperdrive
  BNE et9                ; else Military laser
@@ -11695,6 +12034,7 @@ LOAD_D% = LOAD% + P% - CODE%
  DEC GHYP               ; #&FF = galactic hyperdrive awarded
 
 .et9                    ; display cash and Loop
+
  JSR dn                 ; display cash
  JMP EQSHP              ; equip ship, new menu screen
 }
@@ -11765,6 +12105,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STY YC
 
 .qv1
+
  LDX #12                ; indent
  STX XC
  TYA                    ; view counter based on YC
@@ -11781,9 +12122,11 @@ LOAD_D% = LOAD% + P% - CODE%
  BCC qv1                ; loop Y
 
 .qv3
+
  JSR CLYNS              ; clear screen lines
 
 .qv2                    ; repeat until valid
+
  LDA #175               ; token = VIEW
  JSR prq                ; print Acc then question mark
  JSR TT217              ; get ascii from keyboard, store in X and A
@@ -11887,6 +12230,7 @@ MAPCHAR '4', '4'
                         ; 6 bytes)
 
 .TT53
+
  LDA QQ15,X             ; Copy byte X from QQ15 to QQ19
  STA QQ19,X
 
@@ -11909,6 +12253,7 @@ MAPCHAR '4', '4'
  STY T                  ; Store the loop counter in T
 
 .TT55
+
  LDA QQ15+5             ; Step 2: Load w2_hi, which is stored in QQ15+5, and
  AND #31                ; extract bits 0-4 by AND-ing with %0001 1111 (31)
 
@@ -11931,6 +12276,7 @@ MAPCHAR '4', '4'
                         ; bytes)
 
 .TT56
+
  LDA QQ19,X             ; Copy byte X from QQ19 to QQ15
  STA QQ15,X
 
@@ -11953,6 +12299,7 @@ MAPCHAR '4', '4'
  LDY #0                 ; Set up a counter in Y, starting from 0
 
 .QUL4
+
  LDA NA%,Y              ; The commander's name is stored at NA%, so load the
                         ; Y-th character from NA%
  
@@ -11995,10 +12342,12 @@ MAPCHAR '4', '4'
                         ; TT62 will return from the subroutine
 
 .TT62
+
  LDX #5                 ; Set up a counter in X for the three 16-bit seeds we
                         ; want to swap (i.e. 6 bytes)
 
 .TT78
+
  LDA QQ15,X             ; Swap byte X between QQ2 and QQ15
  LDY QQ2,X
  STA QQ2,X
@@ -12083,6 +12432,7 @@ MAPCHAR '4', '4'
                         ; K, so first we set up a counter in X for the 4 bytes
 
 .pc1
+
  LDA CASH,X             ; Copy byte X from CASH to K
  STA K,X
 
@@ -12237,7 +12587,7 @@ MAPCHAR '4', '4'
  
  BEQ TT74               ; If QQ17 = 0, then ALL CAPS is set, so jump to TT27
                         ; to print this character as is (i.e. as a capital)
-                        
+
  BMI TT41               ; If QQ17 has bit 7 set, then we are using Sentence
                         ; Case, so jump to TT41, which will print the
                         ; character in upper or lower case, depending on
@@ -12295,6 +12645,7 @@ MAPCHAR '4', '4'
                         ; to lower case
 
 .^TT44
+
  JMP TT26               ; Print the character in A
 }
 
@@ -12534,6 +12885,7 @@ MAPCHAR '4', '4'
                         ; subroutine
 
 .TT47
+
  SBC #160               ; This is a recursive token in the range 160-255, so
                         ; subtract 160 from the argument to get the token
                         ; number 0-95 and fall through into ex to print it
@@ -12588,6 +12940,7 @@ MAPCHAR '4', '4'
                         ; token
 
 .TT51
+
  LDA (V),Y              ; Fetch the Y-th character from the token table page
                         ; we are currently scanning
 
@@ -12603,6 +12956,7 @@ MAPCHAR '4', '4'
                         ; to the start of the new page
 
 .TT49
+
  INY                    ; Increment the character pointer
 
  BNE TT59               ; If Y hasn't just wrapped around to 0, skip the next
@@ -12612,6 +12966,7 @@ MAPCHAR '4', '4'
                         ; V+1 so that V points to the start of the new page
 
 .TT59
+
  DEX                    ; We have just reached a new token, so decrement the
                         ; token number we are looking for
 
@@ -12665,6 +13020,7 @@ MAPCHAR '4', '4'
                         ; character, otherwise we are done printing
 
 .^TT48
+
  RTS                    ; Return from the subroutine
 }
 
@@ -12710,6 +13066,7 @@ MAPCHAR '4', '4'
  ROL A
 
 .yy                     ; Cloud
+
  STA Q                  ; cloud distance
  LDY #1                 ; get ship heap byte1, which started at #18
  LDA (XX19),Y
@@ -12731,6 +13088,7 @@ MAPCHAR '4', '4'
  ROL A                  ; *=8
 
 .LABEL_1                ; Acc = Cloud radius
+
  DEY                    ; Y = 0, save ship heap byte0 = Cloud radius
  STA (XX19),Y
  LDA INWK+31            ; display explosion state|missiles
@@ -12744,6 +13102,7 @@ MAPCHAR '4', '4'
  TAY                    ; Y counter multiples of 4, greater than 6.
 
 .EXL1                   ; counter Y
+
  LDA XX3-7,Y            ; from (all visible) vertex heap
  STA (XX19),Y           ; to ship heap
  DEY                    ; next vertex
@@ -12754,6 +13113,7 @@ MAPCHAR '4', '4'
  STA INWK+31
 
 .PTCLS                  ; plot Cloud
+
  LDY #0                 ; ship heap byte0 = Cloud radius
  LDA (XX19),Y
  STA Q                  ; Cloud radius
@@ -12774,10 +13134,13 @@ MAPCHAR '4', '4'
  PHA                    ; restrict random
 
  LDY #6                 ; ship heap index at vertex-1
+
 .EXL5                   ; counter Y=CNT Outer loop +=4 for each vertex on ship heap
+
  LDX #3
 
 .EXL3                   ; counter X, K3 loaded with reversed vertex from heap.
+
  INY                    ; Y++ = 7 start is a vertex on ship heap
  LDA (XX19),Y
  STA K3,X               ; Yorg hi,lo, Xorg hi,lo
@@ -12787,6 +13150,7 @@ MAPCHAR '4', '4'
  LDY #2
 
 .EXL2                   ; inner counter Y to set rnd for each vertex
+
  INY                    ; Y++ = 3 start, the 4 randoms on ship heap.
  LDA (XX19),Y
  EOR CNT                ; rnd seeded for each vertex CNT
@@ -12796,6 +13160,7 @@ MAPCHAR '4', '4'
  LDY U                  ; number of pixels per vertex
 
 .EXL4                   ; counter Y for pixels at each (reversed) vertex in K3
+
  JSR DORND2             ; leave bit0 of RAND+2 at 0
  STA ZZ                 ; restricted pixel depth
  LDA K3+1               ; Yorg lo
@@ -12815,6 +13180,7 @@ MAPCHAR '4', '4'
  JSR PIXEL              ; at (X,Y1) ZZ away
 
 .EX4                    ; skipped pixel
+
  DEY                    ; loop Y
  BPL EXL4               ; next pixel at vertex
  LDY CNT                ; reload index for vertex on ship heap
@@ -12828,10 +13194,12 @@ MAPCHAR '4', '4'
  RTS
 
 .EX11                   ; skipped pixel as Y too big, but new rnd
+
  JSR DORND2             ; new restricted rnd
  JMP EX4                ; skipped pixel, up.
 
 .EXS1                   ; Xlo.Ahi = Rlo.Ahi+/-rnd*Q
+
  STA S                  ; store origin hi
  JSR DORND2             ; restricted rnd, carry.
  ROL A                  ; rnd hi
@@ -12844,6 +13212,7 @@ MAPCHAR '4', '4'
  RTS
 
 .EX5                    ; rnd hi negative
+
  JSR FMLTU              ; A=A*Q/256unsg
  STA T
  LDA R
@@ -12931,6 +13300,7 @@ MAPCHAR '4', '4'
  LDY NOSTM              ; number of dust particles
 
 .SAL4                   ; counter Y
+
  JSR DORND              ; do random, new A, X.
  ORA #8                 ; flick out in z
  STA SZ,Y               ; dustz
@@ -12957,6 +13327,7 @@ MAPCHAR '4', '4'
  LDX #0
 
 .WSL1                   ; outer counter X
+
  LDA FRIN,X             ; the Type for each of the 12 ships allowed
  BEQ WS2                ; exit as Nothing
  BMI WS1                ; loop as Planet or Sun
@@ -12965,6 +13336,7 @@ MAPCHAR '4', '4'
  LDY #31                ; load some INWK from (INF)
 
 .WSL2                   ; inner counter Y
+
  LDA (INF),Y
  STA INWK,Y
  DEY                    ; next byte of univ inf to inwk
@@ -12978,10 +13350,12 @@ MAPCHAR '4', '4'
  STA (INF),Y            ; keep bits 7,5,2,1,0 (kill,exploding,missiles)
 
 .WS1                    ; loop as Planet or Sun
+
  INX                    ; next nearby slot
  BNE WSL1               ; outer loop X
 
 .WS2                    ; exit as Nothing
+
  LDX #&FF               ; clear line buffers
  STX LSX2               ; lines X2
  STX LSY2               ; lines Y2
@@ -12999,6 +13373,7 @@ MAPCHAR '4', '4'
  LDA #0                 ; clear each line
 
 .SAL6                   ; counter Y
+
  STA LSO,Y              ; line buffer solar
  DEY                    ; fill next line with zeros
  BNE SAL6               ; loop Y
@@ -13102,6 +13477,7 @@ MAPCHAR '4', '4'
  RTS
 
 .LL163                  ; flip sign of X
+
  LDY #&FF               ; hi -ve
  TXA                    ; 7bits
  EOR #&FF
@@ -13121,6 +13497,7 @@ MAPCHAR '4', '4'
  LDX #8                 ; 9 coords
 
 .SPL1                   ; counter X
+
  LDA K%+NI%,X           ; allwk+37,X
  STA K3,X
  DEX                    ; next coord
@@ -13207,6 +13584,7 @@ MAPCHAR '4', '4'
  LDA Y1                 ; yscreen
 
 \.CPIX
+
  TAY                    ; build screen page
  LSR A
  LSR A                  ; upper 5 bits
@@ -13236,6 +13614,7 @@ MAPCHAR '4', '4'
  LDA CTWOS+1,X
 
 .CP1                    ; same column
+
  AND COL                ; the colour
  EOR (SC),Y
  STA (SC),Y
@@ -13262,11 +13641,13 @@ MAPCHAR '4', '4'
  RTS
 
 .OO2                    ; clamp forward at 0
+
 \LDX #0
  STX FSH                ; forward shield = 0
  BCC OO3                ; guaranteed, Shield gone
 
 .OO1                    ; Aft shield hit
+
  LDA ASH                ; aft shield = 0
  SBC T                  ; dent
  BCC OO5                ; clamp aft at 0
@@ -13274,10 +13655,12 @@ MAPCHAR '4', '4'
  RTS
 
 .OO5                    ; clamp aft at 0
+
 \LDX #0
  STX ASH                ; aft shield
 
 .OO3                    ; Shield gone
+
  ADC ENERGY             ; some energy added, wraps as small dent.
  STA ENERGY
  BEQ P%+4               ; if 0, DEATH
@@ -13399,6 +13782,7 @@ MAPCHAR '4', '4'
                         ; map below.
 
 .NWL1
+
  LDA FRIN,X             ; Load the ship type for the X-th slot
 
  BEQ NW1                ; If it is zero, then this slot is empty and we can use
@@ -13409,9 +13793,11 @@ MAPCHAR '4', '4'
  CPX #NOSH              ; If we haven't reached the last slot yet, loop back up
  BCC NWL1               ; to NWL1 to check the next slot
 
-.NW3                    ; Otherwise we don't have an empty slot, so we can't
- CLC                    ; add a new ship, so clear the carry flag to indicate
- RTS                    ; that we have not managed to create the new ship, and
+.NW3
+
+ CLC                    ; Otherwise we don't have an empty slot, so we can't
+ RTS                    ; add a new ship, so clear the carry flag to indicate
+                        ; that we have not managed to create the new ship, and
                         ; return from the subroutine
 
 .NW1                    ; If we get here, then we have found an empty slot at
@@ -13547,12 +13933,14 @@ MAPCHAR '4', '4'
                         ; carry flag and returns from the subroutine.
 
 .NW4
+
  LDA INWK+33            ; If we get here then we do have enough space for our
  STA SLSP               ; new ship, so store the new bottom of the ship lines
  LDA INWK+34            ; heap space (i.e. INWK+33) in SLSP, doing both the
  STA SLSP+1             ; high and low bytes
 
 .NW6
+
  LDY #14                ; Fetch ship definition byte #14, which contains the
  LDA (XX0),Y            ; ship's energy, and store it in INWK+35
  STA INWK+35
@@ -13565,6 +13953,7 @@ MAPCHAR '4', '4'
  LDA T                  ; Restore the ship type we stored above
 
 .NW2
+
  STA FRIN,X             ; Store the ship type in the X-th byte of FRIN, so the
                         ; this slot is now shown as occupied in the index table
  
@@ -13580,6 +13969,7 @@ MAPCHAR '4', '4'
                         ; in Y
 
 .NWL3
+
  LDA INWK,Y             ; Load the Y-th byte of INWK and store in the Y-th byte
  STA (INF),Y            ; of the workspace pointed to by INF
  
@@ -13747,6 +14137,7 @@ MAPCHAR '4', '4'
  LDY #5                 ; 5 strips
 
 .MBL1                   ; counter Y to build block
+
  STA (SC),Y
  DEY                    ; next strip
  BNE MBL1               ; loop Y
@@ -13836,12 +14227,14 @@ MAPCHAR '4', '4'
  STA K                  ; radius
 
 .PL82                   ; radius fits
+
  LDA TYPE               ; ship type
  LSR A                  ; sun has bit0 set
  BCC PL9                ; planet radius K
  JMP SUN                ; else Sun #&81 #&83 .. with radius Ks
 
 .PL9                    ; Planet radius K
+
  JSR WPLS2              ; wipe planet
  JSR CIRCLE             ; for planet
  BCS PL20               ; rts, else circle done
@@ -13849,9 +14242,11 @@ MAPCHAR '4', '4'
  BEQ PL25               ; planet on screen
 
 .PL20
+
  RTS
 
 .PL25                   ; Planet on screen
+
  LDA TYPE               ; ship type
  CMP #&80               ; Lave 2-rings is #&80
  BNE PL26               ; Other planet #&82 is crater
@@ -13885,6 +14280,7 @@ MAPCHAR '4', '4'
  JMP PLS2               ; Lave half ring, phase offset CNT2.
 
 .PL26                   ; crtr \ their comment \ Other planet e.g. #&82 has One crater.
+
  LDA INWK+20            ; rotmat1z hi
  BMI PL20               ; rts, crater on far side
 
@@ -13987,6 +14383,7 @@ MAPCHAR '4', '4'
  STX FLAG
 
 .PLL4                   ; counter CNT+= STP > TGT planet ring
+
  LDA CNT2               ; for arc
  AND #31                ; angle index
  TAX                    ; sine table
@@ -14044,6 +14441,7 @@ MAPCHAR '4', '4'
  STA T                  ; flip sum hi and continue
 
 .PL42                   ; hop xplus
+
  TXA                    ; sum x lo
  ADC K3                 ; xcenter lo
  STA K6                 ; xfinal lo
@@ -14075,6 +14473,7 @@ MAPCHAR '4', '4'
  STA T                  ; flipped sum hi and continue, yfinal hi
 
 .PL43                   ; hop yplus
+
  JSR BLINE              ; ball line uses (X.T) as next y offset for arc
  CMP TGT                ; CNT+= STP > TGT
  BEQ P%+4               ; = TGT, next.
@@ -14087,6 +14486,7 @@ MAPCHAR '4', '4'
  JMP PLL4               ; loop planet ring
 
 .PL40
+
  RTS                    ; end Crater ring
 }
 
@@ -14149,6 +14549,7 @@ MAPCHAR '4', '4'
  ROL A                  ; extent of fringes set
 
 .PLF18
+
  STA CNT                ; bits are extent of fringes
  LDA #2*Y-1             ; 2*#Y-1 is Yscreen
  LDX P+2
@@ -14160,6 +14561,7 @@ MAPCHAR '4', '4'
  LDA #1                 ; else Acc=1 is bottom end of Yscreen
 
 .PLF2                   ; big height
+
  STA TGT                ; top of screen for Y height
  LDA #2*Y-1             ; #2*Y-1 is Yscreen
  SEC                    ; subtract
@@ -14176,6 +14578,7 @@ MAPCHAR '4', '4'
  BCC PLF5               ; if ylo < radius then ready to run down
 
 .PLF4                   ; height is full radius
+
  LDX K                  ; counter V height is radius
  LDA #0                 ; fringe flag will run down
 }
@@ -14203,6 +14606,7 @@ MAPCHAR '4', '4'
  STA YY+1               ; hi
 
 .PLFL2                  ; counter Y down erase top Disc
+
  CPY TGT                ; Yheight top reached?
  BEQ PLFL               ; exit to Start, Y height = TGT top.
  LDA LSO,Y
@@ -14210,10 +14614,12 @@ MAPCHAR '4', '4'
  JSR HLOIN2             ; line X1,X2 using YY as mid-point, Acc is half-width
 
 .PLF13                  ; skipped line drawing
+
  DEY                    ; erase top Disc
  BNE PLFL2              ; loop Y
 
 .PLFL                   ; exited as reached Start. Y = TGT, counter V height. Work out extent.
+
  LDA V                  ; counter height
  JSR SQUA2              ; P.A =A*A unsigned
  STA T                  ; squared height hi
@@ -14235,6 +14641,7 @@ MAPCHAR '4', '4'
  LDA #&FF               ; fringe max extent
 
 .PLF44                  ; fringes not saturated
+
  LDX LSO,Y
  STA LSO,Y
  BEQ PLF11              ; updated extent, if zero No previous old line
@@ -14263,15 +14670,18 @@ MAPCHAR '4', '4'
  JSR HLOIN              ; horizontal line X1,Y1,X2  Left fringe
 
 .PLF23                  ; also No new line
+
  LDA XX                 ; old left or new right
  STA X1
  LDA XX+1               ; old right
  STA X2
 
 .PLF16                  ; Draw New line, also from PLF11
+
  JSR HLOIN              ; horizontal line X1,Y1,X2  Whole old, or new Right fringe.
 
 .PLF6                   ; tail Next line
+
  DEY                    ; next height Y
  BEQ PLF8               ; Exit Sun fill
  LDA V+1                ; if flag already set
@@ -14281,9 +14691,11 @@ MAPCHAR '4', '4'
  DEC V+1                ; finished down, set flag to go other way.
 
 .PLFLS                  ; loop back to Work out extent
+
  JMP PLFL               ; loop V back, Work out extent.
 
 .PLF11                  ; No previous old line at Y1 screen
+
  LDX K3                 ; Xcenter
  STX YY                 ; new mid-point
  LDX K3+1
@@ -14295,6 +14707,7 @@ MAPCHAR '4', '4'
  BEQ PLF6               ; guaranteed, tail Next line up
 
 .PLF10                  ; V flag set to take height back up to radius K
+
  LDX V                  ; counter height
  INX                    ; next
  STX V
@@ -14307,15 +14720,18 @@ MAPCHAR '4', '4'
  STA YY+1               ; hi
 
 .PLFL3                  ; rest of counter Y screen line
+
  LDA LSO,Y
  BEQ PLF9               ; no fringe, skip draw line
  JSR HLOIN2             ; line X1,X2 using YY as mid-point, Acc is half-width
 
 .PLF9                   ; skipped erase line
+
  DEY                    ; rest of screen
  BNE PLFL3              ; loop Y erase bottom Disc
 
 .PLF8                   ; Exit Planet fill
+
  CLC                    ; update mid-point of line
  LDA K3
  STA SUNX
@@ -14358,6 +14774,7 @@ MAPCHAR '4', '4'
  LSR A                  ; bigger circles get smaller step
 
 .PL89                   ; small
+
  STA STP                ; step for ring
 }
 
@@ -14375,6 +14792,7 @@ MAPCHAR '4', '4'
  STX CNT
 
 .PLL3                   ; counter CNT  until = 64
+
  LDA CNT
  JSR FMLTU2             ; Get K*sin(CNT) in Acc
  LDX #0                 ; hi
@@ -14392,6 +14810,7 @@ MAPCHAR '4', '4'
  CLC
 
 .PL37                   ; right-half of circle, Acc = xlo
+
  ADC K3                 ; Xorg
  STA K6                 ; K3(0) + Acc  = lsb of X for bline
  LDA K3+1               ; hi
@@ -14420,6 +14839,7 @@ MAPCHAR '4', '4'
  CLC
 
 .PL38                   ; skipped Y flip
+
  JSR BLINE              ; ball line uses (X.T) as next y
  CMP #65                ; > #64?
  BCS P%+5               ; hop to exit
@@ -14440,6 +14860,7 @@ MAPCHAR '4', '4'
  BNE WP1                ; Avoid lines down
 
 .WPL1                   ; counter Y starts at 0
+
  CPY LSP
  BCS WP1                ; arc step reached, exit to Avoid lines.
  LDA LSY2,Y             ; buffer Ycoords
@@ -14460,6 +14881,7 @@ MAPCHAR '4', '4'
  JMP WPL1               ; loop Y through buffer
 
 .WP2                    ; flagged move into X1,Y1
+
  INY                    ; next vertex
  LDA LSX2,Y
  STA X1
@@ -14469,6 +14891,7 @@ MAPCHAR '4', '4'
  JMP WPL1               ; loop Y through buffer
 
 .WP1                    ; Avoid lines, used by wipe planet code
+
  LDA #1
  STA LSP                ; arc step
  LDA #&FF
@@ -14493,6 +14916,7 @@ MAPCHAR '4', '4'
  LDY #2*Y-1             ; #2*Y-1 = Yscreen top
 
 .WPL2                   ; counter Y
+
  LDA LSO,Y
  BEQ P%+5               ; skip hline2
  JSR HLOIN2             ; line using YY as mid-point, A is half-width.
@@ -14533,6 +14957,7 @@ MAPCHAR '4', '4'
  RTS                    ; X1 and X2 now known
 
 .ED3                    ; left underflow
+
  BPL ED1                ; X1 left under flow, dont draw.
  LDA #2                 ; else saturate left
  STA X1
@@ -14540,6 +14965,7 @@ MAPCHAR '4', '4'
  RTS
 
 .ED1                    ; right overflow, also left dont draw
+
  LDA #0                 ; clear line buffer solar
  STA LSO,Y
  SEC                    ; dont draw
@@ -14569,6 +14995,7 @@ MAPCHAR '4', '4'
  BNE PL21               ; underflow to left, sec rts
 
 .PL31                   ; Xrange ok
+
  LDA K4                 ; Yorg
  CLC
  ADC K                  ; radius
@@ -14626,6 +15053,7 @@ MAPCHAR '4', '4'
  RTS
 
 .PL12                   ; +ve
+
  LDY #0
  RTS
 }
@@ -14737,6 +15165,7 @@ MAPCHAR '4', '4'
  LDA JSTY
 
 .TJS1                   ; Acc scaled to -2 to +2 for 0 to FF
+
  TAY                    ; JST X Y
  LDA #0
  CPY #&10               ; set C if Y>= #&10
@@ -14756,6 +15185,7 @@ MAPCHAR '4', '4'
  RTS
 
 .TJ1                    ; Arrows from keyboard
+
  LDA KL                 ; keyboard logger
  LDX #0
  LDY #0
@@ -14788,6 +15218,7 @@ MAPCHAR '4', '4'
                         ; copy two bytes
 
 .pl1
+
  LDA QQ0,X              ; Load byte X from the current system in QQ0/QQ1
 
  STA QQ9,X              ; Store byte X in the target system in QQ9/QQ10
@@ -14879,6 +15310,7 @@ LOAD_F% = LOAD% + P% - CODE%
  LDX #&FF
 
 .KSL4                   ; counter X
+
  INX                    ; starts at X=0
  LDA FRIN,X             ; nearby ship types
  BEQ KS3                ; exit as end found, up temp P correct.
@@ -14907,6 +15339,7 @@ LOAD_F% = LOAD% + P% - CODE%
  BNE KSL4               ; guaranteed loop X
 
 .KS6                    ; found missile X with kill target XX4
+
  LDA #0                 ; missile dumb, no attack target.
  STA (SC),Y
  BEQ KSL4               ; guaranteed loop X
@@ -14931,6 +15364,7 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR MESS               ; message and rejoin
 
 .KS5                    ; dstar
+
  LDY XX4                ; kill target slot id
  LDX FRIN,Y             ; target ship type
  CPX #SST               ; #SST space station?
@@ -14950,6 +15384,7 @@ LOAD_F% = LOAD% + P% - CODE%
  STA P+1
 
 .KSL1                   ; counter X shuffle higher ships down
+
  INX                    ; above target id
  LDA FRIN,X             ; nearby ship types
  STA FRIN-1,X           ; down one
@@ -14993,6 +15428,7 @@ LOAD_F% = LOAD% + P% - CODE%
  DEY                    ; #32 = rest of inwk, ai downwards.
 
 .KSL2                   ; counter Y
+
  LDA (SC),Y
  STA (INF),Y
  DEY                    ; next inwk byte
@@ -15004,6 +15440,7 @@ LOAD_F% = LOAD% + P% - CODE%
  LDY T                  ; maxlines for ship heap after XX4 counter
 
 .KSL3                   ; counter Y
+
  DEY                    ; move entries
  LDA (K),Y              ; on old heap to
  STA (P),Y              ; new temp heap
@@ -15065,6 +15502,7 @@ LOAD_F% = LOAD% + P% - CODE%
  LDX #6                 ; Set up a counter for zeroing BETA through BETA+6
 
 .SAL3
+
  STA BETA,X             ; Zero the X-th byte after BETA         
 
  DEX                    ; Decrement the loop counter
@@ -15095,6 +15533,7 @@ LOAD_F% = LOAD% + P% - CODE%
                         ; up a counter in X to index these three bytes
 
 .REL5
+
  STA FSH,X              ; Set the X-th byte in the FSH block to &FF
 
  DEX                    ; Decrement the loop counter
@@ -15153,9 +15592,10 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR ECMOF              ; Turn off the E.C.M. sound
 
 .yu
+
  JSR WPSHPS             ; Wipe all ships from the scanner
 
- JSR ZERO               ; Zero-fill pages &9, &A, &B, &C and &D.
+ JSR ZERO               ; Zero-fill pages &9, &A, &B, &C and &D
 
  LDA #LO(WP-1)          ; Reset the ship lines pointer to be empty, so point
  STA SLSP               ; SLSP to the byte before the WP workspace
@@ -15182,6 +15622,7 @@ LOAD_F% = LOAD% + P% - CODE%
  LDA #0                 ; Set A to 0 so we can zero-fill the workspace
 
 .ZI1
+
  STA INWK,Y             ; Zero the Y-th byte of the INWK workspace
 
  DEY                    ; Decrement the loop counter
@@ -15234,6 +15675,7 @@ LOAD_F% = LOAD% + P% - CODE%
  LDX #4                 ; number of missile blocks
 
 .ss                     ; counter X
+
  CPX NOMSL              ; compare Xreg to number of missiles
  BEQ SAL8               ; remaining missiles are green
  LDY #0                 ; else black bar
@@ -15243,6 +15685,7 @@ LOAD_F% = LOAD% + P% - CODE%
  RTS
 
 .SAL8                   ; remaining missiles are green, counter X
+
  LDY #&EE               ; green
  JSR MSBAR              ; draw missile block Xreg
  DEX                    ; next missile
@@ -15371,6 +15814,7 @@ LOAD_F% = LOAD% + P% - CODE%
  BEQ P%+5               ; rarely do spawning, test misjump
 
 .ytq                    ; jmp mloop, yet to quit.
+
  JMP MLOOP              ; usually down to clear stack, look at keys, up TT100.
  LDA MJ                 ; mis-jump
  BNE ytq                ; if stuck in witchspace, jmp mloop
@@ -15407,10 +15851,12 @@ LOAD_F% = LOAD% + P% - CODE%
  BCC MTT3               ; guaranteed, speed done for junk
 
 .MTT2                   ; 50% prob no speed, max spin
+
  ORA #127               ; max rotation, no damping, only sign clock/anti random.
  STA INWK+30            ; rotz counter pitch
 
 .MTT3                   ; speed done for junk
+
  JSR DORND              ; do random, new A, X.
  CMP #5                 ; likely carry set 95% of time.
  LDA #AST               ; Asteroid
@@ -15419,6 +15865,7 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR NWSHP              ; new ship type Acc
 
 .MTT1                   ; 80% of the time or junk >= 3, or in SS range.
+
  LDA SSPR
  BNE MLOOP              ; main loop if not in deep space
                         ; In deep space
@@ -15448,6 +15895,7 @@ LOAD_F% = LOAD% + P% - CODE%
  BCC MLOOP              ; main loop likely for large governments
 
 .LABEL_2
+
  JSR Ze                 ; Zero for new ship, new inwk coords, ends with dornd and T1 = rnd too.
  CMP #200               ; Arnd >= 200 ?
  BCS mt1                ; likely Pirates
@@ -15466,14 +15914,17 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR NWSHP              ; New Ship type Acc
 
 .mj1                    ; main loop jump
+
  JMP MLOOP              ; Main Loop
 
 .mt1                    ; Pirates
+
  AND #3                 ; rnd 0to3
  STA EV                 ; extra vessels, delay further spawnings.
  STA XX13               ; pirate counter
 
 .mt3                    ; counter XX13 ships needed
+
  JSR DORND              ; do random, new A, X.
  AND #3
  ORA #1                 ; Sidewinder or Mamba
@@ -15500,6 +15951,7 @@ LOAD_F% = LOAD% + P% - CODE%
  DEC GNTMP
 
 .EE20                   ; cold laser
+
  JSR DIALS              ; update flight console
  LDA QQ11               ; menu i.d.
  BEQ P%+11              ; if space view skip small delay and visit TT17
@@ -15580,6 +16032,7 @@ LOAD_F% = LOAD% + P% - CODE%
  JMP TT25               ; DATA on system
 
 .TT92                   ; switchyard continue
+
  CMP #f9                ; red key #f9
  BNE P%+5
  JMP TT213              ; Inventory
@@ -15591,6 +16044,7 @@ LOAD_F% = LOAD% + P% - CODE%
  JMP TT110              ; else Launch ship decision
 
 .fvw                    ; forward view not
+
  BIT QQ12
  BPL INSP
  CMP #f3                ; red key #f3
@@ -15609,6 +16063,7 @@ LOAD_F% = LOAD% + P% - CODE%
  JMP TT208              ; Sell cargo
 
 .INSP
+
  CMP #&71               ; red key #f1
  BCC LABEL_3
  CMP #&74               ; red key #f5
@@ -15618,6 +16073,7 @@ LOAD_F% = LOAD% + P% - CODE%
  JMP LOOK1              ; Start view X
 
 .LABEL_3
+
  CMP #&54               ; key 'H'
  BNE P%+5               ; not H else can't hyperspace whilst docked
  JMP hyp                ; hyperspace start, key H hit.
@@ -15637,9 +16093,11 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR TT103              ; draw small cross hairs at target hyperspace system
 
 .ee2                    ; not O
+
  JSR TT16               ; Xreg and Yreg values used to shift cross-hairs on charts by
 
 .TT107                  ; run Countdown
+
  LDA QQ22+1             ; outer hyperspace countdown
  BEQ t95                ; rts
  DEC QQ22               ; inner-countdown
@@ -15656,9 +16114,11 @@ LOAD_F% = LOAD% + P% - CODE%
  JMP TT18               ; else HSPC Countdown finished, (try) go through Hyperspace.
 
 .t95                    ; rts
+
  RTS
 
 .T95                    ; 'D' pressed, Distance to system
+
  LDA QQ11
  AND #192               ; short or long range chart?
  BEQ t95                ; no, rts
@@ -15716,6 +16176,7 @@ LOAD_F% = LOAD% + P% - CODE%
  CMP INWK+7             ; zhi
 
 .MA34                   ; rts
+
  RTS
 }
 
@@ -15757,6 +16218,7 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR ex                 ; extra tokens
 
 .D1                     ; counter  FRIN+4 empty
+
  JSR Ze                 ; Zero for new ship, new inwk coords
  LSR A                  ; ends with dornd and T1 = rnd too. /=2
  LSR A                  ; Arnd 63 max
@@ -15794,6 +16256,7 @@ LOAD_F% = LOAD% + P% - CODE%
  STA DELTA              ; speed
 
 .D2                     ; counter LASCT laser count
+
  JSR M%                 ; M% block A. Some flight controls
  LDA LASCT              ; laser count was reduced in M%
  BNE D2                 ; loop
@@ -15902,6 +16365,7 @@ LOAD_F% = LOAD% + P% - CODE%
                         ; for the NT% bytes that we want to copy.
 
 .QUL1
+
  LDA NA%+7,X            ; Copy the X-th byte of NA%+7 to the X-th byte of TP-1,
  STA TP-1,X             ; (the -1 is because X is counting down from NT% to 1)
 
@@ -15955,6 +16419,7 @@ ENDIF
  ORA #128               ; Set bit 7 of A
 
 .tZ
+
  ORA #2                 ; Set bit 1 of A
 
  STA COK                ; Store the competition code A in COK
@@ -16071,6 +16536,7 @@ ENDIF
  JSR TT27
 
 .awe
+
  JSR CLYNS              ; Clear some screen rows, exists with Y = 0
 
  STY DELTA              ; Set DELTA = 0 (i.e. ship speed = 0)
@@ -16087,6 +16553,7 @@ ENDIF
  JSR ex
 
 .TLL2
+
  LDA INWK+7             ; If z_hi (the ship's distance) is 1, jump to TL1 to
  CMP #1                 ; skip the following decrement
  BEQ TL1
@@ -16095,6 +16562,7 @@ ENDIF
                         ; a bit closer to us
 
 .TL1
+
  JSR MVEIT              ; Move the ship in space according to the rotation
                         ; matrix and the new value in z_hi
 
@@ -16130,6 +16598,7 @@ ENDIF
  RTS                    ; Return from the subroutine
 
 .TL2
+
  DEC JSTK               ; Joystick fire button was pressed, so set JSTK to &FF
                         ; (it was set to 0 above), to disable keyboard and
                         ; enable joysticks
@@ -16164,6 +16633,7 @@ ENDIF
                         ; count)
 
 .QUL2
+
  ADC NA%+7,X            ; Add the X-1-th byte of the data block to A, plus
                         ; carry
 
@@ -16187,6 +16657,7 @@ ENDIF
  LDX #7                 ; 8 chars max
 
 .GTL1                   ; counter X
+
  LDA INWK,X             ; INWK+5,X
  STA NA%,X
  DEX                    ; next char
@@ -16204,6 +16675,7 @@ ENDIF
  LDX #7                 ; 8 chars max
 
 .GTL2                   ; counter X
+
  LDA NA%,X
  STA INWK,X
  DEX
@@ -16266,6 +16738,7 @@ ENDIF
  LDX #&D                ; Point X to page &D
 
 .ZEL
+
  JSR ZES1               ; Call ZES1 below to zero-fill the page in X
 
  DEX                    ; Decrement X to point to the next page
@@ -16325,6 +16798,7 @@ ENDIF
                         ; SC+1 is now pointing to the SC-th byte of page X
 
 .ZEL1
+
  STA (SC),Y             ; Zero the Y-th byte of the block pointed to by SC,
                         ; so that's effectively the Y-th byte before SC
 
@@ -16350,6 +16824,7 @@ ENDIF
  LDX #NT%
 
 .SVL1                   ; counter X
+
  LDA TP,X               ; TP,X from Page &3 to
  STA &B00,X             ; Page &0B
  STA NA%+8,X            ; Page &11
@@ -16430,6 +16905,7 @@ ENDIF
  LDX #NT%
 
 .LOL1                   ; counter X \ copy &B00 onwards to NA%+8 onwards
+
  LDA &B00,X             ; page &B
  STA NA%+8,X
  DEX
@@ -16487,6 +16963,7 @@ ENDIF
  ORA K3+7               ; z hi
 
 .TAL2                   ; roll Acc = xyz  hi
+
  ASL K3+9               ; all lo max
  ROL A                  ; all hi max
  BCS TA2                ; exit when xyz hi*=2 overflows
@@ -16499,6 +16976,7 @@ ENDIF
  BCC TAL2               ; loop roll Acc xyz hi
 
 .TA2                    ; exited, Build XX15(0to2) from (raw) K3(1to8)
+
  LDA K3+1               ; xhi
  LSR A                  ; clear bit7 for sign
  ORA K3+2               ; xsg
@@ -16588,6 +17066,7 @@ ENDIF
  LDX #16                ; Start the scan with internal key number 16 (Q)
 
 .Rd1
+
  JSR DKS4               ; Scan the keyboard to see if the key in X is currently
                         ; being pressed
 
@@ -16604,6 +17083,7 @@ ENDIF
                         ; into A so that X = A = 128
 
 .Rd2
+
  EOR #128               ; EOR A with 128, to switch off bit 7, so A now
                         ; contains 0 if no key has been pressed, or the
                         ; internal key number if it has been pressed
@@ -16751,6 +17231,7 @@ ENDIF
  LDX #7                 ; 4 words
 
 .NOL1                   ; counters X,Y
+
  LDA #0                 ; upper byte
  STA XX16,X
  DEX                    ; Sound parameter block
@@ -17003,6 +17484,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  LDY T                  ; Restore the configuration key argument into Y
 
 .Dk3
+
  RTS                    ; Return from the subroutine
 }
 
@@ -17080,6 +17562,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
                         ; don't use the key logger)
 
 .DKL3
+
  STA KL,Y               ; Store 0 in the Y-th byte of the key logger
 
  DEY                    ; Decrement the counter
@@ -17121,6 +17604,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
                         ; counter in Y so we can loop through all 7
 
 .DKL2
+
  JSR DKS1               ; Call DKS1 to see if the KYTB key at offset Y is being
                         ; pressed, and set the key logger accordingly
 
@@ -17206,6 +17690,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  STA DNOIZ              ; sound on
 
 .DK6
+
  LDY #&40               ; We now want to loop through the keys that toggle
                         ; various settings. These have internal key numbers
                         ; between &40 (Caps Lock) and &46 (K), so we set up the
@@ -17213,6 +17698,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
                         ; subroutine DKS3 for more details on this.
 
 .DKL4
+
  JSR DKS3               ; Call DKS3 to scan for the key given in Y, and toggle
                         ; the relevant setting if it is pressed
 
@@ -17224,6 +17710,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  BNE DKL4               ; If not, loop back to check for the next toggle key
 
 .DK55
+
  CPX #&10               ; If Q is not being pressed, skip to DK7
  BNE DK7
 
@@ -17231,6 +17718,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
                         ; non-zero (&10), so this will turn the sound off
 
 .DK7
+
  CPX #&70               ; If Escape is not being pressed, skip over the next
  BNE P%+5               ; instruction
 
@@ -17243,6 +17731,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
                         ; key detection code, which unpauses the game
 
 .DK2
+
  LDA QQ11               ; If the current view is non-zero (i.e. not a space
  BNE DK5                ; view), return from the subroutine (via DK5, which
                         ; contains an RTS)
@@ -17258,6 +17747,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
                         ; logger for keys that are being pressed
 
 .DKL1
+
  LDX KYTB,Y             ; Get the internal key value of the Y-th flight key
                         ; the KYTB keyboard table
 
@@ -17271,6 +17761,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
                         ; key's location in the key logger to &FF
 
 .DK1
+
  DEY                    ; Decrement the loop counter
 
  CPY #7                 ; Have we just done the last key?
@@ -17278,6 +17769,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  BNE DKL1               ; If not, loop back to process the next key
 
 .DK5
+
  RTS                    ; Return from subroutine
 }
 
@@ -17306,6 +17798,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
                         ; later
 
 .t
+
  JSR DELAY-5            ; Delay for 8 line scans, so we don't take up too much
                         ; CPU time while looping round
 
@@ -17316,6 +17809,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
                         ; key is released
 
 .t2
+
  JSR RDKEY              ; Any pre-existing key press is now gone, so we can
                         ; start scanning the keyboard again, starting from Q
 
@@ -17334,6 +17828,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  TAX                    ; Copy A into X
 
 .^out
+
  RTS                    ; Return from the subroutine
 }
 
@@ -17419,6 +17914,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  BNE MESS               ; guaranteed up, Message start.
 
 .ou1                    ; equipment Lost
+
  BEQ ou2                ; equipment lost is X=17 ecm, up.
  CPX #18                ; equipment item is 
  BEQ ou3                ; fuel scoops, up.
@@ -17576,6 +18072,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  LDX #14                ; except 2z's
 
 .TIL1                   ; counter X
+
  STA INWK+9,X
  DEX                    ; +23 and down
  DEX                    ; skip hi's
@@ -17593,6 +18090,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  STX T
 
 .TIL2                   ; roll T
+
  ASL A
  CMP Q
  BCC P%+4               ; skip sbc
@@ -17613,6 +18111,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  RTS
 
 .TI4                    ; clean to +/- unity
+
  TYA                    ; copy of Acc
  AND #128               ; sign
  ORA #96                ; +/- unity
@@ -17666,6 +18165,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  LSR Q                  ; lose sign bit, clear carry
 
 .DVL2                   ; counter X
+
  ROL A
  CMP Q
  BCC P%+4               ; skip sbc
@@ -17785,6 +18285,7 @@ LOAD_G% = LOAD% + P% - CODE%
  STA T
 
 .LL6                    ; counter T
+
  CPX Q
  BCC LL7                ; no carry
  BNE LL8                ; hop ne
@@ -17792,6 +18293,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BCC LL7                ; no carry
 
 .LL8                    ; hop ne
+
  TYA
  SBC #&40
  TAY                    ; new hi
@@ -17800,6 +18302,7 @@ LOAD_G% = LOAD% + P% - CODE%
  TAX                    ; maybe carry into
 
 .LL7                    ; no carry
+
  ROL Q                  ; result
  ASL S                  ; maybe carry into Yreg
  TYA
@@ -17846,6 +18349,7 @@ LOAD_G% = LOAD% + P% - CODE%
  RTS                    ; R left with remainder of division
 
 .LL29                   ; Reduce
+
  SBC Q
  SEC
  ROL R
@@ -17876,6 +18380,7 @@ LOAD_G% = LOAD% + P% - CODE%
  RTS
 
 .LL39                   ; 1 byte subtraction (S)A = R-Q
+
  LDA R
  SEC
  SBC Q
@@ -17907,6 +18412,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDY #0
 
 .ll51                   ; counter X+=6 < 17  Y+=2
+
  LDA XX15               ; xmag
  STA Q
  LDA XX16,X
@@ -17999,6 +18505,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \STA XX1+32
 
 .EE55                   ; counter Y, 4 rnd bytes to edge heap
+
  INY                    ; #3 start
  JSR DORND
  STA (XX19),Y
@@ -18006,9 +18513,11 @@ LOAD_G% = LOAD% + P% - CODE%
  BNE EE55               ; loop Y
 
 .EE28                   ; bit5 set do explosion, or bit7 clear, dont kill.
+
  LDA XX1+8              ; sign of Z coord
 
 .EE49                   ; In view?
+
  BPL LL10               ; hop over as object in front
 }
 
@@ -18077,6 +18586,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BPL LL17               ; guaranteed hop to Draw wireframe
 
 .LL13                   ; hopped to as far
+
  LDY #13                ; Hull byte#13, distance point at which ship becomes a dot
  LDA (XX0),Y
  CMP XX1+7              ; dot_distance >= z_hi will leave carry set
@@ -18087,9 +18597,11 @@ LOAD_G% = LOAD% + P% - CODE%
  JMP SHPPT              ; else ship plot point, up.
 
 .LL17                   ; draw Wireframe (including nodes exploding)
+
  LDX #5                 ; load rotmat into XX16
 
 .LL15                   ; counter X
+
  LDA XX1+21,X
  STA XX16,X
  LDA XX1+15,X
@@ -18103,6 +18615,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDY #16
 
 .LL21                   ; counter Y -=2
+
  LDA XX16,Y             ; XX16+0,Y
  ASL A                  ; get carry, only once.
  LDA XX16+1,Y
@@ -18116,6 +18629,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDX #8                 ; load craft coords into XX18
 
 .ll91                   ; counter X
+
  LDA XX1,X
  STA XX18,X
  DEX
@@ -18134,6 +18648,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA #&FF               ; all faces visible
 
 .EE30                   ; counter X  for each face
+
  STA XX2,X
  DEX
  BPL EE30               ; loop X
@@ -18141,9 +18656,11 @@ LOAD_G% = LOAD% + P% - CODE%
  STX XX4                ; visibility = 0
 
 .LL41                   ; visibilities now set in XX2,X Transpose matrix.
+
  JMP LL42               ; jump to transpose matrix
 
 .EE29                   ; only Some visible  Yreg =Hull byte12, normals*4
+
  LDA (XX0),Y
  BEQ LL41               ; if no normals, visibilities now set in XX2,X Transpose matrix.
  STA XX20               ; normals*4
@@ -18154,6 +18671,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA XX18+7             ; z_hi
 
 .LL90                   ; scaling object distance
+
  TAY                    ; z_hi
  BEQ LL91               ; object close/small, hop
  INX                    ; repeat INWK z brought closer, take X up
@@ -18167,6 +18685,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BNE LL90+3             ; again as z_hi too big
 
 .LL91                   ; object close/small
+
  STX XX17               ; keep Scale required
  LDA XX18+8             ; last member of INWK copied over
  STA XX15+5             ; zsign 6 members
@@ -18206,6 +18725,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDY #0                 ; byte#0 of normal
 
 .LL86                   ; counter Y/4 go through all normals
+
  LDA (V),Y
  STA XX12+1             ; byte#0
  AND #31                ; lower 5 bits are face visibility
@@ -18223,6 +18743,7 @@ LOAD_G% = LOAD% + P% - CODE%
  JMP LL88               ; to near end of normal's visibility loop
 
 .LL87                   ; normal visibility>= XX4
+
  LDA XX12+1             ; byte#0 of normal
  ASL A                  ; get sign y
  STA XX12+3
@@ -18242,6 +18763,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BCC LL92               ; scale required is Quite close
 
 .LL143                  ; Face offset<<PV \ their comment \ far enough away, use XX18.
+
  LDA XX18               ; xlo
  STA XX15
  LDA XX18+2             ; xsg
@@ -18257,12 +18779,14 @@ LOAD_G% = LOAD% + P% - CODE%
  JMP LL89               ; XX15(6) ready, down to START.
 
 .ovflw                  ; overflow from below, reduce xx18+0,3,6
+
  LSR XX18               ; x_lo/2
  LSR XX18+6             ; z_lo/2
  LSR XX18+3             ; y_lo/2
  LDX #1                 ; scale finished
 
 .LL92                   ; arrive if Quite close, with scale in Xreg.  Normals translate.
+
  LDA XX12               ; xnormal lo
  STA XX15
  LDA XX12+2             ; ynormal lo
@@ -18270,6 +18794,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA XX12+4             ; znormal lo
 
 .LL93
+
  DEX                    ; scale--
  BMI LL94               ; exit, Scale done.
  LSR XX15               ; counter X
@@ -18279,6 +18804,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BPL LL93+3             ; loop to lsr xx15
 
 .LL94                   ; Scale done.
+
  STA R                  ; znormal  XX15+4
  LDA XX12+5             ; zsg
  STA S                  ; z_hi to translate
@@ -18319,7 +18845,8 @@ LOAD_G% = LOAD% + P% - CODE%
  STA XX15+3             ; ysg
 
 .LL89                   ; START also arrive from LL143  Face offset<<PV  XX15(6) ready
-                        ; Calculate 3D dot product  XX12 . XX15 for (x,y,z) 
+                        ; Calculate 3D dot product  XX12 . XX15 for (x,y,z)
+
  LDA XX12               ; xnormal lo
  STA Q
  LDA XX15
@@ -18362,12 +18889,14 @@ LOAD_G% = LOAD% + P% - CODE%
  INY                    ; Y now taken up by a total of 4
 
 .LL88                   ; near end of normals visibility loop
+
  CPY XX20               ; number of normals*4
  BCS LL42               ; If Y >= XX20 all normals' visibilities set, onto Transpose.
  JMP LL86               ; loop normals visibility Y
 
                         ; -- All normals' visibilities now set in XX2,X
 .LL42                   ; DO nodeX-Ycoords \ their comment  \  TrnspMat
+
  LDY XX16+2             ; Transpose Matrix
  LDX XX16+3
  LDA XX16+6
@@ -18463,6 +18992,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
                         ; This jump can only happen if got 4 zeros from XX2 normals visibility.
 .LL49                   ; Else vertex is visible, update info on XX3 node heap.
+
  LDA T                  ; 4th byte read for vertex, sign bits.
  STA XX15+1
  ASL A                  ; y sgn
@@ -18484,6 +19014,7 @@ LOAD_G% = LOAD% + P% - CODE%
  JMP LL53               ; Onto y
 
 .LL52                   ; -ve x sign
+
  LDA XX1                ; xorg lo
  SEC
  SBC XX12               ; rotated xnode lo
@@ -18504,6 +19035,7 @@ LOAD_G% = LOAD% + P% - CODE%
  STA XX15+2
 
 .LL53                   ; Both x signs arrive here, Onto y
+
  LDA XX1+5              ; y-sign
  STA XX15+5
  EOR XX12+3             ; rotated ynode hi
@@ -18518,6 +19050,7 @@ LOAD_G% = LOAD% + P% - CODE%
  JMP LL55               ; Onto z
 
 .LL54                   ; -ve y sign
+
  LDA XX1+3              ; yorg lo
  SEC
  SBC XX12+2             ; rotated ynode lo
@@ -18540,6 +19073,7 @@ LOAD_G% = LOAD% + P% - CODE%
  INC XX15+4
 
 .LL55                   ; Both y signs arrive here, Onto z
+
  LDA XX12+5             ; rotated znode hi
  BMI LL56               ; -ve Z node
  LDA XX12+4             ; rotated znode lo
@@ -18560,11 +19094,13 @@ LOAD_G% = LOAD% + P% - CODE%
 
                         ; Doing additions and scalings for each visible node around here
 .LL61                   ; Handling division R=A/Q for case further down
+
  LDX Q
  BEQ LL84               ; div by zero div error
  LDX #0
 
 .LL63                   ; roll Acc count Xreg
+
  LSR A
  INX                    ; counts required will be stored in S
  CMP Q
@@ -18575,6 +19111,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA R                  ; remainder
 
 .LL64                   ; counter Xreg
+
  ASL A                  ; lo boost
  ROL U                  ; hi
  BMI LL84               ; bit7 set, overflowed, div error
@@ -18584,12 +19121,14 @@ LOAD_G% = LOAD% + P% - CODE%
  RTS
 
 .LL84                   ; div error  R=U=#50
+
  LDA #50
  STA R
  STA U
  RTS
 
 .LL62                   ; Arrive from LL65 just below, screen for -ve RU onto XX3 heap, index X=CNT
+
  LDA #128               ; x-screen mid-point
  SEC                    ; xcoord lo
  SBC R
@@ -18601,6 +19140,7 @@ LOAD_G% = LOAD% + P% - CODE%
  JMP LL66               ; xccord shoved, go back down
 
 .LL56                   ; Enter XX12+5 -ve Z node case  from above
+
  LDA XX1+6              ; z org lo
  SEC
  SBC XX12+4             ; rotated z node lo
@@ -18615,12 +19155,14 @@ LOAD_G% = LOAD% + P% - CODE%
  BCS LL57               ; zlo big enough, Enter Node additions done.
 
 .LL140                  ; else make node close
+
  LDA #0                 ; hi
  STA U
  LDA #4                 ; lo
  STA T
 
 .LL57                   ; Enter Node additions done, z=T.U set up from LL55
+
  LDA U                  ; z hi
  ORA XX15+1             ; x hi
  ORA XX15+4             ; y hi
@@ -18634,6 +19176,7 @@ LOAD_G% = LOAD% + P% - CODE%
  JMP LL57               ; loop U
 
 .LL60                   ; hi U rolled to 0, exited loop above.
+
  LDA T
  STA Q                  ; zdist lo
  LDA XX15               ; rolled x lo
@@ -18643,9 +19186,11 @@ LOAD_G% = LOAD% + P% - CODE%
  JMP LL65               ; hop over small xangle
 
 .LL69                   ; small x angle
+
  JSR LL28               ; BFRDIV R=A*256/Q byte for remainder of division
 
 .LL65                   ; both continue for scaling based on z
+
  LDX CNT                ; index for XX3 heap
  LDA XX15+2             ; sign of X dist
  BMI LL62               ; up, -ve Xdist, RU screen onto XX3 heap
@@ -18659,6 +19204,7 @@ LOAD_G% = LOAD% + P% - CODE%
  STA XX3,X
 
 .LL66                   ; also from LL62, XX3 node heap has xscreen node so far.
+
  TXA                    ; Onto y coord
  PHA                    ; push XX3 heap pointer
  LDA #0                 ; y hi = 0
@@ -18673,6 +19219,7 @@ LOAD_G% = LOAD% + P% - CODE%
  JMP LL68               ; hop over small y yangle
 
 .LL70                   ; arrive from below, Yscreen for -ve RU onto XX3 node heap, index X=CNT
+
  LDA #Y                 ; #Y = #96 mid Yscreen \ also rts at LL70+1
  CLC                    ; ycoord lo to XX3 node heap
  ADC R                  ; yscaled
@@ -18684,9 +19231,11 @@ LOAD_G% = LOAD% + P% - CODE%
  JMP LL50               ; down XX3 heap has yscreen node
 
 .LL67                   ; Arrive from LL66 above if XX15+3 < Q \ small yangle
+
  JSR LL28               ; BFRDIV R=A*256/Q byte from remainder of division
 
 .LL68                   ; -> &4CF5 both carry on, also arrive from LL66, yscaled based on z
+
  PLA                    ; restore
  TAX                    ; XX3 heap index
  INX                    ; take XX3 heap index up
@@ -18702,6 +19251,7 @@ LOAD_G% = LOAD% + P% - CODE%
  STA XX3,X
 
 .LL50                   ; also from LL70, Also from  LL49-3. XX3 heap has yscreen, Next vertex.
+
  CLC                    ; reload XX3 heap index base
  LDA CNT
  ADC #4                 ; +=4, next 16bit xcoord,ycoord pair on XX3 heap
@@ -18715,6 +19265,7 @@ LOAD_G% = LOAD% + P% - CODE%
  JMP LL48               ; loop Y back to next vertex at transpose matrix
 
 .LL72                   ; XX3 node heap already loaded with 16bit xy screen
+
  LDA XX1+31             ; display/exploding state|missiles
  AND #32                ; bit5 of mask
  BEQ EE31               ; if zero no explosion
@@ -18724,6 +19275,7 @@ LOAD_G% = LOAD% + P% - CODE%
  JMP DOEXP              ; explosion
 
 .EE31                   ; no explosion
+
  LDA #8                 ; mask bit 3 set of
  BIT XX1+31             ; exploding/display state|missiles
  BEQ LL74               ; clear is hop to do New lines
@@ -18731,6 +19283,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA #8                 ; set bit3, as new lines
 
 .LL74                   ; do New lines
+
  ORA XX1+31
  STA XX1+31
  LDY #9                 ; Hull byte#9, number of edges
@@ -18787,6 +19340,7 @@ LOAD_G% = LOAD% + P% - CODE%
  STY U                  ; ship lines heap offset updated
 
 .LL170                  ; (laser not firing) \ Calculate new lines	\ their comment
+
  LDY #3                 ; Hull byte#3 edges lo
  CLC                    ; build base pointer
  LDA (XX0),Y
@@ -18802,6 +19356,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDY XX17               ; edge counter
 
 .LL75                   ; count Visible edges
+
  LDA (V),Y              ; edge data byte#0
  CMP XX4                ; visibility
  BCC LL78               ; edge not visible
@@ -18823,6 +19378,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BEQ LL78               ; edge not visible
 
 .LL79                   ; Visible edge
+
  LDA (V),Y              ; edge data byte#2
  TAX                    ; index into node heap for first node of edge
  INY                    ; Y = 3
@@ -18849,6 +19405,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BCS LL78               ; jmp LL78 edge not visible
 
 .LL80                   ; Shove visible edge onto XX19 ship lines heap counter U
+
  LDY U                  ; clipped edges heap index
  LDA XX15               ; X1
  STA (XX19),Y
@@ -18867,6 +19424,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BCS LL81               ; hop over jmp to Exit edge data loop
 
 .LL78                   ; also arrive here if Edge not visible, loop next data edge.
+
  INC XX17               ; edge counter
  LDY XX17
  CPY XX20               ; number of edges
@@ -18879,14 +19437,17 @@ LOAD_G% = LOAD% + P% - CODE%
  INC V+1
 
 .ll81                   ; skip inc hi
+
  JMP LL75               ; Loop Next Edge
 
 .LL81                   ; Exited edge data loop
+
  LDA U                  ; clipped ship lines heap index for (XX19),Y
  LDY #0                 ; first entry in ship edges heap is number of bytes
  STA (XX19),Y
 
 .LL155                  ; CLEAR LINEstr visited by EE31 when XX3 heap ready to draw/erase lines in XX19 heap.
+
  LDY #0                 ; number of bytes
  LDA (XX19),Y
  STA XX20               ; valid length of heap XX19
@@ -18895,6 +19456,7 @@ LOAD_G% = LOAD% + P% - CODE%
  INY                    ; #1
 
 .LL27                   ; counter Y, Draw clipped lines in XX19 ship lines heap
+
  LDA (XX19),Y
  STA XX15               ; X1
  INY
@@ -18938,6 +19500,7 @@ LOAD_G% = LOAD% + P% - CODE%
  TAX                    ; Xreg = 0, will skip to Ytrim
 
 .LL119                  ; x1 hi +ve from LL118
+
  BEQ LL134              ; if x1 hi = 0 skip to Ytrim
  STA S                  ; else x1 hi > 0
  DEC S                  ; x1 hi-1
@@ -18955,6 +19518,7 @@ LOAD_G% = LOAD% + P% - CODE%
  STX XX15+1             ; X1 hi
 
 .LL134                  ; Ytrim
+
  LDA XX15+3             ; y1 hi
  BPL LL135              ; y1 hi +ve
  STA S                  ; else y1 hi -ve
@@ -18984,6 +19548,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BCC LL136              ; failed, rts
 
 .LL139
+
  JSR LL123              ; X.Y=R.S*256/M (M=grad.)   \where 256/M is gradient
  TXA                    ; step X1 lo
  CLC
@@ -18998,6 +19563,7 @@ LOAD_G% = LOAD% + P% - CODE%
  STA XX15+3             ; Y1 = 191
 
 .LL136                  ; rts
+
  RTS                    ; -- trim for CLIP done
 }
 
@@ -19013,6 +19579,7 @@ LOAD_G% = LOAD% + P% - CODE%
  STA R
 
 \.LL120
+
  JSR LL129              ; RS = abs(x1=RS) and return with
  PHA                    ; store Acc = hsb x1 EOR quadrant_info, Q = (1/)gradient
  LDX T                  ; steep toggle = 0 or FF for steep/shallow down
@@ -19030,6 +19597,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BCC LL126              ; hop first half of loop
 
 .LL125                  ; roll Q up
+
  TXA                    ; increase step
  CLC
  ADC R
@@ -19039,6 +19607,7 @@ LOAD_G% = LOAD% + P% - CODE%
  TAY                    ; hi
 
 .LL126                  ; first half of loop done
+
  LSR S                  ; hi /=2
  ROR R                  ; lo /=2
  ASL Q                  ; double 1/gradient
@@ -19071,6 +19640,7 @@ LOAD_G% = LOAD% + P% - CODE%
  TAX                    ; Step X.Y= &FFFE at start
 
 .LL130                  ; roll Y
+
  ASL R                  ; lo *=2
  ROL S                  ; hi *=2
  LDA S
@@ -19079,6 +19649,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BCC LL132              ; if S <  Q = 256/gradient skip subtractions
 
 .LL131                  ; skipped Q test
+
  SBC Q
  STA S                  ; lo
  LDA R
@@ -19087,6 +19658,7 @@ LOAD_G% = LOAD% + P% - CODE%
  SEC
 
 .LL132                  ; skipped subtractions
+
  TXA                    ; increase step
  ROL A
  TAX                    ; stepX lo
@@ -19140,6 +19712,7 @@ LOAD_G% = LOAD% + P% - CODE%
  PLA                    ; pull old S for eor
 
 .LL127
+
  EOR XX12+3             ; Acc ^= quadrant info
  RTS                    ; -- CLIP, bounding box is now done,
 }
@@ -19154,6 +19727,7 @@ LOAD_G% = LOAD% + P% - CODE%
 {
                         ; also called by BLINE, waiting for (X1,Y1), (X2,Y2) to draw a line.
                         ; Before clipping,  XX15(0,1) was x1.  XX15(2,3) was y1. XX15(4,5) was x2. XX12(0,1) was y2.
+
  LDA #0
  STA SWAP
  LDA XX15+5             ; x2 hi
@@ -19169,6 +19743,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDX #0                 ; else yClip = 0
 
 .LL107                  ; skipped yClip
+
  STX XX13               ; yClip
  LDA XX15+1             ; x1 hi
  ORA XX15+3             ; y1 hi
@@ -19180,6 +19755,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BNE LL108              ; hop down, yClip not zero
 
 .LL146                  ; Finished clipping, Shuffle XX15 down to (X1,Y1) (X2,Y2)
+
  LDA XX15+2             ; y1 lo
  STA XX15+1             ; new Y1
  LDA XX15+4             ; x2 lo
@@ -19190,13 +19766,16 @@ LOAD_G% = LOAD% + P% - CODE%
  RTS                    ; 2nd pro different, it swops based on swop flag around here.
 
 .LL109                  ; clipped line Not visible
+
  SEC
  RTS
 
 .LL108                  ; arrived as yClip not zero in LL107 clipping
+
  LSR XX13               ; yClip = Ymid
 
 .LL83                   ; also arrive from LL107 if bits in hi present or y1_lo > screen height, A top
+
  LDA XX13               ; yClip
  BPL LL115              ; yClip < 128
  LDA XX15+1             ; x1 hi
@@ -19226,6 +19805,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BPL LL109              ; clipped line Not visible
 
 .LL115                  ; also arrive from LL83 with yClip < 128 need to trim.
+
  TYA                    ; index for edge data
  PHA                    ; protect offset
  LDA XX15+4             ; x2 lo
@@ -19255,6 +19835,7 @@ LOAD_G% = LOAD% + P% - CODE%
  STA XX12+5
 
 .LL110                  ; delta_y positive
+
  LDA XX12+3             ; delta_x hi
  BPL LL111              ; hop down if positive to GETgrad
  SEC                    ; else flip sign of delta_x
@@ -19266,12 +19847,14 @@ LOAD_G% = LOAD% + P% - CODE%
 
                         ; GETgrad get Gradient for trimming
 .LL111                  ; roll Acc  delta_x hi
+
  TAX                    ; delta_x hi
  BNE LL112              ; skip if delta_x hi not zero
  LDX XX12+5             ; delta_y hi
  BEQ LL113              ; Exit when both delta hi zero
 
 .LL112                  ; skipped as delta_x hi not zero
+
  LSR A                  ; delta_x hi/=2
  ROR XX12+2             ; delta_x lo/=2
 
@@ -19280,6 +19863,7 @@ LOAD_G% = LOAD% + P% - CODE%
  JMP LL111              ; loop GETgrad
 
 .LL113                  ; Exited as both delta hi zero for trimming
+
  STX T                  ; delta_y hi = 0
  LDA XX12+2             ; delta_x lo
  CMP XX12+4             ; delta_y lo
@@ -19292,6 +19876,7 @@ LOAD_G% = LOAD% + P% - CODE%
  JMP LL116              ; gradient now known, go a few lines down
 
 .LL114                  ; else STEEP
+
  LDA XX12+4             ; delta_y lo
  STA Q
  LDA XX12+2             ; delta_x lo
@@ -19301,6 +19886,7 @@ LOAD_G% = LOAD% + P% - CODE%
  DEC T                  ; steep toggle updated T = #&FF
 
 .LL116                  ; arrive here for both options with known gradient
+
  LDA R                  ; gradient
  STA XX12+2
  LDA S                  ; quadrant info
@@ -19310,11 +19896,13 @@ LOAD_G% = LOAD% + P% - CODE%
  BPL LLX117             ; yClip+ve, swop nodes
 
 .LL138                  ; yClip = 0 or or >127   need to fit x1,y1 into bounding box
+
  JSR LL118              ; Trim XX15,XX15+2 to screen grad=XX12+2
  LDA XX13
  BPL LL124              ; yClip+ve, finish clip
 
 .LL117                  ; yClip > 127
+
  LDA XX15+1             ; x1 hi
  ORA XX15+3             ; y1 hi
  BNE LL137              ; some hi bits present, no line.
@@ -19323,6 +19911,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BCS LL137              ; if y1 lo >= Yscreen,  no line.
 
 .LLX117                 ; yClip+ve from LL116, swop nodes then trim nodes, XX12+2 = gradient, XX12+3 = quadrant info.
+
  LDX XX15               ; x1 lo
  LDA XX15+4             ; x2 lo
  STA XX15
@@ -19343,11 +19932,13 @@ LOAD_G% = LOAD% + P% - CODE%
  DEC SWAP
 
 .LL124                  ; also yClip+ve from LL138, finish clip
+
  PLA                    ; restore ship edge index
  TAY
  JMP LL146              ; up, Finished clipping, Shuffle XX15 down to (x1,y1) (x2,y2)
 
 .LL137                  ; no line
+
  PLA                    ; restore ship edge index
  TAY
  SEC                    ; not visible
@@ -19397,6 +19988,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ The following lookup table points to the individual ship definitions below.
 
 .XX21
+
  EQUW SHIP1                         ;         1 = Sidewinder
  EQUW SHIP2                         ; COPS =  2 = Viper
  EQUW SHIP3                         ; MAM  =  3 = Mamba
@@ -19449,6 +20041,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .SHIP1
+
  EQUB &00
  EQUB &81, &10
  EQUB &50
@@ -19514,6 +20107,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .SHIP2
+
  EQUB &00
  EQUB &F9, &15
  EQUB &6E
@@ -19591,6 +20185,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .SHIP3
+
  EQUB &01                           ; scoopable = 0, debris shown = 1
  EQUB &24, &13
  EQUB &AA
@@ -19687,6 +20282,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .SHIP5
+
  EQUB &03                           ; scoopable = 0, debris shown = 3
  EQUB &41, &23                      ; area for missile lock = &2331
  EQUB &BC                           ; edges data offset = &00BC
@@ -19809,6 +20405,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .SHIP6
+
  EQUB &00
  EQUB &49, &26
  EQUB &8C
@@ -19903,6 +20500,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .SHIP8
+
  EQUB &00
  EQUB &00, &64
  EQUB &74
@@ -20000,6 +20598,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .SHIP9
+
  EQUB &00
  EQUB &40, &06
  EQUB &7A
@@ -20087,6 +20686,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .SHIP10
+
  EQUB &00
  EQUB &00, &19
  EQUB &4A
@@ -20167,6 +20767,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .SHIP11
+
  EQUB &00
  EQUB &90, &01
  EQUB &50
@@ -20232,6 +20833,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .SHIP12
+
  EQUB &00
  EQUB &40, &06
  EQUB &A8                           ; use edge data from Thargoid at offset &FFA8 = -88
@@ -20279,6 +20881,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .SHIP13
+
  EQUB &00
  EQUB &00, &01
  EQUB &2C
