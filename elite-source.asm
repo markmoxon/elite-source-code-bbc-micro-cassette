@@ -2898,7 +2898,7 @@ LOAD_A% = LOAD%
  ASL BOMB               ; else &FE -> & FC still on.
  JSR WSCAN              ; Wait for line scan, ie whole frame completed.
  LDA #&30               ; colour, logical 0(011) set to actual 0000. white vertical bars
- STA &FE21              ; Sheila+&21
+ STA SHEILA+&21         ; Sheila+&21
 
 .MA77                   ; no working bomb
  LDA MCNT               ; move count
@@ -6384,12 +6384,12 @@ NEXT
  BNE LINSCN
  BVC jvec
  ASL A\4
- STA &FE20
+ STA SHEILA+&20
  LDA ESCP
  BNE VNT1
 \VNT2
  LDA TVT1,Y
- STA &FE21
+ STA SHEILA+&21
  DEY
  BPL P%-7
 
@@ -6401,7 +6401,7 @@ NEXT
 .^VNT1
  LDY #7
  LDA TVT1+8,Y
- STA &FE21
+ STA SHEILA+&21
  DEY
  BPL VNT1+2
  BMI jvec
@@ -13024,8 +13024,8 @@ MAPCHAR '4', '4'
 {
  LDA #6                 ; R6 number of displayed Character rows
  SEI                    ; disable other interrupts
- STA &FE00              ; 6845 register
- STX &FE01              ; 6845 data
+ STA SHEILA+&00         ; 6845 register
+ STX SHEILA+&01         ; 6845 data
  CLI                    ; enable interrupts
  RTS
 }
