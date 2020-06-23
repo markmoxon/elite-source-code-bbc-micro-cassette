@@ -2,14 +2,6 @@
 \ ELITE GAME SOURCE
 \ *****************************************************************************
 
-\ This code is loaded at &1128 (LOAD%) as part of elite-loader.asm. It is then
-\ moved down to &0F40 (CODE%).
-
-LOAD% = &1128
-CODE% = &0F40
-
-GUARD &6000             ; Screen buffer starts here
-
 INCLUDE "elite-header.h.asm"
 
 _REMOVE_COMMANDER_CHECK = TRUE AND _REMOVE_CHECKSUMS
@@ -29,8 +21,9 @@ XX3 = &0100             ; &0100 to &01FF - Used as heap space for storing
 T% = &0300              ; &0300 to &035F - Workspace T%, contains the current
                         ; commander data and the stardust data block
 
-QQ18 = &0400            ; &0400 to &07FF - Recursive token table, see
-                        ; elite-words.asm for details of what is stored here
+QQ18 = &0400            ; &0400 to &07FF - The recursive token table is loaded
+CODE_WORDS% = QQ18      ; at &1100 and is moved down to &0400 as part of
+LOAD_WORDS% = &1100     ; elite-loader.asm
 
 K% = &0900              ; &0900 to &0CFF - Workspace K%, pointed to by the
                         ; lookup table at location UNIV, the first 468 bytes
@@ -39,13 +32,19 @@ K% = &0900              ; &0900 to &0CFF - Workspace K%, pointed to by the
 WP = &0D40              ; &0D40 to &0F34 - Workspace WP, see below for details
                         ; of what is stored here
 
+CODE% = &0F40           ; &0F40 to &6000 - The main game code is loaded at
+LOAD% = &1128           ; &1128 and is moved down to &0F40 as part of
+                        ; elite-loader.asm
+
+GUARD &6000             ; Screen buffer starts here
+
 \ *****************************************************************************
 \ Configuration variables
 \ *****************************************************************************
 
-NOST = 18               ; Max number of stardust particles
+NOST = 18               ; Maximum number of stardust particles
 
-NOSH = 12               ; Max number of ships
+NOSH = 12               ; Maximum number of ships at any one time
 
 COPS = 2                ; Viper
 MAM = 3                 ; Mamba
@@ -512,6 +511,1674 @@ K4 = K3 + 14            ; Shares memory with XX2+14
 PRINT "Zero page variables from ", ~ZP, " to ", ~P%
 
 \ *****************************************************************************
+\ Workspace at T% = &300 - &035F
+\
+\ Contains the current commander data (NT% bytes at location TP), and the
+\ stardust data block (NOST bytes at location SX)
+\ *****************************************************************************
+
+ORG T%                  ; Start of the commander block
+
+.TP                     ; Mission status, always 0 for tape version
+ SKIP 1
+
+.QQ0                    ; Current system X-coordinate
+ SKIP 1
+
+.QQ1                    ; Current system Y-coordinate
+ SKIP 1
+
+.QQ21                   ; Three 16-bit seeds for current system
+ SKIP 6
+
+.CASH                   ; Cash as a 32-bit unsigned integer
+ SKIP 4
+
+.QQ14                   ; Contains the current fuel level * 10 (so a 1 in QQ14
+ SKIP 1                 ; represents 0.1 light years)
+
+.COK                    ; Competition code flags
+ SKIP 1                 ;
+                        ; Bit 7 is set on start-up if CHK and CHK2 do not match,
+                        ; which presumably indicates that there may have been
+                        ; some cheatimg going on
+                        ;
+                        ; Bit 1 is set on start-up
+                        ;
+                        ; Bit 0 is set in routine ptg if player holds X during
+                        ; hyperspace to force a mis-jump (having first paused
+                        ; the game and toggled on the author credits with X)
+
+.GCNT                   ; Contains the current galaxy number, 0-7. When this is
+ SKIP 1                 ; displayed in-game, 1 is added to the number (so we
+                        ; start in galaxy 1 in-game, but it's stored as galaxy
+                        ; 0 internally)
+
+.LASER                  ; Laser power, 0 means no laser
+ SKIP 4                 ; (byte 0 = front, 1 = rear, 2 = left, 3 = right)
+
+ SKIP 2                 ; Not used (reserved for up/down lasers, maybe?)
+ 
+.CRGO                   ; Cargo capacity
+ SKIP 1
+
+.QQ20                   ; Contents of cargo hold
+ SKIP 17
+
+.ECM                    ; E.C.M.
+ SKIP 1
+
+.BST                    ; Fuel scoops ("barrel status")
+ SKIP 1
+
+.BOMB                   ; Energy bomb
+ SKIP 1
+
+.ENGY                   ; Energy/shield level
+ SKIP 1
+
+.DKCMP                  ; Docking computer
+ SKIP 1
+
+.GHYP                   ; Galactic hyperdrive
+ SKIP 1
+
+.ESCP                   ; Escape pod
+ SKIP 1
+
+ SKIP 4                 ; Not used
+
+.NOMSL                  ; Number of missiles
+ SKIP 1
+
+.FIST                   ; Legal status ("fugitive/innocent status")
+ SKIP 1
+
+.AVL                    ; Market availability
+ SKIP 17
+
+.QQ26                   ; Random byte that changes for each visit to a system,
+ SKIP 1                 ; for randomising market prices
+
+.TALLY                  ; Number of kills
+ SKIP 2
+
+.SVC                    ; Save count, gets halved with each save
+ SKIP 1
+
+ SKIP 2                 ; Reserve two bytes for commander checksum, so when
+                        ; current commander block is copied to the last saved
+                        ; commnder block at NA%, CHK and CHK2 get overwritten
+
+NT% = SVC + 2 - TP      ; Set to the size of the commander block, which starts
+                        ; at T% (&300) and goes to SVC+3
+
+SX = P%                 ; SX points to the stardust data block, which is NOST
+                        ; bytes (NOST = "number of stars")
+
+SXL = SX + NOST + 1     ; SXL points to the end of the stardust data block
+
+PRINT "T% workspace from  ", ~T%, " to ", ~SXL
+
+\ *****************************************************************************
+\ ELITE WORDS SOURCE
+\ *****************************************************************************
+
+ORG CODE_WORDS%
+
+\ *****************************************************************************
+\ Tokens in Elite
+\ *****************************************************************************
+\ 
+\ Elite uses a tokenisation system to store the text it displays during the
+\ game. This enables the game to store strings more efficiently than would be
+\ the case if they were simply inserted into the source code using EQUS, and it
+\ also makes it possible to create things like system names using procedural
+\ generation.
+\ 
+\ To support tokenisation, characters are printed to the screen using a special
+\ subroutine (TT27), which not only supports the usual range of letters,
+\ numbers and punctuation, but also three different types of token. When
+\ printed, these tokens get expanded into longer strings, which enables the
+\ game to squeeze a lot of text into a small amount of storage.
+\ 
+\ To print something, you pass a byte through to the printing routine at TT27.
+\ The value of that byte determines what gets printed, as follows:
+\ 
+\   Value (n)     Type
+\   ---------     -------------------------------------------------------
+\   0-13          Control codes 0-13
+\   14-31         Recursive tokens 128-145 (i.e. token number = n + 114)
+\   32-95         Normal ASCII characters 32-95 (0-9, A-Z and most punctuation)
+\   96-127        Recursive tokens 96-127 (i.e. token number = n)
+\   128-159       Two-letter tokens 128-159
+\   160-255       Recursive tokens 0-95 (i.e. token number = n - 160)
+\ 
+\ Characters with codes 32-95 represent the normal ASCII characters from ' ' to
+\ '_', so a value of 65 in an Elite string represents the letter A (as 'A' has
+\ character code 65 in the BBC Micro's character set).
+\ 
+\ All other character codes (0-31 and 96-255) represent tokens, and they can
+\ print anything from single characters to entire sentences. In the case of
+\ recursive tokens, the tokens can themselves contain other tokens, and in this
+\ way long strings can be stored in very few bytes, at the expense of code
+\ readability and speed.
+\ 
+\ To make things easier to follow in the discussion and comments below, let's
+\ refer to the three token types like this, where n is the character code:
+\ 
+\   {n}           Control codes             n = 0 to 13
+\   <n>           Two-letter token          n = 128 to 159
+\   [n]           Recursive token           n = 0 to 148
+\ 
+\ So when we say {13} we're talking about control code 13 ("crlf"), while <141>
+\ is the two-letter token 141 ("DI"), and [3] is the recursive token 3 ("DATA
+\ ON {current system}"). The brackets are just there to make things easier to
+\ understand when following the code, because the way these tokens are stored
+\ in memory and passed to subroutines is confusing, to say the least.
+\ 
+\ We'll take a look at each of the three token types in more detail below, but
+\ first a word about how characters get printed in Elite.
+\ 
+\ *****************************************************************************
+\ The TT27 print subroutine
+\ *****************************************************************************
+\ 
+\ Elite contains a subroutine at TT27 that prints out the character given in
+\ the accumulator, and if that number refers to a token, then the token is
+\ expanded before being printed. Whole strings can be printed by calling this
+\ subroutine on one character at a time, and this is how almost all of the text
+\ in the game gets put on screen. For example, the following code:
+\ 
+\   LDA #65
+\   JSR TT27
+\ 
+\ prints a capital A, while this code:
+\ 
+\   LDA #163
+\   JSR TT27
+\ 
+\ prints recursive token number 3 (see below for more on why we pass #163
+\ instead of #3). This would produce the following if we were currently
+\ visiting Tionisla:
+\ 
+\   DATA ON TIONISLA
+\ 
+\ This is because token 3 expands to the string "DATA ON {current system}". You
+\ can see this very call being used in TT25, which displays data on the
+\ selected system when F6 is pressed (this particular call is what prints the
+\ title at the top of the screen).
+\ 
+\ *****************************************************************************
+\ The ex print subroutine
+\ *****************************************************************************
+\ 
+\ You may have noticed that in the table above, there are character codes for
+\ all our ASCII characters and tokens, except for recursive tokens 146, 147 and
+\ 148. How do we print these?
+\ 
+\ To print these tokens, there is another subroutine at ex that always prints
+\ the recursive token number in the accumulator, so we can use that to print
+\ these tokens.
+\ 
+\ (Incidentally, the ex subroutine is what TT27 calls when it has analysed the
+\ character code, determined that it is a recursive token, and subtracted 160
+\ or added 114 as appropriate to get the token number, so calling it directly
+\ with 146-148 in the accumulator is acceptable.)
+\ 
+\ *****************************************************************************
+\ Control codes: {n}
+\ *****************************************************************************
+\ 
+\ Control codes are in the range 0 to 13, and expand to the following when
+\ printed via TT27:
+\ 
+\   0   Current cash, right-aligned to width 9, then " CR", newline
+\   1   Current galaxy number, right-aligned to width 3
+\   2   Current system name
+\   3   Selected system name (the cross-hairs in the short range chart)
+\   4   Commander's name
+\   5   "FUEL: ", fuel level, " LIGHT YEARS", newline, "CASH:", {0}, newline
+\   6   Switch case to Sentence Case
+\   7   Beep
+\   8   Switch case to ALL CAPS
+\   9   Tab to column 21, then print a colon
+\   10  Line feed (i.e. move cursor down)
+\   11  (not used, does the same as 13)
+\   12  (not used, does the same as 13)
+\   13  Newline (i.e. carriage return and line feed)
+\ 
+\ So a value of 4 in a tokenised string will be expanded to the current
+\ commander's name, while a value of 5 will print the current fuel level in the
+\ format "FUEL: 5.3 LIGHT YEARS", followed by a newline, followed by "CASH: ",
+\ and then followed by control code 0, which shows the amount of cash to one
+\ significant figure, right-aligned to a width of 9 characters, and finished
+\ off with " CR" and another newline. The result is something like this, when
+\ displayed in Sentence Case:
+\ 
+\   Fuel: 6.7 Light Years
+\   Cash:    1234.5 Cr
+\ 
+\ If you press F8 to show the Status Mode screen, you can see control code 4
+\ being used to show the commander's name in the title, while control code 5 is
+\ responsible for displaying the fuel and cash lines.
+\ 
+\ When talking about encoded strings in the code comments below, control
+\ characters are shown as {n}, so {4} expands to the commander's name and {5}
+\ to the current fuel.
+\ 
+\ By default, Elite prints words using Sentence Case, where the first letter of
+\ each word is capitalised. Control code {8} can be used to switch to ALL CAPS
+\ (so it acts like Caps Lock), and {6} can be used to switch back to Sentence
+\ Case. You can see this in action on the Status Mode screen, where the title
+\ and equipment headers are in ALL CAPS, while everything else is in Sentence
+\ Case. Tokens are stored in capital letters only, and each letter's case is
+\ set by the logic in TT27.
+\ 
+\ *****************************************************************************
+\ Two-letter tokens: <n>
+\ *****************************************************************************
+\ 
+\ Two-letter tokens expand to the following:
+\ 
+\   128     AL
+\   129     LE
+\   130     XE
+\   131     GE
+\   132     ZA
+\   133     CE
+\   134     BI
+\   135     SO
+\   136     US
+\   137     ES
+\   138     AR
+\   139     MA
+\   140     IN
+\   141     DI
+\   142     RE
+\   143     A?
+\   144     ER
+\   145     AT
+\   146     EN
+\   147     BE
+\   148     RA
+\   149     LA
+\   150     VE
+\   151     TI
+\   152     ED
+\   153     OR
+\   154     QU
+\   155     AN
+\   156     TE
+\   157     IS
+\   158     RI
+\   159     ON
+\ 
+\ So a value of 150 in the tokenised string would expand to VE, for example.
+\ When talking about encoded strings in the code comments below, two-letter
+\ tokens are shown as <n>, so <150> expands to VE.
+\ 
+\ The set of two-letter tokens is stored as one long string ("ALLEXEGE...") at
+\ QQ16, in the main elite-source.asm. This string is also used to generate
+\ planet names procedurally, but that's a story for another time.
+\ 
+\ Note that question marks are not printed, so token <143> expands to A. This
+\ allows names with an odd number of characters to be generated from sequences
+\ of two-letter tokens, though only if they contain the letter A.
+\ 
+\ *****************************************************************************
+\ Recursive tokens: [n]
+\ *****************************************************************************
+\ 
+\ The binary file that is assembled by this source file (WORDS9.bin) contains
+\ 149 recursive tokens, numbered from 0 to 148, which are stored from &0400 to
+\ &06FF in a tokenised form. These tokenised strings can include references to
+\ other tokens, hence "recursive".
+\ 
+\ When talking about encoded strings in the code comments below, recursive
+\ tokens are shown as [n], so [111] expands to "FUEL SCOOPS", for example, and
+\ [110] expands to "[102][104]S", which in turn expands to "EXTRA BEAM LASERS"
+\ (as [102] expands to "EXTRA " and [104] to "BEAM LASER").
+\ 
+\ The recursive tokens are numbered from 0 to 148, but because we've already
+\ reserved codes 0-13 for control characters, 32-95 for ASCII characters and
+\ 128-159 for two-letter tokens, we can't just send the token number straight
+\ to TT27 to print it out (sending 65 to TT27 prints "A", for example, and not
+\ recursive token 65). So instead, we use the table above to work out what to
+\ send to TT27; here are the relevant lines:
+\ 
+\   Value (n)     Type
+\   ---------     -------------------------------------------------------
+\   14-31         Recursive tokens 128-145 (i.e. token number = n + 114)
+\   96-127        Recursive tokens 96-127 (i.e. token number = n)
+\   160-255       Recursive tokens 0-95 (i.e. token number = n - 160)
+\ 
+\ The first column is the number we need to send to TT27 to print the token
+\ mentioned in the second column.
+\ 
+\ So, if we want to print recursive token 132, then according to the first row
+\ in this table, we need to subtract 114 to get 18, and send that to TT27.
+\ 
+\ Meanwhile, if we want to print token 101, then according to the second row,
+\ we can just pass that straight through to TT27.
+\ 
+\ Finally, if we want to print token 3, then according to the third row, we
+\ need to add 160 to get 163.
+\ 
+\ Note that, as described in the section above, you can't use TT27 to print
+\ recursive tokens 146-148, but instead you need to call the ex subroutine, so
+\ the method described here only applies to recursive tokens 0-145.
+\ 
+\ *****************************************************************************
+\ How recursive tokens are stored in memory
+\ *****************************************************************************
+\ 
+\ The 149 recursive tokens are stored one after the other in memory, starting
+\ at &0400, with each token being terminated by a null character (EQUB 0).
+\ 
+\ To complicate matters, the strings themselves are all EOR'd with 35 before
+\ being stored, and this process is repeated when they are read from memory (as
+\ EOR is reversible). This is done in the routine at TT50.
+\ 
+\ Note that if a recursive token contains another recursive token, then that
+\ token's number is stored as the number that would be sent to TT27, rather
+\ than the number of the token itself.
+\ 
+\ All of this makes it pretty challenging to work out how one would store a
+\ specific token in memory, which is why this file uses a handful of macros to
+\ make life easier. They are:
+\ 
+\   CHAR n        ; insert ASCII character n        n = 32 to 95
+\   CTRL n        ; insert control code n           n = 0 to 13
+\   TWOK n        ; insert two-letter token n       n = 128 to 159
+\   RTOK n        ; insert recursive token n        n = 0 to 148
+\ 
+\ A side effect of all this obfuscation is that tokenised strings can't contain
+\ ASCII 35 characters ("#"). This is because ASCII "#" EOR 35 is 0, and the
+\ null character is already used to terminate our tokens in memory, so if you
+\ did have a string containing the hash character, it wouldn't print the hash,
+\ but would instead terminate at the character before.
+\ 
+\ Interestingly, there's no lookup table for each recursive token's starting
+\ point im memory, as that would take up too much space, so to get hold of the
+\ encoded string for a specific recursive token, the print routine runs through
+\ the entire list of tokens, character by character, counting all the nulls
+\ until it reaches the right spot. This might not be fast, but it is much more
+\ space-efficient than a lookup table; you can see this loop in the subroutine
+\ at ex, which is where recursive tokens are printed.
+\ 
+\ *****************************************************************************
+\ An example
+\ *****************************************************************************
+\ 
+\ Given all this, let's consider recursive token 3 again, which is printed
+\ using the following code (remember, we have to add 160 to 3 to pass through
+\ to TT27):
+\ 
+\   LDA #163
+\   JSR TT27
+\ 
+\ Token 3 is stored in the tokenised form:
+\ 
+\   D<145>A[131]{3}
+\ 
+\ which we could store in memory using the following (adding in the null
+\ terminator at the end):
+\ 
+\   CHAR 'D'
+\   TWOK 145
+\   CHAR 'A'
+\   RTOK 131
+\   CTRL 3
+\   EQUB 0
+\ 
+\ As mentioned above, the values that are actually stored are EOR'd with 35,
+\ and token [131] has to have 114 taken off it before it's ready for TT27, so
+\ the bytes that are actually stored in memory for this token are:
+\ 
+\   EQUB 'D' EOR 35
+\   EQUB 145 EOR 35
+\   EQUB 'A' EOR 35
+\   EQUB (131 - 114) EOR 35
+\   EQUB 3 EOR 35
+\   EQUB 0
+\ 
+\ or, as they would appear in the raw WORDS9.bin file, this:
+\ 
+\   EQUB &67, &B2, &62, &32, &20, &00
+\ 
+\ These all produce the same output, but the first version is rather easier to
+\ understand.
+\ 
+\ Now that the token is stored in memory, we can call TT27 with the accumulator
+\ set to 163, and the token will be printed as follows:
+\ 
+\   D             The letter D                      "D"
+\   <145>         Two-letter token 145              "AT"
+\   A             The letter A                      "A"
+\   [131]         Recursive token 131               " ON "
+\   {3}           Control character 3               The selected system name
+\ 
+\ So if the system under the cross-hairs in the short range chart is Tionisla,
+\ this expands into "DATA ON TIONISLA".
+
+\ *****************************************************************************
+\ Macros for inserting tokens into memory
+\ *****************************************************************************
+
+MACRO CHAR x                        ; Insert ASCII character 'x'
+  EQUB x EOR 35
+ENDMACRO
+
+MACRO TWOK n                        ; Insert two-letter token <n>
+  EQUB n EOR 35
+ENDMACRO
+
+MACRO CTRL n                        ; Insert control code {n}
+  EQUB n EOR 35
+ENDMACRO
+
+MACRO RTOK n                        ; Insert recursive token [n]
+  IF n >= 0 AND n <= 95             ; Tokens 0-95 get stored as token number + 160
+    EQUB (n + 160) EOR 35
+  ELIF n >= 128
+    EQUB (n - 114) EOR 35           ; Tokens 128-145 get stored as token number - 114
+  ELSE
+    EQUB n EOR 35                   ; Tokens 96-127 get stored as token number
+  ENDIF
+ENDMACRO
+
+\ *****************************************************************************
+\ Recursive tokens 0-148
+\ *****************************************************************************
+
+RTOK 111                            ; Token 0:      "FUEL SCOOPS ON {beep}"
+RTOK 131                            ; Encoded as:   "[111][131]{7}"
+CTRL 7
+EQUB 0
+
+CHAR ' '                            ; Token 1:      " CHART"
+CHAR 'C'                            ; Encoded as:   " CH<138>T"
+CHAR 'H'
+TWOK 138
+CHAR 'T'
+EQUB 0
+
+CHAR 'G'                            ; Token 2:      "GOVERNMENT"
+CHAR 'O'                            ; Encoded as:   "GO<150>RNM<146>T"
+TWOK 150
+CHAR 'R'
+CHAR 'N'
+CHAR 'M'
+TWOK 146
+CHAR 'T'
+EQUB 0
+
+CHAR 'D'                            ; Token 3:      "DATA ON {selected system name}"
+TWOK 145                            ; Encoded as:   "D<145>A[131]{3}"
+CHAR 'A'
+RTOK 131
+CTRL 3
+EQUB 0
+
+TWOK 140                            ; Token 4:      "INVENTORY{crlf}"
+TWOK 150                            ; Encoded as:   "<140><150>NT<153>Y{13}"
+CHAR 'N'
+CHAR 'T'
+TWOK 153
+CHAR 'Y'
+CTRL 13
+EQUB 0
+
+CHAR 'S'                            ; Token 5:      "SYSTEM"
+CHAR 'Y'                            ; Encoded as:   "SYS<156>M"
+CHAR 'S'
+TWOK 156
+CHAR 'M'
+EQUB 0
+
+CHAR 'P'                            ; Token 6:      "PRICE"
+TWOK 158                            ; Encoded as:   "P<158><133>"
+TWOK 133
+EQUB 0
+
+CTRL 2                              ; Token 7:      "{current system name} MARKET PRICES"
+CHAR ' '                            ; Encoded as:   "{2} <139>RKET [6]S"
+TWOK 139
+CHAR 'R'
+CHAR 'K'
+CHAR 'E'
+CHAR 'T'
+CHAR ' '
+RTOK 6
+CHAR 'S'
+EQUB 0
+
+TWOK 140                            ; Token 8:      "INDUSTRIAL"
+CHAR 'D'                            ; Encoded as:   "<140>D<136>T<158><128>"
+TWOK 136
+CHAR 'T'
+TWOK 158
+TWOK 128
+EQUB 0
+
+CHAR 'A'                            ; Token 9:      "AGRICULTURAL"
+CHAR 'G'                            ; Encoded as:   "AG<158>CULTU<148>L"
+TWOK 158
+CHAR 'C'
+CHAR 'U'
+CHAR 'L'
+CHAR 'T'
+CHAR 'U'
+TWOK 148
+CHAR 'L'
+EQUB 0
+
+TWOK 158                            ; Token 10:     "RICH "
+CHAR 'C'                            ; Encoded as:   "<158>CH "
+CHAR 'H'
+CHAR ' '
+EQUB 0
+
+CHAR 'A'                            ; Token 11:     "AVERAGE "
+TWOK 150                            ; Encoded as:   "A<150><148><131> "
+TWOK 148
+TWOK 131
+CHAR ' '
+EQUB 0
+
+CHAR 'P'                            ; Token 12:     "POOR "
+CHAR 'O'                            ; Encoded as:   "PO<153> "
+TWOK 153
+CHAR ' '
+EQUB 0                              ; Encoded as:   "PO<153> "
+
+TWOK 139                            ; Token 13:     "MAINLY "
+TWOK 140                            ; Encoded as:   "<139><140>LY "
+CHAR 'L'
+CHAR 'Y'
+CHAR ' '
+EQUB 0
+
+CHAR 'U'                            ; Token 14:     "UNIT"
+CHAR 'N'                            ; Encoded as:   "UNIT"
+CHAR 'I'
+CHAR 'T'
+EQUB 0
+
+CHAR 'V'                            ; Token 15:     "VIEW "
+CHAR 'I'                            ; Encoded as:   "VIEW "
+CHAR 'E'
+CHAR 'W'
+CHAR ' '
+EQUB 0
+
+TWOK 154                            ; Token 16:     "QUANTITY"
+TWOK 155                            ; Encoded as:   "<154><155><151>TY"
+TWOK 151
+CHAR 'T'
+CHAR 'Y'
+EQUB 0
+
+TWOK 155                            ; Token 17:     "ANARCHY"
+TWOK 138                            ; Encoded as:   "<155><138>CHY"
+CHAR 'C'
+CHAR 'H'
+CHAR 'Y'
+EQUB 0
+
+CHAR 'F'                            ; Token 18:     "FEUDAL"
+CHAR 'E'                            ; Encoded as:   "FEUD<128>"
+CHAR 'U'
+CHAR 'D'
+TWOK 128
+EQUB 0
+
+CHAR 'M'                            ; Token 19:     "MULTI-GOVERNMENT"
+CHAR 'U'                            ; Encoded as:   "MUL<151>-[2]"
+CHAR 'L'
+TWOK 151
+CHAR '-'
+RTOK 2
+EQUB 0
+
+TWOK 141                            ; Token 20:     "DICTATORSHIP"
+CHAR 'C'                            ; Encoded as:   "<141>CT<145><153>[25]"
+CHAR 'T'
+TWOK 145
+TWOK 153
+RTOK 25
+EQUB 0
+
+RTOK 91                             ; Token 21:     "COMMUNIST"
+CHAR 'M'                            ; Encoded as:   "[91]MUN<157>T"
+CHAR 'U'
+CHAR 'N'
+TWOK 157
+CHAR 'T'
+EQUB 0
+
+CHAR 'C'                            ; Token 22:     "CONFEDERACY"
+TWOK 159                            ; Encoded as:   "C<159>F<152><144>ACY"
+CHAR 'F'
+TWOK 152
+TWOK 144
+CHAR 'A'
+CHAR 'C'
+CHAR 'Y'
+EQUB 0
+
+CHAR 'D'                            ; Token 23:     "DEMOCRACY"
+CHAR 'E'                            ; Encoded as:   "DEMOC<148>CY"
+CHAR 'M'
+CHAR 'O'
+CHAR 'C'
+TWOK 148
+CHAR 'C'
+CHAR 'Y'
+EQUB 0
+
+CHAR 'C'                            ; Token 24:     "CORPORATE STATE"
+TWOK 153                            ; Encoded as:   "C<153>P<153><145>E [43]<145>E"
+CHAR 'P'
+TWOK 153
+TWOK 145
+CHAR 'E'
+CHAR ' '
+RTOK 43
+TWOK 145
+CHAR 'E'
+EQUB 0
+
+CHAR 'S'                            ; Token 25:     "SHIP"
+CHAR 'H'                            ; Encoded as:   "SHIP"
+CHAR 'I'
+CHAR 'P'
+EQUB 0
+
+CHAR 'P'                            ; Token 26:     "PRODUCT"
+CHAR 'R'                            ; Encoded as:   "PRODUCT"
+CHAR 'O'
+CHAR 'D'
+CHAR 'U'
+CHAR 'C'
+CHAR 'T'
+EQUB 0
+
+CHAR ' '                            ; Token 27:     " LASER"
+TWOK 149                            ; Encoded as:   " <149>S<144>"
+CHAR 'S'
+TWOK 144
+EQUB 0
+
+CHAR 'H'                            ; Token 28:     "HUMAN COLONIAL"
+CHAR 'U'                            ; Encoded as:   "HUM<155> COL<159>I<128>"
+CHAR 'M'
+TWOK 155
+CHAR ' '
+CHAR 'C'
+CHAR 'O'
+CHAR 'L'
+TWOK 159
+CHAR 'I'
+TWOK 128
+EQUB 0
+
+CHAR 'H'                            ; Token 29:     "HYPERSPACE "
+CHAR 'Y'                            ; Encoded as:   "HYP<144>SPA<133> "
+CHAR 'P'
+TWOK 144
+CHAR 'S'
+CHAR 'P'
+CHAR 'A'
+TWOK 133
+CHAR ' '
+EQUB 0
+
+CHAR 'S'                            ; Token 30:     "SHORT RANGE CHART"
+CHAR 'H'                            ; Encoded as:   "SH<153>T [42][1]"
+TWOK 153
+CHAR 'T'
+CHAR ' '
+RTOK 42
+RTOK 1
+EQUB 0
+
+TWOK 141                            ; Token 31:     "DISTANCE"
+RTOK 43                             ; Encoded as:   "<141>[43]<155><133>"
+TWOK 155
+TWOK 133
+EQUB 0
+
+CHAR 'P'                            ; Token 32:     "POPULATION"
+CHAR 'O'                            ; Encoded as:   "POPUL<145>I<159>"
+CHAR 'P'
+CHAR 'U'
+CHAR 'L'
+TWOK 145
+CHAR 'I'
+TWOK 159
+EQUB 0
+
+CHAR 'G'                            ; Token 33:     "GROSS PRODUCTIVITY"
+CHAR 'R'                            ; Encoded as:   "GROSS [26]IVITY"
+CHAR 'O'
+CHAR 'S'
+CHAR 'S'
+CHAR ' '
+RTOK 26
+CHAR 'I'
+CHAR 'V'
+CHAR 'I'
+CHAR 'T'
+CHAR 'Y'
+EQUB 0
+
+CHAR 'E'                            ; Token 34:     "ECONOMY"
+CHAR 'C'                            ; Encoded as:   "EC<159>OMY"
+TWOK 159
+CHAR 'O'
+CHAR 'M'
+CHAR 'Y'
+EQUB 0
+
+CHAR ' '                            ; Token 35:     " LIGHT YEARS"
+CHAR 'L'                            ; Encoded as:   " LIGHT YE<138>S"
+CHAR 'I'
+CHAR 'G'
+CHAR 'H'
+CHAR 'T'
+CHAR ' '
+CHAR 'Y'
+CHAR 'E'
+TWOK 138
+CHAR 'S'
+EQUB 0
+
+TWOK 156                            ; Token 36:     "TECH.LEVEL"
+CHAR 'C'                            ; Encoded as:   "<156>CH.<129><150>L"
+CHAR 'H'
+CHAR '.'
+TWOK 129
+TWOK 150
+CHAR 'L'
+EQUB 0
+
+CHAR 'C'                            ; Token 37:     "CASH"
+CHAR 'A'                            ; Encoded as:   "CASH"
+CHAR 'S'
+CHAR 'H'
+EQUB 0
+
+CHAR ' '                            ; Token 38:     " BILLION"
+TWOK 134                            ; Encoded as:   " <134>[118]I<159>"
+RTOK 118
+CHAR 'I'
+TWOK 159
+EQUB 0
+
+RTOK 122                            ; Token 39:     "GALACTIC CHART{galaxy number right-aligned to width 3}"
+RTOK 1                              ; Encoded as:   "[122][1]{1}"
+CTRL 1
+EQUB 0
+
+CHAR 'T'                            ; Token 40:     "TARGET LOST"
+TWOK 138                            ; Encoded as:   "T<138><131>T LO[43]"
+TWOK 131
+CHAR 'T'
+CHAR ' '
+CHAR 'L'
+CHAR 'O'
+RTOK 43
+EQUB 0
+
+RTOK 106                            ; Token 41:     "MISSILE JAMMED"
+CHAR ' '                            ; Encoded as:   "[106] JAMM<152>"
+CHAR 'J'
+CHAR 'A'
+CHAR 'M'
+CHAR 'M'
+TWOK 152
+EQUB 0
+
+CHAR 'R'                            ; Token 42:     "RANGE"
+TWOK 155                            ; Encoded as:   "R<155><131>"
+TWOK 131
+EQUB 0
+
+CHAR 'S'                            ; Token 43:     "ST"
+CHAR 'T'                            ; Encoded as:   "ST"
+EQUB 0
+
+RTOK 16                             ; Token 44:     "QUANTITY OF "
+CHAR ' '                            ; Encoded as:   "[16] OF "
+CHAR 'O'
+CHAR 'F'
+CHAR ' '
+EQUB 0
+
+CHAR 'S'                            ; Token 45:     "SELL"
+CHAR 'E'                            ; Encoded as:   "SE[118]"
+RTOK 118
+EQUB 0
+
+CHAR ' '                            ; Token 46:     " CARGO{switch to sentence case}"
+CHAR 'C'                            ; Encoded as:   " C<138>GO{6}"
+TWOK 138
+CHAR 'G'
+CHAR 'O'
+CTRL 6
+EQUB 0
+
+CHAR 'E'                            ; Token 47:     "EQUIP"
+TWOK 154                            ; Encoded as:   "E<154>IP"
+CHAR 'I'
+CHAR 'P'
+EQUB 0
+
+CHAR 'F'                            ; Token 48:     "FOOD"
+CHAR 'O'                            ; Encoded as:   "FOOD"
+CHAR 'O'
+CHAR 'D'
+EQUB 0
+
+TWOK 156                            ; Token 49:     "TEXTILES"
+CHAR 'X'                            ; Encoded as:   "<156>X<151>L<137>"
+TWOK 151
+CHAR 'L'
+TWOK 137
+EQUB 0
+
+TWOK 148                            ; Token 50:     "RADIOACTIVES"
+TWOK 141                            ; Encoded as:   "<148><141>OAC<151><150>S"
+CHAR 'O'
+CHAR 'A'
+CHAR 'C'
+TWOK 151
+TWOK 150
+CHAR 'S'
+EQUB 0
+
+CHAR 'S'                            ; Token 51:     "SLAVES"
+TWOK 149                            ; Encoded as:   "S<149><150>S"
+TWOK 150
+CHAR 'S'
+EQUB 0
+
+CHAR 'L'                            ; Token 52:     "LIQUOR/WINES"
+CHAR 'I'                            ; Encoded as:   "LI<154><153>/W<140><137>"
+TWOK 154
+TWOK 153
+CHAR '/'
+CHAR 'W'
+TWOK 140
+TWOK 137
+EQUB 0
+
+CHAR 'L'                            ; Token 53:     "LUXURIES"
+CHAR 'U'                            ; Encoded as:   "LUXU<158><137>"
+CHAR 'X'
+CHAR 'U'
+TWOK 158
+TWOK 137
+EQUB 0
+
+CHAR 'N'                            ; Token 54:     "NARCOTICS"
+TWOK 138                            ; Encoded as:   "N<138>CO<151>CS"
+CHAR 'C'
+CHAR 'O'
+TWOK 151
+CHAR 'C'
+CHAR 'S'
+EQUB 0
+
+RTOK 91                             ; Token 55:     "COMPUTERS"
+CHAR 'P'                            ; Encoded as:   "[91]PUT<144>S"
+CHAR 'U'
+CHAR 'T'
+TWOK 144
+CHAR 'S'
+EQUB 0
+
+TWOK 139                            ; Token 56:     "MACHINERY"
+CHAR 'C'                            ; Encoded as:   "<139>CH<140><144>Y"
+CHAR 'H'
+TWOK 140
+TWOK 144
+CHAR 'Y'
+EQUB 0
+
+RTOK 117                            ; Token 57:     "ALLOYS"
+CHAR 'O'                            ; Encoded as:   "[117]OYS"
+CHAR 'Y'
+CHAR 'S'
+EQUB 0
+
+CHAR 'F'                            ; Token 58:     "FIREARMS"
+CHAR 'I'                            ; Encoded as:   "FI<142><138>MS"
+TWOK 142
+TWOK 138
+CHAR 'M'
+CHAR 'S'
+EQUB 0
+
+CHAR 'F'                            ; Token 59:     "FURS"
+CHAR 'U'                            ; Encoded as:   "FURS"
+CHAR 'R'
+CHAR 'S'
+EQUB 0
+
+CHAR 'M'                            ; Token 60:     "MINERALS"
+TWOK 140                            ; Encoded as:   "M<140><144><128>S"
+TWOK 144
+TWOK 128
+CHAR 'S'
+EQUB 0
+
+CHAR 'G'                            ; Token 61:     "GOLD"
+CHAR 'O'                            ; Encoded as:   "GOLD"
+CHAR 'L'
+CHAR 'D'
+EQUB 0
+
+CHAR 'P'                            ; Token 62:     "PLATINUM"
+CHAR 'L'                            ; Encoded as:   "PL<145><140>UM"
+TWOK 145
+TWOK 140
+CHAR 'U'
+CHAR 'M'
+EQUB 0
+
+TWOK 131                            ; Token 63:     "GEM-STONES"
+CHAR 'M'                            ; Encoded as:   "<131>M-[43]<159><137>"
+CHAR '-'
+RTOK 43
+TWOK 159
+TWOK 137
+EQUB 0
+
+TWOK 128                            ; Token 64:     "ALIEN ITEMS"
+CHAR 'I'                            ; Encoded as:   "<128>I<146> [127]S"
+TWOK 146
+CHAR ' '
+RTOK 127
+CHAR 'S'
+EQUB 0
+
+CHAR '('                            ; Token 65:     "(Y/N)?"
+CHAR 'Y'                            ; Encoded as:   "(Y/N)?"
+CHAR '/'
+CHAR 'N'
+CHAR ')'
+CHAR '?'
+EQUB 0
+
+CHAR ' '                            ; Token 66:     " CR"
+CHAR 'C'                            ; Encoded as:   " CR"
+CHAR 'R'
+EQUB 0
+
+CHAR 'L'                            ; Token 67:     "LARGE"
+TWOK 138                            ; Encoded as:   "L<138><131>"
+TWOK 131
+EQUB 0
+
+CHAR 'F'                            ; Token 68:     "FIERCE"
+CHAR 'I'                            ; Encoded as:   "FI<144><133>"
+TWOK 144
+TWOK 133
+EQUB 0
+
+CHAR 'S'                            ; Token 69:     "SMALL"
+TWOK 139                            ; Encoded as:   "S<139>[118]"
+RTOK 118
+EQUB 0
+
+CHAR 'G'                            ; Token 70:     "GREEN"
+TWOK 142                            ; Encoded as:   "G<142><146>"
+TWOK 146
+EQUB 0
+
+CHAR 'R'                            ; Token 71:     "RED"
+TWOK 152                            ; Encoded as:   "R<152>"
+EQUB 0
+
+CHAR 'Y'                            ; Token 72:     "YELLOW"
+CHAR 'E'                            ; Encoded as:   "YE[118]OW"
+RTOK 118
+CHAR 'O'
+CHAR 'W'
+EQUB 0
+
+CHAR 'B'                            ; Token 73:     "BLUE"
+CHAR 'L'                            ; Encoded as:   "BLUE"
+CHAR 'U'
+CHAR 'E'
+EQUB 0
+
+CHAR 'B'                            ; Token 74:     "BLACK"
+TWOK 149                            ; Encoded as:   "B<149>CK"
+CHAR 'C'
+CHAR 'K'
+EQUB 0
+
+RTOK 136                            ; Token 75:     "HARMLESS"
+EQUB 0                              ; Encoded as:   "[136]"
+
+CHAR 'S'                            ; Token 76:     "SLIMY"
+CHAR 'L'                            ; Encoded as:   "SLIMY"
+CHAR 'I'
+CHAR 'M'
+CHAR 'Y'
+EQUB 0
+
+CHAR 'B'                            ; Token 77:     "BUG-EYED"
+CHAR 'U'                            ; Encoded as:   "BUG-EY<152>"
+CHAR 'G'
+CHAR '-'
+CHAR 'E'
+CHAR 'Y'
+TWOK 152
+EQUB 0
+
+CHAR 'H'                            ; Token 78:     "HORNED"
+TWOK 153                            ; Encoded as:   "H<153>N<152>"
+CHAR 'N'
+TWOK 152
+EQUB 0
+
+CHAR 'B'                            ; Token 79:     "BONY"
+TWOK 159                            ; Encoded as:   "B<159>Y"
+CHAR 'Y'
+EQUB 0
+
+CHAR 'F'                            ; Token 80:     "FAT"
+TWOK 145                            ; Encoded as:   "F<145>"
+EQUB 0
+
+CHAR 'F'                            ; Token 81:     "FURRY"
+CHAR 'U'                            ; Encoded as:   "FURRY"
+CHAR 'R'
+CHAR 'R'
+CHAR 'Y'
+EQUB 0
+
+CHAR 'R'                            ; Token 82:     "RODENT"
+CHAR 'O'                            ; Encoded as:   "ROD<146>T"
+CHAR 'D'
+TWOK 146
+CHAR 'T'
+EQUB 0
+
+CHAR 'F'                            ; Token 83:     "FROG"
+CHAR 'R'                            ; Encoded as:   "FROG"
+CHAR 'O'
+CHAR 'G'
+EQUB 0
+
+CHAR 'L'                            ; Token 84:     "LIZARD"
+CHAR 'I'                            ; Encoded as:   "LI<132>RD"
+TWOK 132
+CHAR 'R'
+CHAR 'D'
+EQUB 0
+
+CHAR 'L'                            ; Token 85:     "LOBSTER"
+CHAR 'O'                            ; Encoded as:   "LOB[43]<144>"
+CHAR 'B'
+RTOK 43
+TWOK 144
+EQUB 0
+
+TWOK 134                            ; Token 86:     "BIRD"
+CHAR 'R'                            ; Encoded as:   "<134>RD"
+CHAR 'D'
+EQUB 0
+
+CHAR 'H'                            ; Token 87:     "HUMANOID"
+CHAR 'U'                            ; Encoded as:   "HUM<155>OID"
+CHAR 'M'
+TWOK 155
+CHAR 'O'
+CHAR 'I'
+CHAR 'D'
+EQUB 0
+
+CHAR 'F'                            ; Token 88:     "FELINE"
+CHAR 'E'                            ; Encoded as:   "FEL<140>E"
+CHAR 'L'
+TWOK 140
+CHAR 'E'
+EQUB 0
+
+TWOK 140                            ; Token 89:     "INSECT"
+CHAR 'S'                            ; Encoded as:   "<140>SECT"
+CHAR 'E'
+CHAR 'C'
+CHAR 'T'
+EQUB 0
+
+RTOK 11                             ; Token 90:     "AVERAGE RADIUS"
+TWOK 148                            ; Encoded as:   "[11]<148><141><136>"
+TWOK 141
+TWOK 136
+EQUB 0
+
+CHAR 'C'                            ; Token 91:     "COM"
+CHAR 'O'                            ; Encoded as:   "COM"
+CHAR 'M'
+EQUB 0
+
+RTOK 91                             ; Token 92:     "COMMANDER"
+CHAR 'M'                            ; Encoded as:   "[91]M<155>D<144>"
+TWOK 155
+CHAR 'D'
+TWOK 144
+EQUB 0
+
+CHAR ' '                            ; Token 93:     " DESTROYED"
+CHAR 'D'                            ; Encoded as:   " D<137>TROY<152>"
+TWOK 137
+CHAR 'T'
+CHAR 'R'
+CHAR 'O'
+CHAR 'Y'
+TWOK 152
+EQUB 0
+
+CHAR 'B'                            ; Token 94:     "BY D.BRABEN & I.BELL"
+CHAR 'Y'                            ; Encoded:      "BY D.B<148><147>N & I.<147>[118]"
+CHAR ' '
+CHAR 'D'
+CHAR '.'
+CHAR 'B'
+TWOK 148
+TWOK 147
+CHAR 'N'
+CHAR ' '
+CHAR '&'
+CHAR ' '
+CHAR 'I'
+CHAR '.'
+TWOK 147
+RTOK 118
+EQUB 0
+
+RTOK 14                            ; Token 95:     "UNIT  QUANTITY{crlf} PRODUCT   UNIT PRICE FOR SALE{crlf}{lf}"
+CHAR ' '                           ; Encoded as:   "[14]  [16]{13} [26]   [14] [6] F<153> SA<129>{13}{10}"
+CHAR ' '
+RTOK 16
+CTRL 13
+CHAR ' '
+RTOK 26
+CHAR ' '
+CHAR ' '
+CHAR ' '
+RTOK 14
+CHAR ' '
+RTOK 6
+CHAR ' '
+CHAR 'F'
+TWOK 153
+CHAR ' '
+CHAR 'S'
+CHAR 'A'
+TWOK 129
+CTRL 13
+CTRL 10
+EQUB 0
+
+CHAR 'F'                            ; Token 96:     "FRONT"
+CHAR 'R'                            ; Encoded as:   "FR<159>T"
+TWOK 159
+CHAR 'T'
+EQUB 0
+
+TWOK 142                            ; Token 97:     "REAR"
+TWOK 138                            ; Encoded as:   "<142><138>"
+EQUB 0
+
+TWOK 129                            ; Token 98:     "LEFT"
+CHAR 'F'                            ; Encoded as:   "<129>FT"
+CHAR 'T'
+EQUB 0
+
+TWOK 158                            ; Token 99:     "RIGHT"
+CHAR 'G'                            ; Encoded as:   "<158>GHT"
+CHAR 'H'
+CHAR 'T'
+EQUB 0
+
+RTOK 121                            ; Token 100:    "ENERGY LOW{beep}"
+CHAR 'L'                            ; Encoded as:   "[121]LOW{7}"
+CHAR 'O'
+CHAR 'W'
+CTRL 7
+EQUB 0
+
+RTOK 99                             ; Token 101:    "RIGHT ON COMMANDER!"
+RTOK 131                            ; Encoded as:   "[99][131][92]!"
+RTOK 92
+CHAR '!'
+EQUB 0
+
+CHAR 'E'                            ; Token 102:    "EXTRA "
+CHAR 'X'                            ; Encoded as:   "EXT<148> "
+CHAR 'T'
+TWOK 148
+CHAR ' '
+EQUB 0
+
+CHAR 'P'                            ; Token 103:    "PULSE LASER"
+CHAR 'U'                            ; Encoded as:   "PULSE[27]"
+CHAR 'L'
+CHAR 'S'
+CHAR 'E'
+RTOK 27
+EQUB 0
+
+TWOK 147                            ; Token 104:    "BEAM LASER"
+CHAR 'A'                            ; Encoded as:   "<147>AM[27]"
+CHAR 'M'
+RTOK 27
+EQUB 0
+
+CHAR 'F'                            ; Token 105:    "FUEL"
+CHAR 'U'                            ; Encoded as:   "FUEL"
+CHAR 'E'
+CHAR 'L'
+EQUB 0
+
+CHAR 'M'                            ; Token 106:    "MISSILE"
+TWOK 157                            ; Encoded as:   "M<157>SI<129>"
+CHAR 'S'
+CHAR 'I'
+TWOK 129
+EQUB 0
+
+RTOK 67                            ; Token 107:    "LARGE CARGO{switch to sentence case} BAY"
+RTOK 46                            ; Encoded as:   "[67][46] BAY"
+CHAR ' '
+CHAR 'B'
+CHAR 'A'
+CHAR 'Y'
+EQUB 0
+
+CHAR 'E'                            ; Token 108:    "E.C.M.SYSTEM"
+CHAR '.'                            ; Encoded as:   "E.C.M.[5]"
+CHAR 'C'
+CHAR '.'
+CHAR 'M'
+CHAR '.'
+RTOK 5
+EQUB 0
+
+RTOK 102                            ; Token 109:    "EXTRA PULSE LASERS"
+RTOK 103                            ; Encoded as:   "[102][103]S"
+CHAR 'S'
+EQUB 0
+
+RTOK 102                            ; Token 110:    "EXTRA BEAM LASERS"
+RTOK 104                            ; Encoded as:   "[102][104]S"
+CHAR 'S'
+EQUB 0
+
+RTOK 105                            ; Token 111:    "FUEL SCOOPS"
+CHAR ' '                            ; Encoded as:   "[105] SCOOPS"
+CHAR 'S'
+CHAR 'C'
+CHAR 'O'
+CHAR 'O'
+CHAR 'P'
+CHAR 'S'
+EQUB 0
+
+TWOK 137                            ; Token 112:    "ESCAPE POD"
+CHAR 'C'                            ; Encoded as:   "<137>CAPE POD"
+CHAR 'A'
+CHAR 'P'
+CHAR 'E'
+CHAR ' '
+CHAR 'P'
+CHAR 'O'
+CHAR 'D'
+EQUB 0
+
+RTOK 121                            ; Token 113:    "ENERGY BOMB"
+CHAR 'B'                            ; Encoded as:   "[121]BOMB"
+CHAR 'O'
+CHAR 'M'
+CHAR 'B'
+EQUB 0
+
+RTOK 121                            ; Token 114:    "ENERGY UNIT"
+RTOK 14                             ; Encoded as:   "[121][14]"
+EQUB 0
+
+RTOK 124                            ; Token 115:    "DOCKING COMPUTERS"
+TWOK 140                            ; Encoded as:   "[124]<140>G [55]"
+CHAR 'G'
+CHAR ' '
+RTOK 55
+EQUB 0
+
+RTOK 122                            ; Token 116:    "GALACTIC HYPERSPACE "
+CHAR ' '                            ; Encoded as:   "[122] [29]"
+RTOK 29
+EQUB 0
+
+CHAR 'A'                            ; Token 117:    "ALL"
+RTOK 118                            ; Encoded as:   "A[118]"
+EQUB 0
+
+CHAR 'L'                            ; Token 118:    "LL"
+CHAR 'L'                            ; Encoded as:   "LL"
+EQUB 0
+
+RTOK 37                             ; Token 119:    "CASH:{cash right-aligned to width 9} CR{crlf}"
+CHAR ':'                            ; Encoded as:   "[37]:{0}"
+CTRL 0
+EQUB 0
+
+TWOK 140                            ; Token 120:    "INCOMING MISSILE"
+RTOK 91                             ; Encoded as:   "<140>[91]<140>G [106]"
+TWOK 140
+CHAR 'G'
+CHAR ' '
+RTOK 106
+EQUB 0
+
+TWOK 146                            ; Token 121:    "ENERGY "
+TWOK 144                            ; Encoded as:   "<146><144>GY "
+CHAR 'G'
+CHAR 'Y'
+CHAR ' '
+EQUB 0
+
+CHAR 'G'                            ; Token 122:    "GALACTIC"
+CHAR 'A'                            ; Encoded as:   "GA<149>C<151>C"
+TWOK 149
+CHAR 'C'
+TWOK 151
+CHAR 'C'
+EQUB 0
+
+CTRL 13                             ; Token 123:    "{crlf}COMMANDER'S NAME? "
+RTOK 92                             ; Encoded as:   "{13}[92]'S NAME? "
+CHAR 39                             ; CHAR 39 is the apostrophe, which we can't quote
+CHAR 'S'
+CHAR ' '
+CHAR 'N'
+CHAR 'A'
+CHAR 'M'
+CHAR 'E'
+CHAR '?'
+CHAR ' '
+EQUB 0
+
+CHAR 'D'                            ; Token 124:    "DOCK"
+CHAR 'O'                            ; Encoded as:   "DOCK"
+CHAR 'C'
+CHAR 'K'
+EQUB 0
+
+CTRL 5                              ; Token 125:    "FUEL: {fuel level} LIGHT YEARS{crlf}CASH:{cash right-aligned to width 9} CR{crlf}LEGAL STATUS:"
+TWOK 129                            ; Encoded as:   "{5}<129>G<128> [43]<145><136>:"
+CHAR 'G'
+TWOK 128
+CHAR ' '
+RTOK 43
+TWOK 145
+TWOK 136
+CHAR ':'
+EQUB 0
+
+RTOK 92                             ; Token 126:    "COMMANDER {commander name}{crlf}{crlf}{crlf}{switch to sentence case}PRESENT SYSTEM{tab to column 21}:{current system name}{crlf}HYPERSPACE SYSTEM{tab to column 21}:{selected system name}{crlf}CONDITION{tab to column 21}:"
+CHAR ' '                            ; Encoded as:   "[92] {4}{13}{13}{13}{6}[145] [5]{9}{2}{13}[29][5]{9}{3}{13}C<159><141><151><159>{9}"
+CTRL 4
+CTRL 13
+CTRL 13
+CTRL 13
+CTRL 6
+RTOK 145
+CHAR ' '
+RTOK 5
+CTRL 9
+CTRL 2
+CTRL 13
+RTOK 29
+RTOK 5
+CTRL 9
+CTRL 3
+CTRL 13
+CHAR 'C'
+TWOK 159
+TWOK 141
+TWOK 151
+TWOK 159
+CTRL 9
+EQUB 0
+
+CHAR 'I'                            ; Token 127:    "ITEM"
+TWOK 156                            ; Encoded as:   "I<156>M"
+CHAR 'M'
+EQUB 0
+
+CHAR ' '                            ; Token 128:    "  LOAD NEW COMMANDER (Y/N)?{crlf}{crlf}"
+CHAR ' '                            ; Encoded as:   "  LOAD NEW [92] [65]{13}{13}"
+CHAR 'L'
+CHAR 'O'
+CHAR 'A'
+CHAR 'D'
+CHAR ' '
+CHAR 'N'
+CHAR 'E'
+CHAR 'W'
+CHAR ' '
+RTOK 92
+CHAR ' '
+RTOK 65
+CTRL 13
+CTRL 13
+EQUB 0
+
+CTRL 6                              ; Token 129:    "{switch to sentence case}DOCKED"
+RTOK 124                            ; Encoded as:   "{6}[124]<152>"
+TWOK 152
+EQUB 0
+
+TWOK 148                            ; Token 130:    "RATING:"
+TWOK 151                            ; Encoded as:   "<148><151>NG:"
+CHAR 'N'
+CHAR 'G'
+CHAR ':'
+EQUB 0
+
+CHAR ' '                            ; Token 131:    " ON "
+TWOK 159                            ; Encoded as:   " <159> "
+CHAR ' '
+EQUB 0
+
+CTRL 13                             ; Token 132:    "{crlf}{switch to all caps}EQUIPMENT:{switch to sentence case}"
+CTRL 8                              ; Encoded as:   "{13}{8}[47]M<146>T:{6}"
+RTOK 47
+CHAR 'M'
+TWOK 146
+CHAR 'T'
+CHAR ':'
+CTRL 6
+EQUB 0
+
+CHAR 'C'                            ; Token 133:    "CLEAN"
+TWOK 129                            ; Encoded as:   "C<129><155>"
+TWOK 155
+EQUB 0
+
+CHAR 'O'                            ; Token 134:    "OFFENDER"
+CHAR 'F'                            ; Encoded as:   "OFF<146>D<144>"
+CHAR 'F'
+TWOK 146
+CHAR 'D'
+TWOK 144
+EQUB 0
+
+CHAR 'F'                            ; Token 135:    "FUGITIVE"
+CHAR 'U'                            ; Encoded as:   "FUGI<151><150>"
+CHAR 'G'
+CHAR 'I'
+TWOK 151
+TWOK 150
+EQUB 0
+
+CHAR 'H'                            ; Token 136:    "HARMLESS"
+TWOK 138                            ; Encoded as:   "H<138>M<129>SS"
+CHAR 'M'
+TWOK 129
+CHAR 'S'
+CHAR 'S'
+EQUB 0
+
+CHAR 'M'                            ; Token 137:    "MOSTLY HARMLESS"
+CHAR 'O'                            ; Encoded as:   "MO[43]LY [136]"
+RTOK 43
+CHAR 'L'
+CHAR 'Y'
+CHAR ' '
+RTOK 136
+EQUB 0
+
+RTOK 12                             ; Token 138:    "POOR "
+EQUB 0                              ; Encoded as:   "[12]"
+
+RTOK 11                             ; Token 139:    "AVERAGE "
+EQUB 0                              ; Encoded as:   "[11]"
+
+CHAR 'A'                            ; Token 140:    "ABOVE AVERAGE "
+CHAR 'B'                            ; Encoded as:   "ABO<150> [11]"
+CHAR 'O'
+TWOK 150
+CHAR ' '
+RTOK 11
+EQUB 0
+
+RTOK 91                             ; Token 141:    "COMPETENT"
+CHAR 'P'                            ; Encoded as:   "[91]PET<146>T"
+CHAR 'E'
+CHAR 'T'
+TWOK 146
+CHAR 'T'
+EQUB 0
+
+CHAR 'D'                            ; Token 142:    "DANGEROUS"
+TWOK 155                            ; Encoded as:   "D<155><131>RO<136>"
+TWOK 131
+CHAR 'R'
+CHAR 'O'
+TWOK 136
+EQUB 0
+
+CHAR 'D'                            ; Token 143:    "DEADLY"
+CHAR 'E'                            ; Encoded as:   "DEADLY"
+CHAR 'A'
+CHAR 'D'
+CHAR 'L'
+CHAR 'Y'
+EQUB 0
+
+CHAR '-'                            ; Token 144:    "---- E L I T E ----"
+CHAR '-'                            ; Encoded as:   "---- E L I T E ----"
+CHAR '-'
+CHAR '-'
+CHAR ' '
+CHAR 'E'
+CHAR ' '
+CHAR 'L'
+CHAR ' '
+CHAR 'I'
+CHAR ' '
+CHAR 'T'
+CHAR ' '
+CHAR 'E'
+CHAR ' '
+CHAR '-'
+CHAR '-'
+CHAR '-'
+CHAR '-'
+EQUB 0
+
+CHAR 'P'                            ; Token 145:    "PRESENT"
+TWOK 142                            ; Encoded as:   "P<142>S<146>T"
+CHAR 'S'
+TWOK 146
+CHAR 'T'
+EQUB 0
+
+CTRL 8                              ; Token 146:    "{switch to all caps}GAME OVER"
+CHAR 'G'                            ; Encoded as:   "{8}GAME O<150>R"
+CHAR 'A'
+CHAR 'M'
+CHAR 'E'
+CHAR ' '
+CHAR 'O'
+TWOK 150
+CHAR 'R'
+EQUB 0
+
+CHAR 'P'                            ; Token 147:    "PRESS FIRE OR SPACE,COMMANDER.{crlf}{crlf}"
+CHAR 'R'                            ; Encoded as:   "PR<137>S FI<142> <153> SPA<133>,[92].{13}{13}"
+TWOK 137
+CHAR 'S'
+CHAR ' '
+CHAR 'F'
+CHAR 'I'
+TWOK 142
+CHAR ' '
+TWOK 153
+CHAR ' '
+CHAR 'S'
+CHAR 'P'
+CHAR 'A'
+TWOK 133
+CHAR ','
+RTOK 92
+CHAR '.'
+CTRL 13
+CTRL 13
+EQUB 0
+
+CHAR '('                            ; Token 148:    "(C) ACORNSOFT 1984"
+CHAR 'C'                            ; Encoded as:   "(C) AC<153>N<135>FT 1984"
+CHAR ')'
+CHAR ' '
+CHAR 'A'
+CHAR 'C'
+TWOK 153
+CHAR 'N'
+TWOK 135
+CHAR 'F'
+CHAR 'T'
+CHAR ' '
+CHAR '1'
+CHAR '9'
+CHAR '8'
+CHAR '4'
+EQUB 0
+
+\ *****************************************************************************
+\ Save output/WORDS9.bin
+\ *****************************************************************************
+
+PRINT "WORDS9"
+PRINT "Assembled at ", ~CODE_WORDS%
+PRINT "Ends at ", ~P%
+PRINT "Code size is ", ~(P% - CODE_WORDS%)
+PRINT "Execute at ", ~LOAD%
+PRINT "Reload at ", ~LOAD_WORDS%
+
+PRINT "S.WORDS9 ",~CODE%," ",~P%," ",~LOAD%," ",~LOAD_WORDS%
+SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
+
+\ *****************************************************************************
 \ Workspace at WP = &0D40 - &0F34
 \ *****************************************************************************
 
@@ -683,116 +2350,6 @@ LSX = LSO               ; Shares memory with LSO
  SKIP 1
 
 PRINT "WP workspace from  ", ~WP," to ", ~P%
-
-\ *****************************************************************************
-\ Workspace at T% = &300 - &035F
-\
-\ Contains the current commander data (NT% bytes at location TP), and the
-\ stardust data block (NOST bytes at location SX)
-\ *****************************************************************************
-
-ORG T%                  ; Start of the commander block
-
-.TP                     ; Mission status, always 0 for tape version
- SKIP 1
-
-.QQ0                    ; Current system X-coordinate
- SKIP 1
-
-.QQ1                    ; Current system Y-coordinate
- SKIP 1
-
-.QQ21                   ; Three 16-bit seeds for current system
- SKIP 6
-
-.CASH                   ; Cash as a 32-bit unsigned integer
- SKIP 4
-
-.QQ14                   ; Contains the current fuel level * 10 (so a 1 in QQ14
- SKIP 1                 ; represents 0.1 light years)
-
-.COK                    ; Competition code flags
- SKIP 1                 ;
-                        ; Bit 7 is set on start-up if CHK and CHK2 do not match,
-                        ; which presumably indicates that there may have been
-                        ; some cheatimg going on
-                        ;
-                        ; Bit 1 is set on start-up
-                        ;
-                        ; Bit 0 is set in routine ptg if player holds X during
-                        ; hyperspace to force a mis-jump (having first paused
-                        ; the game and toggled on the author credits with X)
-
-.GCNT                   ; Contains the current galaxy number, 0-7. When this is
- SKIP 1                 ; displayed in-game, 1 is added to the number (so we
-                        ; start in galaxy 1 in-game, but it's stored as galaxy
-                        ; 0 internally)
-
-.LASER                  ; Laser power, 0 means no laser
- SKIP 4                 ; (byte 0 = front, 1 = rear, 2 = left, 3 = right)
-
- SKIP 2                 ; Not used (reserved for up/down lasers, maybe?)
- 
-.CRGO                   ; Cargo capacity
- SKIP 1
-
-.QQ20                   ; Contents of cargo hold
- SKIP 17
-
-.ECM                    ; E.C.M.
- SKIP 1
-
-.BST                    ; Fuel scoops ("barrel status")
- SKIP 1
-
-.BOMB                   ; Energy bomb
- SKIP 1
-
-.ENGY                   ; Energy/shield level
- SKIP 1
-
-.DKCMP                  ; Docking computer
- SKIP 1
-
-.GHYP                   ; Galactic hyperdrive
- SKIP 1
-
-.ESCP                   ; Escape pod
- SKIP 1
-
- SKIP 4                 ; Not used
-
-.NOMSL                  ; Number of missiles
- SKIP 1
-
-.FIST                   ; Legal status ("fugitive/innocent status")
- SKIP 1
-
-.AVL                    ; Market availability
- SKIP 17
-
-.QQ26                   ; Random byte that changes for each visit to a system,
- SKIP 1                 ; for randomising market prices
-
-.TALLY                  ; Number of kills
- SKIP 2
-
-.SVC                    ; Save count, gets halved with each save
- SKIP 1
-
- SKIP 2                 ; Reserve two bytes for commander checksum, so when
-                        ; current commander block is copied to the last saved
-                        ; commnder block at NA%, CHK and CHK2 get overwritten
-
-NT% = SVC + 2 - TP      ; Set to the size of the commander block, which starts
-                        ; at T% (&300) and goes to SVC+3
-
-SX = P%                 ; SX points to the stardust data block, which is NOST
-                        ; bytes (NOST = "number of stars")
-
-SXL = SX + NOST + 1     ; SXL points to the end of the stardust data block
-
-PRINT "T% workspace from  ", ~T%, " to ", ~SXL
 
 \ *****************************************************************************
 \ ELITE A
@@ -11827,7 +13384,7 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   A           The type of the ship to add (see elite-ships.asm for a list of
+\   A           The type of the ship to add (see variable XX21 for a list of
 \               ship types)
 \
 \ Returns:
@@ -11886,9 +13443,9 @@ MAPCHAR '4', '4'
 
                         ; This is a ship, so first we need to set up various
                         ; pointers to the ship data we will need. Ship data is
-                        ; assembled by elite-ships.asm and is loaded at
-                        ; location XX21, so refer to that file for more details
-                        ; on the data we're about to access.
+                        ; assembled in a table at location XX21, so refer to
+                        ; that variable below for more details on the data
+                        ; we're about to access.
 
  ASL A                  ; Set Y = ship type * 2
  TAY
@@ -14463,7 +16020,7 @@ ENDIF
 \   A           The number of the recursive token to show below the rotating
 \               ship (see elite-words.asm for details of recursive tokens)
 \
-\   X           The type of the ship to show (see elite-ships.asm for a list of
+\   X           The type of the ship to show (see variable XX21 for a list of
 \               ship types)
 \ *****************************************************************************
 
@@ -17836,16 +19393,957 @@ SKIP 1
 }
 
 \ *****************************************************************************
-\ Variable: XX21
-\
-\ Table of pointers to ship definitions. See elite-ships.asm for details.
+\ ELITE SHIPS SOURCE
 \ *****************************************************************************
 
-.XX21                   ; See elite-ships.asm for details of what goes here
+CODE_SHIPS% = P%
+LOAD_SHIPS% = LOAD% + P% - CODE%
 
-INCBIN "output/SHIPS.bin"
+\ *****************************************************************************
+\ Variable: XX21
+\
+\ Ships lookup table.
+\ *****************************************************************************
 
-PRINT "XX21 = ", ~XX21
+\ The following lookup table points to the individual ship definitions below.
+
+.XX21
+ EQUW SHIP1                         ;         1 = Sidewinder
+ EQUW SHIP2                         ; COPS =  2 = Viper
+ EQUW SHIP3                         ; MAM  =  3 = Mamba
+ EQUW &7F00                         ;         4 = &7F00
+ EQUW SHIP5                         ;         5 = Points to Cobra Mk III
+ EQUW SHIP6                         ; THG  =  6 = Thargoid
+ EQUW SHIP5                         ; CYL  =  7 = Cobra Mk III
+ EQUW SHIP8                         ; SST  =  8 = Coriolis space station
+ EQUW SHIP9                         ; MSL  =  9 = Missile
+ EQUW SHIP10                        ; AST  = 10 = Asteroid
+ EQUW SHIP11                        ; OIL  = 11 = Cargo
+ EQUW SHIP12                        ; TGL  = 12 = Thargon
+ EQUW SHIP13                        ; ESC  = 13 = Escape pod
+
+\ *****************************************************************************
+\ Ships in Elite
+\ *****************************************************************************
+\
+\ For each ship definition below, the first 20 bytes define the following:
+\
+\ Byte #0       High nibble determines cargo type if scooped, 0 = not scoopable
+\               Lower nibble determines maximum number of bits of debris shown
+\               when destroyed
+\ Byte #1-2     Area of ship that can be locked onto by a missle (lo, hi)
+\ Byte #3       Edges data offset lo (offset is from byte #0)
+\ Byte #4       Faces data offset lo (offset is from byte #0)
+\ Byte #5       Maximum heap size for plotting ship = 1 + 4 * max. no of
+\               visible edges
+\ Byte #6       Number * 4 of the vertex used for gun spike, if applicable
+\ Byte #7       Explosion count = 4 * n + 6, where n = number of vertices used
+\               as origins for explosion dust
+\ Byte #8       Number of vertices * 6
+\ Byte #10-11   Bounty awarded in Cr * 10 (lo, hi)
+\ Byte #12      Number of faces * 4
+\ Byte #13      Beyond this distance, show this ship as a dot
+\ Byte #14      Maximum energy/shields
+\ Byte #15      Maximum speed
+\ Byte #16      Edges data offset hi (if this is negative (&FF) it points to
+\               another ship's edge net)
+\ Byte #17      Faces data offset hi
+\ Byte #18      Q%: Normals are scaled by 2^Q% to make large objects' normals
+\               flare out further away (see EE29)
+\ Byte #19      %00 lll mmm, where bits 0-2 = number of missiles,
+\               bits 3-5 = laser power
+
+\ *****************************************************************************
+\ Variable: SHIP1
+\
+\ Sidewinder ship definition
+\ *****************************************************************************
+
+.SHIP1
+ EQUB &00
+ EQUB &81, &10
+ EQUB &50
+ EQUB &8C
+ EQUB &3D
+ EQUB &00                           ; gun vertex = 0
+ EQUB &1E
+ EQUB &3C                           ; number of vertices = &3C / 6 = 10
+ EQUB &0F                           ; number of edges = &0F = 15
+ EQUB &32, &00                      ; bounty = &0032 = 50
+ EQUB &1C                           ; number of faces = &1C / 4 = 7
+ EQUB &14
+ EQUB &46
+ EQUB &25
+ EQUB &00
+ EQUB &00
+ EQUB &02
+ EQUB &10                           ; %10000, laser = 2, missiles = 0
+
+ EQUB &20, &00, &24, &9F, &10, &54  ; vertices data (10*6)
+ EQUB &20, &00, &24, &1F, &20, &65
+ EQUB &40, &00, &1C, &3F, &32, &66
+ EQUB &40, &00, &1C, &BF, &31, &44
+ EQUB &00, &10, &1C, &3F, &10, &32
+
+ EQUB &00, &10, &1C, &7F, &43, &65
+ EQUB &0C, &06, &1C, &AF, &33, &33
+ EQUB &0C, &06, &1C, &2F, &33, &33
+ EQUB &0C, &06, &1C, &6C, &33, &33
+ EQUB &0C, &06, &1C, &EC, &33, &33
+
+ EQUB &1F, &50, &00, &04            ; edges data (15*4)
+ EQUB &1F, &62, &04, &08
+ EQUB &1F, &20, &04, &10
+ EQUB &1F, &10, &00, &10
+ EQUB &1F, &41, &00, &0C
+
+ EQUB &1F, &31, &0C, &10
+ EQUB &1F, &32, &08, &10
+ EQUB &1F, &43, &0C, &14
+ EQUB &1F, &63, &08, &14
+ EQUB &1F, &65, &04, &14
+
+ EQUB &1F, &54, &00, &14
+ EQUB &0F, &33, &18, &1C
+ EQUB &0C, &33, &1C, &20
+ EQUB &0C, &33, &18, &24
+ EQUB &0C, &33, &20, &24
+
+ EQUB &1F, &00, &20, &08            ; faces data (7*4)
+ EQUB &9F, &0C, &2F, &06
+ EQUB &1F, &0C, &2F, &06
+ EQUB &3F, &00, &00, &70
+ EQUB &DF, &0C, &2F, &06
+
+ EQUB &5F, &00, &20, &08
+ EQUB &5F, &0C, &2F, &06
+
+\ *****************************************************************************
+\ Variable: SHIP2
+\
+\ Viper ship definition
+\ *****************************************************************************
+
+.SHIP2
+ EQUB &00
+ EQUB &F9, &15
+ EQUB &6E
+ EQUB &BE
+ EQUB &4D
+ EQUB &00                           ; gun vertex = 0
+ EQUB &2A
+ EQUB &5A                           ; number of vertices = &5A / 6 = 15
+ EQUB &14                           ; number of edges = &14 = 20
+ EQUB &00, &00                      ; bounty = 0
+ EQUB &1C                           ; number of faces = &1C / 4 = 7
+ EQUB &17
+ EQUB &78
+ EQUB &20
+ EQUB &00
+ EQUB &00
+ EQUB &01
+ EQUB &11                           ; %10001, laser = 2, missiles = 1
+
+ EQUB &00, &00, &48, &1F, &21, &43  ; vertices data (15*6)
+ EQUB &00, &10, &18, &1E, &10, &22
+ EQUB &00, &10, &18, &5E, &43, &55
+ EQUB &30, &00, &18, &3F, &42, &66
+ EQUB &30, &00, &18, &BF, &31, &66
+
+ EQUB &18, &10, &18, &7E, &54, &66
+ EQUB &18, &10, &18, &FE, &35, &66
+ EQUB &18, &10, &18, &3F, &20, &66
+ EQUB &18, &10, &18, &BF, &10, &66
+ EQUB &20, &00, &18, &B3, &66, &66
+
+ EQUB &20, &00, &18, &33, &66, &66
+ EQUB &08, &08, &18, &33, &66, &66
+ EQUB &08, &08, &18, &B3, &66, &66
+ EQUB &08, &08, &18, &F2, &66, &66
+ EQUB &08, &08, &18, &72, &66, &66
+
+ EQUB &1F, &42, &00, &0C            ; edges data (20*4)
+ EQUB &1E, &21, &00, &04
+ EQUB &1E, &43, &00, &08
+ EQUB &1F, &31, &00, &10
+ EQUB &1E, &20, &04, &1C
+
+ EQUB &1E, &10, &04, &20
+ EQUB &1E, &54, &08, &14
+ EQUB &1E, &53, &08, &18
+ EQUB &1F, &60, &1C, &20
+ EQUB &1E, &65, &14, &18
+
+ EQUB &1F, &61, &10, &20
+ EQUB &1E, &63, &10, &18
+ EQUB &1F, &62, &0C, &1C
+ EQUB &1E, &46, &0C, &14
+ EQUB &13, &66, &24, &30
+
+ EQUB &12, &66, &24, &34
+ EQUB &13, &66, &28, &2C
+ EQUB &12, &66, &28, &38
+ EQUB &10, &66, &2C, &38
+ EQUB &10, &66, &30, &34
+
+ EQUB &1F, &00, &20, &00            ; faces data (7*4)
+ EQUB &9F, &16, &21, &0B
+ EQUB &1F, &16, &21, &0B
+ EQUB &DF, &16, &21, &0B
+ EQUB &5F, &16, &21, &0B
+
+ EQUB &5F, &00, &20, &00
+ EQUB &3F, &00, &00, &30
+
+\ *****************************************************************************
+\ Variable: SHIP3
+\
+\ Mamba ship definition
+\ *****************************************************************************
+
+.SHIP3
+ EQUB &01                           ; scoopable = 0, debris shown = 1
+ EQUB &24, &13
+ EQUB &AA
+ EQUB &1A
+ EQUB &5D
+ EQUB &00                           ; gun vertex = 0
+ EQUB &22
+ EQUB &96                           ; number of vertices = &96 / 6 = 25
+ EQUB &1C                           ; number of edges = &1C = 28
+ EQUB &96, &00                      ; bounty = &0096 = 150
+ EQUB &14                           ; number of faces = &14 / 4 = 5
+ EQUB &19
+ EQUB &5A
+ EQUB &1E
+ EQUB &00
+ EQUB &01
+ EQUB &02
+ EQUB &12                           ; %00 0010 010, laser = 2, missiles = 2
+
+ EQUB &00, &00, &40, &1F, &10, &32  ; vertices data (25*6)
+ EQUB &40, &08, &20, &FF, &20, &44
+ EQUB &20, &08, &20, &BE, &21, &44
+ EQUB &20, &08, &20, &3E, &31, &44
+ EQUB &40, &08, &20, &7F, &30, &44
+
+ EQUB &04, &04, &10, &8E, &11, &11
+ EQUB &04, &04, &10, &0E, &11, &11
+ EQUB &08, &03, &1C, &0D, &11, &11
+ EQUB &08, &03, &1C, &8D, &11, &11
+ EQUB &14, &04, &10, &D4, &00, &00
+
+ EQUB &14, &04, &10, &54, &00, &00
+ EQUB &18, &07, &14, &F4, &00, &00
+ EQUB &10, &07, &14, &F0, &00, &00
+ EQUB &10, &07, &14, &70, &00, &00
+ EQUB &18, &07, &14, &74, &00, &00
+
+ EQUB &08, &04, &20, &AD, &44, &44
+ EQUB &08, &04, &20, &2D, &44, &44
+ EQUB &08, &04, &20, &6E, &44, &44
+ EQUB &08, &04, &20, &EE, &44, &44
+ EQUB &20, &04, &20, &A7, &44, &44
+
+ EQUB &20, &04, &20, &27, &44, &44
+ EQUB &24, &04, &20, &67, &44, &44
+ EQUB &24, &04, &20, &E7, &44, &44
+ EQUB &26, &00, &20, &A5, &44, &44
+ EQUB &26, &00, &20, &25, &44, &44
+
+ EQUB &1F, &20, &00, &04            ; edges data (28*4)
+ EQUB &1F, &30, &00, &10
+ EQUB &1F, &40, &04, &10
+ EQUB &1E, &42, &04, &08
+ EQUB &1E, &41, &08, &0C
+
+ EQUB &1E, &43, &0C, &10
+ EQUB &0E, &11, &14, &18
+ EQUB &0C, &11, &18, &1C
+ EQUB &0D, &11, &1C, &20
+ EQUB &0C, &11, &14, &20
+
+ EQUB &14, &00, &24, &2C
+ EQUB &10, &00, &24, &30
+ EQUB &10, &00, &28, &34
+ EQUB &14, &00, &28, &38
+ EQUB &0E, &00, &34, &38
+
+ EQUB &0E, &00, &2C, &30
+ EQUB &0D, &44, &3C, &40
+ EQUB &0E, &44, &44, &48
+ EQUB &0C, &44, &3C, &48
+ EQUB &0C, &44, &40, &44
+
+ EQUB &07, &44, &50, &54
+ EQUB &05, &44, &50, &60
+ EQUB &05, &44, &54, &60
+ EQUB &07, &44, &4C, &58
+ EQUB &05, &44, &4C, &5C
+
+ EQUB &05, &44, &58, &5C
+ EQUB &1E, &21, &00, &08
+ EQUB &1E, &31, &00, &0C
+
+ EQUB &5E, &00, &18, &02            ; faces data (5*4)
+ EQUB &1E, &00, &18, &02
+ EQUB &9E, &20, &40, &10
+ EQUB &1E, &20, &40, &10
+ EQUB &3E, &00, &00, &7F
+
+\ *****************************************************************************
+\ Variable: SHIP5
+\
+\ Cobra Mk III ship definition
+\ *****************************************************************************
+
+.SHIP5
+ EQUB &03                           ; scoopable = 0, debris shown = 3
+ EQUB &41, &23                      ; area for missile lock = &2331
+ EQUB &BC                           ; edges data offset = &00BC
+ EQUB &54                           ; faces data offset = &0154
+ EQUB &99                           ; max. edge count for heap = (&99 - 1) / 4 = 38
+ EQUB &54                           ; gun vertex = &54 / 4 = 21
+ EQUB &2A                           ; explosion count = (4 * n) + 6 = &2A, n = 9
+ EQUB &A8                           ; number of vertices = &A8 / 6 = 28
+ EQUB &26                           ; number of edges = &26 = 38
+ EQUB &00, &00                      ; bounty = 0
+ EQUB &34                           ; number of faces = &34 / 4 = 13
+ EQUB &32                           ; show as a dot past a distance of 50
+ EQUB &96                           ; maximum energy/shields = 150
+ EQUB &1C                           ; maximum speed = 28
+ EQUB &00                           ; edges data offset = &00BC
+ EQUB &01                           ; faces data offset = &0154
+ EQUB &01                           ; normals are scaled by 2^1 = 2
+ EQUB &13                           ; &13 = %00 010 011, missiles = 3, laser power = 2
+
+ EQUB &20, &00, &4C, &1F, &FF, &FF  ; vertices data (28*6)
+ EQUB &20, &00, &4C, &9F, &FF, &FF
+ EQUB &00, &1A, &18, &1F, &FF, &FF
+ EQUB &78, &03, &08, &FF, &73, &AA
+ EQUB &78, &03, &08, &7F, &84, &CC
+
+ EQUB &58, &10, &28, &BF, &FF, &FF
+ EQUB &58, &10, &28, &3F, &FF, &FF
+ EQUB &80, &08, &28, &7F, &98, &CC
+ EQUB &80, &08, &28, &FF, &97, &AA
+ EQUB &00, &1A, &28, &3F, &65, &99
+
+ EQUB &20, &18, &28, &FF, &A9, &BB
+ EQUB &20, &18, &28, &7F, &B9, &CC
+ EQUB &24, &08, &28, &B4, &99, &99
+ EQUB &08, &0C, &28, &B4, &99, &99
+ EQUB &08, &0C, &28, &34, &99, &99
+
+ EQUB &24, &08, &28, &34, &99, &99
+ EQUB &24, &0C, &28, &74, &99, &99
+ EQUB &08, &10, &28, &74, &99, &99
+ EQUB &08, &10, &28, &F4, &99, &99
+ EQUB &24, &0C, &28, &F4, &99, &99
+
+ EQUB &00, &00, &4C, &06, &B0, &BB
+ EQUB &00, &00, &5A, &1F, &B0, &BB
+ EQUB &50, &06, &28, &E8, &99, &99
+ EQUB &50, &06, &28, &A8, &99, &99
+ EQUB &58, &00, &28, &A6, &99, &99
+
+ EQUB &50, &06, &28, &28, &99, &99
+ EQUB &58, &00, &28, &26, &99, &99
+ EQUB &50, &06, &28, &68, &99, &99
+
+ EQUB &1F, &B0, &00, &04            ; edges data (38*4)
+ EQUB &1F, &C4, &00, &10
+ EQUB &1F, &A3, &04, &0C
+ EQUB &1F, &A7, &0C, &20
+ EQUB &1F, &C8, &10, &1C
+
+ EQUB &1F, &98, &18, &1C
+ EQUB &1F, &96, &18, &24
+ EQUB &1F, &95, &14, &24
+ EQUB &1F, &97, &14, &20
+ EQUB &1F, &51, &08, &14
+
+ EQUB &1F, &62, &08, &18
+ EQUB &1F, &73, &0C, &14
+ EQUB &1F, &84, &10, &18
+ EQUB &1F, &10, &04, &08
+ EQUB &1F, &20, &00, &08
+
+ EQUB &1F, &A9, &20, &28
+ EQUB &1F, &B9, &28, &2C
+ EQUB &1F, &C9, &1C, &2C
+ EQUB &1F, &BA, &04, &28
+ EQUB &1F, &CB, &00, &2C
+
+ EQUB &1D, &31, &04, &14
+ EQUB &1D, &42, &00, &18
+ EQUB &06, &B0, &50, &54
+ EQUB &14, &99, &30, &34
+ EQUB &14, &99, &48, &4C
+
+ EQUB &14, &99, &38, &3C
+ EQUB &14, &99, &40, &44
+ EQUB &13, &99, &3C, &40
+ EQUB &11, &99, &38, &44
+ EQUB &13, &99, &34, &48
+
+ EQUB &13, &99, &30, &4C
+ EQUB &1E, &65, &08, &24
+ EQUB &06, &99, &58, &60
+ EQUB &06, &99, &5C, &60
+ EQUB &08, &99, &58, &5C
+
+ EQUB &06, &99, &64, &68
+ EQUB &06, &99, &68, &6C
+ EQUB &08, &99, &64, &6C
+
+ EQUB &1F, &00, &3E, &1F            ; faces data (13*4)
+ EQUB &9F, &12, &37, &10            ; start normals #0 = top front plate of, &Cobra Mk III
+ EQUB &1F, &12, &37, &10
+ EQUB &9F, &10, &34, &0E
+ EQUB &1F, &10, &34, &0E
+
+ EQUB &9F, &0E, &2F, &00
+ EQUB &1F, &0E, &2F, &00
+ EQUB &9F, &3D, &66, &00
+ EQUB &1F, &3D, &66, &00
+ EQUB &3F, &00, &00, &50
+
+ EQUB &DF, &07, &2A, &09
+ EQUB &5F, &00, &1E, &06
+ EQUB &5F, &07, &2A, &09
+
+\ *****************************************************************************
+\ Variable: SHIP6
+\
+\ Thargoid ship definition
+\ *****************************************************************************
+
+.SHIP6
+ EQUB &00
+ EQUB &49, &26
+ EQUB &8C
+ EQUB &F4
+ EQUB &65
+ EQUB &3C                           ; gun vertex = &3C / 4 = 15
+ EQUB &26
+ EQUB &78                           ; number of vertices = &78 / 6 = 20
+ EQUB &1A                           ; number of edges = &1A = 26
+ EQUB &F4, &01                      ; bounty = &01F4 = 500
+ EQUB &28                           ; number of faces = &28 / 4 = 10
+ EQUB &37
+ EQUB &F0
+ EQUB &27
+ EQUB &00
+ EQUB &00
+ EQUB &02
+ EQUB &16                           ; %10110, laser = 2, missiles = 6
+
+ EQUB &20, &30, &30, &5F, &40, &88  ; vertices data (20)
+ EQUB &20, &44, &00, &5F, &10, &44
+ EQUB &20, &30, &30, &7F, &21, &44
+ EQUB &20, &00, &44, &3F, &32, &44
+ EQUB &20, &30, &30, &3F, &43, &55
+
+ EQUB &20, &44, &00, &1F, &54, &66
+ EQUB &20, &30, &30, &1F, &64, &77
+ EQUB &20, &00, &44, &1F, &74, &88
+ EQUB &18, &74, &74, &DF, &80, &99
+ EQUB &18, &A4, &00, &DF, &10, &99
+
+ EQUB &18, &74, &74, &FF, &21, &99
+ EQUB &18, &00, &A4, &BF, &32, &99
+ EQUB &18, &74, &74, &BF, &53, &99
+ EQUB &18, &A4, &00, &9F, &65, &99
+ EQUB &18, &74, &74, &9F, &76, &99
+
+ EQUB &18, &00, &A4, &9F, &87, &99
+ EQUB &18, &40, &50, &9E, &99, &99
+ EQUB &18, &40, &50, &BE, &99, &99
+ EQUB &18, &40, &50, &FE, &99, &99
+ EQUB &18, &40, &50, &DE, &99, &99
+
+ EQUB &1F, &84, &00, &1C            ; edges data (26*4)
+ EQUB &1F, &40, &00, &04
+ EQUB &1F, &41, &04, &08
+ EQUB &1F, &42, &08, &0C
+ EQUB &1F, &43, &0C, &10
+
+ EQUB &1F, &54, &10, &14
+ EQUB &1F, &64, &14, &18
+ EQUB &1F, &74, &18, &1C
+ EQUB &1F, &80, &00, &20
+ EQUB &1F, &10, &04, &24
+
+ EQUB &1F, &21, &08, &28
+ EQUB &1F, &32, &0C, &2C
+ EQUB &1F, &53, &10, &30
+ EQUB &1F, &65, &14, &34
+ EQUB &1F, &76, &18, &38
+
+ EQUB &1F, &87, &1C, &3C
+ EQUB &1F, &98, &20, &3C
+ EQUB &1F, &90, &20, &24
+ EQUB &1F, &91, &24, &28
+ EQUB &1F, &92, &28, &2C
+
+ EQUB &1F, &93, &2C, &30
+ EQUB &1F, &95, &30, &34
+ EQUB &1F, &96, &34, &38
+ EQUB &1F, &97, &38, &3C
+ EQUB &1E, &99, &40, &44
+
+ EQUB &1E, &99, &48, &4C
+
+ EQUB &5F, &67, &3C, &19            ; faces data (10*4)
+ EQUB &7F, &67, &3C, &19
+ EQUB &7F, &67, &19, &3C
+ EQUB &3F, &67, &19, &3C
+ EQUB &1F, &40, &00, &00
+
+ EQUB &3F, &67, &3C, &19
+ EQUB &1F, &67, &3C, &19
+ EQUB &1F, &67, &19, &3C
+ EQUB &5F, &67, &19, &3C
+ EQUB &9F, &30, &00, &00
+
+\ *****************************************************************************
+\ Variable: SHIP8
+\
+\ Coriolis space station definition
+\ *****************************************************************************
+
+.SHIP8
+ EQUB &00
+ EQUB &00, &64
+ EQUB &74
+ EQUB &E4
+ EQUB &55
+ EQUB &00                           ; gun vertex = 0
+ EQUB &36
+ EQUB &60                           ; number of vertices = &60 / 6 = 16
+ EQUB &1C                           ; number of edges = &1C = 28
+ EQUB &00, &00                      ; bounty = 0
+ EQUB &38                           ; number of faces = &38 / 4 = 14
+ EQUB &78
+ EQUB &F0
+ EQUB &00
+ EQUB &00
+ EQUB &00
+ EQUB &00
+ EQUB &06
+
+ EQUB &A0, &00, &A0, &1F, &10, &62  ; vertices data (16*6)
+ EQUB &00, &A0, &A0, &1F, &20, &83
+ EQUB &A0, &00, &A0, &9F, &30, &74
+ EQUB &00, &A0, &A0, &5F, &10, &54
+ EQUB &A0, &A0, &00, &5F, &51, &A6
+
+ EQUB &A0, &A0, &00, &1F, &62, &B8
+ EQUB &A0, &A0, &00, &9F, &73, &C8
+ EQUB &A0, &A0, &00, &DF, &54, &97
+ EQUB &A0, &00, &A0, &3F, &A6, &DB
+ EQUB &00, &A0, &A0, &3F, &B8, &DC
+
+ EQUB &A0, &00, &A0, &BF, &97, &DC
+ EQUB &00, &A0, &A0, &7F, &95, &DA
+ EQUB &0A, &1E, &A0, &5E, &00, &00
+ EQUB &0A, &1E, &A0, &1E, &00, &00
+ EQUB &0A, &1E, &A0, &9E, &00, &00
+
+ EQUB &0A, &1E, &A0, &DE, &00, &00
+
+ EQUB &1F, &10, &00, &0C            ; edges data (28*4)
+ EQUB &1F, &20, &00, &04
+ EQUB &1F, &30, &04, &08
+ EQUB &1F, &40, &08, &0C
+ EQUB &1F, &51, &0C, &10
+
+ EQUB &1F, &61, &00, &10
+ EQUB &1F, &62, &00, &14
+ EQUB &1F, &82, &14, &04
+ EQUB &1F, &83, &04, &18
+ EQUB &1F, &73, &08, &18
+
+ EQUB &1F, &74, &08, &1C
+ EQUB &1F, &54, &0C, &1C
+ EQUB &1F, &DA, &20, &2C
+ EQUB &1F, &DB, &20, &24
+ EQUB &1F, &DC, &24, &28
+
+ EQUB &1F, &D9, &28, &2C
+ EQUB &1F, &A5, &10, &2C
+ EQUB &1F, &A6, &10, &20
+ EQUB &1F, &B6, &14, &20
+ EQUB &1F, &B8, &14, &24
+
+ EQUB &1F, &C8, &18, &24
+ EQUB &1F, &C7, &18, &28
+ EQUB &1F, &97, &1C, &28
+ EQUB &1F, &95, &1C, &2C
+ EQUB &1E, &00, &30, &34
+
+ EQUB &1E, &00, &34, &38
+ EQUB &1E, &00, &38, &3C
+ EQUB &1E, &00, &3C, &30
+
+ EQUB &1F, &00, &00, &A0            ; faces data (14*4)
+ EQUB &5F, &6B, &6B, &6B
+ EQUB &1F, &6B, &6B, &6B
+ EQUB &9F, &6B, &6B, &6B
+ EQUB &DF, &6B, &6B, &6B
+
+ EQUB &5F, &00, &A0, &00
+ EQUB &1F, &A0, &00, &00
+ EQUB &9F, &A0, &00, &00
+ EQUB &1F, &00, &A0, &00
+ EQUB &FF, &6B, &6B, &6B
+
+ EQUB &7F, &6B, &6B, &6B
+ EQUB &3F, &6B, &6B, &6B
+ EQUB &BF, &6B, &6B, &6B
+ EQUB &3F, &00, &00, &A0
+
+\ *****************************************************************************
+\ Variable: SHIP9
+\
+\ Missile definition
+\ *****************************************************************************
+
+.SHIP9
+ EQUB &00
+ EQUB &40, &06
+ EQUB &7A
+ EQUB &DA
+ EQUB &51
+ EQUB &00                           ; gun vertex = 0
+ EQUB &0A
+ EQUB &66                           ; number of vertices = &66 / 6 = 17
+ EQUB &18                           ; number of edges = &18 = 24
+ EQUB &00, &00                      ; bounty = 0
+ EQUB &24                           ; number of faces = &24 / 4 = 9
+ EQUB &0E
+ EQUB &02
+ EQUB &2C
+ EQUB &00
+ EQUB &00
+ EQUB &02
+ EQUB &00                           ; %00000, laser = 0, missiles = 0
+
+ EQUB &00, &00, &44, &1F, &10, &32  ; vertices data (17*6)
+ EQUB &08, &08, &24, &5F, &21, &54
+ EQUB &08, &08, &24, &1F, &32, &74
+ EQUB &08, &08, &24, &9F, &30, &76
+ EQUB &08, &08, &24, &DF, &10, &65
+
+ EQUB &08, &08, &2C, &3F, &74, &88
+ EQUB &08, &08, &2C, &7F, &54, &88
+ EQUB &08, &08, &2C, &FF, &65, &88
+ EQUB &08, &08, &2C, &BF, &76, &88
+ EQUB &0C, &0C, &2C, &28, &74, &88
+
+ EQUB &0C, &0C, &2C, &68, &54, &88
+ EQUB &0C, &0C, &2C, &E8, &65, &88
+ EQUB &0C, &0C, &2C, &A8, &76, &88
+ EQUB &08, &08, &0C, &A8, &76, &77
+ EQUB &08, &08, &0C, &E8, &65, &66
+
+ EQUB &08, &08, &0C, &28, &74, &77
+ EQUB &08, &08, &0C, &68, &54, &55
+
+ EQUB &1F, &21, &00, &04            ; edges data (24*4)
+ EQUB &1F, &32, &00, &08
+ EQUB &1F, &30, &00, &0C
+ EQUB &1F, &10, &00, &10
+ EQUB &1F, &24, &04, &08
+
+ EQUB &1F, &51, &04, &10
+ EQUB &1F, &60, &0C, &10
+ EQUB &1F, &73, &08, &0C
+ EQUB &1F, &74, &08, &14
+ EQUB &1F, &54, &04, &18
+
+ EQUB &1F, &65, &10, &1C
+ EQUB &1F, &76, &0C, &20
+ EQUB &1F, &86, &1C, &20
+ EQUB &1F, &87, &14, &20
+ EQUB &1F, &84, &14, &18
+
+ EQUB &1F, &85, &18, &1C
+ EQUB &08, &85, &18, &28
+ EQUB &08, &87, &14, &24
+ EQUB &08, &87, &20, &30
+ EQUB &08, &85, &1C, &2C
+
+ EQUB &08, &74, &24, &3C
+ EQUB &08, &54, &28, &40
+ EQUB &08, &76, &30, &34
+ EQUB &08, &65, &2C, &38
+
+ EQUB &9F, &40, &00, &10             ; faces data (9*4)
+ EQUB &5F, &00, &40, &10
+ EQUB &1F, &40, &00, &10
+ EQUB &1F, &00, &40, &10
+ EQUB &1F, &20, &00, &00
+
+ EQUB &5F, &00, &20, &00
+ EQUB &9F, &20, &00, &00
+ EQUB &1F, &00, &20, &00
+ EQUB &3F, &00, &00, &B0
+
+\ *****************************************************************************
+\ Variable: SHIP10
+\
+\ Asteroid definition
+\ *****************************************************************************
+
+.SHIP10
+ EQUB &00
+ EQUB &00, &19
+ EQUB &4A
+ EQUB &9E
+ EQUB &41
+ EQUB &00                           ; gun vertex = 0
+ EQUB &22
+ EQUB &36                           ; number of vertices = &36 / 6 = 9
+ EQUB &15                           ; number of edges = &15 = 21
+ EQUB &05, &00                      ; bounty = &0005 = 5
+ EQUB &38                           ; number of faces = &38 / 4 = 14
+ EQUB &32
+ EQUB &3C
+ EQUB &1E
+ EQUB &00
+ EQUB &00
+ EQUB &01
+ EQUB &00                           ; %00000, laser = 0, missiles = 0
+
+ EQUB &00, &50, &00, &1F, &FF, &FF  ; vertices data (25*9)
+ EQUB &50, &0A, &00, &DF, &FF, &FF
+ EQUB &00, &50, &00, &5F, &FF, &FF
+ EQUB &46, &28, &00, &5F, &FF, &FF
+ EQUB &3C, &32, &00, &1F, &65, &DC
+
+ EQUB &32, &00, &3C, &1F, &FF, &FF
+ EQUB &28, &00, &46, &9F, &10, &32
+ EQUB &00, &1E, &4B, &3F, &FF, &FF
+ EQUB &00, &32, &3C, &7F, &98, &BA
+
+ EQUB &1F, &72, &00, &04            ; edges data (21*4)
+ EQUB &1F, &D6, &00, &10
+ EQUB &1F, &C5, &0C, &10
+ EQUB &1F, &B4, &08, &0C
+ EQUB &1F, &A3, &04, &08
+
+ EQUB &1F, &32, &04, &18
+ EQUB &1F, &31, &08, &18
+ EQUB &1F, &41, &08, &14
+ EQUB &1F, &10, &14, &18
+ EQUB &1F, &60, &00, &14
+
+ EQUB &1F, &54, &0C, &14
+ EQUB &1F, &20, &00, &18
+ EQUB &1F, &65, &10, &14
+ EQUB &1F, &A8, &04, &20
+ EQUB &1F, &87, &04, &1C
+
+ EQUB &1F, &D7, &00, &1C
+ EQUB &1F, &DC, &10, &1C
+ EQUB &1F, &C9, &0C, &1C
+ EQUB &1F, &B9, &0C, &20
+ EQUB &1F, &BA, &08, &20
+
+ EQUB &1F, &98, &1C, &20
+
+ EQUB &1F, &09, &42, &51            ; faces data (14*4)
+ EQUB &5F, &09, &42, &51
+ EQUB &9F, &48, &40, &1F
+ EQUB &DF, &40, &49, &2F
+ EQUB &5F, &2D, &4F, &41
+
+ EQUB &1F, &87, &0F, &23
+ EQUB &1F, &26, &4C, &46
+ EQUB &BF, &42, &3B, &27
+ EQUB &FF, &43, &0F, &50
+ EQUB &7F, &42, &0E, &4B
+
+ EQUB &FF, &46, &50, &28
+ EQUB &7F, &3A, &66, &33
+ EQUB &3F, &51, &09, &43
+ EQUB &3F, &2F, &5E, &3F
+
+\ *****************************************************************************
+\ Variable: SHIP11
+\
+\ Cargo cannister definition
+\ *****************************************************************************
+
+.SHIP11
+ EQUB &00
+ EQUB &90, &01
+ EQUB &50
+ EQUB &8C
+ EQUB &31
+ EQUB &00                           ; gun vertex = 0
+ EQUB &12
+ EQUB &3C                           ; number of vertices = &3C / 6 = 10
+ EQUB &0F                           ; number of edges = &0F = 15
+ EQUB &00, &00                      ; bounty = 0
+ EQUB &1C                           ; number of faces = &1C / 4 = 7
+ EQUB &0C
+ EQUB &11
+ EQUB &0F
+ EQUB &00
+ EQUB &00
+ EQUB &02
+ EQUB &00                           ; %00000, laser = 0, missiles = 0
+
+ EQUB &18, &10, &00, &1F, &10, &55  ; vertices data (10*6)
+ EQUB &18, &05, &0F, &1F, &10, &22
+ EQUB &18, &0D, &09, &5F, &20, &33
+ EQUB &18, &0D, &09, &7F, &30, &44
+ EQUB &18, &05, &0F, &3F, &40, &55
+
+ EQUB &18, &10, &00, &9F, &51, &66
+ EQUB &18, &05, &0F, &9F, &21, &66
+ EQUB &18, &0D, &09, &DF, &32, &66
+ EQUB &18, &0D, &09, &FF, &43, &66
+ EQUB &18, &05, &0F, &BF, &54, &66
+
+ EQUB &1F, &10, &00, &04            ; edges data (15*4)
+ EQUB &1F, &20, &04, &08
+ EQUB &1F, &30, &08, &0C
+ EQUB &1F, &40, &0C, &10
+ EQUB &1F, &50, &00, &10
+
+ EQUB &1F, &51, &00, &14
+ EQUB &1F, &21, &04, &18
+ EQUB &1F, &32, &08, &1C
+ EQUB &1F, &43, &0C, &20
+ EQUB &1F, &54, &10, &24
+
+ EQUB &1F, &61, &14, &18
+ EQUB &1F, &62, &18, &1C
+ EQUB &1F, &63, &1C, &20
+ EQUB &1F, &64, &20, &24
+ EQUB &1F, &65, &24, &14
+
+ EQUB &1F, &60, &00, &00            ; faces data (7*4)
+ EQUB &1F, &00, &29, &1E
+ EQUB &5F, &00, &12, &30
+ EQUB &5F, &00, &33, &00
+ EQUB &7F, &00, &12, &30
+
+ EQUB &3F, &00, &29, &1E
+ EQUB &9F, &60, &00, &00
+
+\ *****************************************************************************
+\ Variable: SHIP12
+\
+\ Thargon ship definition
+\ *****************************************************************************
+
+.SHIP12
+ EQUB &00
+ EQUB &40, &06
+ EQUB &A8                           ; use edge data from Thargoid at offset &FFA8 = -88
+ EQUB &50
+ EQUB &41
+ EQUB &00                           ; gun vertex = 0
+ EQUB &12
+ EQUB &3C                           ; number of vertices = &3C / 6 = 10
+ EQUB &0F                           ; number of edges = &0F = 15
+ EQUB &32, &00                      ; bounty = &0032 = 50
+ EQUB &1C                           ; number of faces = &1C / 4 = 7
+ EQUB &14
+ EQUB &14
+ EQUB &1E
+ EQUB &FF                           ; use edge data from Thargoid at offset &FFA8 = -88
+ EQUB &00
+ EQUB &02
+ EQUB &10
+
+ EQUB &09, &00, &28, &9F, &01, &55  ; vertices data (10*6)
+ EQUB &09, &26, &0C, &DF, &01, &22
+ EQUB &09, &18, &20, &FF, &02, &33
+ EQUB &09, &18, &20, &BF, &03, &44
+ EQUB &09, &26, &0C, &9F, &04, &55
+
+ EQUB &09, &00, &08, &3F, &15, &66
+ EQUB &09, &0A, &0F, &7F, &12, &66
+ EQUB &09, &06, &1A, &7F, &23, &66
+ EQUB &09, &06, &1A, &3F, &34, &66
+ EQUB &09, &0A, &0F, &3F, &45, &66
+
+ EQUB &9F, &24, &00, &00            ; faces data (7*4)
+ EQUB &5F, &14, &05, &07
+ EQUB &7F, &2E, &2A, &0E
+ EQUB &3F, &24, &00, &68
+ EQUB &3F, &2E, &2A, &0E
+
+ EQUB &1F, &14, &05, &07
+ EQUB &1F, &24, &00, &00
+
+\ *****************************************************************************
+\ Variable: SHIP13
+\
+\ Escape pod definition
+\ *****************************************************************************
+
+.SHIP13
+ EQUB &00
+ EQUB &00, &01
+ EQUB &2C
+ EQUB &44
+ EQUB &19
+ EQUB &00                           ; gun vertex = 0
+ EQUB &16
+ EQUB &18                           ; number of vertices = &18 / 6 = 4
+ EQUB &06                           ; number of edges = &06 = 6
+ EQUB &00, &00                      ; bounty = 0
+ EQUB &10                           ; number of faces = &10 / 4 = 4
+ EQUB &08
+ EQUB &11
+ EQUB &08
+ EQUB &00
+ EQUB &00
+ EQUB &03
+ EQUB &00
+
+ EQUB &07, &00, &24, &9F, &12, &33  ; vertices data (4*6)
+ EQUB &07, &0E, &0C, &FF, &02, &33
+ EQUB &07, &0E, &0C, &BF, &01, &33
+ EQUB &15, &00, &00, &1F, &01, &22
+
+ EQUB &1F, &23, &00, &04            ; edges data (6*4)
+ EQUB &1F, &03, &04, &08
+ EQUB &1F, &01, &08, &0C
+ EQUB &1F, &12, &0C, &00
+ EQUB &1F, &13, &00, &08
+
+ EQUB &1F, &02, &0C, &04
+
+ EQUB &3F, &1A, &00, &3D            ; faces data (4*4)
+ EQUB &1F, &13, &33, &0F
+ EQUB &5F, &13, &33, &0F
+ EQUB &9F, &38, &00, &00
+
+\ *****************************************************************************
+\ Save output/SHIPS.bin
+\ *****************************************************************************
+
+PRINT "SHIPS"
+PRINT "Assembled at ", ~CODE_SHIPS%
 PRINT "Ends at ", ~P%
+PRINT "Code size is ", ~(P% - CODE_SHIPS%)
+PRINT "Execute at ", ~LOAD%
+PRINT "Reload at ", ~LOAD_SHIPS%
+
+PRINT "S.SHIPS ", ~CODE_B%, " ", ~P%, " ", ~LOAD%, " ", ~LOAD_SHIPS%
+SAVE "output/SHIPS.bin", CODE_SHIPS%, P%, LOAD%
+
+\ *****************************************************************************
+\ Show free space
+\ *****************************************************************************
 
 PRINT "ELITE game code ", ~(&6000-P%), " bytes free"
+PRINT "Ends at ", ~P%

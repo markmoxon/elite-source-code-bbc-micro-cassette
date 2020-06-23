@@ -53,7 +53,7 @@ Future versions may include BBC Disk, Master and 2nd processor configurations.
 
 ### elite-source.asm
 
-This is the main source for the Elite game. It is made up of 7 original BASIC source files concatenated and converted to BeebAsm assembler syntax:
+This is the main source for the Elite game. It is made up of 9 original BASIC source files concatenated and converted to BeebAsm assembler syntax:
 
 - `ELITEA` outputting `ELTA` binary
 - `ELITEB` outputting `ELTB` binary
@@ -62,22 +62,16 @@ This is the main source for the Elite game. It is made up of 7 original BASIC so
 - `ELITEE` outputting `ELTE` binary
 - `ELITEF` outputting `ELTF` binary
 - `ELITEG` outputting `ELTG` binary
+- `GENTOK` outputting `WORDS9` binary
+- `SHPPRTE` outputting `SHIPS` binary
 
 It totals ~10,000 lines of 6502 assembler.
-
-### elite-ships.asm
-
-This is the BeebAsm source for the ships and other 3D objects in Elite. It produces the `SHIPS` binary that is loaded by the `elite-bcfs.asm` source file.
 
 ### elite-bcfs.asm
 
 This is the BeebAsm version of the BASIC source file `S.BCFS`, which is responsible for creating the Big Code File - i.e. concatenating the `ELTA`...`ELTG` binaries plus the `SHIPS` data into a single executable for the Elite main game called `ELTcode`.
 
 There is a simple checksum test added to the start of the code. The checksum function cannot be performed in the BeebAsm source so has been reproduced in the `elite-checksum.py` Python script described below.
-
-### elite-words.asm
-
-This is the BeebAsm source for the Elite tokenisation system (which contains most of the game's text). It produces the `WORDS9` binary that is loaded by the `elite-loader.asm` source file.
 
 ### elite-loader.asm
 
