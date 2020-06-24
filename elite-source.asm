@@ -67,46 +67,47 @@ f9 = &77
 \ Macro definitions
 \ *****************************************************************************
 
-MACRO CHAR x                        ; Insert ASCII character "x"
+MACRO CHAR x            ; Insert ASCII character "x"
   EQUB x EOR 35
 ENDMACRO
 
-MACRO TWOK n                        ; Insert two-letter token <n>
+MACRO TWOK n            ; Insert two-letter token <n>
   EQUB n EOR 35
 ENDMACRO
 
-MACRO CTRL n                        ; Insert control code {n}
+MACRO CTRL n            ; Insert control code {n}
   EQUB n EOR 35
 ENDMACRO
 
-MACRO RTOK n                        ; Insert recursive token [n]
-  IF n >= 0 AND n <= 95             ; Tokens 0-95 get stored as number + 160
-    EQUB (n + 160) EOR 35
+MACRO RTOK n            ; Insert recursive token [n]
+  IF n >= 0 AND n <= 95
+    t = n + 160         ; Tokens 0-95 get stored as number + 160
   ELIF n >= 128
-    EQUB (n - 114) EOR 35           ; Tokens 128-145 get stored as number - 114
+    t = n - 114         ; Tokens 128-145 get stored as number - 114
   ELSE
-    EQUB n EOR 35                   ; Tokens 96-127 get stored as number
+    t = n               ; Tokens 96-127 get stored as number
   ENDIF
+  EQUB t EOR 35
 ENDMACRO
 
-MACRO ITEM pr, fc, units, q, m      ; Add item to market prices table at QQ23
-  IF fc < 0                         ;   
-    s = 1 << 7                      ; Arguments:
-  ELSE                              ;
-    s = 0                           ;   pr = Base price
-  ENDIF                             ;   fc = Economic factor
-  IF units == 't'                   ;   units = "t", "g" or "k"
-    u = 0                           ;   q = Base quantity
-  ELIF units == 'k'                 ;   m = Fluctutaions mask
-    u = 1 << 5                      ;
-  ELSE                              ; See location QQ23 for details of how the
-    u = 1 << 6                      ; above data is stored in the table
-  ENDIF
-  e = ABS(fc)
-  EQUB pr
+MACRO ITEM price, factor, units, quantity, mask
+  IF factor < 0
+    s = 1 << 7          ; Add item to market prices table at QQ23
+  ELSE                  ;
+    s = 0               ; Arguments:
+  ENDIF                 ;
+  IF units == 't'       ;   pr = Base price
+    u = 0               ;   fc = Economic factor
+  ELIF units == 'k'     ;   units = "t", "g" or "k"
+    u = 1 << 5          ;   q = Base quantity
+  ELSE                  ;   m = Fluctutaions mask
+    u = 1 << 6          ;
+  ENDIF                 ; See location QQ23 for details of how the
+  e = ABS(factor)       ; above data is stored in the table
+  EQUB price
   EQUB s + u + e
-  EQUB q
-  EQUB m
+  EQUB quantity
+  EQUB mask
 ENDMACRO
 
 \ *****************************************************************************
