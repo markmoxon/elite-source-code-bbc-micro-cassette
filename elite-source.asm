@@ -67,7 +67,7 @@ f9 = &77
 \ Macro definitions
 \ *****************************************************************************
 
-MACRO CHAR x                        ; Insert ASCII character 'x'
+MACRO CHAR x                        ; Insert ASCII character "x"
   EQUB x EOR 35
 ENDMACRO
 
@@ -95,7 +95,7 @@ MACRO ITEM pr, fc, units, q, m      ; Add item to market prices table at QQ23
   ELSE                              ;
     s = 0                           ;   pr = Base price
   ENDIF                             ;   fc = Economic factor
-  IF units == 't'                   ;   units = 't', 'g' or 'k'
+  IF units == 't'                   ;   units = "t", "g" or "k"
     u = 0                           ;   q = Base quantity
   ELIF units == 'k'                 ;   m = Fluctutaions mask
     u = 1 << 5                      ;
@@ -828,8 +828,8 @@ ORG CODE_WORDS%
 \   128-159       Two-letter tokens 128-159
 \   160-255       Recursive tokens 0-95 (i.e. token number = n - 160)
 \ 
-\ Characters with codes 32-95 represent the normal ASCII characters from ' ' to
-\ '_', so a value of 65 in an Elite string represents the letter A (as 'A' has
+\ Characters with codes 32-95 represent the normal ASCII characters from " " to
+\ "_", so a value of 65 in an Elite string represents the letter A (as "A" has
 \ character code 65 in the BBC Micro's character set).
 \ 
 \ All other character codes (0-31 and 96-255) represent tokens, and they can
@@ -2337,6 +2337,11 @@ ORG &0D40
  SKIP NOSH + 1          ; Contains the ship type for each of the ships in UNIV
                         ;
                         ; 0 means that slot is empty, non-zero is ship type
+                        ;
+                        ; Slot 1 at FRIN+1 is reserved for the sun or space
+                        ; station (we only ever have one of these in our local
+                        ; bubble of space). If FRIN+1 is 0, we show the space
+                        ; station, otherwise we show the sun.
 
 .CABTMP
 
@@ -2404,10 +2409,18 @@ ORG &0D40
                         ; appended to in-flight message printed by MESS
 
 .LSX
+
 .LSO
 
- SKIP 192
-
+ SKIP 192               ; This block is shared by LSX and LSO:
+                        ;
+                        ;   LSX is the the line buffer for the sun
+                        ;
+                        ;   LSO is the ship lines heap space for the space
+                        ;   station
+                        ;
+                        ; This space can be shared as the universe can only
+                        ; have one or the other, not both
 .LSX2
 
  SKIP 78
@@ -2729,7 +2742,7 @@ LOAD_A% = LOAD%
 
 .MA4                    ; speed done
 
- LDA KY15               ; key 'U' unarm missile
+ LDA KY15               ; key "U" unarm missile
  AND NOMSL              ; number of missiles
  BEQ MA20               ; check target a missile
  LDY #&EE               ; Green
@@ -2746,7 +2759,7 @@ LOAD_A% = LOAD%
 
  LDA MSTG               ; = #&FF if missile NOT targeted
  BPL MA25               ; missile has target, can fire
- LDA KY14               ; key 'T' target missile
+ LDA KY14               ; key "T" target missile
  BEQ MA25               ; ignore, can fire
  LDX NOMSL              ; number of missiles
  BEQ MA25               ; ignore, can fire
@@ -2756,7 +2769,7 @@ LOAD_A% = LOAD%
 
 .MA25                   ; ignore T being hit, can fire missile
 
- LDA KY16               ; key 'M' for launch missile
+ LDA KY16               ; key "M" for launch missile
  BEQ MA24               ; missile not fired
  LDA MSTG               ; #&FF if missile NOT targeted
  BMI MA64               ; no target, skip a few key tests to check dock C key
@@ -2787,7 +2800,7 @@ LOAD_A% = LOAD%
 
 .MA64                   ; check dock C key
 
- LDA KY19               ; key 'C' docking computer
+ LDA KY19               ; key "C" docking computer
  AND DKCMP              ; have a docking computer?
  AND SSPR
  BEQ MA68
@@ -2809,7 +2822,7 @@ LOAD_A% = LOAD%
 
  LDA LASCT              ; laser count =9 for pulse, cooled off?
  BNE MA3                ; skip laser
- LDA KY7                ; key 'A' fire laser
+ LDA KY7                ; key "A" fire laser
  BEQ MA3                ; skip laser
  LDA GNTMP              ; gun temperature
  CMP #242               ; overheated
@@ -6050,7 +6063,7 @@ NEXT
  STY T                  ; to denote that we have now started printing digits as
                         ; opposed to spaces
 
- CLC                    ; The digit value is in A, so add ASCII '0' to get the
+ CLC                    ; The digit value is in A, so add ASCII "0" to get the
  ADC #'0'               ; ASCII character number to print
 
 .tt34
@@ -9998,7 +10011,7 @@ LOAD_D% = LOAD% + P% - CODE%
  CLC                    ; If (QQ3 + 1) >> 1 = %10, i.e. if QQ3 = %011 or %100
  ADC #1                 ; (3 or 4), then call TT70, which prints "MAINLY " and
  LSR A                  ; jumps down to TT72 to print the type of economy
- CMP #2
+ CMP #%10
  BEQ TT70
  
  LDA QQ3                ; The LSR A above shifted bit 0 of QQ3 into the carry
@@ -10133,7 +10146,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  LDA QQ15+3             ; Now for the third adjective, so EOR the high bytes of
  EOR QQ15+1             ; w0 and w1 and extract bits 0-2 of the result:
- AND #7                 ;
+ AND #%111              ;
  STA QQ19               ;   A = (w0_hi EOR w1_hi) AND %111
                         ;
                         ; storing the result in QQ19 so we can use it later
@@ -10172,7 +10185,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT76
 
- LDA #'S'               ; Print an 'S' to pluralise the species
+ LDA #'S'               ; Print an "S" to pluralise the species
  JSR TT27
 
  LDA #')'               ; And finally, print a closing bracket, followed by a
@@ -10192,7 +10205,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #0                 ; Set QQ17 = 0 for ALL CAPS
  STA QQ17
 
- LDA #'M'               ; Print 'M'
+ LDA #'M'               ; Print "M"
  JSR TT27
 
  LDA #226               ; Print recursive token 66 (" CR"), followed by a
@@ -10224,7 +10237,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA QQ15+5             ; Set A = QQ15+5
  LDX QQ15+3             ; Set X = QQ15+3
 
- AND #15                ; Set Y = (A AND %1111) + 11
+ AND #%1111             ; Set Y = (A AND %1111) + 11
  CLC
  ADC #11
  TAY
@@ -10235,7 +10248,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  JSR TT162              ; Print a space
 
- LDA #'k'               ; Print 'km', returning from the subroutine using a
+ LDA #'k'               ; Print "km", returning from the subroutine using a
  JSR TT26               ; tail call
  LDA #'m'
  JMP TT26
@@ -10372,14 +10385,14 @@ LOAD_D% = LOAD% + P% - CODE%
 .TT24
 {
  LDA QQ15+1             ; Fetch w0_hi and extract bits 0-2 to determine the
- AND #7                 ; system's economy, and store in QQ3
+ AND #%111              ; system's economy, and store in QQ3
  STA QQ3
  
  LDA QQ15+2             ; Fetch w1_lo and extract bits 3-5 to determine the
  LSR A                  ; system's government, and store in QQ4
  LSR A
  LSR A
- AND #7
+ AND #%111
  STA QQ4
  
  LSR A                  ; If government isn't anarchy or feudal, skip to TT77,
@@ -10387,13 +10400,13 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; systems so they can't be rich
 
  LDA QQ3                ; Set bit 1 of the economy in QQ3 to fix the economy
- ORA #2                 ; for anarchy and feudal governments
+ ORA #%10               ; for anarchy and feudal governments
  STA QQ3
 
 .TT77
 
  LDA QQ3                ; Now to work out the tech level, which we do like this:
- EOR #7                 ; 
+ EOR #%111              ; 
  CLC                    ;   flipped economy + (w1_hi AND %11) + (government / 2)
  STA QQ5                ;
                         ; or, in terms of memory locations:
@@ -10403,7 +10416,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; We start by setting QQ5 = QQ3 EOR %111
 
  LDA QQ15+3             ; We then take the first 2 bits of w1_hi (QQ15+3) and
- AND #3                 ; add it into QQ5
+ AND #%11               ; add it into QQ5
  ADC QQ5
  STA QQ5
 
@@ -10422,7 +10435,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 
  LDA QQ3                ; Finally, we work out productivity, like this:
- EOR #7                 ;
+ EOR #%111              ;
  ADC #3                 ;  (flipped economy + 3) * (government + 4)
  STA P                  ;                        * population
  LDA QQ4                ;                        * 8
@@ -10695,10 +10708,10 @@ LOAD_D% = LOAD% + P% - CODE%
  CLC
  ADC #208               ; token = FOOD .. GEM-STONES
  JSR TT27
- LDA #&2F               ; ascii '/'
+ LDA #&2F               ; ascii "/"
  JSR TT27
  JSR TT152              ; t kg g from QQ19+1
- LDA #&3F               ; ascii '?'
+ LDA #&3F               ; ascii "?"
  JSR TT27
  JSR TT67               ; next Row ; Call TT67, which prints a newline
  LDX #0                 ; input result returned (also done by gnum)
@@ -10768,7 +10781,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR TT217              ; get ascii from keyboard, store in X and A
  STA Q                  ; ascii accepted
  SEC                    ; was hit key a digit
- SBC #&30               ; below ascii '0' ?
+ SBC #&30               ; below ascii "0" ?
  BCC OUT                ; exit, take R.
  CMP #10                ; digit >= 10 ?
  BCS BAY2               ; above valid digit, inventory screen.
@@ -10945,9 +10958,9 @@ LOAD_D% = LOAD% + P% - CODE%
 
  JSR TT217              ; get ascii from keyboard, store in X and A
  ORA #32                ; to lower  case
- CMP #&79               ; ascii 'y'
+ CMP #&79               ; ascii "y"
  BEQ TT218              ; yes, set carry
- LDA #&6E               ; ascii 'n'
+ LDA #&6E               ; ascii "n"
  JMP TT26               ; print character
 
 .TT218                  ; yes, set carry
@@ -11381,7 +11394,7 @@ LOAD_D% = LOAD% + P% - CODE%
  CMP QQ8                ; distance lo
  BCC TT147              ; hyperspace too far
 
- LDA #&2D               ; ascii '-' in  "HYPERSPACE -ISINOR"
+ LDA #&2D               ; ascii "-" in  "HYPERSPACE -ISINOR"
  JSR TT27
  JSR cpl                ; Planet name for seed QQ15
 }
@@ -11654,8 +11667,8 @@ LOAD_D% = LOAD% + P% - CODE%
  STA QQ24               ;
                         ;   A = base_price + (random AND mask)
 
- JSR TT152              ; Call TT152 to print the item's unit ('t', 'kg' or
-                        ; 'g'), padded to a width of two characters
+ JSR TT152              ; Call TT152 to print the item's unit ("t", "kg" or
+                        ; "g"), padded to a width of two characters
 
  JSR var                ; Call var to set QQ19+3  = economy * |economic_factor|
                         ; (and set the availability of Alien Items to 0)
@@ -11710,7 +11723,7 @@ LOAD_D% = LOAD% + P% - CODE%
  CLC                    ; Clear the carry flag
  
  BEQ TT172              ; If none are available, jump to TT172 to print a tab
-                        ; and a '-'
+                        ; and a "-"
 
  JSR pr2+2              ; Otherwise print the 8-bit number in X to 5 digits,
                         ; right-aligned with spaces. This works because we set
@@ -11718,7 +11731,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; after the first instruction, which would normally
                         ; set the number of digits to 3.
  
- JMP TT152              ; Print the unit ('t', 'kg' or 'g') for the market item,
+ JMP TT152              ; Print the unit ("t", "kg" or "g") for the market item,
                         ; with a following space if required to make it two
                         ; characters long
 
@@ -11728,7 +11741,7 @@ LOAD_D% = LOAD% + P% - CODE%
  ADC #4                 ; so the cursor is where the last digit would be if we
  STA XC                 ; were printing a 5-digit availability number.
 
- LDA #'-'               ; Print a '-' character by jumping to TT162+2, which
+ LDA #'-'               ; Print a "-" character by jumping to TT162+2, which
  BNE TT162+2            ; contains JMP TT27 (this BNE is effectively a JMP as A
                         ; will never be zero), and return from the subroutine
                         ; using a tail call
@@ -11737,9 +11750,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT152
 \
-\ Print the unit ('t', 'kg' or 'g') for the market item whose byte #1 from the
+\ Print the unit ("t", "kg" or "g") for the market item whose byte #1 from the
 \ market prices table is in QQ19+1, right-padded with spaces to a width of two
-\ characters (so that's 't ', 'kg' or 'g ').
+\ characters (so that's "t ", "kg" or "g ").
 \ *****************************************************************************
 
 .TT152
@@ -11747,14 +11760,14 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA QQ19+1             ; Fetch the economic_factor from QQ19+1
 
  AND #96                ; If bits 5 and 6 are both clear, jump to TT160 to
- BEQ TT160              ; print 't' for tonne, followed by a space, and return
+ BEQ TT160              ; print "t" for tonne, followed by a space, and return
                         ; from the subroutine using a tail call
 
- CMP #32                ; If bit 5 is set, jump to TT161 to print 'kg' for
+ CMP #32                ; If bit 5 is set, jump to TT161 to print "kg" for
  BEQ TT161              ; kilograms, and return from the subroutine using a tail
                         ; call
 
- JSR TT16a              ; Otherwise call TT16a to print 'g' for grams, and fall
+ JSR TT16a              ; Otherwise call TT16a to print "g" for grams, and fall
                         ; through into TT162 to print a space and return from
                         ; the subroutine
 }
@@ -11776,12 +11789,12 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT160
 \
-\ Print 't' (for tonne) and a space.
+\ Print "t" (for tonne) and a space.
 \ *****************************************************************************
 
 .TT160
 {
- LDA #'t'               ; Load a 't' character into A
+ LDA #'t'               ; Load a "t" character into A
 
  JSR TT26               ; Print the character, using TT216 so that it doesn't
                         ; change the character case
@@ -11794,27 +11807,27 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT161
 \
-\ Print 'kg' (for kilograms).
+\ Print "kg" (for kilograms).
 \ *****************************************************************************
 
 .TT161
 {
- LDA #'k'               ; Load a 'k' character into A
+ LDA #'k'               ; Load a "k" character into A
 
  JSR TT26               ; Print the character, using TT216 so that it doesn't
                         ; change the character case, and fall through into
-                        ; TT16a to print a 'g' character
+                        ; TT16a to print a "g" character
 }
 
 \ *****************************************************************************
 \ Subroutine: TT16a
 \
-\ Print 'g' (for grams).
+\ Print "g" (for grams).
 \ *****************************************************************************
 
 .TT16a
 {
- LDA #&67               ; Load a 'k' character into A
+ LDA #&67               ; Load a "k" character into A
 
  JMP TT26               ; Print the character, using TT216 so that it doesn't
                         ; change the character case, and return from the
@@ -12342,7 +12355,7 @@ LOAD_D% = LOAD% + P% - CODE%
  INX                    ; increased
  LDY #&75               ; token =  ALL (missiles) PRESENT
  CPX #5                 ; max number of missiles allowed +1
- BCS pres               ; error, Token in Y is already 'present' on ship
+ BCS pres               ; error, Token in Y is already "present" on ship
 
  STX NOMSL              ; update number of missiles
  JSR msblob             ; draw all missile blocks
@@ -12354,7 +12367,7 @@ LOAD_D% = LOAD% + P% - CODE%
  BNE et2                ; else E.C.M.
  LDX #37                ; already large cargo bay?
  CPX CRGO
- BEQ pres               ; error, Token in Y is already 'present' on ship
+ BEQ pres               ; error, Token in Y is already "present" on ship
  STX CRGO
 
 .et2                    ; E.C.M.
@@ -12363,7 +12376,7 @@ LOAD_D% = LOAD% + P% - CODE%
  BNE et3                ; else extra Pulse
  INY                    ; token = E.C.C.system
  LDX ECM                ; already have ?
- BNE pres               ; Token in Y is already 'present' on ship
+ BNE pres               ; Token in Y is already "present" on ship
  DEC ECM                ; #&FF = ECM now present
 
 .et3                    ; extra Pulse
@@ -12378,7 +12391,7 @@ LOAD_D% = LOAD% + P% - CODE%
 .ed7
 
  LDY #187               ; beam laser power
- BNE pres               ; Token in Y is already 'present' on ship
+ BNE pres               ; Token in Y is already "present" on ship
 
 .ed4
 
@@ -12416,7 +12429,7 @@ LOAD_D% = LOAD% + P% - CODE%
  BEQ ed9                ; empty so Fuel scoop awarded
 }
 
-.pres                   ; error, Token in Yreg is already 'present' on ship
+.pres                   ; error, Token in Yreg is already "present" on ship
 {
  STY K                  ; store equipment already present token
  JSR prx                ; return price in (X,Y) for item Acc
@@ -12444,7 +12457,7 @@ LOAD_D% = LOAD% + P% - CODE%
  CMP #7                 ; item Escape pod
  BNE et7                ; else Energy bomb
  LDX ESCP               ; escape pod
- BNE pres               ; error, Token in Y is already 'present' on ship
+ BNE pres               ; error, Token in Y is already "present" on ship
  DEC ESCP               ; #&FF = escape pod awarded
 
 .et7                    ; Energy bomb
@@ -12453,7 +12466,7 @@ LOAD_D% = LOAD% + P% - CODE%
  CMP #8                 ; item Energy bomb
  BNE et8                ; Energy recharge unit
  LDX BOMB               ; random hyperspace unit in Elite-A
- BNE pres               ; error, Token in Y is already 'present' on ship
+ BNE pres               ; error, Token in Y is already "present" on ship
  LDX #&7F               ; #&7F Unused energy bomb awarded
  STX BOMB               ; random hyperspace unit in Elite-A
 
@@ -12463,7 +12476,7 @@ LOAD_D% = LOAD% + P% - CODE%
  CMP #9                 ; item Energy unit
  BNE etA                ; else Docking computer
  LDX ENGY               ; extra energy unit/ recharge rate
- BNE pres               ; error, Token in Y is already 'present' on ship
+ BNE pres               ; error, Token in Y is already "present" on ship
  INC ENGY               ; increase extra energy unit/ recharge rate
 
 .etA                    ; Docking computer
@@ -12472,7 +12485,7 @@ LOAD_D% = LOAD% + P% - CODE%
  CMP #10                ; item docking computer
  BNE etB                ; else Galactic hyperdrive
  LDX DKCMP              ; docking computer
- BNE pres               ; error, Token in Y is already 'present' on ship
+ BNE pres               ; error, Token in Y is already "present" on ship
  DEC DKCMP              ; #&FF = docking computer awarded
 
 .etB                    ; Galactic hyperdrive
@@ -12481,7 +12494,7 @@ LOAD_D% = LOAD% + P% - CODE%
  CMP #11                ; item galactic hyperdrive
  BNE et9                ; else Military laser
  LDX GHYP               ; galactic hyperdrive
- BNE pres               ; error, Token in Y is already 'present' on ship
+ BNE pres               ; error, Token in Y is already "present" on ship
  DEC GHYP               ; #&FF = galactic hyperdrive awarded
 
 .et9                    ; display cash and Loop
@@ -12561,7 +12574,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STX XC
  TYA                    ; view counter based on YC
  CLC
- ADC #&30-16            ; start at ascii '0'
+ ADC #&30-16            ; start at ascii "0"
  JSR spc                ; Acc to TT27 followed by white space
  LDA YC
  CLC                    ; token based on YC
@@ -12708,14 +12721,15 @@ MAPCHAR '4', '4'
 .TT55
 
  LDA QQ15+5             ; Step 2: Load w2_hi, which is stored in QQ15+5, and
- AND #31                ; extract bits 0-4 by AND-ing with %0001 1111 (31)
+ AND #%11111            ; extract bits 0-4 by AND-ing with %11111
 
  BEQ P%+7               ; If all those bits are zero, then skip the following
                         ; 2 instructions to go to step 3
 
- ORA #128               ; We now have a number in the range 1-31, which we can
+ ORA #%10000000         ; We now have a number in the range 1-31, which we can
  JSR TT27               ; easily convert into a two-letter token, but first we
-                        ; need to add 128 to get a range of 129-159
+                        ; need to add 128 (or set bit 7) to get a range of
+                        ; 129-159
 
  JSR TT54               ; Step 3: twist the seeds in QQ15
 
@@ -12949,7 +12963,7 @@ MAPCHAR '4', '4'
 
 .TT73
 {
- LDA #':'               ; Set A to ASCII ':' and fall through into TT27 to
+ LDA #':'               ; Set A to ASCII ":" and fall through into TT27 to
                         ; actually print the colon
 }
 
@@ -13085,11 +13099,11 @@ MAPCHAR '4', '4'
 
 .TT42
 {
- CMP #'A'               ; If A < ASCII 'A', then this is punctuation, so jump
+ CMP #'A'               ; If A < ASCII "A", then this is punctuation, so jump
  BCC TT44               ; to TT26 (via TT44) to print the character as is, as
                         ; we don't care about the character's case
 
- CMP #'Z' + 1           ; If A >= (ASCII 'Z' + 1), then this is also
+ CMP #'Z' + 1           ; If A >= (ASCII "Z" + 1), then this is also
  BCS TT44               ; punctuation, so jump to TT26 (via TT44) to print the
                         ; character as is, as we don't care about the
                         ; character's case
@@ -13143,7 +13157,7 @@ MAPCHAR '4', '4'
                         ; set, so we are in Sentence Case and we need to print
                         ; the next letter in upper case
 
- CMP #'A'               ; If A < ASCII 'A', then this is punctuation, so jump
+ CMP #'A'               ; If A < ASCII "A", then this is punctuation, so jump
  BCC TT74               ; to TT26 (via TT44) to print the character as is, as
                         ; we don't care about the character's case
 
@@ -13234,7 +13248,7 @@ MAPCHAR '4', '4'
  CPX #&FF               ; If QQ17 = #&FF then return from the subroutine (as)
  BEQ TT48               ; TT48 contains an RTS)
 
- CMP #'A'               ; If A >= ASCII 'A', then jump to TT42, which will
+ CMP #'A'               ; If A >= ASCII "A", then jump to TT42, which will
  BCS TT42               ; print the letter in lowercase
  
                         ; Otherwise this is not a letter, it's punctuation, so
@@ -14173,30 +14187,45 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: NWSPS
 \
-\ New Space Station
+\ Add a new space station to the universe.
 \ *****************************************************************************
 
-.NWSPS                  ; New Space Station
+.NWSPS
 {
- JSR SPBLB              ; space station bulb
- LDX #1                 ; has ai and ecm
- STX INWK+32
- DEX                    ; rotz counter, no pitch.
- STX INWK+30
-\STX INWK+31
- STX FRIN+1             ; use sun slot
- DEX                    ; X = #&FF, rotx counter roll with no damping
- STX INWK+29
- LDX #10                ; 10, 12, 14 for x,y,z inc hi
- JSR NwS1               ; Flip sign of INWK(10)
- JSR NwS1               ; Flip sign of INWK(12)
- JSR NwS1               ; Flip sign of INWK(14)
+ JSR SPBLB              ; Light up the space station bulb on the dashboard
 
- LDA #LO(LSO)           ; solar line buffer
- STA INWK+33            ; SST pointer lo
+ LDX #1                 ; Set the AI flag in INWK+32 to 1 (has AI and ECM)
+ STX INWK+32
+
+ DEX                    ; Set rotz counter to 0 (no pitch, roll only)
+ STX INWK+30
+
+\STX INWK+31            ; This instruction is commented out in the original
+                        ; source. It would set the exploding state and missile
+                        ; count to 0.
+
+ STX FRIN+1             ; Set the sun/space station slot at FRIN+1 to 0, to
+                        ; indicate we should show the space station rather than
+                        ; the sun
+
+ DEX                    ; Set rotx counter to 255 (maximum roll with no
+ STX INWK+29            ; damping)
+
+ LDX #10                ; Call NwS1 to flip the sign of rotmat0x_hi (INWK+10)
+ JSR NwS1
+
+ JSR NwS1               ; And again to flip the sign of rotmat0y_hi (INWK+12)
+
+ JSR NwS1               ; And again to flip the sign of rotmat0z_hi (INWK+14)
+
+ LDA #LO(LSO)           ; Set INWK+33 and INWK+34 to point to LSO for the ship
+ STA INWK+33            ; lines heap space for the space station
  LDA #HI(LSO)
- STA INWK+34            ; pointer hi
- LDA #SST               ; Type is space station
+ STA INWK+34
+
+ LDA #SST               ; Set A to the space station type, and fall through
+                        ; into NWSHP to finish adding the space station to the
+                        ; universe
 }
 
 \ *****************************************************************************
@@ -14400,7 +14429,7 @@ MAPCHAR '4', '4'
 
  LDY #19                ; Fetch ship definition byte #19, which contains the
  LDA (XX0),Y            ; number of missiles and laser power, and AND with %111
- AND #7                 ; to extract the number of missiles before storing in
+ AND #%111              ; to extract the number of missiles before storing in
  STA INWK+31            ; INWK+31
 
  LDA T                  ; Restore the ship type we stored above
@@ -14440,17 +14469,28 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: NwS1
 \
-\ flip signs and X+=2 needed by new space station
+\ Flip the sign of the INWK byte at offset X, and increment X by 2. This is
+\ is used by the space station creation routine at NWSPS.
+\
+\ Arguments:
+\
+\   X           The offset of the INWK byte to be flipped
+\
+\ Returns:
+\
+\   X           X is incremented by 2
 \ *****************************************************************************
 
-.NwS1                   ; flip signs and X+=2 needed by new space station
+.NwS1
 {
- LDA INWK,X
- EOR #128               ; flip sg coordinate
+ LDA INWK,X             ; Load the X-th byte of INWK into A and flip bit 7,
+ EOR #%10000000         ; storing the result back in the X-th byte of INWK
  STA INWK,X
+
+ INX                    ; Add 2 to X
  INX
- INX                    ; X+=2
- RTS
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -14496,7 +14536,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: ECBLB
 \
-\ ECM bulb switch
+\ Light up the E.C.M. bulb on the dashboard.
 \ *****************************************************************************
 
 .ECBLB                  ; ECM bulb switch
@@ -14510,7 +14550,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: SPBLB
 \
-\ Space Station bulb
+\ Light up the space station bulb on the dashboard.
 \ *****************************************************************************
 
 .SPBLB                  ; Space Station bulb
@@ -14547,24 +14587,24 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Variable: ECBT
 \
-\ 'E' displayed in lower console.
+\ "E" displayed in lower console.
 \ *****************************************************************************
 
 .ECBT
 {
- EQUW &E0E0             ; 'E' displayed in lower console
+ EQUW &E0E0             ; "E" displayed in lower console
  EQUB &80
 }
 
 \ *****************************************************************************
 \ Variable: SPBT
 \
-\ 'S' displayed in lower console.
+\ "S" displayed in lower console.
 \ *****************************************************************************
 
 .SPBT                   ; make sure same page !
 {
- EQUD &E080E0E0         ; 'S' displayed in lower console
+ EQUD &E080E0E0         ; "S" displayed in lower console
  EQUD &E0E020E0
 }
 
@@ -15747,7 +15787,7 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR FLFLLS             ; ends with A=0
  STA FRIN+1             ; #SST slot emptied
  STA SSPR               ; space station present, 0 is SUN.
- JSR SPBLB              ; erase space station bulb 'S' symbol
+ JSR SPBLB              ; erase space station bulb "S" symbol
  LDA #6                 ; sun location up in the sky
  STA INWK+5             ; ysg
  LDA #&81               ; new Sun
@@ -16508,7 +16548,7 @@ LOAD_F% = LOAD% + P% - CODE%
  BNE P%+5
  JMP TT219              ; Buy cargo
                         ; not red key
- CMP #&47               ; key '@'
+ CMP #&47               ; key "@"
  BNE P%+5               ; not H else
  JMP SVE                ; Start hyperspace code
 
@@ -16528,10 +16568,10 @@ LOAD_F% = LOAD% + P% - CODE%
 
 .LABEL_3
 
- CMP #&54               ; key 'H'
+ CMP #&54               ; key "H"
  BNE P%+5               ; not H else can't hyperspace whilst docked
  JMP hyp                ; hyperspace start, key H hit.
- CMP #&32               ; key 'D'
+ CMP #&32               ; key "D"
  BEQ T95                ; Distance to system
  STA T1                 ; protect Acc key
  LDA QQ11
@@ -16540,7 +16580,7 @@ LOAD_F% = LOAD% + P% - CODE%
  LDA QQ22+1             ; hyperspace outer countdown 
  BNE TT107              ; if running, run Countdown
  LDA T1                 ; restore Acc key
- CMP #&36               ; key 'O'
+ CMP #&36               ; key "O"
  BNE ee2                ; not O, else recenter cursor
  JSR TT103              ; erase small cross hairs at target hyperspace system
  JSR ping               ; move to home coordinates
@@ -16571,7 +16611,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
  RTS
 
-.T95                    ; 'D' pressed, Distance to system
+.T95                    ; "D" pressed, Distance to system
 
  LDA QQ11
  AND #192               ; short or long range chart?
@@ -16764,9 +16804,9 @@ LOAD_F% = LOAD% + P% - CODE%
                         ; of the key pressed in A (see p.142 of the Advanced
                         ; User Guide for a list of internal key number)
 
- CMP #&44               ; Did the player press 'Y'?
+ CMP #&44               ; Did the player press "Y"?
 
- BNE QU5                ; If they didn't press 'Y', jump to QU5
+ BNE QU5                ; If they didn't press "Y", jump to QU5
 
 \BR1                    ; These instructions are commented out in the original
 \LDX #3                 ; source. This block starts with the same *FX call as
@@ -16814,7 +16854,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
  LDX #NT%               ; The size of the commander data block is NT% bytes,
                         ; and it starts at NA%+8, so we need to copy the data
-                        ; from the 'last saved' buffer at NA%+8 to the current
+                        ; from the "last saved" buffer at NA%+8 to the current
                         ; commander workspace at TP. So we set up a counter in X
                         ; for the NT% bytes that we want to copy.
 
@@ -17035,9 +17075,9 @@ ENDIF
 
  LDA SHEILA+&40         ; Read 6522 System VIA input register IRB (SHEILA &40)
 
- AND #16                ; Bit 4 of IRB (PB4) is clear if joystick 1's fire
+ AND #%10000            ; Bit 4 of IRB (PB4) is clear if joystick 1's fire
                         ; button is pressed, otherwise it is set, so AND'ing
-                        ; the value of IRB with 16 (%10000) extracts this bit
+                        ; the value of IRB with %10000 extracts this bit
 
 \TAX                    ; This instruction is commented out in the original
                         ; source
@@ -17293,7 +17333,7 @@ ENDIF
  STA K+2
  EOR CASH+2
  STA K+1
- EOR #&5A               ; 'Z'
+ EOR #&5A               ; "Z"
  EOR TALLY+1            ; kills/256
  STA K+3
  JSR BPRNT              ; Buffer print ( 4 bytes of K)
@@ -17811,7 +17851,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  STA SHEILA+&40         ; Set 6522 System VIA output register ORB (SHEILA &40)
                         ; to %0011 to stop auto scan of keyboard
 
- LDA #&7F               ; Set 6522 System VIA data direction register DDRA
+ LDA #%01111111         ; Set 6522 System VIA data direction register DDRA
  STA SHEILA+&43         ; (SHEILA &43) to %0111 1111. This sets the A registers
                         ; (IRA and ORA) so that 
                         ;
@@ -17830,7 +17870,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
                         ; will contain 128 + X), otherwise it will be clear (so
                         ; X will be unchanged).
  
- LDA #&B                ; Set 6522 System VIA output register ORB (SHEILA &40)
+ LDA #%1011             ; Set 6522 System VIA output register ORB (SHEILA &40)
  STA SHEILA+&40         ; to %1011 to restart auto scan of keyboard
 
  CLI                    ; Allow interrupts again
@@ -17970,11 +18010,11 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
                         ; unnecessary TAX instruction present, but there it's
                         ; commented out.
 
- AND #16                ; Bit 4 of IRB (PB4) is clear if joystick 1's fire
+ AND #%10000            ; Bit 4 of IRB (PB4) is clear if joystick 1's fire
                         ; button is pressed, otherwise it is set, so AND'ing
-                        ; the value of IRB with 16 (%10000) extracts this bit
+                        ; the value of IRB with %10000 extracts this bit
 
- EOR #16                ; Flip bit 4 so that it's set if the fire button has
+ EOR #%10000            ; Flip bit 4 so that it's set if the fire button has
  STA KY7                ; been pressed, and store the result in the keyboard
                         ; logger at location KY7, which is also where the A key
                         ; (fire lasers) key is logged
@@ -20592,7 +20632,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &1E
  EQUB &3C                           ; number of vertices = &3C / 6 = 10
  EQUB &0F                           ; number of edges = &0F = 15
- EQUB &32, &00                      ; bounty = &0032 = 50
+ EQUW 50                            ; bounty = 50
  EQUB &1C                           ; number of faces = &1C / 4 = 7
  EQUB &14
  EQUB &46
@@ -20600,7 +20640,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &00
  EQUB &00
  EQUB &02
- EQUB &10                           ; %10000, laser = 2, missiles = 0
+ EQUB %00010000                     ; laser power = 2, missiles = 0
 
  EQUB &20, &00, &24, &9F, &10, &54  ; vertices data (10*6)
  EQUB &20, &00, &24, &1F, &20, &65
@@ -20658,7 +20698,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &2A
  EQUB &5A                           ; number of vertices = &5A / 6 = 15
  EQUB &14                           ; number of edges = &14 = 20
- EQUB &00, &00                      ; bounty = 0
+ EQUW 0                             ; bounty = 0
  EQUB &1C                           ; number of faces = &1C / 4 = 7
  EQUB &17
  EQUB &78
@@ -20666,7 +20706,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &00
  EQUB &00
  EQUB &01
- EQUB &11                           ; %10001, laser = 2, missiles = 1
+ EQUB %00010001                     ; laser power = 2, missiles = 1
 
  EQUB &00, &00, &48, &1F, &21, &43  ; vertices data (15*6)
  EQUB &00, &10, &18, &1E, &10, &22
@@ -20736,7 +20776,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &22
  EQUB &96                           ; number of vertices = &96 / 6 = 25
  EQUB &1C                           ; number of edges = &1C = 28
- EQUB &96, &00                      ; bounty = &0096 = 150
+ EQUW 150                           ; bounty = 150
  EQUB &14                           ; number of faces = &14 / 4 = 5
  EQUB &19
  EQUB &5A
@@ -20744,7 +20784,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &00
  EQUB &01
  EQUB &02
- EQUB &12                           ; %00 0010 010, laser = 2, missiles = 2
+ EQUB %000010010                    ; laser power = 2, missiles = 2
 
  EQUB &00, &00, &40, &1F, &10, &32  ; vertices data (25*6)
  EQUB &40, &08, &20, &FF, &20, &44
@@ -20833,7 +20873,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &2A                           ; explosion count = 9, (4 * n) + 6 = &2A
  EQUB &A8                           ; number of vertices = &A8 / 6 = 28
  EQUB &26                           ; number of edges = &26 = 38
- EQUB &00, &00                      ; bounty = 0
+ EQUW 0                             ; bounty = 0
  EQUB &34                           ; number of faces = &34 / 4 = 13
  EQUB &32                           ; show as a dot past a distance of 50
  EQUB &96                           ; maximum energy/shields = 150
@@ -20841,8 +20881,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &00                           ; edges data offset = &00BC
  EQUB &01                           ; faces data offset = &0154
  EQUB &01                           ; normals are scaled by 2^1 = 2
- EQUB &13                           ; &13 = %00 010 011, missiles = 3,
-                                    ; laser power = 2
+ EQUB %00010011                     ; laser power = 2, missiles = 3
 
  EQUB &20, &00, &4C, &1F, &FF, &FF  ; vertices data (28*6)
  EQUB &20, &00, &4C, &9F, &FF, &FF
@@ -20957,7 +20996,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &26
  EQUB &78                           ; number of vertices = &78 / 6 = 20
  EQUB &1A                           ; number of edges = &1A = 26
- EQUB &F4, &01                      ; bounty = &01F4 = 500
+ EQUW 500                           ; bounty = 500
  EQUB &28                           ; number of faces = &28 / 4 = 10
  EQUB &37
  EQUB &F0
@@ -20965,7 +21004,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &00
  EQUB &00
  EQUB &02
- EQUB &16                           ; %10110, laser = 2, missiles = 6
+ EQUB %00010110                     ; laser power = 2, missiles = 6
 
  EQUB &20, &30, &30, &5F, &40, &88  ; vertices data (20)
  EQUB &20, &44, &00, &5F, &10, &44
@@ -21052,7 +21091,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &36
  EQUB &60                           ; number of vertices = &60 / 6 = 16
  EQUB &1C                           ; number of edges = &1C = 28
- EQUB &00, &00                      ; bounty = 0
+ EQUW 0                             ; bounty = 0
  EQUB &38                           ; number of faces = &38 / 4 = 14
  EQUB &78
  EQUB &F0
@@ -21150,7 +21189,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &0A
  EQUB &66                           ; number of vertices = &66 / 6 = 17
  EQUB &18                           ; number of edges = &18 = 24
- EQUB &00, &00                      ; bounty = 0
+ EQUW 0                             ; bounty = 0
  EQUB &24                           ; number of faces = &24 / 4 = 9
  EQUB &0E
  EQUB &02
@@ -21158,7 +21197,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &00
  EQUB &00
  EQUB &02
- EQUB &00                           ; %00000, laser = 0, missiles = 0
+ EQUB %00000000                     ; laser power = 0, missiles = 0
 
  EQUB &00, &00, &44, &1F, &10, &32  ; vertices data (17*6)
  EQUB &08, &08, &24, &5F, &21, &54
@@ -21238,7 +21277,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &22
  EQUB &36                           ; number of vertices = &36 / 6 = 9
  EQUB &15                           ; number of edges = &15 = 21
- EQUB &05, &00                      ; bounty = &0005 = 5
+ EQUW 5                             ; bounty = 5
  EQUB &38                           ; number of faces = &38 / 4 = 14
  EQUB &32
  EQUB &3C
@@ -21246,7 +21285,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &00
  EQUB &00
  EQUB &01
- EQUB &00                           ; %00000, laser = 0, missiles = 0
+ EQUB %00000000                     ; laser power = 0, missiles = 0
 
  EQUB &00, &50, &00, &1F, &FF, &FF  ; vertices data (25*9)
  EQUB &50, &0A, &00, &DF, &FF, &FF
@@ -21319,7 +21358,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &12
  EQUB &3C                           ; number of vertices = &3C / 6 = 10
  EQUB &0F                           ; number of edges = &0F = 15
- EQUB &00, &00                      ; bounty = 0
+ EQUW 0                             ; bounty = 0
  EQUB &1C                           ; number of faces = &1C / 4 = 7
  EQUB &0C
  EQUB &11
@@ -21327,7 +21366,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &00
  EQUB &00
  EQUB &02
- EQUB &00                           ; %00000, laser = 0, missiles = 0
+ EQUB %00000000                     ; laser power = 0, missiles = 0
 
  EQUB &18, &10, &00, &1F, &10, &55  ; vertices data (10*6)
  EQUB &18, &05, &0F, &1F, &10, &22
@@ -21385,7 +21424,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &12
  EQUB &3C                           ; number of vertices = &3C / 6 = 10
  EQUB &0F                           ; number of edges = &0F = 15
- EQUB &32, &00                      ; bounty = &0032 = 50
+ EQUW 50                            ; bounty = 50
  EQUB &1C                           ; number of faces = &1C / 4 = 7
  EQUB &14
  EQUB &14
@@ -21393,7 +21432,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &FF                           ; use Thargoid edge data at &FFA8 = -88
  EQUB &00
  EQUB &02
- EQUB &10
+ EQUB %00010000                     ; laser power = 2, missiles = 0
 
  EQUB &09, &00, &28, &9F, &01, &55  ; vertices data (10*6)
  EQUB &09, &26, &0C, &DF, &01, &22
@@ -21433,7 +21472,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &16
  EQUB &18                           ; number of vertices = &18 / 6 = 4
  EQUB &06                           ; number of edges = &06 = 6
- EQUB &00, &00                      ; bounty = 0
+ EQUW 0                             ; bounty = 0
  EQUB &10                           ; number of faces = &10 / 4 = 4
  EQUB &08
  EQUB &11
@@ -21441,7 +21480,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &00
  EQUB &00
  EQUB &03
- EQUB &00
+ EQUB %00000000                     ; laser power = 0, missiles = 0
 
  EQUB &07, &00, &24, &9F, &12, &33  ; vertices data (4*6)
  EQUB &07, &0E, &0C, &FF, &02, &33
