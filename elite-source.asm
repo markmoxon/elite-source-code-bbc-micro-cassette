@@ -2612,25 +2612,33 @@ LOAD_A% = LOAD%
 
 .DNOIZ
 
- EQUB 0                 ; Sound on/off, 0 = on, non-zero = off
+ EQUB 0                 ; Sound on/off
+                        ;
+                        ; 0 = on (default), non-zero = off
                         ;
                         ; Toggled by S when paused, see DK4
 
 .DAMP
 
- EQUB 0                 ; Keyboard damping, 0 = no, &FF = yes
+ EQUB 0                 ; Keyboard damping
+                        ;
+                        ; 0 = enabled (default), non-zero = disabled
                         ;
                         ; Toggled by Caps Lock when paused, see DKS3
 
 .DJD
 
- EQUB 0                 ; Keyboard auto-recentre, 0 = no, &FF = yes
+ EQUB 0                 ; Keyboard auto-recentre
+                        ;
+                        ; 0 = enabled (default), non-zero = disabled
                         ;
                         ; Toggled by A when paused, see DKS3
 
 .PATG
 
- EQUB 0                 ; Display authors on start-up screen, 0 = no, &FF = yes
+ EQUB 0                 ; Display authors on start-up screen
+                        ;
+                        ; 0 = no (default), &FF = yes
                         ;
                         ; Toggled by X when paused, see DKS3
                         ;
@@ -2643,25 +2651,33 @@ LOAD_A% = LOAD%
 
 .FLH
 
- EQUB 0                 ; Flashing console bars, 0 = no, &FF = yes
+ EQUB 0                 ; Flashing console bars
+                        ;
+                        ; 0 = static (default), non-zero = flashing
                         ;
                         ; Toggled by F when paused, see DKS3
 
 .JSTGY
 
- EQUB 0                 ; Reverse joystick Y channel, 0 = no, &FF = yes
+ EQUB 0                 ; Reverse joystick Y channel
+                        ;
+                        ; 0 = standard (default), &FF = reversed
                         ;
                         ; Toggled by Y when paused, see DKS3
 
 .JSTE
 
- EQUB 0                 ; Reverse both joystick channels, 0 = no, &FF = yes
+ EQUB 0                 ; Reverse both joystick channels
+                        ;
+                        ; 0 = standard (default), &FF = reversed
                         ;
                         ; Toggled by J when paused, see DKS3
 
 .JSTK
 
- EQUB 0                 ; Keyboard or joystick, 0 = keyboard, &FF = joystick
+ EQUB 0                 ; Keyboard or joystick
+                        ;
+                        ; 0 = keyboard (default), non-zero = joystick
                         ;
                         ; Toggled by K when paused, see DKS3
 
@@ -8696,31 +8712,45 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: cntr
 \
-\ Center ship indicators
+\ Apply damping to the value in X, where X ranges from 1 to 255 with 128 as the
+\ centre point (so X represents a position on a centre-based dashboard slider,
+\ such as pitch or roll). If the value is in the left-hand side of the slider
+\ (1-127) then it bumps the value up by 1 so it moves towards towards the
+\ centre, and if it's in the right-hand side, it reduces it by 1, also moving
+\ it towards the centre.
 \ *****************************************************************************
 
-.cntr                   ; Center ship indicators
+.cntr
 {
- LDA DAMP               ; damping toggle
- BNE RE1                ; rts
- TXA
- BPL BUMP               ; nudge up
- DEX
- BMI RE1                ; rts
+ LDA DAMP               ; If DAMP is non-zero, then keyboard damping is not
+ BNE RE1                ; enabled, so jump to RE1 to return from the subroutine
 
-.BUMP                   ; counter X  nudge up
+ TXA                    ; If X < 128, then it's in the left-hand side of the
+ BPL BUMP               ; dashboard slider, so jump to BUMP to bump it up by 1,
+                        ; to move it closer to the centre
 
- INX
- BNE RE1                ; rts
+ DEX                    ; Otherwise X >= 128, so it's in the right-hand side
+ BMI RE1                ; of the dashboard slider, so decrement X by 1, and if
+                        ; it's still >= 128, jump to RE1 to return from the
+                        ; subroutine, otherwise fall through to BUMP to undo
+                        ; the bump and then return
 
-.REDU                   ; reduce, nudge down.
+.BUMP
 
- DEX
- BEQ BUMP               ; nudge up
+ INX                    ; Bump X up by 1, and if it hasn't ovedrshot the end of
+ BNE RE1                ; the dashboard slider, jump to RE1 to return from the
+                        ; subroutine, otherwise fall through to REDU to drop
+                        ; it down by 1 again
 
-.RE1                    ; rts
+.REDU                   
 
- RTS
+ DEX                    ; Reduce X by 1, and if we have reached 0 jump up to
+ BEQ BUMP               ; BUMP to add 1, because we need the value to be in the
+                        ; range 1 to 255
+
+.RE1
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -8831,10 +8861,10 @@ NEXT
                         ; If we get here, then we need to apply auto-recentre,
                         ; if it is configured
 
- LDA DJD                ; If keyboard auto-recentre is not configured, then
+ LDA DJD                ; If keyboard auto-recentre is disabled, then
  BNE RE2+2              ; jump to RE2+2 to restore A and return
 
- LDX #128               ; If keyboard auto-recentre is configured, set X to 128
+ LDX #128               ; If keyboard auto-recentre is enabled, set X to 128
  BMI RE2+2              ; (the middle of our range) and jump to RE2+2 to
                         ; restore A and return
 }
@@ -17990,7 +18020,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \ up and slow down keys, and read the joystick's fire button and X and Y axes,
 \ storing the results in the key logger and the joystick position variables.
 \
-\ This routine is only called if joysticks are enabled (JSTK = &FF).
+\ This routine is only called if joysticks are enabled (JSTK = non-zero).
 \ *****************************************************************************
 
 .DKJ1
