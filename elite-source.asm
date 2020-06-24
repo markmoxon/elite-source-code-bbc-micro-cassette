@@ -67,43 +67,43 @@ f9 = &77
 \ Macro definitions
 \ *****************************************************************************
 
-MACRO CHAR x            ; Insert ASCII character "x"
-  EQUB x EOR 35
+MACRO CHAR x
+  EQUB x EOR 35         ; Insert ASCII character "x"
 ENDMACRO
 
-MACRO TWOK n            ; Insert two-letter token <n>
-  EQUB n EOR 35
+MACRO TWOK n
+  EQUB n EOR 35         ; Insert two-letter token <n>
 ENDMACRO
 
-MACRO CTRL n            ; Insert control code {n}
-  EQUB n EOR 35
+MACRO CTRL n
+  EQUB n EOR 35         ; Insert control code token {n}
 ENDMACRO
 
-MACRO RTOK n            ; Insert recursive token [n]
+MACRO RTOK n
   IF n >= 0 AND n <= 95
-    t = n + 160         ; Tokens 0-95 get stored as number + 160
-  ELIF n >= 128
-    t = n - 114         ; Tokens 128-145 get stored as number - 114
-  ELSE
-    t = n               ; Tokens 96-127 get stored as number
+    t = n + 160         ; Insert recursive token [n]
+  ELIF n >= 128         ;
+    t = n - 114         ; Tokens 0-95 get stored as n + 160
+  ELSE                  ; Tokens 128-145 get stored as n - 114
+    t = n               ; Tokens 96-127 get stored as n
   ENDIF
   EQUB t EOR 35
 ENDMACRO
 
 MACRO ITEM price, factor, units, quantity, mask
   IF factor < 0
-    s = 1 << 7          ; Add item to market prices table at QQ23
+    s = 1 << 7          ; Insert an item into the market prices table at QQ23
   ELSE                  ;
     s = 0               ; Arguments:
   ENDIF                 ;
-  IF units == 't'       ;   pr = Base price
-    u = 0               ;   fc = Economic factor
+  IF units == 't'       ;   price = Base price
+    u = 0               ;   factor = Economic factor
   ELIF units == 'k'     ;   units = "t", "g" or "k"
-    u = 1 << 5          ;   q = Base quantity
-  ELSE                  ;   m = Fluctutaions mask
+    u = 1 << 5          ;   quantity = Base quantity
+  ELSE                  ;   mask = Fluctutaions mask
     u = 1 << 6          ;
-  ENDIF                 ; See location QQ23 for details of how the
-  e = ABS(factor)       ; above data is stored in the table
+  ENDIF                 ; See location QQ23 for details of how the above data
+  e = ABS(factor)       ; is stored in the table
   EQUB price
   EQUB s + u + e
   EQUB quantity
