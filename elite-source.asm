@@ -80,13 +80,33 @@ MACRO CTRL n                        ; Insert control code {n}
 ENDMACRO
 
 MACRO RTOK n                        ; Insert recursive token [n]
-  IF n >= 0 AND n <= 95             ; Tokens 0-95 get stored as token number + 160
+  IF n >= 0 AND n <= 95             ; Tokens 0-95 get stored as number + 160
     EQUB (n + 160) EOR 35
   ELIF n >= 128
-    EQUB (n - 114) EOR 35           ; Tokens 128-145 get stored as token number - 114
+    EQUB (n - 114) EOR 35           ; Tokens 128-145 get stored as number - 114
   ELSE
-    EQUB n EOR 35                   ; Tokens 96-127 get stored as token number
+    EQUB n EOR 35                   ; Tokens 96-127 get stored as number
   ENDIF
+ENDMACRO
+
+MACRO ITEM pr, fc, units, q, m      ; Add item to market prices table at QQ23
+  IF fc < 0                         ;   
+    s = 1 << 7                      ; Arguments:
+  ELSE                              ;
+    s = 0                           ;   pr = Base price
+  ENDIF                             ;   fc = Economic factor
+  IF units == 't'                   ;   units = 't', 'g' or 'k'
+    u = 0                           ;   q = Base quantity
+  ELIF units == 'k'                 ;   m = Fluctutaions mask
+    u = 1 << 5                      ;
+  ELSE                              ; See location QQ23 for details of how the
+    u = 1 << 6                      ; above data is stored in the table
+  ENDIF
+  e = ABS(fc)
+  EQUB pr
+  EQUB s + u + e
+  EQUB q
+  EQUB m
 ENDMACRO
 
 \ *****************************************************************************
@@ -426,13 +446,13 @@ ORG &0000
 
  SKIP 3                 ; Temporary storage (e.g. used in TT25 to store results
                         ; when calculating adjectives to show for system species
-                        ; names)
+                        ; names, and in TT151 when printing market prices)
 
 .K6
 
  SKIP 5                 ; Temporary storage for seed pairs (e.g. used in cpl
                         ; as a temporary backup when twisting three 16-bit
-                        ; seeds)
+                        ; seeds, and in TT151 when printing market prices)
 
 .ALP1
 
@@ -2373,11 +2393,15 @@ ORG &0D40
 
 .DLY
 
- SKIP 1                 ; 
+ SKIP 1                 ; In-flight message delay, this counter is used to keep
+                        ; a message up for a specified time before it gets
+                        ; removed. The value in DLY is decremented each time we
+                        ; enter the main spawning loop at TT100.
 
 .de
 
- SKIP 1                 ; 
+ SKIP 1                 ; Destruction flag, bit 1 set means "DESTROYED" is
+                        ; appended to in-flight message printed by MESS
 
 .LSX
 .LSO
@@ -2420,7 +2444,9 @@ ORG &0D40
 
 .MCH
 
- SKIP 1                 ; 
+ SKIP 1                 ; The text token of the in-flight message that is
+                        ; currently being shown, and which will be removed by
+                        ; me2 when the counter in DLY reaches zero
 
 .FSH
 
@@ -2517,8 +2543,10 @@ ORG &0D40
 
 .QQ8
 
- SKIP 2                 ; Distance to the selected system (0 if this is the
-                        ; current system)
+ SKIP 2                 ; Distance to the selected system * 10 in light years,
+                        ; stored as a 16-bit number
+                        ;
+                        ; Will be 0 if this is the current system
 
 .QQ9
 
@@ -6103,6 +6131,17 @@ NEXT
 \
 \                 * 127 (delete the character to the left of the text cursor
 \                   and move the cursor to the left)
+\
+\
+\ Returns:
+\
+\   A           A is preserved
+\
+\   X           X is preserved
+\
+\   Y           Y is preserved
+\
+\   C flag      Carry is cleared
 \ *****************************************************************************
 
 .TT26
@@ -8743,8 +8782,8 @@ NEXT
 \ If reducing X would bring it below 1, then X is set to 1.
 \
 \ If keyboard auto-recentre is configured and the result is greater than 128, we
-\ reduce X down to the mid-point, 128. This is the equivalent of having a roll or
-\ pitch in the right half of the indicator, when decreasing the roll or pitch
+\ reduce X down to the mid-point, 128. This is the equivalent of having a roll
+\ or pitch in the right half of the indicator, when decreasing the roll or pitch
 \ should jump us straight to the mid-point.
 \ *****************************************************************************
 
@@ -8775,8 +8814,8 @@ NEXT
 
                         ; Jumps to RE3+2 end up here
 
-                        ; If we get here, then we need to apply auto-recentre, if
-                        ; it is configured
+                        ; If we get here, then we need to apply auto-recentre,
+                        ; if it is configured
 
  LDA DJD                ; If keyboard auto-recentre is not configured, then
  BNE RE2+2              ; jump to RE2+2 to restore A and return
@@ -9705,29 +9744,38 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Specifically, if the distance in QQ8 is non-zero, print token 31 ("DISTANCE"),
 \ then a colon, then the distance to one decimal place, then token 35 ("LIGHT
-\ YEARS"). If the distance is zero, move the cursor down one
-\ line.
+\ YEARS"). If the distance is zero, move the cursor down one line.
 \ *****************************************************************************
 
 
-.TT146                  ; Distance in Light years
+.TT146
+{
+ LDA QQ8                ; Take the two bytes of the 16-bit value in QQ8 and
+ ORA QQ8+1              ; OR them together to check whether there are any
+ BNE TT63               ; non-zero bits, and if so, jump to TT63 to print the
+                        ; distance
 
- LDA QQ8                ; distance in 0.1 LY units
- ORA QQ8+1
- BNE TT63               ; if not zero, Distance in Light years
- INC YC                 ; else just new text line
- RTS
+ INC YC                 ; The distance is zero, so we just move the text cursor
+ RTS                    ; in YC down by one line and return from the subroutine
 
-.TT63                   ; Distance in Light years
+.TT63
 
- LDA #191               ; token = DISTANCE
- JSR TT68               ; process token followed by colon
+ LDA #191               ; Print recursive token 31 ("DISTANCE") followed by
+ JSR TT68               ; a colon
 
- LDX QQ8
- LDY QQ8+1
- SEC                    ; with decimal point
- JSR pr5                ; print 4 digits of XloYhi
- LDA #195               ; token = LIGHT YEARS
+ LDX QQ8                ; Load (Y X) from QQ8, which contains the 16-bit
+ LDY QQ8+1              ; distance we want to show
+
+ SEC                    ; Set the carry flag so that the call to pr5 will
+                        ; include a decimal point, and display the value as
+                        ; (Y X) / 10
+
+ JSR pr5                ; Print (Y X) to 5 digits, including a decimal point
+
+ LDA #195               ; Set A to the recursive token 35 (" LIGHT YEARS") and
+                        ; fall through into TT60 to print the token followed
+                        ; by a paragraph break
+}
 
 \ *****************************************************************************
 \ Subroutine: TT60
@@ -10181,8 +10229,9 @@ LOAD_D% = LOAD% + P% - CODE%
  ADC #11
  TAY
 
- JSR pr5                ; Print (Y X) to 5 digits, including a decimal point
-                        ; if the carry flag is set
+ JSR pr5                ; Print (Y X) to 5 digits, not including a decimal
+                        ; point, as the carry flag will be clear (as the
+                        ; maximum radius will always fit into 16 bits)
 
  JSR TT162              ; Print a space
 
@@ -10244,6 +10293,17 @@ LOAD_D% = LOAD% + P% - CODE%
 \ 
 \   bit 2 = %0 = Industrial
 \   bit 2 = %1 = Agricultural
+\
+\ Putting these two together, we get:
+\
+\   0 = Rich Industrial
+\   1 = Average Industrial
+\   2 = Poor Industrial
+\   3 = Mainly Industrial
+\   4 = Mainly Agricultural
+\   5 = Rich Agricultural
+\   6 = Average Agricultural
+\   7 = Poor Agricultural
 \ 
 \ If the government is an anarchy or feudal state, we need to fix the economy
 \ so it can't be rich (as that wouldn't make sense). We do this by setting bit
@@ -11464,109 +11524,239 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT147
 \
-\ Hyperspace too far, display 'RANGE' (?)
+\ Print "RANGE?" for when the hyperspace distance is too far.
 \ *****************************************************************************
 
-.TT147                  ; hyperspace too far
+.TT147
 {
- LDA #202               ; token = (HYPERSPACE) 'RANGE' (?)
+ LDA #202               ; Load A with token 42 ("RANGE") and fall through into
+                        ; prq to print it, followed by a question mark
 }
 
 \ *****************************************************************************
 \ Subroutine: prq
 \
-\ Print Acc then question mark
+\ Print a text token followed by a question mark.
+\
+\ Arguments:
+\
+\   A           The text token to be printed
 \ *****************************************************************************
 
-.prq                    ; print Acc then question mark
+.prq
 {
- JSR TT27               ; process text token
- LDA #&3F               ; ascii '?'
- JMP TT27
+ JSR TT27               ; Print the text token in A
+
+ LDA #'?'               ; Print a question mark and return from the 
+ JMP TT27               ; subroutine using a tail call
 }
 
 \ *****************************************************************************
 \ Subroutine: TT151
 \
-\ Market prices on one item
+\ Print the item name, market price and availability for a market item.
+\
+\ Arguments:
+\
+\   A           The number of the market item to print, 0-16 (see QQ23 for
+\               details of item numbers)
+\
+\ Results:
+\
+\   QQ24        The item's price / 4
+\
+\   QQ25        The item's availability
+\ *****************************************************************************
+\
+\ Item prices are calculated using a formula that takes a number of variables
+\ into consideration, and mixes in a bit of random behaviour to boot. This is
+\ the formula, which is performed as an 8-bit calculation:
+\
+\   price = ((base_price + (random AND mask) + economy * economic_factor)) * 4
+\
+\ The resulting price is 10 times the displayed price, so we can show it to one
+\ decimal place. The individual items in the calculation are as follows:
+\
+\   * The item's base_price is byte #0 in the market prices table at QQ23, so
+\     it's 19 for food, 20 for textiles, 235 for narcotics and so on.
+\
+\   * Each time we arrive in a new system, a random number is generated and
+\     stored in location QQ26, and this is shown as "random" in the calculation
+\     above.
+\
+\   * The item's mask is byte #3 in the market prices table at QQ23, so
+\     it's &01 for food, &03 for textiles, &78 for narcotics and so on. The
+\     more set bits there are in this mask, and the higher their position in
+\     this byte, the larger the price fluctuations for this commodity, as the
+\     random number is AND'd with the mask. So narcotics will vary wildly in
+\     price, while food and textiles will be relatively stable.
+\
+\   * The economy for a system is given in a 3-bit value, from 0 to 7, that is
+\     stored in QQ28. This value is described in more detail in routine TT24,
+\     but this is the range of values:
+\
+\       0 = Rich Industrial
+\       1 = Average Industrial
+\       2 = Poor Industrial
+\       3 = Mainly Industrial
+\       4 = Mainly Agricultural
+\       5 = Rich Agricultural
+\       6 = Average Agricultural
+\       7 = Poor Agricultural
+\
+\   * The economic_factor is stored in bits 0-4 of byte #1 in the market prices
+\     table at QQ23, and its sign is in bit 7, so it's -2 for food, -1 for
+\     textiles, +8 for narcotics and so on. Negative factors show products that
+\     tend to be cheaper than average in agricultural economies but closer to
+\     average in rich industrial ones, while positive factors are more
+\     expensive in poor agricultural systems than rich industrial ones - so
+\     food is cheaper in poor agricultural systems while narcotics are very
+\     expensive, and it's the other way round in rich industrial systems,
+\     where narcotics are closer to the average price, but food is pricier.
+\
+\   * The units for this item (i.e. tonnes, grams pr kilograms) are given by
+\     bits 5-6 of of byte #1 in the market prices table at QQ23.
 \ *****************************************************************************
 
-.TT151                  ; Pmk-A \ their comment \ Market prices on one item
+.TT151
 {
- PHA                    ; index for item
- STA QQ19+4
- ASL A                  ; build index for QQ23 table
- ASL A                  ; item*4
- STA QQ19
- LDA #1                 ; left
+ PHA                    ; Store the item number on the stack and in QQ14+4
+ STA QQ19+4             
+
+ ASL A                  ; Store the item number * 4 in QQ19, so this will act as
+ ASL A                  ; an index into the market prices table at QQ23 for this
+ STA QQ19               ; item (as thers are four bytes per item in the table)
+
+ LDA #1                 ; Set the text cursor to column 1, for the item's name
  STA XC
- PLA                    ; restore item
- ADC #208               ; token = FOOD..GEM-STONES
 
- JSR TT27               ; process flight text token
- LDA #14                ; next column
+ PLA                    ; Restore the item number
+
+ ADC #208               ; Print recursive token 48 + A, which will be in the
+ JSR TT27               ; range 48 ("FOOD") to 64 ("ALIEN ITEMS"), so this
+                        ; prints the item's name
+
+ LDA #14                ; Set the text cursor to column 14, for the price
  STA XC
- LDX QQ19               ; item*4 index for QQ23 table
- LDA QQ23+1,X           ; Prxs  Market prices info
- STA QQ19+1             ; byte 1
- LDA QQ26               ; random byte each system visit
- AND QQ23+3,X           ; byte3 Market mask
- CLC
- ADC QQ23,X             ; byte0 Market base
- STA QQ24               ; price
- JSR TT152              ; t kg g from QQ19+1
 
- JSR var                ; slope QQ19+3  = economy * gradient
- LDA QQ19+1             ; byte1
- BMI TT155              ; subtract QQ19,3 from QQ24
- LDA QQ24               ; price, else add
- ADC QQ19+3             ; economy * gradient
- JMP TT156              ; both prices
+ LDX QQ19               ; Fetch byte #1 from the market prices table for this
+ LDA QQ23+1,X           ; item and store in QQ19+1
+ STA QQ19+1
 
-.TT155                  ; subtract QQ19,3 from QQ24
+ LDA QQ26               ; Fetch the random number for this system visit and 
+ AND QQ23+3,X           ; AND with byte #3 from the market prices table (mask)
+                        ; to give:
+                        ;
+                        ;   A = random AND mask
+ 
+ CLC                    ; Add byte #0 from the market prices table (base_price),
+ ADC QQ23,X             ; so we now have:
+ STA QQ24               ;
+                        ;   A = base_price + (random AND mask)
 
- LDA QQ24               ; price
- SEC
- SBC QQ19+3             ; economy * gradient
+ JSR TT152              ; Call TT152 to print the item's unit ('t', 'kg' or
+                        ; 'g'), padded to a width of two characters
 
-.TT156                  ; both price cases
+ JSR var                ; Call var to set QQ19+3  = economy * |economic_factor|
+                        ; (and set the availability of Alien Items to 0)
 
- STA QQ24               ; price
- STA P                  ; price_lo
- LDA #0
- JSR GC2                ; get cash Xlo.Yhi = P.A *=4  max 1024
+ LDA QQ19+1             ; Fetch the byte #1 that we stored above and jump to
+ BMI TT155              ; TT155 if it is negative (i.e. if the economic_factor
+                        ; is negative)
 
- SEC                    ; decimal point in max 102.4
+ LDA QQ24               ; Set A = QQ24 + QQ19+3
+ ADC QQ19+3             ;
+                        ;       = base_price + (random AND mask)
+                        ;         + (economy * |economic_factor|)
+                        ;
+                        ; which is the result we want, as the economic_factor
+                        ; is positive
 
- JSR pr5                ; 4 digits of XloYhi
- LDY QQ19+4             ; index for item
- LDA #5                 ; 5 digits
- LDX AVL,Y              ; availability
- STX QQ25               ; max available
+ JMP TT156              ; Jump to TT156 to multiply the result by 4
 
- CLC
- BEQ TT172              ; tab '-' as none available
- JSR pr2+2              ; else print available Xreg to 5 places
- JMP TT152              ; t kg g from QQ19+1
+.TT155
 
-.TT172                  ; tab '-' as none available
+ LDA QQ24               ; Set A = QQ24 - QQ19+3
+ SEC                    ; 
+ SBC QQ19+3             ;       = base_price + (random AND mask)
+                        ;         - (economy * |economic_factor|)
+                        ;
+                        ; which is the result we want, as economic_factor
+                        ; is negative
 
- LDA XC
- ADC #4                 ; move by 4
- STA XC
- LDA #&2D               ; ascii '-'
- BNE TT162+2            ; guaranteed jmp TT27
+.TT156
+
+ STA QQ24               ; Store the result in QQ24 and P
+ STA P
+
+ LDA #0                 ; Set A = 0 and call GC2 to calculate (Y X) = (A P) * 4,
+ JSR GC2                ; which is the same as (Y X) = P * 4 because A = 0
+
+ SEC                    ; We now have our final price, * 10, so we can call pr5
+ JSR pr5                ; to print (Y X) to 5 digits, including a decimal
+                        ; point, as the carry flag is set
+
+ LDY QQ19+4             ; We now move on to availability, so fetch the market
+                        ; item number that we stored in QQ19+4 at the start
+ 
+ LDA #5                 ; Set A to 5 so we can print the availability to 5
+                        ; digits (right-padded with spaces)
+
+ LDX AVL,Y              ; Set X to the item's availability, which is given in the AVL
+                        ; table
+
+ STX QQ25               ; Store the availability in QQ25
+
+ CLC                    ; Clear the carry flag
+ 
+ BEQ TT172              ; If none are available, jump to TT172 to print a tab
+                        ; and a '-'
+
+ JSR pr2+2              ; Otherwise print the 8-bit number in X to 5 digits,
+                        ; right-aligned with spaces. This works because we set
+                        ; A to 5 above, and we jump into the pr2 routine just
+                        ; after the first instruction, which would normally
+                        ; set the number of digits to 3.
+ 
+ JMP TT152              ; Print the unit ('t', 'kg' or 'g') for the market item,
+                        ; with a following space if required to make it two
+                        ; characters long
+
+.TT172
+
+ LDA XC                 ; Move the text cursor in XC to the right by 4 columns,
+ ADC #4                 ; so the cursor is where the last digit would be if we
+ STA XC                 ; were printing a 5-digit availability number.
+
+ LDA #'-'               ; Print a '-' character by jumping to TT162+2, which
+ BNE TT162+2            ; contains JMP TT27 (this BNE is effectively a JMP as A
+                        ; will never be zero), and return from the subroutine
+                        ; using a tail call
 }
 
-.TT152                  ; t kg g from QQ19+1
-{
- LDA QQ19+1             ; byte1
- AND #96                ; mask info, no bits set?
- BEQ TT160              ; 't' for tonne
- CMP #32                ; mask info, bit5 set?
- BEQ TT161              ; 'kg'
+\ *****************************************************************************
+\ Subroutine: TT152
+\
+\ Print the unit ('t', 'kg' or 'g') for the market item whose byte #1 from the
+\ market prices table is in QQ19+1, right-padded with spaces to a width of two
+\ characters (so that's 't ', 'kg' or 'g ').
+\ *****************************************************************************
 
- JSR TT16a              ; else 'g' for gram
+.TT152
+{
+ LDA QQ19+1             ; Fetch the economic_factor from QQ19+1
+
+ AND #96                ; If bits 5 and 6 are both clear, jump to TT160 to
+ BEQ TT160              ; print 't' for tonne, followed by a space, and return
+                        ; from the subroutine using a tail call
+
+ CMP #32                ; If bit 5 is set, jump to TT161 to print 'kg' for
+ BEQ TT161              ; kilograms, and return from the subroutine using a tail
+                        ; call
+
+ JSR TT16a              ; Otherwise call TT16a to print 'g' for grams, and fall
+                        ; through into TT162 to print a space and return from
+                        ; the subroutine
 }
 
 \ *****************************************************************************
@@ -11579,59 +11769,74 @@ LOAD_D% = LOAD% + P% - CODE%
 {
  LDA #' '               ; Load a space character into A
 
- JMP TT27               ; Print the character in A and return from the
+ JMP TT27               ; Print the text token in A and return from the
                         ; subroutine using a tail call
 }
 
 \ *****************************************************************************
 \ Subroutine: TT160
 \
-\ 't' for tonne
+\ Print 't' (for tonne) and a space.
 \ *****************************************************************************
 
-.TT160                  ; 't' for tonne
+.TT160
 {
- LDA #&74               ; ascii 't' for tonne
- JSR TT26               ; print character
- BCC TT162              ; guaranteed, trailing space.
+ LDA #'t'               ; Load a 't' character into A
+
+ JSR TT26               ; Print the character, using TT216 so that it doesn't
+                        ; change the character case
+
+ BCC TT162              ; Jump to TT162 to print a space and return from the
+                        ; subroutine using a tail call (this BCC is effectively
+                        ; a JMP as carry is cleared by TT26)
 }
 
 \ *****************************************************************************
 \ Subroutine: TT161
 \
-\ 'kg'
+\ Print 'kg' (for kilograms).
 \ *****************************************************************************
 
-.TT161                  ; 'kg'
+.TT161
 {
- LDA #&6B               ; ascii 'k'
- JSR TT26               ; print character lower case
+ LDA #'k'               ; Load a 'k' character into A
+
+ JSR TT26               ; Print the character, using TT216 so that it doesn't
+                        ; change the character case, and fall through into
+                        ; TT16a to print a 'g' character
 }
 
 \ *****************************************************************************
 \ Subroutine: TT16a
 \
-\ 'g'
+\ Print 'g' (for grams).
 \ *****************************************************************************
 
 .TT16a
 {
- LDA #&67               ; ascii 'g'
- JMP TT26               ; print character lower case
+ LDA #&67               ; Load a 'k' character into A
+
+ JMP TT26               ; Print the character, using TT216 so that it doesn't
+                        ; change the character case, and return from the
+                        ; subroutine using a tail call
 }
 
 \ *****************************************************************************
 \ Subroutine: TT163
 \
-\ Table Headings for market place
+\ Print the column headers for the prices table in the Buy Cargo screen.
 \ *****************************************************************************
 
-.TT163                  ; table Headings for market place
+.TT163
 {
- LDA #17                ; indent
+ LDA #17                ; Move the text cursor in XC to column 17
  STA XC
- LDA #&FF               ; token = unit  quantity product unit    price   for   sale
- BNE TT162+2
+
+ LDA #255               ; Print recursive token 95 token ("UNIT  QUANTITY
+ BNE TT162+2            ; {crlf} PRODUCT   UNIT PRICE FOR SALE{crlf}{lf}") by
+                        ; jumping to TT162+2, which contains JMP TT27 (this BNE
+                        ; is effectively a JMP as A will never be zero), and
+                        ; return from the subroutine using a tail call
 }
 
 \ *****************************************************************************
@@ -11671,30 +11876,52 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: var
 \
-\ Market price slope QQ19+3  = economy * gradient
+\ Set QQ19+3 = economy * |economic_factor|, given byte #1 of the market prices
+\ table for an item. Also sets the availability of Alien Items to 0.
+\
+\ Arguments:
+\
+\   QQ19+1      Byte #1 of the market prices table for this market item (which
+\               contains the economic_factor in bits 0-5, and the sign of the
+\               economic_factor in bit 7)
 \ *****************************************************************************
 
-.var                    ; market price slope QQ19+3  = economy * gradient
+.var
 {
- LDA QQ19+1             ; byte1 gradient info bits.
- AND #31                ; gradient 0to31.
- LDY QQ28               ; the economy byte of present system (0 is Rich Ind.)
- STA QQ19+2             ; gradient 0to31.
- CLC                    ; build product
- LDA #0                 ; availability of Alien items
- STA AVL+16
+ LDA QQ19+1             ; Extract bits 0-5 from QQ19+1 into A, to get the
+ AND #31                ; economic_factor without its sign, in other words:
+                        ;
+                        ;   A = |economic_factor|
 
-.TT153                  ; counter Y, eco
+ LDY QQ28               ; Set Y to the economy byte of the current system
+ 
+ STA QQ19+2             ; Store A in QQ19+2
 
- DEY                    ; Take economy byte down by 1
- BMI TT154              ; exit product
- ADC QQ19+2             ; gradient 0to31
- JMP TT153              ; guaranteed loop Y to build product
+ CLC                    ; Clear the carry flag so we can do additions below
 
-.TT154                  ; exit product
+ LDA #0                 ; Set AVL+16 (availability of Alien Items) to 0,
+ STA AVL+16             ; setting A to 0 in the process
 
- STA QQ19+3             ; economy * gradient
- RTS
+.TT153                  ; We now do the multiplication by doing a series of
+                        ; additions in a loop, building the result in A. Each
+                        ; loop adds QQ19+2 (|economic_factor|) to A, and it
+                        ; loops the number of times given by the economy byte;
+                        ; in other words, because A starts at 0, this sets:
+                        ;
+                        ;   A = economy * |economic_factor|
+
+ DEY                    ; Decrement the economy in Y, exiting the loop when it
+ BMI TT154              ; becomes negative
+
+ ADC QQ19+2             ; Add QQ19+2 to A
+
+ JMP TT153              ; Loop back to TT153 to do another addition
+
+.TT154
+
+ STA QQ19+3             ; Store the result in QQ19+3
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -15924,16 +16151,20 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: me2
 \
-\ Erase message from TT100
+\ Remove an in-flight message from the space view.
 \ *****************************************************************************
 
-.me2                    ; erase message from TT100
+.me2
 {
- LDA MCH                ; message id
- JSR MESS               ; message
- LDA #0
- STA DLY                ; delay printing = 0
- JMP me3                ; back to TT100
+ LDA MCH                ; Fetch the token number of the current message into A
+
+ JSR MESS               ; Call MESS to print the token, which will remove it
+                        ; from the screen as printing uses EOR logic
+
+ LDA #0                 ; Set the delay in DLY to 0, to indicate that we are
+ STA DLY                ; no longer showing an in-flight message
+
+ JMP me3                ; Jump back into the main spawning loop at TT100
 }
 
 \ *****************************************************************************
@@ -16018,6 +16249,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT100
 \
+\ Exposed labels: me3
+\
 \ Start MAIN LOOP Spawnings
 \ *****************************************************************************
 
@@ -16028,16 +16261,9 @@ LOAD_F% = LOAD% + P% - CODE%
  BEQ me2                ; if 0 erase messages, up
  BPL me3                ; Spawnings
  INC DLY                ; else undershot, set to 0.
-}
 
-\ *****************************************************************************
-\ Subroutine: me3
-\
-\ Spawnings
-\ *****************************************************************************
+.^me3
 
-.me3                    ; Spawnings
-{
  DEC MCNT               ; move count
  BEQ P%+5               ; rarely do spawning, test misjump
 
@@ -18063,57 +18289,108 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \ *****************************************************************************
 \ Subroutine: me1
 \
-\ Onto new message
+\ Erase an old in-flight message and display a new one.
+\
+\ Arguments:
+\
+\   A           The text token to be printed
+\
+\   X           Must be set to 0
 \ *****************************************************************************
 
-.me1                    ; onto new message
+.me1
 {
- STX DLY                ; delay set to 0
- PHA                    ; store new token
- LDA MCH                ; old message to erase
- JSR mes9               ; message output now
- PLA                    ; restore new token
- EQUB &2C
+ STX DLY                ; Set the message delay in DLY to 0
+
+ PHA                    ; Store the new message token we want to print
+
+ LDA MCH                ; Set A to the token number of the message that is
+ JSR mes9               ; currently on screen, and call mes9 to print it (which
+                        ; will remove it from the screen, as printing is done
+                        ; using EOR logic)
+
+ PLA                    ; Restore the new message token
+
+ EQUB &2C               ; Fall through into me1 to print the new message, but
+                        ; skip the first instruction by turning it into
+                        ; &2C &A9 &6C or BIT &6CA9, which does nothing bar
+                        ; affecting the flags
 }
 
-.ou2                    ; equipment lost is ecm
+\ *****************************************************************************
+\ Subroutine: ou2
+\
+\ Display "E.C.M.SYSTEM DESTROYED" as an in-flight message.
+\ *****************************************************************************
+
+.ou2
 {
- LDA #108               ; token =  ecm
- EQUB &2C               ; bit2 skip lda
+ LDA #108               ; Set A to recursive token 108 ("E.C.M.SYSTEM")
+
+ EQUB &2C               ; Fall through into ou3 to print the new message, but
+                        ; skip the first instruction by turning it into
+                        ; &2C &A9 &6F or BIT &6FA9, which does nothing bar
+                        ; affecting the flags
 }
 
-.ou3                    ; equipment lost is fuel scoops
+\ *****************************************************************************
+\ Subroutine: ou3
+\
+\ Display "FUEL SCOOPS DESTROYED" as an in-flight message.
+\ *****************************************************************************
+
+.ou3
 {
- LDA #111               ; token = fuel_scoops
+ LDA #111               ; Set A to recursive token 111 ("FUEL SCOOPS")
 }
 
 \ *****************************************************************************
 \ Subroutine: MESS
 \
-\ Message start
+\ Display an in-flight message in capitals at the bottom of the space view,
+\ erasing any existing in-flight message first.
+\
+\ Arguments:
+\
+\   A           The text token to be printed
 \ *****************************************************************************
 
-.MESS                   ; Message start
+.MESS
 {
- LDX #0                 ; all capital letters
+ LDX #0                 ; Set QQ17 = 0 to set ALL CAPS
  STX QQ17
- LDY #9                 ; indent
- STY XC
- LDY #22                ; near bottom row
+
+ LDY #9                 ; Move the text cursor to column 9, row 22, at the
+ STY XC                 ; bottom middle of the screen
+ LDY #22
  STY YC
- CPX DLY                ; is delay printing zero?
- BNE me1
- STY DLY                ; new delay set to 22
- STA MCH                ; copy of token to erase
+
+ CPX DLY                ; If the message delay in DLY is not zero, jump up to
+ BNE me1                ; me1 to erase the current message first (whose token
+                        ; number will be in MCH)
+
+ STY DLY                ; Set the message delay in DLY to 22
+
+ STA MCH                ; Set MCH to the token we are about to display and fall
+                        ; through to mes9 to print the token
 }
 
-.mes9                   ; also message to erase
+\ *****************************************************************************
+\ Subroutine: mes9
+\
+\ Print a text token, followed by "DESTROYED" if the destruction flag is set
+\ (for when a piece of equipment is destroyed).
+\ *****************************************************************************
+
+.mes9
 {
- JSR TT27               ; process text token
- LSR de                 ; message flag for item + destroyed
- BCC out                ; rts, else append
- LDA #253               ; token = ' DESTROYED'
- JMP TT27
+ JSR TT27               ; Call TT27 to print the text token in A
+
+ LSR de                 ; If bit 1 of location de is clear, return from the
+ BCC out                ; subroutine via out, which contains an RTS instruction
+
+ LDA #253               ; Print recursive token 93 (" DESTROYED") and return
+ JMP TT27               ; from the subroutine using a tail call
 }
 
 \ *****************************************************************************
@@ -18166,29 +18443,63 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \ *****************************************************************************
 \ Variable: QQ23
 \
-\ Market prices info.
+\ Market prices table. Each item has four bytes of data, like this:
+\
+\   Byte #0 = Base price
+\   Byte #1 = Economic factor in bits 0-4, with the sign in bit 7
+\             Unit in bits 5-6
+\   Byte #2 = Base quantity
+\   Byte #3 = Mask to control price fluctuations
+\
+\ To make it easier for humans to follow, we've defined a macro called ITEM
+\ that takes the following arguments and builds the four bytes for us:
+\
+\   ITEM base price, economic factor, units, base quantity, mask
+\
+\ So for food, we have the following:
+\
+\   * Base price = 19
+\   * Economic factor = -2
+\   * Unit = tonnes
+\   * Base quantity = 6
+\   * Mask = %00000001
 \ *****************************************************************************
 
-.QQ23                   ; Prxs -> &4619 \ Market prices info
-{
-                        ; base_price, gradient sign+5bits, base_quantity, mask, units 2bits
- EQUD &01068213         ; Food
- EQUD &030A8114         ; Textiles
- EQUD &07028341         ; Radioactives
- EQUD &1FE28528         ; Slaves
- EQUD &0FFB8553         ; Liquor/Wines
- EQUD &033608C4         ; Luxuries
- EQUD &78081DEB         ; Narcotics
- EQUD &03380E9A         ; Computers
- EQUD &07280675         ; Machinery
- EQUD &1F11014E         ; Alloys
- EQUD &071D0D7C         ; Firearms
- EQUD &3FDC89B0         ; Furs
- EQUD &03358120         ; Minerals
- EQUD &0742A161         ; Gold
- EQUD &1F37A2AB         ; Platinum
- EQUD &0FFAC12D         ; Gem-Stones
- EQUD &07C00F35         ; Alien Items
+.QQ23
+{          
+ ITEM 19,  -2, 't',   6, %00000001   ; 0  = Food
+
+ ITEM 20,  -1, 't',  10, %00000011   ; 1  = Textiles
+
+ ITEM 65,  -3, 't',   2, %00000111   ; 2  = Radioactives
+
+ ITEM 40,  -5, 't', 226, %00011111   ; 3  = Slaves
+
+ ITEM 83,  -5, 't', 251, %00001111   ; 4  = Liquor/Wines
+
+ ITEM 196,  8, 't',  54, %00000011   ; 5  = Luxuries
+
+ ITEM 235, 29, 't',   8, %01111000   ; 6  = Narcotics
+
+ ITEM 154, 14, 't',  56, %00000011   ; 7  = Computers
+
+ ITEM 117,  6, 't',  40, %00000111   ; 8  = Machinery
+
+ ITEM 78,   1, 't',  17, %00011111   ; 9  = Alloys
+
+ ITEM 124, 13, 't',  29, %00000111   ; 10 = Firearms
+
+ ITEM 176, -9, 't', 220, %00111111   ; 11 = Furs
+
+ ITEM 32,  -1, 't',  53, %00000011   ; 12 = Minerals
+
+ ITEM 97,  -1, 'k',  66, %00000111   ; 13 = Gold
+
+ ITEM 171, -2, 'k',  55, %00011111   ; 14 = Platinum
+
+ ITEM 45,  -1, 'g', 250, %00001111   ; 15 = Gem-Stones
+
+ ITEM 53,  15, 't', 192, %00000111   ; 16 = Alien Items
 }
 
 \ *****************************************************************************
@@ -20173,8 +20484,6 @@ LOAD_G% = LOAD% + P% - CODE%
  TAY
  SEC                    ; not visible
  RTS                    ; -- Finished clipping
-
-F% = P%
 }
 
 \ *****************************************************************************
@@ -20206,7 +20515,7 @@ SKIP 1
 \ ELITE SHIPS
 \
 \ Produces the binary file SHIPS.bin which gets loaded by elite-bcfs.asm.
-\ *****************************************************************************
+\ ************************.pr*****************************************************
 
 CODE_SHIPS% = P%
 LOAD_SHIPS% = LOAD% + P% - CODE%
