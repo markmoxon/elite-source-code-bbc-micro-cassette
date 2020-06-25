@@ -200,7 +200,10 @@ ORG &0000
 
 .ECMA
 
- SKIP 1                 ; E.C.M. status (0 is off, non-zero is on)
+ SKIP 1                 ; E.C.M. countdown timer (can be either the player's
+                        ; E.C.M. or the opponent's)
+                        ;
+                        ; 0 is off, non-zero is on and counting down
 
 .XX15                   ; 
 
@@ -313,12 +316,16 @@ ORG &0000
 
 .LAS
 
- SKIP 1                 ; 
+ SKIP 1                 ; Bits 0-6 of the laser power of the current space view
+                        ; (bit 7 doesn't denote laser power, just whether or
+                        ; not the laser pulses)
 
 .MSTG
 
- SKIP 1                 ; Missile target (&FF = no target, otherwise contains
-                        ; the number of the ship targetted)
+ SKIP 1                 ; Missile lock target
+                        ; 
+                        ; &FF = no target, otherwise contains the number of the
+                        ; ship in the missile lock
 
 .XX1
  
@@ -478,7 +485,7 @@ ORG &0000
 
 .DELT4
 
- SKIP 2                 ; 
+ SKIP 2                 ; The current speed * 64
 
 .U
 
@@ -701,8 +708,16 @@ ORG &0300               ; Start of the commander block
 
 .LASER
 
- SKIP 4                 ; Laser power, 0 means no laser
+ SKIP 4                 ; Laser power
+                        ;
                         ; (byte 0 = front, 1 = rear, 2 = left, 3 = right)
+                        ;
+                        ; 0 means no laser, non-zero denotes the following:
+                        ;
+                        ; Bits 0-6 contain the laser's power
+                        ;
+                        ; Bit 7 determines whether or not the laser pulses
+                        ; (pulse laser) or is always on (beam laser)
 
  SKIP 2                 ; Not used (reserved for up/down lasers, maybe?)
  
@@ -724,7 +739,7 @@ ORG &0300               ; Start of the commander block
 
 .BOMB
 
- SKIP 1                 ; Energy bomb
+ SKIP 1                 ; Energy bomb (0 = not fitted, 127 = fitted)
 
 .ENGY
 
@@ -2343,10 +2358,10 @@ ORG &0D40
                         ;
                         ; 0 means that slot is empty, non-zero is ship type
                         ;
-                        ; Slot 1 at FRIN+1 is reserved for the sun or space
-                        ; station (we only ever have one of these in our local
-                        ; bubble of space). If FRIN+1 is 0, we show the space
-                        ; station, otherwise we show the sun.
+                        ; The second ship slot at FRIN+1 is reserved for the
+                        ; sun or space station (we only ever have one of these
+                        ; in our local bubble of space). If FRIN+1 is 0, we
+                        ; show the space station, otherwise we show the sun.
 
 .CABTMP
 
@@ -2367,7 +2382,9 @@ ORG &0D40
 
 .ECMP
 
- SKIP 1                 ; Player's E.C.M. (0 is off, non-zero is on)
+ SKIP 1                 ; Player's E.C.M. status
+                        ;
+                        ; 0 is off, non-zero is on
 
 .MJ
 
@@ -2375,11 +2392,15 @@ ORG &0D40
 
 .LAS2
 
- SKIP 1                 ; 
+ SKIP 1                 ; Bits 0-6 of the laser power of the current space view
+                        ; (bit 7 doesn't denote laser power, just whether or
+                        ; not the laser pulses)
 
 .MSAR
 
- SKIP 1                 ; Missile armed (0 = unarmed, non-zero = armed)
+ SKIP 1                 ; Missile is currently armed
+                        ;
+                        ; 0 = no, non-zero = yes
 
 .VIEW
 
@@ -2387,11 +2408,20 @@ ORG &0D40
 
 .LASCT
 
- SKIP 1                 ; 
+ SKIP 1                 ; Laser pulse count for the current laser, if this
+                        ; laser is pulse-type
+                        ;
+                        ; 0 for beam laser, 10 for pulse laser
+                        ;
+                        ; This gets decremented every line scan (in LINSCN),
+                        ; and is set to a non-zero value for pulse lasers only.
+                        ; The laser only fires when the value of LASCT is zero,
+                        ; so for pulse lasers with a value of 10, that means it
+                        ; fires every 10 line scans (or 5 times a second).
 
 .GNTMP
 
- SKIP 1                 ; 
+ SKIP 1                 ; Laser ("gun") temperature
 
 .HFX
 
@@ -2705,7 +2735,12 @@ LOAD_A% = LOAD%
                         ; matrix functions to rotate space around the player's
                         ; ship. The alpha angle covers roll, while the beta
                         ; angle covers pitch (there is no yaw in this
-                        ; version of Elite).
+                        ; version of Elite). The angles are in radians, which
+                        ; allows us to use the small angle approximation when
+                        ; moving objects in the sky (see the MVEIT routine for
+                        ; more on this). Also, the signs of the two angles are
+                        ; stored separately, in both the sign and the flipped
+                        ; sign, as this makes calculations easier.
 
  LDX JSTX               ; Set X to the current rate of roll in JSTX, and
  JSR cntr               ; apply keyboard damping twice (if enabled) so the roll
@@ -2797,46 +2832,47 @@ LOAD_A% = LOAD%
                         ; relevant location indicating a key press. See the
                         ; KL and KY1 locations for more details.
 
- LDA KY2                ; If Space is not being pressed, jump to MA17
- BEQ MA17
+ LDA KY2                ; If Space is being pressed, keep going, otherwise jump
+ BEQ MA17               ; down to MA17 to skip the following
 
- LDA DELTA              ; The Space key is being pressed, so first we fetch the
- CMP #40                ; current speed from DELTA into A, and if A >= 40, we
- BCS MA17               ; are already going at full pelt, so jump to MA17
+ LDA DELTA              ; The "go faster" key is being pressed, so first we
+ CMP #40                ; fetch the current speed from DELTA into A, and if
+ BCS MA17               ; A >= 40, we are already going at full pelt, so jump
+                        ; down to MA17 to skip the following
  
  INC DELTA              ; We can go a bit faster, so increment the speed in
                         ; location DELTA
 
 .MA17
 
- LDA KY1                ; If "?" is not being pressed, jump to MA4
- BEQ MA4
+ LDA KY1                ; If "?" is being pressed, keep going, otherwise jump
+ BEQ MA4                ; down to MA4 to skip the following
 
- DEC DELTA              ; The "?" key is being pressed, so we slow down the ship
-                        ; by decrementing the current speed in DELTA
+ DEC DELTA              ; The "slow down" key is being pressed, so we decrement
+                        ; the current ship speed in DELTA
 
- BNE MA4                ; If the speed is greater then zero, jump to MA4
+ BNE MA4                ; If the speed is still greater then zero, jump to MA4
  
  INC DELTA              ; Otherwise we just braked a little too hard, so bump
                         ; the speed back up to the minimum value of 1
 
 .MA4
 
- LDA KY15               ; If "U" is not being pressed, or it is being pressed
- AND NOMSL              ; and the number of missiles in NOMSL is zero, then jump
- BEQ MA20               ; to MA20
+ LDA KY15               ; If "U" is being pressed and the number of missiles
+ AND NOMSL              ; in NOMSL is non-zero, keep going, otherwise jump down
+ BEQ MA20               ; to MA20 to skip the following
 
- LDY #&EE               ; The "U" key is being pressed, so call ABORT to 
- JSR ABORT              ; unarm the missile and update the missile indicators on
-                        ; the dashboard
+ LDY #&EE               ; The "disarm missiles" key is being pressed, so call
+ JSR ABORT              ; ABORT to disarm the missile and update the missile
+                        ; indicators on the dashboard
 
- LDA #40                ; Call the NOISE routine with A = 40 to make a low, long
- JSR NOISE              ; beep to indicate the missile is disarmed
+ LDA #40                ; Call the NOISE routine with A = 40 to make a low,
+ JSR NOISE              ; long beep to indicate the missile is now disarmed
 
 .MA31
 
- LDA #0                 ; Set MSAR to 0 to indicate that no missiles are armed
- STA MSAR
+ LDA #0                 ; Set MSAR to 0 to indicate that no missiles are
+ STA MSAR               ; currently armed
 
 .MA20
 
@@ -2844,17 +2880,20 @@ LOAD_A% = LOAD%
  BPL MA25               ; then it indicates we already have a missile locked on
                         ; a target (in which case MSTG contains the ship number
                         ; of the target), so jump to MA25 to skip targetting (or
-                        ; put another way, MSTG = &FF if there is no target
-                        ; lock, which is not positive)
+                        ; put another way, if MSTG = &FF, which means there is
+                        ; no current target lock, keep going)
 
- LDA KY14               ; If "T" is not being pressed, jump to MA25
- BEQ MA25
+ LDA KY14               ; If "T" is being pressed, keep going, otherwise jump
+ BEQ MA25               ; down to MA25 to skip the following
 
- LDX NOMSL              ; If the number of missiles in NOMSL is zero, jump tp
- BEQ MA25               ; MA25
+ LDX NOMSL              ; If the number of missiles in NOMSL is zero, jump down
+ BEQ MA25               ; to MA25 to skip the following
 
- STA MSAR               ; A was set to &FF above (as MSTG is &FF), so this sets
-                        ; MSAR to &FF to arm the missile
+ STA MSAR               ; The "target missile" key is being pressed and we have
+                        ; at least one missile, so set MSAR = &FF to denote that
+                        ; our missile is currently armed (we know A has the
+                        ; value &FF, as we just loaded it from MSTG and checked
+                        ; that it was negative)
 
  LDY #&E0               ; Change the leftmost missile indicator to yellow on the
  JSR MSBAR              ; missile bar (this changes the leftmost indicator
@@ -2862,100 +2901,167 @@ LOAD_A% = LOAD%
                         ; above, and the indicators are numbered from right to
                         ; left, so X is the number of the leftmost indicator)
 
-.MA25                   ; ignore T being hit, can fire missile
+.MA25
 
- LDA KY16               ; key "M" for launch missile
- BEQ MA24               ; missile not fired
- LDA MSTG               ; #&FF if missile NOT targeted
- BMI MA64               ; no target, skip a few key tests to check dock C key
- JSR FRMIS              ; Fire missile
+ LDA KY16               ; If "M" is being pressed, keep going, otherwise jump
+ BEQ MA24               ; down to MA24 to skip the following
 
-.MA24                   ; missile not fired
+ LDA MSTG               ; If MSTG = &FF there is no target lock, so jump to
+ BMI MA64               ; MA64 to skip the following (skipping the checks for
+                        ; Tab, Escape, "J" and "E")
 
- LDA KY12               ; tab key
- BEQ MA76               ; none, onto docking
- ASL BOMB               ; *=2  &7F => &FE
+ JSR FRMIS              ; The "fire missile" key is being pressed and we have
+                        ; a missile lock, so call the FRMIS routine to fire
+                        ; the missile
 
-.MA76                   ; docking
+.MA24
 
- LDA KY13               ; auto docking
- AND ESCP
- BEQ P%+5
- JMP ESCAPE
- LDA KY18
- BEQ P%+5
- JSR WARP
- LDA KY17
- AND ECM
- BEQ MA64
- LDA ECMA
- BNE MA64
- DEC ECMP
- JSR ECBLB2
+ LDA KY12               ; If Tab is being pressed, keep going, otherwise jump
+ BEQ MA76               ; jump down to MA76 to skip the following
 
-.MA64                   ; check dock C key
+ ASL BOMB               ; The "energy bomb" key is being pressed, so double
+                        ; the value in BOMB (so if we have an energy bomb
+                        ; fitted, BOMB now contains %11111110, or -2, otherwise
+                        ; it still contains 0). The bomb explosion is dealt
+                        ; with in the MAL1 routine below - this just registers
+                        ; the fact that we've set the bomb ticking.
 
- LDA KY19               ; key "C" docking computer
- AND DKCMP              ; have a docking computer?
- AND SSPR
- BEQ MA68
- LDA K%+NI%+32
- BMI MA68
- JMP GOIN
+.MA76
 
-.MA68                   ; onto Laser
+ LDA KY13               ; If Escape is being pressed and we have an escape pod
+ AND ESCP               ; fitted, keep going, otherwise skip the next
+ BEQ P%+5               ; instruction
 
- LDA #0                 ; Laser power per pulse
- STA LAS
- STA DELT4              ; dust speed lo
- LDA DELTA              ; speed
- LSR A                  ; speed/2
+ JMP ESCAPE             ; The "launch escape pod" button is being pressed and
+                        ; we have an escape pod fitted, so jump to ESCAPE to
+                        ; launch it
+
+ LDA KY18               ; If "J" is being pressed, keep going, otherwise skip
+ BEQ P%+5               ; the next instruction
+
+ JSR WARP               ; Call the WARP routine to do an in-system jump
+
+ LDA KY17               ; If "E" is being pressed and we have an E.C.M. fitted,
+ AND ECM                ; keep going, otherwise jump down to MA64 to skip the
+ BEQ MA64               ; following
+
+ LDA ECMA               ; If ECMA is non-zero, that means an E.C.M. is already
+ BNE MA64               ; operating and is counting down (this can be either
+                        ; the player's E.C.M. or an opponent's), so jump down
+                        ; to MA64 to skip the following (as we can't have two
+                        ; E.C.M.s operating at the same time)
+
+ DEC ECMP               ; The "E.C.M." button is being pressed and nobody else
+                        ; is operating their E.C.M., so decrease the value of
+                        ; ECMP to make it non-zero, to denote that the player's
+                        ; E.C.M. is now on
+
+ JSR ECBLB2             ; Call ECBLB2 to light up the E.C.M. indicator bulb on
+                        ; the dashboard, set the E.C.M. countdown timer to 32,
+                        ; and start making the E.C.M. sound
+
+.MA64
+
+ LDA KY19               ; If "C" is being pressed, we have a docking computer
+ AND DKCMP              ; fitted, and we are inside the space station's safe
+ AND SSPR               ; zone, keep going, otherwise jump down to MA68 to
+ BEQ MA68               ; skip the following
+
+ LDA K% + NI% + 32      ; Fetch the AI counter (byte 32) of the second ship
+ BMI MA68               ; in the ship data workspace at K%, which is reserved
+                        ; for the sun or the space station (in this case it's
+                        ; the latter), and if it's negative, meaning the
+                        ; station is angry with us, jump down to MA68 to skip
+                        ; the following (so we can't use the docking computer
+                        ; to dock at a station that we have annoyed)
+
+ JMP GOIN               ; The "docking computer" button has been pressed and
+                        ; we are allowed to dock at the station, so jump to
+                        ; GOIN to dock (or "go in")
+
+.MA68
+
+ LDA #0                 ; Set LAS = 0, to switch the laser off while we do the
+ STA LAS                ; following logic
+
+ STA DELT4              ; Take the 16-bit value (DELTA 0) - i.e. a two-byte
+ LDA DELTA              ; number with DELTA as the high byte and 0 as the low
+ LSR A                  ; byte - and divide it by 4, storing the 16-bit result
+ ROR DELT4              ; in (DELT4 DELT4+1). This is the same as storing the
+ LSR A                  ; current speed * 64 in the 16-bit location DELT4.
  ROR DELT4
- LSR A
- ROR DELT4
- STA DELT4+1            ; hi, speed/4
+ STA DELT4+1
 
- LDA LASCT              ; laser count =9 for pulse, cooled off?
- BNE MA3                ; skip laser
- LDA KY7                ; key "A" fire laser
- BEQ MA3                ; skip laser
- LDA GNTMP              ; gun temperature
- CMP #242               ; overheated
- BCS MA3                ; skip laser
- LDX VIEW               ; index for laser mount
- LDA LASER,X
- BEQ MA3                ; skip as no laser
- PHA                    ; store laser info
- AND #127               ; laser power
+ LDA LASCT              ; If LASCT is zero, keep going, otherwise the laser is
+ BNE MA3                ; a pulse laser that is between pulses, so jump down to
+                        ; MA3 to skip the following
+
+ LDA KY7                ; If "A" is being pressed, keep going, otherwise jump
+ BEQ MA3                ; down to MA3 to skip the following
+
+ LDA GNTMP              ; If the laser temperature >= 242 then the laser has
+ CMP #242               ; overheated, so jump down to MA3 to skip the following
+ BCS MA3
+
+ LDX VIEW               ; If the current space has a laser fitted (i.e. the
+ LDA LASER,X            ; laser power for this view is greater than zero),
+ BEQ MA3                ; then keep going, otherwise jump down to MA3 to skip
+                        ; the following
+
+                        ; If we get here, then the "fire" button is being
+                        ; pressed, our laser hasn't overheated and isn't
+                        ; already beign fired, and we actually have a laser
+                        ; fitted to the current space view, so it's time to hit
+                        ; me with those laser beams
+
+ PHA                    ; Store the current view's laser power on the stack
+
+ AND #%1111111          ; Set LAS and LAS2 to bits 0-6 of the laser power
  STA LAS
  STA LAS2
 
  LDA #0                 ; Call the NOISE routine with A = 0 to make the sound
  JSR NOISE              ; of the player's laser firing
 
- JSR LASLI              ; laser lines
- PLA                    ; restore laser sign
- BPL ma1
- LDA #0                 ; military or beam reset quick
+ JSR LASLI              ; Draw laser lines
+
+ PLA                    ; Restore the current view's laser power into A
+
+ BPL ma1                ; If the laser power has bit 7 set, it's an "always
+                        ; on" laser, so keep going, otherwise jump down to ma1
+                        ; to skip the following instruction
+
+ LDA #0                 ; This is an "always on" laser (i.e. a beam laser,
+                        ; as tape Elite doesn't have military lasers), so
+                        ; set A = 0, which will be stored in LASCT to denote
+                        ; that this is not a pulsing laser
 
 .ma1
 
- AND #&FA               ; gives 9 for pulse, 0 for beam
- STA LASCT              ; laser count =9 for pulse
+ AND #%11111010         ; LASCT will be set to 0 for beam lasers, and to the
+ STA LASCT              ; laser power AND %11111010 for pulse lasers (which
+                        ; have a laser power of 15, or %1111, so LASCT gets
+                        ; set to %11111010 AND %1111 = %1010 = 10, so the
+                        ; laser will pulse once every 10 line scans, or five
+                        ; times a second)
 
-.MA3                    ; skip laser
-
- LDX #0
+                        ; Fall through into MA3 to start moving things around
 }
 
 \ *****************************************************************************
-\ Subroutine: MAL1
+\ Subroutine: MA3
+\
+\ Exposed labels: MAL1
 \
 \ Moving things?
 \ *****************************************************************************
 
-.MAL1                   ; Counter X slot for each nearby ship
+.MA3
 {
+ LDX #0                 ; Set counter X = 0
+
+.^MAL1                  ; Counter X slot for each nearby ship
+
  STX XSAV               ; save nearby slot
  LDA FRIN,X             ; nearby ship type
  BNE P%+5               ; skip exit
@@ -9046,7 +9152,7 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: WARP
 \
-\ Jump J key was hit. Esc, cargo, asteroid, transporter dragged with you.
+\ In-system jump. Esc, cargo, asteroid, transporter dragged with you.
 \ *****************************************************************************
 
 .WARP                   ; Jump J key was hit. Esc, cargo, asteroid, transporter dragged with you.
@@ -18041,7 +18147,7 @@ ENDIF
 KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 {
                         ; These are the primary flight controls (pitch, roll,
-                        ; speed and lasers)
+                        ; speed and lasers):
 
  EQUB &68 + 128         ; ?         KYTB+1      Slow down
  EQUB &62 + 128         ; Space     KYTB+2      Speed up
@@ -18051,7 +18157,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  EQUB &51 + 128         ; S         KYTB+6      Pitch down
  EQUB &41 + 128         ; A         KYTB+7      Fire lasers
 
-                        ; These are the secondary flight controls
+                        ; These are the secondary flight controls:
 
  EQUB &60               ; Tab       KYTB+8      Energy bomb
  EQUB &70               ; Escape    KYTB+9      Launch escape pod
