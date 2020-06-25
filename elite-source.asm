@@ -176,7 +176,8 @@ ORG &0000
 
 .BETA
 
- SKIP 1                 ;
+ SKIP 1                 ; Pitch rate, reduced from the dashboard indicator
+                        ; value in JSTY, with the sign flipped
 
 .BET1
 
@@ -199,7 +200,7 @@ ORG &0000
 
 .ECMA
 
- SKIP 1                 ; E.C.M. status flag; 0 is off, non-zero is on
+ SKIP 1                 ; E.C.M. status (0 is off, non-zero is on)
 
 .XX15                   ; 
 
@@ -316,7 +317,8 @@ ORG &0000
 
 .MSTG
 
- SKIP 1                 ; Missile target (&FF = no target)
+ SKIP 1                 ; Missile target (&FF = no target, otherwise contains
+                        ; the number of the ship targetted)
 
 .XX1
  
@@ -326,7 +328,7 @@ ORG &0000
                         ;
                         ; x-coordinate = (INWK+1 INWK+0), sign in INWK+2
                         ; y-coordinate = (INWK+4 INWK+3), sign in INWK+5
-                        ; y-coordinate = (INWK+7 INWK+6), sign in INWK+8
+                        ; z-coordinate = (INWK+7 INWK+6), sign in INWK+8
                         ;
                         ;                   (rotmat0x rotmat0y rotmat0z)
                         ; Rotation matrix = (rotmat1x rotmat1y rotmat1z)
@@ -457,19 +459,22 @@ ORG &0000
 
 .ALP1
 
- SKIP 1                 ; Roll?
+ SKIP 1                 ; Roll rate, reduced from the dashboard indicator
+                        ; value in JSTX
 
 .ALP2
 
- SKIP 2                 ; Roll sign?
+ SKIP 2                 ; ALP2   = flipped sign of the roll rate
+                        ; ALP2+1 = correct sign of the roll rate
 
 .BET2
 
- SKIP 2                 ; Pitch sign?
+ SKIP 2                 ; BET2   = correct sign of the pitch rate
+                        ; BET2+1 = flipped sign of the pitch rate
 
 .DELTA
 
- SKIP 1                 ; Current speed
+ SKIP 1                 ; Current speed, 1-40
 
 .DELT4
 
@@ -531,25 +536,24 @@ ORG &0000
 
 .JSTX
 
- SKIP 1                 ; Current rate of roll being applied by the controls
-                        ; (as shown in the dashboard's RL indicator), ranging
-                        ; from 1 to 255 with 128 as the centre point (so 1
-                        ; means roll is decreasing at the maximum rate, 128
-                        ; means roll is not changing, and 255 means roll is
-                        ; increasing at the maximum rate)
+ SKIP 1                 ; Current rate of roll (as shown in the dashboard's RL
+                        ; indicator), ranging from 1 to 255 with 128 as the
+                        ; centre point (so 1 means roll is decreasing at the
+                        ; maximum rate, 128 means roll is not changing, and
+                        ; 255 means roll is increasing at the maximum rate)
 
 .JSTY
 
- SKIP 1                 ; Current rate of pitch being applied by the controls
-                        ; (as shown in the dashboard's DC indicator), ranging
-                        ; from 1 to 255 with 128 as the centre point (so 1
-                        ; means pitch is decreasing at the maximum rate, 128
-                        ; means pitch is not changing, and 255 means pitch is
-                        ; increasing at the maximum rate)
+ SKIP 1                 ; Current rate of pitch (as shown in the dashboard's DC
+                        ; indicator), ranging from 1 to 255 with 128 as the
+                        ; centre point (so 1 means pitch is decreasing at the
+                        ; maximum rate, 128 means pitch is not changing, and
+                        ; 255 means pitch is increasing at the maximum rate)
 
 .ALPHA
 
- SKIP 1                 ; 
+ SKIP 1                 ; Roll rate, reduced from the dashboard indicator
+                        ; value in JSTX, with the sign flipped
 
 .QQ12
 
@@ -2363,7 +2367,7 @@ ORG &0D40
 
 .ECMP
 
- SKIP 1                 ; 
+ SKIP 1                 ; Player's E.C.M. (0 is off, non-zero is on)
 
 .MJ
 
@@ -2375,7 +2379,7 @@ ORG &0D40
 
 .MSAR
 
- SKIP 1                 ; 
+ SKIP 1                 ; Missile armed (0 = unarmed, non-zero = armed)
 
 .VIEW
 
@@ -2684,105 +2688,179 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: M%
 \
-\ Read keyboard for flight controls
+\ Seed random numbers.
+\ Calculate alpha and beta angles from current roll and pitch.
+\ Scan keyboard for flight controls.
 \ *****************************************************************************
 
 .M%
 {
- LDA K%
- STA RAND
- LDX JSTX
- JSR cntr
- JSR cntr
- TXA
- EOR #128
+ LDA K%                 ; Seed the random number genrator with whatever is in
+ STA RAND               ; location K%, which will be fairly random as this is
+                        ; where we store the ship data blocks
+
+                        ; Next we take the current rate of roll and pitch, as
+                        ; set by the joystick or keyboard, and convert them
+                        ; into alpha and beta angles that we can use in the
+                        ; matrix functions to rotate space around the player's
+                        ; ship. The alpha angle covers roll, while the beta
+                        ; angle covers pitch (there is no yaw in this
+                        ; version of Elite).
+
+ LDX JSTX               ; Set X to the current rate of roll in JSTX, and
+ JSR cntr               ; apply keyboard damping twice (if enabled) so the roll
+ JSR cntr               ; rate in X creeps towards the centre by 2
+
+ TXA                    ; Set A and Y to the roll rate but with the sign
+ EOR #%10000000         ; bit flipped
  TAY
- AND #128
- STA ALP2
- STX JSTX
- EOR #128
- STA ALP2+1
- TYA
- BPL P%+7
- EOR #&FF
- CLC
+ 
+ AND #%10000000         ; Extract the flipped sign of the roll rate and store
+ STA ALP2               ; in ALP2
+
+ STX JSTX               ; Update JSTX with the damped value that's still in X
+
+ EOR #%10000000         ; Extract the correct sign of the roll rate and store
+ STA ALP2+1             ; in APL2+1
+
+ TYA                    ; If the roll rate but with the sign bit flipped is
+ BPL P%+7               ; positive (i.e. if the current roll rate is negative),
+                        ; skip the following 3 instructions
+
+ EOR #%11111111         ; The current roll rate is negative, so change the sign
+ CLC                    ; of A using two's complement, so A is now -A, or |A|
  ADC #1
+
+ LSR A                  ; Divide the (positive) roll rate in A by 4
  LSR A
- LSR A
- CMP #8
+
+ CMP #8                 ; If A >= 8, skip the following two instructions
  BCS P%+4
- LSR A
- CLC
- STA ALP1
- ORA ALP2
- STA ALPHA
 
- LDX JSTY
- JSR cntr
- TXA
- EOR #128
+ LSR A                  ; A < 8, so halve A again and clear the carry flag, so
+ CLC                    ; so we can do addition later without the carry flag
+                        ; affecting the result
+
+ STA ALP1               ; Store A in ALP1, so:
+                        ;
+                        ;   ALP1 = |JSTX| / 8    if |JSTX| <= 32
+                        ;
+                        ;   ALP1 = |JSTX| / 4    if |JSTX| > 32
+                        ;
+                        ; So higher roll rates are reduced closer to zero
+
+ ORA ALP2               ; Store A in ALPHA, but with the sign set to ALP2 (so
+ STA ALPHA              ; ALPHA has a different sign to the actual roll rate
+
+ LDX JSTY               ; Set X to the current rate of pitch in JSTY, and
+ JSR cntr               ; apply keyboard damping so the pitch rate in X creeps
+                        ; towards the centre by 1
+
+ TXA                    ; Set A and Y to the pitch rate but with the sign
+ EOR #%10000000         ; flipped
  TAY
- AND #128
- STX JSTY
- STA BET2+1
- EOR #128
- STA BET2
- TYA
- BPL P%+4
- EOR #&FF
- ADC #4
- LSR A
- LSR A
- LSR A
- LSR A
- CMP #3
- BCS P%+3
- LSR A
- STA BET1
- ORA BET2
- STA BETA
 
- LDA KY2                ; Is Space key being pressed?
- BEQ MA17               ; If not, jump to MA17
- LDA DELTA              ; Speed-up key is being pressed, so speed up
- CMP #40
- BCS MA17
- INC DELTA
+ AND #%10000000         ; Extract the flipped sign of the pitch rate into A
+
+ STX JSTY               ; Update JSTY with the damped value that's still in X
+
+ STA BET2+1             ; Store the flipped sign of the pitch rate into BET2+1
+
+ EOR #%10000000         ; Extract the correct sign of the pitch rate and store
+ STA BET2               ; in BET2
+
+ TYA                    ; If the pitch rate but with the sign bit flipped is
+ BPL P%+4               ; positive (i.e. if the current pitch rate is
+                        ; negative), skip the following 2 instructions
+
+ EOR #%11111111         ; The current pitch rate is negative, so flip the
+ ADC #4                 ; bits and add 4
+
+ LSR A                  ; Divide the (positive) pitch rate in A by 16
+ LSR A
+ LSR A
+ LSR A
+
+ CMP #3                 ; If A >= 3, skip the following instruction
+ BCS P%+3
+
+ LSR A                  ; A < 3, so halve A again
+
+ STA BET1               ; Store A in BET1
+
+ ORA BET2               ; Store A in BETA, but with the sign set to BET2 (so
+ STA BETA               ; BETA has the same sign as the actual pitch rate)
+
+                        ; Next we check various flight keys and process the
+                        ; results. Flight keys are logged in the key logger at
+                        ; location KY1 onwards, with a non-zero value in the
+                        ; relevant location indicating a key press. See the
+                        ; KL and KY1 locations for more details.
+
+ LDA KY2                ; If Space is not being pressed, jump to MA17
+ BEQ MA17
+
+ LDA DELTA              ; The Space key is being pressed, so first we fetch the
+ CMP #40                ; current speed from DELTA into A, and if A >= 40, we
+ BCS MA17               ; are already going at full pelt, so jump to MA17
+ 
+ INC DELTA              ; We can go a bit faster, so increment the speed in
+                        ; location DELTA
 
 .MA17
 
- LDA KY1                ; Is ? key being pressed?
- BEQ MA4                ; If not, jump to MA4
- DEC DELTA              ; Slow-down key is being pressed, so slow down
- BNE MA4                ; speed done
- INC DELTA              ; speed back to 1
+ LDA KY1                ; If "?" is not being pressed, jump to MA4
+ BEQ MA4
 
-.MA4                    ; speed done
+ DEC DELTA              ; The "?" key is being pressed, so we slow down the ship
+                        ; by decrementing the current speed in DELTA
 
- LDA KY15               ; key "U" unarm missile
- AND NOMSL              ; number of missiles
- BEQ MA20               ; check target a missile
- LDY #&EE               ; Green
- JSR ABORT              ; draw missile block
- LDA #40                ; warning
- JSR NOISE
+ BNE MA4                ; If the speed is greater then zero, jump to MA4
+ 
+ INC DELTA              ; Otherwise we just braked a little too hard, so bump
+                        ; the speed back up to the minimum value of 1
 
-.MA31                   ; disarm missile
+.MA4
 
- LDA #0                 ; missile disarmed
- STA MSAR               ; missiles are armed
+ LDA KY15               ; If "U" is not being pressed, or it is being pressed
+ AND NOMSL              ; and the number of missiles in NOMSL is zero, then jump
+ BEQ MA20               ; to MA20
 
-.MA20                   ; check target a missile
+ LDY #&EE               ; The "U" key is being pressed, so call ABORT to 
+ JSR ABORT              ; unarm the missile and update the missile indicators on
+                        ; the dashboard
 
- LDA MSTG               ; = #&FF if missile NOT targeted
- BPL MA25               ; missile has target, can fire
- LDA KY14               ; key "T" target missile
- BEQ MA25               ; ignore, can fire
- LDX NOMSL              ; number of missiles
- BEQ MA25               ; ignore, can fire
- STA MSAR               ; #&FF to arm missile and allow possile hitch
- LDY #&E0               ; Yellow
- JSR MSBAR              ; draw missile bar
+ LDA #40                ; Call the NOISE routine with A = 40 to make a low, long
+ JSR NOISE              ; beep to indicate the missile is disarmed
+
+.MA31
+
+ LDA #0                 ; Set MSAR to 0 to indicate that no missiles are armed
+ STA MSAR
+
+.MA20
+
+ LDA MSTG               ; If MSTG is positive (i.e. does not have bit 7 set),
+ BPL MA25               ; then it indicates we already have a missile locked on
+                        ; a target (in which case MSTG contains the ship number
+                        ; of the target), so jump to MA25 to skip targetting (or
+                        ; put another way, MSTG = &FF if there is no target
+                        ; lock, which is not positive)
+
+ LDA KY14               ; If "T" is not being pressed, jump to MA25
+ BEQ MA25
+
+ LDX NOMSL              ; If the number of missiles in NOMSL is zero, jump tp
+ BEQ MA25               ; MA25
+
+ STA MSAR               ; A was set to &FF above (as MSTG is &FF), so this sets
+                        ; MSAR to &FF to arm the missile
+
+ LDY #&E0               ; Change the leftmost missile indicator to yellow on the
+ JSR MSBAR              ; missile bar (this changes the leftmost indicator
+                        ; because we set X to the number of missiles in NOMSL
+                        ; above, and the indicators are numbered from right to
+                        ; left, so X is the number of the leftmost indicator)
 
 .MA25                   ; ignore T being hit, can fire missile
 
@@ -2851,8 +2929,10 @@ LOAD_A% = LOAD%
  AND #127               ; laser power
  STA LAS
  STA LAS2
- LDA #0                 ; laser fire
- JSR NOISE
+
+ LDA #0                 ; Call the NOISE routine with A = 0 to make the sound
+ JSR NOISE              ; of the player's laser firing
+
  JSR LASLI              ; laser lines
  PLA                    ; restore laser sign
  BPL ma1
@@ -3078,7 +3158,9 @@ LOAD_A% = LOAD%
  BCC MA8                ; else just Draw object
  LDA MSAR               ; hitched, is missile already armed?
  BEQ MA47               ; onto laser lock
- JSR BEEP               ; missile found a target
+
+ JSR BEEP               ; Call the BEEP subroutine to make a short, high beep
+
  LDX XSAV               ; nearby ship slot id becomes missile target
  LDY #&E                ; missile red
  JSR ABORT2             ; missile found a target
@@ -3094,8 +3176,10 @@ LOAD_A% = LOAD%
 {
  LDA LAS                ; Laser power
  BEQ MA8                ; no laser, just draw object
- LDX #15                ; distance far
- JSR EXNO               ; explosion noise distance X
+
+ LDX #15                ; Call EXNO to make the sound of the player making a
+ JSR EXNO               ; laser strike on another ship
+
  LDA INWK+35
  SEC
  SBC LAS
@@ -6482,8 +6566,7 @@ NEXT
 
 .^R5
 
- JSR BEEP               ; Call the BEEP subroutine, which uses the SOUND
-                        ; command to emit a beep
+ JSR BEEP               ; Call the BEEP subroutine to make a short, high beep
 
  JMP RR4                ; Jump to RR4 to restore the registers and return from
                         ; the subroutine
@@ -6614,8 +6697,13 @@ NEXT
  AND FLH                ; flash toggle
  BEQ P%+4               ; if zero default to lda #&0F
  TXA                    ; else return A = X
- EQUB &2C               ; bit2 skip load
+
+ EQUB &2C               ; Skip the next instruction by turning it into
+                        ; &2C &A9 &0F, or BIT &0FA9, which does nothing bar
+                        ; affecting the flags
+
  LDA #15                ; red
+
  RTS
 }
 
@@ -7197,8 +7285,9 @@ LOAD_C% = LOAD% +P% - CODE%
  DEC INWK+28            ; accel, attacking ship slows down.
  LDA ECMA               ; ECM on
  BNE TA10               ; rts, sound of ECM already.
- LDA #8                 ; frLs	\ their comment, sound of laser strike
- JMP NOISE
+
+ LDA #8                 ; Call the NOISE routine with A = 8 to make the sound
+ JMP NOISE              ; of the player being hit by lasers
 
 .TA4                    ; Manoeuvre
 
@@ -7410,11 +7499,12 @@ LOAD_C% = LOAD% +P% - CODE%
  JSR GINF               ; get address, INF, for ship X nearby from UNIV.
  LDA FRIN,X             ; get nearby ship type
  JSR ANGRY              ; for ship type Acc., visit down.
- LDY #0                 ; black missile block as gone
- JSR ABORT              ; draw missile block
+ LDY #0                 ; black missile indicator as gone
+ JSR ABORT              ; draw missile indicator
  DEC NOMSL              ; reduce number of player's missles
- LDA #48                ; their comment
- JMP NOISE              ; for sound of missile launching
+
+ LDA #48                ; Call the NOISE routine with A = 48 to make the sound
+ JMP NOISE              ; of a missile launch
 }
 
 \ *****************************************************************************
@@ -7481,6 +7571,10 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Subroutine: SFS1
 \
 \ Spawn ship from parent ship, Acc is ai, Xreg is type created.
+\
+\ Returns:
+\
+\   C flag      Set if ship successfully added, clear if it failed
 \ *****************************************************************************
 
 .SFS1                   ; spawn ship from parent ship, Acc is ai, Xreg is type created.
@@ -7590,8 +7684,9 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .LL164                  ; hyperspace noise and Tunnel inc. misjump
 {
- LDA #56                ; Hyperspace
- JSR NOISE
+ LDA #56                ; Call the NOISE routine with A = 56 to make the sound
+ JSR NOISE              ; of the hyperspace drive being engaged
+
  LDA #1                 ; toggle Mode 4 to 5 colours for Hyperspace effects
  STA HFX
  LDA #4                 ; finer circles for launch code tunnel
@@ -7608,8 +7703,9 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .LAUN                   ; Launch rings from space station
 {
- LDA #48                ; noisfr
- JSR NOISE
+ LDA #48                ; Call the NOISE routine with A = 48 to make the sound
+ JSR NOISE              ; of the ship launching from the station
+
  LDA #8                 ; crude octagon rings
 }
 
@@ -9009,8 +9105,8 @@ NEXT
 
 .WA1                    ; Warning sound
 
- LDA #40                ; noise #40
- JMP NOISE
+ LDA #40                ; Call the NOISE routine with A = 40 to make a long,
+ JMP NOISE              ; low beep
 }
 
 \ *****************************************************************************
@@ -9323,9 +9419,9 @@ NEXT
 \ *****************************************************************************
 
  LDY #2
- EQUB &2C               ; Skips next instruction by turning it into &2C &A0 &08
-                        ; or BIT &08A0, which does nothing bar affecting the
-                        ; flags
+ EQUB &2C               ; Skip the next instruction by turning it into
+                        ; &2C &A0 &08, or BIT &08A0, which does nothing bar
+                        ; affecting the flags
 
 \ *****************************************************************************
 \ Subroutine: DEL8
@@ -12389,7 +12485,7 @@ LOAD_D% = LOAD% + P% - CODE%
  BCS pres               ; error, Token in Y is already "present" on ship
 
  STX NOMSL              ; update number of missiles
- JSR msblob             ; draw all missile blocks
+ JSR msblob             ; draw all missile indicators
 
 .et1                    ; Large cargo bay
 
@@ -12543,7 +12639,8 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .dn2                    ; beep, delay. 
 {
- JSR BEEP
+ JSR BEEP               ; Call the BEEP subroutine to make a short, high beep
+
  LDY #50                ; moderate delay
  JMP DELAY              ; Yreg is length of delay counter
 }
@@ -13276,7 +13373,7 @@ MAPCHAR '4', '4'
                         ; are in Sentence Case and we need to print the next
                         ; letter in lower case
 
- CPX #&FF               ; If QQ17 = #&FF then return from the subroutine (as)
+ CPX #&FF               ; If QQ17 = #&FF then return from the subroutine (as
  BEQ TT48               ; TT48 contains an RTS)
 
  CMP #'A'               ; If A >= ASCII "A", then jump to TT42, which will
@@ -13375,9 +13472,9 @@ MAPCHAR '4', '4'
  LDA QQ16+1,Y           ; Get the second letter of the token
 
  CMP #'?'               ; If the second letter of the token is a question mark
- BEQ TT48               ; then just return from the subroutine without
-                        ; printing, as this is a one-letter token (TT48
-                        ; contains an RTS)
+ BEQ TT48               ; then this is a one-letter token, so just return from
+                        ; the subroutine without printing (as TT48 contains an
+                        ; RTS)
 
  JMP TT27               ; Print the second letter and return from the
                         ; subroutine
@@ -13729,7 +13826,7 @@ MAPCHAR '4', '4'
 
 .SOS1                   ; Set up planet
 {
- JSR msblob             ; draw all missile blocks
+ JSR msblob             ; draw all missile indicators
  LDA #127               ; no damping of rotation
  STA INWK+29            ; rotx counter
  STA INWK+30            ; roty counter
@@ -14527,10 +14624,10 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: ABORT
 \
-\ draw Missile block, Unarm missile
+\ draw missile indicator, Unarm missile
 \ *****************************************************************************
 
-.ABORT                  ; draw Missile block, Unarm missile
+.ABORT                  ; draw missile indicator, Unarm missile
 {
  LDX #&FF
 }
@@ -14561,7 +14658,9 @@ MAPCHAR '4', '4'
  LDA #32
  STA ECMA               ; ECM on
  ASL A                  ; #64
- JSR NOISE
+
+ JSR NOISE              ; Call the NOISE routine with A = 64 to make the sound
+                        ; the E.C.M. being switched on
 }
 
 \ *****************************************************************************
@@ -14642,7 +14741,22 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: MSBAR
 \
-\ draw Missile bar. X is number of missiles. Y is strip design.
+\ Update a specific indicator in the dashboards's missile bar.
+\
+\ Arguments:
+\
+\   X           Number of the missile indicator to update (counting from right
+\               to left, so indicator NOMSL is the leftmost indicator)
+\
+\   Y           New colour of the missile indicator:
+\
+\                 * &00 = black (no missile)
+\
+\                 * &0E = red (armed and locked)
+\
+\                 * &E0 = yellow (armed)
+\
+\                 * &EE = green (disarmed)
 \ *****************************************************************************
 
 .MSBAR                  ; draw Missile bar. X is number of missiles. Y is strip design.
@@ -14650,7 +14764,7 @@ MAPCHAR '4', '4'
  TXA                    ; missile i.d.
  ASL A
  ASL A
- ASL A                  ; X*8 move over to missile block of interest
+ ASL A                  ; X*8 move over to missile indicator of interest
  STA T
  LDA #49                ; far right
  SBC T
@@ -15884,8 +15998,8 @@ LOAD_F% = LOAD% + P% - CODE%
  LDA MSTG               ; NOT IN ELITEF.TXT but is in ELITE SOURCE IMAGE
  CMP XX4                ; was targeted by player's missile? NOT IN ELITEF.TXT but is in ELITE SOURCE IMAGE
  BNE KS5                ; dstar, else no target for player's missile
- LDY #&EE               ; colour strip green for missile block
- JSR ABORT              ; draw missile block
+ LDY #&EE               ; colour strip green for missile indicator
+ JSR ABORT              ; draw missile indicator
  LDA #200               ; token = target lost
  JSR MESS               ; message and rejoin
 
@@ -15978,22 +16092,51 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Variable: SFX
 \
-\ Sound data.
+\ Sound data. To make a sound, the NOS1 routine copies the four relevant sound
+\ bytes to XX16, and NO3 then makes the sound. The sound numbers are shown in
+\ the table, and are always multiples of 8. Generally, sounds are made by
+\ calling the NOISE routine with the sound number in A.
+\
+\ These bytes are passed to OSWORD 7, and are the equivalents to the parameters
+\ passed to the SOUND keyword in BASIC. The parameters therefore have these
+\ meanings:
+\
+\   channel/flush, amplitude (or envelope number if 1-4), pitch, duration
+\
+\ For the channel/flush parameter, the first byte is the channel while the
+\ second is the flush control (where a flush control of 0 queues the sound,
+\ while a flush control of 1 makes the sound instantly). When written in
+\ hexadecimal, the first figure gives the flush control, while the second is
+\ the channel (so &13 indicates flush control = 1 and channel = 3).
+\
+\ So when we call NOISE with A = 40 to make a long, low beep, then this is
+\ effectively what the NOISE routine does:
+\
+\   SOUND &13, &F4, &0C, &08
+\
+\ which makes a sound with flush control 1 on channel 3, and with amplitude &F4
+\ (-12), pitch &0C (2) and duration &08 (8). Meanwhile, to make the hyperspace
+\ sound, the NOISE routine does this:
+\
+\   SOUND &10, &02, &60, &10
+\
+\ which makes a sound with flush control 1 on channel 0, using envelope 2,
+\ and with pitch &60 (96) and duration &10 (16). The four sound envelopes (1-4)
+\ are set up in elite-loader.asm.
 \ *****************************************************************************
 
-.SFX                    ; block F1 Sound data
+.SFX
 {
- EQUS  &12,&01,&00,&10  ; FNS("12010010") Laser you fired  Flush2 uses Envelope #1  Acc= 0
- EQUS  &12,&02,&2C,&08  ; FNS("12022C08") Laset hit you    Flush2 uses Envelope #2  Acc= 4
- EQUS  &11,&03,&F0,&18  ; FNS("1103F018") Death_initial    Flush1 uses Envelope #3  Acc= 8
- EQUS  &10,&F1,&07,&1A  ; FNS("10F1071A") Death_later or   Kill Flush07		        Acc=12
-
- EQUS  &03,&F1,&BC,&01  ; FNS("03F1BC01") Beep, high short NoFlush3		            Acc=16
- EQUS  &13,&F4,&0C,&08  ; FNS("13F40C08") Beep, low long   Flush3		            Acc=20
- EQUS  &10,&F1,&06,&0C  ; FNS("10F1060C") Missile/Launch   Flush06		            Acc=24
- EQUS  &10,&02,&60,&10  ; FNS("10026010") Hyperspace       Flush0 uses Envelope #2  Acc=28
- EQUS  &13,&04,&C2,&FF  ; FNS("1304C2FF") ECM_ON           Flush3 uses Envelope #4  Acc=32
- EQUS  &13,&00,&00,&00  ; FNS("13000000") ECM_OFF				                    Acc=36
+ EQUB &12,&01,&00,&10   ; 0  - Lasers fired by the player
+ EQUB &12,&02,&2C,&08   ; 8  - Player being hit by lasers
+ EQUB &11,&03,&F0,&18   ; 16 - Player died 1 / Player has made a hit or kill 2
+ EQUB &10,&F1,&07,&1A   ; 24 - Player died 2 / Player has made a hit or kill 1
+ EQUB &03,&F1,&BC,&01   ; 32 - Short, high beep
+ EQUB &13,&F4,&0C,&08   ; 40 - Long, low beep
+ EQUB &10,&F1,&06,&0C   ; 48 - Missile launched / Ship launched from station
+ EQUB &10,&02,&60,&10   ; 56 - Hyperspace drive engaged
+ EQUB &13,&04,&C2,&FF   ; 64 - E.C.M. on
+ EQUB &13,&00,&00,&00   ; 72 - E.C.M. off
 }
 
 \ *****************************************************************************
@@ -16094,18 +16237,22 @@ LOAD_F% = LOAD% + P% - CODE%
  LDA #128               ; Set the current pitch rate to the mid-point, 128
  STA JSTY
 
- STA ALP2               ; Reset the roll and pitch signs to (&00 &FF)
- STA BET2
+ STA ALP2               ; Reset ALP2 (flipped roll sign) and BET2 (pitch sign)
+ STA BET2               ; to negative, i.e. roll positive, pitch negative
+
  ASL A                  ; This sets A to 0
- STA ALP2+1
- STA BET2+1
 
- STA MCNT               ; Reset MCNT, the move count, to 0
+ STA ALP2+1             ; Reset ALP2+1 (roll sign) and BET2+1 (flipped pitch
+ STA BET2+1             ; sign) to positive, i.e. roll positive, pitch negative
 
- LDA #3                 ; Reset DELTA (speed), ALPHA and ALP1 to 3
+ STA MCNT               ; Reset MCNT (move count) to 0
+
+ LDA #3                 ; Reset DELTA (speed) to 3
  STA DELTA
- STA ALPHA
- STA ALP1
+
+ STA ALPHA              ; Reset ALPHA (flipped reduced roll rate) to 3
+
+ STA ALP1               ; Reset ALP1 (reduced roll rate) to 3
 
  LDA SSPR               ; Fetch the "space station present" flag, and if we are
  BEQ P%+5               ; not inside the safe zone, skip the next instruction
@@ -16196,16 +16343,16 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Update the dashboard's missile indicators
 \ *****************************************************************************
 
-.msblob                 ; update Missile blocks on console
+.msblob                 ; update missile indicators on console
 {
- LDX #4                 ; number of missile blocks
+ LDX #4                 ; number of missile indicators
 
 .ss                     ; counter X
 
  CPX NOMSL              ; compare Xreg to number of missiles
  BEQ SAL8               ; remaining missiles are green
  LDY #0                 ; else black bar
- JSR MSBAR              ; draw missile block Xreg
+ JSR MSBAR              ; draw missile indicator Xreg
  DEX                    ; next missile
  BNE ss                 ; loop X
  RTS
@@ -16213,7 +16360,7 @@ LOAD_F% = LOAD% + P% - CODE%
 .SAL8                   ; remaining missiles are green, counter X
 
  LDY #&EE               ; green
- JSR MSBAR              ; draw missile block Xreg
+ JSR MSBAR              ; draw missile indicator Xreg
  DEX                    ; next missile
  BNE SAL8               ; loop X
  RTS
@@ -17621,151 +17768,259 @@ ENDIF
 \ *****************************************************************************
 \ Subroutine: ECMOF
 \
-\ Sound of ECM system off
+\ Switch the E.C.M. off, turn off the dashboard bulb and make the sound of the
+\ E.C.M. switching off).
 \ *****************************************************************************
 
-.ECMOF                  ; Sound of ECM system off
+.ECMOF
 {
- LDA #0                 ; not active
- STA ECMA
- STA ECMP               ; player's not on
- JSR ECBLB              ; ecm bulb switch
- LDA #72                ; becomes noise Yindex = 39
- BNE NOISE              ; guaranteed hop
+ LDA #0                 ; Set ECMA and ECMB to 0 to indicate that no E.C.M. is
+ STA ECMA               ; currently running
+ STA ECMP
+
+ JSR ECBLB              ; Update the E.C.M. indicator bulb on the dashboard
+
+ LDA #72                ; Call the NOISE routine with A = 72 to make the sound
+ BNE NOISE              ; of the E.C.M. being turned off and return from the
+                        ; subroutine using a tail call (this BNE is effectively
+                        ; a JMP as A will never be zero)
 }
 
 \ *****************************************************************************
 \ Subroutine: EXNO3
 \
-\ Called when DEATH occurs. Ominous noises, two noises, A=16,24
+\ Make the sound of death in the cold, hard vacuum of space. Apparently, in
+\ Elite space, everyone can hear you scream.
 \ *****************************************************************************
 
-.EXNO3                  ; called when DEATH occurs. Ominous noises, two noises, A=16,24
+.EXNO3
 {
- LDA #16                ; becomes Yindex = 11
- JSR NOISE
- LDA #24                ; becomes Yindex = 15 rumble
- BNE NOISE              ; guaranteed hop
+ LDA #16                ; Call the NOISE routine with A = 16 to make the first
+ JSR NOISE              ; death sound
+
+ LDA #24                ; Call the NOISE routine with A = 24 to make the second
+ BNE NOISE              ; death sound and return from the subroutine using a
+                        ; tail call (this BNE is effectively a JMP as A will
+                        ; never be zero)
 }
 
 \ *****************************************************************************
 \ Subroutine: SFRMIS
 \
-\ Sound fire missile
+\ Enemy fires a missile, so add the missile to our universe if there is room,
+\ and if there is, make the appropriate warnings and noises. 
 \ *****************************************************************************
 
-.SFRMIS                 ; Sound fire missile
+.SFRMIS
 {
- LDX #MSL               ; #MSL missile
- JSR SFS1-2             ; spawn missile with ai=#&FE max but no ecm
- BCC NO1                ; rts as failed to launch
- LDA #&78               ; token = incoming missile
- JSR MESS               ; message
- LDA #48                ; becomes Y = 27
- BNE NOISE              ; guaranteed hop
+ LDX #MSL               ; Set X to the ship type of a missile, and call SFS1-2
+ JSR SFS1-2             ; to add the missile to our universe with an AI of &FE
+
+ BCC NO1                ; The carry flag will be set if the call to SFS1-2 was
+                        ; a success, so if it's clear, jump to NO1 to return
+                        ; from the subroutine (as NO1 contains an RTS)
+
+ LDA #120               ; Print recursive token 120 ("INCOMING MISSILE") as an
+ JSR MESS               ; in-flight message
+
+ LDA #48                ; Call the NOISE routine with A = 48 to make the sound
+ BNE NOISE              ; of the missile being launched and return from the
+                        ; subroutine using a tail call (this BNE is effectively
+                        ; a JMP as A will never be zero)
 }
 
 \ *****************************************************************************
 \ Subroutine: EXNO2
 \
-\ Faint death noise, player killed ship.
+\ Player has killed a ship, so increase the kill tally, displaying an iconic
+\ message of encouragement if the kill total is a multiple of 256, and then 
+\ make a nearby explosion noise.
 \ *****************************************************************************
 
-.EXNO2                  ; faint death noise, player killed ship.
+.EXNO2
 {
- INC TALLY              ; kills lo
- BNE EXNO-2             ; no carry hop to ldx #7
- INC TALLY+1            ; kills hi
- LDA #101               ; token = right on commander !
- JSR MESS               ; message
- LDX #7                 ; mask for sound distance
+ INC TALLY              ; Increment the low byte of the kill count in TALLY
+
+ BNE EXNO-2             ; If there is no carry, jump to the LDX #7 below (at
+                        ; EXNO-2)
+
+ INC TALLY+1            ; Increment the high byte of the kill count in TALLY
+
+ LDA #101               ; The kill total is a multiple of 256, so it's time
+ JSR MESS               ; for a pat on the back, so print recursive token 101
+                        ; ("RIGHT ON COMMANDER!") as an in-flight message
+
+ LDX #7                 ; Set X = 7 and fall through into EXNO to make the
+                        ; sound of a ship exploding
 }
 
 \ *****************************************************************************
 \ Subroutine: EXNO
 \
-\ Explosion noise distance X
+\ Make the two-part explosion noise of the player making a laser strike, or of
+\ another ship exploding.
+\
+\ The volume of the first explosion is affected by the distance of the ship
+\ being hit, with more distant ships being quieter. The value in X also affects
+\ the volume of the first explosion, with a higher X giving a quieter sound
+\ (so X can be used to differentiate a laser strike from an explosion).
+\
+\ Arguments:
+\
+\   X           The larger the value of X, the fainter the explosion. Allowed
+\               values are:
+\
+\                 * 7  = explosion is louder (i.e. the ship has exploded)
+\
+\                 * 15 = explosion is quieter (i.e. this is just a laser
+\                        strike)
 \ *****************************************************************************
 
-.EXNO                   ; Explosion noise distance X
+.EXNO
 {
- STX T                  ; distance
- LDA #24                ; Rumble later becomes Yindex = 15
- JSR NOS1               ; build sound y index
- LDA INWK+7             ; zhi
- LSR A                  ; /=2
- LSR A                  ; #&3F max
- AND T                  ; could be #7
- ORA #&F1               ; adjust sound amplitude by distance away
- STA XX16+2
- JSR NO3                ; Sound block ready
- LDA #16                ; becomes Yindex = 11
+ STX T                  ; Store the distance in T
 
- EQUB &2C
+ LDA #24                ; Set A = 24 to denote the sound of the player making a
+ JSR NOS1               ; hit or kill (part 1), and call NOS1 to set up the
+                        ; sound block in XX16
+
+ LDA INWK+7             ; Fetch z_hi, the distance of the ship being hit in
+ LSR A                  ; terms of the z-axis (in and out of the screen), and
+ LSR A                  ; divide by 4. If z_hi has either bit 6 or 7 set then
+                        ; that ship is too far away to be shown on the scanner
+                        ; (as per the SCAN routine), so we know the maximum
+                        ; z_hi at this point is %00111111, and shifting z_hi
+                        ; to the right twice gives us a maximum value of
+                        ; %00001111.
+
+ AND T                  ; This reduces A to a maximum of X; X can be either
+                        ; 7 = %0111 or 15 = %1111, so AND'ing with 15 will
+                        ; not affect A, while AND'ing with 7 will clear bit
+                        ; 3, reducing the maximum value in A to 7
+
+ ORA #%11110001         ; The SOUND command's amplitude ranges from 0 (for no
+                        ; sound) to -15 (full volume), so we can set bits 0 and
+                        ; 4-7 in A, and keep bits 1-3 from the above to get
+                        ; a value between -15 (%11110001) and -1 (%11111111),
+                        ; with lower values of z_hi and argument X leading
+                        ; to a more negative number (so the closer the ship or
+                        ; the smaller the value of X, the louder the sound)
+
+ STA XX16+2             ; The amplitude byte of the sound block in XX16 is in
+                        ; byte 3 (where it's the low byte of the amplitude), so
+                        ; this sets the amplitude to the value in A
+
+ JSR NO3                ; Make the sound from our updated sound block in XX16
+
+ LDA #16                ; Set A = 16 to denote player has made a hit or kill
+                        ; (part 2), and fall through into NOISE to make the
+                        ; sound
+
+ EQUB &2C               ; Skip the next instruction by turning it into
+                        ; &2C &A9 &20, or BIT &20A9, which does nothing bar
+                        ; affecting the flags
 }
 
 \ *****************************************************************************
 \ Subroutine: BEEP
 \
-\ Missile lock target
+\ Make a short, high beep.
 \ *****************************************************************************
 
-.BEEP                   ; Missile lock target
+.BEEP
 {
- LDA #32                ; becomes Y= 19
+ LDA #32                ; Set A = 32 to denote a short, high beep, and fall
+                        ; through into NOISE to make the sound
 }
 
 \ *****************************************************************************
 \ Subroutine: NOISE
 \
-\ Sound based on Acc
+\ Make the sound whose number is in A.
+\
+\ Arguments:
+\
+\   A           The number of the sound to be made. See the documentation for
+\               variable SFX for a list of sound numbers.
 \ *****************************************************************************
 
-.NOISE                  ; Sound based on Acc
+.NOISE
 {
- JSR NOS1               ; build sound y index
+ JSR NOS1               ; Set up the sound block in XX16 for the sound in A and
+                        ; fall through into NO3 to make the sound
 }
 
 \ *****************************************************************************
 \ Subroutine: NO3
 \
-\ Sound block ready
+\ Make a sound from a prepared sound block in XX16 (if sound is enabled). See
+\ routine NOS1 for details of preparing the XX16 sound block.
 \ *****************************************************************************
 
-.NO3                    ; Sound block ready
+.NO3
 {
- LDX DNOIZ              ; sound toggle
- BNE NO1                ; rts
- LDX #LO(XX16)
- LDY #HI(XX16)
- LDA #7                 ; SOUND
- JMP OSWORD
+ LDX DNOIZ              ; If DNOIZ is non-zero, then sound is disabled, so 
+ BNE NO1                ; return from the subroutine
+
+ LDX #LO(XX16)          ; Otherwise call OSWORD 7, with (Y X) pointing to the
+ LDY #HI(XX16)          ; sound block in XX16. This makes the sound as
+ LDA #7                 ; described in the documentation for variable SFX,
+ JMP OSWORD             ; and returns from the subroutine using a tail call.
 }
 
 \ *****************************************************************************
 \ Subroutine: NOS1
 \
-\ Build sound y index
+\ Copy four sound bytes from SFX into XX16, interspersing them with null bytes,
+\ with Y indicating the sound number to copy (from the values in the sound
+\ table at SFX). So, for example, if we call this routine with A = 40 (long,
+\ low beep), the following bytes will be set in XX16 to XX16+7:
+\
+\   &13 &00 &F4 &00 &0C &00 &08 &00
+\
+\ This block will be passed to OSWORD 7 to make the sound, which expects the
+\ four sound attributes as 16-bit big-endian values - in other words, with the
+\ low byte first. So the above block would pass the values &0013, &00F4, &000C
+\ and &0008 to the SOUND command when used with OSWORD 7, or:
+\
+\   SOUND &13, &F4, &0C, &08
+\
+\ as the high bytes are always zero.
+\
+\ Arguments:
+\
+\   A           The sound number to copy from SFX to XX16, which is always a
+\               multiple of 8
 \ *****************************************************************************
 
-.NOS1                   ; build sound y index
+.NOS1
 {
- LSR A                  ; /=2 and carry cleared
- ADC #3                 ; +=3 top of block
- TAY                    ; Yindex = last byte needed from group of
- LDX #7                 ; 4 words
+ LSR A                  ; Divide A by 2, and also clear the carry flag, as bit
+                        ; of A is always zero
 
-.NOL1                   ; counters X,Y
+ ADC #3                 ; Set Y = A + 3, so Y now points to the last byte of
+ TAY                    ; four within the block of four-byte values
 
- LDA #0                 ; upper byte
+ LDX #7                 ; We want to copy four bytes, spread out into an 8-byte
+                        ; block, so set a counter in Y to cover 8 bytes
+
+.NOL1
+
+ LDA #0                 ; Set the X-th byte of XX16 to 0
  STA XX16,X
- DEX                    ; Sound parameter block
- LDA SFX,Y              ; lower byte
+
+ DEX                    ; Decrement the destination byte pointer
+
+ LDA SFX,Y              ; Set the X-th byte of XX16 to the value from SFX+Y
  STA XX16,X
- DEY                    ; next lo
- DEX                    ; next byte
- BPL NOL1               ; loop Y,X
- RTS
+
+ DEY                    ; Decrement the source byte pointer again
+
+ DEX                    ; Decrement the destination byte pointer again
+
+ BPL NOL1               ; Loop back for the next source byte
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -17831,7 +18086,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
                         ; if the key is being pressed
 
  BPL DKS2-1             ; The key is not being pressed, so return from the
-                        ; subroutine (as DKS2-1 contains an RTS instruction)
+                        ; subroutine (as DKS2-1 contains an RTS)
 
  LDX #&FF               ; Store &FF in the Y-th byte of the key logger at KL
  STX KL,Y
@@ -18258,8 +18513,8 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 .DK2
 
  LDA QQ11               ; If the current view is non-zero (i.e. not a space
- BNE DK5                ; view), return from the subroutine (via DK5, which
-                        ; contains an RTS)
+ BNE DK5                ; view), return from the subroutine (as DK5 contains
+                        ; an RTS)
 
  LDY #15                ; This is a space view, so now we want to check for all
                         ; the secondary flight keys. The internal key numbers
@@ -18384,7 +18639,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 
  EQUB &2C               ; Fall through into me1 to print the new message, but
                         ; skip the first instruction by turning it into
-                        ; &2C &A9 &6C or BIT &6CA9, which does nothing bar
+                        ; &2C &A9 &6C, or BIT &6CA9, which does nothing bar
                         ; affecting the flags
 }
 
@@ -18400,7 +18655,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 
  EQUB &2C               ; Fall through into ou3 to print the new message, but
                         ; skip the first instruction by turning it into
-                        ; &2C &A9 &6F or BIT &6FA9, which does nothing bar
+                        ; &2C &A9 &6F, or BIT &6FA9, which does nothing bar
                         ; affecting the flags
 }
 
@@ -18458,7 +18713,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  JSR TT27               ; Call TT27 to print the text token in A
 
  LSR de                 ; If bit 1 of location de is clear, return from the
- BCC out                ; subroutine via out, which contains an RTS instruction
+ BCC out                ; subroutine (as out contains an RTS)
 
  LDA #253               ; Print recursive token 93 (" DESTROYED") and return
  JMP TT27               ; from the subroutine using a tail call
