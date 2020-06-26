@@ -15,7 +15,8 @@ GUARD &6000             ; Screen buffer starts here
 
 NOST = 18               ; Maximum number of stardust particles
 
-NOSH = 12               ; Maximum number of ships at any one time
+NOSH = 12               ; Maximum number of ships at any one time (counting
+                        ; from 0, so there are actually 13 ship slots)
 
 COPS = 2                ; Viper
 MAM = 3                 ; Mamba
@@ -384,10 +385,11 @@ ORG &0000
                         ; INWK+29 = rotx counter, 127 = no damping, damps roll
                         ; INWK+30 = rotz counter, 127 = no damping, damps pitch
                         ; INWK+31 = exploding/display state, or missile count
-                        ; INWK+32 = ai counter, ai_attack_univ_ecm
-                        ;           bit6 set = missile attacking player
-                        ;           &FF = ai attack everyone, has ecm
-                        ;           1 = ai and ecm
+                        ; INWK+32 = AI, hostitity and E.C.M.
+                        ;           Bit 0 = 0 (no E.C.M.) or 1 (has E.C.M.)
+                        ;           Bit 6 = 0 (friendly) or 1 (hostile)
+                        ;           Bit 7 = 0 (dumb) or 1 (has AI)
+                        ;           So &FF = AI, hostile, has E.C.M.
                         ; INWK+33 = ship lines heap space pointer lo
                         ; INWK+34 = ship lines heap space pointer hi
                         ; INWK+35 = ship energy
@@ -527,11 +529,22 @@ ORG &0000
 
 .XX13
 
- SKIP 1                 ; 
+ SKIP 1                 ; Number of pirates currently spawned
 
 .MCNT
 
- SKIP 1                 ; Move counter
+ SKIP 1                 ; Main loop counter
+                        ;
+                        ; Gets set to &FF on death and in-system jump
+                        ;
+                        ; Gets decremented every time the main loop at TT100 is
+                        ; entered
+                        ;
+                        ; Used to determine when to do certain actions within
+                        ; the main loop, so ship energy and shields are bumped
+                        ; up every 8 loops, we check whether we are near a
+                        ; space station every 32 loops, we check the ship's
+                        ; altitude every 10 loops, and so on
 
 .DL
 
@@ -625,7 +638,6 @@ ORG &D1
  SKIP 1                 ; Used as temporary storage (e.g. used in cpl for the
                         ; loop counter)
 
-
 .K3                     ; Used as temporary storage (e.g. used in TT27 for the
                         ; character to print)
 
@@ -662,19 +674,19 @@ ORG &0300               ; Start of the commander block
 
 .TP
 
- SKIP 1                 ; Mission status, always 0 for tape version
+ SKIP 1                 ; Mission status, always 0 for the tape version of Elite
 
 .QQ0
 
- SKIP 1                 ; Current system X-coordinate
+ SKIP 1                 ; Current system's X-coordinate
 
 .QQ1
 
- SKIP 1                 ; Current system Y-coordinate
+ SKIP 1                 ; Current system's Y-coordinate
 
 .QQ21
 
- SKIP 6                 ; Three 16-bit seeds for current system
+ SKIP 6                 ; Three 16-bit seeds for the current system
 
 .CASH
 
@@ -701,10 +713,11 @@ ORG &0300               ; Start of the commander block
 
 .GCNT
 
- SKIP 1                 ; Contains the current galaxy number, 0-7. When this is
-                        ; displayed in-game, 1 is added to the number (so we
-                        ; start in galaxy 1 in-game, but it's stored as galaxy
-                        ; 0 internally)
+ SKIP 1                 ; Contains the current galaxy number, 0-7
+                        ;
+                        ; When this is displayed in-game, 1 is added to the
+                        ; number (so we start in galaxy 1 in-game, but it's
+                        ; stored as galaxy 0 internally)
 
 .LASER
 
@@ -719,7 +732,8 @@ ORG &0300               ; Start of the commander block
                         ; Bit 7 determines whether or not the laser pulses
                         ; (pulse laser) or is always on (beam laser)
 
- SKIP 2                 ; Not used (reserved for up/down lasers, maybe?)
+ SKIP 2                 ; Not used (originally reserved for up/down lasers,
+                        ; perhaps?)
  
 .CRGO
 
@@ -728,6 +742,11 @@ ORG &0300               ; Start of the commander block
 .QQ20
 
  SKIP 17                ; Contents of cargo hold
+                        ;
+                        ; The amount of market item X in the hold is in QQ20+X,
+                        ; so QQ20 contains the amount of food (item 0) while
+                        ; QQ20+7 contains the amount of computers (item 7). See
+                        ; QQ23 for a list of market item numbers.
 
 .ECM
 
@@ -739,7 +758,9 @@ ORG &0300               ; Start of the commander block
 
 .BOMB
 
- SKIP 1                 ; Energy bomb (0 = not fitted, 127 = fitted)
+ SKIP 1                 ; Energy bomb
+                        ;
+                        ; 0 = not fitted, 127 = fitted
 
 .ENGY
 
@@ -766,19 +787,32 @@ ORG &0300               ; Start of the commander block
 .FIST
 
  SKIP 1                 ; Legal status ("fugitive/innocent status")
+                        ;
+                        ; 0    = Clean
+                        ; 1-49 = Offender
+                        ; 50+  = Fugitive
+                        ;
+                        ; You get 64 points if you kill a cop, so that's
+                        ; straight to fugitive
 
 .AVL
 
  SKIP 17                ; Market availability
+                        ;
+                        ; The available amount of market item X is in AVL+X, so
+                        ; AVL contains the amount of food (item 0) while AVL+7
+                        ; contains the amount of computers (item 7). See QQ23
+                        ; for a list of market item numbers.
 
 .QQ26
 
- SKIP 1                 ; Random byte that changes for each visit to a system,
-                        ; for randomising market prices
+ SKIP 1                 ; A random value that changes for each visit to a
+                        ; system, for randomising market prices (see TT151 for
+                        ; details of the market price calculation)
 
 .TALLY
 
- SKIP 2                 ; Number of kills
+ SKIP 2                 ; Number of kills as a 16-bit number
 
 .SVC
 
@@ -2354,23 +2388,36 @@ ORG &0D40
 
 .FRIN
 
- SKIP NOSH + 1          ; Contains the ship type for each of the ships in UNIV
+ SKIP NOSH + 1          ; Slots for the 13 ships in the local bubble of universe
                         ;
-                        ; 0 means that slot is empty, non-zero is ship type
+                        ; Each slot contains a ship type from 1-13 (see the list
+                        ; of ship types in location XX21), or 0 if the slot is
+                        ; empty
+                        ; 
+                        ; The corresponding address in the lookup table at UNIV
+                        ; points to the ship's data block, which in turn points
+                        ; to that ship's line heap space
                         ;
                         ; The second ship slot at FRIN+1 is reserved for the
                         ; sun or space station (we only ever have one of these
                         ; in our local bubble of space). If FRIN+1 is 0, we
                         ; show the space station, otherwise we show the sun.
 
-.CABTMP
+.CABTMP                 ; Cabin temperature
+                        ;
+                        ; Shares a location with MANY, but that's OK because
+                        ; MANY would contain the number of ships of type 0, but
+                        ; isn't used because ship types start at 1
 
 .MANY
 
- SKIP SST               ; Contains a count of the number of ships of type X at
-                        ; offset X, so the current number of Sidewinders in our
-                        ; bubble of universe is at MANY+1, the number of Mambas
-                        ; is at MANY+2, and so on
+ SKIP SST               ; Ship counts by type
+                        ; 
+                        ; Contains a count of how many ships there are of each
+                        ; type in our local bubble of universe, with the number
+                        ; of ships of type X being stored at offset X, so the
+                        ; current number of Sidewinders is at MANY+1, the number
+                        ; of Mambas is at MANY+2, and so on
 
 .SSPR
 
@@ -2379,6 +2426,11 @@ ORG &0D40
                         ; Non-zero if we are inside the space station safe zone
                         ;
                         ; 0 if we aren't (in which case we can show the sun)
+                        ; 
+                        ; This flag is at MANY+SST, which is no coincidence, as
+                        ; MANY+SST is a count of how many space stations there
+                        ; are in our local bubble, which is the same as saying
+                        ; "space station present"
 
 .ECMP
 
@@ -2392,13 +2444,15 @@ ORG &0D40
 
 .LAS2
 
- SKIP 1                 ; Bits 0-6 of the laser power of the current space view
+ SKIP 1                 ; Laser power for the current laser
+                        ;
+                        ; Bits 0-6 of the laser power of the current space view
                         ; (bit 7 doesn't denote laser power, just whether or
                         ; not the laser pulses)
 
 .MSAR
 
- SKIP 1                 ; Missile is currently armed
+ SKIP 1                 ; Leftmost missile is currently armed
                         ;
                         ; 0 = no, non-zero = yes
 
@@ -2408,8 +2462,9 @@ ORG &0D40
 
 .LASCT
 
- SKIP 1                 ; Laser pulse count for the current laser, if this
-                        ; laser is pulse-type
+ SKIP 1                 ; Laser pulse count for the current laser
+                        ;
+                        ; Defines the gap between pulses of a pulse laser
                         ;
                         ; 0 for beam laser, 10 for pulse laser
                         ;
@@ -2417,11 +2472,16 @@ ORG &0D40
                         ; and is set to a non-zero value for pulse lasers only.
                         ; The laser only fires when the value of LASCT is zero,
                         ; so for pulse lasers with a value of 10, that means it
-                        ; fires every 10 line scans (or 5 times a second).
+                        ; fires once every 10 line scans (or 5 times a second).
+                        ; In comparison, beam lasers fire continuously.
 
 .GNTMP
 
  SKIP 1                 ; Laser ("gun") temperature
+                        ;
+                        ; If the laser temperature exceeds 242 then the laser
+                        ; overheats and cannot be fired again until it has
+                        ; cooled down
 
 .HFX
 
@@ -2429,19 +2489,35 @@ ORG &0D40
 
 .EV
 
- SKIP 1                 ; 
+ SKIP 1                 ; Extra vessels spawning counter
+                        ;
+                        ; This counter is set to 0 on arrival in a system and
+                        ; following an in-system jump, and is bumped up when we
+                        ; spawn bounty hunters or pirates ("extra vessels")
+                        ;
+                        ; It decreases by 1 each time we consider spawning more
+                        ; "extra vessels" the main game loop (TT100 part 4), so
+                        ; increasing the value of EV delays their spawning
+                        ;
+                        ; In other words, this counter stops bounty hunters and
+                        ; pirates from continually appearing, and instead adds
+                        ; a delay between spawnings
 
 .DLY
 
- SKIP 1                 ; In-flight message delay, this counter is used to keep
-                        ; a message up for a specified time before it gets
-                        ; removed. The value in DLY is decremented each time we
-                        ; enter the main spawning loop at TT100.
+ SKIP 1                 ; In-flight message delay
+                        ;
+                        ; This counter is used to keep an in-flight message up
+                        ; for a specified time before it gets removed. The value
+                        ; in DLY is decremented each time we enter the main
+                        ; loop at TT100.
 
 .de
 
- SKIP 1                 ; Destruction flag, bit 1 set means "DESTROYED" is
-                        ; appended to in-flight message printed by MESS
+ SKIP 1                 ; Equipment destruction flag
+                        ;
+                        ; Bit 1 set means "DESTROYED" is appended to the 
+                        ; in-flight message printed by MESS
 
 .LSX
 
@@ -2449,36 +2525,36 @@ ORG &0D40
 
  SKIP 192               ; This block is shared by LSX and LSO:
                         ;
-                        ;   LSX is the the line buffer for the sun
+                        ; LSX is the the line buffer for the sun
                         ;
-                        ;   LSO is the ship lines heap space for the space
-                        ;   station
+                        ; LSO is the ship lines heap space for the space station
                         ;
-                        ; This space can be shared as the universe can only
-                        ; have one or the other, not both
+                        ; This space can be shared as our local bubble of
+                        ; universe can support either the sun or a space
+                        ; station, but not both
 .LSX2
 
- SKIP 78
+ SKIP 78                ; 
 
 .LSY2
 
- SKIP 78
+ SKIP 78                ; 
 
 .SY
 
- SKIP NOST + 1
+ SKIP NOST + 1          ; 
 
 .SYL
 
- SKIP NOST + 1
+ SKIP NOST + 1          ; 
 
 .SZ
 
- SKIP NOST + 1
+ SKIP NOST + 1          ; 
 
 .SZL
 
- SKIP NOST + 1
+ SKIP NOST + 1          ; 
 
 .XSAV2
 
@@ -2551,9 +2627,9 @@ ORG &0D40
 .SLSP
 
  SKIP 2                 ; Points to the start of the ship lines heap space,
-                        ; which is a block that starts at SLSP and ends at
-                        ; WP, and which can be extended downwards by lowering
-                        ; SLSP if more heap space is required
+                        ; which is a descending block that starts at SLSP and
+                        ; ends at WP, and which can be extended downwards by
+                        ; lowering SLSP if more heap space is required
 
 .XX24
 
@@ -2565,9 +2641,9 @@ ORG &0D40
 
 .QQ2
 
- SKIP 6                 ; Contains the three 16-bit seeds (6 bytes) for the
-                        ; current system. See QQ15 above for details of how the
-                        ; three seeds are stored in memory
+ SKIP 6                 ; Contains the three 16-bit seeds for the current system
+                        ; (see QQ15 above for details of how the three seeds are
+                        ; stored in memory)
 
 .QQ3
 
@@ -2642,105 +2718,113 @@ LOAD_A% = LOAD%
 
 .COMC
 
- EQUB 0                ; Compass colour, &F0 = in front, &FF = behind
+ EQUB 0                 ; Compass colour
+                        ;
+                        ; &F0 = in front, &FF = behind
 
 .DNOIZ
 
- EQUB 0                 ; Sound on/off
+ EQUB 0                 ; Sound on/off configuration setting
                         ;
                         ; 0 = on (default), non-zero = off
                         ;
-                        ; Toggled by S when paused, see DK4
+                        ; Toggled by pressing "S" when paused, see DK4
 
 .DAMP
 
- EQUB 0                 ; Keyboard damping
+ EQUB 0                 ; Keyboard damping configuration setting
                         ;
                         ; 0 = enabled (default), non-zero = disabled
                         ;
-                        ; Toggled by Caps Lock when paused, see DKS3
+                        ; Toggled by pressing Caps Lock when paused, see DKS3
 
 .DJD
 
- EQUB 0                 ; Keyboard auto-recentre
+ EQUB 0                 ; Keyboard auto-recentre configuration setting
                         ;
                         ; 0 = enabled (default), non-zero = disabled
                         ;
-                        ; Toggled by A when paused, see DKS3
+                        ; Toggled by pressing "A" when paused, see DKS3
 
 .PATG
 
- EQUB 0                 ; Display authors on start-up screen
+ EQUB 0                 ; Configuration setting to show author names on start-up
+                        ; screen and enable manual hyperspace mis-jumps
                         ;
-                        ; 0 = no (default), &FF = yes
+                        ; 0 = off (default), &FF = on
                         ;
-                        ; Toggled by X when paused, see DKS3
+                        ; Toggled by pressing "X" when paused, see DKS3
                         ;
-                        ; This needs to be set to &FF for manual mis-jumps to
-                        ; be possible; to do a manual mis-jump, first toggle
-                        ; the author display by pausing the game (Copy) and
-                        ; pressing X, and then hold down CTRL during the next
-                        ; hyperspace to force a mis-jump; see routine ee5 for
-                        ; the "AND PATG" instruction that implements this
+                        ; This needs to be turned on for manual mis-jumps to be
+                        ; possible. To to do a manual mis-jump, first toggle the
+                        ; author display by pausing the game (Copy) and pressing
+                        ; X, and during the next hyperspace, hold down CTRL to
+                        ; force a mis-jump; see routine ee5 for the "AND PATG"
+                        ; instruction that implements this.
 
 .FLH
 
- EQUB 0                 ; Flashing console bars
+ EQUB 0                 ; Flashing console bars configuration setting
                         ;
                         ; 0 = static (default), non-zero = flashing
                         ;
-                        ; Toggled by F when paused, see DKS3
+                        ; Toggled by pressing "F" when paused, see DKS3
 
 .JSTGY
 
- EQUB 0                 ; Reverse joystick Y channel
+ EQUB 0                 ; Reverse joystick Y channel configuration setting
                         ;
                         ; 0 = standard (default), &FF = reversed
                         ;
-                        ; Toggled by Y when paused, see DKS3
+                        ; Toggled by pressing "Y" when paused, see DKS3
 
 .JSTE
 
- EQUB 0                 ; Reverse both joystick channels
+ EQUB 0                 ; Reverse both joystick channels configuration setting
                         ;
                         ; 0 = standard (default), &FF = reversed
                         ;
-                        ; Toggled by J when paused, see DKS3
+                        ; Toggled by pressing "J" when paused, see DKS3
 
 .JSTK
 
- EQUB 0                 ; Keyboard or joystick
+ EQUB 0                 ; Keyboard or joystick configuration setting
                         ;
                         ; 0 = keyboard (default), non-zero = joystick
                         ;
-                        ; Toggled by K when paused, see DKS3
+                        ; Toggled by pressing "K" when paused, see DKS3
 
 \ *****************************************************************************
-\ Subroutine: M%
+\ Subroutine: M% (Part 1)
 \
-\ Seed random numbers.
-\ Calculate alpha and beta angles from current roll and pitch.
-\ Scan keyboard for flight controls.
+\ M% runs as part of the main loop. This section of M% covers the following:
+\
+\   * Seed the random number generator
 \ *****************************************************************************
 
 .M%
 {
- LDA K%                 ; Seed the random number genrator with whatever is in
+ LDA K%                 ; Seed the random number generator with whatever is in
  STA RAND               ; location K%, which will be fairly random as this is
                         ; where we store the ship data blocks
 
-                        ; Next we take the current rate of roll and pitch, as
-                        ; set by the joystick or keyboard, and convert them
-                        ; into alpha and beta angles that we can use in the
-                        ; matrix functions to rotate space around the player's
-                        ; ship. The alpha angle covers roll, while the beta
-                        ; angle covers pitch (there is no yaw in this
-                        ; version of Elite). The angles are in radians, which
-                        ; allows us to use the small angle approximation when
-                        ; moving objects in the sky (see the MVEIT routine for
-                        ; more on this). Also, the signs of the two angles are
-                        ; stored separately, in both the sign and the flipped
-                        ; sign, as this makes calculations easier.
+\ *****************************************************************************
+\ Subroutine: M% (Part 2)
+\
+\ M% runs as part of the main loop. This section of M% covers the following:
+\
+\   * Calculate the alpha and beta angles from the current roll and pitch
+\
+\ Here we take the current rate of roll and pitch, as set by the joystick or
+\ keyboard, and convert them into alpha and beta angles that we can use in the
+\ matrix functions to rotate space around the player's ship. The alpha angle
+\ covers roll, while the beta angle covers pitch (there is no yaw in this
+\ version of Elite). The angles are in radians, which allows us to use the
+\ small angle approximation when moving objects in the sky (see the MVEIT
+\ routine for more on this). Also, the signs of the two angles are stored
+\ separately, in both the sign and the flipped sign, as this makes calculations
+\ easier.
+\ *****************************************************************************
 
  LDX JSTX               ; Set X to the current rate of roll in JSTX, and
  JSR cntr               ; apply keyboard damping twice (if enabled) so the roll
@@ -2826,11 +2910,28 @@ LOAD_A% = LOAD%
  ORA BET2               ; Store A in BETA, but with the sign set to BET2 (so
  STA BETA               ; BETA has the same sign as the actual pitch rate)
 
-                        ; Next we check various flight keys and process the
-                        ; results. Flight keys are logged in the key logger at
-                        ; location KY1 onwards, with a non-zero value in the
-                        ; relevant location indicating a key press. See the
-                        ; KL and KY1 locations for more details.
+\ *****************************************************************************
+\ Subroutine: M% (Part 3)
+\
+\ M% runs as part of the main loop. This section of M% covers the following:
+\
+\   * Scan for slight keys and process the results
+\
+\ Flight keys are logged in the key logger at location KY1 onwards, with a
+\ non-zero value in the relevant location indicating a key press. See the KL
+\ and KY1 locations for more details.
+\
+\ The keypresses that are processed are as follows:
+\
+\   * Space and "?" to speed up and slow down
+\   * "U", "T" and "M" for disarming, arming and firing missiles
+\   * Tab for firing an energy bomb
+\   * Escape for launching an escape pod
+\   * "J" for initiating an in-system jump
+\   * "E" to deploy E.C.M. anti-missile countermeasures
+\   * "C" to use the docking computer
+\   * "A" to fire lasers
+\ *****************************************************************************
 
  LDA KY2                ; If Space is being pressed, keep going, otherwise jump
  BEQ MA17               ; down to MA17 to skip the following
@@ -3046,18 +3147,20 @@ LOAD_A% = LOAD%
                         ; times a second)
 
                         ; Fall through into MA3 to start moving things around
-}
 
 \ *****************************************************************************
-\ Subroutine: MA3
+\ Subroutine: M% (Part 4)
 \
 \ Exposed labels: MAL1
 \
-\ Moving things?
+\ M% runs as part of the main loop. This section of M% covers the following:
+\
+\   * Moving ships in space
+\
 \ *****************************************************************************
 
 .MA3
-{
+
  LDX #0                 ; Set counter X = 0
 
 .^MAL1                  ; Counter X slot for each nearby ship
@@ -3140,9 +3243,9 @@ LOAD_A% = LOAD%
  LDA #16
  BNE slvy2              ; guaranteed to hop to pieces to scoop
 
-.oily                   ; scoop cannister
+.oily                   ; scoop canister
 
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  AND #7                 ; 7 choices to scoop, computers max.
 
 .slvy2                  ; pieces to scoop
@@ -3164,16 +3267,20 @@ LOAD_A% = LOAD%
 .MA65                   ; ignored as far away
 
  JMP MA26               ; Try targeting missile, down.
-}
 
 \ *****************************************************************************
-\ Subroutine: ISDK
+\ Subroutine: M% (Part 5)
 \
-\ Process docking with space station
+\ Exposed labels: GOIN
+\
+\ M% runs as part of the main loop. This section of M% covers the following:
+\
+\   * Process docking with space station
+\
 \ *****************************************************************************
 
 .ISDK                   ; is docking to SST nearby
-{
+
  LDA K%+NI%+32          ; UNIV #SST last byte NEWB,  K%+NI%+36
  BMI MA62               ; Failed dock
  LDA INWK+14            ; rotmat0z hi, face normal
@@ -3188,39 +3295,37 @@ LOAD_A% = LOAD%
  AND #&7F               ; clear sign
  CMP #80                ; < #&60 ?
  BCC MA62               ; Failed dock
-}
 
-.GOIN                   ; do Dock entry, escape pod arrives
-{
+.^GOIN                   ; do Dock entry, escape pod arrives
+
  LDA #0
  STA QQ22+1
  LDA #8                 ; octagon rings
  JSR LAUN               ; Launch rings from space station
  JSR RES4               ; Restore forward, aft shields, and energy
  JMP BAY                ; In Docking Bay
-}
 
 .MA62                   ; Failed dock
-{
+
  LDA DELTA              ; speed
  CMP #5                 ; < 5?
  BCC MA67               ; slow enough, only damage to player.
  JMP DEATH              ; else death
-}
 
 \ *****************************************************************************
-\ Subroutine: MA59
+\ Subroutine: M% (Part 6)
 \
-\ Scooping failed
+\ M% runs as part of the main loop. This section of M% covers the following:
+\
+\   * Missiles and collisions
 \ *****************************************************************************
 
 .MA59                   ; Scooping failed
-{
+
  JSR EXNO3              ; ominous noises
-}
 
 .MA60                   ; kill it
-{
+
  ASL INWK+31            ; display|missiles explosion state
  SEC                    ; set bit7 to kill it with debris
  ROR INWK+31
@@ -3228,34 +3333,30 @@ LOAD_A% = LOAD%
 .MA61
 
  BNE MA26               ; guaranteed, onto Try targeting missile.
-}
 
 .MA67                   ; slow enough, damage to player
-{
+
  LDA #1                 ; slow speed
  STA DELTA
  LDA #5                 ; small dent
  BNE MA63               ; guaranteed, little Oops.
-}
 
 .MA58                   ; Big Collision, cargo destroyed.
-{
+
  ASL INWK+31            ; display|missiles explosion state
  SEC                    ; set bit to kill it with debris
  ROR INWK+31
  LDA INWK+35            ; Energy of nearby ship
  SEC                    ; damage to player is
  ROR A                  ; dent = 128+energy/2
-}
 
 .MA63                   ; little Oops
-{
+
  JSR OOPS               ; Lose some shield strength, cargo, could die.
  JSR EXNO3              ; ominous noises
-}
 
 .MA26                   ; Try targeting missile, several arrive to continue.
-{
+
  LDA QQ11               ; NEWB bit 7 remove ship?
  BNE MA15               ; no skip scan
  JSR PLUT               ; inwk not forward view
@@ -3270,16 +3371,17 @@ LOAD_A% = LOAD%
  LDX XSAV               ; nearby ship slot id becomes missile target
  LDY #&E                ; missile red
  JSR ABORT2             ; missile found a target
-}
 
 \ *****************************************************************************
-\ Subroutine: MA47
+\ Subroutine: M% (Part 6)
 \
-\ Laser lock, fighting, altitude checks, fuel scooping
+\ M% runs as part of the main loop. This section of M% covers the following:
+\
+\   * Laser lock, fighting, altitude checks, fuel scooping
 \ *****************************************************************************
 
 .MA47                   ; onto laser lock
-{
+
  LDA LAS                ; Laser power
  BEQ MA8                ; no laser, just draw object
 
@@ -3322,15 +3424,13 @@ LOAD_A% = LOAD%
  STA INWK+35            ; update ship energy
  LDA TYPE               ; ship type
  JSR ANGRY
-}
 
 .MA8                    ; else just Draw object
-{
+
  JSR LL9                ; object ENTRY
-}
 
 .MA15                   ; maybe Remove ship, legal affect
-{
+
  LDY #35                ; hull byte#35
  LDA INWK+35            ; ship energy
  STA (INF),Y            ; update
@@ -3383,10 +3483,9 @@ LOAD_A% = LOAD%
  LDX XSAV               ; nearby ship slot count
  INX                    ; next nearby ship
  JMP MAL1               ; loop X
-}
 
 .MA18                   ; check Your ship
-{
+
  LDA BOMB
  BPL MA77               ; no working bomb
  ASL BOMB               ; else &FE -> & FC still on.
@@ -3396,7 +3495,7 @@ LOAD_A% = LOAD%
 
 .MA77                   ; no working bomb
 
- LDA MCNT               ; move count
+ LDA MCNT               ; Fetch main loop counter
  AND #7
  BNE MA22               ; skip updates
  LDX ENERGY             ; players energy
@@ -3418,7 +3517,7 @@ LOAD_A% = LOAD%
 
  LDA MJ                 ; witchspace mis-jump
  BNE MA23S              ; skip to big distance, else regular space
- LDA MCNT               ; move count
+ LDA MCNT               ; Fetch main loop counter
  AND #31
  BNE MA93               ; skip space station check at #31
  LDA SSPR               ; space station present
@@ -3465,7 +3564,7 @@ LOAD_A% = LOAD%
 
  LDA MJ                 ; mis-jump
  BNE MA23               ; to MA23 big distance or mis-jump
- LDA MCNT               ; move count
+ LDA MCNT               ; Fetch main loop counter
  AND #31
 
 .MA93                   ; skipped space station check arrives here
@@ -3653,7 +3752,7 @@ LOAD_A% = LOAD%
  AND #&A0               ; kill or in explosion?
  BNE MV30               ; Dumb ship or exploding
 
- LDA MCNT               ; move count
+ LDA MCNT               ; Fetch main loop counter
  EOR XSAV               ; nearby ship slot
  AND #15                ; only tidy ship if slot survives
  BNE MV3                ; else skip tidy
@@ -3669,7 +3768,7 @@ LOAD_A% = LOAD%
  CPX #MSL
  BEQ MV26               ; missile done every mcnt
 
- LDA MCNT               ; move count
+ LDA MCNT               ; Fetch main loop counter
  EOR XSAV               ; nearby ship slot
  AND #7                 ; else tactics only needed every 8
  BNE MV30               ; Dumb ship
@@ -4502,11 +4601,11 @@ PRINT "CH% = ", ~CH%
 \ Variable: UNIV
 \
 \ The little bubble of the universe that we simulate in Elite can contain up to
-\ 13 ships. Each of those ships has its own block of 36 (NI%) bytes that
-\ contains information such as the ship's position in space, speed, rotation,
-\ energy and so on, as well as a pointer to the line data for plotting it on
-\ screen. These 13 blocks of ship data live in the first 468 bytes of the
-\ workspace at K% (&0900 to &0AD4).
+\ NOSH + 1 (13) ships. Each of those ships has its own block of 36 (NI%) bytes
+\ that contains information such as the ship's position in space, speed,
+\ rotation, energy and so on, as well as a pointer to the line data for
+\ plotting it on screen. These 13 blocks of ship data live in the first 468
+\ bytes of the workspace at K% (&0900 to &0AD4).
 \
 \ In order to update the ship data, the whole block is copied to the INWK ship
 \ workspace in zero page, as it's easier and quicker to work with zero page
@@ -4517,11 +4616,16 @@ PRINT "CH% = ", ~CH%
 \ of the 13 ships. So if we want to read the data for ship number 3 in our
 \ little bubble of the universe, we would look at the address held in UNIV+3
 \ (ship numbers start at 0).
+\
+\ Along with FRIN, which has a slot for each of the ships in the local bubble
+\ containing the ship types (or 0 for an empty slot), UNIV and K% contain all
+\ the information about the 13 ships and objects that can populate local space
+\ in Elite.
 \ *****************************************************************************
 
 .UNIV
 {
-FOR I%, 0, 12
+FOR I%, 0, NOSH
  EQUW K% + I% * NI%     ; Address of block no. I%, of size NI%, in workspace K%
 NEXT
 }
@@ -5467,15 +5571,15 @@ NEXT
 
 .KILL1                  ; kill the forward dust
 {
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  ORA #4                 ; flick up/down
  STA Y1                 ; ydistance from middle
  STA SY,Y               ; dusty
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  ORA #8                 ; flick left/right
  STA X1
  STA SX,Y               ; dustx
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  ORA #&90               ; flick distance
  STA SZ,Y               ; dustz
  STA ZZ                 ; old distance
@@ -5617,7 +5721,7 @@ NEXT
 
 .KILL6                  ; rear dust kill
 {
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  AND #127
  ADC #10
  STA SZ,Y               ; dustz
@@ -5629,14 +5733,14 @@ NEXT
  ROR A                  ; may get a carry
  STA X1
  STA SX,Y               ; dustx
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  STA Y1
  STA SY,Y               ; dusty
  JMP STC6               ; Re-enter rear dust loop
 
 .ST4                    ; half of the new dust
 
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  STA X1
  STA SX,Y               ; dustx
  LSR A                  ; get carry
@@ -6955,7 +7059,6 @@ NEXT
 \ Screen mode?
 \ *****************************************************************************
 
-
 .TVT1
 
  EQUD &8494C4D4
@@ -7217,7 +7320,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .TA64                   ; missile far away, maybe ecm, then K3 heading.
 {
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  CMP #16                ; rnd >= #16 most likely
  BCS TA19               ; down, Attack K3.
 }
@@ -7251,7 +7354,7 @@ LOAD_C% = LOAD% +P% - CODE%
  CPX #SST               ; is space station?
  BNE TA13               ; not space station, Other craft.
 
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  CMP #140               ; medium chance to launch
  BCC TA14-1             ; rts
  LDA MANY+COPS          ; MANY+COPS any so far?
@@ -7315,10 +7418,10 @@ LOAD_C% = LOAD% +P% - CODE%
  CMP #MSL               ; missile
  BNE P%+5               ; not missile
  JMP TA20               ; missile heading XX15 and CNT has dot product
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  CMP #250               ; very likely
  BCC TA7                ; Vrol
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  ORA #&68               ; large roll
  STA INWK+29            ; rotx counter
 
@@ -7333,7 +7436,7 @@ LOAD_C% = LOAD% +P% - CODE%
  LSR A                  ; Acc = max_energy/8
  CMP INWK+35
  BCC ta3                ; not Low energy, else ship in trouble ..
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  CMP #230               ; likely
  BCC ta3                ; not Low energy, else respond to crisis ..
  LDA TYPE               ; restore ship type
@@ -7349,7 +7452,7 @@ LOAD_C% = LOAD% +P% - CODE%
  AND #7                 ; number of missiles
  BEQ TA3                ; none, continue to Good energy
  STA T                  ; number of missiles
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  AND #31                ; likely exceed
  CMP T                  ; number of missiles
  BCS TA3                ; continue to Good energy
@@ -7407,7 +7510,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .TA5                    ; Far z
 
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  ORA #128               ; set bit 7 as ai active.
  CMP INWK+32            ; compare to actual ai_attack_univ_ecm
  BCS TA15               ; weak (non-missile) ai head away, Near.
@@ -7564,7 +7667,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .FRS1                   ; escape pod Launched, see Cobra Mk3 ahead, or player missile launch.
 {
- JSR ZINF               ; zero info
+ JSR ZINF               ; Call ZINF to reset the INWK ship workspace
  LDA #28                ; ylo distance
  STA INWK+3
  LSR A                  ; #14 = zlo
@@ -7733,7 +7836,7 @@ LOAD_C% = LOAD% +P% - CODE%
  TXA                    ; second copy of daughter type restored
  CMP #OIL
  BNE NOIL               ; type is not cargo
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  ASL A                  ; pitch damped, and need rnd carry later.
  STA INWK+30            ; rotz counter
  TXA                    ; Xrnd
@@ -7998,7 +8101,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .KILL2                  ; kill dust, left or right edge.
 {
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  STA Y1
  STA SY,Y               ; dusty rnd
  LDA #115               ; new xstart
@@ -8010,7 +8113,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .ST5                    ; ydust kill
 {
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  STA X1
  STA SX,Y               ; dustx rnd
  LDA #110               ; new ystart
@@ -8021,7 +8124,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .STF1                   ; Set new distance
 {
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  ORA #8                 ; not too close
  STA ZZ
  STA SZ,Y               ; dustz
@@ -9203,7 +9306,7 @@ NEXT
 
  LDA #1                 ; menu id
  STA QQ11
- STA MCNT               ; move count
+ STA MCNT               ; Fetch main loop counter
  LSR A                  ; #0
  STA EV                 ; extra vessels
  LDX VIEW               ; forward
@@ -9223,11 +9326,11 @@ NEXT
 
 .LASLI                  ; laser lines
 {
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  AND #7
  ADC #Y-4               ; below center of screen
  STA LASY
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  AND #7
  ADC #X-4               ; left of center
  STA LASX
@@ -9993,7 +10096,6 @@ LOAD_D% = LOAD% + P% - CODE%
 \ YEARS"). If the distance is zero, move the cursor down one line.
 \ *****************************************************************************
 
-
 .TT146
 {
  LDA QQ8                ; Take the two bytes of the 16-bit value in QQ8 and
@@ -10665,7 +10767,6 @@ LOAD_D% = LOAD% + P% - CODE%
  ADC #1                 ; or, in terms of memory locations:
  STA QQ6                ;
                         ;   QQ6 = (QQ5 * 4) + QQ3 + QQ4 + 1
-
 
  LDA QQ3                ; Finally, we work out productivity, like this:
  EOR #%111              ;
@@ -12217,7 +12318,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .GVL
 {
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  STA QQ26               ; random byte for each system vist (for market)
  LDX #0                 ; set up availability
  STX XX4
@@ -12342,7 +12443,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR CTRL               ; scan from ctrl on keyboard
  AND PATG               ; PATG = &FF if credits have been enabled
  BMI ptg                ; shift key forced misjump, up.
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  CMP #253               ; also small chance that
  BCS MJP                ; miss-jump to Thargoids in witchspace
  \JSR TT111
@@ -13731,7 +13832,6 @@ MAPCHAR '4', '4'
 \ ready to remove - Explosion Code
 \ *****************************************************************************
 
-
 .EX2                    ; ready to remove - Explosion Code
 {
  LDA INWK+31            ; exploding/display state|missiles
@@ -13951,7 +14051,7 @@ MAPCHAR '4', '4'
 .SOLAR                  ; Set up planet and sun
 {
  LSR FIST               ; reduce Fugitative/Innocent legal status
- JSR ZINF               ; zero info
+ JSR ZINF               ; Call ZINF to reset the INWK ship workspace
  LDA QQ15+1             ; w0_h is Economy
  AND #7                 ; disk version has AND 3
  ADC #6                 ; disk version has ADC 3
@@ -14002,14 +14102,14 @@ MAPCHAR '4', '4'
 
 .SAL4                   ; counter Y
 
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  ORA #8                 ; flick out in z
  STA SZ,Y               ; dustz
  STA ZZ                 ; distance
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  STA SX,Y               ; dustx
  STA X1
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  STA SY,Y               ; dusty
  STA Y1
  JSR PIXEL2             ; dust (X1,Y1) from middle
@@ -14428,8 +14528,8 @@ MAPCHAR '4', '4'
 {
  JSR SPBLB              ; Light up the space station bulb on the dashboard
 
- LDX #1                 ; Set the AI flag in INWK+32 to 1 (has AI and ECM)
- STX INWK+32
+ LDX #1                 ; Set the AI flag in INWK+32 to 1 (friendly, no AI, has
+ STX INWK+32            ; E.C.M.)
 
  DEX                    ; Set rotz counter to 0 (no pitch, roll only)
  STX INWK+30
@@ -14621,7 +14721,6 @@ MAPCHAR '4', '4'
                         ; which is the same as saying:
                         ;
                         ;   INWK+33 - INF > NI%
-
 
  LDA INWK+33            ; Calculate INWK+33 - INF, again using 16-bit
 \SEC                    ; arithmetic, and put the result in (A Y), so the high
@@ -16034,7 +16133,8 @@ LOAD_F% = LOAD% + P% - CODE%
 
 .KS4                    ; removing Space Station to make new Sun
 {
- JSR ZINF               ; zero info, ends with A = #&C0.
+ JSR ZINF               ; Call ZINF to reset the INWK ship workspace
+                        ; ends with A = #&C0.
  JSR FLFLLS             ; ends with A=0
  STA FRIN+1             ; #SST slot emptied
  STA SSPR               ; space station present, 0 is SUN.
@@ -16494,28 +16594,51 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: Ze
 \
-\ Zero ship and set coordinates, ends with dornd.
+\ Initialise INWK to a hostile ship. Specifically:
+\
+\   * Reset the INWK ship workspace
+\ 
+\   * Set the ship to a fair distance away (32) in all axes, in front of the
+\     player but randomly up or down, left or right
+\
+\   * Give the ship a 4% chance of the having E.C.M.
+\ 
+\   * Set the ship to hostile, with AI enabled
+\
+\ Also sets X and T1 to a random value, and A to a random value between 192 and
+\ 255.
 \ *****************************************************************************
 
-.Ze                     ; Zero ship and set coordinates, ends with dornd.
+.Ze
 {
- JSR ZINF               ; zero information
- JSR DORND              ; do random, new A, X.
- STA T1
- AND #128               ; keep bit7 sign
- STA INWK+2             ; xsg left/right
- TXA                    ; Xrnd = old rnd
- AND #128               ; keep bit7 sign
- STA INWK+5             ; ysg up/down
- LDA #32                ; distance away
- STA INWK+1             ; xhi
- STA INWK+4             ; yhi
- STA INWK+7             ; zhi
- TXA
- CMP #245               ; carry set rarely
- ROL A                  ; and goes into bit0, has ecm.
- ORA #&C0               ; set AI active and turn to attack 50% probability
- STA INWK+32            ; ai_attack_univ_ecm
+ JSR ZINF               ; Call ZINF to reset the INWK ship workspace
+
+ JSR DORND              ; Set A and X to random numbers
+
+ STA T1                 ; Store A in T1
+
+ AND #%10000000         ; Extract the sign of A and store in x_sign
+ STA INWK+2
+
+ TXA                    ; Extract the sign of X and store in y_sign
+ AND #%10000000
+ STA INWK+5
+
+ LDA #32                ; Set x_hi = y_hi = z_hi = 32, a fair distance away
+ STA INWK+1
+ STA INWK+4
+ STA INWK+7
+
+ TXA                    ; Set the C flag if X >= 245 (4% chance)
+ CMP #245
+
+ ROL A                  ; Set bit 0 of A to the C flag (i.e. there's a 4%
+                        ; chance of this ship having E.C.M.)
+
+ ORA #%11000000         ; Set bits 6 and 7 of A, so the ship is hostile (bit 6
+                        ; and has AI (bit 7)
+                        
+ STA INWK+32            ; Store A in the AI flag of this ship
 }
 
 \ *****************************************************************************
@@ -16532,10 +16655,11 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: DORND
 \
-\ Do random, new A, X.
+\ Set A and X to random numbers. Carry flag is also set randomly. Overflow flag
+\ will be have a 50% probability of being 0 or 1.
 \ *****************************************************************************
 
-.DORND                  ; do random, new A, X.
+.DORND
 {
  LDA RAND               ; seed 0
  ROL A
@@ -16552,226 +16676,403 @@ LOAD_F% = LOAD% + P% - CODE%
 }
 
 \ *****************************************************************************
-\ Subroutine: MTT4
+\ Subroutine: Main game loop (Part 1)
 \
-\ Spawn freighters
+\ This is part of the main game loop. This section covers the following:
+\
+\   * Spawn a trader, i.e. a Cobra Mk III that isn't attacking anyone, with one
+\     missile and a 50% chance of having an E.C.M., a speed between 16 and 31,
+\     and a clockwise roll
+\
+\ We call this from within the main loop, with A set to a random number and the
+\ carry flag set.
 \ *****************************************************************************
 
-.MTT4                   ; Spawn freighters
 {
- LSR A                  ; clear bit7, dumb ship, 50% prob has ecm.
- STA INWK+32            ; ai_attack_univ_ecm
- STA INWK+29            ; rotx counter, roll right usually damped
- ROL INWK+31            ; display exploding state|missiles = Arnd
- AND #31                ; max #15
- ORA #16                ; #16 min, #31 max.
- STA INWK+27            ; speed
- LDA #CYL               ; Cobra Mk III
- JSR NWSHP              ; new ship type Acc 
-}
+.MTT4
+
+ LSR A                  ; Clear bit 7 of our random number in A
+
+ STA INWK+32            ; Store this in the ship's AI flag, so this ship does
+                        ; not have AI
+
+ STA INWK+29            ; Store A in the ship's rotx counter, giving it a
+                        ; clockwise roll (as bit 7 is clear), and a 1 in 127
+                        ; chance of it having no damping
+
+ ROL INWK+31            ; Set bit 0 of missile count (as we know the carry flag
+                        ; is set), giving the ship one missile
+
+ AND #31                ; Set the ship speed to our random number, set to a
+ ORA #16                ; minimum of 16 and a maximum of 31
+ STA INWK+27
+
+ LDA #CYL               ; Add a new Cobra Mk III to the local universe and fall
+ JSR NWSHP              ; through into the main game loop again
 
 \ *****************************************************************************
-\ Subroutine: TT100
+\ Subroutine: Main game loop (Part 2)
 \
-\ Exposed labels: me3
+\ Exposed labels: TT100, me3
 \
-\ Start MAIN LOOP Spawnings
+\ This is part of the main game loop. This section covers the following:
+\
+\   * Call M%
+\   * Potentially spawn a trader, asteroid or cargo canister
 \ *****************************************************************************
 
-.TT100                  ; Start MAIN LOOP Spawnings
-{
- JSR M%                 ; M% in Block A has some flight controls
- DEC DLY                ; reduce delay
- BEQ me2                ; if 0 erase messages, up
- BPL me3                ; Spawnings
- INC DLY                ; else undershot, set to 0.
+.^TT100
+
+ JSR M%                 ; Call M% routine to process flight keys, amongst other
+                        ; things
+
+ DEC DLY                ; Decrement the delay counter in DLY, so any in-flight
+                        ; messages get removed once the counter reaches zero
+
+ BEQ me2                ; If DLY is now 0, jump to me2 to remove any in-flight
+                        ; message from the space view, and once done, return to
+                        ; me3 below, skipping the following two instructions
+
+ BPL me3                ; If DLY is positive, jump to me3 to skip the next
+                        ; instruction
+
+ INC DLY                ; If we get here, DLY is negative, so we have gone too
+                        ; and need to increment DLY back to 0
 
 .^me3
 
- DEC MCNT               ; move count
- BEQ P%+5               ; rarely do spawning, test misjump
+ DEC MCNT               ; Decrement the main loop counter in MCNT
 
-.ytq                    ; jmp mloop, yet to quit.
+ BEQ P%+5               ; If the counter has reached zero, which it will do
+                        ; every 256 main loops, skip the next JMP instruction
+                        ; (or to put it another way, if the counter hasn't
+                        ; reached zero, jump down to MLOOP, skipping all the
+                        ; following checks)
 
- JMP MLOOP              ; usually down to clear stack, look at keys, up TT100.
- LDA MJ                 ; mis-jump
- BNE ytq                ; if stuck in witchspace, jmp mloop
- JSR DORND              ; do random, new A, X.
- CMP #35                ; >= usually
- BCS MTT1               ; down 80% of the time
- LDA MANY+AST           ; not ships
- CMP #3                 ; else junk rarely
- BCS MTT1               ; already >= 3 enough junk
- JSR ZINF               ; zero info
- LDA #38                ; coordinates of new junk spawn
- STA INWK+7             ; zhi far away
- JSR DORND              ; do random, new A, X.
- STA INWK               ; xlo Arnd
- STX INWK+3             ; ylo Xrnd
- AND #128               ; bit7 of A rnd
- STA INWK+2             ; xsg left or right
- TXA                    ; old rnd
- AND #128               ; bit7 of X rnd
- STA INWK+5             ; ysg
- ROL INWK+1             ; xhi rnd Carry
- ROL INWK+1             ; xhi not far off center
- JSR DORND              ; do random, new A, X.
- BVS MTT4               ; 50% prob up, Spawn freighters.
- ORA #&6F               ; set bits 6,5 3to0
- STA INWK+29            ; rotx counter, max roll with 50% prob no damping
- LDA SSPR               ; in space station present range? 0 is SUN.
- BNE MTT1               ; down, else rocks exist.
- TXA                    ; X rnd
- BCS MTT2               ; 50% prob no speed max spin
- AND #31                ; speed max 31
- ORA #16                ; min 16 max 31
+.ytq
+
+ JMP MLOOP              ; Jump down to MLOOP to do some end-of-loop tidying and
+                        ; restart the main loop
+
+                        ; We only get here once every 256 iterations of the
+                        ; main loop. If we aren't in witchspace and don't
+                        ; already have 3 or more asteroids in our local bubble,
+                        ; then this section has a 13% chance of spawning a new
+                        ; ship. 50% of the time this will be a Cobra Mk III,
+                        ; and the other 50% of the time it will either be an
+                        ; asteroid (98.5% chance) or, very rarely, a cargo
+                        ; (1.5% chance) canister.
+
+ LDA MJ                 ; If we are in witchspace following a mis-jump, skip the
+ BNE ytq                ; following by jumping down to MLOOP (via ytq above)
+
+ JSR DORND              ; Set A and X to random numbers
+
+ CMP #35                ; If A >= 35 (87% chance), jump down to MTT1 to skip
+ BCS MTT1               ; the spawning of an asteroid or cargo canister and
+                        ; potentially spawn something else
+
+ LDA MANY+AST           ; If we already have 3 or more asteroids in the local
+ CMP #3                 ; bubble, jump down to MTT1 to skip the following and
+ BCS MTT1               ; potentially spawn something else
+
+ JSR ZINF               ; Call ZINF to reset the INWK ship workspace
+
+ LDA #38                ; Set z_hi = 38 (far away)
+ STA INWK+7
+
+ JSR DORND              ; Set A, X and carry flag to random numbers
+
+ STA INWK               ; Set x_lo = random
+
+ STX INWK+3             ; Set y_lo = random
+
+ AND #%10000000         ; Set x_sign = bit 7 of x_lo
+ STA INWK+2
+
+ TXA                    ; Set y_sign = bit 7 of y_lo
+ AND #%10000000
+ STA INWK+5
+
+ ROL INWK+1             ; Set bit 2 of x_hi to the carry flag, which is random,
+ ROL INWK+1             ; so this randomly moves us slightly off-centre
+
+ JSR DORND              ; Set A, X and overflow flag to random numbers
+
+ BVS MTT4               ; If overflow is set (50% chance), jump up to MTT4 to
+                        ; spawn a trader
+
+ ORA #%01101111         ; Take the random number in A and set bits 0-3 and 5-6,
+ STA INWK+29            ; so the result has a 50% chance of being positive or
+                        ; negative, and a 50% chance of bits 0-6 being 127.
+                        ; Storing this number in the rotx counter therefore
+                        ; gives our new ship a fast roll speed with a 50%
+                        ; chance of having no damping, plus a 50% chance of
+                        ; rolling clockwise or anti-clockwise
+
+ LDA SSPR               ; If we are inside the space station safe zone, jump 
+ BNE MTT1               ; down to MTT1 to skip the following and potentially
+                        ; spawn something else
+
+ TXA                    ; Set A to the random X we set above, which we haven't
+ BCS MTT2               ; used yet, and if carry is set (50% chance) jump down
+                        ; to MTT2 to skip the following
+
+ AND #31                ; Set the ship speed to our random number, set to a
+ ORA #16                ; minimum of 16 and a maximum of 31
  STA INWK+27
- BCC MTT3               ; guaranteed, speed done for junk
 
-.MTT2                   ; 50% prob no speed, max spin
+ BCC MTT3               ; Jump down to MTT3, skipping the following (this BCC
+                        ; is effectively a JMP as we know the carry flag is
+                        ; clear, having passed through the BCS above)
 
- ORA #127               ; max rotation, no damping, only sign clock/anti random.
- STA INWK+30            ; rotz counter pitch
+.MTT2
 
-.MTT3                   ; speed done for junk
+ ORA #%01111111         ; Set bits 0-6 of A to 127, leaving bit 7 as random, so
+ STA INWK+30            ; storing this number in the rotz counter means we have
+                        ; full pitch with no damping, with a 50% chance of
+                        ; pitching up or down
 
- JSR DORND              ; do random, new A, X.
- CMP #5                 ; likely carry set 95% of time.
- LDA #AST               ; Asteroid
- BCS P%+4
- LDA #OIL               ; Container
- JSR NWSHP              ; new ship type Acc
+.MTT3
 
-.MTT1                   ; 80% of the time or junk >= 3, or in SS range.
+ JSR DORND              ; Set A and X to random numbers
 
- LDA SSPR
- BNE MLOOP              ; main loop if not in deep space
-                        ; In deep space
- JSR BAD                ; affected by QQ20(3,6,10), 32 tons of Slaves, Narcotics
- ASL A                  ; boost to possible FIST.
- LDX MANY+COPS          ; number of COPS
- BEQ P%+5               ; if no cops present no change to legal status
- ORA FIST               ; else Fugitative/Innocent status or'd to Acc of BAD
- STA T                  ; new legal
- JSR Ze                 ; Zero for new ship, new inwk coords, ends with dornd and T1 = rnd too.
- CMP T                  ; if rnd >= new legal
- BCS P%+7               ; if mild unlikely to make Cop
- LDA #COPS              ; else make COPS
- JSR NWSHP              ; new ship type Acc
- LDA MANY+COPS          ; number of COPS
- BNE MLOOP              ; jump to main loop if cops now present
- DEC EV                 ; else reduce extra vessels spawning delay
- BPL MLOOP              ; jump to main loop if +ve
- INC EV                 ; else undershot, set extra vessels = 0
- JSR DORND              ; do random, new A, X.
- LDY gov                ; government of present system
- BEQ LABEL_2            ; branch if anarchy
- CMP #90                ; else safer systems
- BCS MLOOP              ; likely to main loop
- AND #7                 ; rnd7
- CMP gov
- BCC MLOOP              ; main loop likely for large governments
+ CMP #5                 ; Set A to the ship number of an asteroid, and keep
+ LDA #AST               ; this value for 98.5% of the time (i.e. if random
+ BCS P%+4               ; A >= 5 skip the following instruction)
 
-.LABEL_2
+ LDA #OIL               ; Set A to the ship number of a cargo canister
 
- JSR Ze                 ; Zero for new ship, new inwk coords, ends with dornd and T1 = rnd too.
- CMP #200               ; Arnd >= 200 ?
- BCS mt1                ; likely Pirates
- INC EV                 ; else extra vessels delayed
- AND #3                 ; rnd3 for bounty hunter
- ADC #3
- TAY                    ; store type hunter
- TXA
- CMP #200
- ROL A
- ORA #&C0
- CPY #6
- BEQ tha
- STA INWK+32
- TYA
- JSR NWSHP              ; New Ship type Acc
-
-.mj1                    ; main loop jump
-
- JMP MLOOP              ; Main Loop
-
-.mt1                    ; Pirates
-
- AND #3                 ; rnd 0to3
- STA EV                 ; extra vessels, delay further spawnings.
- STA XX13               ; pirate counter
-
-.mt3                    ; counter XX13 ships needed
-
- JSR DORND              ; do random, new A, X.
- AND #3
- ORA #1                 ; Sidewinder or Mamba
- JSR NWSHP              ; New Ship type Acc
-
- DEC XX13               ; next ship needed
- BPL mt3                ; loop XX13
-}
+ JSR NWSHP              ; Add our new asteroid or canister to the universe
 
 \ *****************************************************************************
-\ Subroutine: MLOOP
+\ Subroutine: Main game loop (Part 3)
 \
-\ MAIN loop ending
+\ This is part of the main game loop. This section covers the following:
+\
+\   * Potentially spawn a cop
 \ *****************************************************************************
 
-.MLOOP                  ; MAIN loop ending
-{
- LDA #1
- STA SHEILA+&4E
- LDX #&FF               ; Clear Stack
- TXS                    ; to Stack
- LDX GNTMP              ; gun temperature
- BEQ EE20               ; cold laser
+.MTT1
+
+ LDA SSPR               ; If we are inside the space station's safe zone, jump
+ BNE MLOOP              ; to MLOOP to skip the following
+
+ JSR BAD                ; Call BAD to work out how much illegal contraband we
+                        ; are carrying in our hold (A is up to 40 for a
+                        ; standard hold crammed with contraband, up to 70 for
+                        ; an extended cargo hold full of narcotics and slaves)
+
+ ASL A                  ; Double A to a maximum of 80 or 140
+
+ LDX MANY+COPS          ; If there are no cops in the local bubble, skip the next
+ BEQ P%+5               ; instruction
+
+ ORA FIST               ; There are cops in the vicinity and we've got a hold
+                        ; full of jail time, so OR the value in A with FIST to
+                        ; get a new value that is at least as high as both
+                        ; values, to reflect the fact that they have almost
+                        ; certainly scanned our ship
+
+ STA T                  ; Store our badness level in T
+
+ JSR Ze                 ; Call Ze to initialise INWK to a potentially hostile
+                        ; ship, and set X to a random value and A to a random
+                        ; value between 192 and 255
+
+ CMP T                  ; If the random value in A >= our badness level, which
+ BCS P%+7               ; will be the case unless we have been really, really
+                        ; bad, then skip the following two instructions (so if
+                        ; we are really bad, there's a higher chance of
+                        ; spawning a cop, otherwise we got away with it, for
+                        ; now)
+
+ LDA #COPS              ; Add a new police ship to the local bubble
+ JSR NWSHP
+
+ LDA MANY+COPS          ; If we now have at least one cop in the local bubble,
+ BNE MLOOP              ; jump down to MLOOP, otherwise fall through into the
+                        ; next part to look at spawning something else
+
+\ *****************************************************************************
+\ Subroutine: Main game loop (Part 4)
+\
+\ This is part of the main game loop. This section covers the following:
+\
+\   * Potentially spawn a lone bounty hunter, a Thargoid, or a group of up to 4
+\     pirates
+\ *****************************************************************************
+
+ DEC EV                 ; Decrement EV, the extra vessels spawning delay, and 
+ BPL MLOOP              ; jump to MLOOP if it is still positive, so we only
+                        ; do the following when the EV counter runs down
+
+ INC EV                 ; EV is negative, so bump it up again, setting it back
+                        ; to 0
+
+ JSR DORND              ; Set A and X to random numbers
+
+ LDY gov                ; If the government of this system is 0 (anarchy), jump
+ BEQ LABEL_2            ; straight to LABEL_2 to start spawning pirates or a
+                        ; lone bounty hunter
+
+ CMP #90                ; If the random number in A >= 90 (65% chance), jump to
+ BCS MLOOP              ; MLOOP to stop spawning (so there's a 35% chance of
+                        ; spawning pirates or a lone bounty hunter)
+
+ AND #7                 ; Reduce the random number in A to the range 0-7, and
+ CMP gov                ; if A is less than government of this system, jump
+ BCC MLOOP              ; to MLOOP to stop spawning (so safer governments with
+                        ; larger gov numbers have a greater chance of jumping
+                        ; out, which is another way of saying that more
+                        ; dangerous systems spawn pirates and bounty hunters
+                        ; more often)
+ 
+.LABEL_2                ; Now to spawn a lone bounty hunter, a Thargoid or a
+                        ; group of pirates
+
+ JSR Ze                 ; Call Ze to initialise INWK to a potentially hostile
+                        ; ship, and set X to a random value and A to a random
+                        ; value between 192 and 255
+
+ CMP #200               ; If the random number in A >= 200 (87% chance), jump
+ BCS mt1                ; to mt1 to spawn pirates, otherwise keep going to
+                        ; spawn a lone bounty hunter or a Thargoid
+
+ INC EV                 ; Increase the extra vessels spawning counter, to
+                        ; prevent the next attempt to spawn extra vessels
+
+ AND #3                 ; Set A = Y = random number in the range 3-6, which
+ ADC #3                 ; we will use to determine the type of ship
+ TAY
+
+                        ; We now build the AI flag for this ship in A
+
+ TXA                    ; First, set the C flag if X >= 200 (22% chance)
+ CMP #200
+
+ ROL A                  ; Set bit 0 of A to the C flag (i.e. there's a 22%
+                        ; chance of this ship having E.C.M.)
+
+ ORA #%11000000         ; Set bits 6 and 7 of A, so the ship is hostile (bit 6
+                        ; and has AI (bit 7)
+
+ CPY #6                 ; If Y = 6 (i.e. a Thargoid), jump down to the tha
+ BEQ tha                ; routine to decide whether or not to spawn it (where
+                        ; there's a 22% chance of this happening)
+
+ STA INWK+32            ; Store A in the AI flag of this ship
+
+ TYA                    ; Add a new ship of type Y to the local bubble
+ JSR NWSHP
+
+.mj1
+
+ JMP MLOOP              ; Jump down to MLOOP, as we are done spawning ships
+
+.mt1
+
+ AND #3                 ; It's time to spawn a group of pirates, so set A to a
+                        ; random number in the range 0-3, which will be the
+                        ; loop counter for spawning pirates below (so we will
+                        ; spawn 1-4 pirates)
+
+ STA EV                 ; Delay further spawnings by this number
+
+ STA XX13               ; Store the number in XX13, the pirate counter
+
+.mt3
+
+ JSR DORND              ; Set A and X to random numbers
+
+ AND #3                 ; Set A to a random number in the range 0-3
+
+ ORA #1                 ; Set A to %01 or %11 (Sidewinder or Mamba)
+
+ JSR NWSHP              ; Add a new ship of type A to the local bubble
+
+ DEC XX13               ; Decrement the pirate counter
+
+ BPL mt3                ; If we need more pirates, loop back up to mt3,
+                        ; otherwise we are done spawning, so fall through into
+                        ; the end of the main loop at MLOOP
+
+\ *****************************************************************************
+\ Subroutine: Main game loop (Part 5)
+\
+\ Exposed labels: MLOOP
+\
+\ This is part of the main game loop. This section covers the following:
+\
+\   * Cool down lasers
+\
+\   * Make calls to update the dashboard
+\ *****************************************************************************
+
+.^MLOOP
+ LDA #1                 ; Set 6522 System VIA interrupt enable register IER
+ STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. disable the CA2 interrupt)
+
+ LDX #&FF               ; Reset the 6502 stack pointer, which clears the stack
+ TXS
+
+ LDX GNTMP              ; If the laser temperature in GNTMP is non-zero,
+ BEQ EE20               ; decrement it (i.e. cool it down a bit))
  DEC GNTMP
 
-.EE20                   ; cold laser
+.EE20
 
- JSR DIALS              ; update flight console
- LDA QQ11               ; menu i.d.
- BEQ P%+11              ; if space view skip small delay and visit TT17
- AND PATG               ; PATG = &FF if credits have been enabled
- LSR A                  ; carry loaded?
- BCS P%+5               ; skip delay
- JSR DELAY-5            ; small length of delay counter
+ JSR DIALS              ; Call DIALS to update the dashboard
 
- JSR TT17               ; returns with X,Y from arrow keys or joystick used
-}
+ LDA QQ11               ; If this is a space view, skip the following four
+ BEQ P%+11              ; instructions (i.e. jump to JSR TT17 below)
+
+ AND PATG               ; If PATG = &FF (author names are shown on start-up)
+ LSR A                  ; and bit 0 of QQ11 is 1, then skip the following
+ BCS P%+5               ; instruction
+
+ JSR DELAY-5            ; Delay for 8 line scans
+
+ JSR TT17               ; Scan the keyboard for the cursor keys or joystick
 
 \ *****************************************************************************
-\ Subroutine: FRCE
+\ Subroutine: Main game loop (Part 6)
 \
-\ Join the main game loop with a key already "pressed". This lets us jump into
-\ the loop with a specific action to perform, as defined by the value of the
-\ fake key press. In practice, this is used when we enter the docking bay in
-\ BAY to display Status Mode (red key F8), and when we finish buying or selling
-\ cargo in BAY2 to jump to the Inventory (red key F9). This subroutine also
-\ forms the end of the main game loop.
+\ Exposed labels: FRCE
 \
-\ Arguments:
+\ This is part of the main game loop. This section covers the following:
+\
+\   * Process more keypresses (red function keys, docked keys etc.)
+\
+\   * Support joining the main loop with a key already "pressed", so we can
+\     jump into the main game loop to perform a specific action. In practice,
+\     this is used when we enter the docking bay in BAY to display Status Mode
+\     (red key F8), and when we finish buying or selling cargo in BAY2 to jump
+\     to the Inventory (red key F9).
+\
+\ Arguments for FRCE:
 \
 \   A           The internal key number of the key we want to "press"
 \ *****************************************************************************
 
-.FRCE
-{
+.^FRCE
+
  JSR TT102              ; Call TT102 to process the keypress in A
 
  LDA QQ12               ; Fetch the docked flag from QQ12 into A
 
  BNE MLOOP              ; If we are docked, loop back up to MLOOP just above
-                        ; to join the main loop
+                        ; to restart the main loop, but skipping all the flight
+                        ; and spawning code in the top part of the main loop
 
- JMP TT100              ; Otherwise jump to TT100 to start spawning ships
+ JMP TT100              ; Otherwise jump to TT100 to restart the main loop from
+                        ; the start
 }
 
 \ *****************************************************************************
 \ Subroutine: tha
 \
-\ ?
+\ Consider spawning a Thargoid (22% chance).
 \ *****************************************************************************
 
 .tha
@@ -16915,17 +17216,32 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: BAD
 \
-\ Legal status from Cargo scan
+\ Work out how bad the player is from the amount of contraband in their hold.
+\ The formula is:
+\
+\   (slaves + narcotics) * 2 + firearms
+\
+\ so slaves and narcotics are twice as illegal as firearms. The value in FIST
+\ (the player's legal status) is set to a minimum of this value whenever the
+\ player launches from a space station, and a FIST of 50 or more is fugitive
+\ status, so leaving a station carrying 25 tonnes of slaves/narcotics, or 50
+\ tonnes of firearms across multiple trips, is enough to make the player a
+\ fugitive.
 \ *****************************************************************************
 
 .BAD                    ; Legal status from Cargo scan
 {
- LDA QQ20+3             ; cargo slaves
- CLC
- ADC QQ20+6             ; narcotics
- ASL A                  ; slaves and narcotics penalty doubled
- ADC QQ20+10            ; add firearms
- RTS                    ; FIST = 64 is cop-killer. Same as 32 tons of Slave or Narcotics.
+ LDA QQ20+3             ; Set A to the number of tonnes of slaves in the hold
+
+ CLC                    ; Clear the carry flag so we can do addition without
+                        ; the carry flag affecting the result
+
+ ADC QQ20+6             ; Add the number of tonnes of narcotics in the hold
+
+ ASL A                  ; Double the result and add the number of tonnes of
+ ADC QQ20+10            ; firearms in the hold
+
+ RTS                    ; Return from subroutine
 }
 
 \ *****************************************************************************
@@ -17008,7 +17324,7 @@ LOAD_F% = LOAD% + P% - CODE%
  STY INWK+7             ; zhi
  STY INWK+32            ; ai dumb, no ecm.
  DEY                    ; #&FF
- STY MCNT               ; move count
+ STY MCNT               ; Fetch main loop counter
  STY LASCT              ; laser count
  EOR #42                ; flip every other bit below 64 0010 1010
  STA INWK+3             ; ylo
@@ -17474,8 +17790,10 @@ ENDIF
  LDA #123
  JSR TT27
  JSR DEL8
- LDA #&81
- STA SHEILA+&4E
+
+ LDA #&81               ; Clear 6522 System VIA interrupt enable register IER
+ STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. enable the CA2 interrupt)
+
  LDA #15
  TAX
  JSR OSBYTE
@@ -17483,8 +17801,9 @@ ENDIF
  LDY #HI(RLINE)
  LDA #0                 ; RLINE at &39E9 for OSWORD = 0
  JSR OSWORD             ; read input string
- \LDA #1
- \STA SHEILA+&4E
+
+\LDA #1                 ; Set 6522 System VIA interrupt enable register IER
+\STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. disable the CA2 interrupt)
  BCS TR1                ; else carry set if escape hit
  TYA                    ; accepted string length
  BEQ TR1                ; if 0 reset name from NA% to INWK+5
@@ -17634,8 +17953,8 @@ ENDIF
  INY                    ; #&0C
  STY &C0F               ; &0C00 is end address of data to save
 
- LDA #&81
- STA SHEILA+&4E
+ LDA #&81               ; Clear 6522 System VIA interrupt enable register IER
+ STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. enable the CA2 interrupt)
  INC SVN
  LDA #0
  JSR QUS1
@@ -18833,7 +19152,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 
 .OUCH                   ; Shield depleted and taking hits to energy, lose cargo/equipment.
 {
- JSR DORND              ; do random, new A, X.
+ JSR DORND              ; Set A and X to random numbers
  BMI out                ; rts, 50% prob
  CPX #22                ; max equipment
  BCS out                ; item too high
@@ -21736,7 +22055,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Variable: SHIP11
 \
-\ Cargo cannister definition
+\ Cargo canister definition
 \ *****************************************************************************
 
 .SHIP11
