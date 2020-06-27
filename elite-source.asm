@@ -3142,16 +3142,14 @@ LOAD_A% = LOAD%
  AND #%11111010         ; LASCT will be set to 0 for beam lasers, and to the
  STA LASCT              ; laser power AND %11111010 for pulse lasers (which
                         ; have a laser power of 15, or %1111, so LASCT gets
-                        ; set to %11111010 AND %1111 = %1010 = 10, so the
+                        ; set to %1111 AND %11111010 = %1010 = 10, so the
                         ; laser will pulse once every 10 line scans, or five
                         ; times a second)
-
-                        ; Fall through into MA3 to start moving things around
 
 \ *****************************************************************************
 \ Subroutine: M% (Part 4)
 \
-\ Exposed labels: MAL1
+\ Other entry points: MAL1
 \
 \ M% runs as part of the main loop. This section of M% covers the following:
 \
@@ -3271,7 +3269,7 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: M% (Part 5)
 \
-\ Exposed labels: GOIN
+\ Other entry points: GOIN
 \
 \ M% runs as part of the main loop. This section of M% covers the following:
 \
@@ -4450,7 +4448,7 @@ Q% = _ENABLE_MAX_COMMANDER
 \ *****************************************************************************
 \ Variable: NA%
 \
-\ Exposed labels: CHK, CHK2
+\ Other entry points: CHK, CHK2
 \
 \ Contains the last saved commander data, with the name at NA% and the data at
 \ NA%+8 onwards. The size of the data block is given in NT%. This block is
@@ -6430,7 +6428,7 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: TT26
 \
-\ Exposed labels: RR3, RREN, RR4, rT9, R5
+\ Other entry points: RR3, RREN, RR4, rT9, R5
 \
 \ Print a character at the text cursor (XC, YC), do a beep, print a newline,
 \ or delete left (backspace).
@@ -9060,7 +9058,7 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: BUMP2
 \
-\ Exposed labels: RE2
+\ Other entry points: RE2
 \
 \ Increase ("bump up") X by A, where X is either the current rate of pitch or
 \ the current rate of roll.
@@ -9115,7 +9113,7 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: REDU2
 \
-\ Exposed labels: RE3
+\ Other entry points: RE3
 \
 \ Reduce X by A, where X is either the current rate of pitch or the current
 \ rate of roll.
@@ -9698,7 +9696,7 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: LYN
 \
-\ Exposed labels: SC5
+\ Other entry points: SC5
 \
 \ Most of bytes on Row (2) set to Acc.
 \ *****************************************************************************
@@ -10222,7 +10220,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT25
 \
-\ Exposed labels: TT72
+\ Other entry points: TT72
 \
 \ Display Data on System (red key f6).
 \
@@ -13416,7 +13414,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: TT42
 \
-\ Exposed labels: TT44
+\ Other entry points: TT44
 \
 \ Print a letter in lower case.
 \
@@ -13695,7 +13693,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: ex
 \
-\ Exposed labels: TT48
+\ Other entry points: TT48
 \
 \ Print a recursive token.
 \
@@ -16712,7 +16710,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: Main game loop (Part 2)
 \
-\ Exposed labels: TT100, me3
+\ Other entry points: TT100, me3
 \
 \ This is part of the main game loop. This section covers the following:
 \
@@ -16864,8 +16862,8 @@ LOAD_F% = LOAD% + P% - CODE%
 
  ASL A                  ; Double A to a maximum of 80 or 140
 
- LDX MANY+COPS          ; If there are no cops in the local bubble, skip the next
- BEQ P%+5               ; instruction
+ LDX MANY+COPS          ; If there are no cops in the local bubble, skip the
+ BEQ P%+5               ; next instruction
 
  ORA FIST               ; There are cops in the vicinity and we've got a hold
                         ; full of jail time, so OR the value in A with FIST to
@@ -16999,7 +16997,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: Main game loop (Part 5)
 \
-\ Exposed labels: MLOOP
+\ Other entry points: MLOOP
 \
 \ This is part of the main game loop. This section covers the following:
 \
@@ -17009,8 +17007,9 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 
 .^MLOOP
- LDA #1                 ; Set 6522 System VIA interrupt enable register IER
- STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. disable the CA2 interrupt)
+ LDA #%00000001         ; Set 6522 System VIA interrupt enable register IER
+ STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. disable the CA2 interrupt,
+                        ; which comes from the keyboard)
 
  LDX #&FF               ; Reset the 6502 stack pointer, which clears the stack
  TXS
@@ -17037,7 +17036,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: Main game loop (Part 6)
 \
-\ Exposed labels: FRCE
+\ Other entry points: FRCE
 \
 \ This is part of the main game loop. This section covers the following:
 \
@@ -17371,7 +17370,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT170
 \
-\ Exposed labels: BR1
+\ Other entry points: BR1
 \
 \ Entry point for Elite game code. Also called following death or quitting a
 \ game (by pressing Escape when paused).
@@ -17790,8 +17789,9 @@ ENDIF
  JSR TT27
  JSR DEL8
 
- LDA #&81               ; Clear 6522 System VIA interrupt enable register IER
- STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. enable the CA2 interrupt)
+ LDA #%10000001         ; Clear 6522 System VIA interrupt enable register IER
+ STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. enable the CA2 interrupt
+                        ; which comes from the keyboard)
 
  LDA #15
  TAX
@@ -17801,8 +17801,10 @@ ENDIF
  LDA #0                 ; RLINE at &39E9 for OSWORD = 0
  JSR OSWORD             ; read input string
 
-\LDA #1                 ; Set 6522 System VIA interrupt enable register IER
-\STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. disable the CA2 interrupt)
+\LDA #%00000001         ; Set 6522 System VIA interrupt enable register IER
+\STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. disable the CA2 interrupt,
+                        ; which comes from the keyboard)
+
  BCS TR1                ; else carry set if escape hit
  TYA                    ; accepted string length
  BEQ TR1                ; if 0 reset name from NA% to INWK+5
@@ -17952,14 +17954,23 @@ ENDIF
  INY                    ; #&0C
  STY &C0F               ; &0C00 is end address of data to save
 
- LDA #&81               ; Clear 6522 System VIA interrupt enable register IER
- STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. enable the CA2 interrupt)
+ LDA #%10000001         ; Clear 6522 System VIA interrupt enable register IER
+ STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. enable the CA2 interrupt,
+                        ; which comes from the keyboard)
+
  INC SVN
  LDA #0
  JSR QUS1
  LDX #0
- \STX SHEILA+&4E
+
+ \STX SHEILA+&4E        ; This instruction is commented out in the original
+                        ; source. It would affect the 6522 System VIA interrupt
+                        ; enable register IER (SHEILA &4E) if any of bits 0-6
+                        ; of X were set, but they aren't, so this instruction
+                        ; would have no effect anyway.
+
  \DEX
+
  STX SVN
  JMP BAY
 }
@@ -18980,7 +18991,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \ *****************************************************************************
 \ Subroutine: TT217
 \
-\ Exposed labels: out
+\ Other entry points: out
 \
 \ Scan the keyboard until a key is pressed, and return the key's ASCII code.
 \ If, om entry, a key is already being held down, then wait until that key is
