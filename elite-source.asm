@@ -3924,7 +3924,7 @@ LOAD_A% = LOAD%
  BNE P%+3
  RTS                    ; Z=Z-d \ their comment
 
-.notsun                 ; All except Suns
+                        ; All except Suns
 
  LDY #9                 ; select row
  JSR MVS4               ; pitch&roll update to rotmat
@@ -8369,7 +8369,7 @@ NEXT
  LDA #0
  LDX #8                 ; counter unwind?
  LSR P
-{
+
 .MUL6                   ; counter X
 
  BCC P%+4               ; low bit of P lo clear
@@ -8379,7 +8379,6 @@ NEXT
  DEX
  BNE MUL6               ; loop X unwind?
  RTS                    ; Xreg = 0
-}
 }
 
 \ *****************************************************************************
@@ -8442,24 +8441,24 @@ NEXT
 }
 
 \ *****************************************************************************
-\ Subroutine: MULTU6
+\ Subroutine: Unused repeat of MULTU?
 \
 \ AP=P*Qunsg \ Repeat of multu not needed?
+\ Has label MULTU6 in disk version?
 \ *****************************************************************************
 
-.MULTU6                 ; AP=P*Qunsg \ Repeat of multu not needed?
+                        ; AP=P*Qunsg \ Repeat of multu not needed?
 {
  LDX Q
  BEQ MU1                ; up, P = Acc = Xreg = 0
  
-.MU116	                ; P*X will be done
-
+      	                ; P*X will be done
  DEX
  STX T                  ; = Q-1 as carry will be set for addition
  LDA #0
  LDX #8                 ; counter
  LSR P
-{
+
 .MUL6                   ; counter X
 
  BCC P%+4               ; low bit of P lo clear
@@ -8469,7 +8468,7 @@ NEXT
  DEX
  BNE MUL6               ; loop X
  RTS                    ; Repeat of mul6 not needed ?
-}
+
 }
 
 \ *****************************************************************************
