@@ -14392,17 +14392,32 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: DET1
 \
-\ Death with X = 24 text rows
+\ Set the screen to show the number of text rows given in X. This is used when
+\ the player is killed, as reducing the number of rows from the usual 31 to 24
+\ has the effect of hiding the dashboard, leaving a monochrome image of ship
+\ debris and explosion clouds. Increasing the rows back up to 31 makes the
+\ dashboard reappear, as the dashboard's screen memory doesn't get touched by
+\ this process.
+\
+\ Arguments:
+\
+\   X           The number of text rows to display on screen (24 will hide the
+\               dashboard, 31 will make it reappear)
 \ *****************************************************************************
 
-.DET1                   ; Death with X = 24 text rows
+.DET1
 {
- LDA #6                 ; R6 number of displayed Character rows
- SEI                    ; disable other interrupts
- STA SHEILA+&00         ; 6845 register
- STX SHEILA+&01         ; 6845 data
- CLI                    ; enable interrupts
- RTS
+ LDA #6                 ; Set A to 6 so we can update 6845 register R6 below
+
+ SEI                    ; Disable interrupts so we can update the 6845
+
+ STA SHEILA+&00         ; Set 6845 register R6 to the value in X. Register R6
+ STX SHEILA+&01         ; is the "vertical displayed" register, which sets the
+                        ; number of rows shown on screen
+
+ CLI                    ; Re-enable interrupts
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
