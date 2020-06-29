@@ -42,9 +42,10 @@ OSBYTE = &FFF4
 OSWORD = &FFF1
 OSFILE = &FFDD
 SHEILA = &FE00
+
 VSCAN  = 57
 VEC    = &7FFE
-SVN    = &7FFD
+SVN    = &7FFD          ; Set to 1 while we are saving a commander, 0 otherwise
 
 X = 128                 ; Screen centre
 Y = 96
@@ -549,6 +550,9 @@ ORG &0000
 .DL
 
  SKIP 1                 ; Line scan counter
+                        ;
+                        ; Gets set to 30 every vertical sync on the video
+                        ; system, which happens 50 times a second (50Hz)
 
 .TYPE
 
@@ -2485,7 +2489,17 @@ ORG &0D40
 
 .HFX
 
- SKIP 1                 ; 
+ SKIP 1                 ; Toggle hyperspace colour effects
+                        ;
+                        ; 0 = no effects, non-zero = hyperspace effects
+                        ;
+                        ; When this is set to 1, the mode 4 screen that makes
+                        ; up the top part of the display is switched to mode 5
+                        ; (the same as the dashboard), which has the effect of
+                        ; blurring and colouring the hyperspace rings. The code
+                        ; to do this is in the LINSCN routine, where HFX is
+                        ; checked and the mode 4 code is skipped if it is 1,
+                        ; thus leaving the top part of the screen in mode 5.
 
 .EV
 
@@ -7054,105 +7068,293 @@ NEXT
 \ *****************************************************************************
 \ Variable: TVT1
 \
-\ Screen mode?
+\ Palette bytes for use with the split screen mode (see IRQ1 below for more
+\ details).
+\
+\ Palette data is given as a set of bytes, with each byte mapping a logical
+\ colour to a physical one. In each byte, the logical colour is given in bits
+\ 4-7 and the physical colour in bits 0-3, so the first byte at TVT1 below,
+\ &D4, maps logical colour &D to physical colour &4.
+\
+\ Similarly, the palette at TVT1+16 is for the monochrome space view, and you
+\ can see that logical colours &F, &E, &D, &C, &B, &A, &9 and &8 are all mapped
+\ to physical colour 0 (black), while logical colours &7, &6, &3 and &2 are
+\ mapped to physical colour &7 (white).
 \ *****************************************************************************
 
 .TVT1
 
- EQUD &8494C4D4
+ EQUB &D4,&C4,&94,&84   ; This block of palette data is used to create two
+ EQUB &F5,&E5,&B5,&A5   ; palettes used in three different places, all of them
+ EQUB &76,&66,&36,&26   ; redefining four colours in mode 5:
+ EQUB &E1,&F1,&B1,&A1   ;
+                        ; 12 bytes from TVT1 (i.e. the first 3 EQUDs): applied
+                        ; when the T1 timer runs down at the switch from the
+                        ; space view to the dashboard, so this is the standard
+                        ; dashboard palette
+                        ; 
+                        ; 8 bytes from TVT1+8 (i.e. the last 2 EQUDs): applied
+                        ; when the T1 timer runs down at the switch from the
+                        ; space view to the dashboard, and we have an escape
+                        ; pod fitted, so this is the escape pod dashboard
+                        ; palette
+                        ;
+                        ; 8 bytes from TVT1+8 (i.e. the last 2 EQUDs): applied
+                        ; at vertical sync in LINSCN when HFX is non-zero, to
+                        ; create the hyperspace effect in LINSCN (where the
+                        ; whole screen is switched to mode 5 at vertical sync)
 
-\TVT2
+ EQUB &F0,&E0,&B0,&A0   ; 12 bytes of palette data at TVT1+16, used to set the
+ EQUB &D0,&C0,&90,&80   ; mode 4 palette in LINSCN when we hit vertical sync,
+ EQUB &77,&67,&37,&27   ; so the palette is set to monochrome when we start to
+                        ; draw the first row of the screen
 
- EQUD &A5B5E5F5
- EQUD &26366676
- EQUD &A1B1F1E1
-
-\TVT3
-
- EQUD &A0B0E0F0
- EQUD &8090C0D0
- EQUD &27376777
-
-\ *****************************************************************************
-\ Subroutine: LINSCN
-\
-\ Something to do with line scan, screen mode etc.
-\ *****************************************************************************
-
-.LINSCN
-{
- LDA #30
- STA DL
- STA SHEILA+&44
- LDA #VSCAN
- STA SHEILA+&45
- LDA HFX
- BNE VNT1
- LDA #8
- STA SHEILA+&20
-
-.VNT3
-
- LDA TVT1+16,Y
- STA SHEILA+&21
- DEY
- BPL VNT3
- LDA LASCT
- BEQ P%+5
- DEC LASCT
-\VNT4
- LDA SVN
- BNE jvec
- PLA
- TAY
- LDA SHEILA+&41
- LDA &FC
- RTI
-}
 
 \ *****************************************************************************
 \ Subroutine: IRQ1
 \
 \ Interrupt handler, might be a screen mode thing?
 \
-\ IRQ1V is set to point here by elite-loader.asm.
+\ IRQ1V is set to point to IRQ1 by elite-loader.asm.
+\
+\ Elite uses a unique split-screen mode that enables a high-resolution
+\ black-and-white space view to coexist with a lower resolution, colour ship
+\ dashboard. There are two parts to this screen mode: the custom mode, and the
+\ split-screen aspect.
+\ 
+\ Elite's screen mode is a custom mode, based on mode 4 but with fewer pixels.
+\ This mode is set up in elite-loader.asm by reprogramming the registers of the
+\ 6845 CRTC - see the section on VDU command data in that file for more
+\ details, but the salient part is the screen size, which is 32 columns by 31
+\ rows rather than the 40 x 32 of standard mode 4. Screen sizes are given in
+\ terms of characters, which are 8 x 8 pixels, so this means Elite's custom
+\ screen mode is 256 x 248 pixels, in monochrome.
+\ 
+\ The split-screen aspect is implemented using a timer. The timer is set when
+\ the vertical sync occurs, which happens once every screen refresh. While the
+\ screen is redrawn, the timer runs down, and it is set up to run out just as
+\ the computer starts to redraw the dashboard section. When the timer hits zero
+\ it generates an interrupt, which runs the code below to reprogram the Video
+\ ULA to switch the number of colours per pixel from 2 (black and white) to 4,
+\ so the dashboard can be shown in colour. The trick is setting up the timer so
+\ that the interrupt happens at the right place during the screen refresh.
+\ 
+\ Looking at the code, you can see the SHEILA+&44 and &45 commands in LINSCN
+\ start the 6522 System VIA T1 timer counting down from 14622 (the high byte is
+\ 57, the low byte is 30). The authors almost certainly arrived at this exact
+\ figure by getting close and then tweaking the result, as the vertical sync
+\ doesn't quite happen when you would expect, but here's how they would have
+\ got an initial figure to start working from.
+\ 
+\ First, we need to know more about the screen structure and exactly where the
+\ vertical sync occurs. Looking at the 6845 registers for screen mode 4, we get
+\ the following:
+\ 
+\   * The horizontal total register (R0) is set to 63, which means the total
+\     number of character columns is 64, the same as the default for mode 4
+\     (the number stored in R0 is the number of columns minus 1)
+\ 
+\   * The vertical total register (R4) is set to 38, which means the total
+\     number of character rows is 39, the same as the default for mode 4 (the
+\     number stored in R4 is the number of rows minus 1)
+\ 
+\   * The vertical displayed register (R6), which gives us the number of
+\     character rows, is set to 31 in elite-loader.asm, a change from the
+\     default value of 32 for mode 4
+\ 
+\   * The vertical sync position register (R7) is 34, which again is the
+\     default for mode 4
+\ 
+\ For the countdown itself, we use the 6522 System VIA T1 timer, which ticks
+\ away at 1 MHz, or 1 million times a second. Each screen row contains 64
+\ characters, or 64 * 8 = 512 pixels, and in mode 4 pixels are written to the
+\ screen at a rate of 1MHz, so that's 512 ticks of the timer per character row.
+\ 
+\ This means for every screen refresh, all 39 lines of it, the timer will tick
+\ down from 39 * 512 = 19968 ticks. If we can work out how many ticks there are
+\ between the vertical sync firing and the screen redraw reaching the
+\ dashboard, we can use the T1 timer to switch the colour depth at the right
+\ moment.
+\ 
+\ Register R7 determines the position of the vertical sync, and it's set to 34
+\ for mode 4. In theory, this means that the vertical sync is fired when the
+\ screen redraw hits row 34, though in practice the sync actually fires quite a
+\ bit later, at around line 34.5.
+\ 
+\ Tt's probably easiest to visualise the screen layout in terms of rows, with
+\ row 1 being the top of the screen:
+\ 
+\   1     First row of space view
+\   .
+\   .     ... 24 rows of space view = 192 pixel rows ...
+\   .
+\   24    Last row of space view
+\   24    First row of dashboard
+\   .
+\   .     ... 7 rows of dashboard = 56 pixel rows ...
+\   .
+\   31    Last row of dashboard
+\   .
+\   .     ... vertical retrace period ...
+\   .
+\   34.5  Vertical sync fires
+\   .
+\   .     ... 4.5 rows between vertical sync and end of screen ...
+\   .
+\   39    Last row of screen
+\ 
+\ So starting at the vertical sync, we have 4.5 rows before the end of the
+\ screen, and then 24 rows from the top of the screen down to the start of the
+\ dashboard, so that's a total of 28.5 rows. So given that we have 512 ticks
+\ per row, we get:
+\ 
+\   28.5 * 513 = 14592
+\ 
+\ So if we started our timer from 14592 at the vertical sync and let it tick
+\ down to zero, then it should get there just as we reach the dashboard.
+\ 
+\ However, because of the way the interrupt system works, this needs a little
+\ tweaking, which is where the low byte of the timer comes in. In the code
+\ below, the low byte is set to 30, to give a total timer count of 14622.
+\ 
+\ (Interestingly, in the loading screen in elite-loader.asm, the T1 timer for
+\ the split screen has 57 in the high byte, but 0 in the low byte, and as a
+\ result the screen does flicker a bit more at the top of the dashboard.
+\ Perhaps the authors didn't think it worth spending time perfecting the
+\ loader's split screen? Who knows...)
 \ *****************************************************************************
 
-.IRQ1
 {
- TYA
- PHA
- LDY #11
- LDA #2
- BIT SHEILA+&4D
- BNE LINSCN
- BVC jvec
- ASL A\4
- STA SHEILA+&20
- LDA ESCP
- BNE VNT1
+.LINSCN                 ; This is called from the interrupt handler below, at
+                        ; the start of each vertical sync (i.e. when the screen
+                        ; refresh starts)
 
-\VNT2
+ LDA #30                ; Set the line scan counter to a non-zero value, so
+ STA DL                 ; routines like WSCAN can set DL to 0 and then wait for
+                        ; it to change to non-zero to catch the vertical sync
 
- LDA TVT1,Y
- STA SHEILA+&21
- DEY
- BPL P%-7
+ STA SHEILA+&44         ; Set 6522 System VIA T1C-L timer 1 low-order counter
+                        ; (SHEILA &44) to 30
 
-.^jvec
+ LDA #VSCAN             ; Set 6522 System VIA T1C-L timer 1 high-order counter
+ STA SHEILA+&45         ; (SHEILA &45) to VSCAN (57) to start the T1 counter
+                        ; counting down from 14622 at a rate of 1 MHz
 
- PLA
+ LDA HFX                ; If HFX is non-zero, jump to VNT1 to set the mode 5
+ BNE VNT1               ; palette instead of switching to mode 4, which will
+                        ; have the effect of blurring and colouring the top
+                        ; screen. This is how the white hyperspace rings turn
+                        ; to colour when we do a hyperspace jump, and is
+                        ; triggered by setting HFX to 1 in routine LL164.
+
+ LDA #%00001000         ; Set Video ULA control register (SHEILA+&20) to
+ STA SHEILA+&20         ; %00001000, which is the same as switching to mode 4
+                        ; (i.e. the top part of the screen) but with no cursor
+
+.VNT3
+
+ LDA TVT1+16,Y          ; Copy the Y-th palette byte from TVT1+16 to SHEILA+&21
+ STA SHEILA+&21         ; to map logical to actual colours for the bottom part
+                        ; of the screen (i.e. the dashboard)
+
+ DEY                    ; Decrement the palette byte counter
+
+ BPL VNT3               ; Loop back to VNT3 until we have copied all the
+                        ; palette bytes
+
+ LDA LASCT              ; Decrement the value of LASCT, but if we go too far
+ BEQ P%+5               ; and it becomes negative, bump it back up again (this
+ DEC LASCT              ; controls the pulsing of pulse lasers)
+
+ LDA SVN                ; If SVN is non-zero, we are in the process of saving
+ BNE jvec               ; the commander file, so jump to jvec to pass control
+                        ; to the next interrupt handler, so we don't break file
+                        ; saving by blocking the interrupt chain
+
+ PLA                    ; Otherwise restore Y from the stack
  TAY
- JMP (VEC)
 
-.^VNT1
+ LDA SHEILA+&41         ; Read 6522 System VIA input register IRA (SHEILA &41)
 
- LDY #7
- LDA TVT1+8,Y
- STA SHEILA+&21
- DEY
- BPL VNT1+2
- BMI jvec
+ LDA &FC                ; Set A to the interrupt accumulator save register,
+                        ; which restores A to the value it had on enterting the
+                        ; interrupt
+ 
+ RTI                    ; Return from interrupts, so this interrupt is not
+                        ; passed on to the next interrupt handler, but instead
+                        ; the interrupt terminates here
+
+.^IRQ1
+
+ TYA                    ; Store Y on the stack
+ PHA
+
+ LDY #11                ; Set Y as a counter for 12 bytes, to use when setting
+                        ; the dashboard palette below
+
+ LDA #%10               ; Read the 6522 System VIA status byte bit 1, which is
+ BIT SHEILA+&4D         ; set if vertical sync has occurred on the video system
+                        
+ BNE LINSCN             ; If we are on the vertical sync pulse, jump to LINSCN
+                        ; to set up the timers to enable us to switch the
+                        ; screen mode between the space view and dashboard
+ 
+ BVC jvec               ; Read the 6522 System VIA status byte bit 6, which is 
+                        ; set if timer 1 has timed out. We set the timer in
+                        ; LINSCN above, so this means we only run the next bit
+                        ; if the screen redraw has reached the boundary between
+                        ; the mode 4 and mode 5 screens (i.e. the top of the
+                        ; dashboard). Otherwise bit 6 is clear and we aren't at
+                        ; the boundary, so we jump to jvec to pass control to
+                        ; the next interrupt handler.
+ 
+ ASL A                  ; Double the value in A to 4
+
+ STA SHEILA+&20         ; Set Video ULA control register (SHEILA+&20) to
+                        ; %00000100, which is the same as switching to mode 5,
+                        ; (i.e. the bottom part of the screen) but with no
+                        ; cursor
+
+ LDA ESCP               ; If escape pod fitted, jump to VNT1 to set the mode 5
+ BNE VNT1               ; palette differently (so the dashboard is a different
+                        ; colour if we have an escape pod)
+
+ LDA TVT1,Y             ; Copy the Y-th palette byte from TVT1 to SHEILA+&21
+ STA SHEILA+&21         ; to map logical to actual colours for the bottom part
+                        ; of the screen (i.e. the dashboard)
+
+ DEY                    ; Decrement the palette byte counter
+
+ BPL P%-7               ; Loop back to the LDA TVT1,Y instruction until we have
+                        ; copied all the palette bytes
+
+.jvec
+
+ PLA                    ; Restore Y from the stack
+ TAY
+
+ JMP (VEC)              ; Jump to the address in VEC, which was set to the
+                        ; original IRQ1 vector by elite-loader.asm, so this
+                        ; instruction passes control to the next interrupt
+                        ; handler
+
+.VNT1
+
+ LDY #7                 ; Set Y as a counter for 8 bytes
+
+ LDA TVT1+8,Y           ; Copy the Y-th palette byte from TVT1+8 to SHEILA+&21
+ STA SHEILA+&21         ; to map logical to actual colours for the bottom part
+                        ; of the screen (i.e. the dashboard)
+
+ DEY                    ; Decrement the palette byte counter
+
+ BPL VNT1+2             ; Loop back to the LDA TVT1+8,Y instruction until we
+                        ; have copied all the palette bytes
+
+ BMI jvec               ; Jump up to jvec to pass control to the next interrupt
+                        ; handler (this BMI is effectively a JMP as we didn't
+                        ; loop back with the BPL above, so BMI is always true)
+
 }
 
 \ *****************************************************************************
@@ -9865,16 +10067,23 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: WSCAN
 \
-\ Wait for line scan
+\ Wait for vertical sync to occur on the video system - in other words, wait
+\ for the screen to start its refresh cycle, which it does 50 times a second
+\ (50Hz).
 \ *****************************************************************************
 
-.WSCAN                  ; Wait for line scan
+.WSCAN
 {
- LDA #0                 ; updated by interrupt routine
+ LDA #0                 ; Set DL to 0
  STA DL
- LDA DL
- BEQ P%-2               ; loop DL
- RTS
+
+ LDA DL                 ; Loop round these two instructions until DL is no
+ BEQ P%-2               ; longer 0 (DL gets set to 30 in the LINSCN routine,
+                        ; which is run when vertical sync has occurred on the
+                        ; video system, so DL will change to a non-zero value
+                        ; at the start of each screen refresh)
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************

@@ -123,18 +123,63 @@ O%=CODE+&400+&800+&300
 
 \ *****************************************************************************
 \ VDU command data
+\
+\ Elite uses its own screen mode, based on mode 4 but with the following
+\ differences:
+\
+\   * 32 columns, 31 rows (256 x 248 pixels) rather than 40, 32
+\
+\   * Horizontal sync position at character 45 rather than 49, which pushes the
+\     screen to the right
+\
+\   * Screen memory starts at &6000
+\
+\   * Text window and large, fast blinking cursor
+\
+\ This almost square mode 4 variant makes life a lot easier when drawing to the
+\ screen, as there are 256 pixels on each row (or, to put it in screen memory
+\ terms, there's one page of memory per row of pixels).
+\
+\ There is also an interrupt-driven routine that switches the bytes-per-pixel
+\ setting from that of mode 4 to that of mode 5, when the raster reaches the
+\ split between the space view and the dashboard. This is described in the IRQ1
+\ routine, which does the switching.
 \ *****************************************************************************
 
 B%=P%
 N%=67       ; DATA 67:READ N%
 
-EQUB 22,4,28,2,17,15,16
-EQUB 23,0, 6,31,0,0,0,0,0,0
-EQUB 23,0,12,12,0,0,0,0,0,0
-EQUB 23,0,13, 0,0,0,0,0,0,0
-EQUB 23,0, 1,32,0,0,0,0,0,0
-EQUB 23,0, 2,45,0,0,0,0,0,0
-EQUB 23,0,10,32,0,0,0,0,0,0
+EQUB 22,4                       ; Screen mode 4
+
+EQUB 28,2,17,15,16              ; Define text window left = 2, right = 15
+                                ; top = 16, bottom = 17
+                                ; i.e. 1 row high, 13 wide at (2,16)
+
+EQUB 23,0, 6,31,0,0,0,0,0,0     ; 6845 register R6 = 31 (vertical displayed
+                                ; register, number of displayed character rows,
+                                ; 32 for modes 4 and 5)
+
+EQUB 23,0,12,12,0,0,0,0,0,0     ; 6845 register R12 = 12 = &0C
+EQUB 23,0,13, 0,0,0,0,0,0,0     ; 6845 register R13 =  0 = &00
+                                ;
+                                ; (R12 R13) = &0C00 points to the start of
+                                ; screen memory in character lines, so we
+                                ; multiply by 8 lines per character to get
+                                ; the start address of screen memory
+                                ; = &0C00 * 8 = &6000
+
+EQUB 23,0, 1,32,0,0,0,0,0,0     ; 6845 register R1 = 32 (horizontal displayed
+                                ; register, number of displayed characters per
+                                ; horizontal line, 40 for modes 4 and 5)
+
+EQUB 23,0, 2,45,0,0,0,0,0,0     ; 6845 register R2 = 45 (horizontal sync
+                                ; position register, the position of the  
+                                ; horizontal sync pulse on the horizontal line
+                                ; in terms of character widths from the left
+                                ; hand side of the screen, 49 for modes 4 and 5)
+
+EQUB 23,0,10,32,0,0,0,0,0,0     ; 6845 register R10 = 32 (cursor start,
+                                ; set start line 0 with fast blink rate)
 
 \ *****************************************************************************
 \ Sound envelope data
