@@ -8928,45 +8928,153 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: MULT1
 \
-\ A.P=Q*A first part of MAD, multiply and add. Visited Quite often.
+\ Do the following multiplication of signed 8-bit numbers:
+\
+\   (A P) = Q * A
+\
+\ This routine implements simple multiplication of two 8-bit numbers into a
+\ 16-bit result using the "shift and add algorithm". Consider multiplying two
+\ example numbers, which we'll call p and a (as this makes it easier to map the
+\ following to the code below):
+\
+\   p * a = %00101001 * a
+\
+\ This is the same as:
+\
+\   p * a = (%00100000 + %00001000 + %00000001) * a
+\
+\ or:
+\
+\   p * a = %00100000 * a + %00001000 * a + %00000001 * a
+\
+\ or:
+\
+\   p * a = a << 5 + a << 3 + a << 0
+\
+\ or, to lay this out in the way we're used to seeing it in school books on
+\ long multiplication, if a is made up of binary digits aaaaaaaa, it's the same
+\ as:
+\
+\          00101001         p
+\          aaaaaaaa x       * a
+\   ---------------
+\          aaaaaaaa
+\         00000000
+\        00000000
+\       aaaaaaaa
+\      00000000
+\     aaaaaaaa
+\    00000000
+\   00000000        +
+\   ---------------
+\   xxxxxxxxxxxxxxx         -> the result of p * a
+\
+\ In other words, we can work our way through the digits in the first number p
+\ and every time there's a 1, we add an a to the result, shifted to the left by
+\ the position of that digit.
+\
+\ We could code this into assembly relatively easily, but Elite takes a rather
+\ more optimised route. Instead of shifting the number aaaaaaaa to the left for
+\ each addition, we can instead shift the entire result to the right, saving
+\ the bit that falls off the right end, and add an unshifted value of a. If you
+\ think of one of the sums in our longhand version like this:
+\ 
+\     a7a6a5a4a3a2a1a0
+\   a7a6a5a4a3a2a1a0   +
+\ 
+\ then instead of shifting the second number to the left, we can shift the
+\ first number to the right and save the rightmost bit, like this:
+\ 
+\     a7a6a5a4a3a2a1        -> result bit 0 is a0
+\   a7a6a5a4a3a2a1a0 +
+\ 
+\ So the reviews approach is to work our way through the digits in the first
+\ number p, shifting the result right every time and saving the rightmost bit
+\ in the final result, and every time there's a 1 in p, we add another a to the
+\ sum.
+\ 
+\ This is essentially what Elite does in this routine, but there is one more
+\ tweak that makes the process even more efficient (and even more confusing,
+\ especially when you first read through the code). Instead of saving the
+\ result bits out into a separate location, we can stick them onto the left end
+\ of p, because every time we shift p to the right, we gain a spare bit on the
+\ left end of p that we no longer use.
+\ 
+\ See http://nparker.llx.com/a2/mult.html for an explanation
 \ *****************************************************************************
 
-.MULT1                  ; A.P=Q*A first part of MAD, multiply and add. Visited Quite often.
+.MULT1
 {
- TAX                    ; Acc in
- AND #127
- LSR A
+ TAX                    ; Store A in X
+
+ AND #%01111111         ; Set P = |A| >> 1
+ LSR A                  ; and carry = bit 0 of A
  STA P
- TXA                    ; Acc in
- EOR Q
- AND #128               ; extract sign
- STA T
- LDA Q
- AND #127
- BEQ mu10               ; zero down
- TAX                    ; Q7
+
+ TXA                    ; Restore argument A
+
+ EOR Q                  ; Set bit 7 of A and T if Q and A have different signs,
+ AND #%10000000         ; clear bit 7 if they have the same signs, 0 all other
+ STA T                  ; bits, i.e. T contains the sign bit of Q * A
+
+ LDA Q                  ; Set A = |Q|
+ AND #%01111111
+
+ BEQ mu10               ; If |Q| = 0 jump to mu10 (with A set to 0)
+ 
+ TAX                    ; Set T1 = |Q| - 1
  DEX                    ; Q7-1  as carry will be set for addition
  STX T1
- LDA #0
- LDX #7                 ; counter X
 
-.MUL4                   ; Could unroll this loop
+                        ; We are now going to work our way through the bits of
+                        ; P, and do a shift-add for any bits that are set,
+                        ; keeping the running total in A. We already set up
+                        ; the first shift at the start of this routine, as
+                        ; P = |A| >> 1 and C = bit 0 of A, so we now need to set
+                        ; up a loop to sift through the other 7 bits in P.
+                        
+ LDA #0                 ; Set A = 0 so we can start building the answer in A
 
- BCC P%+4               ; skip add
- ADC T1                 ; Q7-1 as carry set
- ROR A                  ; both arrive
- ROR P
- DEX
- BNE MUL4               ; loop X
- LSR A                  ; hi
- ROR P
- ORA T                  ; sign
- RTS
+ LDX #7                 ; Set up a counter in X to count the 7 bits remaining
+                        ; in P
 
-.mu10                   ; zero down
+.MUL4
 
- STA P
- RTS
+ BCC P%+4               ; If C (i.e. the next bit from P) is set, do the
+ ADC T1                 ; addition for this bit of P:
+                        ;
+                        ;   A = A + T1 + C
+                        ;     = A + |Q| - 1 + 1
+                        ;     = A + |Q|
+
+ ROR A                  ; As mentioned above, this ROR shifts A right and
+                        ; catches bit 0 in C - giving another digit for our
+                        ; result - and the next ROR sticks that bit into the
+                        ; left end of P while also extracting the next bit of P
+                        ; for the next addition.
+
+ ROR P                  ; Add the overspill from shifting A to the right onto
+                        ; the start of P, and shift P right to fetch the next
+                        ; bit for the calculation
+
+ DEX                    ; Decrement the loop counter
+
+ BNE MUL4               ; Loop back for the next bit until P has been rotated
+                        ; all the way
+
+ LSR A                  ; Rotate (A P) once more to get the final result, as
+ ROR P                  ; we only pushed 7 bits through the above process
+
+ ORA T                  ; Set the sign bit of the result that we stored in T
+
+ RTS                    ; Return from the subroutine
+
+.mu10
+
+ STA P                  ; If we get here, the result is 0 and A = 0, so set
+                        ; P = 0 so (A P) = 0
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -9011,12 +9119,19 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: MAD
 \
-\ Multiply and Add   X.A = Q*A + R.S
+\ Multiply and add
+\
+\   (A X) = Q * A + (S R)
 \ *****************************************************************************
 
-.MAD                    ; Multiply and Add   X.A = Q*A + R.S
+.MAD
 {
- JSR MULT1              ; AP=Q * A, protects Y.
+ JSR MULT1              ; Call MULT1 to set (A P) = Q * A, protects Y
+
+                        ; Fall through into ADD to do:
+                        ;
+                        ;   (A X) = (A P) + (S R)
+                        ;         = Q * A + (S R)
 }
 
 \ *****************************************************************************
