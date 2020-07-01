@@ -385,14 +385,15 @@ ORG &0000
                         ; INWK+28 = acceleration
                         ; INWK+29 = rotx counter, 127 = no damping, damps roll
                         ; INWK+30 = rotz counter, 127 = no damping, damps pitch
-                        ; INWK+31 = exploding/display state, or missile count
+                        ; INWK+31 = exploding/killed state, or missile count
                         ;           Bit 5 = 0 (not exploding) or 1 (exploding)
-                        ;           Bit 7 = 0 (no debris) or 1 (with debris)
+                        ;           Bit 7 = 1 (ship has been killed)
                         ; INWK+32 = AI, hostitity and E.C.M.
                         ;           Bit 0 = 0 (no E.C.M.) or 1 (has E.C.M.)
                         ;           Bit 6 = 0 (friendly) or 1 (hostile)
                         ;           Bit 7 = 0 (dumb) or 1 (has AI)
                         ;           So &FF = AI, hostile, has E.C.M.
+                        ;           For space station, bit 7 set = angry
                         ; INWK+33 = ship lines heap space pointer lo
                         ; INWK+34 = ship lines heap space pointer hi
                         ; INWK+35 = ship energy
@@ -3260,8 +3261,8 @@ LOAD_A% = LOAD%
  BNE MA21               ; jump to BA21 as they can't explode more than once
 
  LDA INWK+31            ; The energy bomb is killing this ship, so set bit 7
- ORA #%10000000         ; of the ship's INWK+31 byte to indicate that it should
- STA INWK+31            ; explode with debris
+ ORA #%10000000         ; of the ship's INWK+31 byte to indicate that it has
+ STA INWK+31            ; now been killed
 
  JSR EXNO2              ; Call EXNO2 to process the fact that the player has
                         ; killed a ship (so increase the kill tally, make an
@@ -3309,9 +3310,9 @@ LOAD_A% = LOAD%
 \       scooping or colliding with it
 \ *****************************************************************************
 
- LDA INWK+31            ; Fetch the exploding status of this ship from bits 5
- AND #%10100000         ; (exploding state) and 7 (kill with debris) of INWK+31
-                        ; into A
+ LDA INWK+31            ; Fetch the status of this ship from bits 5 (is ship
+ AND #%10100000         ; exploding?) and bit 7 (has ship been killed?) from
+                        ; INWK+31 into A
 
  JSR MAS4               ; Or this value with x_hi, y_hi and z_hi
 
@@ -3440,38 +3441,59 @@ LOAD_A% = LOAD%
 \
 \ *****************************************************************************
 
-.ISDK                   ; is docking to SST nearby
+.ISDK
 
- LDA K%+NI%+32          ; UNIV #SST last byte NEWB,  K%+NI%+36
- BMI MA62               ; Failed dock
- LDA INWK+14            ; rotmat0z hi, face normal
+ LDA K% + NI% + 32      ; Fetch the AI counter (byte 32) of the second ship
+ BMI MA62               ; in the ship data workspace at K%, which is reserved
+                        ; for the sun or the space station (in this case it's
+                        ; the latter), and if it's negative, meaning the
+                        ; station is angry with us, jump down to MA62 to fail
+                        ; docking (so trying to dock at a station that we have
+                        ; annoyed does not end well)
+
+ LDA INWK+14            ; ???? Fetch rotmat0z_hi (face normal)
  CMP #&D6               ; z_unit  -ve &56 to -ve &60, 26 degrees.
  BCC MA62               ; Failed dock
- JSR SPS4               ; XX15 vector to planet
- LDA XX15+2             ; z_unit away from planet
- BMI MA62               ; Failed dock
- CMP #89                ; < #&60 ?
- BCC MA62               ; Failed dock
- LDA INWK+16            ; rotmat1x hi, slit roll
- AND #&7F               ; clear sign
+
+ JSR SPS4               ; Call SPS4 to get the vector to the space station
+                        ; into XX15
+
+ LDA XX15+2             ; Check the sign of the z axis (bit 7 of XX15+2) and
+ BMI MA62               ; if it is negative, we are facing away from the
+                        ; station, so jump to MA62 to fail docking
+
+ CMP #89                ; ???? If z_axis < #&60, jump to MA62 to fail docking
+ BCC MA62
+
+ LDA INWK+16            ; ???? Fetch rotmat1x_hi, slit roll
+ AND #%01111111         ; clear sign
  CMP #80                ; < #&60 ?
  BCC MA62               ; Failed dock
 
-.^GOIN                   ; do Dock entry, escape pod arrives
+.^GOIN                  ; If we arrive here, either the docking computer has
+                        ; been activated, or we just docked successfully
 
- LDA #0
+ LDA #0                 ; Set the hyperspace countdown to 0
  STA QQ22+1
- LDA #8                 ; octagon rings
- JSR LAUN               ; Launch rings from space station
- JSR RES4               ; Restore forward, aft shields, and energy
- JMP BAY                ; In Docking Bay
 
-.MA62                   ; Failed dock
+ LDA #8                 ; This instruction has no effect, so presumably it used
+                        ; to do something, and didn't get removed
 
- LDA DELTA              ; speed
- CMP #5                 ; < 5?
- BCC MA67               ; slow enough, only damage to player.
- JMP DEATH              ; else death
+ JSR LAUN               ; Show the space station launch tunnel
+
+ JSR RES4               ; Reset the shields and energy banks, stardust and INWK
+                        ; workspace
+
+ JMP BAY                ; Go to the docking bay (i.e. show Status Mode)
+
+.MA62                   ; If we arrive here, docking has just failed
+
+ LDA DELTA              ; If the ship's speed is < 5, jump to MA67 to register
+ CMP #5                 ; some damage, but not a huge amount
+ BCC MA67
+
+ JMP DEATH              ; Otherwise we have just crashed into the station, so
+                        ; process the player's death
 
 \ *****************************************************************************
 \ Subroutine: M% (Part 10)
@@ -3495,8 +3517,8 @@ LOAD_A% = LOAD%
 .MA60                   ; If we get here then scooping was successful
 
  ASL INWK+31            ; Set bit 7 of the scooped or destroyed item, to denote
- SEC                    ; that it should be removed from the local bubble
- ROR INWK+31
+ SEC                    ; that it has been killed and should be removed from
+ ROR INWK+31            ; the local bubble
 
 .MA61                   ; This label is not used but is in the original source
 
@@ -3504,43 +3526,36 @@ LOAD_A% = LOAD%
                         ; to move on to missile targeting (this BNE is
                         ; effectively a JMP as A will never be zero)
 
-.MA67                   ; slow enough, damage to player
+.MA67                   ; If we get here then we have collided with something,
+                        ; but not fatally
 
- LDA #1                 ; slow speed
+ LDA #1                 ; Set the speed in DELTA to 1 (i.e. a sudden stop)
  STA DELTA
- LDA #5                 ; small dent
- BNE MA63               ; guaranteed, little Oops.
+ LDA #5                 ; Set the amount of damage in A to 5 (a small dent) and
+ BNE MA63               ; jump down to MA63 to process the damage (this BNE is
+                        ; effectively a JMP as A will never be zero)
 
-.MA58                   ; Big Collision, cargo destroyed.
+.MA58                   ; If we get here, we have collided with something in a
+                        ; fatal way
 
- ASL INWK+31            ; display|missiles explosion state
- SEC                    ; set bit to kill it with debris
- ROR INWK+31
- LDA INWK+35            ; Energy of nearby ship
- SEC                    ; damage to player is
- ROR A                  ; dent = 128+energy/2
+ ASL INWK+31            ; Set bit 7 of the ship we just collided with, to
+ SEC                    ; denote that it has been killed and should be removed
+ ROR INWK+31            ; from the local bubble
 
-.MA63                   ; little Oops
+ LDA INWK+35            ; Load A with the energy level of the ship we just hit
 
- JSR OOPS               ; Lose some shield strength, cargo, could die.
- JSR EXNO3              ; ominous noises
+ SEC                    ; Set the amount of damage in A to 128 + A / 2, so
+ ROR A                  ; this is quite a big dent, and colliding with higher
+                        ; energy ships will cause more damage
 
-.MA26                   ; Try targeting missile, several arrive to continue.
+.MA63
 
- LDA QQ11               ; NEWB bit 7 remove ship?
- BNE MA15               ; no skip scan
- JSR PLUT               ; inwk not forward view
+ JSR OOPS               ; The amount of damage is in A, so call OOPS to reduce
+                        ; our shields, and if the shields are gone, there's a
+                        ; a chance of cargo loss or even death
 
- JSR HITCH              ; Carry set if ship collides or missile locks.
- BCC MA8                ; else just Draw object
- LDA MSAR               ; hitched, is missile already armed?
- BEQ MA47               ; onto laser lock
-
- JSR BEEP               ; Call the BEEP subroutine to make a short, high beep
-
- LDX XSAV               ; nearby ship slot id becomes missile target
- LDY #&E                ; missile red
- JSR ABORT2             ; missile found a target
+ JSR EXNO3              ; Make the sound of colliding with the other ship and
+                        ; fall through into MA26 to try targeting a missile
 
 \ *****************************************************************************
 \ Subroutine: M% (Part 11)
