@@ -25,7 +25,7 @@ CYL = 7                 ; Cobra Mk III
 SST = 8                 ; Space station
 MSL = 9                 ; Missile
 AST = 10                ; Asteroid
-OIL = 11                ; Container
+OIL = 11                ; Cargo canister
 TGL = 12                ; Thargon
 ESC = 13                ; Escape Pod
 
@@ -386,6 +386,8 @@ ORG &0000
                         ; INWK+29 = rotx counter, 127 = no damping, damps roll
                         ; INWK+30 = rotz counter, 127 = no damping, damps pitch
                         ; INWK+31 = exploding/display state, or missile count
+                        ;           Bit 5 = 0 (not exploding) or 1 (exploding)
+                        ;           Bit 7 = 0 (no debris) or 1 (with debris)
                         ; INWK+32 = AI, hostitity and E.C.M.
                         ;           Bit 0 = 0 (no E.C.M.) or 1 (has E.C.M.)
                         ;           Bit 6 = 0 (friendly) or 1 (hostile)
@@ -759,6 +761,8 @@ ORG &0300               ; Start of the commander block
 .BST
 
  SKIP 1                 ; Fuel scoops ("barrel status")
+                        ;
+                        ; 0 = not fitted, 127 = fitted
 
 .BOMB
 
@@ -2462,7 +2466,12 @@ ORG &0D40
 
 .VIEW
 
- SKIP 1                 ; 
+ SKIP 1                 ; Current space view
+                        ;
+                        ; 0 = forward
+                        ; 1 = rear
+                        ; 2 = left
+                        ; 3 = right
 
 .LASCT
 
@@ -3167,121 +3176,261 @@ LOAD_A% = LOAD%
 \
 \ M% runs as part of the main loop. This section of M% covers the following:
 \
-\   * Moving ships in space
+\   * Start looping through all the ships in the local bubble, and for each
+\     one:
 \
+\     * Copy the ship's data block from K% to INWK
 \ *****************************************************************************
 
 .MA3
 
- LDX #0                 ; Set counter X = 0
+ LDX #0                 ; We're about to work our way through all the ships in
+                        ; our little bubble of universe, so set a counter in X,
+                        ; starting from 0, to refer to each ship slot in turn
 
-.^MAL1                  ; Counter X slot for each nearby ship
+.^MAL1
 
- STX XSAV               ; save nearby slot
- LDA FRIN,X             ; nearby ship type
- BNE P%+5               ; skip exit
- JMP MA18               ; exit, onto check Your ship
- STA TYPE               ; nearby ship type
- JSR GINF               ; get INF pointer for ship X from UNIV.
+ STX XSAV               ; Store the slot number in XSAV
 
- LDY #(NI%-1)           ; counter, last byte of inwk for ship
+ LDA FRIN,X             ; Fetch the contents of this slot into A. If it is 0
+ BNE P%+5               ; then this slot is empty and we have no more ships to
+ JMP MA18               ; process, so jump tp MA18 below, otherwise A contains
+                        ; the type of ship in this slot, so skip the JMP MA18
+                        ; and keep going
 
-.MAL2                   ; counter Y
+ STA TYPE               ; Store the ship type in TYPE
 
- LDA (INF),Y            ; load ship's univ data into inwk
- STA INWK,Y             ; inner workspace
- DEY                    ; next byte
- BPL MAL2               ; loop Y
- LDA TYPE
- BMI MA21               ; planet or sun, move it
- ASL A                  ; build hull pointer
- TAY                    ; type*2
- LDA XX21-2,Y           ; get ship file entry into
- STA XX0                ; hull pointer lo
- LDA XX21-1,Y           ; hi
- STA XX0+1              ; hull pointer hi
+ JSR GINF               ; Get the address of the data block for ship number X
+                        ; and store it in INF
 
- LDA BOMB
- BPL MA21               ; it didn't go off, planet sun move it.
- CPY #2*SST             ; is type space station
- BEQ MA21               ; bomb going off had no effect, move it.
- LDA INWK+31            ; display|missiles explosion state
- AND #32                ; bit5 is already exploding
- BNE MA21               ; bomb had no effect, move it.
- LDA INWK+31
- ORA #128               ; set bit7 to Kill ship with debris
- STA INWK+31
- JSR EXNO2              ; faint death noise, player killed ship.
+                        ; Next we want to copy the ship data from INF to the
+                        ; local workspace at INWK, so we can process it
 
-.MA21                   ; planet or sun, move it
+ LDY #NI%-1             ; There are NI% bytes in the INWK workspace, so set a
+                        ; counter in Y so we can loop through them
 
- JSR MVEIT              ; move it
- LDY #(NI%-1)
+.MAL2
 
-.MAL3                   ; counter Y
+ LDA (INF),Y            ; Load the Y-th byte of INF and store it in the Y-th
+ STA INWK,Y             ; byte of INWK
 
- LDA INWK,Y             ; store inwk back to ship's univ data
- STA (INF),Y
- DEY                    ; next byte
- BPL MAL3               ; loop Y
+ DEY                    ; Decrement the loop counter
 
- LDA INWK+31            ; display|missiles explosion state
- AND #&A0               ; kill with debris or already exploding
- JSR MAS4               ; all hi or'd
- BNE MA65               ; ignore as far away, or already killed, exploding.
- LDA INWK               ; x coordinate lo
- ORA INWK+3             ; z coordinate lo
- ORA INWK+6             ; z coordinate lo
- BMI MA65               ; ignore as far away, Try targetting missile
- LDX TYPE               ; nearby ship type
- BMI MA65               ; ignore as sun/planet
- CPX #SST               ; is #SST space station
- BEQ ISDK               ; is docking
- AND #&C0               ; else Back to INWK lo bit6 for scooping
- BNE MA65               ; ignore as far away, Try targetting missile
- CPX #MSL               ; missile
- BEQ MA65               ; ignore as missile
+ BPL MAL2               ; Loop back for the next byte, ending when we have
+                        ; copied the last byte from INF to INWK
 
- CPX #OIL
- BCS P%+5
- JMP MA58
- LDA BST                ; fuel scoops Barrel status
- AND INWK+5             ; y coordinate sign +ve?
- BPL MA58               ; Big collision, down, as cargo is above
- LDA #3
- CPX #TGL
- BCC oily               ; scoop canister below
- BNE slvy2
- LDA #16
- BNE slvy2              ; guaranteed to hop to pieces to scoop
+ LDA TYPE               ; If the ship type is negative then this indicates a
+ BMI MA21               ; planet or sun, so jump down to MA21, as the next
+                        ; section sets up a ship data block, which doesn't
+                        ; apply to planets and suns
 
-.oily                   ; scoop canister
+ ASL A                  ; Set Y = ship type * 2
+ TAY
 
- JSR DORND              ; Set A and X to random numbers
- AND #7                 ; 7 choices to scoop, computers max.
+ LDA XX21-2,Y           ; The ship definitions at XX21 start with a lookup
+ STA XX0                ; table that points to the individual ship definitions,
+                        ; so this fetches the low byte of this particular ship
+                        ; type's definition and stores it in XX0
 
-.slvy2                  ; pieces to scoop
-
- STA QQ29
- LDA #1
- JSR tnpr               ; ton count, Acc = item becomes Acc = 1
- LDY #78                ; noise, not used
- BCS MA59               ; Scooping failed, below
- LDY QQ29               ; cargo item
- ADC QQ20,Y             ; cargo counts
- STA QQ20,Y
- TYA                    ; scooped item
- ADC #208               ; token = FOOD .. GEM-STONES
- JSR MESS               ; message
-
- JMP MA60
-
-.MA65                   ; ignored as far away
-
- JMP MA26               ; Try targeting missile, down.
+ LDA XX21-1,Y           ; Fetch the high byte of this particular ship type's 
+ STA XX0+1              ; definition and store it in XX0+1
 
 \ *****************************************************************************
 \ Subroutine: M% (Part 5)
+\
+\ M% runs as part of the main loop. This section of M% covers the following:
+\
+\   * Continue looping through all the ships in the local bubble, and for each
+\     one:
+\
+\     * If an energy bomb has been set off and this ship can be killed, kill it
+\       and increase the kill tally
+\ *****************************************************************************
+
+ LDA BOMB               ; If the player set off their energy bomb by pressing
+ BPL MA21               ; Tab (see MA24 above), then BOMB is now negative, so
+                        ; this skips to MA21 if there is not an energy bomb
+                        ; going off
+
+ CPY #2*SST             ; If the ship in Y is the space station, jump to BA21
+ BEQ MA21               ; as energy bombs have no effect on space stations
+
+ LDA INWK+31            ; If the ship we are checking has bit 5 set in their
+ AND #%100000           ; INWK+31 byte, then they are already exploding, so 
+ BNE MA21               ; jump to BA21 as they can't explode more than once
+
+ LDA INWK+31            ; The energy bomb is killing this ship, so set bit 7
+ ORA #%10000000         ; of the ship's INWK+31 byte to indicate that it should
+ STA INWK+31            ; explode with debris
+
+ JSR EXNO2              ; Call EXNO2 to process the fact that the player has
+                        ; killed a ship (so increase the kill tally, make an
+                        ; explosion noise and so on)
+
+\ *****************************************************************************
+\ Subroutine: M% (Part 6)
+\
+\ M% runs as part of the main loop. This section of M% covers the following:
+\
+\   * Continue looping through all the ships in the local bubble, and for each
+\     one:
+\
+\     * Move the ship in space and update K% with the new data
+\ *****************************************************************************
+
+.MA21
+
+ JSR MVEIT              ; Move the ship we are processing in space
+
+ LDY #(NI%-1)           ; Now that we are done processing this ship, we need
+                        ; to copy the ship data back from INWK to INF, so set
+                        ; a counter in Y so we can loop through the NI% bytes
+                        ; once again
+
+.MAL3
+
+ LDA INWK,Y             ; Load the Y-th byte of INWK and store it in the Y-th
+ STA (INF),Y            ; byte of INF
+
+ DEY                    ; Decrement the loop counter
+
+ BPL MAL3               ; Loop back for the next byte, ending when we have
+                        ; copied the last byte from INWK back to INF
+
+\ *****************************************************************************
+\ Subroutine: M% (Part 7)
+\
+\ M% runs as part of the main loop. This section of M% covers the following:
+\
+\   * Continue looping through all the ships in the local bubble, and for each
+\     one:
+\
+\     * Check how close we are to this ship and work out if we are docking,
+\       scooping or colliding with it
+\ *****************************************************************************
+
+ LDA INWK+31            ; Fetch the exploding status of this ship from bits 5
+ AND #%10100000         ; (exploding state) and 7 (kill with debris) of INWK+31
+                        ; into A
+
+ JSR MAS4               ; Or this value with x_hi, y_hi and z_hi
+
+ BNE MA65               ; If this value is non-zero, then either the ship is
+                        ; far away (i.e. has a non-zero high byte in at least
+                        ; one of the three axes), or it is already exploding,
+                        ; or has been flagged as being killed - in which case
+                        ; jump to MA65 to skip the following
+
+ LDA INWK               ; Set A = (x_lo OR y_lo OR z_lo), and if bit 7 of the
+ ORA INWK+3             ; result is set, the ship is still a fair distance
+ ORA INWK+6             ; away, so jump to MA65 to skip the following
+ BMI MA65
+
+ LDX TYPE               ; If the ship type is negative then this indicates a
+ BMI MA65               ; planet or sun, so jump down to MA65 to skip the
+                        ; following
+
+ CPX #SST               ; If this ship is the space station, jump to ISDK to
+ BEQ ISDK               ; check for docking
+
+ AND #%11000000         ; If bit 6 of (x_lo OR y_lo OR z_lo) is set, then we
+ BNE MA65               ; are still a reasonable distance away, so jump to
+                        ; MA65 to skip the following
+
+ CPX #MSL               ; If this ship is a missile, jump down to MA65 to skip
+ BEQ MA65               ; the following
+
+ CPX #OIL               ; If ship type >= OIL (i.e. it's a cargo canister,
+ BCS P%+5               ; Thargon or escape pod), skip the JMP instruction and
+ JMP MA58               ; continue on, otherwise jump to MA58 to process a
+                        ; collision
+
+ LDA BST                ; If we have fuel scoops fitted then BST will be 127,
+                        ; otherwise it will be 0
+
+ AND INWK+5             ; INWK+5 contains the y_sign of this ship, so a -1 here
+                        ; means the canister is below us, so this result will
+                        ; be negative if the canister is below us and we have a
+                        ; fuel scoop fitted
+
+ BPL MA58               ; If the result is positive, then we either have no
+                        ; scoop or the canister is above us, and in both cases
+                        ; this means we can't scoop the item, so jump to MA58
+                        ; to process a collision
+
+\ *****************************************************************************
+\ Subroutine: M% (Part 8)
+\
+\ M% runs as part of the main loop. This section of M% covers the following:
+\
+\   * Continue looping through all the ships in the local bubble, and for each
+\     one:
+\
+\     * Process scooping of items
+\ *****************************************************************************
+
+ LDA #3                 ; Set A to 3 to denote we may be scooping an escape pod
+
+ CPX #TGL               ; If ship type < Thargon, i.e. it's a canister, jump
+ BCC oily               ; to oily to scoop the canister
+
+ BNE slvy2              ; If ship type <> Thargon, i.e. it's an escape pod,
+                        ; jump to slvy2 with A = 3
+
+ LDA #16                ; Otherwise this is a Thargon, so jump to slvy2 with
+ BNE slvy2              ; A = 16 (this BNE is effectively a JMP as A will never
+                        ; be zero)
+
+.oily
+
+ JSR DORND              ; Set A and X to random numbers and reduce A to a
+ AND #7                 ; random number in the range 0-7
+
+.slvy2                  ; By the time we get here, we are scooping, and A
+                        ; contains the type of item we are scooping (a random
+                        ; number 0-7 if we are scooping a cargo canister, 3 if
+                        ; we are scooping an escape pod, or 16 if we are
+                        ; scooping a Thargon). These numbers correspond to the
+                        ; relevant market items (see QQ23 for a list), so a
+                        ; cargo canister can contain anything from food to
+                        ; computers, while escape pods contain slaves, and
+                        ; Thargons become alien items when scooped
+
+ STA QQ29               ; Call tnpr with the scooped cargo type stored in QQ29
+ LDA #1                 ; and A = 1 to work out whether we have room in the
+ JSR tnpr               ; hold for the scooped item (A is preserved by this
+                        ; call, and the carry flag contains the result)
+
+ LDY #78                ; This instruction has no effect, so presumably it used
+                        ; to do something, and didn't get removed
+
+ BCS MA59               ; If carry is set then we have no room in the hold for
+                        ; the scooped item, so jump down to MA59 make a noise
+                        ; to indicate failure, and destroy the canister
+
+ LDY QQ29               ; Scooping was successful, so set Y to the type of
+                        ; item we just scooped
+
+ ADC QQ20,Y             ; Add A to the number of items of type Y in the cargo
+ STA QQ20,Y             ; hold, as we just successfully scooped A units of Y
+
+ TYA                    ; Print recursive token 48 + A as an in-flight token,
+ ADC #208               ; which will be in the range 48 ("FOOD") to 64 ("ALIEN
+ JSR MESS               ; ITEMS"), so this prints the scooped item's name
+
+ JMP MA60               ; We are done scooping, so jump down to MA60 to
+                        ; set the kill flag on the canister, as it no longer
+                        ; exists in the local bubble
+
+.MA65
+
+ JMP MA26               ; If we get here, then the ship we are processing was
+                        ; too far away to be scooped, docked or collided with,
+                        ; so jump to MA26 to skip over the collision routines
+                        ; and to move on to missile targeting
+
+\ *****************************************************************************
+\ Subroutine: M% (Part 9)
 \
 \ Other entry points: GOIN
 \
@@ -3325,26 +3474,35 @@ LOAD_A% = LOAD%
  JMP DEATH              ; else death
 
 \ *****************************************************************************
-\ Subroutine: M% (Part 6)
+\ Subroutine: M% (Part 10)
 \
 \ M% runs as part of the main loop. This section of M% covers the following:
 \
-\   * Missiles and collisions
+\   * Continue looping through all the ships in the local bubble, and for each
+\     one:
+\
+\     * Remove scooped item after both successful and failed scoopings
+\
+\     * Process collisions
 \ *****************************************************************************
 
-.MA59                   ; Scooping failed
+.MA59                   ; If we get here then scooping failed
 
- JSR EXNO3              ; ominous noises
+ JSR EXNO3              ; Make the sound of the cargo canister being destroyed
+                        ; and fall through into MA60 to remove the canister
+                        ; from our local bubble
 
-.MA60                   ; kill it
+.MA60                   ; If we get here then scooping was successful
 
- ASL INWK+31            ; display|missiles explosion state
- SEC                    ; set bit7 to kill it with debris
+ ASL INWK+31            ; Set bit 7 of the scooped or destroyed item, to denote
+ SEC                    ; that it should be removed from the local bubble
  ROR INWK+31
 
-.MA61
+.MA61                   ; This label is not used but is in the original source
 
- BNE MA26               ; guaranteed, onto Try targeting missile.
+ BNE MA26               ; Jump to MA26 to skip over the collision routines and
+                        ; to move on to missile targeting (this BNE is
+                        ; effectively a JMP as A will never be zero)
 
 .MA67                   ; slow enough, damage to player
 
@@ -3385,7 +3543,7 @@ LOAD_A% = LOAD%
  JSR ABORT2             ; missile found a target
 
 \ *****************************************************************************
-\ Subroutine: M% (Part 6)
+\ Subroutine: M% (Part 11)
 \
 \ M% runs as part of the main loop. This section of M% covers the following:
 \
@@ -9578,98 +9736,300 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: PLUT
 \
-\ inwk not forward view, called from MA26
+\ Other entry points: PU1-1 (RTS), LO2 (RTS)
+\
+\ This routine flips the relevant geometric axes in INWK depending on which
+\ view we are looking through (forward, rear, left, right).
+
+\ The easiest way to think about this is that the z-axis always points into the
+\ screen, the y-axis always points up, and the x-axis always points to the
+\ right, like this:
+\
+\     y
+\     ^
+\     |   z (into screen)
+\     |  /
+\     | /
+\     |/
+\     +---------> x
+\
+\ This rule applies, whichever view we are looking through. So when we're
+\ looking through the forward view, z is into the screen - in the direction of
+\ travel - but if we switch, then the direction of travel is now to our right.
+\
+\ The local universe is stored as if we are looking forward, so the z-axis is
+\ in the direction of travel. This routine takes those stored coordinates and
+\ switches the axes around if we are looking bahind us or to the sides, so that
+\ we can use the same maths to display what's in that view - in other words, to
+\ switch the axes so that the value of the z-coordinate that we've stored in
+\ our universe - the direction of travel - is translated into the correct axis
+\ for the view we are looking at (for the z-axis, which points into the screen
+\ for the forward view, we move it to point out of the screen if we are looking
+\ backwards, to the right if we're looking out of the left view, or to the left
+\ if we are looking out of the right view).
+\
+\ Specifically:
+\
+\   * For the forward view, we change nothing as the default universe is set up
+\     for this view (so the coordinates and matrices in K%, UNIV, INWK etc. are
+\     already correct for this view)
+\
+\   * For the rear view, this is what our original universe axes look like when
+\     we are looking backwards:
+\
+\                 y
+\                 ^
+\                 |
+\                 |
+\                 |
+\                 |
+\     x <---------+
+\                /
+\               /
+\              /
+\             z (out of screen)
+\
+\     so to convert these axes into the standard "up, right, into-the-screen"
+\     set of axes we need for drawing to the screen, we need to do the changes
+\     on the left (with the original set of axes on the right for comparison):
+\
+\     y                                           y
+\     ^                                           ^
+\     |   -z (into screen)                        |   z (into screen)
+\     |  /                                        |  /
+\     | /                                         | /
+\     |/                                          |/
+\     +---------> -x                              +---------> x
+\
+\     So to change the INWK workspace from the original axes on the right to
+\     the new set on the left, we need to change the signs of the x and z
+\     coordinates and matrices in INWK, which we can do by flipping the signs
+\     of the following:
+\
+\       * x_sign, z_sign
+\       * rotmat0x_hi, rotmat0z_hi
+\       * rotmat1x_hi, rotmat1z_hi
+\       * rotmat2x_hi, rotmat2z_hi
+\
+\     so that's what we do below.
+\
+\   * For the left view, this is what our original universe axes look like when
+\     we are looking to the left:
+\
+\         y
+\         ^
+\         |
+\         |
+\         |
+\         |
+\         +---------> z
+\        /
+\       /
+\      /
+\     x (out of screen)
+\
+\     so to convert these axes into the standard "up, right, into-the-screen"
+\     set of axes we need for drawing to the screen, we need to do the changes
+\     on the left (with the original set of axes on the right for comparison):
+\
+\     y                                           y
+\     ^                                           ^
+\     |   -x (into screen)                        |   z (into screen)
+\     |  /                                        |  /
+\     | /                                         | /
+\     |/                                          |/
+\     +---------> z                               +---------> x
+\
+\     In other words, to go from the original set of axes on the right to the
+\     new set of axes on the left, we need to swap the x- and z-axes around,
+\     and flip the sign of the one now going in and out of the screen (i.e. the
+\     new z-axis). In other words, we swap the following values in INWK:
+\
+\       * x_lo and z_lo
+\       * x_hi and z_hi
+\       * x_sign and z_sign
+\       * rotmat0x_lo and rotmat0z_lo
+\       * rotmat1x_lo and rotmat1z_lo
+\       * rotmat2x_lo and rotmat2z_lo
+\
+\     and then change the sign of the axis going in and out of the screen by
+\     flipping the signs of the following:
+\
+\       * z_sign
+\       * rotmat0z_hi
+\       * rotmat1z_hi
+\       * rotmat2z_hi
+\
+\     So this is what we do below.
+\
+\   * For the right view, this is what our original universe axes look like when
+\     we are looking to the right:
+\
+\                 y
+\                 ^
+\                 |   x (into screen)
+\                 |  /
+\                 | /
+\                 |/
+\     z <---------+
+\
+\     so to convert these axes into the standard "up, right, into-the-screen"
+\     set of axes we need for drawing to the screen, we need to do the changes
+\     on the left (with the original set of axes on the right for comparison):
+\
+\     y                                           y
+\     ^                                           ^
+\     |   x (into screen)                         |   z (into screen)
+\     |  /                                        |  /
+\     | /                                         | /
+\     |/                                          |/
+\     +---------> -z                              +---------> x
+\
+\     In other words, to go from the original set of axes on the right to the
+\     new set of axes on the left, we need to swap the x- and z-axes around,
+\     and flip the sign of the one now going to the right (i.e. the new
+\     x-axis). In other words, we swap the following values in INWK:
+\
+\       * x_lo and z_lo
+\       * x_hi and z_hi
+\       * x_sign and z_sign
+\       * rotmat0x_lo and rotmat0z_lo
+\       * rotmat1x_lo and rotmat1z_lo
+\       * rotmat2x_lo and rotmat2z_lo
+\
+\     and then change the sign of the axis going to the right by flipping the
+\     signs of the following:
+\
+\       * x_sign
+\       * rotmat0x_hi
+\       * rotmat1x_hi
+\       * rotmat2x_hi
+\
+\     So this is what we do below.
 \ *****************************************************************************
 
 .PLUT
 {
- LDX VIEW
- BNE PU1
- RTS
-}
+ LDX VIEW               ; Load the current view into X:
+                        ;
+                        ; 0 = forward
+                        ; 1 = rear
+                        ; 2 = left
+                        ; 3 = right
 
-.PU1                    ; INWK not forward view, X >0
-{
- DEX                    ; view--
- BNE PU2                ; view was 2,3 not rear which needs x and z flipped
 
- LDA INWK+2
- EOR #128               ; flip xsg
+ BNE PU1                ; If the current view is forward, return from the
+ RTS                    ; subroutine, as the geometry in INWK is already
+                        ; correct
+
+.^PU1
+
+ DEX                    ; Decrement the view, so now:
+                        ; 0 = rear
+                        ; 1 = left
+                        ; 2 = right
+
+ BNE PU2                ; If the current view is left or right, jump to PU2,
+                        ; otherwise this is the rear view, so continue on
+
+ LDA INWK+2             ; Flip the sign of x_sign
+ EOR #%10000000
  STA INWK+2
- LDA INWK+8
- EOR #128               ; flip zsg
+
+ LDA INWK+8             ; Flip the sign of z_sign
+ EOR #%10000000
  STA INWK+8
- LDA INWK+10
- EOR #128               ; flip rotmat0x hi
+
+ LDA INWK+10            ; Flip the sign of rotmat0x_hi
+ EOR #%10000000
  STA INWK+10
- LDA INWK+14
- EOR #128               ; flip rotmat0z hi
+
+ LDA INWK+14            ; Flip the sign of rotmat0z_hi
+ EOR #%10000000
  STA INWK+14
- LDA INWK+16
- EOR #128               ; rotmat1x hi
+
+ LDA INWK+16            ; Flip the sign of rotmat1x_hi
+ EOR #%10000000
  STA INWK+16
 
- LDA INWK+20
- EOR #128               ; rotmat1z hi
+ LDA INWK+20            ; Flip the sign of rotmat1z_hi
+ EOR #%10000000
  STA INWK+20
- LDA INWK+22
- EOR #128               ; rotmat2x hi
+
+ LDA INWK+22            ; Flip the sign of rotmat2x_hi
+ EOR #%10000000
  STA INWK+22
- LDA INWK+26
- EOR #128               ; rotmat2z hi
+
+ LDA INWK+26            ; Flip the sign of rotmat1z_hi
+ EOR #%10000000
  STA INWK+26
- RTS
 
-.PU2                    ; other views  2,3
+ RTS                    ; Return from the subroutine
 
- LDA #0
- CPX #2                 ; if X >= 2 then C set. Right View.
- ROR A                  ; any carry
- STA RAT2               ; 0 for view 3, 128 for view 4
- EOR #128               ; flip
- STA RAT                ; 128 for view 3, 0 for view 4
+.PU2                    ; We enter this with X set to the view, as follows:
+                        ;
+                        ; 1 = left
+                        ; 2 = right
 
- LDA INWK               ; xlo
- LDX INWK+6             ; zlo
+ LDA #0                 ; Set RAT2 = 0 (left view) or -1 (right view)
+ CPX #2
+ ROR A
+ STA RAT2
+
+ EOR #%10000000         ; Set RAT = -1 (left view) or 0 (right view)
+ STA RAT
+
+ LDA INWK               ; Swap x_lo and z_lo
+ LDX INWK+6
  STA INWK+6
- STX INWK               ; xlo and zlo swopped
- LDA INWK+1             ; xhi
- LDX INWK+7             ; zhi
+ STX INWK
+
+ LDA INWK+1             ; Swap x_hi and z_hi
+ LDX INWK+7
  STA INWK+7
- STX INWK+1             ; xhi and zhi swopped
- LDA INWK+2             ; xsg
- EOR RAT
- TAX                    ; xsg flipped
- LDA INWK+8             ; zsg
+ STX INWK+1
+
+ LDA INWK+2             ; Swap x_sign and z_sign
+ EOR RAT                ; If left view, flip sign of new z_sign
+ TAX                    ; If right view, flip sign of new x_sign
+ LDA INWK+8
  EOR RAT2
- STA INWK+2             ; xsg
- STX INWK+8             ; zsg swopped with xsg flipped
+ STA INWK+2
+ STX INWK+8
 
- LDY #9                 ; rotmat0x lo
- JSR PUS1               ; swop rotmat x and z
+ LDY #9                 ; Swap rotmat0x_lo and rotmat0z_lo
+ JSR PUS1               ; Swap rotmat0x_hi and rotmat0z_hi
+                        ; If left view, flip sign of new rotmat0z_hi
+                        ; If right view, flip sign of new rotmat0x_hi
 
- LDY #15                ; rotmat1x lo
- JSR PUS1               ; swop rotmat x and z
+ LDY #15                ; Swap rotmat1x_lo and rotmat1z_lo
+ JSR PUS1               ; Swap rotmat1x_hi and rotmat1z_hi
+                        ; If left view, flip sign of new rotmat1z_hi
+                        ; If right view, flip sign of new rotmat1x_hi
 
- LDY #21                ; rotmat2x lo
+ LDY #21                ; Swap rotmat2x_lo and rotmat2z_lo
+                        ; Swap rotmat2x_hi and rotmat2z_hi
+                        ; If left view, flip sign of new rotmat2z_hi
+                        ; If right view, flip sign of new rotmat2x_hi
 
-.PUS1                   ; swop rotmat x and z
+.PUS1
 
- LDA INWK,Y
- LDX INWK+4,Y
- STA INWK+4,Y
- STX INWK,Y             ; lo swopped
- LDA INWK+1,Y
- EOR RAT                ; 128 for view 3, 0 for view 4
- TAX                    ; flipped inwk+1,y
+ LDA INWK,Y             ; Swap rotmatx_lo and rotmatz_lo for the matrix offset
+ LDX INWK+4,Y           ; in Y, i.e.
+ STA INWK+4,Y           ; for Y =  9 swap rotmat0x_lo and rotmat0z_lo
+ STX INWK,Y             ; for Y = 15 swap rotmat1x_lo and rotmat1z_lo
+                        ; for Y = 21 swap rotmat2x_lo and rotmat2z_lo
+
+ LDA INWK+1,Y           ; Swap rotmatx_hi and rotmatz_hi for the offset in Y
+ EOR RAT                ; If left view, flip sign of new rotmatnz_hi
+ TAX                    ; If right view, flip sign of new rotmatnx_hi
  LDA INWK+5,Y
- EOR RAT2               ; 0 for view 3, 128 for view 4
+ EOR RAT2
  STA INWK+1,Y
  STX INWK+5,Y
-}
 
-.LO2
-{
+.^LO2
+
  RTS
 }
 
@@ -10112,32 +10472,87 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: tnpr
 \
-\ Ton/kg count, Acc = item. Exits with Acc = 1
+\ Given a market item and an amount, work out whether there is room in the hold
+\ for this item.
+\
+\ For standard tonne canisters, the limit is given by the type of cargo hold we
+\ have, with a standard cargo hold having a capacity of 20t and an extended
+\ cargo bay being 35t.
+\
+\ For items measured in kg (gold, platinum), g (gem-stones) and alien items,
+\ the individual limit on each of these is 200 units.
+\
+\ Arguments:
+\
+\   A           The number of units of this market item
+\
+\   QQ29        The type of market item (see QQ23 for a list of market item
+\               numbers)
+\
+\ Returns:
+\
+\   A           A is preserved
+\
+\   C flag      Returns the result:
+\
+\                 * Set if there is no room for this item
+\
+\                 * Clear if there is room for this item
 \ *****************************************************************************
 
-.tnpr                   ; ton count, Acc = item. Exits with Acc = 1
+.tnpr
 {
- PHA                    ; store #1
- LDX #12                ; above minerals
- CPX QQ29
- BCC kg                 ; treated as kg
+ PHA                    ; Store A on the stack
 
-.Tml                    ; Count tonnes, counter X start at 12
+ LDX #12                ; If QQ29 > 12 then jump to kg below, as this cargo
+ CPX QQ29               ; type is gold, platinum, gem-stones or alien items,
+ BCC kg                 ; and they have different cargo limits to the standard
+                        ; tonne canisters
 
- ADC QQ20,X             ; tonnes added to Acc initial =1
- DEX
- BPL Tml                ; loop X
- CMP CRGO               ; max cargo, carry set is too much.
- PLA                    ; scooping added one item
- RTS
+.Tml                    ; Here we count the tonne canisters we have in the hold
+                        ; and add to A to see if we have enough room for A more
+                        ; tonnes of cargo, using X as the loop counter, starting
+                        ; with X = 12
 
-.kg                     ; scooped item QQ29 > 12
+ ADC QQ20,X             ; Set A = A + the number of tonnes we have in the hold
+                        ; of market item number X
 
- LDY QQ29               ; market item, 0to16
- ADC QQ20,Y
- CMP #200               ; 199 kg max, carry set is too much.
- PLA                    ; scooping added one item
- RTS
+ DEX                    ; Decrement the loop counter
+
+ BPL Tml                ; Loop back to add in the next market item in the hold,
+                        ; until we have added up all market items from 12
+                        ; (minerals) down to 0 (food)
+
+ CMP CRGO               ; Is the result greater than our hold capacity in CRGO?
+                        ;
+                        ; If so, this sets the carry flag (no room)
+                        ;
+                        ; Otherwise it is clear (we have room)
+
+ PLA                    ; Restore A from the stack
+
+ RTS                    ; Return from the subroutine
+
+.kg                     ; Here we count the number of items of this type that
+                        ; we already have in the hold, and add to A to see if
+                        ; we have enough room for A more units
+
+ LDY QQ29               ; Set Y to the item number we want to add
+
+ ADC QQ20,Y             ; Set A = A + the number of units of this item that we
+                        ; already have in the hold
+
+ CMP #200               ; Is the result greater than 200 (the limit on
+                        ; individual stocks of gold, platinum, gem-stones and
+                        ; alien items)?
+                        ;
+                        ; If so, this sets the carry flag (no room)
+                        ;
+                        ; Otherwise it is clear (we have room)
+
+ PLA                    ; Restore A from the stack
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -17499,15 +17914,21 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: MAS4
 \
-\ All hi coord or'd
+\ Logical OR the value in A with the high bytes of the ship's position (x_hi,
+\ y_hi and z_hi).
+\
+\ Returns:
+\
+\   A           A OR x_hi OR y_hi OR z_hi
 \ *****************************************************************************
 
-.MAS4                   ; All hi coord or'd
+.MAS4
 {
- ORA INWK+1             ; xhi
- ORA INWK+4             ; yhi
- ORA INWK+7             ; zhi
- RTS
+ ORA INWK+1             ; OR A with x_hi, y_hi and z_hi
+ ORA INWK+4
+ ORA INWK+7
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -18450,6 +18871,9 @@ ENDIF
 \
 \ Make the sound of death in the cold, hard vacuum of space. Apparently, in
 \ Elite space, everyone can hear you scream.
+\
+\ This routine also makes the noise of a destroyed cargo canister if you don't
+\ get scooping right.
 \ *****************************************************************************
 
 .EXNO3
