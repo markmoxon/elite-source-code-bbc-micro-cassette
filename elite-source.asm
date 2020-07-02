@@ -10324,26 +10324,36 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: DEL8
 \
-\ Delay counter = 8
+\ Wait for 8/50 of a second (0.16 seconds).
 \ *****************************************************************************
 
 .DEL8
 {
- LDY #8                 ; Delay counter = 8
+ LDY #8                 ; Set Y to 8 vertical syncs and fall through into DELAY
+                        ; to wait for this long
 }
 
 \ *****************************************************************************
 \ Subroutine: DELAY
 \
-\ Yreg loaded with length of delay counter
+\ Wait for the number of vertical syncs given in Y, so this effectively waits
+\ for Y/50 of a second (as the vertical sync occurs 50 times a second).
+\
+\ Arguments:
+\
+\   Y           The number of vertical sync events to wait for
 \ *****************************************************************************
 
-.DELAY                  ; Yreg loaded with length of delay counter
+.DELAY
 {
- JSR WSCAN              ; Wait for line scan, ie whole frame completed.
- DEY
- BNE DELAY              ; loop Y
- RTS
+ JSR WSCAN              ; Jump to WSCAN to wait for the next vertical sync
+
+ DEY                    ; Decrement the counter in Y
+
+ BNE DELAY              ; If Y isn't yet at zero, jump back to DELAY to wait
+                        ; for another vertical sync
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
