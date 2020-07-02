@@ -122,7 +122,7 @@ ORG &0000
 
 .RAND
 
- SKIP 4                 ; 
+ SKIP 4                 ; Random number seeds, four 8-bit numbers
 
 .TRTB%
 
@@ -202,8 +202,8 @@ ORG &0000
 
 .ECMA
 
- SKIP 1                 ; E.C.M. countdown timer (can be either the player's
-                        ; E.C.M. or the opponent's)
+ SKIP 1                 ; E.C.M. countdown timer (can be either our E.C.M.
+                        ; or an opponent's)
                         ;
                         ; 0 is off, non-zero is on and counting down
 
@@ -714,7 +714,7 @@ ORG &0300               ; Start of the commander block
                         ;
                         ; Bit 1 is set on start-up
                         ;
-                        ; Bit 0 is set in routine ptg if player holds X during
+                        ; Bit 0 is set in routine ptg if we hold X during
                         ; hyperspace to force a mis-jump (having first paused
                         ; the game and toggled on the author credits with X)
 
@@ -2443,7 +2443,7 @@ ORG &0D40
 
 .ECMP
 
- SKIP 1                 ; Player's E.C.M. status
+ SKIP 1                 ; Our E.C.M. status
                         ;
                         ; 0 is off, non-zero is on
 
@@ -2841,13 +2841,12 @@ LOAD_A% = LOAD%
 \
 \ Here we take the current rate of roll and pitch, as set by the joystick or
 \ keyboard, and convert them into alpha and beta angles that we can use in the
-\ matrix functions to rotate space around the player's ship. The alpha angle
-\ covers roll, while the beta angle covers pitch (there is no yaw in this
-\ version of Elite). The angles are in radians, which allows us to use the
-\ small angle approximation when moving objects in the sky (see the MVEIT
-\ routine for more on this). Also, the signs of the two angles are stored
-\ separately, in both the sign and the flipped sign, as this makes calculations
-\ easier.
+\ matrix functions to rotate space around our ship. The alpha angle covers
+\ roll, while the beta angle covers pitch (there is no yaw in this version of
+\ Elite). The angles are in radians, which allows us to use the small angle
+\ approximation when moving objects in the sky (see the MVEIT routine for more
+\ on this). Also, the signs of the two angles are stored separately, in both
+\ the sign and the flipped sign, as this makes calculations easier.
 \ *****************************************************************************
 
  LDX JSTX               ; Set X to the current rate of roll in JSTX, and
@@ -2939,7 +2938,7 @@ LOAD_A% = LOAD%
 \
 \ M% runs as part of the main loop. This section of M% covers the following:
 \
-\   * Scan for slight keys and process the results
+\   * Scan for flight keys and process the results
 \
 \ Flight keys are logged in the key logger at location KY1 onwards, with a
 \ non-zero value in the relevant location indicating a key press. See the KL
@@ -3072,14 +3071,14 @@ LOAD_A% = LOAD%
 
  LDA ECMA               ; If ECMA is non-zero, that means an E.C.M. is already
  BNE MA64               ; operating and is counting down (this can be either
-                        ; the player's E.C.M. or an opponent's), so jump down
-                        ; to MA64 to skip the following (as we can't have two
-                        ; E.C.M.s operating at the same time)
+                        ; our E.C.M. or an opponent's), so jump down to MA64 to
+                        ; skip the following (as we can't have two E.C.M.s
+                        ; operating at the same time)
 
  DEC ECMP               ; The "E.C.M." button is being pressed and nobody else
                         ; is operating their E.C.M., so decrease the value of
-                        ; ECMP to make it non-zero, to denote that the player's
-                        ; E.C.M. is now on
+                        ; ECMP to make it non-zero, to denote that our E.C.M.
+                        ; is now on
 
  JSR ECBLB2             ; Call ECBLB2 to light up the E.C.M. indicator bulb on
                         ; the dashboard, set the E.C.M. countdown timer to 32,
@@ -3146,7 +3145,7 @@ LOAD_A% = LOAD%
  STA LAS2
 
  LDA #0                 ; Call the NOISE routine with A = 0 to make the sound
- JSR NOISE              ; of the player's laser firing
+ JSR NOISE              ; of our laser firing
 
  JSR LASLI              ; Draw laser lines
 
@@ -3248,10 +3247,9 @@ LOAD_A% = LOAD%
 \       and increase the kill tally
 \ *****************************************************************************
 
- LDA BOMB               ; If the player set off their energy bomb by pressing
- BPL MA21               ; Tab (see MA24 above), then BOMB is now negative, so
-                        ; this skips to MA21 if there is not an energy bomb
-                        ; going off
+ LDA BOMB               ; If we set off our energy bomb by pressing Tab (see
+ BPL MA21               ; MA24 above), then BOMB is now negative, so this skips
+                        ; to MA21 if our energy bomb is not going off
 
  CPY #2*SST             ; If the ship in Y is the space station, jump to BA21
  BEQ MA21               ; as energy bombs have no effect on space stations
@@ -3264,9 +3262,9 @@ LOAD_A% = LOAD%
  ORA #%10000000         ; of the ship's INWK+31 byte to indicate that it has
  STA INWK+31            ; now been killed
 
- JSR EXNO2              ; Call EXNO2 to process the fact that the player has
-                        ; killed a ship (so increase the kill tally, make an
-                        ; explosion noise and so on)
+ JSR EXNO2              ; Call EXNO2 to process the fact that we have killed a
+                        ; ship (so increase the kill tally, make an explosion
+                        ; noise and so on)
 
 \ *****************************************************************************
 \ Subroutine: M% (Part 6)
@@ -3438,7 +3436,6 @@ LOAD_A% = LOAD%
 \ M% runs as part of the main loop. This section of M% covers the following:
 \
 \   * Process docking with space station
-\
 \ *****************************************************************************
 
 .ISDK
@@ -3493,7 +3490,7 @@ LOAD_A% = LOAD%
  BCC MA67
 
  JMP DEATH              ; Otherwise we have just crashed into the station, so
-                        ; process the player's death
+                        ; process our death
 
 \ *****************************************************************************
 \ Subroutine: M% (Part 10)
@@ -3562,53 +3559,116 @@ LOAD_A% = LOAD%
 \
 \ M% runs as part of the main loop. This section of M% covers the following:
 \
-\   * Laser lock, fighting, altitude checks, fuel scooping
+\   * Missile lock
+\
+\   * Laser lock and damage
 \ *****************************************************************************
 
-.MA47                   ; onto laser lock
+.MA26
 
- LDA LAS                ; Laser power
- BEQ MA8                ; no laser, just draw object
+ LDA QQ11               ; If this is not a space view, jump to MA15 to skip
+ BNE MA15               ; missile and laser locking
 
- LDX #15                ; Call EXNO to make the sound of the player making a
- JSR EXNO               ; laser strike on another ship
+ JSR PLUT               ; Call PLUT to update the geometric axes in INWK to
+                        ; match the view (forward, rear, left, right)
 
- LDA INWK+35
- SEC
- SBC LAS
- BCS MA14
+ JSR HITCH              ; Call HITCH to see if this ship is in the cross-hairs,
+ BCC MA8                ; in which case carry will be set (so if there is no
+                        ; missile or laser lock, we jump to MA8 to skip the
+                        ; following)
 
- LDA TYPE               ; ship type hit
- CMP #SST               ; is Space Station?
- BEQ MA14+2             ; visit angry
- LDA INWK+31
- ORA #128
+ LDA MSAR               ; We have missile lock, so check whether the leftmost
+ BEQ MA47               ; missile is currently armed, and if not, jump to MA47
+                        ; to process laser fire, as we can't lock an unarmed
+                        ; missile
+
+ JSR BEEP               ; We have missile lock and an armed missile, so call
+                        ; the BEEP subroutine to make a short, high beep
+
+ LDX XSAV               ; Call ABORT2 to store the details of this missile
+ LDY #&E                ; lock, with the targeted ship's slot number in X
+ JSR ABORT2             ; (which we stored in XSAV at the start of this ship's
+                        ; loop at MAL1), and set the colour of the misile
+                        ; indicator to the colour in Y (red = &0E)
+
+.MA47                   ; If we get here then the ship is in our sights, but
+                        ; we didn't lock a missile, so let's see if we're
+                        ; firing the laser
+
+ LDA LAS                ; If we are firing the laser then LAS will contain the
+ BEQ MA8                ; laser power (which we set in MA68 above), so if this
+                        ; is zero, jump down to MA8 to skip the following
+
+ LDX #15                ; We are firing our laser and the ship in INWK is in
+ JSR EXNO               ; the cross-hairs, so call EXNO to make the sound of
+                        ; us making a laser strike on another ship
+
+ LDA INWK+35            ; Fetch the hit ship's energy from INWK+35 and subtract
+ SEC                    ; our current laser power, and if the result is greater
+ SBC LAS                ; than zero, the other ship has survived the hit, so
+ BCS MA14               ; jump down to MA14
+
+ LDA TYPE               ; Did we just hit the space station? If so, jump to
+ CMP #SST               ; MA14+2 to make the station hostile, skipping the
+ BEQ MA14+2             ; following as we can't destroy a space station
+
+ LDA INWK+31            ; Set bit 7 of the enemy ship's INWK+31 flag, to
+ ORA #%10000000         ; to indicate that it has been killed
  STA INWK+31
- BCS MA8
- JSR DORND
- BPL oh
- LDY #0
- AND (XX0),Y
- STA CNT
+
+ BCS MA8                ; If the enemy ship type is >= SST (i.e. missile,
+                        ; asteroid, canister, Thargon or escape pod) then
+                        ; jump down to MA8
+
+ JSR DORND              ; Fetch a random number, and jump to oh if it is
+ BPL oh                 ; positive (50% chance)
+
+ LDY #0                 ; Fetch the first byte of the hit ship's definition,
+ AND (XX0),Y            ; which determines the maximum number of bits of
+                        ; debris shown when the ship is destroyed, and AND
+                        ; with the random number we just fetched
+
+ STA CNT                ; Store the result in CNT, so CNT contains a random
+                        ; number between 0 and the maximum number of bits of
+                        ; debris that this ship will release when destroyed
 
 .um
 
- BEQ oh
- LDX #OIL
- LDA #0
- JSR SFS1
- DEC CNT
- BPL um
+ BEQ oh                 ; We're going to go round a loop using CNT as a counter
+                        ; so this checks whether the counter is zero and jumps
+                        ; to oh when it gets there (which might be straight
+                        ; away)
+
+ LDX #OIL               ; Call SFS1 to spawn a cargo canister from the now
+ LDA #0                 ; deceased parent ship, giving the spawned canister an
+ JSR SFS1               ; AI flag of 0 (no AI)
+
+ DEC CNT                ; Decrease the loop counter
+
+ BPL um                 ; Jump back up to um (this BPL is effectively a JMP as
+                        ; CNT will never be negative)
+
 
 .oh
 
- JSR EXNO2
+ JSR EXNO2              ; Call EXNO2 to process the fact that we have killed a
+                        ; ship (so increase the kill tally, make an explosion
+                        ; noise and so on)
 
-.MA14                   ; also Survived
+.MA14
 
- STA INWK+35            ; update ship energy
- LDA TYPE               ; ship type
- JSR ANGRY
+ STA INWK+35            ; Store the hit ship's updated energy in INWK+35
+
+ LDA TYPE               ; Call ANGRY to make this ship hostile, now that we
+ JSR ANGRY              ; have hit it
+
+\ *****************************************************************************
+\ Subroutine: M% (Part 12)
+\
+\ M% runs as part of the main loop. This section of M% covers the following:
+\
+\   * Draw object, remove killed ships, altitude checks, fuel scooping
+\ *****************************************************************************
 
 .MA8                    ; else just Draw object
 
@@ -4661,7 +4721,7 @@ Q% = _ENABLE_MAX_COMMANDER
                         ; state, and that block is copied here when the game is
                         ; saved. Conversely, when the game starts up, the block
                         ; here is copied to TP, which restores the last saved
-                        ; commander when the player dies.
+                        ; commander when we die.
                         ;
                         ; The intial state of this block defines the default
                         ; commander. Q% can be set to TRUE to give the default
@@ -7869,7 +7929,7 @@ LOAD_C% = LOAD% +P% - CODE%
  BNE TA10               ; rts, sound of ECM already.
 
  LDA #8                 ; Call the NOISE routine with A = 8 to make the sound
- JMP NOISE              ; of the player being hit by lasers
+ JMP NOISE              ; of us being hit by lasers
 
 .TA4                    ; Manoeuvre
 
@@ -8280,10 +8340,10 @@ LOAD_C% = LOAD% +P% - CODE%
 \ *****************************************************************************
 \ Subroutine: LAUN
 \
-\ Launch rings from space station
+\ Launch tunnel from space station
 \ *****************************************************************************
 
-.LAUN                   ; Launch rings from space station
+.LAUN                   ; Launch tunnel from space station
 {
  LDA #48                ; Call the NOISE routine with A = 48 to make the sound
  JSR NOISE              ; of the ship launching from the station
@@ -14948,11 +15008,11 @@ MAPCHAR '4', '4'
 \ Subroutine: DET1
 \
 \ Set the screen to show the number of text rows given in X. This is used when
-\ the player is killed, as reducing the number of rows from the usual 31 to 24
-\ has the effect of hiding the dashboard, leaving a monochrome image of ship
-\ debris and explosion clouds. Increasing the rows back up to 31 makes the
-\ dashboard reappear, as the dashboard's screen memory doesn't get touched by
-\ this process.
+\ we are killed, as reducing the number of rows from the usual 31 to 24 has the
+\ effect of hiding the dashboard, leaving a monochrome image of ship debris and
+\ explosion clouds. Increasing the rows back up to 31 makes the dashboard
+\ reappear, as the dashboard's screen memory doesn't get touched by this
+\ process.
 \
 \ Arguments:
 \
@@ -15202,6 +15262,8 @@ MAPCHAR '4', '4'
 \ Subroutine: OOPS
 \
 \ Lose some shield strength, cargo, could die.
+\
+\ A = amount of damage
 \ *****************************************************************************
 
 .OOPS                   ; Lose some shield strength, cargo, could die.
@@ -17109,10 +17171,10 @@ LOAD_F% = LOAD% + P% - CODE%
 
 .SFX
 {
- EQUB &12,&01,&00,&10   ; 0  - Lasers fired by the player
- EQUB &12,&02,&2C,&08   ; 8  - Player being hit by lasers
- EQUB &11,&03,&F0,&18   ; 16 - Player died 1 / Player has made a hit or kill 2
- EQUB &10,&F1,&07,&1A   ; 24 - Player died 2 / Player has made a hit or kill 1
+ EQUB &12,&01,&00,&10   ; 0  - Lasers fired by us
+ EQUB &12,&02,&2C,&08   ; 8  - We're being hit by lasers
+ EQUB &11,&03,&F0,&18   ; 16 - We died 1 / We made a hit or kill 2
+ EQUB &10,&F1,&07,&1A   ; 24 - We died 2 / We made a hit or kill 1
  EQUB &03,&F1,&BC,&01   ; 32 - Short, high beep
  EQUB &13,&F4,&0C,&08   ; 40 - Long, low beep
  EQUB &10,&F1,&06,&0C   ; 48 - Missile launched / Ship launched from station
@@ -17124,9 +17186,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: RESET
 \
-\ Reset the player ship and various controls, then fall through into RES4 to
-\ restore shields and energy, and reset the stardust and the ship workspace at
-\ INWK.
+\ Reset our ship and various controls, then fall through into RES4 to restore
+\ shields and energy, and reset the stardust and the ship workspace at INWK.
 \
 \ In this subroutine, this means zero-filling the following locations:
 \
@@ -17374,8 +17435,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \   * Reset the INWK ship workspace
 \ 
-\   * Set the ship to a fair distance away (32) in all axes, in front of the
-\     player but randomly up or down, left or right
+\   * Set the ship to a fair distance away (32) in all axes, in front of us but
+\     randomly up or down, left or right
 \
 \   * Give the ship a 4% chance of the having E.C.M.
 \ 
@@ -18045,17 +18106,16 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: BAD
 \
-\ Work out how bad the player is from the amount of contraband in their hold.
-\ The formula is:
+\ Work out how bad we are from the amount of contraband in their hold. The
+\ formula is:
 \
 \   (slaves + narcotics) * 2 + firearms
 \
 \ so slaves and narcotics are twice as illegal as firearms. The value in FIST
-\ (the player's legal status) is set to a minimum of this value whenever the
-\ player launches from a space station, and a FIST of 50 or more is fugitive
-\ status, so leaving a station carrying 25 tonnes of slaves/narcotics, or 50
-\ tonnes of firearms across multiple trips, is enough to make the player a
-\ fugitive.
+\ (our legal status) is set to a minimum of this value whenever we launch from
+\ a space station, and a FIST of 50 or more is fugitive status, so leaving a
+\ station carrying 25 tonnes of slaves/narcotics, or 50 tonnes of firearms
+\ across multiple trips, is enough to make us a fugitive.
 \ *****************************************************************************
 
 .BAD                    ; Legal status from Cargo scan
@@ -18239,9 +18299,8 @@ LOAD_F% = LOAD% + P% - CODE%
                         ; of the key pressed in A (see p.142 of the Advanced
                         ; User Guide for a list of internal key number)
 
- CMP #&44               ; Did the player press "Y"?
-
- BNE QU5                ; If they didn't press "Y", jump to QU5
+ CMP #&44               ; Did we press "Y"? If not, jump to QU5, otherwise
+ BNE QU5                ; continue on to load a new commander
 
 \BR1                    ; These instructions are commented out in the original
 \LDX #3                 ; source. This block starts with the same *FX call as
@@ -18250,12 +18309,12 @@ LOAD_F% = LOAD% + P% - CODE%
 \LDA #1                 ; in the tape version but is in the disk version, and 
 \JSR TT66               ; then it displays "LOAD NEW COMMANDER (Y/N)?" and
 \JSR FLKB               ; lists the current cargo, before falling straight into
-\LDA #14                ; the load routine below, whether or not the player has
-\JSR TT214              ; pressed Y. This may be a testing loop for testing the
-\BCC QU5                ; cargo aspect of loading commander files.
+\LDA #14                ; the load routine below, whether or not we have
+\JSR TT214              ; pressed "Y". This may be a testing loop for testing
+\BCC QU5                ; the cargo aspect of loading commander files.
 
- JSR GTNME              ; The player wants to load a new commander, so first we
-                        ; ask them for the commander name to load
+ JSR GTNME              ; We want to load a new commander, so we need to get
+                        ; the commander name to load
 
  JSR LOD                ; We then call the LOD subroutine to load the commander
                         ; file to address NA%+8, which is where we store the
@@ -18270,19 +18329,18 @@ LOAD_F% = LOAD% + P% - CODE%
                         ; is at NA% and the correct commander data is at NA%+8.
                         ; Specifically:
                         ;
-                        ; If the player loaded a commander file, then the name
-                        ; and data from that file will be at NA% and NA%+8.
+                        ; If we loaded a commander file, then the name and data
+                        ; from that file will be at NA% and NA%+8.
                         ;
                         ; If this is a brand new game, then NA% will contain
                         ; the default starting commander name ("JAMESON") and
                         ; NA%+8 will contain the default commander data.
                         ;
                         ; If this is not a new game (because they died or quit)
-                        ; and the player didn't want to load a commander file,
-                        ; then NA% will contain the last saved commander name,
-                        ; and NA%+8 the last saved commander data. If the game
-                        ; has never been saved, this will still be the default
-                        ; commander.
+                        ; and we didn't want to load a commander file, then NA%
+                        ; will contain the last saved commander name, and NA%+8
+                        ; the last saved commander data. If the game has never
+                        ; been saved, this will still be the default commander.
 
 \JSR TTX66              ; This instruction is commented out in the original
                         ; source; it clears the screen and draws a border
@@ -18413,8 +18471,8 @@ ENDIF
 
  STX TYPE               ; Store the ship type in location TYPE
 
- JSR RESET              ; Reset the player ship so we can use it for our
-                        ; rotating title ship
+ JSR RESET              ; Reset our ship so we can use it for the rotating
+                        ; title ship
 
  LDA #1                 ; Clear the top part of the screen and draw a box
  JSR TT66               ; border, with QQ11 set to 1 (so TT66 does not show the
@@ -18458,8 +18516,8 @@ ENDIF
  INC YC                 ; Move the text cursor down a row
 
  LDA PATG               ; If PATG = 0, skip the following two lines, which
- BEQ awe                ; print the author credits (PATG can be toggled by the
-                        ; player pausing the game and pressing X)
+ BEQ awe                ; print the author credits (PATG can be toggled by
+                        ; pausing the game and pressing "X")
 
  LDA #254               ; Print recursive token 94, "BY D.BRABEN & I.BELL"
  JSR TT27
@@ -19065,7 +19123,7 @@ ENDIF
 \ Elite space, everyone can hear you scream.
 \
 \ This routine also makes the noise of a destroyed cargo canister if you don't
-\ get scooping right.
+\ get scooping right, and the noise of us colliding with another ship.
 \ *****************************************************************************
 
 .EXNO3
@@ -19107,7 +19165,7 @@ ENDIF
 \ *****************************************************************************
 \ Subroutine: EXNO2
 \
-\ Player has killed a ship, so increase the kill tally, displaying an iconic
+\ We have killed a ship, so increase the kill tally, displaying an iconic
 \ message of encouragement if the kill total is a multiple of 256, and then 
 \ make a nearby explosion noise.
 \ *****************************************************************************
@@ -19132,8 +19190,8 @@ ENDIF
 \ *****************************************************************************
 \ Subroutine: EXNO
 \
-\ Make the two-part explosion noise of the player making a laser strike, or of
-\ another ship exploding.
+\ Make the two-part explosion noise of us making a laser strike, or of another
+\ ship exploding.
 \
 \ The volume of the first explosion is affected by the distance of the ship
 \ being hit, with more distant ships being quieter. The value in X also affects
@@ -19155,9 +19213,9 @@ ENDIF
 {
  STX T                  ; Store the distance in T
 
- LDA #24                ; Set A = 24 to denote the sound of the player making a
- JSR NOS1               ; hit or kill (part 1), and call NOS1 to set up the
-                        ; sound block in XX16
+ LDA #24                ; Set A = 24 to denote the sound of us making a hit or
+ JSR NOS1               ; kill (part 1), and call NOS1 to set up the sound
+                        ; block in XX16
 
  LDA INWK+7             ; Fetch z_hi, the distance of the ship being hit in
  LSR A                  ; terms of the z-axis (in and out of the screen), and
@@ -19187,7 +19245,7 @@ ENDIF
 
  JSR NO3                ; Make the sound from our updated sound block in XX16
 
- LDA #16                ; Set A = 16 to denote player has made a hit or kill
+ LDA #16                ; Set A = 16 to denote we have made a hit or kill
                         ; (part 2), and fall through into NOISE to make the
                         ; sound
 
@@ -19530,8 +19588,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  EOR #&FF               ; put it back (0 means no and &FF means yes in the
  STA DAMP-&40,X         ; configuration bytes, so this toggles the setting)
 
- JSR BELL               ; Make a beep sound so the player knows something has
-                        ; happened
+ JSR BELL               ; Make a beep sound so we know something has happened
 
  JSR DELAY              ; Wait for Y line scans (Y is between 64 and 70, so
                         ; this is always a bit longer than a second)
@@ -22151,9 +22208,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \
 \ For each ship definition below, the first 20 bytes define the following:
 \
-\ Byte #0       High nibble determines cargo type if scooped, 0 = not scoopable
-\               Lower nibble determines maximum number of bits of debris shown
-\               when destroyed
+\ Byte #0       Maximum number of bits of debris shown when destroyed
 \ Byte #1-2     Area of ship that can be locked onto by a missle (lo, hi)
 \ Byte #3       Edges data offset lo (offset is from byte #0)
 \ Byte #4       Faces data offset lo (offset is from byte #0)
@@ -22328,7 +22383,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 
 .SHIP3
 
- EQUB &01                           ; scoopable = 0, debris shown = 1
+ EQUB &01                           ; debris shown = 1
  EQUB &24, &13
  EQUB &AA
  EQUB &1A
@@ -22425,7 +22480,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 
 .SHIP5
 
- EQUB &03                           ; scoopable = 0, debris shown = 3
+ EQUB &03                           ; debris shown = 3
  EQUB &41, &23                      ; area for missile lock = &2331
  EQUB &BC                           ; edges data offset = &00BC
  EQUB &54                           ; faces data offset = &0154
