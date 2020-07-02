@@ -17410,12 +17410,18 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: DORND2
 \
-\ Restricted for explosion dust.
+\ A version of DORND that restricts the value of r2 so that bit 0 is always 0.
+\ Having C cleared changes the calculations in DORND to:
+\
+\   r2´ = ((r0 << 1) mod 256)
+\   r0´ = r2´ + r2 + bit 7 of r0
+\
+\ so r2´ always has bit 0 cleared, i.e. r2 is always a multiple of 2.
 \ *****************************************************************************
 
-.DORND2                 ; Restricted for explosion dust.
+.DORND2
 {
- CLC                    ; leave bit0 of RAND+2 at 0.
+ CLC                    ; This ensures that bit 0 of r2 is 0
 }
 
 \ *****************************************************************************
@@ -17423,22 +17429,68 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Set A and X to random numbers. Carry flag is also set randomly. Overflow flag
 \ will be have a 50% probability of being 0 or 1.
+\
+\ There are two calculations of two 8-bit numbers in this routine. The first
+\ pair is at RAND and RAND+2 (let's call them r0 and r2) and the second pair
+\ is at RAND+1 and RAND+3 (let's call them r1 and r3).
+\
+\ The values of r0 and r2 are not read by any other routine apart from this
+\ one, so they are effectively internal to the random number generation
+\ routine. r1 and r3, meanwhile, are returned in A and X with each call to
+\ DORND, and along with the returned values of the C and V flags, form the
+\ the random results we're looking for.
+\
+\ The seeds are overwritten in three places:
+\
+\   * All four locations are updated by EXL2, using a STA &FFFD,Y instruction
+\     with Y = 2, 3, 4, 5 (so this points the write to zero page location &00,
+\     which is where RAND is located, in the first four bytes of memory).
+\
+\  * r0 is written to at the start of M% in the main loop, to seed the random
+\    number generator. Here, r0 is set to the first byte of the ship data block
+\    at K% (x_lo for the first ship at K%).
+\
+\  * r3 is written to in EX4 as part of the explosion routine, with r3 being
+\    set to the seventh byte of the ship data block at K%+6 (z_lo for the
+\    first ship at K%).
+\
+\ r0 and r2 follow the following sequence through successive calls to DORND,
+\ going from r0 and r2 to r0´ and r2´ with each call:
+\
+\   r2´ = ((r0 << 1) mod 256) + C
+\   r0´ = r2´ + r2 + bit 7 of r0
+\
+\ C is the carry flag on entry. If this routine is entered with the carry flag
+\ clear, e.g. via DORND2, then if bit 0 of RAND+2 is 0, it will remain at 0.
+\
+\ r1 and r3 (which are returned in A and X) follow this number sequence through
+\ successive calls to DORND, going from r1 and r3 to r1´ and r3´:
+\
+\   A = r1´ = r1 + r3 + C
+\   X = r3´ = r1
+\
+\ C is the carry flag from the calculation of r0´ above, i.e. from the addition
+\ of r2´ with r2 and bit 7 of r0. Because r3´ is set to r1, this can be thought
+\ of as a number sequence, with A being the next number in the sequence and X
+\ being the value of A from the previous call.
 \ *****************************************************************************
 
 .DORND
 {
- LDA RAND               ; seed 0
- ROL A
- TAX                    ; double lo
- ADC RAND+2
+ LDA RAND               ; r2´ = ((r0 << 1) mod 256) + C
+ ROL A                  ; r0´ = r2´ + r2 + bit 7 of r0
+ TAX
+ ADC RAND+2             ; C = carry bit from r0´ calculation
  STA RAND
- STX RAND+2             ; dornd2 would leave bit0 of RAND+2 at 0.
- LDA RAND+1
- TAX                    ; store hi
- ADC RAND+3             ; bvs will see bit6 set here
- STA RAND+1             ; A rnd
- STX RAND+3             ; Xrnd = old A rnd
- RTS
+ STX RAND+2
+
+ LDA RAND+1             ; A = r1´ = r1 + r3 + C
+ TAX                    ; X = r3´ = r1
+ ADC RAND+3
+ STA RAND+1
+ STX RAND+3
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
