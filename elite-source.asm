@@ -2449,7 +2449,9 @@ ORG &0D40
 
 .MJ
 
- SKIP 1                 ; 
+ SKIP 1                 ; Are we in witchspace (i.e. we mis-jumped)?
+                        ;
+                        ; 0 = no, &FF = yes
 
 .LAS2
 
@@ -2821,7 +2823,8 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: M% (Part 1)
 \
-\ M% runs as part of the main loop. This section of M% covers the following:
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
 \
 \   * Seed the random number generator
 \ *****************************************************************************
@@ -2835,7 +2838,8 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: M% (Part 2)
 \
-\ M% runs as part of the main loop. This section of M% covers the following:
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
 \
 \   * Calculate the alpha and beta angles from the current roll and pitch
 \
@@ -2936,7 +2940,8 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: M% (Part 3)
 \
-\ M% runs as part of the main loop. This section of M% covers the following:
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
 \
 \   * Scan for flight keys and process the results
 \
@@ -3174,7 +3179,8 @@ LOAD_A% = LOAD%
 \
 \ Other entry points: MAL1
 \
-\ M% runs as part of the main loop. This section of M% covers the following:
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
 \
 \   * Start looping through all the ships in the local bubble, and for each
 \     one:
@@ -3238,7 +3244,8 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: M% (Part 5)
 \
-\ M% runs as part of the main loop. This section of M% covers the following:
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
 \
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
@@ -3269,7 +3276,8 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: M% (Part 6)
 \
-\ M% runs as part of the main loop. This section of M% covers the following:
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
 \
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
@@ -3299,7 +3307,8 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: M% (Part 7)
 \
-\ M% runs as part of the main loop. This section of M% covers the following:
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
 \
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
@@ -3360,7 +3369,8 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: M% (Part 8)
 \
-\ M% runs as part of the main loop. This section of M% covers the following:
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
 \
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
@@ -3433,7 +3443,8 @@ LOAD_A% = LOAD%
 \
 \ Other entry points: GOIN
 \
-\ M% runs as part of the main loop. This section of M% covers the following:
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
 \
 \   * Process docking with space station
 \ *****************************************************************************
@@ -3495,7 +3506,8 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: M% (Part 10)
 \
-\ M% runs as part of the main loop. This section of M% covers the following:
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
 \
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
@@ -3557,11 +3569,15 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: M% (Part 11)
 \
-\ M% runs as part of the main loop. This section of M% covers the following:
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
 \
-\   * Missile lock
+\   * Continue looping through all the ships in the local bubble, and for each
+\     one:
 \
-\   * Laser lock and damage
+\     * Process missile lock
+\
+\     * Process our laser firing
 \ *****************************************************************************
 
 .MA26
@@ -3665,69 +3681,113 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: M% (Part 12)
 \
-\ M% runs as part of the main loop. This section of M% covers the following:
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
 \
-\   * Draw object, remove killed ships, altitude checks, fuel scooping
+\   * Continue looping through all the ships in the local bubble, and for each
+\     one:
+\
+\     * Draw the ship
+\
+\     * Process removal of killed ships
+\
+\   * Loop back up to MAL1 to move onto the next ship in the local bubble
 \ *****************************************************************************
 
-.MA8                    ; else just Draw object
+.MA8
 
- JSR LL9                ; object ENTRY
+ JSR LL9                ; Call LL9 to draw the ship we're processing on screen
 
-.MA15                   ; maybe Remove ship, legal affect
+.MA15
 
- LDY #35                ; hull byte#35
- LDA INWK+35            ; ship energy
- STA (INF),Y            ; update
+ LDY #35                ; Fetch the ship's energy from INWK+35 and copy it to
+ LDA INWK+35            ; byte 35 in INF (so the ship's data in K% gets
+ STA (INF),Y            ; updated)
 
- LDA INWK+31            ; display|missiles explosion state
- BPL MAC1               ; maybe far away, else bit7 set, kill with debris
- AND #&20               ; is bit5 set, explosion finished?
- BEQ NBOUN              ; maybe far away. Else #&A0, explosion done, you killed it.
- LDA TYPE
- CMP #COPS              ; was victim a cop? 
+ LDA INWK+31            ; If bit 7 of the ship's INWK+31 byte is clear, then
+ BPL MAC1               ; the ship hasn't been killed by energy bomb, collision
+                        ; or laser fire, so jump to MAC1 to skip the following
+
+ AND #%00100000         ; If bit 5 of the ship's INWK+31 byte is clear then the
+ BEQ NBOUN              ; ship is no longer exploding, so jump to NBOUN to skip
+                        ; the following
+
+ LDA TYPE               ; If the ship we just destroyed was a cop, keep going,
+ CMP #COPS              ; otherwise jump to q2 to skip the following
  BNE q2
- LDA FIST
- ORA #64                ; fugitative/innocent status
- STA FIST
+
+ LDA FIST               ; We shot the sheriff, so update our FIST flag
+ ORA #64                ; ("fugitive/ innocent status") to at least 64, which
+ STA FIST               ; will instantly make us a fugitive
 
 .q2
 
- LDA DLY                ; delay printing as cash updating will scramble text
- ORA MJ                 ; mis-jump
- BNE KS1S               ; just Kill ship, else display bounty.
- LDY #10                ; hull byte#10 bounty lo
- LDA (XX0),Y
- BEQ KS1S               ; just Kill ship1 if multiple of 25.6 Cr
- TAX                    ; cash lo
- INY                    ; hull byte#11 bounty hi
- LDA (XX0),Y
- TAY                    ; cash hi
- JSR MCASH              ; more cash, add Xlo.Yhi to cash
- LDA #0                 ; token =0, print player cash
- JSR MESS               ; message
+ LDA DLY                ; If we already have an in-flight message on screen (in
+ ORA MJ                 ; which case DLY > 0), or we are in witchspace (in
+ BNE KS1S               ; which case MJ > 0), jump to KS1S to skip showing an
+                        ; on-screen bounty for this kill
 
-.KS1S                   ; Kill ship1
+ LDY #10                ; Fetch byte #10 of the ship's definition, which is the
+ LDA (XX0),Y            ; low byte of the bounty awarded when this ship is
+ BEQ KS1S               ; killed (in Cr * 10), and if it's zero jump to KS1S as
+                        ; there is no on-screen bounty to display
 
- JMP KS1                ; Kill ship1
+ TAX                    ; Put the low byte of the bounty into X
+
+ INY                    ; Fetch byte #11 of the ship's definition, which is the
+ LDA (XX0),Y            ; high byte of the bounty awarded (in Cr * 10), and put
+ TAY                    ; it into Y
+
+ JSR MCASH              ; Call MCASH to add (Y X) to the cash pot
+
+ LDA #0                 ; Print control code 0 (current cash, right-aligned to
+ JSR MESS               ; width 9, then " CR", newline) as an in-flight message
+
+.KS1S
+
+ JMP KS1                ; Process the killing of this ship (which removes this
+                        ; ship from its slot and shuffles all the other ships
+                        ; down to close up the gap)
 
 .NBOUN
 
-.MAC1                   ; maybe far away
+.MAC1
 
- LDA TYPE               ; ship type
- BMI MA27               ; planet
- JSR FAROF              ; carry cleared
- BCC KS1S               ; up, kill ship1 as far away.
+ LDA TYPE               ; If the ship we are processing is a planet or sun,
+ BMI MA27               ; jump to MA27 to skip the following two instructions
 
-.MA27                   ; ship is near, or planet.
+ JSR FAROF              ; If the ship we are processing is a long way away (its
+ BCC KS1S               ; distance in any one direction is > &E0, jump to KS1S
+                        ; to remove the ship from our local bubble, as it's just
+                        ; left the building
 
- LDY #31                ; (INF)#31 state|missiles explosion state
- LDA INWK+31            ; display|missiles explosion state
- STA (INF),Y            ; allwk state updated
- LDX XSAV               ; nearby ship slot count
- INX                    ; next nearby ship
- JMP MAL1               ; loop X
+.MA27
+
+ LDY #31                ; Fetch the ship's explosion/killed state from INWK+31
+ LDA INWK+31            ; and copy it to byte 31 in INF (so the ship's data in
+ STA (INF),Y            ; K% gets updated)
+
+ LDX XSAV               ; We're done processing this ship, so fetch the ship's
+                        ; slot number, which we saved in XSAV back at the start
+                        ; of the loop
+
+ INX                    ; Increment the slot number to move on to the next slot
+
+ JMP MAL1               ; And jump back up to the beginning of the loop to get
+                        ; the next ship in the local bubble for processing
+
+\ *****************************************************************************
+\ Subroutine: M% (Part 13)
+\
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
+\
+\   * Energy banks
+\
+\   * Altitude checks
+\
+\   * Fuel scooping
+\ *****************************************************************************
 
 .MA18                   ; check Your ship
 
@@ -17931,7 +17991,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ This is part of the main game loop. This section covers the following:
 \
-\   * Call M%
+\   * Call M% to do the main flight loop
+\
 \   * Potentially spawn a trader, asteroid or cargo canister
 \ *****************************************************************************
 
