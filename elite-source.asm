@@ -3145,7 +3145,7 @@ LOAD_A% = LOAD%
 
  PHA                    ; Store the current view's laser power on the stack
 
- AND #%1111111          ; Set LAS and LAS2 to bits 0-6 of the laser power
+ AND #%01111111         ; Set LAS and LAS2 to bits 0-6 of the laser power
  STA LAS
  STA LAS2
 
@@ -3262,7 +3262,7 @@ LOAD_A% = LOAD%
  BEQ MA21               ; as energy bombs have no effect on space stations
 
  LDA INWK+31            ; If the ship we are checking has bit 5 set in their
- AND #%100000           ; INWK+31 byte, then they are already exploding, so 
+ AND #%00100000         ; INWK+31 byte, then they are already exploding, so 
  BNE MA21               ; jump to BA21 as they can't explode more than once
 
  LDA INWK+31            ; The energy bomb is killing this ship, so set bit 7
@@ -7910,7 +7910,7 @@ NEXT
  LDY #11                ; Set Y as a counter for 12 bytes, to use when setting
                         ; the dashboard palette below
 
- LDA #%10               ; Read the 6522 System VIA status byte bit 1, which is
+ LDA #%00000010         ; Read the 6522 System VIA status byte bit 1, which is
  BIT SHEILA+&4D         ; set if vertical sync has occurred on the video system
                         
  BNE LINSCN             ; If we are on the vertical sync pulse, jump to LINSCN
@@ -11552,7 +11552,7 @@ LOAD_D% = LOAD% + P% - CODE%
  CLC                    ; If (QQ3 + 1) >> 1 = %10, i.e. if QQ3 = %011 or %100
  ADC #1                 ; (3 or 4), then call TT70, which prints "MAINLY " and
  LSR A                  ; jumps down to TT72 to print the type of economy
- CMP #%10
+ CMP #%00000010
  BEQ TT70
  
  LDA QQ3                ; The LSR A above shifted bit 0 of QQ3 into the carry
@@ -11687,7 +11687,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  LDA QQ15+3             ; Now for the third adjective, so EOR the high bytes of
  EOR QQ15+1             ; w0 and w1 and extract bits 0-2 of the result:
- AND #%111              ;
+ AND #%00000111         ;
  STA QQ19               ;   A = (w0_hi EOR w1_hi) AND %111
                         ;
                         ; storing the result in QQ19 so we can use it later
@@ -11778,7 +11778,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA QQ15+5             ; Set A = QQ15+5
  LDX QQ15+3             ; Set X = QQ15+3
 
- AND #%1111             ; Set Y = (A AND %1111) + 11
+ AND #%00001111         ; Set Y = (A AND %1111) + 11
  CLC
  ADC #11
  TAY
@@ -11926,14 +11926,14 @@ LOAD_D% = LOAD% + P% - CODE%
 .TT24
 {
  LDA QQ15+1             ; Fetch w0_hi and extract bits 0-2 to determine the
- AND #%111              ; system's economy, and store in QQ3
+ AND #%00000111         ; system's economy, and store in QQ3
  STA QQ3
  
  LDA QQ15+2             ; Fetch w1_lo and extract bits 3-5 to determine the
  LSR A                  ; system's government, and store in QQ4
  LSR A
  LSR A
- AND #%111
+ AND #%00000111
  STA QQ4
  
  LSR A                  ; If government isn't anarchy or feudal, skip to TT77,
@@ -11941,13 +11941,13 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; systems so they can't be rich
 
  LDA QQ3                ; Set bit 1 of the economy in QQ3 to fix the economy
- ORA #%10               ; for anarchy and feudal governments
+ ORA #%00000010         ; for anarchy and feudal governments
  STA QQ3
 
 .TT77
 
  LDA QQ3                ; Now to work out the tech level, which we do like this:
- EOR #%111              ; 
+ EOR #%00000111         ; 
  CLC                    ;   flipped economy + (w1_hi AND %11) + (government / 2)
  STA QQ5                ;
                         ; or, in terms of memory locations:
@@ -11957,7 +11957,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; We start by setting QQ5 = QQ3 EOR %111
 
  LDA QQ15+3             ; We then take the first 2 bits of w1_hi (QQ15+3) and
- AND #%11               ; add it into QQ5
+ AND #%00000011         ; add it into QQ5
  ADC QQ5
  STA QQ5
 
@@ -11975,7 +11975,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ;   QQ6 = (QQ5 * 4) + QQ3 + QQ4 + 1
 
  LDA QQ3                ; Finally, we work out productivity, like this:
- EOR #%111              ;
+ EOR #%00000111         ;
  ADC #3                 ;  (flipped economy + 3) * (government + 4)
  STA P                  ;                        * population
  LDA QQ4                ;                        * 8
@@ -13742,7 +13742,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: MCASH
 \
-\ More cash, add Xlo.Yhi
+\ Add (Y X) to the cash pot.
 \ *****************************************************************************
 
 .MCASH                  ; More cash, add Xlo.Yhi
@@ -14262,7 +14262,7 @@ MAPCHAR '4', '4'
 .TT55
 
  LDA QQ15+5             ; Step 2: Load w2_hi, which is stored in QQ15+5, and
- AND #%11111            ; extract bits 0-4 by AND-ing with %11111
+ AND #%00011111         ; extract bits 0-4 by AND-ing with %11111
 
  BEQ P%+7               ; If all those bits are zero, then skip the following
                         ; 2 instructions to go to step 3
@@ -15985,7 +15985,7 @@ MAPCHAR '4', '4'
 
  LDY #19                ; Fetch ship definition byte #19, which contains the
  LDA (XX0),Y            ; number of missiles and laser power, and AND with %111
- AND #%111              ; to extract the number of missiles before storing in
+ AND #%00000111         ; to extract the number of missiles before storing in
  STA INWK+31            ; INWK+31
 
  LDA T                  ; Restore the ship type we stored above
@@ -18954,7 +18954,7 @@ ENDIF
 
  LDA SHEILA+&40         ; Read 6522 System VIA input register IRB (SHEILA &40)
 
- AND #%10000            ; Bit 4 of IRB (PB4) is clear if joystick 1's fire
+ AND #%00010000         ; Bit 4 of IRB (PB4) is clear if joystick 1's fire
                         ; button is pressed, otherwise it is set, so AND'ing
                         ; the value of IRB with %10000 extracts this bit
 
@@ -19875,7 +19875,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
                         ; will contain 128 + X), otherwise it will be clear (so
                         ; X will be unchanged).
  
- LDA #%1011             ; Set 6522 System VIA output register ORB (SHEILA &40)
+ LDA #%00001011         ; Set 6522 System VIA output register ORB (SHEILA &40)
  STA SHEILA+&40         ; to %1011 to restart auto scan of keyboard
 
  CLI                    ; Allow interrupts again
@@ -20014,11 +20014,11 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
                         ; unnecessary TAX instruction present, but there it's
                         ; commented out.
 
- AND #%10000            ; Bit 4 of IRB (PB4) is clear if joystick 1's fire
+ AND #%00010000         ; Bit 4 of IRB (PB4) is clear if joystick 1's fire
                         ; button is pressed, otherwise it is set, so AND'ing
                         ; the value of IRB with %10000 extracts this bit
 
- EOR #%10000            ; Flip bit 4 so that it's set if the fire button has
+ EOR #%00010000         ; Flip bit 4 so that it's set if the fire button has
  STA KY7                ; been pressed, and store the result in the keyboard
                         ; logger at location KY7, which is also where the A key
                         ; (fire lasers) key is logged
