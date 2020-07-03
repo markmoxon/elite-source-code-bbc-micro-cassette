@@ -500,11 +500,11 @@ ORG &0000
 
 .Q
 
- SKIP 1                 ; 
+ SKIP 1                 ; Temporary storage (e.g. used in MVS4)
 
 .R
 
- SKIP 1                 ; 
+ SKIP 1                 ; Temporary storage (e.g. used in MVS4)
 
 .S
 
@@ -4359,65 +4359,390 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: MVS4
 \
-\ Moveship4, pitch and roll calculation
+\ Apply pitch and roll angles alpha and beta to the rotmat row given in Y.
+\
+\ Specifically, this routine rotates a point (x, y, z) around the origin by
+\ pitch alpha and roll beta, using the small angle approximation to make the
+\ maths easier, and incorporating the Minsky circle algorithm to make the
+\ rotation more stable (though more elliptic).
+\
+\ If that paragraph makes sense to you, then you should probably be writing
+\ this commentary! For the rest of us, there's an explanation below.
+\ 
+\ Arguments:
+\
+\   Y           Determines which row of the INWK rotation matrix to transform:
+\
+\                 * Y = 9 rotates row 0 (rotmat0x, rotmat0y, rotmat0z)
+\
+\                 * Y = 15 rotates row 1 (rotmat1x, rotmat1y, rotmat1z)
+\
+\                 * Y = 21 rotates row 2 (rotmat2x, rotmat2y, rotmat2z)
+\
+\ *****************************************************************************
+\
+\ In order to understand this routine, we need first to understand what it's
+\ for, so consider our Cobra Mk III sitting in deep space, minding its own
+\ business, when an enemy ship appears in the distance. Inside the little
+\ bubble of universe that Elite creates to simulate this scenario, our ship is
+\ at the origin (0, 0, 0), and the enemy ship has just popped into existence at
+\ (x, y, z), where the x-axis is to our right, the y-axis is up, and the z-axis
+\ is in the direction our Cobra is pointing in.
+\ 
+\ Of course, our first thought is to roll and pitch our Cobra to get the new
+\ arrival firmly into the cross-hairs, and in doing this the enemy ship will
+\ appear to move in space, relative to us. For example, if we do a pitch by
+\ pulling back on the joystick or pressing "X", this will pull the nose of our
+\ Cobra Mk III up, and the point (x, y, z) will appear to move down in the sky
+\ in front of us.
+\ 
+\ So this routine calculates the movement of the enemy ship in space when we
+\ pitch and roll, as then the game can show the ship on screen and work out
+\ whether our lasers are pointing in the correct direction to unleash fiery
+\ death on the pirate/cop/innocent trader in our sights.
+\ 
+\ Roll and pitch
+\ --------------
+\ 
+\ To make it easier to work with the 3D rotations of pitching and rolling, we
+\ break down the movement into two separate rotations, the roll and the pitch,
+\ and we apply one of them first, and then the other (in Elite, we do the roll
+\ first, and then the pitch).
+\ 
+\ So let's look at the first one: the roll. Imagine we're sitting in our
+\ spaceship and do a roll to the right by pressing ">". From our perspective
+\ this is the same as the universe doing a roll to the left, so if we're
+\ looking out of the front of our ship, and there's a stationary enemy ship at
+\ (x, y, z), then rolling by an angle of a will look something like this:
+\ 
+\   y
+\   
+\   ^         (x´, y´, z´)
+\   |       /
+\   |      /    <-_ 
+\   |     /        `.
+\   |    /       a   \
+\   |   /             
+\   |  /              __ (x, y, z)
+\   | /       __..--''
+\   |/__..--''     
+\   +-----------------------> x
+\ 
+\ So the enemy ship will move from (x, y, z) to (x´, y´, z´) in our little
+\ bubble of universe. Moreover, because the enemy ship is stationary, rolling
+\ our ship won't change the enemy ship's z-coordinate - it will always be the
+\ same distance in front of us, however far we roll. So we know that z´ = z,
+\ but how do we calculate x´ and y´?
+\ 
+\ First, let's ditch the z-coordinate, as we know this doesn't change. This
+\ leaves us with a 2D rotation to consider; we are effectively only interested
+\ in what happens in the 2D plane at distance z in front of our ship (imagine a
+\ cinema screen at distance z, and that's what we're about to draw graphs on).
+\ 
+\ Now, let's look at the triangle formed by the original (x, y) point:
+\ 
+\   ^
+\   |
+\   |
+\   |
+\   |
+\   |
+\   |         h        __ (x, y)
+\   |         __..--''  |
+\   | __..--''    t     | <------- y
+\   +----------------------->
+\        <---- x ---->
+\ 
+\ In this triangle, let's call the angle at the origin t and the hypotenuse h,
+\ and we already know the adjacent side is x and the opposite side is y. If we
+\ plug these into the equations for sine and cosine, we get:
+\ 
+\   cos t = adjacent / hypotenuse = x / h
+\   sin t = opposite / hypotenuse = y / h
+\ 
+\ which gives us the following when we multiply both sides by h:
+\ 
+\   x = h * cos(t)
+\   y = h * sin(t)
+\ 
+\ (We could use Pythagoras to calculate h from x and y, but we don't need to -
+\ you'll see why in a minute.)
+\ 
+\ Now let's look at the 2D triangle formed by the new, post-roll (x´, y´)
+\ point:
+\ 
+\   ^         (x´, y´)
+\   |       /|
+\   |      / |
+\   |     /  |
+\   |  h /   |
+\   |   /    | <------- y´
+\   |  /     |
+\   | /      |
+\   |/ t+a   |
+\   +----------------------->
+\   <-- x´ -->
+\ 
+\ In this triangle, the angle is now t + a (as we have rolled left by an angle
+\ of a), the hypotenuse is still h (because we're rotating around the origin),
+\ the adjacent is x´ and the opposite is y´. If we plug these into the
+\ equations for sine and cosine, we get:
+\ 
+\  cos(t + a) = adjacent / hypotenuse = x´ / h
+\  sin(t + a) = opposite / hypotenuse = y´ / h
+\ 
+\ which gives us the following when we multiply both sides by h:
+\ 
+\   x´ = h * cos(t + a)                                   (i)
+\   y´ = h * sin(t + a)                                   (ii)
+\ 
+\ We can expand these using the standard trigonometric formulae for compound
+\ angles, like this:
+\ 
+\   x´ = h * cos(t + a)                                   (i)
+\      = h * (cos(t) * cos(a) - * sin(t) * sin(a))
+\      = h * cos(t) * cos(a) - h * sin(t) * sin(a)        (iii)
+\ 
+\   y´ = h * sin(t + a)                                   (ii)
+\      = h * (sin(t) * cos(a) + cos(t) * sin(a))
+\      = h * sin(t) * cos(a) + h * cos(t) * sin(a)        (iv)
+\ 
+\ and finally we can substitute the values of x and y that we calculated from
+\ the first triangle above:
+\ 
+\   x´ = h * cos(t) * cos(a) - h * sin(t) * sin(a)        (iii)
+\      = x * cos(a) - y * sin(a)
+\ 
+\   y´ = h * sin(t) * cos(a) + h * cos(t) * sin(a)        (iv)
+\      = y * cos(a) + x * sin(a)
+\ 
+\ So, to summarise, if we do a roll of angle a, then the ship at (x, y, z) will
+\ move to (x´, y´, z´), where:
+\ 
+\   x´ = x * cos(a) - y * sin(a)
+\   y´ = y * cos(a) + x * sin(a)
+\   z´ = z
+\ 
+\ Tranformation matrices
+\ ----------------------
+\ 
+\ We can express the exact same thing in matrix form, like this:
+\ 
+\   [  cos(a)  sin(a)  0 ]     [ x ]     [ x * cos(a) + y * sin(a) ]
+\   [ -sin(a)  cos(a)  0 ]  x  [ y ]  =  [ y * cos(a) - x * sin(a) ]
+\   [    0       0     1 ]     [ z ]     [            z            ]
+\ 
+\ The matrix on the left is therefore the transformation matrix for rolling
+\ through an angle a.
+\ 
+\ We can apply the exact same process to the pitch rotation, which gives us a
+\ transformation matrix for pitching through an angle b, as follows:
+\
+\   [ 1    0        0    ]     [ x ]     [            x            ]
+\   [ 0  cos(b)  -sin(b) ]  x  [ y ]  =  [ y * cos(b) - z * sin(a) ]
+\   [ 0  sin(b)   cos(b) ]     [ z ]     [ y * sin(b) + z * cos(b) ]
+\
+\ Finally, we can multiply these two rotation matrices together to get a
+\ transformation matrix that applies roll and then pitch in one go:
+\
+\   [       cos(a)           sin(a)         0    ]     [ x ]
+\   [ -sin(a) * cos(b)  cos(a) * cos(b)  -sin(b) ]  x  [ y ]
+\   [ -sin(a) * sin(b)  cos(a) * sin(b)   cos(b) ]     [ z ]
+\
+\ So, to move our enemy ship in space when we pitch and roll, we simply need
+\ to do this matrix multiplication. In 6502 assembly language. In a very small
+\ memory footprint. Oh, and it needs to be quick, too, because we're going to
+\ be using this routine a lot. Got that?
+\
+\ Small angle approximation
+\ -------------------------
+\
+\ Luckily we can simplify the maths considerably by applying the "small angle
+\ approximation". This states that for small angles in radians, the following
+\ approximations hold true:
+\
+\   sin a ~= a
+\   cos a ~= 1
+\   tan a ~= a
+\
+\ These approximations make sense when you look at the triangle geometry that
+\ is used to show the ratios of trigonometry, and imagine what happens when the
+\ angle gets small; for example, cosine is defined as the adjacent over the
+\ hypotenuse, and as the angle tends to 0, the hypotenuse "hinges" down on top
+\ of the adjacent, so it's intuitive that cos a tends to 1 for small angles.
+\
+\ (A quick aside: the approximations actually state that cos a approximates to
+\ 1 - a^2/2, but Elite uses 1 and corrects for this in the TIDY routine, so
+\ let's stick to the simpler version.)
+\
+\ So dropping the small angle approximations into our rotation calculation above
+\ gives the following, much simpler version:
+\
+\   [  1   a   0 ]     [ x ]     [    x + ay     ]
+\   [ -a   1  -b ]  x  [ y ]  =  [ y - ax  - bz  ]
+\   [ -ab  b   1 ]     [ z ]     [ z + b(y - ax) ]
+\
+\ So to move rotate a point (x, y, z) around the origin (the centre of our
+\ ship) by the current pitch and roll angles (alpha and beta), we just need to
+\ calculate these three relatively simple equations:
+\
+\   x -> x + alpha * y
+\   y -> y - alpha * x - beta * z
+\   z -> z + beta * (y - alpha * x)
+\
+\ There's a fascinating document on Ian Bell's Elite website that shows this
+\ exact calculation, in the author's own handwritten notes for the game. You
+\ can see it in the second image here:
+\
+\   http://www.iancgbell.clara.net/elite/design/index.htm
+\
+\ judt below the original design for the cockpit, before the iconic 3D scanner
+\ was added (which is a whole other story...).
+\
+\ Minsky circles
+\ --------------
+\
+\ So that's what this routine does... it transforms x, y and z when we roll and
+\ pitch. But there is a twist. Let's write the transformation equations as you
+\ might write them in code (and, indeed this is how the routine itself is
+\ structured).
+\
+\ First, we do the roll calculations:
+\
+\   y = y - alpha * x
+\   x = x + alpha * y
+\
+\ and then we do the pitch calculations:
+\
+\   y = y - beta * z
+\   z = z + beta * y
+\
+\ At first glance this code looks the same as the matrix calculation above, but
+\ then you notice that the value of y used in the calculations of x and z is not
+\ the original value of y, but the updated value of y. In fact, the above code
+\ actually does the following transformation of (x, y, z):
+\
+\   x -> x + alpha * (y - alpha * x)
+\   y -> y - alpha * x - beta * z
+\   z -> z + beta * (y - alpha * x - beta * z)
+\
+\ Oops, that isn't what we wanted to calculate... except this version turns out
+\ to do a better job than our original matrix multiplication above. This new
+\ version, where we reuse the updated y in the calculations of x and z instead
+\ of the original y, was "invented by mistake when [Marvin Minsky] tried to save
+\ one register in a display hack", and inadvertently discovered a way to rotate
+\ points within a pretty good approximation of a circle without using complex
+\ maths. The method appeared as item 149 in the 1972 HAKMEM memo, and if that
+\ doesn't mean anything to you, see if you can take the time to look it up.
+\ It's worth the effort if you're interested in this kind of thing (and you're
+\ the one reading a commentary on 8-bit code from 1984, so I'm guessing this
+\ might include you).
+\
+\ Anyway, the rotation in Minsky's method doesn't describe a perfect circle,
+\ but instead it follows a slightly sheared ellipse, but that's close enough
+\ for 8-bit space combat in 192 x 256 pixels. So, coming back to the Elite
+\ sourced code, the routine below implements the rotation like this (shown
+\ here for row 0 of the INWK rotation matrix, i.e. rotmat0x, rotmat0y and
+\ rotmat0z):
+\
+\ Roll calculations:
+\
+\   rotmat0y = rotmat0y - alpha * rotmat0x_hi
+\   rotmat0x = rotmat0x + alpha * rotmat0y_hi
+\
+\ Pitch calculations:
+\
+\   rotmat0y = rotmat0y - beta * rotmat0z_hi
+\   rotmat0z = rotmat0z + beta * rotmat0y_hi
+\
+\ And that's how we rotate a point around the origin by pitch alpha and roll
+\ beta, using the small angle approximation to make the maths easier, and
+\ incorporating the Minsky circle algorithm to make the rotation more stable.
 \ *****************************************************************************
 
-\ roll alpha=a pitch beta=b, z in direction of travel, y is vertical. 
-\ [    ca    sa   0  ]    [ 1 a   0]      [x]    [x + ay       ]
-\ [ -sa.cb ca.cb -sb ] -> [- a 1 -b]   so [y] -> [y - ax  -bz  ]
-\ [ -sa.sb ca.sb  cb ]    [-ab b  1]      [z]    [z + b(y - ax)]
+.MVS4
 
-.MVS4                   ; Moveship4, Y is matrix row, pitch&roll update to coordinates
+ LDA ALPHA              ; Set Q = alpha (the roll angle to rotate through)
+ STA Q
 
- LDA ALPHA
- STA Q                  ; player ship's roll
- LDX INWK+2,Y
- STX R                  ; lo
+ LDX INWK+2,Y           ; Set (S R) = rotmat0y
+ STX R
  LDX INWK+3,Y
- STX S                  ; hi
- LDX INWK,Y
- STX P                  ; over-written
- LDA INWK+1,Y
- EOR #128               ; flip sign
- JSR MAD                ; X.A = alpha*INWK+1,Y + INWK+2to3,Y
- STA INWK+3,Y           ; hi
- STX INWK+2,Y           ; Y=Y-aX \ their comment
- STX P
+ STX S
 
- LDX INWK,Y
- STX R                  ; lo
+ LDX INWK,Y             ; These instructions have no effect as MAD overwrites
+ STX P                  ; X and P when called, but they set X = P = rotmat0x_lo
+
+ LDA INWK+1,Y           ; Set A = -rotmat0x_hi
+ EOR #%10000000
+ 
+ JSR MAD                ; Set (A X) = Q * A + (S R)
+ STA INWK+3,Y           ;           = alpha * -rotmat0x_hi + rotmat0y
+ STX INWK+2,Y           ;
+                        ; and store (A X) in rotmat0y, so this does:
+                        ;
+                        ; rotmat0y = rotmat0y - alpha * rotmat0x_hi
+
+ STX P                  ; This instruction has no effect as MAD overwrites P,
+                        ; but it sets P = rotmat0y_lo
+
+ LDX INWK,Y             ; Set (S R) = rotmat0x
+ STX R
  LDX INWK+1,Y
- STX S                  ; hi
- LDA INWK+3,Y
- JSR MAD                ; X.A = alpha*INWK+3,Y + INWK+0to1,Y
- STA INWK+1,Y           ; hi
- STX INWK,Y             ; X=X+aY \ their comment
- STX P
+ STX S
 
- LDA BETA
- STA Q                  ; player ship's pitch
- LDX INWK+2,Y
- STX R                  ; lo
+ LDA INWK+3,Y           ; Set A = rotmat0y_hi
+
+ JSR MAD                ; Set (A X) = Q * A + (S R)
+ STA INWK+1,Y           ;           = alpha * rotmat0y_hi + rotmat0x
+ STX INWK,Y             ;
+                        ; and store (A X) in rotmat0x, so this does:
+                        ;
+                        ; rotmat0x = rotmat0x + alpha * rotmat0y_hi
+
+ STX P                  ; This instruction has no effect as MAD overwrites P,
+                        ; but it sets P = rotmat0x_lo
+
+ LDA BETA               ; Set Q = beta (the pitch angle to rotate through)
+ STA Q
+
+ LDX INWK+2,Y           ; Set (S R) = rotmat0y
+ STX R
  LDX INWK+3,Y
- STX S                  ; lo
+ STX S
  LDX INWK+4,Y
- STX P                  ; hi
- LDA INWK+5,Y
- EOR #128               ; flip sign hi
- JSR MAD                ; X.A =-beta*INWK+5,Y + INWK+2to3,Y
- STA INWK+3,Y           ; hi
- STX INWK+2,Y           ; Y=Y-bZ \ their comment
- STX P
 
- LDX INWK+4,Y
- STX R                  ; lo
+ STX P                  ; This instruction has no effect as MAD overwrites P,
+                        ; but it sets P = rotmat0y
+
+ LDA INWK+5,Y           ; Set A = -rotmat0z_hi
+ EOR #%10000000
+
+ JSR MAD                ; Set (A X) = Q * A + (S R)
+ STA INWK+3,Y           ;           = beta * -rotmat0z_hi + rotmat0y
+ STX INWK+2,Y           ;
+                        ; and store (A X) in rotmat0y, so this does:
+                        ;
+                        ; rotmat0y = rotmat0y - beta * rotmat0z_hi
+
+ STX P                  ; This instruction has no effect as MAD overwrites P,
+                        ; but it sets P = rotmat0y_lo
+
+ LDX INWK+4,Y           ; Set (S R) = rotmat0z
+ STX R
  LDX INWK+5,Y
- STX S                  ; hi
- LDA INWK+3,Y
- JSR MAD                ; X.A = beta*INWK+3,Y + INWK+4,5,Y
- STA INWK+5,Y           ; hi
- STX INWK+4,Y           ; Z=Z+bY \ their comment
- RTS                    ; MVS4 done
+ STX S
+
+ LDA INWK+3,Y           ; Set A = rotmat0y_hi
+
+ JSR MAD                ; Set (A X) = Q * A + (S R)
+ STA INWK+5,Y           ;           = beta * rotmat0y_hi + rotmat0z
+ STX INWK+4,Y           ;
+                        ; and store (A X) in rotmat0z, so this does:
+                        ;
+                        ; rotmat0z = rotmat0z + beta * rotmat0y_hi
+
+ RTS                    ; Return from the subroutine
 
 \ *****************************************************************************
 \ Subroutine: MVS5
