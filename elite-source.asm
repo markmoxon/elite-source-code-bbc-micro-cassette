@@ -3459,24 +3459,39 @@ LOAD_A% = LOAD%
                         ; docking (so trying to dock at a station that we have
                         ; annoyed does not end well)
 
- LDA INWK+14            ; ???? Fetch rotmat0z_hi (face normal)
- CMP #&D6               ; z_unit  -ve &56 to -ve &60, 26 degrees.
- BCC MA62               ; Failed dock
+                        ; The following checks need further investigation. They
+                        ; check whether or not we are docking correctly, but
+                        ; they aren't totally clear to me yet...
+
+ LDA INWK+14            ; If rotmat0z_hi < &D6, jump down to MA62 to fail
+ CMP #&D6               ; docking
+ BCC MA62               ;
+                        ; rotmat0 is the face normal of the station as a unit
+                        ; vector, so if the z-part of that vector is pointing
+                        ; directly towards us at the origin, then we are aiming
+                        ; dead straight into the slot. However, if the z-part
+                        ; of the vector in rotmat0z is off by more than a
+                        ; certain amount, then the angle of approach is wrong.
+                        ; In unit vectors, &E0 is -1, which would be a perfect
+                        ; approach, so this tests whether our approach is
+                        ; within 10 of perfection, though I'm not quite sure
+                        ; what that means. Brink left a note as follows:
+                        ; -ve &56 to -ve &60, 26 degrees
 
  JSR SPS4               ; Call SPS4 to get the vector to the space station
                         ; into XX15
 
- LDA XX15+2             ; Check the sign of the z axis (bit 7 of XX15+2) and
+ LDA XX15+2             ; Check the sign of the z-axis (bit 7 of XX15+2) and
  BMI MA62               ; if it is negative, we are facing away from the
                         ; station, so jump to MA62 to fail docking
 
- CMP #89                ; ???? If z_axis < #&60, jump to MA62 to fail docking
+ CMP #&59               ; If z-axis < &60, jump to MA62 to fail docking
  BCC MA62
 
- LDA INWK+16            ; ???? Fetch rotmat1x_hi, slit roll
- AND #%01111111         ; clear sign
- CMP #80                ; < #&60 ?
- BCC MA62               ; Failed dock
+ LDA INWK+16            ; If |rotmat1x_hi| < &50, jump to MA62 to fail docking
+ AND #%01111111         ;
+ CMP #&50               ; Is this something to do with matching the the slot
+ BCC MA62               ; rotation?
 
 .^GOIN                  ; If we arrive here, either the docking computer has
                         ; been activated, or we just docked successfully
