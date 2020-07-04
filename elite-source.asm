@@ -347,12 +347,12 @@ ORG &0000
                         ;                 = (INWK+16,15 INWK+18,17 INWK+20,19)
                         ;                   (INWK+22,21 INWK+24,23 INWK+26,25)
                         ;
-                        ;                   (0    0  &E0)   (0  0 -1)
-                        ; Zero'd in ZINF to (0   &60   0) = (0  1  0)
-                        ;                   (&60  0    0)   (1  0  0)
+                        ;                   (  0     0   &E000)   (0  0 -1)
+                        ; Zero'd in ZINF to (  0   &6000   0  ) = (0  1  0)
+                        ;                   (&6000   0     0  )   (1  0  0)
                         ;
-                        ; &60 (96) is the figure we use to represent 1 in the
-                        ; rotation matrix, while &E0 9224) is -1
+                        ; &6000 is the figure we use to represent 1 in the
+                        ; rotation matrix, while &E000 represents -1
                         ;
                         ; INWK    = x_lo
                         ; INWK+1  = x_hi
@@ -3447,6 +3447,112 @@ LOAD_A% = LOAD%
 \ flight-specific aspects of Elite. This section of M% covers the following:
 \
 \   * Process docking with space station
+\
+\ *****************************************************************************
+\
+\ The following routine does five tests to confirm whether we are docking
+\ safely, as opposed to slamming into the sides of the space station, leaving
+\ a trail of sparks and dented pride. They are:
+\
+\   1. Make sure the station isn't hostile.
+\
+\   2. Make sure our angle of approach is less that 26 degrees off the perfect,
+\      head-on approach.
+\
+\   3. Confirm that we are moving towards the centre of the space station.
+\
+\   4. Unsure at this point - needs more investigation.
+\
+\   5. Unsure at this point - needs more investigation.
+\
+\ Here's a further look at the more complicated of these tests.
+\
+\ 2. Check the angle of approach
+\ ------------------------------
+\
+\ The space station's ship data is in INWK. The rotmat0 vector in INWK+9 to
+\ INWK+14 is the station's forward-facing normal vector, so it's perpendicular
+\ to the face containing the slot, pointing straight out into space out of the
+\ docking slot. You can see this in the diagram on the left, which is a side-on
+\ view of the station, with us approaching at a jaunty angle from the top and
+\ the docking slot on the top face of the station. You can imagine the space
+\ station normal vector as someone shining a torch out of the slot, like this:
+\
+\        station
+\        normal
+\        vector
+\       (rotmat0)
+\          ^         ship                          ________
+\          :       /                              |       /
+\          :      /                               |      /
+\          :     L                                |     /
+\          :    /                       rotmat0z  |    /
+\          :   / <--- approach                    | t /  1 
+\          :  /       vector                      |  /
+\          : /                                    | /
+\          :/                                     |/
+\     ____====____                                +
+\    /     /\     \
+\   |    /    \    |
+\   |  /        \  |
+\   : . station  . :
+\
+\
+\ The station's normal vector has length 1, because it's a unit vector. We
+\ actually store 1 in a unit vector as &6000, because this means we don't
+\ have to deal with fractions. We can also just consider the high byte of
+\ this figure, so 1 has a high byte of &60 when we're talking about vectors
+\ like the station's normal vector.
+\
+\ So the normal vector is someone shining a torch out of the slot, and the beam
+\ always travels exactly 1 unit (stored as a high byte of &60 internally).
+\
+\ Now, if that vector was coming perpendicularly out of the screen towards us,
+\ we would be on a perfect approach angle, the beam would be shining in our
+\ eyes, and the length of the beam in our direction would be the full length
+\ of 1, or &60. However, if our angle of approach is too far off, then the
+\ normal vector will go off to the side of us, and the length of the beam in
+\ our direction will be smaller (and if we take this to extremes and approach
+\ the slot from the side, then the beam won't be travelling towards us at all,
+\ and if we appeoach the space station from totally the wrong end, the beam
+\ will be travelling away from us).
+\
+\ This distance - the distance the beam travels towards us - is given in the
+\ z-element of the station normal, because the z-axis is defined as pointing
+\ out of the nose of our ship.
+\
+\ So the left-hand edge of the triangle - the adjacent side - has length
+\ rotmat0z, while the hypotenuse is the length of the unit vector, 1. So we
+\ can do some trigonometry, like this, if we just consider the high bytes of
+\ our vectors:
+\
+\   cos(t) = adjacent / hypotenuse
+\          = rotmat0z_hi / &60
+\
+\ so:
+\
+\   rotmat0z_hi = &60 * cos(t)
+\
+\ We need our approach angle to be off by less than 26 degrees, so this
+\ becomes the following, if we round down the result to an integer:
+\
+\   rotmat0z_hi = &60 * cos(26)
+\               = &56
+\
+\ So, we get this:
+\
+\   The angle of approach is less than 26 degrees if rotmat0z_hi >= &56
+\
+\ There is one final twist, however, because we are approaching the slot head
+\ on, the z-zxis from our perspective points into the screen, so that means
+\ the station normal vector is coming out of the screen towards us, so it has
+\ a negative z-coordinate. So the station normal vector in this case is
+\ actually in the reverse direction, so we need to reverse the check and set
+\ the sign bit, to this:
+\
+\   The angle of approach is less than 26 degrees if rotmat0z_hi <= &D6
+\
+\ And that's the check we make below to make sure our docking angle is correct.
 \ *****************************************************************************
 
 .ISDK
@@ -3458,10 +3564,6 @@ LOAD_A% = LOAD%
                         ; station is angry with us, jump down to MA62 to fail
                         ; docking (so trying to dock at a station that we have
                         ; annoyed does not end well)
-
-                        ; The following checks need further investigation. They
-                        ; check whether or not we are docking correctly, but
-                        ; they aren't totally clear to me yet...
 
  LDA INWK+14            ; If rotmat0z_hi < &D6, jump down to MA62 to fail
  CMP #&D6               ; docking
@@ -3484,6 +3586,10 @@ LOAD_A% = LOAD%
  LDA XX15+2             ; Check the sign of the z-axis (bit 7 of XX15+2) and
  BMI MA62               ; if it is negative, we are facing away from the
                         ; station, so jump to MA62 to fail docking
+
+                        ; The following checks need further investigation. They
+                        ; check whether or not we are docking correctly, but
+                        ; they aren't totally clear to me yet...
 
  CMP #&59               ; If z-axis < &60, jump to MA62 to fail docking
  BCC MA62
