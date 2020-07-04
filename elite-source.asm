@@ -153,7 +153,7 @@ ORG &0000
 
 .XX0
 
- SKIP 2                 ; Stores address of ship definition in NWSHP
+ SKIP 2                 ; Stores address of ship blueprint in NWSHP
 
 .INF
 
@@ -3233,13 +3233,13 @@ LOAD_A% = LOAD%
  ASL A                  ; Set Y = ship type * 2
  TAY
 
- LDA XX21-2,Y           ; The ship definitions at XX21 start with a lookup
- STA XX0                ; table that points to the individual ship definitions,
+ LDA XX21-2,Y           ; The ship blueprints at XX21 start with a lookup
+ STA XX0                ; table that points to the individual ship blueprints,
                         ; so this fetches the low byte of this particular ship
-                        ; type's definition and stores it in XX0
+                        ; type's blueprint and stores it in XX0
 
  LDA XX21-1,Y           ; Fetch the high byte of this particular ship type's 
- STA XX0+1              ; definition and store it in XX0+1
+ STA XX0+1              ; blueprint and store it in XX0+1
 
 \ *****************************************************************************
 \ Subroutine: M% (Part 5)
@@ -3654,7 +3654,7 @@ LOAD_A% = LOAD%
  JSR DORND              ; Fetch a random number, and jump to oh if it is
  BPL oh                 ; positive (50% chance)
 
- LDY #0                 ; Fetch the first byte of the hit ship's definition,
+ LDY #0                 ; Fetch the first byte of the hit ship's blueprint,
  AND (XX0),Y            ; which determines the maximum number of bits of
                         ; debris shown when the ship is destroyed, and AND
                         ; with the random number we just fetched
@@ -3742,14 +3742,14 @@ LOAD_A% = LOAD%
  BNE KS1S               ; which case MJ > 0), jump to KS1S to skip showing an
                         ; on-screen bounty for this kill
 
- LDY #10                ; Fetch byte #10 of the ship's definition, which is the
+ LDY #10                ; Fetch byte #10 of the ship's blueprint, which is the
  LDA (XX0),Y            ; low byte of the bounty awarded when this ship is
  BEQ KS1S               ; killed (in Cr * 10), and if it's zero jump to KS1S as
                         ; there is no on-screen bounty to display
 
  TAX                    ; Put the low byte of the bounty into X
 
- INY                    ; Fetch byte #11 of the ship's definition, which is the
+ INY                    ; Fetch byte #11 of the ship's blueprint, which is the
  LDA (XX0),Y            ; high byte of the bounty awarded (in Cr * 10), and put
  TAY                    ; it into Y
 
@@ -7170,7 +7170,7 @@ NEXT
                         ; for space (ASCII 32) and ending with the £ symbol
                         ; (ASCII 126).
                         ;
-                        ; There are 32 characters definitions in each page of
+                        ; There are 32 characters' definitions in each page of
                         ; memory, as each definition takes up 8 bytes (8 rows
                         ; of 8 pixels) and 32 * 8 = 256 bytes = 1 page. So:
                         ;
@@ -15871,21 +15871,22 @@ MAPCHAR '4', '4'
                         ; vertices and edges.
 
                         ; This is a ship, so first we need to set up various
-                        ; pointers to the ship data we will need. Ship data is
-                        ; assembled in a table at location XX21, so refer to
-                        ; that variable below for more details on the data
-                        ; we're about to access.
+                        ; pointers to the ship blueprint we will need. The
+                        ; blueprints for each ship type in Elite are stored
+                        ; in a table at location XX21, so refer to the comments
+                        ; on that variable for more details on the data we're
+                        ; about to access.
 
  ASL A                  ; Set Y = ship type * 2
  TAY
 
- LDA XX21-2,Y           ; The ship definitions at XX21 start with a lookup
- STA XX0                ; table that points to the individual ship definitions,
+ LDA XX21-2,Y           ; The ship blueprints at XX21 start with a lookup
+ STA XX0                ; table that points to the individual ship blueprints,
                         ; so this fetches the low byte of this particular ship
-                        ; type's definition and stores it in XX0
+                        ; type's blueprint and stores it in XX0
 
  LDA XX21-1,Y           ; Fetch the high byte of this particular ship type's 
- STA XX0+1              ; definition and store it in XX0+1
+ STA XX0+1              ; blueprint and store it in XX0+1
 
  CPY #2*SST             ; If the ship type is a space station (SST), then jump
  BEQ NW6                ; to NW6, skipping the heap space steps below
@@ -15897,7 +15898,7 @@ MAPCHAR '4', '4'
                         ; heap for our new ship (as the heap space always ends
                         ; just before the workspace at WP).
 
- LDY #5                 ; Fetch ship definition byte #5, which contains the
+ LDY #5                 ; Fetch ship blueprint byte #5, which contains the
  LDA (XX0),Y            ; maximum heap size required for plotting the new ship,
  STA T1                 ; and store it in T1
 
@@ -15994,11 +15995,11 @@ MAPCHAR '4', '4'
 
 .NW6
 
- LDY #14                ; Fetch ship definition byte #14, which contains the
+ LDY #14                ; Fetch ship blueprint byte #14, which contains the
  LDA (XX0),Y            ; ship's energy, and store it in INWK+35
  STA INWK+35
 
- LDY #19                ; Fetch ship definition byte #19, which contains the
+ LDY #19                ; Fetch ship blueprint byte #19, which contains the
  LDA (XX0),Y            ; number of missiles and laser power, and AND with %111
  AND #%00000111         ; to extract the number of missiles before storing in
  STA INWK+31            ; INWK+31
@@ -22571,7 +22572,7 @@ SKIP 1
 }
 
 \ *****************************************************************************
-\ ELITE SHIPS
+\ ELITE SHIP BLUEPRINTS
 \
 \ Produces the binary file SHIPS.bin which gets loaded by elite-bcfs.asm.
 \ *****************************************************************************
@@ -22582,10 +22583,10 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Variable: XX21
 \
-\ Ships lookup table.
+\ Ship blueprints lookup table.
 \ *****************************************************************************
 
-\ The following lookup table points to the individual ship definitions below.
+\ The following lookup table points to the individual ship blueprints below.
 
 .XX21
 
@@ -22607,7 +22608,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ Ships in Elite
 \ *****************************************************************************
 \
-\ For each ship definition below, the first 20 bytes define the following:
+\ For each ship blueprint below, the first 20 bytes define the following:
 \
 \ Byte #0       Maximum number of bits of debris shown when destroyed
 \ Byte #1-2     Area of ship that can be locked onto by a missle (lo, hi)
@@ -22635,7 +22636,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Variable: SHIP1
 \
-\ Sidewinder ship definition
+\ Sidewinder ship blueprint
 \ *****************************************************************************
 
 .SHIP1
@@ -22701,7 +22702,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Variable: SHIP2
 \
-\ Viper ship definition
+\ Viper ship blueprint
 \ *****************************************************************************
 
 .SHIP2
@@ -22779,7 +22780,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Variable: SHIP3
 \
-\ Mamba ship definition
+\ Mamba ship blueprint
 \ *****************************************************************************
 
 .SHIP3
@@ -22876,7 +22877,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Variable: SHIP5
 \
-\ Cobra Mk III ship definition
+\ Cobra Mk III ship blueprint
 \ *****************************************************************************
 
 .SHIP5
@@ -22999,7 +23000,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Variable: SHIP6
 \
-\ Thargoid ship definition
+\ Thargoid ship blueprint
 \ *****************************************************************************
 
 .SHIP6
@@ -23094,7 +23095,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Variable: SHIP8
 \
-\ Coriolis space station definition
+\ Coriolis space station blueprint
 \ *****************************************************************************
 
 .SHIP8
@@ -23192,7 +23193,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Variable: SHIP9
 \
-\ Missile definition
+\ Missile blueprint
 \ *****************************************************************************
 
 .SHIP9
@@ -23280,7 +23281,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Variable: SHIP10
 \
-\ Asteroid definition
+\ Asteroid blueprint
 \ *****************************************************************************
 
 .SHIP10
@@ -23361,7 +23362,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Variable: SHIP11
 \
-\ Cargo canister definition
+\ Cargo canister blueprint
 \ *****************************************************************************
 
 .SHIP11
@@ -23427,7 +23428,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Variable: SHIP12
 \
-\ Thargon ship definition
+\ Thargon ship blueprint
 \ *****************************************************************************
 
 .SHIP12
@@ -23475,7 +23476,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Variable: SHIP13
 \
-\ Escape pod definition
+\ Escape pod blueprint
 \ *****************************************************************************
 
 .SHIP13
