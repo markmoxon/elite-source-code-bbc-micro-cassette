@@ -3488,12 +3488,13 @@ LOAD_A% = LOAD%
 \
 \   1. Make sure the station isn't hostile.
 \
-\   2. Make sure our angle of approach is less that 26 degrees off the perfect,
-\      head-on approach.
+\   2. Make sure our ship is pointed in the right direction, by checking that
+\      our angle of approach is less than 26 degrees off the perfect, head-on
+\      approach.
 \
 \   3. Confirm that we are moving towards the centre of the space station.
 \
-\   4. Unsure at this point - needs more investigation.
+\   4. Confirm that we are within a small "cone" of safe approach.
 \
 \   5. Unsure at this point - needs more investigation.
 \
@@ -3503,60 +3504,80 @@ LOAD_A% = LOAD%
 \ ------------------------------
 \
 \ The space station's ship data is in INWK. The rotmat0 vector in INWK+9 to
-\ INWK+14 is the station's forward-facing normal vector, so it's perpendicular
+\ INWK+14 is the station's forward-facing normal vector, and it's perpendicular
 \ to the face containing the slot, pointing straight out into space out of the
 \ docking slot. You can see this in the diagram on the left, which is a side-on
-\ view of the station, with us approaching at a jaunty angle from the top and
-\ the docking slot on the top face of the station. You can imagine the space
-\ station normal vector as someone shining a torch out of the slot, like this:
+\ view of the station, with us approaching at a jaunty angle from the top-right,
+\ with the docking slot on the top face of the station. You can imagine this
+\ vector as a big stick, sticking out of the slot.
 \
-\        station
-\        normal
-\        vector
-\       (rotmat0)
-\          ^         ship                          ________
-\          :       /                              |       /
-\          :      /                               |      /
-\          :     L                                |     /
-\          :    /                       rotmat0z  |    /
-\          :   / <--- approach                    | t /  1 
-\          :  /       vector                      |  /
-\          : /                                    | /
-\          :/                                     |/
-\     ____====____                                +
+\       rotmat0
+\          ^         ship
+\          :       /
+\          :      /
+\          :     L
+\          :    /
+\          : t / <--- approach
+\          :  /       vector
+\          : /
+\          :/
+\     ____====____
 \    /     /\     \
 \   |    /    \    |
 \   |  /        \  |
 \   : . station  . :
 \
+\ We want to check whether the angle t is too large, because if it is, we are
+\ coming in at the wrong angle and will probably bounce off the front of the
+\ space station. To find out the value of t, we need to look at the geometry
+\ of ths situation.
 \
 \ The station's normal vector has length 1, because it's a unit vector. We
-\ actually store 1 in a unit vector as &6000, because this means we don't
+\ actually store a 1 in a unit vector as &6000, because this means we don't
 \ have to deal with fractions. We can also just consider the high byte of
 \ this figure, so 1 has a high byte of &60 when we're talking about vectors
 \ like the station's normal vector.
 \
-\ So the normal vector is someone shining a torch out of the slot, and the beam
-\ always travels exactly 1 unit (stored as a high byte of &60 internally).
+\ So the normal vector is a big stick, poking out of the slot, with a length of
+\ 1 unit (stored as a high byte of &60 internally).
 \
 \ Now, if that vector was coming perpendicularly out of the screen towards us,
-\ we would be on a perfect approach angle, the beam would be shining in our
-\ eyes, and the length of the beam in our direction would be the full length
-\ of 1, or &60. However, if our angle of approach is too far off, then the
-\ normal vector will go off to the side of us, and the length of the beam in
-\ our direction will be smaller (and if we take this to extremes and approach
-\ the slot from the side, then the beam won't be travelling towards us at all,
-\ and if we appeoach the space station from totally the wrong end, the beam
-\ will be travelling away from us).
+\ we would be on a perfect approach angle, the stick would be poking in our
+\ face, and the length of the stick in our direction would be the full length
+\ of 1, or &60. However, if our angle of approach is off by a bit, then the
+\ normal vector won't be pointing straight at us, and the end of the stick will
+\ be further away from us - less "in our face", if you like.
 \
-\ This distance - the distance the beam travels towards us - is given in the
-\ z-element of the station normal, because the z-axis is defined as pointing
-\ out of the nose of our ship.
+\ In other words, the end of the stick is less in our direction, or to put it
+\ yet another way, it's not so far towards us along the z-axis, which goes in
+\ and out of the screen.
 \
-\ So the left-hand edge of the triangle - the adjacent side - has length
-\ rotmat0z, while the hypotenuse is the length of the unit vector, 1. So we
-\ can do some trigonometry, like this, if we just consider the high bytes of
-\ our vectors:
+\ Or, to put it mathematically, the z-coordinate of the end of the stick, or
+\ rotmat0z, is smaller when our approach angle is off. The routine below uses
+\ this method to see how well we are approaching the slot, by comparing rotmat0z
+\ with &D6, so what does that mean?
+\
+\ We can draw a triangle showing this whole stick-slot situation, like this. The
+\ left triangle is from the diagram above, while the triangle on the right is
+\ the same triangle, rotated slightly to the left:
+\
+\          ^         ship                 ________  ship
+\          :       /                      \       |
+\          :      /                        \      |
+\          :     L                          \     v
+\          :    /                         1  \    | rotmat0z
+\          : t /                              \ t |
+\          :  /                                \  |
+\          : /                                  \ |
+\          :/                                    \|
+\          + station                              + station
+\
+\ The stick is the left edge of each triangle, poking out of the slot at the
+\ bottom, and the ship is at the top, looking down towards the slot. We know
+\ that the right-hand edge of the triangle - the adjacent side - has length
+\ rotmat0z, while the hypotenuse is the length of the space station's vector, 1
+\ (stored as &60). So we can do some trigonometry, like this, if we just
+\ consider the high bytes of our vectors:
 \
 \   cos(t) = adjacent / hypotenuse
 \          = rotmat0z_hi / &60
@@ -3585,11 +3606,19 @@ LOAD_A% = LOAD%
 \   The angle of approach is less than 26 degrees if rotmat0z_hi <= &D6
 \
 \ And that's the check we make below to make sure our docking angle is correct.
+\
+\ 4. Cone of safe approach
+\
+\ This is similar to the angle-of-approach check, but where check 2 only looked
+\ at the orientation of our ship, this check makes sure we are in the right
+\ place in space. That place is within a cone that extends out from the slot
+\ and into space, and we can check where we are in that cone by checking the
+\ angle of the vector between our position and the space station.
 \ *****************************************************************************
 
 .ISDK
 
- LDA K% + NI% + 32      ; Fetch the AI counter (byte 32) of the second ship
+ LDA K% + NI% + 32      ; 1. Fetch the AI counter (byte 32) of the second ship
  BMI MA62               ; in the ship data workspace at K%, which is reserved
                         ; for the sun or the space station (in this case it's
                         ; the latter), and if it's negative, meaning the
@@ -3597,44 +3626,29 @@ LOAD_A% = LOAD%
                         ; docking (so trying to dock at a station that we have
                         ; annoyed does not end well)
 
- LDA INWK+14            ; If rotmat0z_hi < &D6, jump down to MA62 to fail
- CMP #&D6               ; docking
- BCC MA62               ;
-                        ; rotmat0 is the face normal of the station as a unit
-                        ; vector, so if the z-part of that vector is pointing
-                        ; directly towards us at the origin, then we are aiming
-                        ; dead straight into the slot. However, if the z-part
-                        ; of the vector in rotmat0z is off by more than a
-                        ; certain amount, then the angle of approach is wrong.
-                        ; In unit vectors, &E0 is -1, which would be a perfect
-                        ; approach, so this tests whether our approach is
-                        ; within 10 of perfection, though I'm not quite sure
-                        ; what that means. Brink left a note as follows:
-                        ; -ve &56 to -ve &60, 26 degrees
+ LDA INWK+14            ; 2. If rotmat0z_hi < &D6, jump down to MA62 to fail
+ CMP #&D6               ; docking, as the angle of approach is greater than 26
+ BCC MA62               ; degrees (see the notes on test 2 above)
 
  JSR SPS4               ; Call SPS4 to get the vector to the space station
                         ; into XX15
 
- LDA XX15+2             ; Check the sign of the z-axis (bit 7 of XX15+2) and
+ LDA XX15+2             ; 3. Check the sign of the z-axis (bit 7 of XX15+2) and
  BMI MA62               ; if it is negative, we are facing away from the
                         ; station, so jump to MA62 to fail docking
 
-                        ; The following checks need further investigation. They
-                        ; check whether or not we are docking correctly, but
-                        ; they aren't totally clear to me yet...
-
- CMP #&59               ; If z-axis < &60, jump to MA62 to fail docking
+ CMP #&59               ; 4. If z-axis < &59, jump to MA62 to fail docking
  BCC MA62
 
- LDA INWK+16            ; If |rotmat1x_hi| < &50, jump to MA62 to fail docking
- AND #%01111111         ;
- CMP #&50               ; Is this something to do with matching the the slot
+ LDA INWK+16            ; 5. If |rotmat1x_hi| < &50, jump to MA62 to fail
+ AND #%01111111         ; docking
+ CMP #&50               ; Is this something to do with matching the slot
  BCC MA62               ; rotation?
 
 .^GOIN                  ; If we arrive here, either the docking computer has
                         ; been activated, or we just docked successfully
 
- LDA #0                 ; Set the hyperspace countdown to 0
+ LDA #0                 ; Set the on-screen hyperspace counter to 0
  STA QQ22+1
 
  LDA #8                 ; This instruction has no effect, so presumably it used
@@ -3942,16 +3956,28 @@ LOAD_A% = LOAD%
 \   * Fuel scooping
 \ *****************************************************************************
 
-.MA18                   ; check Your ship
+.MA18
 
- LDA BOMB
- BPL MA77               ; no working bomb
- ASL BOMB               ; else &FE -> & FC still on.
- JSR WSCAN              ; Wait for line scan, ie whole frame completed.
+ LDA BOMB               ; If we set off our energy bomb by pressing Tab (see
+ BPL MA77               ; MA24 above), then BOMB is now negative, so this skips
+                        ; to MA77 if our energy bomb is not going off
+
+ ASL BOMB               ; We set off our energy bomb, so rotate BOMB to the left
+                        ; by one place. BOMB was rotated left once already
+                        ; during this iteration of the main loop, back at MA24,
+                        ; so if this is the first pass it will already be
+                        ; %11111110, and this will shift it to %11111100 - so if
+                        ; we set off an energy bomb, it stays activated
+                        ; (BOMB > 0) for four iterations of the main loop
+
+ JSR WSCAN              ; Wait for the vertical sync, so the whole screen has
+                        ; been drawn and the following palette change won't kick
+                        ; in while the screen is still refreshing
+
  LDA #&30               ; colour, logical 0(011) set to actual 0000. white vertical bars
  STA SHEILA+&21         ; Sheila+&21
 
-.MA77                   ; no working bomb
+.MA77
 
  LDA MCNT               ; Fetch main loop counter
  AND #7
@@ -17908,12 +17934,12 @@ LOAD_F% = LOAD% + P% - CODE%
                         ;                 = (INWK+16,15 INWK+18,17 INWK+20,19)
                         ;                   (INWK+22,21 INWK+24,23 INWK+26,25)
                         ;
-                        ;                   (0    0  &E0)   (0  0 -1)
-                        ;                 = (0   &60   0) = (0  1  0)
-                        ;                   (&60  0    0)   (1  0  0)
+                        ;                   (  0     0   &E000)   (0  0 -1)
+                        ;                 = (  0   &6000   0  ) = (0  1  0)
+                        ;                   (&6000   0     0  )   (1  0  0)
                         ;
-                        ; &60 represents 1 in the rotation matrix, while &E0
-                        ; represents -1
+                        ; &6000 represents 1 in the rotation matrix, while
+                        ; &E000 represents -1
                         ;
                         ; We already set the whole matrix to zero above, so
                         ; we just need to set up the diagonal values and we're
