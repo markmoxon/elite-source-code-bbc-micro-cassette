@@ -18547,11 +18547,15 @@ LOAD_F% = LOAD% + P% - CODE%
 
 .tha
 {
- JSR DORND
- CMP #200
+ JSR DORND              ; Set A and X to random numbers
+
+ CMP #200               ; If A < 200 (78% chance), skip the next instruction
  BCC P%+5
- JSR GTHG
- JMP MLOOP
+
+ JSR GTHG               ; Call GTHG to spawn a Thargoid
+
+ JMP MLOOP              ; Jump back into the main loop at MLOOP, which is just
+                        ; after the ship-spawning section
 }
 
 \ *****************************************************************************
