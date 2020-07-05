@@ -198,7 +198,23 @@ ORG &0000
 
 .QQ22
 
- SKIP 2                 ; Hyperspace countdown
+ SKIP 2                 ; Hyperspace countdown counters
+                        ;
+                        ; Before a hyperspace jump, both QQ22 and QQ22+1 are
+                        ; set to 15.
+                        ;
+                        ; QQ22 is an internal counter that counts down by 1
+                        ; each time TT102 is called, which happens every
+                        ; iteration of the main game loop. When it reaches
+                        ; zero, the on-screen counter in QQ22+1 gets decremented,
+                        ; and QQ22 gets set to 5 and the countdown continues
+                        ; (so the first tick of the hyperspace counter takes
+                        ; 15 iterations to happen, but subsequent ticks take 5
+                        ; iterations each).
+                        ;
+                        ; QQ22+1 contains the number that's shown on-screen
+                        ; during countdown. It counts down from 15 to 1, and
+                        ; when it hits 0, the hyperspace engines kick in.
 
 .ECMA
 
@@ -525,7 +541,23 @@ ORG &0000
 
 .QQ11
 
- SKIP 1                 ; Current view (0 = space view)
+ SKIP 1                 ; Current view
+                        ;
+                        ; 0   = Space view
+                        ; 1   = Title screen
+                        ;       Buy Cargo screen (red key f1)
+                        ;       Data on System screen (red key f6)
+                        ;       Get commander name ("@", save/load commander)
+                        ;       In-system jump just arrived ("J")
+                        ;       Mis-jump just arrived (witchspace)
+                        ; 4   = Sell Cargo screen (red key f2)
+                        ; 6   = Death screen
+                        ; 8   = Status Mode screen (red key f8)
+                        ;       Inventory screen (red key f9)
+                        ; 16  = Market Price screen (red key f7)
+                        ; 32  = Equip Ship screen (red key f3)
+                        ; 64  = Long-range Chart (red key f4)
+                        ; 128 = Short-range Chart (red key f5)
 
 .ZZ
 
@@ -6548,7 +6580,7 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: STATUS
 \
-\ Status screen Start #f8 red key
+\ Show the Status Mode screen (red key f8).
 \ *****************************************************************************
 
 .STATUS                 ; Status screen Start #f8 red key
@@ -10925,7 +10957,7 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: hm
 \
-\ Move hyperspace cross-hairs
+\ Move hyperspace cross-hairs. Returns A = 0.
 \ *****************************************************************************
 
 .hm                     ; move hyperspace cross-hairs
@@ -10940,7 +10972,10 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: CLYNS
 \
-\ Clear screen rows, Yreg set to 0.
+\ Clear screen rows
+\
+\ Clear some space at the bottom of the screen and move the text cursor to 
+\ column 1, row 20. Returns Y = 0, A = 0.
 \ *****************************************************************************
 
 .CLYNS                  ; Clear screen rows, Yreg set to 0.
@@ -10966,7 +11001,7 @@ NEXT
 \
 \ Other entry points: SC5
 \
-\ Most of bytes on Row (2) set to Acc.
+\ Most of bytes on Row (2) set to Acc., exits with Y = 0
 \ *****************************************************************************
 
 .LYN                    ; most of bytes on Row (2) set to Acc.
@@ -11552,7 +11587,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Other entry points: TT72
 \
-\ Display Data on System (red key f6).
+\ Show the Data on System screen (red key f6).
 \
 \ *****************************************************************************
 \
@@ -12139,7 +12174,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT22
 \
-\ Long range galactic chart
+\ Show the Long-range Chart (red key f4).
 \ *****************************************************************************
 
 .TT22                   ; Lng Sc \ their comment \ Long range galactic chart.
@@ -12325,7 +12360,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT219
 \
-\ Buy cargo (#f1)
+\ Show the Buy Cargo screen (red key f1).
 \ *****************************************************************************
 
 .TT219                  ; Buy \ their comment \ Buy cargo (#f1)
@@ -12477,7 +12512,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT208
 \
-\ Sell cargo (#f2)
+\ Show the Sell Cargo screen (red key f2).
 \ *****************************************************************************
 
 .TT208                  ; Sel \ their comment \ Sell cargo (#f2)
@@ -12577,7 +12612,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT213
 \
-\ Inventory
+\ Show the Inventory screen (red key f9).
 \ *****************************************************************************
 
 .TT213                  ; Invntry \ their comment \ Inventory
@@ -12760,7 +12795,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT23
 \
-\ Short range chart
+\ Show the Short-range Chart (red key f5).
 \ *****************************************************************************
 
 .TT23                   ; ShrtSc \ their comment \ Short range chart
@@ -13010,15 +13045,22 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: hy6
 \
-\ Clear some screen rows
+\ Print "Docked" at the bottom of the screen to indicate we can't hyperspace
+\ when docked.
 \ *****************************************************************************
 
 .hy6
 {
- JSR CLYNS              ; Clear some screen rows
- LDA #15
- STA XC
- JMP TT27               ; process flight text token
+ JSR CLYNS              ; Clear some space at the bottom of the screen and move
+                        ; the text cursor to row 20
+
+ LDA #15                ; Move the text cursor to column 15 (the middle of the
+ STA XC                 ; screen), setting A to 15 at the same time for the
+                        ; following call to TT27
+
+ JMP TT27               ; Print recursive token 129 ("{switch to sentence case}
+                        ; DOCKED") and return from the subroutine using a tail
+                        ; call
 }
 
 \ *****************************************************************************
@@ -13027,10 +13069,12 @@ LOAD_D% = LOAD% + P% - CODE%
 \ hyperspace start, key H hit.
 \ *****************************************************************************
 
-.hyp                    ; hyperspace start, key H hit.
+.hyp
 {
- LDA QQ12               ; hyp countdown hi
- BNE hy6
+ LDA QQ12               ; If we are docked (QQ12 = &FF) then jump to hy6 to
+ BNE hy6                ; print an error message and return from the subroutine
+                        ; using a tail call (as we can't hyperspace when docked)
+
  LDA QQ22+1             ; hyp countdown lo
  BNE zZ+1               ; rts! as countdown already going on
  JSR CTRL               ; scan from ctrl key upwards on keyboard
@@ -13516,7 +13560,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT167
 \
-\ Market place menu screen
+\ Show the Market Price screen (red key f7).
 \ *****************************************************************************
 
 .TT167                  ; MktP \ their comment \ Market place menu screen
@@ -13932,7 +13976,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: EQSHP
 \
-\ (#f3) Equip Ship
+\ Show the Equip Ship screen (red key f3).
 \ *****************************************************************************
 
 .EQSHP                  ; (#f3) Equip Ship
@@ -17706,7 +17750,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \     * XC, YC - Set text cursor to (0, 0)
 \
-\     * QQ22 - Stop hyperspace countdown
+\     * QQ22 - Set hyperspace counters to 0
 \
 \     * ECMA - Turn E.C.M. off
 \
@@ -18426,12 +18470,14 @@ LOAD_F% = LOAD% + P% - CODE%
  BEQ P%+11              ; instructions (i.e. jump to JSR TT17 below)
 
  AND PATG               ; If PATG = &FF (author names are shown on start-up)
- LSR A                  ; and bit 0 of QQ11 is 1, then skip the following
- BCS P%+5               ; instruction
+ LSR A                  ; and bit 0 of QQ11 is 1 (the current view is type 1),
+ BCS P%+5               ; then skip the following instruction
 
- JSR DELAY-5            ; Delay for 8 line scans
+ JSR DELAY-5            ; Delay for 8 vertical syncs (8/50 = 0.16 seconds), to
+                        ; slow the main loop down a bit
 
- JSR TT17               ; Scan the keyboard for the cursor keys or joystick
+ JSR TT17               ; Scan the keyboard for the cursor keys or joystick,
+                        ; returning the cursor's delta values in X and Y
 
 \ *****************************************************************************
 \ Subroutine: Main game loop (Part 6)
@@ -18485,136 +18531,218 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT102
 \
-\ Switchyard for Red keys
+\ Process function key presses, plus "@" (save commander), "H" (hyperspace),
+\ "D" (show distance to system) and "O" (move chart cursor back to current
+\ system). We can also pass cursor position deltas in X and Y to indicate that
+\ the cursor keys or joystick have been used (i.e. the values that are returned
+\ by routine TT17).
 \
 \ Arguments:
 \
-\   A           The internal key number of the key pressed
+\   A           The internal key number of the key pressed (see p.142 of the
+\               Advanced User Guide for a list of internal key values)
+\
+\   X           The amount to move the cross-hairs in the x-axis, if applicable
+\
+\   Y           The amount to move the cross-hairs in the y-axis, if applicable
 \ *****************************************************************************
 
-.TT102                  ; Switchyard for Red keys
+.TT102
 {
- CMP #f8                ; red key #f8
- BNE P%+5
- JMP STATUS             ; commander
- CMP #f4                ; red key #f4
- BNE P%+5
- JMP TT22               ; Long range galactic chart
- CMP #f5                ; red key #f5
- BNE P%+5
- JMP TT23               ; Short range chart
- CMP #f6                ; red key #f6
- BNE TT92               ; switchyard continue
- JSR TT111              ; closest to QQ9,10
- JMP TT25               ; DATA on system
+ CMP #f8                ; If red key f8 was pressed, jump to STATUS to show the
+ BNE P%+5               ; Status Mode screen, returning from the subroutine
+ JMP STATUS             ; using a tail call
 
-.TT92                   ; switchyard continue
+ CMP #f4                ; If red key f4 was pressed, jump to TT22 to show the
+ BNE P%+5               ; Long-range Chart, returning from the subroutine using
+ JMP TT22               ; a tail call
 
- CMP #f9                ; red key #f9
- BNE P%+5
- JMP TT213              ; Inventory
- CMP #f7                ; red key #f7
- BNE P%+5
- JMP TT167              ; Market place menu screen
- CMP #f0                ; red key #f0
- BNE fvw                ; forward view not
- JMP TT110              ; else Launch ship decision
+ CMP #f5                ; If red key f5 was pressed, jump to TT23 to show the
+ BNE P%+5               ; Short-range Chart, returning from the subroutine using
+ JMP TT23               ; a tail call
 
-.fvw                    ; forward view not
+ CMP #f6                ; If red key f6 was pressed, call TT111 to select the
+ BNE TT92               ; system nearest the coordinates in QQ9, QQ10 (location
+ JSR TT111              ; of the chart cross-hairs) and jump to TT25 to show
+ JMP TT25               ; the Data on System screen, returning from the
+                        ; subroutine using a tail call
 
- BIT QQ12
- BPL INSP
- CMP #f3                ; red key #f3
- BNE P%+5
- JMP EQSHP              ; equip ship
- CMP #f1                ; red key #f1
- BNE P%+5
- JMP TT219              ; Buy cargo
-                        ; not red key
- CMP #&47               ; key "@"
- BNE P%+5               ; not H else
- JMP SVE                ; Start hyperspace code
+.TT92
 
- CMP #f2                ; red key #f2
- BNE LABEL_3
- JMP TT208              ; Sell cargo
+ CMP #f9                ; If red key f9 was pressed, jump to TT213 to show the
+ BNE P%+5               ; Inventory screen, returning from the subroutine
+ JMP TT213              ; using a tail call
+
+ CMP #f7                ; If red key f7 was pressed, jump to TT167 to show the
+ BNE P%+5               ; Market Price screen, returning from the subroutine
+ JMP TT167              ; using a tail call
+
+ CMP #f0                ; If red key f0 was pressed, jump to TT110 to launch our
+ BNE fvw                ; ship (if docked), returning from the subroutine using
+ JMP TT110              ; a tail call
+
+.fvw
+
+ BIT QQ12               ; If bit 7 of QQ12 is clear (i.e. we are not docked, but
+ BPL INSP               ; in space), jump to INSP to skip the following checks
+                        ; for f1-f3 and "@" (save commander file) keypresses
+
+ CMP #f3                ; If red key f3 was pressed, jump to EQSHP to show the
+ BNE P%+5               ; Equip Ship screen, returning from the subroutine using
+ JMP EQSHP              ; a tail call
+
+ CMP #f1                ; If red key f1 was pressed, jump to TT219 to show the
+ BNE P%+5               ; Buy Cargo screen, returning from the subroutine using
+ JMP TT219              ; a tail call
+
+ CMP #&47               ; If "@" was pressed, jump to SVE to save the commander
+ BNE P%+5               ; file, returning from the subroutine using a tail call
+ JMP SVE
+
+ CMP #f2                ; If red key f2 was pressed, jump to TT208 to show the
+ BNE LABEL_3            ; Sell Cargo screen, returning from the subroutine using
+ JMP TT208              ; a tail call
 
 .INSP
 
- CMP #&71               ; red key #f1
- BCC LABEL_3
- CMP #&74               ; red key #f5
+ CMP #f1                ; If the key pressed is < red key f1 or > red key f3,
+ BCC LABEL_3            ; jump to LABEL_3 (so only do the following if the key
+ CMP #f3+1              ; pressed is f1, f2 or f3)
  BCS LABEL_3
- AND #3
- TAX
- JMP LOOK1              ; Start view X
+
+ AND #3                 ; If we get here then we are either in space, or we are
+ TAX                    ; docked and none of f1-f3 were pressed, so we can now
+ JMP LOOK1              ; process f1-f3 with their in-flight functions, i,e.
+                        ; switching space views.
+                        ;
+                        ; A will contain &71, &72 or &73 (for f1, f2 or f3), so
+                        ; set X to the last digit (1, 2 or 3) and jump to LOOK1
+                        ; to switch to view X (back, left or right), returning
+                        ; from the subroutine using a tail call.
 
 .LABEL_3
 
- CMP #&54               ; key "H"
- BNE P%+5               ; not H else can't hyperspace whilst docked
- JMP hyp                ; hyperspace start, key H hit.
- CMP #&32               ; key "D"
- BEQ T95                ; Distance to system
- STA T1                 ; protect Acc key
- LDA QQ11
- AND #192               ; short or long range chart
- BEQ TT107              ; no, run Countdown
- LDA QQ22+1             ; hyperspace outer countdown 
- BNE TT107              ; if running, run Countdown
- LDA T1                 ; restore Acc key
- CMP #&36               ; key "O"
- BNE ee2                ; not O, else recenter cursor
- JSR TT103              ; erase small cross hairs at target hyperspace system
- JSR ping               ; move to home coordinates
- JSR TT103              ; draw small cross hairs at target hyperspace system
+ CMP #&54               ; If "H" was pressed, jump to hyp to do a hyperspace
+ BNE P%+5               ; jump (if we are in space), returning from the
+ JMP hyp                ; subroutine using a tail call
 
-.ee2                    ; not O
+ CMP #&32               ; If "D" was pressed, jump to T95 to print the distance
+ BEQ T95                ; to a system (if we are in one of the chart screens)
 
- JSR TT16               ; Xreg and Yreg values used to shift cross-hairs on charts by
+ STA T1                 ; Store A (the key that's been pressed) in T1
 
-.TT107                  ; run Countdown
+ LDA QQ11               ; If the current view is a chart (QQ11 = 64 or 128),
+ AND #%11000000         ; keep going, otherwise jump down to TT107 to skip the
+ BEQ TT107              ; following
 
- LDA QQ22+1             ; outer hyperspace countdown
- BEQ t95                ; rts
- DEC QQ22               ; inner-countdown
- BNE t95                ; rts
- LDX QQ22+1
- DEX                    ; decrease outer hyperspace countdown
- JSR ee3                ; print hyperspace countdown in X
- LDA #5                 ; reset inner countdown
- STA QQ22               ; inner-countdown
- LDX QQ22+1             ; old outer hyperspace countdown
- JSR ee3                ; erase old hyperspace countdown
- DEC QQ22+1             ; decrease old outer hyperspace countdown
- BNE t95                ; rts
- JMP TT18               ; else HSPC Countdown finished, (try) go through Hyperspace.
+ LDA QQ22+1             ; If the on-screen hyperspace counter is non-zero,
+ BNE TT107              ; then we are already counting down, so jump to TT107
+                        ; to skip the following
 
-.t95                    ; rts
+ LDA T1                 ; Restore the original value of A (the key that's been
+                        ; pressed) from T1
 
- RTS
+ CMP #&36               ; If "O" was pressed, do the following three JSRs,
+ BNE ee2                ; otherwise jump to ee2 to skip the following
 
-.T95                    ; "D" pressed, Distance to system
+ JSR TT103              ; Draw small cross-hairs at coordinates (QQ9, QQ10),
+                        ; which will erase the cross-hairs that are currently
+                        ; there
 
- LDA QQ11
- AND #192               ; short or long range chart?
- BEQ t95                ; no, rts
- JSR hm                 ; move hyperspace cross-hairs to QQ9,10 target
-                        ; hm always returns with A=0
- STA QQ17               ; All letters Uppercase
- JSR cpl                ; print Planet name for seed QQ15
- LDA #128               ; Only first letter Uppercase
- STA QQ17
- LDA #1                 ; left
- STA XC
- INC YC                 ; next row
- JMP TT146              ; Non-zero distance in Light years
+ JSR ping               ; Set the target system to the current system (which
+                        ; will move the location in (QQ9, QQ10) to the current
+                        ; home system
+
+ JSR TT103              ; Draw small cross-hairs at coordinates (QQ9, QQ10),
+                        ; which will draw the cross-hairs at our current home
+                        ; system
+
+.ee2
+
+ JSR TT16               ; Call TT16 to move the cross-hairs by the amount in X
+                        ; and Y, which were passed to this subroutine as
+                        ; arguments
+
+.TT107
+
+ LDA QQ22+1             ; If the on-screen hyperspace counter is zero, return
+ BEQ t95                ; from the subroutine (as t95 contains an RTS), as we
+                        ; are not currently counting down to a hyperspace jump
+
+ DEC QQ22               ; Decrement the internal hyperspace counter
+
+ BNE t95                ; If the internal hyperspace counter is still non-zero,
+                        ; then we are still counting down, so return from the
+                        ; subroutine (as t95 contains an RTS)
+
+                        ; If we get here then the internal hyperspace counter
+                        ; has just reached zero and it wasn't zero before, so
+                        ; we need to reduce the on-screen counter and update
+                        ; the screen. We do this by first printing the next
+                        ; number in the countdown sequence, and then printing
+                        ; the old number, which will erase the old number
+                        ; and display the new one because printing uses EOR
+                        ; logic.
+
+ LDX QQ22+1             ; Set X = the on-screen hyperspace counter - 1
+ DEX                    ; (i.e. the next number in the sequence)
+
+ JSR ee3                ; Print the 8-bit number in X at text location (0, 1)
+
+ LDA #5                 ; Reset the the internal hyperspace counter to 5
+ STA QQ22
+
+ LDX QQ22+1             ; Set X = the on-screen hyperspace counter (i.e. the
+                        ; current number in the sequence, which is already
+                        ; shown on-screen)
+
+ JSR ee3                ; Print the 8-bit number in X at text location (0, 1),
+                        ; i.e. print the hyperspace countdown in the top-left
+                        ; corner
+
+ DEC QQ22+1             ; Decrement the on-screen hyperspace countdown
+
+ BNE t95                ; If the countdown is not yet at zero, return from the
+                        ; subroutine (as t95 contains an RTS)
+
+ JMP TT18               ; Otherwise the countdown has finished, so jump to TT18
+                        ; to do a hyperspace jump, returning from the subroutine
+                        ; using a tail call
+
+.t95
+
+ RTS                    ; Return from the subroutine
+
+.T95                    ; If we get here, "D" was pressed, so we need to show
+                        ; the distance to the selected system (if we are in a
+                        ; chart view)
+
+ LDA QQ11               ; If the current view is a chart (QQ11 = 64 or 128),
+ AND #%11000000         ; keep going, otherwise return from the subroutine (as
+ BEQ t95                ; t95 contains an RTS)
+
+ JSR hm                 ; Call hm to move the cross-hairs to the target system
+                        ; in (QQ9, QQ10), returning with A = 0
+
+ STA QQ17               ; Set QQ17 = 0 to switch to ALL CAPS
+
+ JSR cpl                ; Print control code 3 (the selected system name)
+
+ LDA #128               ; Set QQ17 = 128 to switch to Sentence Case, with the
+ STA QQ17               ; next letter in capitals
+
+ LDA #1                 ; Move the text cursor to column 1 and down one line
+ STA XC                 ; (in other words, to the start of the next line)
+ INC YC
+
+ JMP TT146              ; Print the distance to the selected system and return
+                        ; from the subroutine using a tail call
 }
 
 \ *****************************************************************************
 \ Subroutine: BAD
 \
-\ Work out how bad we are from the amount of contraband in their hold. The
+\ Work out how bad we are from the amount of contraband in our hold. The
 \ formula is:
 \
 \   (slaves + narcotics) * 2 + firearms
@@ -19032,7 +19160,8 @@ ENDIF
 
 .awe
 
- JSR CLYNS              ; Clear some screen rows, exists with Y = 0
+ JSR CLYNS              ; Clear some space at the bottom of the screen, move the
+                        ; text cursor to column 1, row 20, and return with Y = 0
 
  STY DELTA              ; Set DELTA = 0 (i.e. ship speed = 0)
 
