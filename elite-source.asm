@@ -372,13 +372,13 @@ ORG &0000
                         ;
                         ; INWK    = x_lo
                         ; INWK+1  = x_hi
-                        ; INWK+2  = x_sign
+                        ; INWK+2  = x_sign (for planet, x distance)
                         ; INWK+3  = y_lo
                         ; INWK+4  = y_hi
-                        ; INWK+5  = y_sign
+                        ; INWK+5  = y_sign (for planet, y distance)
                         ; INWK+6  = z_lo
                         ; INWK+7  = z_hi
-                        ; INWK+8  = z_sign
+                        ; INWK+8  = z_sign (for planet, z distance)
                         ; INWK+9  = rotmat0x_lo
                         ; INWK+10 = rotmat0x_hi     xincrot_hi
                         ; INWK+11 = rotmat0y_lo
@@ -805,7 +805,9 @@ ORG &0300               ; Start of the commander block
 
 .ENGY
 
- SKIP 1                 ; Energy/shield level
+ SKIP 1                 ; Energy unit
+                        ;
+                        ; 0 = not fitted, 1 = fitted
 
 .DKCMP
 
@@ -2439,6 +2441,9 @@ ORG &0D40
                         ; points to the ship's data block, which in turn points
                         ; to that ship's line heap space
                         ;
+                        ; The first ship slot at FRIN+1 is reserved for the
+                        ; planet.
+                        ;
                         ; The second ship slot at FRIN+1 is reserved for the
                         ; sun or space station (we only ever have one of these
                         ; in our local bubble of space). If FRIN+1 is 0, we
@@ -2632,15 +2637,21 @@ ORG &0D40
 
 .FSH
 
- SKIP 1                 ; Forward shields
+ SKIP 1                 ; Forward shield status
+                        ;
+                        ; 0 = empty, &FF = full
 
 .ASH
 
- SKIP 1                 ; Aft shields
+ SKIP 1                 ; Aft shield status
+                        ;
+                        ; 0 = empty, &FF = full
 
 .ENERGY
 
- SKIP 1                 ; Energy banks
+ SKIP 1                 ; Energy bank status
+                        ;
+                        ; 0 = empty, &FF = full
 
 .LASX
 
@@ -3949,11 +3960,9 @@ LOAD_A% = LOAD%
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
 \
-\   * Energy banks
+\   * Show energy bomb effect (if applicable)
 \
-\   * Altitude checks
-\
-\   * Fuel scooping
+\   * Charge shields and energy banks (every 7 iterations of the main loop)
 \ *****************************************************************************
 
 .MA18
@@ -3962,89 +3971,172 @@ LOAD_A% = LOAD%
  BPL MA77               ; MA24 above), then BOMB is now negative, so this skips
                         ; to MA77 if our energy bomb is not going off
 
- ASL BOMB               ; We set off our energy bomb, so rotate BOMB to the left
-                        ; by one place. BOMB was rotated left once already
+ ASL BOMB               ; We set off our energy bomb, so rotate BOMB to the
+                        ; left by one place. BOMB was rotated left once already
                         ; during this iteration of the main loop, back at MA24,
                         ; so if this is the first pass it will already be
-                        ; %11111110, and this will shift it to %11111100 - so if
-                        ; we set off an energy bomb, it stays activated
+                        ; %11111110, and this will shift it to %11111100 - so
+                        ; if we set off an energy bomb, it stays activated
                         ; (BOMB > 0) for four iterations of the main loop
 
  JSR WSCAN              ; Wait for the vertical sync, so the whole screen has
-                        ; been drawn and the following palette change won't kick
-                        ; in while the screen is still refreshing
+                        ; been drawn and the following palette change won't
+                        ; kick in while the screen is still refreshing
 
- LDA #&30               ; colour, logical 0(011) set to actual 0000. white vertical bars
- STA SHEILA+&21         ; Sheila+&21
+ LDA #%00110000         ; Set the palette byte at SHEILA+&21 to map logical
+ STA SHEILA+&21         ; colour 0 to physical colour 7 (white), but with only
+                        ; one mapping (rather than the 7 mappings requires to
+                        ; do the mapping properly). This makes the space screen
+                        ; flash with black and white stripes. See p.382 of the
+                        ; Advanced User Guide for details of why this single
+                        ; palette change creates a special effect.
 
 .MA77
 
- LDA MCNT               ; Fetch main loop counter
- AND #7
- BNE MA22               ; skip updates
- LDX ENERGY             ; players energy
- BPL b                  ; recharge energy only if <50%
- LDX ASH                ; else recharge aft shield
- JSR SHD                ; shield recover
+ LDA MCNT               ; Fetch the main loop counter and look at bits 0-2,
+ AND #%00000111         ; jumping to MA22 if they are zero (so the following
+ BNE MA22               ; section only runs every 8 iterations of the main loop)
+
+ LDX ENERGY             ; Fetch our ship's energy levels and skip to b if bit 7
+ BPL b                  ; is not set, i.e. only charge the shields from the
+                        ; energy banks if they are at more than 50% charge
+
+ LDX ASH                ; Call SHD to recharge our aft shield and update the
+ JSR SHD                ; shield status in ASH
  STX ASH
- LDX FSH                ; forward shield
- JSR SHD                ; shield recover
+
+ LDX FSH                ; Call SHD to recharge our forward shield and update
+ JSR SHD                ; the shield status in FSH
  STX FSH
 
-.b                      ; recharge energy
+.b
 
- SEC
- LDA ENGY               ; energy unit recharge rate
- ADC ENERGY             ; player's energy
- BCS P%+5               ; overflowed
- STA ENERGY
+ SEC                    ; Set A = ENERGY + ENGY + 1, so our ship's energy
+ LDA ENGY               ; level goes up by 2 if we have an energy unit fitted,
+ ADC ENERGY             ; otherwise it goes up by 1
 
- LDA MJ                 ; witchspace mis-jump
- BNE MA23S              ; skip to big distance, else regular space
- LDA MCNT               ; Fetch main loop counter
- AND #31
- BNE MA93               ; skip space station check at #31
- LDA SSPR               ; space station present
- BNE MA23S              ; if true, skip to big distance
- TAY                    ; = 0 outside S-range
- JSR MAS2               ; or'd x,y,z coordinate of &902+Y to Acc, Y=planet.
- BNE MA23S              ; skip to planet big distance, else build space station as planet is close.
+ BCS P%+5               ; If the value of A did not overflow (the maximum
+ STA ENERGY             ; energy level is &FF), then store A in ENERGY
 
- LDX #28                ; planet 0 up to 28, dont need rot counters or state.
+\ *****************************************************************************
+\ Subroutine: M% (Part 14)
+\
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
+\
+\   * Spawn a space station if we are close enough to the planet (every 32
+\     iterations of the main loop)
+\ *****************************************************************************
 
-.MAL4                   ; counter X
+ LDA MJ                 ; If we are in witchspace, jump down to MA23S to skip
+ BNE MA23S              ; the following, as there are no space stations in
+                        ; witchspace
 
- LDA K%,X               ; planet coordinates
- STA INWK,X             ; template for space station
- DEX
- BPL MAL4               ; loop X
- INX                    ; Xreg =0
- LDY #9                 ; offset x coord with x inc
- JSR MAS1               ; add 2*INWK(Y+0to1) to INWK(0to2+X)
- BNE MA23S              ; Acc = xsg7, too big, skip to big distance
- LDX #3
- LDY #11                ; offset y coord with y inc
- JSR MAS1               ; add 2*INWK(Y+0to1) to INWK(0to2+X)
- BNE MA23S              ; Acc = ysg7, too big, skip to big distance
- LDX #6
- LDY #13                ; offset z coord with z inc
- JSR MAS1               ; add 2*INWK(Y+0to1) to INWK(0to2+X)
- BNE MA23S              ; Acc = zsg7, too big, skip to big distance
+ LDA MCNT               ; Fetch the main loop counter and look at bits 0-4,
+ AND #%00011111         ; jumping to MA93 if they are zero (so the following
+ BNE MA93               ; section only runs every 32 iterations of the main loop)
 
- LDA #&C0
- JSR FAROF2             ; carry clear if hi > #&C0
- BCC MA23S              ; skip to big distance, else close enough to planet to
+ LDA SSPR               ; If we are inside the space station safe zone, jump to
+ BNE MA23S              ; MA23S to skip the following, as we already have a
+                        ; space station and don't need another
 
- LDA QQ11
- BNE P%+5
- JSR WPLS               ; wipe sun
- JSR NWSPS              ; New space station at INWK, S bulb appears.
+ TAY                    ; Set Y = A = 0 (A is 0 as we didn't branch with the
+                        ; previous BNE instruction)
 
-.MA23S                  ; jmp MA23 as big distance or mis-jump
+ JSR MAS2               ; Call MAS2 to calculate the largest distance to the
+ BNE MA23S              ; planet in any of the three axes, and if it's
+                        ; non-zero, jump to MA23S to skip the following, as we
+                        ; are too far from the planet to bump into a space
+                        ; station
 
- JMP MA23               ; big distance
+                        ; We now want to spawn a space station, so first we
+                        ; need to set up a ship data block for the station in
+                        ; INWK that we can then pass to NWSPS to add a new
+                        ; station to our bubble of universe. We do this by
+                        ; copying the planet data block from K% to INWK so we
+                        ; can work on it, but we only need the first 29 bytes,
+                        ; as we don't need to worry about INWK+29 to INWK+35
+                        ; for planets (as they don't have rotation counters,
+                        ; AI, explosions, missiles, a ship lines heap or energy
+                        ; levels). 
 
-.MA22                   ; arrived from above when checking own ship and skipped updates.
+ LDX #28                ; So we set a counter in X to copy 29 bytes from K%+0
+                        ; to K%+28
+
+.MAL4
+
+ LDA K%,X               ; Load the X-th byte of K% and store in the X-th byte
+ STA INWK,X             ; of the INWK workspace
+
+ DEX                    ; Decrement the loop counter
+
+ BPL MAL4               ; Loop back for the next byte until we have copied the
+                        ; first 28 bytes of K% to INWK
+
+ INX                    ; Set X = 0 (as we ended the above loop with X as &FF)
+
+ LDY #9                 ; Call MAS1 with X = 0, Y = 9 to do the following:
+ JSR MAS1               ;
+                        ; (x_sign x_hi x_lo) += (rotmat0x_hi rotmat0x_lo) * 2
+                        ;
+                        ; A = |x_sign|
+
+ BNE MA23S              ; If A > 0, jump to MA23S to skip the following, as we
+                        ; are too far from the planet in the x-direction to
+                        ; bump into a space station
+
+ LDX #3                 ; Call MAS1 with X = 3, Y = 11 to do the following:
+ LDY #11                ;
+ JSR MAS1               ; (y_sign y_hi y_lo) += (rotmat0y_hi rotmat0y_lo) * 2
+                        ;
+                        ; A = |y_sign|
+
+ BNE MA23S              ; If A > 0, jump to MA23S to skip the following, as we
+                        ; are too far from the planet in the y-direction to
+                        ; bump into a space station
+
+ LDX #6                 ; Call MAS1 with X = 6, Y = 13 to do the following:
+ LDY #13                ;
+ JSR MAS1               ; (z_sign z_hi z_lo) += (rotmat0z_hi rotmat0z_lo) * 2
+                        ;
+                        ; A = |z_sign|
+
+ BNE MA23S              ; If A > 0, jump to MA23S to skip the following, as we
+                        ; are too far from the planet in the z-direction to
+                        ; bump into a space station
+
+ LDA #&C0               ; Call FAROF2 to compare x_hi, y_hi and z_hi with &C0,
+ JSR FAROF2             ; which will set the C flag if all three are < &C0, or
+                        ; clear the C flag if any of them are >= &C0
+
+ BCC MA23S              ; Jump to MA23S if any one of x_hi, y_hi or z_hi are
+                        ; >= &C0 (i.e. they must all be < &C0 for us to be near
+                        ; enough to the planet to bump into a space station)
+
+ LDA QQ11               ; If the current view is a space view, call WPLS to
+ BNE P%+5               ; remove the sun from the screen, as we can't have both
+ JSR WPLS               ; the sun and the space station at the same time
+
+ JSR NWSPS              ; Add a new space station to our little bubble of
+                        ; universe
+
+.MA23S
+
+ JMP MA23               ; Jump to MA23 to skip the following planet and sun
+                        ; altitude checks
+
+\ *****************************************************************************
+\ Subroutine: M% (Part 15)
+\
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
+\
+\   * Altitude check
+\
+\   * Fuel scooping
+\ *****************************************************************************
+
+.MA22
 
  LDA MJ                 ; mis-jump
  BNE MA23               ; to MA23 big distance or mis-jump
@@ -4110,7 +4202,20 @@ LOAD_A% = LOAD%
  LDA #160               ; token = FUEL SCOOPS ON
  JSR MESS               ; message
 
-.MA23                   ; big distance, many arrive here to continue.
+\ *****************************************************************************
+\ Subroutine: M% (Part 16)
+\
+\ M% is called as part of the main game loop at TT100, and covers most of the
+\ flight-specific aspects of Elite. This section of M% covers the following:
+\
+\   * Process laser energy drain
+\
+\   * Process E.C.M. energy drain
+\
+\   * Jump to the stardust routine
+\ *****************************************************************************
+
+.MA23
 
  LDA LAS2
  BEQ MA16               ; already switched laser Off
@@ -4149,52 +4254,132 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: MAS1
 \
-\ Add 2*INWK(0to1+Y) to INWK(0to2+X), add x inc to x coord etc.
+\ Other entry points: MA9 (RTS)
+\
+\ Add a doubled rotmat0 axis, e.g. (rotmat0y_hi rotmat0y_lo) * 2, to an INWK
+\ coordinate, e.g. (x_sign x_hi x_lo), storing the result in the INWK
+\ coordinate. The axes used in each side of the addition are specified by the
+\ arguments X and Y.
+\
+\ In the comments below, we document the routine as if we are doing the
+\ following, i.e. if X = 0 and Y = 11:
+\
+\   (x_sign x_hi x_lo) += (rotmat0y_hi rotmat0y_lo) * 2
+\
+\ as that way the variable names in the comments contain "x" and "y" to match
+\ the registers that specify the axes to use.
+\
+\ Arguments:
+\
+\   X           The coordinate to add, as follows:
+\
+\                 * If X = 0, add the rotmat to (x_sign x_hi x_lo)
+\                 * If X = 3, add the rotmat to (y_sign y_hi y_lo)
+\                 * If X = 6, add the rotmat to (z_sign z_hi z_lo)
+\
+\   Y           The rotmat to add, as follows:
+\
+\                 * If Y = 9,  add (rotmat0x_hi rotmat0x_lo) to the coordinate
+\                 * If Y = 11, add (rotmat0y_hi rotmat0y_lo) to the coordinate
+\                 * If Y = 13, add (rotmat0z_hi rotmat0z_lo) to the coordinate
+\
+\ Returns:
+\
+\   A           The high byte of the result with the sign cleared (e.g. |x_hi|
+\               if X = 0, etc.)
 \ *****************************************************************************
 
-.MAS1                   ; Add 2*INWK(0to1+Y) to INWK(0to2+X), add x inc to x coord etc.
+.MAS1
 {
- LDA INWK,Y             ; lo
- ASL A                  ; 2*lo
+ LDA INWK,Y             ; Set K(2 1) = (rotmat0y_hi rotmat0y_lo) * 2
+ ASL A
  STA K+1
- LDA INWK+1,Y           ; hi
- ROL A                  ; 2*hi
+ LDA INWK+1,Y
+ ROL A
  STA K+2
- LDA #0
- ROR A                  ; carry into bit7 is
- STA K+3                ; sign of inc
- JSR MVT3               ; add INWK(0to2+X) to K(1to3) X = 0, 3, 6
- STA INWK+2,X           ; sg
- LDY K+1                ; coord lo
- STY INWK,X             ; INWK+0,X
- LDY K+2                ; coord hi
- STY INWK+1,X
- AND #127               ; Acc = big distance sg lower7
-}
 
-.MA9
-{
- RTS
+ LDA #0                 ; Set K+3 bit 7 to the carry flag, so the sign bit
+ ROR A                  ; of the above result goes into K+3
+ STA K+3
+
+ JSR MVT3               ; Add (x_sign x_hi x_lo) to K(3 2 1)
+
+ STA INWK+2,X           ; Store the sign of the result in x_sign
+
+ LDY K+1                ; Store K(2 1) in (x_hi x_lo)
+ STY INWK,X
+ LDY K+2
+ STY INWK+1,X
+
+ AND #%01111111         ; Set A to the sign byte with the sign cleared
+
+.^MA9
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
 \ Subroutine: m
 \
-\ Max of x,y,z of &902+Y
+\ Calculate the OR of the three bytes at K%+2+Y, K%+5+Y and K%+8+Y, and clear
+\ the sign bit of the result. The K% workspace contains the ship data blocks.
+\
+\ The result effectively contains a maximum cap of the three values (though it
+\ might not be one of the three input values - it's just guaranteed to be
+\ larger than all of them).
+\
+\ If Y = 0, then this calculates the maximum distance to the planet in any of
+\ the three axes, as K%+2 = x_distance, K%+5 = y_distance and K%+8 = z_distance
+\ (the first slot in the K% workspace represents the planet).
+\
+\ Arguments:
+\
+\   Y           The offset from K% for the three values to OR
+\
+\ Returns:
+\
+\   A           K%+2+Y OR K%+5+Y OR K%+8+Y, with bit 7 cleared
 \ *****************************************************************************
 
-.m                      ; max of x,y,z of &902+Y
+.m
 {
- LDA #0
+ LDA #0               ; Set A = 0 and fall through into MAS2 to calculate the
+                      ; OR of the three bytes at K%+2+Y, K%+5+Y and K%+8+Y
 }
 
-.MAS2                   ; or'd x,y,z coordinate of &902+Y
+\ *****************************************************************************
+\ Subroutine: MAS2
+\
+\ Calculate the OR of A and the three bytes at K%+2+Y, K%+5+Y and K%+8+Y, and
+\ clear the sign bit of the result. The K% workspace contains the ship data
+\ blocks.
+\
+\ The result effectively contains a maximum cap of the three values (though it
+\ might not be one of the three input values - it's just guaranteed to be
+\ larger than all of them).
+\
+\ If Y = 0 and A = 0, then this calculates the maximum cap of the highest byte
+\ containing the distance to the planet, as K%+2 = x_distance, K%+5 = y_distance and K%+8 =
+\ z_distance (the first slot in the K% workspace represents the planet).
+\
+\ Arguments:
+\
+\   Y           The offset from K% for the three values to OR with A
+\
+\ Returns:
+\
+\   A           A OR K%+2+Y OR K%+5+Y OR K%+8+Y, with bit 7 cleared
+\ *****************************************************************************
+
+.MAS2
 {
- ORA K%+2,Y             ; xsg
- ORA K%+5,Y             ; ysg
- ORA K%+8,Y             ; zsg
- AND #127               ; Acc is sg7 distance
- RTS
+ ORA K%+2,Y             ; Set A = A OR K%+2+Y
+ ORA K%+5,Y             ; Set A = A OR K%+5+Y
+ ORA K%+8,Y             ; Set A = A OR K%+8+Y
+
+ AND #%01111111         ; Clear bit 7 in A
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -4536,63 +4721,101 @@ LOAD_A% = LOAD%
  RTS                    ; MVT1 done
 }
 
-.MVT3                   ; add INWK(0to2+X) to K(1to3) X = 0, 3, 6
+\ *****************************************************************************
+\ Subroutine: MVT3
+\
+\ Add an INWK position coordinate - i.e. x, y or z - to K(3 2 1).
+\
+\ The INWK coordinate to add to K(3 2 1) is specified by X.
+\
+\ Arguments:
+\
+\   X           The coordinate to add to K(3 2 1), as follows:
+\
+\                 * If X = 0, set K(3 2 1) = K(3 2 1) + (x_sign x_hi x_lo)
+\                 * If X = 3, set K(3 2 1) = K(3 2 1) + (y_sign y_hi y_lo)
+\                 * If X = 6, set K(3 2 1) = K(3 2 1) + (z_sign z_hi z_lo)
+\ *****************************************************************************
+
+.MVT3
 {
- LDA K+3
+ LDA K+3                ; Set S = K+3
  STA S
- AND #128               ; sign only
+
+ AND #%10000000         ; Set T = sign bit of K(3 2 1)
  STA T
- EOR INWK+2,X
- BMI MV13               ; sg -ve
- LDA K+1
- CLC                    ; add lo
+
+ EOR INWK+2,X           ; If x_sign has a different sign to K(3 2 1), jump to
+ BMI MV13               ; MV13 to process the addition as a subtraction
+
+ LDA K+1                ; Set K(3 2 1) = K(3 2 1) + (x_sign x_hi x_lo)
+ CLC                    ; starting with the low bytes
  ADC INWK,X
  STA K+1
- LDA K+2                ; hi
+
+ LDA K+2                ; Then the middle bytes
  ADC INWK+1,X
  STA K+2
- LDA K+3                ; sg
+
+ LDA K+3                ; And finally the high bytes
  ADC INWK+2,X
- AND #127
- ORA T                  ; sign only
+
+ AND #%01111111         ; Setting the sign bit of K+3 to T, the original sign
+ ORA T                  ; of K(3 2 1)
  STA K+3
- RTS
 
-.MV13                   ; sg -ve
+ RTS                    ; Return from the subroutine
 
- LDA S
- AND #127               ; keep 7 bits
+.MV13
+
+ LDA S                  ; Set S = |K+3| (i.e. K+3 with the sign bit cleared)
+ AND #%01111111
  STA S
- LDA INWK,X
- SEC                    ; sub lo
+
+ LDA INWK,X             ; Set K(3 2 1) = (x_sign x_hi x_lo) - K(3 2 1)
+ SEC                    ; starting with the low bytes
  SBC K+1
  STA K+1
- LDA INWK+1,X
- SBC K+2                ; hi
- STA K+2
- LDA INWK+2,X
- AND #127
- SBC S
- ORA #128               ; set bit7
- EOR T                  ; sign only
- STA K+3                ; sg
- BCS MV14               ; rts
 
- LDA #1                 ; else need to flip sign
- SBC K+1                ; lo
- STA K+1
- LDA #0                 ; hi
+ LDA INWK+1,X           ; Then the middle bytes
  SBC K+2
  STA K+2
- LDA #0                 ; sg
- SBC K+3
- AND #127
- ORA T                  ; sign only
+
+ LDA INWK+2,X           ; And finally the high bytes, doing A = |x_sign| - |K+3|
+ AND #%01111111         ; and setting the C flag for testing below
+ SBC S
+
+ ORA #%10000000         ; Set the sign bit of K+3 to the opposite sign of T,
+ EOR T                  ; i.e. the opposite sign to the original K(3 2 1)
  STA K+3
 
-.MV14                   ; rts
+ BCS MV14               ; If the C flag is set, i.e. |x_sign| >= |K+3|, then
+                        ; the sign of K(3 2 1). In this case, we want the
+                        ; result to have the same sign as the largest argument,
+                        ; which is (x_sign x_hi x_lo), which we know has the
+                        ; oposite sign to K(3 2 1), and that's what we just set
+                        ; the sign of K(3 2 1) to... so we can jump to MV14 to
+                        ; return from the subroutine
 
- RTS                    ; MVT3 done
+ LDA #1                 ; We need to swap the sign of the result in K(3 2 1),
+ SBC K+1                ; which we do by calculating 0 - K(3 2 1), which we can
+ STA K+1                ; do with 1 - C - K(3 2 1), as we know the C flag is
+                        ; clear. We start with the low bytes
+ 
+ LDA #0                 ; Then the middle bytes
+ SBC K+2
+ STA K+2
+
+ LDA #0                 ; And finally the high bytes
+ SBC K+3
+
+ AND #%01111111         ; Set the sign bit of K+3 to the same sign as T,
+ ORA T                  ; i.e. the same sign as the original K(3 2 1), as
+ STA K+3                ; that's the largest argument
+
+.MV14
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -7870,13 +8093,16 @@ NEXT
 \
 \ Palette data is given as a set of bytes, with each byte mapping a logical
 \ colour to a physical one. In each byte, the logical colour is given in bits
-\ 4-7 and the physical colour in bits 0-3, so the first byte at TVT1 below,
-\ &D4, maps logical colour &D to physical colour &4.
+\ 4-7 and the physical colour in bits 0-3. See p.379 of the Advanced User Guide
+\ for details of how palette mapping works, as in modes 4 and 5 we have to do
+\ multiple palette commands to change the colours correctly, and the physical
+\ colour value is EOR'd with 7, just to make things even more confusing. 
 \
-\ Similarly, the palette at TVT1+16 is for the monochrome space view, and you
-\ can see that logical colours &F, &E, &D, &C, &B, &A, &9 and &8 are all mapped
-\ to physical colour 0 (black), while logical colours &7, &6, &3 and &2 are
-\ mapped to physical colour &7 (white).
+\ Similarly, the palette at TVT1+16 is for the monochrome space view, where
+\ logical colour 1 is mapped to physical colour 0 EOR 7 = 7 (white), and
+\ logical colour 0 is mapped to physical colour 7 EOR 7 = 0 (black). Each of
+\ these mappings requires six calls to SHEILA+&21 - see p.379 of the Advanced
+\ User Guide for an explanation.
 \ *****************************************************************************
 
 .TVT1
@@ -15949,7 +16175,7 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: NWSPS
 \
-\ Add a new space station to the universe.
+\ Add a new space station to our little bubble of universe.
 \ *****************************************************************************
 
 .NWSPS
@@ -18865,31 +19091,48 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: FAROF
 \
-\ For docking computer, Carry is clear if hi >= #&E0
+\ Compare x_hi, y_hi and z_hi with &E0, and set the C flag if all three <= &E0,
+\ otherwise clear the C flag.
+\
+\ Returns:
+\
+\   C flag      Set if x_hi <= &E0 and y_hi <= &E0 and z_hi <= &E0
+\               Clear otherwise (i.e. if any one of them are bigger than &E0)
 \ *****************************************************************************
 
-.FAROF                  ; for docking computer, Carry is clear if hi >= #&E0
+.FAROF
 {
- LDA #&E0               ; distance hi far enough away
+ LDA #&E0               ; Set A = &E0 and fall through into FAROF2 to do the
+                        ; comparison
 }
 
 \ *****************************************************************************
 \ Subroutine: FAROF2
 \
-\ Carry set if Acc >= hi
+\ Compare x_hi, y_hi and z_hi with A, and set the C flag if all three <= A,
+\ otherwise clear the C flag.
+\
+\ Returns:
+\
+\   C flag      Set if x_hi <= A and y_hi <= A and z_hi <= A
+\               Clear otherwise (i.e. if any one of them are bigger than A)
 \ *****************************************************************************
 
-.FAROF2                 ; carry set if Acc >= hi
+.FAROF2
 {
- CMP INWK+1             ; xhi
- BCC MA34               ; rts
- CMP INWK+4             ; yhi
- BCC MA34               ; rts
- CMP INWK+7             ; zhi
+ CMP INWK+1             ; If A < x_hi, C will be clear so jump to MA34 to
+ BCC MA34               ; return from the subroutine with C clear, otherwise
+                        ; C will be set so move on to the next one
 
-.MA34                   ; rts
+ CMP INWK+4             ; If A < y_hi, C will be clear so jump to MA34 to
+ BCC MA34               ; return from the subroutine with C clear, otherwise
+                        ; C will be set so move on to the next one
 
- RTS
+ CMP INWK+7             ; If A < z_hi, C will be clear, otherwise C will be set
+
+.MA34
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
