@@ -2516,12 +2516,12 @@ ORG &0D40
                         ;
                         ; 0 for beam laser, 10 for pulse laser
                         ;
-                        ; This gets decremented every line scan (in LINSCN),
+                        ; This gets decremented every vertical sync (in LINSCN),
                         ; and is set to a non-zero value for pulse lasers only.
                         ; The laser only fires when the value of LASCT is zero,
                         ; so for pulse lasers with a value of 10, that means it
-                        ; fires once every 10 line scans (or 5 times a second).
-                        ; In comparison, beam lasers fire continuously.
+                        ; fires once every 10 vertical syncs (or 5 times a
+                        ; second). In comparison, beam lasers fire continuously.
 
 .GNTMP
 
@@ -7910,9 +7910,11 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: IRQ1
 \
-\ Interrupt handler, might be a screen mode thing?
+\ The main interrupt handler, which implements Elite's split screen mode.
 \
 \ IRQ1V is set to point to IRQ1 by elite-loader.asm.
+\
+\ *****************************************************************************
 \
 \ Elite uses a unique split-screen mode that enables a high-resolution
 \ black-and-white space view to coexist with a lower resolution, colour ship
@@ -8679,15 +8681,18 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .fq1                    ; type Xreg cargo/alloys in explosion arrives here
 {
- LDA #96                ; unit +1
- STA INWK+14            ; rotmat0z hi
- ORA #128               ; unit -1
- STA INWK+22            ; rotmat2x hi
- LDA DELTA              ; speed
- ROL A                  ; missile speed is double
- STA INWK+27            ; speed
- TXA                    ; ship type
- JMP NWSHP              ; New ship type X
+ LDA #&60               ; Set INWK+14 (rotmat0z_hi) to 1 (&60), so ship is
+ STA INWK+14            ; pointing away from us
+
+ ORA #128               ; Set INWK+22 (rotmat2x_hi) to -1 (&D0), so ship is
+ STA INWK+22            ; upside down ????
+
+ LDA DELTA              ; Set INWK+27 (speed) to 2 * DELTA
+ ROL A
+ STA INWK+27
+
+ TXA                    ; Add a new ship of type X to our local bubble of
+ JMP NWSHP              ; universe
 }
 
 \ *****************************************************************************
@@ -10844,27 +10849,31 @@ NEXT
 }
 
 \ *****************************************************************************
-\ Subroutine: TT66-2
-\
-\ Box border with QQ11 set to Acc = 1
-\ *****************************************************************************
- LDA #1
-
-\ *****************************************************************************
 \ Subroutine: TT66
 \
-\ Box border with QQ11 set to Acc
+\ Other entry points: TT66-2 (set A to 2)
+\
+\ Clear the top part of the screen (mode 4), draw a box border, and set the
+\ current view type in QQ11 to A.
+\
+\ Arguments:
+\
+\   A           The type of the new current view (see QQ11 for a list of view
+\               types)
 \ *****************************************************************************
 
-.TT66                   ; Box border with QQ11 set to Acc
 {
- STA QQ11               ; menu id, zero is a titled space view.
+ LDA #1
+
+.^TT66
+
+ STA QQ11               ; Set the current view type in QQ11 to A
 }
 
 \ *****************************************************************************
 \ Subroutine: TTX66
 \
-\ Clear the top part of the screen (mode 4) and draw a box border
+\ Clear the top part of the screen (mode 4) and draw a box border.
 \ *****************************************************************************
 
 .TTX66                  ; New box
@@ -15490,7 +15499,8 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: nWq
 \
-\ New dust
+\ Create a cloud of stardust containing the maximum number of dust particles
+\ (i.e. NOSTM of them).
 \ *****************************************************************************
 
 .nWq
@@ -15594,6 +15604,10 @@ MAPCHAR '4', '4'
 \
 \   X           The number of text rows to display on screen (24 will hide the
 \               dashboard, 31 will make it reappear)
+\
+\ Returns
+\
+\   A           A is set to 6
 \ *****************************************************************************
 
 .DET1
@@ -15979,8 +15993,8 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: NWSHP
 \
-\ Add a new ship to the universe. This creates a block of ship data in the
-\ workspace at K% (where we store the ships in our current bubble of universe),
+\ Add a new ship to our local bubble of universe. This creates a block of ship
+\ data in the workspace at K% (where we store the ships in our current bubble),
 \ and we also add the ship type into the slot index table at FRIN. We can
 \ retrieve this block of ship data later using the lookup table at UNIV.
 \
@@ -17406,60 +17420,109 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: TT17
 \
-\ Returns with X,Y from arrow keys or joystick used
+\ Scan the keyboard and joystick for cursor key or stick movement, and return
+\ the result as deltas (changes) in x- and y-coordinates as follows:
+\
+\   * For joystick, X and Y are integers between -2 and +2 depending on how far
+\     the stick has moved
+\
+\   * For keyboard, X and Y are integers between -1 and +1 depending on which
+\     keys ar pressed
+\
+\ Returns:
+\
+\   A           The key pressed, if the arrow keys were used
+\
+\   X           Change in the x-coordinate according to the cursor keys being
+\               pressed or joystick movement, as an integer (see above)
+\
+\   Y           Change in the y-coordinate according to the cursor keys being
+\               pressed or joystick movement, as an integer (see above)
 \ *****************************************************************************
 
-.TT17                   ; returns with X,Y from arrow keys or joystick used
+.TT17
 {
- JSR DOKEY              ; KL has force key
- LDA JSTK               ; or joystick used
- BEQ TJ1                ; hop down, Arrows from keyboard, else joystick
- LDA JSTX
- EOR #&FF               ; flip sign
- JSR TJS1               ; Yreg = -2 to +2 for -JSTX
- TYA                    ; Acc  = -2 to +2 for -JSTX
- TAX                    ; Xreg = -2 to +2 for -JSTX
+ JSR DOKEY              ; Scan the keyboard for flight controls and pause keys,
+                        ; (or the equivalent on joystick) and update the key
+                        ; logger, setting KL to the key pressed
 
- LDA JSTY
+ LDA JSTK               ; If the joystick was not used, jump down to TJ1,
+ BEQ TJ1                ; otherwise we move the cursor with the joystick
 
-.TJS1                   ; Acc scaled to -2 to +2 for 0 to FF
+ LDA JSTX               ; Fetch the joystick roll, ranging from 1 to 255 with
+                        ; 128 as the centre point
 
- TAY                    ; JST X Y
- LDA #0
- CPY #&10               ; set C if Y>= #&10
+ EOR #&FF               ; Flip the sign so A = -JSTX, because the joystick roll
+                        ; works in the opposite way to moving a cursor on screen
+                        ; in terms of left and right
+
+ JSR TJS1               ; Call TJS1 just below to set Y to a value between -2
+                        ; and +2 depending on the joystick roll value (moving
+                        ; the stick sideways)
+
+ TYA                    ; Copy Y to A and X
+ TAX
+
+ LDA JSTY               ; Fetch the joystick pitch, ranging from 1 to 255 with
+                        ; 128 as the centre point, and fall through into TJS1 to
+                        ; joystick pitch value (moving the stick up and down)
+
+.TJS1
+
+ TAY                    ; Store A in Y
+
+ LDA #0                 ; Set the result, A = 0
+
+ CPY #&10               ; If Y >= &10 set carry, so A = A - 1
  SBC #0
-\CPY #&20
-\SBC #0
- CPY #&40
+
+\CPY #&20               ; These instructions are commented out in the original
+\SBC #0                 ; source, but they would make the joystick move the
+                        ; cursor faster by increasing the range of Y by -1 to +1
+
+ CPY #&40               ; If Y >= &40 set carry, so A = A - 1
  SBC #0
- CPY #&C0
+
+ CPY #&C0               ; If Y >= &C0 set carry, so A = A + 1
  ADC #0
- CPY #&E0
+
+ CPY #&E0               ; If Y >= &E0 set carry, so A = A + 1
  ADC #0
-\CPY #&F0
-\ADC #0
- TAY                    ; Yreg = -2 to +2
- LDA KL                 ; Acc = keyboard logger
- RTS
+
+\CPY #&F0               ; These instructions are commented out in the original
+\ADC #0                 ; source, but they would make the joystick move the
+                        ; cursor faster by increasing the range of Y by -1 to +1
+
+ TAY                    ; Copy the value of A into Y
+
+ LDA KL                 ; Set A to the value of KL (the key pressed)
+
+ RTS                    ; Return from subroutine
 
 .TJ1                    ; Arrows from keyboard
 
- LDA KL                 ; keyboard logger
- LDX #0
+ LDA KL                 ; Set A to the value of KL (the key pressed)
+
+ LDX #0                 ; Set the results, X = Y = 0
  LDY #0
- CMP #&19               ; left cursor
- BNE P%+3               ; skip dex
+
+ CMP #&19               ; If left arrow was pressed, set X = X - 1
+ BNE P%+3
  DEX
- CMP #&79               ; right cursor
- BNE P%+3               ; skip inx
+
+ CMP #&79               ; If right arrow was pressed, set X = X + 1
+ BNE P%+3
  INX
- CMP #&39               ; up cursor
- BNE P%+3               ; skip iny
+
+ CMP #&39               ; If up arrow was pressed, set Y = Y + 1
+ BNE P%+3
  INY
- CMP #&29               ; down cursor
- BNE P%+3               ; skip dey
+
+ CMP #&29               ; If down arrow was pressed, set Y = Y - 1
+ BNE P%+3
  DEY
- RTS                    ; no shift boost in Flight code
+
+ RTS                    ; Return from subroutine
 }
 
 \ *****************************************************************************
@@ -18015,12 +18078,12 @@ LOAD_F% = LOAD% + P% - CODE%
 \   * Set the ship to a fair distance away (32) in all axes, in front of us but
 \     randomly up or down, left or right
 \
-\   * Give the ship a 4% chance of the having E.C.M.
+\   * Give the ship a 4% chance of having E.C.M.
 \ 
 \   * Set the ship to hostile, with AI enabled
 \
 \ Also sets X and T1 to a random value, and A to a random value between 192 and
-\ 255.
+\ 255,and the C flag randomly.
 \ *****************************************************************************
 
 .Ze
@@ -18190,8 +18253,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
 .^TT100
 
- JSR M%                 ; Call M% routine to process flight keys, amongst other
-                        ; things
+ JSR M%                 ; Call the M% routine to do the main flight loop
 
  DEC DLY                ; Decrement the delay counter in DLY, so any in-flight
                         ; messages get removed once the counter reaches zero
@@ -18503,7 +18565,8 @@ LOAD_F% = LOAD% + P% - CODE%
                         ; slow the main loop down a bit
 
  JSR TT17               ; Scan the keyboard for the cursor keys or joystick,
-                        ; returning the cursor's delta values in X and Y
+                        ; returning the cursor's delta values in X and Y and
+                        ; the key pressed in A
 
 \ *****************************************************************************
 \ Subroutine: Main game loop (Part 6)
@@ -18852,82 +18915,137 @@ LOAD_F% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: DEATH
 \
-\ Player killed in Flight
+\ We have been killed, so clean up the mess.
 \ *****************************************************************************
 
-.DEATH                  ; Player killed in Flight
+.DEATH
 {
- JSR EXNO3              ; ominous noises
- JSR RES2               ; reset2
- ASL DELTA              ; speed
- ASL DELTA              ; *=4
- LDX #24                ; 24 text rows
- JSR DET1
- JSR TT66               ; box border with QQ11 menu id set to Acc = 6
- JSR BOX                ; border removed
- JSR nWq                ; new dust
- LDA #12                ; middle
+ JSR EXNO3              ; Make the sound of us dying
+
+ JSR RES2               ; Reset a number of flight variables and workspaces
+
+ ASL DELTA              ; Divide our speed in DELTA by 4
+ ASL DELTA
+ 
+ LDX #24                ; Set the screen to only show 24 text rows, which hides
+ JSR DET1               ; the dashboard, setting A to 6 in the process
+
+ JSR TT66               ; Clear the top part of the screen, draw a box border,
+                        ; and set the current view type in QQ11 to 6 (death
+                        ; screen)
+
+ JSR BOX                ; Call BOX to redraw the same box border (BOX is part of
+                        ; TT66), which removes the border as the box is drawn
+                        ; using EOR logic
+
+ JSR nWq                ; Create a cloud of stardust containing the maximum
+                        ; number of dust particles (i.e. NOSTM of them)
+
+ LDA #12                ; Move the text cursor to column 12 on row 12
  STA YC
  STA XC
- LDA #146               ; Token = Game Over
- JSR ex                 ; extra tokens
 
-.D1                     ; counter  FRIN+4 empty
+ LDA #146               ; Print recursive token 13 ("{switch to all caps}GAME
+ JSR ex                 ; OVER"
 
- JSR Ze                 ; Zero for new ship, new inwk coords
- LSR A                  ; ends with dornd and T1 = rnd too. /=2
- LSR A                  ; Arnd 63 max
- STA INWK               ; xlo reduced
- LDY #0                 ; set below to 0
- STY QQ11               ; menu id now space view.
- STY INWK+1             ; xhi
- STY INWK+4             ; yhi
- STY INWK+7             ; zhi
- STY INWK+32            ; ai dumb, no ecm.
- DEY                    ; #&FF
- STY MCNT               ; Fetch main loop counter
- STY LASCT              ; laser count
- EOR #42                ; flip every other bit below 64 0010 1010
- STA INWK+3             ; ylo
- ORA #80                ; flick away
- STA INWK+6             ; zlo
- TXA                    ; rnd X
- AND #&8F               ; keep sign, but max 15
- STA INWK+29            ; rotx counter roll
- ROR A                  ; might set carry
- AND #&87               ; keep sign, but max 7
- STA INWK+30            ; rotz counter pitch
- PHP
- LDX #OIL               ; Type #OIL cargo default
- JSR fq1                ; type X cargo/alloys in explosion
- PLP
- LDA #0
- ROR A
- LDY #31                ; display explosion state|missiles
- STA (INF),Y            ; Prob 50% to kill
- LDA FRIN+3             ; 4th slot for nearby craft
- BEQ D1                 ; loop next debris
- JSR U%                 ; clear keyboard logger
- STA DELTA              ; speed
+.D1
 
-.D2                     ; counter LASCT laser count
+ JSR Ze                 ; Initialise INWK workspace, set X and T1 to a random
+                        ; value, and A to a random value between 192 and 255 and
+                        ; the C flag randomly
 
- JSR M%                 ; M% block A. Some flight controls
- LDA LASCT              ; laser count was reduced in M%
- BNE D2                 ; loop
- LDX #31                ; restore all 31
- JSR DET1               ; text rows
+ LSR A                  ; Set A = A / 4, so A is now between 48 and 63, and
+ LSR A                  ; store in INWK+0 (x_lo)
+ STA INWK
+
+ LDY #0                 ; Set the following to 0: the current view in QQ11
+ STY QQ11               ; (space view), x_hi, y_hi, z_hi and the AI flag (no AI
+ STY INWK+1             ; or E.C.M. and not hostile)
+ STY INWK+4
+ STY INWK+7
+ STY INWK+32
+ 
+ DEY                    ; Set Y = 255
+
+ STY MCNT               ; Reset the main loop counter to 255, so all timer-based
+                        ; calls will be stopped
+
+ STY LASCT              ; Set the laser count to 255 to act as a counter in the
+                        ; D2 loop below, so this setting determines how long the
+                        ; death animation lasts (it's 5.1 seconds, as LASCT is
+                        ; decremented every vertical sync, or 50 times a second,
+                        ; and 255 / 50 = 5.1)
+
+ EOR #%00101010         ; Flip bits 1, 3 and 5 in A (x_lo) to get another number
+ STA INWK+3             ; between 48 and 63, and store in INWK+3 (y_lo)
+ 
+ ORA #%01010000         ; Set bits 4 and 6 of A to bump it up to between 112 and 
+ STA INWK+6             ; 127, and store in INWK+6 (z_lo)
+ 
+ TXA                    ; Set A to the random number in X and keep bits 0-3 and
+ AND #%10001111         ; the bit 7 to get a number between -15 and +15, and
+ STA INWK+29            ; store in INWK+29 (rotx counter) to give our ship a
+                        ; gentle roll with damping
+ 
+ ROR A                  ; C is random from above call to Ze, so this sets A to a
+ AND #%10000111         ; number between -7 and +7, which we store in INWK+30
+ STA INWK+30            ; (rotz counter) to give our ship a very gentle pitch
+                        ; with damping
+ 
+ PHP                    ; Store the processor flags
+
+ LDX #OIL               ; Call fq1 with X set to OIL, which adds a new cargo
+ JSR fq1                ; canister to our local bubble of universe and points it
+                        ; away from us with double DELTA speed (i.e. 6, as DELTA
+                        ; was set to 3 by the call to RES2 above). INF is set to
+                        ; point to the ship's data block in K%.
+
+ PLP                    ; Restore the processor flags, including our random C
+                        ; flag from before
+ 
+ LDA #0                 ; Set bit 7 of A to our random C flag and store in byte
+ ROR A                  ; 31 of the ship's data block, so this has a 50% chance
+ LDY #31                ; of marking our new canister as being killed (so it
+ STA (INF),Y            ; will explode)
+ 
+ LDA FRIN+3             ; The call we made to RES2 before we entered the loop at
+ BEQ D1                 ; D1 will have reset all the ship slots at FRIN, so this
+                        ; checks to see if the fourth slot is empty, and if it
+                        ; is we loop back to D1 to add another canister, until
+                        ; we have added four of them
+
+ JSR U%                 ; Clear the key logger, which also sets A = 0
+
+ STA DELTA              ; Set our speed in DELTA to 3, so all the cargo
+                        ; canisters we just added drift away from us
+
+.D2
+
+ JSR M%                 ; Call the M% routine to do the main flight loop once,
+                        ; which will display our exploding canister scene and
+                        ; move everything about
+
+ LDA LASCT              ; Loop back to D2 to run the main flight loop until
+ BNE D2                 ; LASCT reaches zero (which will take 5.1 seconds, as
+                        ; explained above)
+
+ LDX #31                ; Set the screen to show all 31 text rows, which shows
+ JSR DET1               ; the dashboard, and fall through into DEATH2 to reset
+                        ; and restart the game
+
 }
 
 \ *****************************************************************************
 \ Subroutine: DEATH2
 \
-\ Reset2, onto Docked code
+\ Reset most of the game and restart from the title screen.
 \ *****************************************************************************
 
-.DEATH2                 ; reset2, onto Docked code.
+.DEATH2
 {
- JSR RES2               ; reset2
+ JSR RES2               ; Reset a number of flight variables and workspaces
+                        ; and fall through into the entry code for the game
+                        ; to restart from the title screen
 }
 
 \ *****************************************************************************
@@ -20324,6 +20442,10 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \ Subroutine: U%
 \
 \ Clear the key logger (from KY1 through KY19).
+\
+\ Returns:
+\
+\   A           A is set to 0
 \ *****************************************************************************
 
 .U%
@@ -20354,8 +20476,9 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \ *****************************************************************************
 \ Subroutine: DOKEY
 \
-\ Scan for the seven primary flight controls (or the equivalent on joystick).
-\ Specifically:
+\ Scan for the seven primary flight controls (or the equivalent on joystick),
+\ pause and configuration keys, and secondary flight controls, and update the
+\ key logger accordingly. Specifically:
 \
 \   * If we are on keyboard configuration, clear the key logger and update it
 \     for the seven primary flight controls, and update the roll and pitch
