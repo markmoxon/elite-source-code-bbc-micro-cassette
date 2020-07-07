@@ -372,13 +372,13 @@ ORG &0000
                         ;
                         ; INWK    = x_lo
                         ; INWK+1  = x_hi
-                        ; INWK+2  = x_sign (for planet, x distance)
+                        ; INWK+2  = x_sign (for planets, x_distance)
                         ; INWK+3  = y_lo
                         ; INWK+4  = y_hi
-                        ; INWK+5  = y_sign (for planet, y distance)
+                        ; INWK+5  = y_sign (for planets, y_distance)
                         ; INWK+6  = z_lo
                         ; INWK+7  = z_hi
-                        ; INWK+8  = z_sign (for planet, z distance)
+                        ; INWK+8  = z_sign (for planets, z_distance)
                         ; INWK+9  = rotmat0x_lo
                         ; INWK+10 = rotmat0x_hi     xincrot_hi
                         ; INWK+11 = rotmat0y_lo
@@ -508,6 +508,9 @@ ORG &0000
 .DELT4
 
  SKIP 2                 ; The current speed * 64
+                        ;
+                        ; The high byte therefore contains the current speed
+                        ; divided by 4
 
 .U
 
@@ -735,6 +738,8 @@ ORG &0300               ; Start of the commander block
 
  SKIP 1                 ; Contains the current fuel level * 10 (so a 1 in QQ14
                         ; represents 0.1 light years)
+                        ;
+                        ; Maximum value is 70 (7.0 light years)
 
 .COK
 
@@ -2451,6 +2456,11 @@ ORG &0D40
 
 .CABTMP                 ; Cabin temperature
                         ;
+                        ; 30 = cabin temperature in deep space (i.e. one notch
+                        ;      on the dashboard bar)
+                        ;
+                        ; We get higher temperatures closer to the sun
+                        ;
                         ; Shares a location with MANY, but that's OK because
                         ; MANY would contain the number of ships of type 0, but
                         ; isn't used because ship types start at 1
@@ -2523,10 +2533,11 @@ ORG &0D40
                         ;
                         ; This gets decremented every vertical sync (in LINSCN),
                         ; and is set to a non-zero value for pulse lasers only.
-                        ; The laser only fires when the value of LASCT is zero,
-                        ; so for pulse lasers with a value of 10, that means it
-                        ; fires once every 10 vertical syncs (or 5 times a
-                        ; second). In comparison, beam lasers fire continuously.
+                        ; The laser only fires when the value of LASCT hits
+                        ; zero, so for pulse lasers with a value of 10, that
+                        ; means it fires once every 10 vertical syncs (or 5
+                        ; times a second). In comparison, beam lasers fire
+                        ; continuously.
 
 .GNTMP
 
@@ -2706,7 +2717,16 @@ ORG &0D40
 
 .ALTIT
 
- SKIP 1                 ; 
+ SKIP 1                 ; Our altitude above the planet
+                        ;
+                        ; &FF = maximum
+                        ;
+                        ; Otherwise this contains our altitude as the square
+                        ; root of x_hi^2 + y_hi^2 + z_hi^2 - 6^2, where our
+                        ; ship is at the origin, the centre of the planet is at
+                        ; (x_hi, y_hi, z_hi), and the radius of the planet is 6
+                        ;
+                        ; If this value drops to zero, we have crashed
 
 .QQ2
 
@@ -3211,12 +3231,10 @@ LOAD_A% = LOAD%
 .ma1
 
  AND #%11111010         ; LASCT will be set to 0 for beam lasers, and to the
- STA LASCT              ; laser power AND %11111010 for pulse lasers (which
-                        ; have a laser power of 15, or %1111, so LASCT gets
-                        ; set to %1111 AND %11111010 = %1010 = 10, so the
-                        ; laser will pulse once every 10 line scans, or five
-                        ; times a second)
-
+ STA LASCT              ; laser power AND %11111010 for pulse lasers, which
+                        ; comes to 10 (as pulse lasers have a power of 15). See
+                        ; MA23 below for more on laser pulsing and LASCT.
+                        
 \ *****************************************************************************
 \ Subroutine: M% (Part 4)
 \
@@ -4073,13 +4091,19 @@ LOAD_A% = LOAD%
  BPL MAL4               ; Loop back for the next byte until we have copied the
                         ; first 28 bytes of K% to INWK
 
+                        ; We now check the distance from our ship (at the
+                        ; origin) towards the planet's surface, by adding the
+                        ; planet's rotmat0 vector to the planet's centre at
+                        ; (x, y, z) and checking our distance to the end
+                        ; point along the relevant axis
+
  INX                    ; Set X = 0 (as we ended the above loop with X as &FF)
 
  LDY #9                 ; Call MAS1 with X = 0, Y = 9 to do the following:
  JSR MAS1               ;
                         ; (x_sign x_hi x_lo) += (rotmat0x_hi rotmat0x_lo) * 2
                         ;
-                        ; A = |x_sign|
+                        ; A = |x_hi|
 
  BNE MA23S              ; If A > 0, jump to MA23S to skip the following, as we
                         ; are too far from the planet in the x-direction to
@@ -4089,7 +4113,7 @@ LOAD_A% = LOAD%
  LDY #11                ;
  JSR MAS1               ; (y_sign y_hi y_lo) += (rotmat0y_hi rotmat0y_lo) * 2
                         ;
-                        ; A = |y_sign|
+                        ; A = |y_hi|
 
  BNE MA23S              ; If A > 0, jump to MA23S to skip the following, as we
                         ; are too far from the planet in the y-direction to
@@ -4099,7 +4123,7 @@ LOAD_A% = LOAD%
  LDY #13                ;
  JSR MAS1               ; (z_sign z_hi z_lo) += (rotmat0z_hi rotmat0z_lo) * 2
                         ;
-                        ; A = |z_sign|
+                        ; A = |z_hi|
 
  BNE MA23S              ; If A > 0, jump to MA23S to skip the following, as we
                         ; are too far from the planet in the z-direction to
@@ -4131,76 +4155,169 @@ LOAD_A% = LOAD%
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
 \
-\   * Altitude check
+\   * Altitude check (every 32 iterations of the main loop, on iteration 10
+\     of each 32)
 \
-\   * Fuel scooping
+\   * Sun altitude check and fuel scooping (every 32 iterations of the main
+\     loop, on iteration 20 of each 32)
 \ *****************************************************************************
 
 .MA22
 
- LDA MJ                 ; mis-jump
- BNE MA23               ; to MA23 big distance or mis-jump
- LDA MCNT               ; Fetch main loop counter
- AND #31
+ LDA MJ                 ; If we are in witchspace, jump down to MA23 to skip
+ BNE MA23               ; the following, as there are no planets or suns to
+                        ; bump into in witchspace
 
-.MA93                   ; skipped space station check arrives here
+ LDA MCNT               ; Fetch the main loop counter and look at bits 0-4,
+ AND #%00011111         ; so this tells us the position of this loop in each
+                        ; block of 32 iterations
 
- CMP #10                ; every MCNT tenth
- BNE MA29               ; skip altitude checks
- LDA #50                ; player's energy low?
- CMP ENERGY
- BCC P%+6               ; skip message
- ASL A                  ; #&64 token =  ENERGY LOW
- JSR MESS               ; message
- LDY #&FF               ; Altimeter set to max
+.MA93
+
+ CMP #10                ; If this is the tenth iteration in this block of 32,
+ BNE MA29               ; do the following, otherwise jump to MA29 to skip the
+                        ; planet altitude check and move on to the sun distance
+                        ; check
+
+ LDA #50                ; If our energy bank status in ENERGY is >= 50, skip
+ CMP ENERGY             ; printing the following message (so the message is
+ BCC P%+6               ; only shown if our energy is low)
+
+ ASL A                  ; Print recursive token 100 ("ENERGY LOW{beep}") as an
+ JSR MESS               ; in-flight message
+
+ LDY #&FF               ; Set our altitude in ALTIT to &FF, the maximum
  STY ALTIT
- INY                    ; Y = 0 is planet info
- JSR m                  ; max of x,y,z of Yreg=0 planet
- BNE MA23               ; skip to big distance
- JSR MAS3               ; get hsb distance squared of &900+Y = planet
- BCS MA23               ; skip to big distance
- SBC #&24               ; 6^2 = planet radius^2
- BCC MA28               ; death, Crashed into planet.
- STA R                  ; else update altimeter
- JSR LL5                ; Q = SQR(Qlo.Rhi)
- LDA Q
+
+ INY                    ; Set Y = 0
+
+ JSR m                  ; Call m to calculate the maximum distance to the
+                        ; planet in any of the three axes, returned in A
+ 
+ BNE MA23               ; If A > 0 then we are a fair distance away from the
+                        ; planet in at least one axis, so jump to MA23 to skip
+                        ; the rest of the altitude check
+
+ JSR MAS3               ; Set A = x_hi^2 + y_hi^2 + z_hi^2, so using Pythagoras
+                        ; we now know that A now contains the square of the
+                        ; distance between our ship (at the origin) and the
+                        ; centre of the planet at (x_hi, y_hi, z_hi)
+
+ BCS MA23               ; If the C flag was set by MAS3, then the result
+                        ; overflowed (was greater than &FF) and we are still a
+                        ; fair distance from the planet, so jump to MA23 as we
+                        ; haven't crashed into the planet
+
+ SBC #36                ; Subtract 36 from x_hi^2 + y_hi^2 + z_hi^2. The radius
+                        ; of the planet is defined as 6 units and 6^2 = 36, so
+                        ; A now contains the high byte of our altitude above
+                        ; the planet surface, squared
+
+ BCC MA28               ; If A < 0 then jump to MA28 as we have crashed into
+                        ; the planet
+
+ STA R                  ; We are getting close to the planet, so we need to
+ JSR LL5                ; work out how close. We know from the above that A
+                        ; contains our altitude squared, so we store A in R
+                        ; and call LL5 to calculate:
+                        ;
+                        ;   Q = SQRT(R Q) = SQRT(A Q)
+                        ;
+                        ; Interestingly, Q doesn't appear to be set to 0 for
+                        ; this calculation, so presumably this doesn't make a
+                        ; difference
+
+ LDA Q                  ; Store the result in ALTIT, our altitude
  STA ALTIT
- BNE MA23               ; big distance, else
 
-.MA28                   ; death, Crashed into planet
+ BNE MA23               ; If our altitude is non-zero then we haven't crashed,
+                        ; so jump to MA23 to skip to the next section
 
- JMP DEATH
+.MA28
 
-.MA29                   ; skipped altitude checks earlier
+ JMP DEATH              ; If we get here then we just crashed into the planet
+                        ; or got too close to the sun, so call DEATH to start
+                        ; the funeral preparations
 
- CMP #20                ; every MCNT=20
- BNE MA23               ; skip to big distance, else check on Sun
- LDA #30                ; default cabin temperature
- STA CABTMP
- LDA SSPR               ; space station present
- BNE MA23               ; skip to big distance, as sun not present.
- LDY #NI%               ; #NI% is offset to Sun info
- JSR MAS2               ; find max of &902 x,y,z coordinate, Sun.
- BNE MA23               ; skip to big distance
- JSR MAS3               ; get hsb distance squared of &900+Y to Sun
- EOR #&FF               ; flip
- ADC #30
- STA CABTMP
- BCS MA28               ; up to Death, too hot.
+.MA29
 
- CMP #&E0               ; close enough to sun?
- BCC MA23               ; skip to big distance
- LDA BST                ; fuel scoops Barrel status
- BEQ MA23               ; skip to big distance
- LDA DELT4+1            ; hi, speed/4, 10 max
- LSR A                  ; speed/8 is fuel scooped
- ADC QQ14               ; ship fuel
- CMP #70                ; max fuel allowed #70 = #&46
- BCC P%+4               ; not full
- LDA #70                ; max fuel allowed #70 = #&46
- STA QQ14
- LDA #160               ; token = FUEL SCOOPS ON
- JSR MESS               ; message
+ CMP #20                ; If this is the 20th iteration in this block of 32,
+ BNE MA23               ; do the following, otherwise jump to MA23 to skip the
+                        ; sun altitude check
+
+ LDA #30                ; Set CABTMP to 30, the cabin temperature in deep space
+ STA CABTMP             ; (i.e. one notch on the dashboard bar)
+
+ LDA SSPR               ; If we are inside the space station safe zone, jump to
+ BNE MA23               ; MA23 to skip the following, as we can't have both the
+                        ; sun and space station at the same time, so we clearly
+                        ; can't be flying near the sun
+
+ LDY #NI%               ; Set Y to NI%, which is the offset in K% for the sun's
+                        ; data block, as the second block at K% is reserved for
+                        ; the sun (or space station)
+
+ JSR MAS2               ; Call MAS2 to calculate the largest distance to the
+ BNE MA23               ; sun in any of the three axes, and if it's non-zero,
+                        ; jump to MA23 to skip the following, as we are too far
+                        ; from the sun for scooping or temperature changes
+
+ JSR MAS3               ; Set A = x_hi^2 + y_hi^2 + z_hi^2, so using Pythagoras
+                        ; we now know that A now contains the square of the
+                        ; distance between our ship (at the origin) and the
+                        ; heart of the sun at (x_hi, y_hi, z_hi)
+
+ EOR #%11111111         ; Invert A, so A is now small if we are far from the
+                        ; sun and large if we are close to the sun, in the
+                        ; range 0 = far away to &FF = extremely close, ouch,
+                        ; hot, hot, hot!
+
+ ADC #30                ; Add the minimum cabin temperature of 30, so we get
+                        ; one of the following:
+                        ;
+                        ; If the C flag is clear, A contains the cabin
+                        ; temperature, ranging from 30 to 255, that's hotter
+                        ; the closer we are to the sun
+                        ;
+                        ; If the C flag is set, the addition has rolled over
+                        ; and the cabin temperature is over 255
+
+ STA CABTMP             ; Store the updated cabin temperature
+
+ BCS MA28               ; If the C flag is set then jump to MA28 to die, as
+                        ; our temperature is off the scale
+
+ CMP #&E0               ; If the cabin temperature < 224 then jump to MA23 to
+ BCC MA23               ; to skip fuel scooping, as we aren't close enough
+
+ LDA BST                ; If we don't have fuel scoops fitted, jump to BA23 to
+ BEQ MA23               ; skip fuel scooping, as we can't scoop without fuel
+                        ; scoops
+
+                        ; 
+
+ LDA DELT4+1            ; We are now cuccessfully fuel scooping, so it's time
+ LSR A                  ; to work out how much fuel we're scooping. Fetch the
+                        ; high byte of DELT4, which contains our current speed
+                        ; divided by 4, and halve it to get our current speed
+                        ; divided by 8 (so it's now a value between 1 and 5, as
+                        ; our speed is normally between 1 and 40). This gives
+                        ; us the amount of fuel that's being scooped in A, so
+                        ; the faster we go, the more fuel we scoop, and because
+                        ; the fuel levels are stored as 10 * the fuel in light
+                        ; years, that means we just scooped between 0.1 and 0.5
+                        ; light years of free fuel
+
+ ADC QQ14               ; Set A = A + the current fuel level * 10 (from QQ14)
+
+ CMP #70                ; If A > 70 then set A = 70 (as 70 is the maximum fuel
+ BCC P%+4               ; level, or 7.0 light years)
+ LDA #70
+
+ STA QQ14               ; Store the updated fuel level in QQ14
+
+ LDA #160               ; Print recursive token 0 ("FUEL SCOOPS ON") as an
+ JSR MESS               ; in-flight message
 
 \ *****************************************************************************
 \ Subroutine: M% (Part 16)
@@ -4208,47 +4325,79 @@ LOAD_A% = LOAD%
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
 \
-\   * Process laser energy drain
+\   * Process laser pulsing
 \
 \   * Process E.C.M. energy drain
 \
-\   * Jump to the stardust routine
+\   * Jump to the stardust routine if we are in space
+\
+\   * Return from the main flight loop
 \ *****************************************************************************
 
 .MA23
 
- LDA LAS2
- BEQ MA16               ; already switched laser Off
- LDA LASCT              ; laser count
- CMP #8                 ; reached 8 for pulse laser
- BCS MA16               ; laser off
- JSR LASLI2             ; stops drawing laser lines early for pulse laser
- LDA #0                 ; counter reached 8
- STA LAS2               ; so pulse laser doesn't restart
+ LDA LAS2               ; If the current view has no laser, jump to MA16 to skip
+ BEQ MA16               ; the following
 
-.MA16                   ; already switched laser Off
+ LDA LASCT              ; If LASCT >= 8, jump to MA16 to skip the following, so
+ CMP #8                 ; for a pulse laser with a LASCT between 8 and 10, the
+ BCS MA16               ; the laser stays on, but for a LASCT of 7 or less it
+                        ; gets turned off and stays off until LASCT reaches zero
+                        ; and the next pulse can start (if the fire button is
+                        ; still being pressed).
+                        ;
+                        ; For pulse lasers, LASCT gets set to 10 in ma1 above,
+                        ; and it decrements every vertical sync (50 times a
+                        ; second), so this means it pulses five times a second,
+                        ; with the laser being on for the first 3/10 of each
+                        ; pulse and off for the rest of the pulse.
+                        ;
+                        ; If this is a beam laser, LASCT is 0 so we always keep
+                        ; going here. This means the laser doesn't pulse, but it
+                        ; does get drawn and removed every cycle, in a slightly
+                        ; different place each time, so the beams still flicker
+                        ; around the screen.
 
- LDA ECMP               ; ECM on is player's?
- BEQ MA69               ; ecm finished
- JSR DENGY              ; else drain energy by 1 for active ECM pulse
- BEQ MA70               ; no energy, ecm off.
+ JSR LASLI2             ; Redraw the existing laser lines, which has the effect
+                        ; of removing them from the screen
+ 
+ LDA #0                 ; Set LAS2 to 0 so if this is a pulse laser, it will
+ STA LAS2               ; skip over the above until the next pulse (this has no
+                        ; effect if this is a beam laser)
 
-.MA69                   ; ecm finished
+.MA16
 
- LDA ECMA               ; someone's ECM active?
- BEQ MA66               ; skip ecm off
- DEC ECMA               ; ECM on counter was started at #32
- BNE MA66               ; skip ecm off
+ LDA ECMP               ; If our E.C.M is not on, skip to MA69, otherwise keep
+ BEQ MA69               ; going to drain some energy
 
-.MA70                   ; ecm off
+ JSR DENGY              ; Call DENGY to deplete our energy banks by 1
 
- JSR ECMOF
+ BEQ MA70               ; If we have no energy left, jump to MA70 to turn our
+                        ; E.C.M. off
 
-.MA66                   ; skipped ecm off
+.MA69
 
- LDA QQ11               ; menu i.d.
- BNE MA9                ; not a space view, rts
- JMP STARS              ; Dust Field
+ LDA ECMA               ; If an E.C.M is going off (our's or an opponent's) then
+ BEQ MA66               ; keep going, otherwise skip to MA66
+
+ DEC ECMA               ; Decrement the E.C.M. countdown timer, and if it has
+ BNE MA66               ; reached zero, keep going, otherwise skip to MA66
+
+.MA70
+
+ JSR ECMOF              ; If we get here then either we have either run out of
+                        ; energy, or the E.C.M. timer has run down, so switch
+                        ; off the E.C.M.
+
+.MA66
+
+ LDA QQ11               ; If this is not a space view (i.e. QQ11 is non-zero)
+ BNE MA9                ; then jump to MA9 to return from the main flight loop
+                        ; (as MA9 is an RTS)
+
+ JMP STARS              ; This is a space view, so jump to the STARS routine to
+                        ; process the stardust, and return from the main flight
+                        ; loop using a tail call
 }
 
 \ *****************************************************************************
@@ -4321,8 +4470,14 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: m
 \
-\ Calculate the OR of the three bytes at K%+2+Y, K%+5+Y and K%+8+Y, and clear
-\ the sign bit of the result. The K% workspace contains the ship data blocks.
+\ Given a value in Y that points to the start of a ship data block as an offset
+\ from K%, calculate the following:
+\
+\   A = x_distance OR y_distance OR z_distance
+\
+\ and clear the sign bit of the result. The K% workspace contains the ship data
+\ blocks, so the offset in Y must be 0 or a multiple of NI% (as each block in
+\ K% contains NI% bytes).
 \
 \ The result effectively contains a maximum cap of the three values (though it
 \ might not be one of the three input values - it's just guaranteed to be
@@ -4350,21 +4505,27 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: MAS2
 \
-\ Calculate the OR of A and the three bytes at K%+2+Y, K%+5+Y and K%+8+Y, and
-\ clear the sign bit of the result. The K% workspace contains the ship data
-\ blocks.
+\ Given a value in Y that points to the start of a ship data block as an offset
+\ from K%, calculate the following:
+\
+\   A = A OR x_distance OR y_distance OR z_distance
+\
+\ and clear the sign bit of the result. The K% workspace contains the ship data
+\ blocks, so the offset in Y must be 0 or a multiple of NI% (as each block in
+\ K% contains NI% bytes).
 \
 \ The result effectively contains a maximum cap of the three values (though it
 \ might not be one of the three input values - it's just guaranteed to be
 \ larger than all of them).
 \
 \ If Y = 0 and A = 0, then this calculates the maximum cap of the highest byte
-\ containing the distance to the planet, as K%+2 = x_distance, K%+5 = y_distance and K%+8 =
-\ z_distance (the first slot in the K% workspace represents the planet).
+\ containing the distance to the planet, as K%+2 = x_distance, K%+5 = y_distance
+\ and K%+8 = z_distance (the first slot in the K% workspace represents the
+\ planet).
 \
 \ Arguments:
 \
-\   Y           The offset from K% for the three values to OR with A
+\   Y           The offset from K% for the start of the ship data block to use
 \
 \ Returns:
 \
@@ -4373,9 +4534,9 @@ LOAD_A% = LOAD%
 
 .MAS2
 {
- ORA K%+2,Y             ; Set A = A OR K%+2+Y
- ORA K%+5,Y             ; Set A = A OR K%+5+Y
- ORA K%+8,Y             ; Set A = A OR K%+8+Y
+ ORA K%+2,Y             ; Set A = A OR x_distance OR y_distance OR z_distance
+ ORA K%+5,Y
+ ORA K%+8,Y
 
  AND #%01111111         ; Clear bit 7 in A
 
@@ -4385,28 +4546,57 @@ LOAD_A% = LOAD%
 \ *****************************************************************************
 \ Subroutine: MAS3
 \
-\ Find hsb squared of &901+Y
+\ Given a value in Y that points to the start of a ship data block as an offset
+\ from K%, calculate the following:
+\
+\   A = x_hi^2 + y_hi^2 + z_hi^2
+\
+\ returning A = &FF if the calculation overflows a one-byte result. The K%
+\ workspace contains the ship data blocks, so the offset in Y must be 0 or a
+\ multiple of NI% (as each block in K% contains NI% bytes).
+\
+\ Arguments:
+\
+\   Y           The offset from K% for the start of the ship data block to use
+\
+\ Returns
+\
+\   A           A = x_hi^2 + y_hi^2 + z_hi^2
+\
+\               A = &FF if the calculation overflows a one-byte result
 \ *****************************************************************************
 
-.MAS3                   ; find hsb squared of &901+Y
+.MAS3
 {
- LDA K%+1,Y             ; xhi
- JSR SQUA2              ; P.A =A*A unsigned
- STA R
- LDA K%+4,Y             ; yhi
- JSR SQUA2              ; P.A =A*A unsigned
- ADC R
- BCS MA30               ; sat #&FF
- STA R
- LDA K%+7,Y             ; zhi
- JSR SQUA2              ; P.A =A*A unsigned
- ADC R                  ; Acc = z^2 + y^2 + x^2
- BCC P%+4
+ LDA K%+1,Y             ; Set (A P) = x_hi * x_hi
+ JSR SQUA2
 
-.MA30                   ; sat #&FF
+ STA R                  ; Store A (high byte of result) in R
 
- LDA #&FF
- RTS
+ LDA K%+4,Y             ; Set (A P) = y_hi * y_hi
+ JSR SQUA2
+
+ ADC R                  ; Add A (high byte of second result) to R
+
+ BCS MA30               ; If the addition of the two high bytes caused a carry
+                        ; (i.e. they overflowed), jump to MA30 to return A = &FF
+ 
+ STA R                  ; Store A (sum of the two high bytes) in R
+
+ LDA K%+7,Y             ; Set (A P) = z_hi * z_hi
+ JSR SQUA2
+
+ ADC R                  ; Add A (high byte of third result) to R, so R now
+                        ; contains the sum of x_hi^2 + y_hi^2 + z_hi^2
+
+ BCC P%+4               ; If there is no carry, skip the following instruction
+                        ; to return straight from the subroutine
+
+.MA30
+
+ LDA #&FF               ; The calculation has overflowed, so set A = &FF
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -8911,7 +9101,7 @@ LOAD_C% = LOAD% +P% - CODE%
  STA INWK+14            ; pointing away from us
 
  ORA #128               ; Set INWK+22 (rotmat2x_hi) to -1 (&D0), so ship is
- STA INWK+22            ; upside down ????
+ STA INWK+22            ; upside down?
 
  LDA DELTA              ; Set INWK+27 (speed) to 2 * DELTA
  ROL A
@@ -9513,39 +9703,49 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: SQUA
 \
-\ AP=A*ApresQ \ P.A =A7*A7
+\ Do the following multiplication of unsigned 8-bit numbers, after first
+\ clearing bit 7 of A:
+\
+\   (A P) = A * A
 \ *****************************************************************************
 
-.SQUA                   ; AP=A*ApresQ \ P.A =A7*A7
+.SQUA
 {
- AND #127
+ AND #%01111111         ; Clear bit 7 of A and fall through into SQUA2 to set
+                        ; (A P) = A * A
 }
 
 \ *****************************************************************************
 \ Subroutine: SQUA2
 \
-\ AP=A*A unsigned, also P.A = ylo^2
+\ Do the following multiplication of unsigned 8-bit numbers:
+\
+\   (A P) = A * A
 \ *****************************************************************************
 
-.SQUA2                  ; AP=A*A unsigned
+.SQUA2
 {
- STA P
- TAX                    ; is 0?
- BNE MU11               ; X*A will be done
+ STA P                  ; Copy A into P and X
+ TAX
+
+ BNE MU11               ; If X = 0 fall through into MU1 to return a 0,
+                        ; otherwise jump to MU11 to return P * X
 }
 
 \ *****************************************************************************
 \ Subroutine: MU1
 \
-\ P = Acc = Xreg
+\ Copy X into P and A, and clear the C flag.
 \ *****************************************************************************
 
-.MU1                    ; else P = Acc = Xreg
+.MU1
 {
- CLC
- STX P
- TXA                    ; Acc = Xreg
- RTS
+ CLC                    ; Clear the C flag
+
+ STX P                  ; Copy X into P and A
+ TXA
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -9575,38 +9775,77 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: MULTU
 \
-\ AP=P*Qunsg
+\ Do the following multiplication of unsigned 8-bit numbers:
+\
+\   (A P) = P * Q
 \ *****************************************************************************
 
-.MULTU                  ; AP=P*Qunsg
+.MULTU
 {
- LDX Q
- BEQ MU1                ; up, P = Acc = Xreg = 0
+ LDX Q                  ; Set X = Q
+
+ BEQ MU1                ; If X = Q = 0, jump to MU1 to copy X into P and A,
+                        ; clear the C flag and return from the subroutine using
+                        ; a tail call
+
+                        ; Otherwise fall through into MU11 to set (A P) = P * X
 }
 
 \ *****************************************************************************
 \ Subroutine: MU11
 \
-\ P*X will be done
+\ Do the following multiplication of unsigned 8-bit numbers:
+\
+\   (A P) = P * X
+\
+\ This uses the same "shift and add" approach as MULT1, but it's simpler as we
+\ are dealing with unsigned numbers in P and X. See the MULT1 routine for a
+\ discussion of how this algorithm works.
 \ *****************************************************************************
 
-.MU11                   ; P*X will be done
+.MU11
 {
- DEX                    ; Q-1 as carry will be set for addition
- STX T
- LDA #0
- LDX #8                 ; counter unwind?
- LSR P
+ DEX                    ; Set T = X - 1
+ STX T                  ;
+                        ; We subtract 1 as carry will be set when we want to do
+                        ; an addition in the loop below
 
-.MUL6                   ; counter X
+ LDA #0                 ; Set A = 0 so we can start building the answer in A
 
- BCC P%+4               ; low bit of P lo clear
- ADC T                  ; +=Q as carry set
- ROR A                  ; hi
- ROR P
- DEX
- BNE MUL6               ; loop X unwind?
- RTS                    ; Xreg = 0
+ LDX #8                 ; Set up a counter in X to count the 8 bits in P
+ 
+ LSR P                  ; Set P = P >> 1
+                        ; and carry = bit 0 of P
+
+                        ; We are now going to work our way through the bits of
+                        ; P, and do a shift-add for any bits that are set,
+                        ; keeping the running total in A. We just did the first
+                        ; shift right, so we now need to do the first add and
+                        ; loop through the other bits in P.
+
+.MUL6
+
+ BCC P%+4               ; If C (i.e. the next bit from P) is set, do the
+ ADC T                  ; addition for this bit of P:
+                        ;
+                        ;   A = A + T + C
+                        ;     = A + X - 1 + 1
+                        ;     = A + X
+
+ ROR A                  ; Shift A right to catch the next digit of our result,
+                        ; which the next ROR sticks into the left end of P while
+                        ; also extracting the next bit of P
+
+ ROR P                  ; Add the overspill from shifting A to the right onto
+                        ; the start of P, and shift P right to fetch the next
+                        ; bit for the calculation
+
+ DEX                    ; Decrement the loop counter
+
+ BNE MUL6               ; Loop back for the next bit until P has been rotated
+                        ; all the way
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -9878,8 +10117,9 @@ NEXT
  BEQ mu10               ; If |Q| = 0 jump to mu10 (with A set to 0)
  
  TAX                    ; Set T1 = |Q| - 1
- DEX                    ; Q7-1  as carry will be set for addition
- STX T1
+ DEX                    ;
+ STX T1                 ; We subtract 1 as carry will be set when we want to do
+                        ; an addition in the loop below
 
                         ; We are now going to work our way through the bits of
                         ; P, and do a shift-add for any bits that are set,
@@ -11015,7 +11255,7 @@ NEXT
 
 .^LO2
 
- RTS
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -17084,6 +17324,8 @@ MAPCHAR '4', '4'
 \ *****************************************************************************
 \ Subroutine: PLF5
 \
+\ Other entry points: RTS2 (RTS)
+\
 \ Xreg = height ready, Acc is flag for run direction
 \ *****************************************************************************
 
@@ -17235,16 +17477,9 @@ MAPCHAR '4', '4'
  STA SUNX
  LDA K3+1
  STA SUNX+1
-}
 
-\ *****************************************************************************
-\ Subroutine: RTS2
-\
-\ RTS
-\ *****************************************************************************
+.^RTS2
 
-.RTS2
-{
  RTS                    ; End of Sun fill
 }
 
@@ -21503,7 +21738,9 @@ LOAD_G% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: LL5
 \
-\ 2BSQRT Q=SQR(RQ) \ two-byte square root, R is hi, Q is lo.
+\ Calculate the following square root:
+\
+\   Q = SQRT(R Q)
 \ *****************************************************************************
 
 .LL5                    ; 2BSQRT Q=SQR(RQ) \ two-byte square root, R is hi, Q is lo.
