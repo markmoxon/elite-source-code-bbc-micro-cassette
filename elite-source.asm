@@ -41,13 +41,16 @@ NI% = 36                ; Number of bytes for each object in our universe (as
 OSBYTE = &FFF4
 OSWORD = &FFF1
 OSFILE = &FFDD
+
 SHEILA = &FE00
 
-VSCAN  = 57
-VEC    = &7FFE
+VSCAN  = 57             ; Defines the split position in the split screen mode
+
+VEC    = &7FFE          ; Set to the original IRQ1 vector by elite-loader.asm
+
 SVN    = &7FFD          ; Set to 1 while we are saving a commander, 0 otherwise
 
-X = 128                 ; Screen centre
+X = 128                 ; Centre coordinates of the 256 x 192 mode 4 space view
 Y = 96
 
 \ *****************************************************************************
@@ -4293,8 +4296,6 @@ LOAD_A% = LOAD%
  LDA BST                ; If we don't have fuel scoops fitted, jump to BA23 to
  BEQ MA23               ; skip fuel scooping, as we can't scoop without fuel
                         ; scoops
-
-                        ; 
 
  LDA DELT4+1            ; We are now cuccessfully fuel scooping, so it's time
  LSR A                  ; to work out how much fuel we're scooping. Fetch the
@@ -19547,13 +19548,14 @@ LOAD_F% = LOAD% + P% - CODE%
  LDX #3                 ; Set XC = 3 (set text cursor to column 3)
  STX XC
 
- JSR FX200              ; Disable Escape key and clear memory if Break key is
-                        ; pressed (*FX 200, 3)
+ JSR FX200              ; Disable the Escape key and clear memory if the Break
+                        ; key is pressed (*FX 200,3)
 
  LDX #CYL               ; Call the TITLE subroutine to show the rotating ship
  LDA #128               ; and load prompt. The arguments sent to TITLE are:
  JSR TITLE              ; 
                         ;   X = type of ship to show, CYL is Cobra Mk III
+                        ;
                         ;   A = text token to show below the rotating ship, 128
                         ;       is "  LOAD NEW COMMANDER (Y/N)?{crlf}{crlf}"
                         ;
@@ -19951,17 +19953,19 @@ ENDIF
  STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. enable the CA2 interrupt
                         ; which comes from the keyboard)
 
- LDA #15
+ LDA #15                ; Perform a *FX 15,0 command (flush all buffers)
  TAX
  JSR OSBYTE
+
  LDX #LO(RLINE)
  LDY #HI(RLINE)
  LDA #0                 ; RLINE at &39E9 for OSWORD = 0
  JSR OSWORD             ; read input string
 
-\LDA #%00000001         ; Set 6522 System VIA interrupt enable register IER
-\STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. disable the CA2 interrupt,
-                        ; which comes from the keyboard)
+\LDA #%00000001         ; These instructions are commented out in the original
+\STA SHEILA+&4E         ; source, but they would set 6522 System VIA interrupt
+                        ; enable register IER (SHEILA &4E) bit 1 (i.e. disable
+                        ; the CA2 interrupt, which comes from the keyboard)
 
  BCS TR1                ; else carry set if escape hit
  TYA                    ; accepted string length
@@ -20068,58 +20072,106 @@ ENDIF
 \ *****************************************************************************
 \ Subroutine: SVE
 \
-\ Save commander
+\ Save the commander file.
 \ *****************************************************************************
 
-.SVE                    ; Disc service entry as key @ hit
+.SVE
 {
- JSR GTNME              ; zero pages &9,&A,&B,&C,&D
- JSR TRNME              ; Transfer commander name to Page &11
- JSR ZERO
- LSR SVC
- LDX #NT%
+ JSR GTNME              ; Clear the screen and ask for the commander filename
+                        ; to save, storing the name at INWK
 
-.SVL1                   ; counter X
+ JSR TRNME              ; Transfer the commander filename from INWK to NA%
 
- LDA TP,X               ; TP,X from Page &3 to
- STA &B00,X             ; Page &0B
- STA NA%+8,X            ; Page &11
- DEX
- BPL SVL1               ; loop X
- JSR CHECK              ; Acc gets check byte
- STA CHK
- PHA                    ; push check byte
- ORA #128               ; build competition info for bbc disk
+ JSR ZERO               ; Zero-fill pages &9, &A, &B, &C and &D
+ 
+ LSR SVC                ; Halve the save count value in SVC
+
+ LDX #NT%               ; We now want to copy the current commander data block
+                        ; from location TP to the last saved commander block at
+                        ; NA%+8, so set a counter in X to copy the NT% bytes in
+                        ; the commander data block.
+                        ;
+                        ; We also want to copy the data block to another
+                        ; location &0B00, which is normally used for the ship
+                        ; lines heap
+
+.SVL1
+
+ LDA TP,X               ; Copy the X-th byte of TP to the X-th byte of &B00
+ STA &B00,X             ; and NA%+8
+ STA NA%+8,X
+
+ DEX                    ; Decrement the loop counter
+
+ BPL SVL1               ; Loop back until we have copied all NT% bytes
+
+ JSR CHECK              ; Call CHECK to calculate the checksum for the last
+                        ; saved commander and return it in A
+
+ STA CHK                ; Store the checksum in CHK, which is at the end of the
+                        ; last saved commander block
+
+ PHA                    ; Store the checksum on the stack
+
+ ORA #%10000000         ; Set K = checksum with bit 7 set
  STA K
- EOR COK                ; file check competition
- STA K+2
- EOR CASH+2
- STA K+1
- EOR #&5A               ; "Z"
- EOR TALLY+1            ; kills/256
- STA K+3
- JSR BPRNT              ; Buffer print ( 4 bytes of K)
- JSR TT67               ; next Row ; Call TT67, which prints a newline
- JSR TT67               ; next Row ; Call TT67, which prints a newline
- PLA                    ; pull check byte
- STA &B00+NT%
- EOR #&A9               ; check code2
 
- STA CHK2
- STA &AFF+NT%
- LDY #&B
- STY &C0B               ; &0B00 is start address of data to save
- INY                    ; #&0C
- STY &C0F               ; &0C00 is end address of data to save
+ EOR COK                ; Set K+2 = K EOR'd with COK
+ STA K+2
+
+ EOR CASH+2             ; Set K+1 = K+2 EOR'd with the third cash byte
+ STA K+1
+
+ EOR #%01011010         ; Set K+3 = K+1 EOR 01011010 EOR high byte of kill tally
+ EOR TALLY+1
+ STA K+3
+
+ JSR BPRNT              ; Print the competition number stored in K to K+3. The
+                        ; values of the C flag and U will affect how this is
+                        ; printed, which is odd as they appear to be random (C
+                        ; is last set in CHECK and could go either way, and it's
+                        ; hard to know when U was last set as it's a temporary
+                        ; variable in zero page, so isn't reset by ZERO). I
+                        ; wonder if the competition number can ever get printed
+                        ; out incorrectly, with a decimal point and the wrong
+                        ; number of digits?
+ 
+ JSR TT67               ; Call TT67 twice to print two newlines
+ JSR TT67
+
+ PLA                    ; Restore the checksum from the stack
+
+ STA &B00+NT%           ; Store the checksum in the last byte of the save file
+                        ; at &0B00 (the equivalent of CHK in the last saved
+                        ; block)
+
+ EOR #&A9               ; Store the checksum EOR &A9 in CHK2, the penultimate
+ STA CHK2               ; byte of the last saved commander block
+ 
+ STA &AFF+NT%           ; Store the checksum EOR &A9 in the penultimate byte of
+                        ; the save file at &0B00 (the equivalent of CHK2 in the
+                        ; last saved block)
+ 
+ LDY #&B                ; Set up an OSFILE block at &0C00, containing:
+ STY &C0B               ; 
+ INY                    ; Start address for save = &00000B00 in &0C0A to &0C0D
+ STY &C0F               ; 
+                        ; End address for save = &00000C00 in &0C0E to &0C11
+                        ;
+                        ; Y is left containing &C which we use below
 
  LDA #%10000001         ; Clear 6522 System VIA interrupt enable register IER
  STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. enable the CA2 interrupt,
                         ; which comes from the keyboard)
 
- INC SVN
- LDA #0
- JSR QUS1
- LDX #0
+ INC SVN                ; Increment SVN to indicate we are about to start saving
+                        ; (SVN is actually a screen address at &7FFD)
+
+ LDA #0                 ; Call QUS1 with A = 0, Y = &C to save the commander
+ JSR QUS1               ; file with the filename we copied to INWK at the start
+                        ; of this routine
+ 
+ LDX #0                 ; Set X = 0 for storing in SVN below
 
  \STX SHEILA+&4E        ; This instruction is commented out in the original
                         ; source. It would affect the 6522 System VIA interrupt
@@ -20127,62 +20179,106 @@ ENDIF
                         ; of X were set, but they aren't, so this instruction
                         ; would have no effect anyway.
 
- \DEX
+ \DEX                   ; This instruction is commented out in the original
+                        ; source. It would end up setting SVN to &FF, which
+                        ; affects the logic in the IRQ1 handler.
 
- STX SVN
- JMP BAY
+ STX SVN                ; Set SVN to 0 to indicate we are done saving
+
+ JMP BAY                ; Go to the docking bay (i.e. show Status Mode)
 }
 
 \ *****************************************************************************
 \ Subroutine: QUS1
 \
-\ File Ops,  Acc=OSFILE in, valid drive is carry clear.
+\ Load or save the commander file. The filename should be stored at INWK,
+\ terminated with a carriage return (13), and the routine should be called with
+\ Y set to &C.
+\
+\ Arguments:
+\
+\   A           File operation to be performed. Can be one of the following:
+\
+\                 * 0 (save file)
+\
+\                 * &FF (load file)
+\
+\   Y           Points to the page number containing the OSFILE block, which
+\               must be &C because that's where the pointer to the filename in
+\               INWK is stored below (by the STX &C00 instruction)
 \ *****************************************************************************
 
-.QUS1                   ; File Ops,  Acc=OSFILE in, valid drive is carry clear.
+.QUS1
 {
- LDX #INWK
- STX &C00               ; pointer to filename string
- LDX #0                 ; lo
- JMP OSFILE             ; block &0C00
+ LDX #INWK              ; Store a pointer to INWK at the start of the block at
+ STX &0C00              ; &0C00, in byte 0 because INWK is in zero page
+
+ LDX #0                 ; Set X to 0 so (Y X) = &0C00
+
+ JMP OSFILE             ; Jump to OSFILE to do the file operation specified in
+                        ; &0C00, returning from the subroutine using a tail
+                        ; call
 }
 
 \ *****************************************************************************
 \ Subroutine: LOD
 \
-\ Load new Commander
+\ Load a commander file. The filename should be stored at INWK, terminated with
+\ a carriage return (13).
 \ *****************************************************************************
 
-.LOD                    ; Load commander file then Page &B to Page &11, else carry set if invalid drive
+.LOD
 {
- LDX #2                 ; Enable Escape key and clear memory if Break key is
- JSR FX200              ; pressed (*FX 200, 2)
+ LDX #2                 ; Enable the Escape key and clear memory if the Break
+ JSR FX200              ; key is pressed (*FX 200,2)
 
- JSR ZERO               ; Zero Pages &9,&A,&B,&C,&D
- LDY #&B
- STY &C03               ; load address is &0B00
- INC &C0B               ; length of file incremented
- INY
- LDA #&FF
- JSR QUS1               ; File Ops
- LDA &B00               ; look at data, first byte is TP mission bits
- BMI SPS1+1             ; bit7 set is Not ELITE II file
- LDX #NT%
+ JSR ZERO               ; Zero-fill pages &9, &A, &B, &C and &D
 
-.LOL1                   ; counter X \ copy &B00 onwards to NA%+8 onwards
+ LDY #&B                ; Set up an OSFILE block at &0C00, containing:
+ STY &0C03              ; 
+ INC &0C0B              ; Load address = &00000B00 in &0C02 to &0C05
+ INY                    ; 
+                        ; Length of file = &00000100 in &0C0A to &0C0D
+                        ;
+                        ; Y is left containing &C which we use next
 
- LDA &B00,X             ; page &B
+ LDA #&FF               ; Call QUS1 with A = &FF, Y = &C to load the commander
+ JSR QUS1               ; file at address &0B00
+ 
+ LDA &B00               ; If the first byte of the loaded file has bit 7 set,
+ BMI SPS1+1             ; jump to SPS+1, which is the second byte of an LDA #0
+                        ; instruction, i.e. a BRK instruction, which will force
+                        ; an interrupt to call the address in BRKV, which is set
+                        ; to BR1... so this instruction restarts the game from
+                        ; the title screen. Valid commander files for the tape
+                        ; version of Elite only have 0 for the first byte, while
+                        ; the disk version can have 0, 1, 2, &A or &E, so having
+                        ; bit 7 set is invalid anyway.
+
+ LDX #NT%               ; We have successfully loaded the commander file at
+                        ; &0B00, so now we want to copy it to the last saved
+                        ; commander data block at NA%+8, so we set up a counter
+                        ; in X to copy NT% bytes
+
+.LOL1
+
+ LDA &B00,X             ; Copy the X-th byte of &0B00 to the X-th byte of NA%+8
  STA NA%+8,X
- DEX
- BPL LOL1               ; loop X
- LDX #3
+
+ DEX                    ; Decrement the loop counter
+
+ BPL LOL1               ; Loop back until we have copied all NT% bytes
+
+ LDX #3                 ; Fall through into FX200 to disable the Escape key and
+                        ; clear memory if the Break key is pressed (*FX 200,3)
+                        ; and return from the subroutine there
 }
 
 \ *****************************************************************************
 \ Subroutine: FX200
 \
-\ Performs a *FX 200, X command, which controls the behaviour of the Escape
-\ and Break keys.
+\ Performs a *FX 200,X command, which controls the behaviour of the Escape and
+\ Break keys.
 \ *****************************************************************************
 
 .FX200
@@ -23431,7 +23527,9 @@ SAVE "output/ELTG.bin", CODE_G%, P%, LOAD%
 \ *****************************************************************************
 \ Variable: checksum0
 \
-\ 
+\ This byte contains a checksum for the entire source file. It is populated by
+\ elite-checksum.py and is used by the encryption checks in elite-loader.asm
+\ (see the CHK routine in the loader for more details).
 \ *****************************************************************************
 
 .checksum0
