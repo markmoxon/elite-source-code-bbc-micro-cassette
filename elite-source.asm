@@ -15144,7 +15144,8 @@ MAPCHAR '4', '4'
 {
  JSR TT27               ; Print the text token in A
 
- JMP TT67               ; Jump to TT67, which prints a newline
+ JMP TT67               ; Jump to TT67 to print a newline and return from the
+                        ; subroutine using a tail call
 }
 
 \ *****************************************************************************
@@ -19901,53 +19902,72 @@ ENDIF
 \ *****************************************************************************
 \ Subroutine: TRNME
 \
-\ Transfer commander name to page &11 and &3
+\ Copy the last saved commander's name from INWK to NA%.
 \ *****************************************************************************
 
-.TRNME                  ; Transfer commander name to page &11 and &3
+.TRNME
 {
- LDX #7                 ; 8 chars max
+ LDX #7                 ; The commander's name can contain a maximum of 7
+                        ; characters, and is terminated by a carriage return,
+                        ; so set up a counter in X to copy 8 characters
 
-.GTL1                   ; counter X
+.GTL1
 
- LDA INWK,X             ; INWK+5,X
+ LDA INWK,X             ; Copy the X-th byte of INWK to the X-th byte of NA%
  STA NA%,X
- DEX                    ; next char
- BPL GTL1               ; loop X
+
+ DEX                    ; Decrement the loop counter
+
+ BPL GTL1               ; Loop back until we have copied all 8 bytes
+
+                        ; Fall through into TR1 to copy the name back from NA%
+                        ; to INWK, though this has no effect apart from saving
+                        ; one byte, as we don't need an RTS here
 }
 
 \ *****************************************************************************
 \ Subroutine: TR1
 \
-\ Reset name from NA% to INWK+5 but not flight's page &3
+\ Copy the last saved commander's name from NA% to INWK.
 \ *****************************************************************************
 
-.TR1                    ; reset name from NA% to INWK+5 but not flight's page &3
+.TR1
 {
- LDX #7                 ; 8 chars max
+ LDX #7                 ; The commander's name can contain a maximum of 7
+                        ; characters, and is terminated by a carriage return,
+                        ; so set up a counter in X to copy 8 characters
 
-.GTL2                   ; counter X
+.GTL2
 
- LDA NA%,X
+ LDA NA%,X              ; Copy the X-th byte of NA% to the X-th byte of INWK
  STA INWK,X
- DEX
- BPL GTL2               ; loop X
- RTS
+
+ DEX                    ; Decrement the loop counter
+
+ BPL GTL2               ; Loop back until we have copied all 8 bytes
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
 \ Subroutine: GTNME
 \
-\ Get Commander Name
+\ Get the commander's name for loading or saving a commander file. The name is
+\ stored at INWK, terminated by a return character (13).
+\
+\ If Escape is pressed or a blank name is entered, then INWK is set to the name
+\ from the last saved commander block.
 \ *****************************************************************************
 
-.GTNME                  ; Get Commander Name
+.GTNME
 {
- LDA #1
- JSR TT66
- LDA #123
+ LDA #1                 ; Clear the top part of the screen, draw a box border,
+ JSR TT66               ; and set the current view type in QQ11 to 1
+
+ LDA #123               ; Print recursive token 123 ("{crlf}COMMANDER'S NAME? ")
  JSR TT27
- JSR DEL8
+
+ JSR DEL8               ; Wait for 8/50 of a second (0.16 seconds)
 
  LDA #%10000001         ; Clear 6522 System VIA interrupt enable register IER
  STA SHEILA+&4E         ; (SHEILA &4E) bit 1 (i.e. enable the CA2 interrupt
@@ -19957,34 +19977,40 @@ ENDIF
  TAX
  JSR OSBYTE
 
- LDX #LO(RLINE)
- LDY #HI(RLINE)
- LDA #0                 ; RLINE at &39E9 for OSWORD = 0
- JSR OSWORD             ; read input string
+ LDX #LO(RLINE)         ; Call OSWORD with A = 0 and (Y X) pointing to the
+ LDY #HI(RLINE)         ; configuration block below, which reads a line from
+ LDA #0                 ; the current input stream (i.e. the keyboard)
+ JSR OSWORD
 
 \LDA #%00000001         ; These instructions are commented out in the original
 \STA SHEILA+&4E         ; source, but they would set 6522 System VIA interrupt
                         ; enable register IER (SHEILA &4E) bit 1 (i.e. disable
                         ; the CA2 interrupt, which comes from the keyboard)
 
- BCS TR1                ; else carry set if escape hit
- TYA                    ; accepted string length
- BEQ TR1                ; if 0 reset name from NA% to INWK+5
- JMP TT67               ; Jump to TT67, which prints a newline
-}
+ BCS TR1                ; The C flag will be set if we pressed Escape when
+                        ; entering the name, in which case jump to TR1 to copy
+                        ; the last saved commander's name from NA% to INWK
+                        ; and return from the subroutine there
 
-\ *****************************************************************************
-\ Variable: RLINE
-\
-\ OSWORD block for gtnme.
-\ *****************************************************************************
+ TYA                    ; The OSWORD call returns the length of the commander's
+ BEQ TR1                ; name in Y, so transfer this to A, and if it is zero
+                        ; (a blank name was entered), jump to TR1 to copy
+                        ; the last saved commander's name from NA% to INWK
+                        ; and return from the subroutine there
 
-.RLINE                  ; OSWORD block for gtnme
-{
- EQUW INWK
- EQUB 7                 ; +3 min ascii
- EQUB 33                ; +4 max ascii
- EQUB &7A
+ JMP TT67               ; We have a name, so jump to TT67 to print a newline
+                        ; and return from the subroutine using a tail call
+
+.RLINE                  ; This is the OSWORD configuration block used above
+
+ EQUW INWK              ; The address to store the input, so the commander's
+                        ; name will be stored in INWK as it is typed
+
+ EQUB 7                 ; Maximum line length = 7, as that's the maximum size
+                        ; for a commander's name
+
+ EQUB '!'               ; Allow ASCII characters from "!" through to "z" in
+ EQUB 'z'               ; the name
 }
 
 \ *****************************************************************************
