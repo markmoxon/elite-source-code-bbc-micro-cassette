@@ -735,7 +735,11 @@ ORG &0300               ; Start of the commander block
 
 .CASH
 
- SKIP 4                 ; Cash as a 32-bit unsigned integer
+ SKIP 4                 ; Cash as a 32-bit unsigned integer, stored with the
+                        ; most significant byte in CASH and the least
+                        ; significant in CASH+3 (big-endian, which is not the
+                        ; same way that 6502 assembler stores addresses) - 
+                        ; or, to use our notation, it's CASH(0 1 2 3)
 
 .QQ14
 
@@ -1032,7 +1036,7 @@ ORG CODE_WORDS%
 \   Fuel: 6.7 Light Years
 \   Cash:    1234.5 Cr
 \ 
-\ If you press F8 to show the Status Mode screen, you can see control code 4
+\ If you press f8 to show the Status Mode screen, you can see control code 4
 \ being used to show the commander's name in the title, while control code 5 is
 \ responsible for displaying the fuel and cash lines.
 \ 
@@ -7660,12 +7664,6 @@ NEXT
 \
 \ WRCHV is set to point here by elite-loader.asm.
 \
-\ Entry conditions:
-\
-\   * XC contains the text column to print at (the x-coordinate)
-\
-\   * YC contains the line number to print on (the y-coordinate)
-\
 \ Arguments:
 \
 \   A           The character to be printed. Can be one of the following:
@@ -7679,6 +7677,9 @@ NEXT
 \                 * 127 (delete the character to the left of the text cursor
 \                   and move the cursor to the left)
 \
+\   XC            Contains the text column to print at (the x-coordinate)
+\
+\   YC            Contains the line number to print on (the y-coordinate)
 \
 \ Returns:
 \
@@ -11715,8 +11716,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: tnpr
 \
-\ Given a market item and an amount, work out whether there is room in the hold
-\ for this item.
+\ Given a market item and an amount, work out whether there is room in the
+\ cargo hold for this item.
 \
 \ For standard tonne canisters, the limit is given by the type of cargo hold we
 \ have, with a standard cargo hold having a capacity of 20t and an extended
@@ -12037,7 +12038,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT67
 \
-\ Print a newline
+\ Print a newline.
 \ *****************************************************************************
 
 .TT67
@@ -12053,7 +12054,6 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Display "MAINLY " and jump to TT72. This subroutine is called by TT25 when
 \ displaying a system's economy.
-\
 \ *****************************************************************************
 
 .TT70
@@ -12174,9 +12174,8 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT25
 {
- JSR TT66-2             ; Clear the top part of the screen and draw a box
-                        ; border, with QQ11 set to 1 (so TT66 does not show the
-                        ; name of the space view at the bottom)
+ JSR TT66-2             ; Clear the top part of the screen, draw a box border,
+                        ; and set the current view type in QQ11 to 1
 
  LDA #9                 ; Set the text cursor XC to column 9
  STA XC
@@ -12862,153 +12861,283 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT219
 \
+\ Other entry points: BAY2
+\
 \ Show the Buy Cargo screen (red key f1).
 \ *****************************************************************************
 
-.TT219                  ; Buy \ their comment \ Buy cargo (#f1)
+.TT219
 {
-\LDA#2                  ; set menu i.d.
- JSR TT66-2             ; box border with QQ11 set to Acc
- JSR TT163              ; headings for market place
- LDA #128               ; bit7 set for Capital letter
- STA QQ17
-\JSR FLKB               ; flush keyboard
- LDA #0                 ; item of interest
- STA QQ29
+\LDA#2                  ; This instruction is commented out in the original
+                        ; source. Perhaps this view originally had a QQ11 value
+                        ; of 2, but it turned out not to need its own unique ID,
+                        ; so the authors found they could just use a view value
+                        ; of 1 and save an instruction at the same time?
 
-.TT220                  ; List items, counter QQ29
+ JSR TT66-2             ; Clear the top part of the screen, draw a box border,
+                        ; and set the current view type in QQ11 to 1
 
- JSR TT151              ; Pmk-A  display the line for one market item
- LDA QQ25
- BNE TT224              ; Quantity of item not zero
- JMP TT222              ; else skip item
+ JSR TT163              ; Print the column headers for the prices table
 
-.TQ4                    ; try Quantity again
+ LDA #128               ; Set QQ17 = 128 to switch to Sentence Case, with the
+ STA QQ17               ; next letter in capitals
 
- LDY #176               ; token = QUANTITY
+\JSR FLKB               ; This instruction is commented out in the original
+                        ; source. It calls a routine to flush the keyboard
+                        ; buffer (FLKB) that isn't present in the tape version
+                        ; but is in the disk version.
 
-.Tc                     ; white space, Y token then question mark
+ LDA #0                 ; We're going to loop through all the available market
+ STA QQ29               ; items, so we set up a counter in QQ29 to denote the
+                        ; current item and start it at 0
 
- JSR TT162              ; white space
- TYA                    ; Y token
- JSR prq                ; print Yreg then question mark.
+.TT220
+
+ JSR TT151              ; Call TT151 to print the item name, market price and
+                        ; availability of the current item, and set QQ24 to the
+                        ; item's price / 4, QQ25 to the quantity available and
+                        ; QQ19+1 to byte #1 from the market prices table for
+                        ; this item
+
+ LDA QQ25               ; If there are some of the current item available, jump
+ BNE TT224              ; to TT224 below to see if we want to buy any
+
+ JMP TT222              ; Otherwise there are none available, so jump down to
+                        ; TT222 to skip this item
+
+.TQ4
+
+ LDY #176               ; Set Y to the recursive token 16 ("QUANTITY")
+
+.Tc
+
+ JSR TT162              ; Print a space
+
+ TYA                    ; Print the recursive token in Y followed by a question
+ JSR prq                ; mark
 
 .TTX224
 
- JSR dn2                ; beep, delay.
+ JSR dn2                ; Make a short, high beep and delay for 1 second
 
-.TT224                  ; also Quantity not zero
+.TT224
 
- JSR CLYNS              ; clear some rows
- LDA #204               ; token = QUANTITY OF
- JSR TT27               ; process flight token
- LDA QQ29               ; item of interest
- CLC
- ADC #208               ; token = FOOD .. GEM-STONES
+ JSR CLYNS              ; Clear some space at the bottom of the screen and move
+                        ; the text cursor to row 20, near the bottom of the
+                        ; screen
+
+ LDA #204               ; Print recursive token 44 ("QUANTITY OF ")
  JSR TT27
- LDA #&2F               ; ascii "/"
+
+ LDA QQ29               ; Print recursive token 48 + QQ29, which will be in the
+ CLC                    ; range 48 ("FOOD") to 64 ("ALIEN ITEMS"), so this
+ ADC #208               ; prints the current item's name
  JSR TT27
- JSR TT152              ; t kg g from QQ19+1
- LDA #&3F               ; ascii "?"
+
+ LDA #'/'               ; Print "/"
  JSR TT27
- JSR TT67               ; next Row ; Call TT67, which prints a newline
- LDX #0                 ; input result returned (also done by gnum)
- STX R
- LDX #12                ; counter max
- STX T1
 
-\.TT223                 ; DUPLICATE LABEL?
+ JSR TT152              ; Print the unit ("t", "kg" or "g") for the current item
+                        ; (as the call to TT151 above set QQ19+1 with the
+                        ; appropriate value)
 
- JSR gnum               ; get number for purchase, max quantity QQ25
- BCS TQ4                ; error up, try Quantity again
- STA P                  ; else valid quantity
- JSR tnpr               ; ton purchase check
- LDY #206               ; token = CARGO
- BCS Tc                 ; no space, cargo?
- LDA QQ24               ; price
- STA Q
- JSR GCASH              ; cargo * price
- JSR LCASH              ; less cash, XloYhi = P*Q*4
- LDY #197               ; token = CASH
- BCC Tc                 ; not enough cash?
+ LDA #'?'               ; Print "?"
+ JSR TT27
 
- LDY QQ29               ; cargo item of interest as index
- LDA R                  ; number of items purchased
- PHA                    ; copy number of items purchased
- CLC                    ; add to cargo of that kind in ship count
- ADC QQ20,Y
- STA QQ20,Y
- LDA AVL,Y
- SEC                    ; Market availability updated
- SBC R                  ; number of items purchased
+ JSR TT67               ; Print a newline
+ 
+ LDX #0                 ; These instructions are not needed, as they are
+ STX R                  ; repeated at the start of gnum, which we call next.
+ LDX #12                ; Perhaps they were left behind when code was moved from
+ STX T1                 ; here into gnum, and weren't deleted?
+
+\.TT223                 ; This label is commented out in the original source,
+                        ; and is a duplicate of a label in gnum, so this could
+                        ; also be a remnant if the code in gnum was originally
+                        ; here, but got moved into the gnum subroutine
+
+ JSR gnum               ; Call gnum to get a number from the keyboard, which is
+                        ; the quantity of this item we want to purchase,
+                        ; returning the number entered in A and R
+
+ BCS TQ4                ; If gnum set the C flag, the number entered is greater
+                        ; then the quantity available, so jump up to TQ4 to
+                        ; display a "Quantity?" error, beep, clear the number
+                        ; and try again
+
+ STA P                  ; Otherwise we have a valid purchase quantity entered,
+                        ; so store the amount we want to purchase in P
+
+ JSR tnpr               ; Call tnpr to work out whether there is room in the
+                        ; cargo hold for this item
+
+ LDY #206               ; If the C flag is set, then there is no room in the
+ BCS Tc                 ; cargo hold, so set Y to the recursive token 46
+                        ; (" CARGO{switch to sentence case}") and jump up to
+                        ; Tc to print a "Cargo?" error, beep, clear the number
+                        ; and try again
+
+ LDA QQ24               ; There is room in the cargo hold, so now to check
+ STA Q                  ; whether we have enough cash, so fetch the item's
+                        ; price / 4, which was returned in QQ24 by the call
+                        ; to TT151 above and store it in Q
+
+ JSR GCASH              ; Call GCASH to calculate
+                        ;
+                        ;   (Y X) = P * Q * 4
+                        ;
+                        ; which will be the total price of this transaction
+                        ; (as P contains the purchase quantity and Q contains
+                        ; the item's price / 4)
+
+ JSR LCASH              ; Subtract (Y X) cash from the cash pot in CASH
+
+ LDY #197               ; If the C flag is clear, we didn't have enough cash,
+ BCC Tc                 ; so set Y to the recursive token 37 ("CASH") and jump
+                        ; up to Tc to print a "Cash?" error, beep, clear the
+                        ; number and try again
+
+ LDY QQ29               ; Fetch the current market item number from QQ29 into Y
+
+ LDA R                  ; Set A to the number of items we just purchased (this
+                        ; was set by gnum above)
+
+ PHA                    ; Store the quantity just purchased on the stack
+
+ CLC                    ; Add the number purchased to the Y-th byte of QQ20,
+ ADC QQ20,Y             ; which contains the number of items of this type in
+ STA QQ20,Y             ; our hold (so this transfers the bought items into our
+                        ; cargo hold)
+
+ LDA AVL,Y              ; Subtract the number of items from the Y-th byte of
+ SEC                    ; AVL,which contains the number of items of this type
+ SBC R                  ; that are available on the market
  STA AVL,Y
- PLA                    ; number of items purchased
- BEQ TT222              ; if none skip item, else
- JSR dn                 ; else display remaining cash
 
-.TT222                  ; skipped item
+ PLA                    ; Restore the quantity just purchased
 
- LDA QQ29               ; cargo item of interest
- CLC                    ; Y text cursor
- ADC #5                 ; move to correct row
+ BEQ TT222              ; If we didn't buy anything, jump to TT222 to skip the
+                        ; following instruction
+
+ JSR dn                 ; Call dn to print current cash, then make a short,
+                        ; high beep to confirm the purchase, and delay for 1
+                        ; second
+
+.TT222
+
+ LDA QQ29               ; Move the text cursor to row QQ29 + 5 (where QQ29 is
+ CLC                    ; the item numberm starting from 0)
+ ADC #5
  STA YC
- LDA #0                 ; X text cursor
+
+ LDA #0                 ; Move the text cursor to column 0
  STA XC
- INC QQ29               ; next item
- LDA QQ29
- CMP #17                ; max+1 items can purchase
- BCS BAY2               ; exit, all items done
- JMP TT220              ; loop up next item QQ29
+
+ INC QQ29               ; Increment QQ29 to point to the next item
+
+ LDA QQ29               ; If QQ29 >= 17 then jump to BAY2 as we have done the
+ CMP #17                ; last item
+ BCS BAY2
+
+ JMP TT220              ; Otherwise loop back to TT220 to print the next market
+                        ; item
+
+.^BAY2
+
+ LDA #f9                ; Jump into the main loop at FRCE, setting the key
+ JMP FRCE               ; "pressed" to red key f9 (so we show the Inventory
+                        ; screen)
 }
 
-.BAY2                   ; all items done, Back to
+\ *****************************************************************************
+\ Subroutine: gnum
+\
+\ Get a number from the keyboard, up to the maximum number in QQ25. Pressing a
+\ key with an ASCII code less than ASCII "0" will return a 0 in A (so that
+\ includes pressing Space or Return), while pressing a ley with an ASCII code
+\ greater than ASCII "9" will jump to the Inventory screen (so that includes
+\ all letters and most punctuation).
+\
+\ Arguments:
+\
+\   QQ25        Maximum number allowed
+\
+\ Returns:
+\
+\   A           The number entered
+\
+\   R           Also contains the number entered
+\
+\   C flag      Set if the number is too large (> QQ25), clear otherwise
+\ *****************************************************************************
+
+.gnum
 {
- LDA #f9                ; red key #f9 Inventory page
- JMP FRCE               ; forced to enter Main loop
-}
+ LDX #0                 ; We will build the number entered in R, so initialise
+ STX R                  ; it with 0
+ 
+ LDX #12                ; We will check for up to 12 key presses, so set a
+ STX T1                 ; counter in T1
 
-.gnum                   ; get number R for purchase, max quantity QQ25
-{
- LDX #0                 ; result returned
- STX R
- LDX #12                ; counter max
- STX T1
+.TT223
 
-.TT223                  ; counter T1
+ JSR TT217              ; Scan the keyboard until a key is pressed, and return
+                        ; the key's ASCII code in A (and X)
+ 
+ STA Q                  ; Store the key pressed in Q
+ 
+ SEC                    ; Subtract ASCII '0' from the key pressed, to leave the
+ SBC #'0'               ; numeric value of the key in A (if it was a number key)
+ 
+ BCC OUT                ; If A < 0, jump to OUT to return from the subroutine
+                        ; with a result of 0, as the key pressed was not a
+                        ; number or letter and is less than ASCII "0"
 
- JSR TT217              ; get ascii from keyboard, store in X and A
- STA Q                  ; ascii accepted
- SEC                    ; was hit key a digit
- SBC #&30               ; below ascii "0" ?
- BCC OUT                ; exit, take R.
- CMP #10                ; digit >= 10 ?
- BCS BAY2               ; above valid digit, inventory screen.
- STA S                  ; new digit 0to9
- LDA R                  ; partial result
- CMP #26                ; >= 26 will *10 then exceeds 256.
- BCS OUT                ; exit, take R.
- ASL A                  ; *=2
+ CMP #10                ; If A >= 10, jump to BAY2 to display the Inventory
+ BCS BAY2               ; screen, as the key pressed was a letter or other
+                        ; non-digit and is greater than ASCII "9"
+
+ STA S                  ; Store the numeric value of the key pressed in S
+ 
+ LDA R                  ; Fetch the result so far into A
+ 
+ CMP #26                ; If A >= 26, where A is the number entered so far, then
+ BCS OUT                ; adding a further digit will make it bigger than 256,
+                        ; so jump to OUT to return from the subroutine with the
+                        ; result in R (i.e. ignore the last key press)
+
+ ASL A                  ; Set A = (A * 2) + (A * 8) = A * 10
  STA T
  ASL A
- ASL A                  ; *=8
- ADC T                  ; Acc  = 2*R + 8*R
- ADC S                  ; new digit 0to9
- STA R                  ; new partial result = 10*R + S
- CMP QQ25               ; max quantity allowed
- BEQ TT226              ; accept key Q
- BCS OUT                ; if R > QQ25, exit
+ ASL A
+ ADC T
 
-.TT226                  ; accept key Q
+ ADC S                  ; Add the pressed digit to A and store in R, so R now
+ STA R                  ; contains its previous value with the new key press
+                        ; tacked onto the end
 
- LDA Q                  ; ascii accepted
- JSR TT26               ; print character
- DEC T1                 ; loop T1
- BNE TT223              ; 12 times max.
+ CMP QQ25               ; If the result in R = the maximum allowed in QQ25, jump
+ BEQ TT226              ; to TT226 to print the key press and keep looping (the
+                        ; BEQ is needed because the BCS below would jump to OUT
+                        ; if R >= QQ25, which we don't want)
 
-.OUT                    ; exit
+ BCS OUT                ; If the result in R > QQ25, jump to OUT to return from
+                        ; the subroutine with the result in R
 
- LDA R                  ; return result R
- RTS
+.TT226
+
+ LDA Q                  ; Print the character in Q (i.e. the key that was
+ JSR TT26               ; pressed, as we stored the ASCII value in Q earlier)
+
+ DEC T1                 ; Decrement the loop counter
+
+ BNE TT223              ; Loop back to TT223 until we have checked for 12 digits
+
+.OUT
+
+ LDA R                  ; Set A to the result we have been building in R
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -13554,7 +13683,8 @@ LOAD_D% = LOAD% + P% - CODE%
 .hy6
 {
  JSR CLYNS              ; Clear some space at the bottom of the screen and move
-                        ; the text cursor to row 20
+                        ; the text cursor to row 20, near the bottom of the
+                        ; screen
 
  LDA #15                ; Move the text cursor to column 15 (the middle of the
  STA XC                 ; screen), setting A to 15 at the same time for the
@@ -13782,6 +13912,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \               details of item numbers)
 \
 \ Results:
+\
+\   QQ19+1      Byte #1 from the market prices table for this item
 \
 \   QQ24        The item's price / 4
 \
@@ -14381,98 +14513,122 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: LCASH
 \
-\ Less X.Y cash
+\ Subtract (Y X) cash from the cash pot in CASH. As CASH is a four-byte number,
+\ this calculates:
+\
+\   CASH(0 1 2 3) = CASH(0 1 2 3) - (0 0 Y X)
+\
+\ Returns:
+\
+\   C flag      If set, there was enough cash to do the subtraction
+\
+\               If clear, there was not enough cash to do the subtraction
 \ *****************************************************************************
 
-.LCASH                  ; Less X.Y cash
+.LCASH
 {
- STX T1
- LDA CASH+3
- SEC                    ; subtract Xlo from CASH(3)
+ STX T1                 ; Subtract the least significant bytes:
+ LDA CASH+3             ;
+ SEC                    ;   CASH+3 = CASH+3 - X
  SBC T1
  STA CASH+3
- STY T1
- LDA CASH+2
- SBC T1
- STA CASH+2
- LDA CASH+1
- SBC #0                 ; subtracted Yhi from CASH(2)
- STA CASH+1
- LDA CASH
- SBC #0                 ; (big-endian)
- STA CASH
- BCS TT113              ; rts if no debt with carry set
 
-                        ; else roll on to carry clear and restore cash
+ STY T1                 ; Then the second most significant bytes:
+ LDA CASH+2             ;
+ SBC T1                 ;   CASH+2 = CASH+2 - Y
+ STA CASH+2
+
+ LDA CASH+1             ; Then the third most significant bytes (which are 0):
+ SBC #0                 ;
+ STA CASH+1             ;   CASH+1 = CASH+1 - 0
+
+ LDA CASH               ; And finally the most significant bytes (which are 0):
+ SBC #0                 ;
+ STA CASH               ;   CASH = CASH - 0
+
+ BCS TT113              ; If the C flag is set then the subtraction didn't
+                        ; underflow, so the value in CASH is correct and we can
+                        ; jump to TT113 to return from the subroutine with the
+                        ; C flag set to indicate success (as TT113 contains an
+                        ; RTS)
+
+                        ; Otherwise we didn't have enough cash in CASH to
+                        ; subtract (Y X) from it, so fall through into
+                        ; MCASH to reverse the sum and restore the original
+                        ; value in CASH, and returning with the C flag clear
 }
 
 \ *****************************************************************************
 \ Subroutine: MCASH
 \
-\ Add (Y X) to the cash pot.
+\ Other entry points: TT113
+\
+\ Add (Y X) cash to the cash pot in CASH. As CASH is a four-byte number, this
+\ calculates:
+\
+\   CASH(0 1 2 3) = CASH(0 1 2 3) + (0 0 Y X)
 \ *****************************************************************************
 
-.MCASH                  ; More cash, add Xlo.Yhi
+.MCASH
 {
- TXA                    ; lo
- CLC                    ; add Xlo to CASH(3)
- ADC CASH+3
+ TXA                    ; Add the least significant bytes:
+ CLC                    ;
+ ADC CASH+3             ;   CASH+3 = CASH+3 + X
  STA CASH+3
- TYA                    ; hi
- ADC CASH+2
- STA CASH+2
- LDA CASH+1
- ADC #0                 ; added Yhi to CASH(2)
- STA CASH+1
- LDA CASH
- ADC #0                 ; (big-endian)
- STA CASH
- CLC                    ; carry clear also means LCASH failed
-}
 
-.TT113
-{
- RTS
+ TYA                    ; Then the second most significant bytes:
+ ADC CASH+2             ;
+ STA CASH+2             ;   CASH+2 = CASH+2 + Y
+
+ LDA CASH+1             ; Then the third most significant bytes (which are 0):
+ ADC #0                 ;
+ STA CASH+1             ;   CASH+1 = CASH+1 + 0
+
+ LDA CASH               ; And finally the most significant bytes (which are 0):
+ ADC #0                 ;
+ STA CASH               ;   CASH = CASH + 0
+
+ CLC                    ; Clear the C flag, so if the above was done following
+                        ; a failed LCASH call, the C flag correctly indicates
+                        ; failure
+
+.^TT113
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
 \ Subroutine: GCASH
 \
-\ cargo * price Xlo.Yhi = P*Q*4
+\ Calculate the following multiplication of unsigned 8-bit numbers:
+\
+\   (Y X) = P * Q * 4
 \ *****************************************************************************
 
-.GCASH                  ; Xlo.Yhi = P*Q*4
+.GCASH
 {
- JSR MULTU              ; P.A = P*Q,  lsb in P.
+ JSR MULTU              ; Call MULTU to calculate (A P) = P * Q
 }
 
 \ *****************************************************************************
 \ Subroutine: GC2
 \
-\ Xlo.Yhi = P.A *=4
+\ Calculate the following multiplication of unsigned 16-bit numbers:
+\
+\   (Y X) = (A P) * 4
 \ *****************************************************************************
 
-.GC2                    ; Xlo.Yhi = P.A *=4
+.GC2
 {
- ASL P
- ROL A                  ; hi
+ ASL P                  ; Set (A P) = (A P) * 4
+ ROL A
  ASL P
  ROL A
-                        ; X.Y = P.A
- TAY                    ; Y hi
- LDX P                  ; X lo
- RTS
-}
 
-\ *****************************************************************************
-\ Subroutine: bay
-\
-\ error, back to Bay
-\ *****************************************************************************
+ TAY                    ; Set (Y X) = (A P)
+ LDX P
 
-.bay                    ; error, back to Bay
-{
- JMP BAY                ; Start in Docking Bay
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -14481,8 +14637,13 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Show the Equip Ship screen (red key f3).
 \ *****************************************************************************
 
-.EQSHP                  ; (#f3) Equip Ship
 {
+.bay                    ; error, back to Bay
+
+ JMP BAY                ; Start in Docking Bay
+
+.^EQSHP                  ; (#f3) Equip Ship
+
  JSR DIALS
  LDA #32
  JSR TT66               ; flush keyboard
@@ -14710,19 +14871,35 @@ LOAD_D% = LOAD% + P% - CODE%
  JMP EQSHP              ; equip ship, new menu screen
 }
 
-.dn                     ; display cash
+\ *****************************************************************************
+\ Subroutine: dn
+\
+\ Print current cash, then make a short, high beep and delay for 1 second.
+\ *****************************************************************************
+
+.dn
 {
- JSR TT162              ; white space
- LDA #119               ; token = CASH 0x00
- JSR spc                ; Acc to TT27 followed by white space
+ JSR TT162              ; Print a space
+
+ LDA #119               ; Print recursive token 119 ("CASH:{cash right-aligned
+ JSR spc                ; to width 9} CR{crlf}") followed by a space
+
+                        ; Fall through into dn2 to make a beep and delay for
+                        ; 1 second before returning from the subroutine
 }
 
-.dn2                    ; beep, delay. 
+\ *****************************************************************************
+\ Subroutine: dn2
+\
+\ Make a short, high beep and delay for 1 second.
+\ *****************************************************************************
+
+.dn2
 {
  JSR BEEP               ; Call the BEEP subroutine to make a short, high beep
 
- LDY #50                ; moderate delay
- JMP DELAY              ; Yreg is length of delay counter
+ LDY #50                ; Delay for 50 vertical syncs (50/50 = 1 second) and
+ JMP DELAY              ; return from the subroutine using a tail call
 }
 
 \ *****************************************************************************
@@ -15338,12 +15515,6 @@ MAPCHAR '4', '4'
 \
 \       * If character is a letter, set QQ17 bit 6 and print letter as a capital
 \
-\ Entry conditions:
-\
-\   * QQ17 bit 7 is set
-\
-\   * X contains the value of QQ17
-\
 \ Arguments:
 \
 \   A           The character to be printed. Can be one of the following:
@@ -15353,6 +15524,10 @@ MAPCHAR '4', '4'
 \                 * 10-13 (line feeds and carriage returns)
 \
 \                 * 32-95 (ASCII capital letters, numbers and punctuation)
+\
+\   X           Contains the current value of QQ17
+\
+\   QQ17        Bit 7 is set
 \ *****************************************************************************
 
 .TT41                   ; If we get here, then QQ17 has bit 7 set, so we are in
@@ -15430,14 +15605,6 @@ MAPCHAR '4', '4'
 \
 \   * Otherwise this is punctuation, so clear bit 6 in QQ17 and print
 \
-\ Entry conditions:
-\
-\   * QQ17 bit 6 is set
-\
-\   * QQ17 bit 7 is set
-\
-\   * X contains the value of QQ17
-\
 \ Arguments:
 \
 \   A           The character to be printed. Can be one of the following:
@@ -15447,6 +15614,10 @@ MAPCHAR '4', '4'
 \                 * 10-13 (line feeds and carriage returns)
 \
 \                 * 32-95 (ASCII capital letters, numbers and punctuation)
+\
+\   X           Contains the current value of QQ17
+\
+\   QQ17        Bits 6 and 7 are set
 \ *****************************************************************************
 
 .TT45                   ; If we get here, then QQ17 has bit 6 and 7 set, so we
@@ -15472,14 +15643,6 @@ MAPCHAR '4', '4'
 \ Print character and clear bit 6 in QQ17, so that the next letter that gets
 \ printed after this will start with a capital letter.
 \
-\ Entry conditions:
-\
-\   * QQ17 bit 6 is set
-\
-\   * QQ17 bit 7 is set
-\
-\   * X contains the value of QQ17
-\
 \ Arguments:
 \
 \   A           The character to be printed. Can be one of the following:
@@ -15489,6 +15652,10 @@ MAPCHAR '4', '4'
 \                 * 10-13 (line feeds and carriage returns)
 \
 \                 * 32-95 (ASCII capital letters, numbers and punctuation)
+\
+\   X           Contains the current value of QQ17
+\
+\   QQ17        Bits 6 and 7 are set
 \ *****************************************************************************
 
 .TT46
@@ -19043,8 +19210,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \   * Support joining the main loop with a key already "pressed", so we can
 \     jump into the main game loop to perform a specific action. In practice,
 \     this is used when we enter the docking bay in BAY to display Status Mode
-\     (red key F8), and when we finish buying or selling cargo in BAY2 to jump
-\     to the Inventory (red key F9).
+\     (red key f8), and when we finish buying or selling cargo in BAY2 to jump
+\     to the Inventory (red key f9).
 \
 \ Arguments for FRCE:
 \
@@ -19712,7 +19879,8 @@ ENDIF
  STA QQ12               ; are docked
 
  LDA #f8                ; Jump into the main loop at FRCE, setting the key
- JMP FRCE               ; "pressed" to red key F8 (so we show Status Mode)
+ JMP FRCE               ; "pressed" to red key f8 (so we show the Status Mode
+                        ; screen)
 }
 
 \ *****************************************************************************
@@ -19739,9 +19907,8 @@ ENDIF
  JSR RESET              ; Reset our ship so we can use it for the rotating
                         ; title ship
 
- LDA #1                 ; Clear the top part of the screen and draw a box
- JSR TT66               ; border, with QQ11 set to 1 (so TT66 does not show the
-                        ; name of the space view at the bottom)
+ LDA #1                 ; Clear the top part of the screen, draw a box border,
+ JSR TT66               ; and set the current view type in QQ11 to 1
 
  DEC QQ11               ; Decrement QQ11 to 0, so from here on we are using a
                         ; space view
@@ -19770,7 +19937,7 @@ ENDIF
  LDY #6                 ; Set the text cursor to column 6
  STY XC
 
- JSR DELAY              ; Delay for Y line scans (i.e. 6 line scans)
+ JSR DELAY              ; Delay for 6 vertical syncs (6/50 = 0.12 seconds)
  
  LDA #30                ; Print recursive token 144 ("---- E L I T E ----")
  JSR plf                ; followed by a newline
@@ -20975,7 +21142,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 
  JSR BELL               ; Make a beep sound so we know something has happened
 
- JSR DELAY              ; Wait for Y line scans (Y is between 64 and 70, so
+ JSR DELAY              ; Wait for Y vertical syncs (Y is between 64 and 70, so
                         ; this is always a bit longer than a second)
 
  LDY T                  ; Restore the configuration key argument into Y
@@ -21281,7 +21448,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \ Other entry points: out
 \
 \ Scan the keyboard until a key is pressed, and return the key's ASCII code.
-\ If, om entry, a key is already being held down, then wait until that key is
+\ If, on entry, a key is already being held down, then wait until that key is
 \ released first (so this routine detects the first key down event following
 \ the subroutine call).
 \
@@ -21301,8 +21468,8 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 
 .t
 
- JSR DELAY-5            ; Delay for 8 line scans, so we don't take up too much
-                        ; CPU time while looping round
+ JSR DELAY-5            ; Delay for 8 vertical syncs (8/50 = 0.16 seconds) so we
+                        ; don't take up too much CPU time while looping round
 
  JSR RDKEY              ; Scan the keyboard, starting from Q
 
