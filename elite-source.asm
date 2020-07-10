@@ -209,11 +209,11 @@ ORG &0000
                         ; QQ22 is an internal counter that counts down by 1
                         ; each time TT102 is called, which happens every
                         ; iteration of the main game loop. When it reaches
-                        ; zero, the on-screen counter in QQ22+1 gets decremented,
-                        ; and QQ22 gets set to 5 and the countdown continues
-                        ; (so the first tick of the hyperspace counter takes
-                        ; 15 iterations to happen, but subsequent ticks take 5
-                        ; iterations each).
+                        ; zero, the on-screen counter in QQ22+1 gets
+                        ; decremented, and QQ22 gets set to 5 and the countdown
+                        ; continues (so the first tick of the hyperspace counter
+                        ; takes 15 iterations to happen, but subsequent ticks
+                        ; take 5 iterations each).
                         ;
                         ; QQ22+1 contains the number that's shown on-screen
                         ; during countdown. It counts down from 15 to 1, and
@@ -226,23 +226,27 @@ ORG &0000
                         ;
                         ; 0 is off, non-zero is on and counting down
 
-.XX15                   ; 
+.XX15                   ; 6-byte storage from XX15 TO XX15+5
 
 .X1
 
- SKIP 1                 ; 
+ SKIP 1                 ; Temporary storage for coordinates in line-drawing
+                        ; routines
 
 .Y1
 
- SKIP 1                 ; 
+ SKIP 1                 ; Temporary storage for coordinates in line-drawing
+                        ; routines
 
 .X2
 
- SKIP 1                 ; 
+ SKIP 1                 ; Temporary storage for coordinates in line-drawing
+                        ; routines
 
 .Y2
 
- SKIP 1                 ; 
+ SKIP 1                 ; Temporary storage for coordinates in line-drawing
+                        ; routines
 
  SKIP 2                 ; Last 2 bytes of XX15
 
@@ -252,7 +256,7 @@ ORG &0000
 
 .K
 
- SKIP 4                 ; 
+ SKIP 4                 ; Temporary storage, used all over the place
 
 .KL
 
@@ -455,7 +459,7 @@ ORG &0000
  SKIP 1                 ; QQ17 stores flags that affect how text tokens are
                         ; printed, including the capitalisation setting
                         ;
-                        ; Setting QQ17 = &FF disables text printing entirely
+                        ; Setting QQ17 = 255 disables text printing entirely
                         ;
                         ; Otherwise:
                         ;
@@ -522,23 +526,23 @@ ORG &0000
 
 .Q
 
- SKIP 1                 ; Temporary storage (e.g. used in MVS4)
+ SKIP 1                 ; Temporary storage, used all over the place
 
 .R
 
- SKIP 1                 ; Temporary storage (e.g. used in MVS4)
+ SKIP 1                 ; Temporary storage, used all over the place
 
 .S
 
- SKIP 1                 ; Temporary storage (e.g. used in BPRNT)
+ SKIP 1                 ; Temporary storage, used all over the place
 
 .XSAV
 
- SKIP 1                 ; Temporary storage for X
+ SKIP 1                 ; Temporary storage for X, used all over the place
 
 .YSAV
 
- SKIP 1                 ; Temporary storage for Y (e.g. used in TT27)
+ SKIP 1                 ; Temporary storage for Y, used all over the place
 
 .XX17
 
@@ -597,7 +601,8 @@ ORG &0000
 
 .TYPE
 
- SKIP 1                 ; 
+ SKIP 1                 ; Temporary storage, used to store the current ship type
+                        ; in places like the main flight loop
 
 .JSTX
 
@@ -2689,27 +2694,31 @@ ORG &0D40
 
 .QQ24
 
- SKIP 1                 ; 
+ SKIP 1                 ; Temporary storage (e.g. used in TT151 for the current
+                        ; market item's price)
 
 .QQ25
 
- SKIP 1                 ; 
+ SKIP 1                 ; Temporary storage (e.g. used in TT151 for the current
+                        ; market item's availability)
 
 .QQ28
 
- SKIP 1                 ; 
+ SKIP 1                 ; Temporary storage (e.g. used in var for the economy
+                        ; byte of the current system)
 
 .QQ29
 
- SKIP 1                 ; 
+ SKIP 1                 ; Temporary storage (e.g. used in TT219 for the current
+                        ; market item)
 
 .gov
 
- SKIP 1                 ; 
+ SKIP 1                 ; Government of current system
 
 .tek
 
- SKIP 1                 ; 
+ SKIP 1                 ; Tech level of current system
 
 .SLSP
 
@@ -6222,40 +6231,73 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: NLIN3
 \
-\ Print title string and draw line underneath
+\ Print a text token and draw a horizontal line at pixel row 19.
 \ *****************************************************************************
 
-.NLIN3                  ; Title string and draw line underneath
+.NLIN3
 {
- JSR TT27               ; process flight token
+ JSR TT27               ; Print the text token in A
+
+                        ; Fall through into NLIN4 to draw a horizontal line at
+                        ; pixel row 19
 }
 
-.NLIN4                  ; draw Line at Y = #19
+\ *****************************************************************************
+\ Subroutine: NLIN4
+\
+\ Draw a horizontal line at pixel row 19.
+\ *****************************************************************************
+
+.NLIN4
 {
- LDA #19
- BNE NLIN2              ; guaranteed, next horizontal line drawn at Y1=19.
+ LDA #19                ; Jump to NLIN2 to draw a horizontal line at pixel row
+ BNE NLIN2              ; 19, returning from the subroutine with using a tail
+                        ; call (this BNE is effectively a JMP as A will never
+                        ; be zero)
 }
 
 \ *****************************************************************************
 \ Subroutine: NLIN
 \
-\ Draw a horizontal line at text row 23
+\ Draw a horizontal line at pixel row 23 and move the text cursor down one
+\ line.
 \ *****************************************************************************
 
-.NLIN                   ; Horizontal line
+.NLIN
 {
- LDA #23                ; at Y1 = 23.
- INC YC                 ; Y text cursor
+ LDA #23                ; Set A = 23 so NLIN2 below draws a horizontal line at
+                        ; pixel row 23
+
+ INC YC                 ; Move the text cursor down one line
+
+                        ; Fall through into NLIN2 to draw the horizontal line
+                        ; at row 23
 }
 
-.NLIN2                  ; Horizontal line at height Acc
+\ *****************************************************************************
+\ Subroutine: NLIN2
+\
+\ Draw a screen-wide horizontal line at the pixel row given in A - so the line
+\ goes from (2, A) to (254, A).
+\
+\ Arguments:
+\
+\   A           The pixel row on which to draw the horizontal line
+\ *****************************************************************************
+
+.NLIN2
 {
- STA Y1
- LDX #2                 ; left edge
+ STA Y1                 ; Set (X1, Y1) = (2, A)
+ LDX #2
  STX X1
- LDX #254               ; right edge
+
+ LDX #254               ; Set X2 = 254
  STX X2
- BNE HLOIN              ; guaranteed, horizontal line only uses X1,Y1,X2.
+
+ BNE HLOIN              ; Call HLOIN to draw a horizontal line from (2, A) to
+                        ; (254, A) and return from the subroutine (this BNE is
+                        ; effectively a JMP as A will never be zero)
+
 }
 
 \ *****************************************************************************
@@ -6275,7 +6317,7 @@ NEXT
 \ *****************************************************************************
 \ Subroutine: HLOIN
 \
-\ Draw a horizontal lines that only needs X1,Y1,X2
+\ Draw a horizontal line from (X1, Y1) to (X2, Y1).
 \ *****************************************************************************
 
 .HLOIN                  ; Draw a horizontal lines that only needs X1,Y1,X2
@@ -6984,9 +7026,9 @@ NEXT
 \ Equipment prices.
 \ *****************************************************************************
 
-.PRXS                   ; Equipment prices
+.PRXS
 {
- EQUW 1                 ; PRXS(0) used for 2*fuel_needed, max 140
+ EQUW 1                 ; Fuel, calculated in EQSHP  140.0 Cr for a full tank
  EQUW 300               ; Missile                     30.0 Cr
  EQUW 4000              ; Large Cargo Bay            400.0 Cr
  EQUW 6000              ; E.C.M. System (item 4)     600.0 Cr
@@ -13146,98 +13188,159 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Show the Sell Cargo screen (red key f2).
 \ *****************************************************************************
 
-.TT208                  ; Sel \ their comment \ Sell cargo (#f2)
+.TT208
 {
- LDA #4                 ; menu i.d. = 4
-
- JSR TT66               ; box border with QQ11 set to Acc
- LDA #4                 ; indent
+ LDA #4                 ; Clear the top part of the screen, draw a box border,
+ JSR TT66               ; and set the current view type in QQ11 to 4 (Sell
+                        ; Cargo screen)
+ 
+ LDA #4                 ; Move the text cursor to row 4, column 4
  STA YC 
  STA XC
-\JSR FLKB               ; flush keyboard
- LDA #205               ; token = SELL
- JSR TT27               ; process text token
- LDA #206               ; token = CARGO
- JSR TT68               ; finish title string and draw line underneath
+
+\JSR FLKB               ; This instruction is commented out in the original
+                        ; source. It calls a routine to flush the keyboard
+                        ; buffer (FLKB) that isn't present in the tape version
+                        ; but is in the disk version.
+
+ LDA #205               ; Print recursive token 45 ("SELL")
+ JSR TT27
+
+ LDA #206               ; Print recursive token 46 (" CARGO{switch to sentence
+ JSR TT68               ; case}") followed by a colon
+
+                        ; Fall through into TT210 to show the Inventory screen
+                        ; with the option to sell
 }
 
 \ *****************************************************************************
 \ Subroutine: TT210
 \
-\ Cargo list Inventory (no sell)
+\ Show a list of current cargo in our hold, either with the abilty to sell (the
+\ Sell Cargo screen) or without (the Inventory screen), depending on the current
+\ view.
+\
+\ Arguments:
+\
+\   QQ11        Current view, 4 = Sell Cargo, 8 = Inventory
 \ *****************************************************************************
 
-.TT210                  ; Crgo \ their comment \ Cargo list Inventory (no sell)
+.TT210
 {
- LDY #0
+ LDY #0                 ; We're going to loop through all the available market
+                        ; items and check whether we have any in the hold (and,
+                        ; if we are in the Sell Cargo screen, whether we want
+                        ; to sell any items), so we set up a counter in Y to
+                        ; denote the current item and start it at 0
 
-.TT211                  ; counter Y = QQ29 for item
+.TT211
 
- STY QQ29               ; in sell list, Yreg = QQ29 is item index
- LDX QQ20,Y             ; ship cargo count
- BEQ TT212              ; skip cargo item
+ STY QQ29               ; Store the current item number in QQ29
 
- TYA                    ; build index base
- ASL A
- ASL A                  ; Y*4
- TAY                    ; build index base Y*4
- LDA QQ23+1,Y           ; Prxs
- STA QQ19+1             ; byte1 of Market Prxs info
+ LDX QQ20,Y             ; Fetch into X the amount of the current item that we
+ BEQ TT212              ; have in our cargo hold, which is stored in QQ20+Y,
+                        ; and if there are no items of this type in the hold,
+                        ; jump down to TT212 to skip to the next item
 
- TXA                    ; ship cargo count
- PHA                    ; store
- JSR TT69               ; next Row with QQ17 set
- CLC                    ; item index used to build token
- LDA QQ29
- ADC #208               ; token = FOOD .. GEM-STONES
+ TYA                    ; Set Y = Y * 4, so this will act as an index into the
+ ASL A                  ; market prices table at QQ23 for this item (as there
+ ASL A                  ; are four bytes per item in the table)
+ TAY
 
- JSR TT27               ; process flight text token
- LDA #14                ; indent
- STA XC
- PLA                    ; restore
- TAX                    ; ship cargo count
- CLC                    ; no decimal point
- JSR pr2                ; number X to printable characters
- JSR TT152              ; t kg g from QQ19+1 byte1
+ LDA QQ23+1,Y           ; Fetch byte #1 from the market prices table for the
+ STA QQ19+1             ; current item and store it in QQ19+1, for use by the
+                        ; call to TT152 below
 
- LDA QQ11               ; menu i.d.
- CMP #4                 ; are we selling or just listing cargo?
- BNE TT212              ; skip sell item
- LDA #205               ; token = SELL
- JSR TT214
+ TXA                    ; Store the amount of item in the hold (in X) on the
+ PHA                    ; stack
 
- BCC TT212              ; if 0 skip sell item
- LDA QQ29               ; item index
- LDX #255               ; partial print
+ JSR TT69               ; Call TT69 to set Sentence Case and print a newline
+
+ CLC                    ; Print recursive token 48 + QQ29, which will be in the
+ LDA QQ29               ; range 48 ("FOOD") to 64 ("ALIEN ITEMS"), so this
+ ADC #208               ; prints the current item's name
+ JSR TT27
+
+ LDA #14                ; Set the text cursor to column 14, for the item's
+ STA XC                 ; quantity
+
+ PLA                    ; Retore the amount of item in the hold into X
+ TAX
+
+ CLC                    ; Print the 8-bit number in X to 3 digits, without a
+ JSR pr2                ; decimal point
+
+ JSR TT152              ; Print the unit ("t", "kg" or "g") for the market item
+                        ; whose byte #1 from the market prices table is in
+                        ; QQ19+1 (which we set up above)
+
+ LDA QQ11               ; If the current view type in QQ11 is not 4 (Sell Cargo
+ CMP #4                 ; screen), jump to TT212 to skip the option to sell
+ BNE TT212              ; items
+
+ LDA #205               ; Set A to recursive token 45 ("SELL")
+
+ JSR TT214              ; Call TT214 to print "Sell(Y/N)?" and return the
+                        ; response in the C flag
+
+ BCC TT212              ; If the response was "no", jump to TT212 to move on to
+                        ; the next item
+
+ LDA QQ29               ; We are selling this item, so fetch the item number
+                        ; from QQ29
+
+ LDX #255               ; Set QQ17 = 255 to disable printing
  STX QQ17
- JSR TT151              ; Pmk-A  display the line for one market item
 
- LDY QQ29               ; item index
- LDA QQ20,Y             ; ship cargo count
- STA P                  ; amount
- LDA QQ24               ; price
+ JSR TT151              ; Call TT151 to set QQ24 to the item's price / 4 (the
+                        ; routine doesn't print the item details, as we just
+                        ; disabled printing)
+
+ LDY QQ29               ; Set P to the amount of this item we have in our cargo
+ LDA QQ20,Y             ; hold (which is the amount to sell)
+ STA P
+
+ LDA QQ24               ; Set Q to the item's price / 4
  STA Q
- JSR GCASH              ; amount * price \ XloYhi = P*Q*4
- JSR MCASH              ; add Xlo.Yhi to cash 
 
- LDA #0                 ; All upper case
+ JSR GCASH              ; Call GCASH to calculate
+                        ;
+                        ;   (Y X) = P * Q * 4
+                        ;
+                        ; which will be the total price we make from this sale
+                        ; (as P contains the quantity we're selling and Q
+                        ; contains the item's price / 4)
+
+ JSR MCASH              ; Add (Y X) cash to the cash pot in CASH
+
+ LDA #0                 ; We've made the sale, so set the amount 
  LDY QQ29               ; item index
  STA QQ20,Y             ; ship cargo count
- STA QQ17
 
-.TT212                  ; skipped (sell) item
+ STA QQ17               ; Set QQ17 = 0, which enables printing again
 
- LDY QQ29               ; market item index
- INY                    ; next market item
- CPY #17                ; last cargo type?
- BCS P%+5
- JMP TT211              ; loop, next QQ29
- LDA QQ11               ; menu i.d.
- CMP #4                 ; are we selling or just listing cargo?
- BNE P%+8               ; rts else
- JSR dn2                ; All sells done - beep, delay.
- JMP BAY2               ; Inventory screen.
- RTS                    ; needed TT213-1
+.TT212
+
+ LDY QQ29               ; Fetch the item number from QQ29 into Y, and increment
+ INY                    ; Y to point to the next item
+
+ CPY #17                ; If A >= 17 then skip the next instruction as we have
+ BCS P%+5               ; done the last item
+
+ JMP TT211              ; Otherwise loop back to TT211 to print the next item
+                        ; in the hold
+
+ LDA QQ11               ; If the current view type in QQ11 is not 4 (Sell Cargo
+ CMP #4                 ; screen), skip the next two instructions and just return
+ BNE P%+8               ; from the subroutine
+
+ JSR dn2                ; This is the Sell Cargo screen, so call dn2 to make a
+                        ; short, high beep and delay for 1 second
+
+ JMP BAY2               ; And then jump to BAY2 to display the Inventory
+                        ; screen, as we have finished selling cargo
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -13246,54 +13349,82 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Show the Inventory screen (red key f9).
 \ *****************************************************************************
 
-.TT213                  ; Invntry \ their comment \ Inventory
+.TT213
 {
- LDA #8                 ; menu i.d.
- JSR TT66               ; box border with QQ11 set to A
- LDA #11                ; indent
- STA XC
- LDA #164               ; token = INVENTORY
- JSR TT60               ; TT27 token then next row
- JSR NLIN4              ; draw line at Y = #19
- JSR fwl                ; fuel and cash
+ LDA #8                 ; Clear the top part of the screen, draw a box border,
+ JSR TT66               ; and set the current view type in QQ11 to 8 (Inventory
+                        ; screen)
 
- LDA CRGO
- CMP #26                ; size of cargo bay?
- BCC P%+7               ; jmp TT214 list Cargo
- LDA #&6B               ; token = Large cargo bay
- JSR TT27               ; process text token
- JMP TT210              ; List Cargo, up.
+ LDA #11                ; Move the text cursor to column 11 to print the screen
+ STA XC                 ; title
+
+ LDA #164               ; Print recursive token 4 ("INVENTORY{crlf}") followed
+ JSR TT60               ; by a paragraph break and Sentence Case
+
+ JSR NLIN4              ; Draw a horizontal line at pixel row 19, to box out
+                        ; the title
+
+ JSR fwl                ; Call fwl to print the fuel and cash levels on two
+                        ; separate lines
+
+ LDA CRGO               ; If our ship's cargo capacity is < 26 (i.e. we do not
+ CMP #26                ; have a cargo bay extension), skip the following two
+ BCC P%+7               ; instructions
+
+ LDA #107               ; We do have a cargo bay extension, so print recursive
+ JSR TT27               ; token 107 ("LARGE CARGO{switch to sentence case}
+                        ; BAY")
+
+ JMP TT210              ; Jump to TT210 to print the contents of our cargo bay
+                        ; and return from the subroutine using a tail call
 }
 
 \ *****************************************************************************
 \ Subroutine: TT214
 \
-\ List cargo
+\ Ask a question with a "Y/N?" prompt and return the response.
+\
+\ Arguments:
+\
+\   A           The text token to print before the "Y/N?" prompt
+\
+\ Returns:
+\
+\   C flag      Set if the response was "yes", clear otherwise
 \ *****************************************************************************
 
 .TT214
 {
- PHA
- JSR TT162
+ PHA                    ; Print a space, using the stack to preserve the value
+ JSR TT162              ; of A
  PLA
 
-.TT221                  ; called by anyone?  token Acc Y/N ?
+.TT221
 
- JSR TT27               ; process flight text Token in Acc
- LDA #225               ; token = x01 (Y/N)?
- JSR TT27               ; process flight text Token in Acc
+ JSR TT27               ; Print the text token in A
 
- JSR TT217              ; get ascii from keyboard, store in X and A
- ORA #32                ; to lower  case
- CMP #&79               ; ascii "y"
- BEQ TT218              ; yes, set carry
- LDA #&6E               ; ascii "n"
- JMP TT26               ; print character
+ LDA #225               ; Pring recursive token 65 ("(Y/N)?")
+ JSR TT27
 
-.TT218                  ; yes, set carry
+ JSR TT217              ; Scan the keyboard until a key is pressed, and return
+                        ; the key's ASCII code in A and X
 
- JSR TT26               ; print character
- SEC                    ; set carry
+ ORA #%00100000         ; Set bit 5 in the value of the key pressed, which
+                        ; converts it to lower case
+
+ CMP #'y'               ; If "y" was pressed, jump to TT218
+ BEQ TT218
+
+ LDA #'n'               ; Otherwise jump to TT26 to print "n" and return from
+ JMP TT26               ; the subroutine using a tail call (so all other
+                        ; responses apart from "y" indicate a no)
+
+.TT218
+
+ JSR TT26               ; Print the character in A, i.e. print "y"
+
+ SEC                    ; Set the C flag to indicate a "yes" response
+
  RTS
 }
 
@@ -13977,7 +14108,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  ASL A                  ; Store the item number * 4 in QQ19, so this will act as
  ASL A                  ; an index into the market prices table at QQ23 for this
- STA QQ19               ; item (as thers are four bytes per item in the table)
+ STA QQ19               ; item (as there are four bytes per item in the table)
 
  LDA #1                 ; Set the text cursor to column 1, for the item's name
  STA XC
@@ -14176,7 +14307,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: TT163
 \
-\ Print the column headers for the prices table in the Buy Cargo screen.
+\ Print the column headers for the prices table in the Buy Cargo and Market
+\ Price screens.
 \ *****************************************************************************
 
 .TT163
@@ -14197,32 +14329,48 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Show the Market Price screen (red key f7).
 \ *****************************************************************************
 
-.TT167                  ; MktP \ their comment \ Market place menu screen
+.TT167
 {
- LDA #16                ; menu i.d. bit4 set
- JSR TT66               ; box border with QQ11 set to A
- LDA #5                 ; indent
+ LDA #16                ; Clear the top part of the screen, draw a box border,
+ JSR TT66               ; and set the current view type in QQ11 to 16 (Market
+                        ; Price screen)
+
+ LDA #5                 ; Move the text cursor to column 4
  STA XC
- LDA #167               ; token = MARKET PRICES
- JSR NLIN3              ; title and draw line underneath
- LDA #3                 ; few lines down
+
+ LDA #167               ; Print recursive token 7 token ("{current system name}
+ JSR NLIN3              ; MARKET PRICES") and draw a horizontal line at pixel
+                        ; row 19
+
+ LDA #3                 ; Move the text cursor to row 3
  STA YC
- JSR TT163              ; table headings for market place, up
- LDA #0                 ; counter
- STA QQ29
 
-.TT168                  ; counter QQ29 market items
+ JSR TT163              ; Print the column headers for the prices table
 
- LDX #128               ; set bit7, first letter Upper case.
- STX QQ17
- JSR TT151              ; Pmk-A  display the line for one market item
- INC YC
+ LDA #0                 ; We're going to loop through all the available market
+ STA QQ29               ; items, so we set up a counter in QQ29 to denote the
+                        ; current item and start it at 0
 
- INC QQ29
- LDA QQ29
- CMP #17                ; still <17 items?
- BCC TT168              ; loop QQ29
- RTS
+.TT168
+
+ LDX #128               ; Set QQ17 = 128 to switch to Sentence Case, with the
+ STX QQ17               ; next letter in capitals
+
+ JSR TT151              ; Call TT151 to print the item name, market price and
+                        ; availability of the current item, and set QQ24 to the
+                        ; item's price / 4, QQ25 to the quantity available and
+                        ; QQ19+1 to byte #1 from the market prices table for
+                        ; this item
+
+ INC YC                 ; Move the text cursor down one row
+
+ INC QQ29               ; Increment QQ29 to point to the next item
+
+ LDA QQ29               ; If QQ29 >= 17 then jump to TT168 as we have done the
+ CMP #17                ; last item
+ BCC TT168
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
