@@ -7043,13 +7043,14 @@ NEXT
 }
 
 \ *****************************************************************************
-\ Subroutine: st4
+\ Subroutine: STATUS
 \
-\ Tally high of Status code
+\ Show the Status Mode screen (red key f8).
 \ *****************************************************************************
 
-.st4                    ; tally high of Status code
 {
+.st4                    ; tally high of Status code
+
  LDX #9                 ; Elite 9
  CMP #25                ; 256*25=6400 kills
  BCS st3                ; Xreg = 9 Elite
@@ -7061,21 +7062,18 @@ NEXT
  BCS st3                ; Xreg = 7 Dangerous
  DEX                    ; else Xreg = 6 Competent
  BNE st3                ; guaranteed down, tally continue
-}
 
-\ *****************************************************************************
-\ Subroutine: STATUS
-\
-\ Show the Status Mode screen (red key f8).
-\ *****************************************************************************
+.^STATUS
 
-.STATUS                 ; Status screen Start #f8 red key
-{
- LDA #8                 ; menu i.d.
- JSR TT66               ; box border with QQ11 set to Acc
+ LDA #8                 ; Clear the top part of the screen, draw a box border,
+ JSR TT66               ; and set the current view type in QQ11 to 8 (Status
+                        ; Mode screen)
+
  JSR TT111              ; closest to QQ9,10 target system
- LDA #7                 ; indent
- STA XC                 ; X text cursor
+
+ LDA #7                 ; Move the text cursor to column 7
+ STA XC
+
  LDA #126               ; token = COMMANDER .....PRESENT SYSTEM...HYPERSPACE SYSTEM...CONDITION
  JSR NLIN3              ; Title string and draw line underneath
  LDA #15
@@ -11037,14 +11035,14 @@ NEXT
 \ backwards, to the right if we're looking out of the left view, or to the left
 \ if we are looking out of the right view).
 \
-\ Specifically:
+\ For the forward view, then we change nothing as the default universe is set up
+\ for this view (so the coordinates and matrices in K%, UNIV, INWK etc. are
+\ already correct for this view). Let's look at the other views in more detail.
 \
-\   * For the forward view, we change nothing as the default universe is set up
-\     for this view (so the coordinates and matrices in K%, UNIV, INWK etc. are
-\     already correct for this view)
-\
-\   * For the rear view, this is what our original universe axes look like when
-\     we are looking backwards:
+\ Rear view
+\ ---------
+\ For the rear view, this is what our original universe axes look like when we
+\ we are looking backwards:
 \
 \                 y
 \                 ^
@@ -11054,127 +11052,128 @@ NEXT
 \                 |
 \     x <---------+
 \                /
-\               /
-\              /
-\             z (out of screen)
+\               z (out of screen)
 \
-\     so to convert these axes into the standard "up, right, into-the-screen"
-\     set of axes we need for drawing to the screen, we need to do the changes
-\     on the left (with the original set of axes on the right for comparison):
-\
-\     y                                           y
-\     ^                                           ^
-\     |   -z (into screen)                        |   z (into screen)
-\     |  /                                        |  /
-\     | /                                         | /
-\     |/                                          |/
-\     +---------> -x                              +---------> x
-\
-\     So to change the INWK workspace from the original axes on the right to
-\     the new set on the left, we need to change the signs of the x and z
-\     coordinates and matrices in INWK, which we can do by flipping the signs
-\     of the following:
-\
-\       * x_sign, z_sign
-\       * rotmat0x_hi, rotmat0z_hi
-\       * rotmat1x_hi, rotmat1z_hi
-\       * rotmat2x_hi, rotmat2z_hi
-\
-\     so that's what we do below.
-\
-\   * For the left view, this is what our original universe axes look like when
-\     we are looking to the left:
-\
-\         y
-\         ^
-\         |
-\         |
-\         |
-\         |
-\         +---------> z
-\        /
-\       /
+\ so to convert these axes into the standard "up, right, into-the-screen" set
+\ of axes we need for drawing to the screen, we need to do the changes on the
+\ left (with the original set of axes on the right for comparison):
+\ 
+\   y                                           y
+\   ^                                           ^
+\   |   -z (into screen)                        |   z (into screen)
+\   |  /                                        |  /
+\   | /                                         | /
+\   |/                                          |/
+\   +---------> -x                              +---------> x
+\ 
+\ So to change the INWK workspace from the original axes on the right to the
+\ new set on the left, we need to change the signs of the x and z coordinates
+\ and matrices in INWK, which we can do by flipping the signs of the following:
+\ 
+\   * x_sign, z_sign
+\   * rotmat0x_hi, rotmat0z_hi
+\   * rotmat1x_hi, rotmat1z_hi
+\   * rotmat2x_hi, rotmat2z_hi
+\ 
+\ so that's what we do below.
+\ 
+\ Left view
+\ ---------
+\ For the left view, this is what our original universe axes look like when we
+\ are looking to the left:
+\ 
+\       y
+\       ^
+\       |
+\       |
+\       |
+\       |
+\       +---------> z
 \      /
-\     x (out of screen)
-\
-\     so to convert these axes into the standard "up, right, into-the-screen"
-\     set of axes we need for drawing to the screen, we need to do the changes
-\     on the left (with the original set of axes on the right for comparison):
-\
-\     y                                           y
-\     ^                                           ^
-\     |   -x (into screen)                        |   z (into screen)
-\     |  /                                        |  /
-\     | /                                         | /
-\     |/                                          |/
-\     +---------> z                               +---------> x
-\
-\     In other words, to go from the original set of axes on the right to the
-\     new set of axes on the left, we need to swap the x- and z-axes around,
-\     and flip the sign of the one now going in and out of the screen (i.e. the
-\     new z-axis). In other words, we swap the following values in INWK:
-\
-\       * x_lo and z_lo
-\       * x_hi and z_hi
-\       * x_sign and z_sign
-\       * rotmat0x_lo and rotmat0z_lo
-\       * rotmat1x_lo and rotmat1z_lo
-\       * rotmat2x_lo and rotmat2z_lo
-\
-\     and then change the sign of the axis going in and out of the screen by
-\     flipping the signs of the following:
-\
-\       * z_sign
-\       * rotmat0z_hi
-\       * rotmat1z_hi
-\       * rotmat2z_hi
-\
-\     So this is what we do below.
-\
-\   * For the right view, this is what our original universe axes look like when
-\     we are looking to the right:
-\
-\                 y
-\                 ^
-\                 |   x (into screen)
-\                 |  /
-\                 | /
-\                 |/
-\     z <---------+
-\
-\     so to convert these axes into the standard "up, right, into-the-screen"
-\     set of axes we need for drawing to the screen, we need to do the changes
-\     on the left (with the original set of axes on the right for comparison):
-\
-\     y                                           y
-\     ^                                           ^
-\     |   x (into screen)                         |   z (into screen)
-\     |  /                                        |  /
-\     | /                                         | /
-\     |/                                          |/
-\     +---------> -z                              +---------> x
-\
-\     In other words, to go from the original set of axes on the right to the
-\     new set of axes on the left, we need to swap the x- and z-axes around,
-\     and flip the sign of the one now going to the right (i.e. the new
-\     x-axis). In other words, we swap the following values in INWK:
-\
-\       * x_lo and z_lo
-\       * x_hi and z_hi
-\       * x_sign and z_sign
-\       * rotmat0x_lo and rotmat0z_lo
-\       * rotmat1x_lo and rotmat1z_lo
-\       * rotmat2x_lo and rotmat2z_lo
-\
-\     and then change the sign of the axis going to the right by flipping the
-\     signs of the following:
-\
-\       * x_sign
-\       * rotmat0x_hi
-\       * rotmat1x_hi
-\       * rotmat2x_hi
-\
-\     So this is what we do below.
+\     /
+\    /
+\   x (out of screen)
+\ 
+\ so to convert these axes into the standard "up, right, into-the-screen" set
+\ of axes we need for drawing to the screen, we need to do the changes on the
+\ left (with the original set of axes on the right for comparison):
+\ 
+\   y                                           y
+\   ^                                           ^
+\   |   -x (into screen)                        |   z (into screen)
+\   |  /                                        |  /
+\   | /                                         | /
+\   |/                                          |/
+\   +---------> z                               +---------> x
+\ 
+\ In other words, to go from the original set of axes on the right to the new
+\ set of axes on the left, we need to swap the x- and z-axes around, and flip
+\ the sign of the one now going in and out of the screen (i.e. the new z-axis).
+\ In other words, we swap the following values in INWK:
+\ 
+\   * x_lo and z_lo
+\   * x_hi and z_hi
+\   * x_sign and z_sign
+\   * rotmat0x_lo and rotmat0z_lo
+\   * rotmat1x_lo and rotmat1z_lo
+\   * rotmat2x_lo and rotmat2z_lo
+\ 
+\ and then change the sign of the axis going in and out of the screen by
+\ flipping the signs of the following:
+\ 
+\   * z_sign
+\   * rotmat0z_hi
+\   * rotmat1z_hi
+\   * rotmat2z_hi
+\ 
+\ So this is what we do below.
+\ 
+\ Right view
+\ ---------
+\ For the right view, this is what our original universe axes look like when we
+\ are looking to the right:
+\ 
+\               y
+\               ^
+\               |   x (into screen)
+\               |  /
+\               | /
+\               |/
+\   z <---------+
+\ 
+\ so to convert these axes into the standard "up, right, into-the-screen" set
+\ of axes we need for drawing to the screen, we need to do the changes on the
+\ left (with the original set of axes on the right for comparison):
+\ 
+\   y                                           y
+\   ^                                           ^
+\   |   x (into screen)                         |   z (into screen)
+\   |  /                                        |  /
+\   | /                                         | /
+\   |/                                          |/
+\   +---------> -z                              +---------> x
+\ 
+\ In other words, to go from the original set of axes on the right to the new
+\ set of axes on the left, we need to swap the x- and z-axes around, and flip
+\ the sign of the one now going to the right (i.e. the new x-axis). In other
+\ words, we swap the following values in INWK:
+\ 
+\   * x_lo and z_lo
+\   * x_hi and z_hi
+\   * x_sign and z_sign
+\   * rotmat0x_lo and rotmat0z_lo
+\   * rotmat1x_lo and rotmat1z_lo
+\   * rotmat2x_lo and rotmat2z_lo
+\ 
+\ and then change the sign of the axis going to the right by flipping the signs
+\ of the following:
+\ 
+\   * x_sign
+\   * rotmat0x_hi
+\   * rotmat1x_hi
+\   * rotmat2x_hi
+\ 
+\ So this is what we do below.
 \ *****************************************************************************
 
 .PLUT
@@ -11875,7 +11874,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ way, by taking an initial set of seeds and "twisting" them to generate 256
 \ systems, one after the other (the actual twisting process is described
 \ below).
-
+\
 \ Specifically, given the initial set of seeds, we can generate the next system
 \ in the sequence by twisting that system's seeds four times. As we do these
 \ twists, we can extract the system's data from the seed values - including the
