@@ -627,7 +627,9 @@ ORG &0000
 
 .QQ12
 
- SKIP 1                 ; Docked flag, &FF = docked
+ SKIP 1                 ; Docked status
+                        ;
+                        ; 0 = not docked, &FF = docked
 
 .TGT
 
@@ -659,7 +661,8 @@ ORG &0000
 
 .XX4
 
- SKIP 1                 ; 
+ SKIP 1                 ; Used as temporary storage (e.g. used in STATUS as a
+                        ; loop counter)
 
 .XX20
 
@@ -829,14 +832,20 @@ ORG &0300               ; Start of the commander block
 .DKCMP
 
  SKIP 1                 ; Docking computer
-
+                        ;
+                        ; 0 = not fitted, non-zero = fitted
+                        
 .GHYP
 
  SKIP 1                 ; Galactic hyperdrive
-
+                        ;
+                        ; 0 = not fitted, non-zero = fitted
+                        
 .ESCP
 
  SKIP 1                 ; Escape pod
+                        ;
+                        ; 0 = not fitted, non-zero = fitted
 
  SKIP 4                 ; Not used
 
@@ -872,7 +881,30 @@ ORG &0300               ; Start of the commander block
 
 .TALLY
 
- SKIP 2                 ; Number of kills as a 16-bit number
+ SKIP 2                 ; Number of kills as a 16-bit number, stored as
+                        ; TALLY(1 0) - so the high byte is in TALLY+1 and the
+                        ; low in TALLY
+                        ;
+                        ; If the high byte in TALLY+1 = 0 then we are Harmless,
+                        ; Mostly Harmless, Poor, Average or Above Average,
+                        ; according to the value of the low byte in TALLY:
+                        ;
+                        ; Harmless        = 0000 0000 to 0000 0011 = 0 to 3
+                        ; Mostly Harmless = 0000 0100 to 0000 0111 = 4 to 7
+                        ; Poor            = 0000 1000 to 0000 1111 = 8 to 15
+                        ; Average         = 0001 0000 to 0001 1111 = 16 to 31
+                        ; Above Average   = 0010 0000 to 1111 1111 = 32 to 255
+                        ;
+                        ; If the high byte in TALLY+1 is non-zero then we are
+                        ; Competent, Dangerous, Deadly or Elite, according to
+                        ; the high byte in TALLY+1:
+                        ;
+                        ; Competent       = 1           = 256 to 511 kills
+                        ; Dangerous       = 2 to 9      = 512 to 2559 kills 
+                        ; Deadly          = 10 to 24    = 2560 to 6399 kills 
+                        ; Elite           = 25 and up   = 6400 kills and up
+                        ;
+                        ; You can see the rating calculation in STATUS.
 
 .SVC
 
@@ -2458,13 +2490,16 @@ ORG &0D40
                         ; points to the ship's data block, which in turn points
                         ; to that ship's line heap space
                         ;
-                        ; The first ship slot at FRIN+1 is reserved for the
-                        ; planet.
+                        ; The first ship slot at location FRIN is reserved for
+                        ; the planet.
                         ;
                         ; The second ship slot at FRIN+1 is reserved for the
                         ; sun or space station (we only ever have one of these
                         ; in our local bubble of space). If FRIN+1 is 0, we
                         ; show the space station, otherwise we show the sun.
+                        ;
+                        ; Ships in our local bubble start at FRIN+2 onwards.
+                        ; The slots are kept in order, with asteroids first.
 
 .CABTMP                 ; Cabin temperature
                         ;
@@ -7049,19 +7084,43 @@ NEXT
 \ *****************************************************************************
 
 {
-.st4                    ; tally high of Status code
+.st4                    ; We call this from st5 below with the high byte of the
+                        ; kill tally in A, which is non-zero, and want to return
+                        ; with the following in X, depending on our rating:
+                        ;
+                        ; Competent = 6
+                        ; Dangerous = 7
+                        ; Deadly    = 8
+                        ; Elite     = 9
+                        ;
+                        ; The high bytes of the top tier ratings are as follows,
+                        ; so this a relatively simple calculation:
+                        ;
+                        ; Competent       = 1 to 2
+                        ; Dangerous       = 2 to 9
+                        ; Deadly          = 10 to 24
+                        ; Elite           = 25 and up
 
- LDX #9                 ; Elite 9
- CMP #25                ; 256*25=6400 kills
- BCS st3                ; Xreg = 9 Elite
- DEX                    ; Deadly 8
- CMP #10                ; 256*10=2560 kills
- BCS st3                ; Xreg = 8 Deadly
- DEX                    ; Dangerous 7
- CMP #2                 ; 256*2= 512 kills
- BCS st3                ; Xreg = 7 Dangerous
- DEX                    ; else Xreg = 6 Competent
- BNE st3                ; guaranteed down, tally continue
+ LDX #9                 ; Set X to 9 for an Elite rating
+ 
+ CMP #25                ; If A >= 25, jump to st3 to print out our rating, as we
+ BCS st3                ; are Elite
+
+ DEX                    ; Decrement X to 8 for a Deadly rating
+ 
+ CMP #10                ; If A >= 10, jump to st3 to print out our rating, as we
+ BCS st3                ; are Deadly
+
+ DEX                    ; Decrement X to 7 for a Dangerous rating
+ 
+ CMP #2                 ; If A >= 2, jump to st3 to print out our rating, as we
+ BCS st3                ; are Dangerous
+
+ DEX                    ; Decrement X to 6 for a Competant rating
+
+ BNE st3                ; Jump to st3 to print out our rating, as we are
+                        ; Competent (this BNE is effectively a JMP as A will
+                        ; never be zero)
 
 .^STATUS
 
@@ -7069,123 +7128,265 @@ NEXT
  JSR TT66               ; and set the current view type in QQ11 to 8 (Status
                         ; Mode screen)
 
- JSR TT111              ; closest to QQ9,10 target system
+ JSR TT111              ; Select the target system closest to galactic
+                        ; coordinates (QQ9, QQ10)
 
  LDA #7                 ; Move the text cursor to column 7
  STA XC
 
- LDA #126               ; token = COMMANDER .....PRESENT SYSTEM...HYPERSPACE SYSTEM...CONDITION
- JSR NLIN3              ; Title string and draw line underneath
- LDA #15
- LDY QQ12
- BNE st6
- LDA #230               ; token = GREEN
- LDY MANY+AST           ; JUNK \ not ships, get offset to others nearby
- LDX FRIN+2,Y           ; any other ship types nearby?
- BEQ st6                ; only junk, so have message = GREEN
- LDY ENERGY             ; players energy
- CPY #128               ; (token E7 is red, E8 is yellow)
- ADC #1                 ; 1 or 2
+ LDA #126               ; Print recursive token 126, which prints the top
+ JSR NLIN3              ; four lines of the Status Mode screen:
+                        ;
+                        ;         COMMANDER {commander name}
+                        ;
+                        ;
+                        ;   Present System      : {current system name}
+                        ;   Hyperspace System   : {selected system name}
+                        ;   Condition           :
+                        ;
+                        ; and draws a horizontal line at pixel row 19 to box
+                        ; out the title
 
-.st6                    ; have message
+ LDA #15                ; Set A to token 129 ("{switch to sentence case}
+                        ; DOCKED")
 
- JSR plf                ; TT27 process flight token followed by rtn
- LDA #125               ; token = LEGAL STATUS:
- JSR spc                ; Acc to TT27 process flight token, followed by white space
- LDA #19                ; token = CLEAN
- LDY FIST               ; Fugitive/Innocent legal status
- BEQ st5                ; clean
- CPY #50                ; if Y >=  #50 then C is set
- ADC #1                 ; token OFFENDER or FUGITIVE
+ LDY QQ12               ; Fetch the docked status from QQ12, and if we are
+ BNE st6                ; docked, jump to st6 to print "Docked" for our
+                        ; ship's condition
 
-.st5                    ; clean
+ LDA #230               ; Otherwise we are in space, so start off by setting A
+                        ; to token 70 ("GREEN")
 
- JSR plf                ; TT27 process flight token followed by rtn
- LDA #16                ; token = RATING:
+ LDY MANY+AST           ; Set Y to the number of asteroids in our little bubble
+                        ; of universe
 
- JSR spc                ; Acc to TT27 process flight token, followed by white space
- LDA TALLY+1
- BNE st4                ; tally high, >= Competent, up
- TAX                    ; else less than 256 kills, set Xreg = 0
- LDA TALLY              ; the number of kills lo byte
+ LDX FRIN+2,Y           ; The ship slots at FRIN are ordered with the first two
+                        ; slots reserved for the planet and sun/space staion,
+                        ; then asteroids, and then ships, so FRIN+2+Y points to
+                        ; the first ship-occupied slot, we we fetch into X
+
+ BEQ st6                ; If X = 0 then there are no ships in the vicinity, so
+                        ; jump to st6 to print "Green" for our ship's condition
+
+ LDY ENERGY             ; Otherwise we have ships in the vicinity, so we load
+                        ; our energy levels into Y
+
+ CPY #128               ; Set the C flag if Y >= 128, so C is set if we have
+                        ; more than half of our energy banks charged
+
+ ADC #1                 ; Add 1 + C to A, so if C is not set (i.e. we have low
+                        ; energy levels) then A is set to token 231 ("RED"),
+                        ; and if C is set (i.e. we have healthy energy levels)
+                        ; then A is set to token 232 ("YELLOW")
+
+.st6
+
+ JSR plf                ; Print the text token in A (which contains our ship's
+                        ; condition) followed by a newline
+
+ LDA #125               ; Print recursive token 125, which prints the next
+ JSR spc                ; three lines of the Status Mode screen:
+                        ;
+                        ;   Fuel: {fuel level} Light Years
+                        ;   Cash: {cash right-aligned to width 9} Cr
+                        ;   Legal Status:
+                        ;
+                        ; followed by a space
+
+ LDA #19                ; Set A to token 133 ("CLEAN")
+
+ LDY FIST               ; Fetch our legal status, and if it is 0, we are clean,
+ BEQ st5                ; so jump to st5 to print "Clean"
+
+ CPY #50                ; Set the C flag if Y >= 50, so C is set if we have
+                        ; a legal status of 50+ (i.e. we are a fugitive)
+
+ ADC #1                 ; Add 1 + C to A, so if C is not set (i.e. we have a
+                        ; legal status between 1 and 49) then A is set to token
+                        ; 134 ("OFFENDER"), and if C is set (i.e. we have a
+                        ; legal status of 50+) then A is set to token 135
+                        ; ("FUGITIVE")
+
+.st5
+
+ JSR plf                ; Print the text token in A (which contains our legal
+                        ; status) followed by a newline
+
+ LDA #16                ; Print recursive token 130 ("RATING:")
+ JSR spc
+
+ LDA TALLY+1            ; Fetch the high byte of the kill tally, and if it is
+ BNE st4                ; not zero, then we have more than 256 kills, so jump
+                        ; to st4 to work out whether we are Competent,
+                        ; Dangerous, Deadly or Elite
+
+                        ; Otherwise we have fewer than 256 kills, so we are one
+                        ; of Harmless, Mostly Harmless, Poor, Average or Above
+                        ; Average
+
+ TAX                    ; Set X to 0 (as A is 0)
+
+ LDA TALLY              ; Set A = lower byte of tally / 4
  LSR A
- LSR A                  ; /=4 so keep upper 6 bits
+ LSR A
 
-.st5L                   ; roll kills lo/4 highest bit 54321
+.st5L                   ; We now loop through bits 2 to 7, shifting each of them
+                        ; off the end of A until there are no set bits left, and
+                        ; incrementing X for each shift, so at the end of the
+                        ; process, X contains the position of the leftmost 1 in
+                        ; A. Looking at the rank values in TALLY:
+                        ;
+                        ;   Harmless        = %0000 0000 to %0000 0011
+                        ;   Mostly Harmless = %0000 0100 to %0000 0111
+                        ;   Poor            = %0000 1000 to %0000 1111
+                        ;   Average         = %0001 0000 to %0001 1111
+                        ;   Above Average   = %0010 0000 to %1111 1111
+                        ;
+                        ; we can see that the values returned by this process
+                        ; are:
+                        ;
+                        ;   Harmless        = 1
+                        ;   Mostly Harmless = 2
+                        ;   Poor            = 3
+                        ;   Average         = 4
+                        ;   Above Average   = 5
 
- INX
- LSR A                  ; roll out tally lo bits
- BNE st5L               ; loop, max Xreg =5
+ INX                    ; Increment X for each shift
+
+ LSR A                  ; Shift A to the right
+
+ BNE st5L               ; Keep looping around until A = 0, which means there are
+                        ; no set bits left in A
+.st3
+
+ TXA                    ; A now contains our rating as a value of 1 to 9, so
+                        ; transfer X to A, so we can print it out
+
+ CLC                    ; Print recursive token 135 + A, which will be in the
+ ADC #21                ; range 136 ("HARMLESS") to 144 ("---- E L I T E ----")
+ JSR plf                ; followed by a newline
+
+ LDA #18                ; Print recursive token 132, which prints the next bit
+ JSR plf2               ; of the Status Mode screen:
+                        ;
+                        ;   EQUIPMENT:
+                        ;
+                        ; followed by a newline and an indent of 6 characters
+
+ LDA CRGO               ; If our ship's cargo capacity is < 26 (i.e. we do not
+ CMP #26                ; have a cargo bay extension), skip the following two
+ BCC P%+7               ; instructions
+
+ LDA #107               ; We do have a cargo bay extension, so print recursive
+ JSR plf2               ; token 107 ("LARGE CARGO{switch to sentence case}
+                        ; BAY"), followed by a newline and an indent of 6
+                        ; characters
+
+ LDA BST                ; If we don't have fuel scoops fitted, skip the
+ BEQ P%+7               ; following two instructions
+
+ LDA #111               ; We do have a fuel scoops fitted, so print recursive
+ JSR plf2               ; token 111 ("FUEL SCOOPS"), followed by a newline and
+                        ; an indent of 6 characters
+
+ LDA ECM                ; If we don't have an E.C.M. fitted, skip the following
+ BEQ P%+7               ; two instructions
+
+ LDA #108               ; We do have an E.C.M. fitted, so print recursive token
+ JSR plf2               ; 108 ("E.C.M.SYSTEM"), followed by a newline and an
+                        ; indent of 6 characters
+
+ LDA #113               ; We now cover the four pieces of equipment whose flags
+ STA XX4                ; are stored in BOMB through BOMB+3, and whose names
+                        ; correspond with text tokens 113 through 116:
+                        ;
+                        ;   BOMB+0 = BOMB  = token 113 = Energy bomb
+                        ;   BOMB+1 = ENGY  = token 114 = Energy unit
+                        ;   BOMB+2 = DKCMP = token 115 = Docking computer
+                        ;   BOMB+3 = GHYP  = token 116 = Galactic hyperdrive
+                        ;
+                        ; We can print these out using a loop, so we set XX4 to
+                        ; 113 as a counter (and we also set A as well, to pass
+                        ; through to plf2)
+
+.stqv
+
+ TAY                    ; Fetch byte BOMB+0 through BOMB+4 for values of XX4 
+ LDX BOMB-113,Y         ; from 113 through 117
+
+ BEQ P%+5               ; If it is zero then we do not own that piece of
+                        ; equipment, so skip the next instruction
+ 
+ JSR plf2               ; Print the recursive token in A from 113 ("ENERGY
+                        ; BOMB") through 116 ("GALACTIC HYPERSPACE "), followed
+                        ; by a newline and an indent of 6 characters
+
+ INC XX4                ; Increment the counter (and A as well)
+ LDA XX4
+
+ CMP #117               ; If A < 117, loop back up to stqv to print the next
+ BCC stqv               ; piece of equipment
+
+ LDX #0                 ; Now to print our ship's lasers, so set a counter in X
+                        ; to count through the four laser mounts (0 = front,
+                        ; 1 = rear, 2 = left, 3 = right)
+
+.st
+
+ STX CNT                ; Store the laser mount number in CNT
+
+ LDY LASER,X            ; Fetch the laser power for laser mount X, and if we do 
+ BEQ st1                ; not have a laser fitted to that view, jump to st1 to
+                        ; move on to the next one
+
+ TXA                    ; Print recursive token 96 + X, which will print from 96
+ CLC                    ; ("FRONT") through to 99 ("RIGHT"), follwed by a space
+ ADC #96
+ JSR spc
+ 
+ LDA #103               ; Set A to token 103 ("PULSE LASER")
+ 
+ LDX CNT                ; If the laser power for laser mount X has bit 7 clear,
+ LDY LASER,X            ; it is a pulse laser, so skip the following instruction
+ BPL P%+4
+
+ LDA #104               ; Set A to token 104 ("BEAM LASER")
+
+ JSR plf2               ; Print the text token in A (which contains our legal
+                        ; status) followed by a newline and an indent of 6
+                        ; characters
+
+.st1
+
+ LDX CNT                ; Increment the counter in X and CNT to point to the
+ INX                    ; next laser mount
+
+ CPX #4                 ; If this isn't the last of the four laser mounts, jump
+ BCC st                 ; back up to st to print out the next one
+
+ RTS                    ; Return from the subroutine
 }
 
-.st3                    ; tally continue, also arrive from st4 tally hi
+\ *****************************************************************************
+\ Subroutine: plf2
+\
+\ Print a text token followed by a newline, and indent the next line to text
+\ column 6.
+\
+\ Arguments:
+\
+\   A           The text token to be printed
+\ *****************************************************************************
+
+.plf2
 {
- TXA                    ; tally status Xreg = 0 to 9
- CLC
- ADC #21                ; Acc = 30 is Elite
- JSR plf                ; TT27 process flight token followed by rtn
 
- LDA #18                ; token = 0x0c SHIP :
- JSR plf2               ; process flight token then rts then tab
- LDA CRGO               ; cargo bay size
- CMP #26                ; < 25 tonnes?
- BCC P%+7               ; onto fuel scoop
- LDA #&6B               ; token = Large Cargo Bay
- JSR plf2               ; process flight token then rts then tab
- LDA BST                ; Barrel status, fuel scoops
- BEQ P%+7               ; not present, onto e.c.m.
- LDA #111               ; token = FUEL SCOOPS
- JSR plf2               ; process flight token then rts then tab
- LDA ECM                ; have an ecm?
- BEQ P%+7               ; not present, onto other equipment
- LDA #&6C               ; token = E.C.M.SYSTEM
- JSR plf2               ; process flight token then rts then tab
- LDA #113               ; start other equipment
- STA XX4                ; equip start token
+ JSR plf                ; Print the text token in A followed by a newline
 
-.stqv                   ; counter XX4
-
- TAY                    ; equipment token
- LDX BOMB-113,Y         ; equipstart =#&382-#&71,Y
- BEQ P%+5               ; equip not present, skip item
- JSR plf2               ; process flight token then rts then tab
- INC XX4
- LDA XX4
- CMP #117               ; end equip list
- BCC stqv               ; loop XX4
-
- LDX #0                 ; onto listing lasers
-
-.st                     ; counter X
-
- STX CNT                ; laser view counter
- LDY LASER,X
- BEQ st1                ; hop as no laser
- TXA                    ; laser view
- CLC
- ADC #96                ; token = FRONT ..
- JSR spc                ; Acc to TT27 process flight token, followed by white space
- LDA #103               ; token = PULSE LASER
- LDX CNT
- LDY LASER,X            ; laser type
- BPL P%+4               ; skip token update
- LDA #104               ; token = BEAM LASER
- JSR plf2               ; process flight token then rts then tab
-
-.st1                    ; hopped as no laser
-
- LDX CNT
- INX                    ; next laser view
- CPX #4                 ; 4 views max for lasers
- BCC st                 ; loop X
- RTS
-
-.plf2                   ; process flight text token then rts then tab
-
- JSR plf                ; TT27 flight token followed by rtn
- LDX #6                 ; indent for next item
+ LDX #6                 ; Set the text cursor to column 6
  STX XC
- RTS
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
@@ -11504,11 +11705,19 @@ NEXT
 \ Move hyperspace cross-hairs. Returns A = 0.
 \ *****************************************************************************
 
-.hm                     ; move hyperspace cross-hairs
+.hm
 {
- JSR TT103              ; erase small cross hairs at target hyperspace system
- JSR TT111              ; closest to QQ9,10, then Sys Data.
- JSR TT103              ; draw small cross hairs at target hyperspace system
+ JSR TT103              ; Draw small cross-hairs at coordinates (QQ9, QQ10),
+                        ; which will erase the cross-hairs that are currently
+                        ; there
+
+ JSR TT111              ; Select the target system closest to galactic
+                        ; coordinates (QQ9, QQ10)
+
+ JSR TT103              ; Draw small cross-hairs at coordinates (QQ9, QQ10),
+                        ; which will draw the cross-hairs at our current home
+                        ; system
+
  LDA QQ11
  BEQ SC5
 }
@@ -14426,13 +14635,14 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: hyp1
 \
-\ Arrive in the system closest to (QQ9, QQ10)
+\ Arrive in the system closest to galactic coordinates (QQ9, QQ10).
 \ *****************************************************************************
 
 .hyp1
 {
- JSR TT111              ; Calculate closest system to (QQ9, QQ10) and then fall
-                        ; through into arrival routine below
+ JSR TT111              ; Select the target system closest to galactic
+                        ; coordinates (QQ9, QQ10), and then fall through into
+                        ; the arrival routine below
 }
 
 \ *****************************************************************************
@@ -14626,7 +14836,10 @@ LOAD_D% = LOAD% + P% - CODE%
  BEQ NLUNCH             ; not launched
  JSR LAUN               ; launched from space station
  JSR RES2               ; reset2, small reset.
- JSR TT111              ; Closest to QQ9,10 then Sys Data
+
+ JSR TT111              ; Select the target system closest to galactic
+                        ; coordinates (QQ9, QQ10)
+
  INC INWK+8             ; zsg, push away planet in front.
  JSR SOS1               ; set up planet
  LDA #128               ; space station behind you
@@ -14781,6 +14994,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ *****************************************************************************
 \ Subroutine: EQSHP
 \
+\ Other entry points: err
+\
 \ Show the Equip Ship screen (red key f3).
 \ *****************************************************************************
 
@@ -14789,7 +15004,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  JMP BAY                ; Start in Docking Bay
 
-.^EQSHP                  ; (#f3) Equip Ship
+.^EQSHP                 ; (#f3) Equip Ship
 
  JSR DIALS
  LDA #32
@@ -14942,10 +15157,9 @@ LOAD_D% = LOAD% + P% - CODE%
  BNE et6                ; else Escape pod
  LDX BST                ; barrel status, fuel scoops present
  BEQ ed9                ; empty so Fuel scoop awarded
-}
 
 .pres                   ; error, Token in Yreg is already "present" on ship
-{
+
  STY K                  ; store equipment already present token
  JSR prx                ; return price in (X,Y) for item Acc
  JSR MCASH              ; add XloYhi to cash
@@ -14953,21 +15167,18 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR spc                ; Acc to TT27 followed by white space
  LDA #31                ; token = PRESENT
  JSR TT27               ; process text token
-}
 
-.err                    ; Also other errors
-{
+.^err                    ; Also other errors
+
  JSR dn2                ; beep and wait
  JMP BAY                ; start in Docking Bay
-}
 
 .ed9                    ; Fuel scoop awarded
-{
+
  DEC BST                ; #&FF = fuel scoops awarded
-}
 
 .et6                    ; Escape pod
-{
+
  INY                    ; token = escape pod
  CMP #7                 ; item Escape pod
  BNE et7                ; else Energy bomb
@@ -15738,7 +15949,7 @@ MAPCHAR '4', '4'
  STA XC
 
  BNE TT73               ; Jump to TT73, which prints a colon (this BNE is
-                        ; effectively a JMP as A is always non-zero)
+                        ; effectively a JMP as A will never be zero)
 }
 
 \ *****************************************************************************
@@ -19432,10 +19643,10 @@ LOAD_F% = LOAD% + P% - CODE%
  JMP TT23               ; a tail call
 
  CMP #f6                ; If red key f6 was pressed, call TT111 to select the
- BNE TT92               ; system nearest the coordinates in QQ9, QQ10 (location
- JSR TT111              ; of the chart cross-hairs) and jump to TT25 to show
- JMP TT25               ; the Data on System screen, returning from the
-                        ; subroutine using a tail call
+ BNE TT92               ; system nearest to galactic coordinates (QQ9, QQ10)
+ JSR TT111              ; (the location of the chart cross-hairs) and jump to
+ JMP TT25               ; TT25 to show the Data on System screen, returning
+                        ; from the subroutine using a tail call
 
 .TT92
 
