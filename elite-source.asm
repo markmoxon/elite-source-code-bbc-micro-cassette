@@ -495,7 +495,9 @@ ORG &0000
 
  SKIP 3                 ; Temporary storage (e.g. used in TT25 to store results
                         ; when calculating adjectives to show for system species
-                        ; names, and in TT151 when printing market prices)
+                        ; names, and in TT151 when printing market prices, and
+                        ; in TT111 when working out which system is nearest to
+                        ; the cross-hairs in the system charts)
 
 .K6
 
@@ -743,11 +745,11 @@ ORG &0300               ; Start of the commander block
 
 .QQ0
 
- SKIP 1                 ; Current system's X-coordinate
+ SKIP 1                 ; Current system's galactic x-coordinate
 
 .QQ1
 
- SKIP 1                 ; Current system's Y-coordinate
+ SKIP 1                 ; Current system's galactic y-coordinate
 
 .QQ21
 
@@ -2829,14 +2831,19 @@ ORG &0D40
                         ; stored as a 16-bit number
                         ;
                         ; Will be 0 if this is the current system
+                        ;
+                        ; The galaxy chart is 102.4 light years wide and 51.2
+                        ; light years tall (see the intra-system distance
+                        ; calculations in TT111 for details), which would be
+                        ; 1024 x 512 in terms of QQ8
 
 .QQ9
 
- SKIP 1                 ; Selected system's X-coordinate
+ SKIP 1                 ; Selected system's galactic x-coordinate
 
 .QQ10
 
- SKIP 1                 ; Selected system's Y-coordinate
+ SKIP 1                 ; Selected system's galactic y-coordinate
 
 .NOSTM
 
@@ -13956,132 +13963,298 @@ LOAD_D% = LOAD% + P% - CODE%
  JMP TT182              ; loop XX20 next star
 }
 
-.TT81                   ; QQ15 loaded with galaxy seeds
+\ *****************************************************************************
+\ Subroutine: TT81
+\
+\ Copy the three 16-bit seeds for the current system (QQ21) into the seeds for
+\ the selected system (QQ15) - in other words, set the selected system's seeds
+\ to those of the current system.
+\ *****************************************************************************
+
+.TT81
 {
- LDX #5                 ; Galaxy root seeds, counter X.
- LDA QQ21,X
+ LDX #5                 ; Set up a counter in X to copy six bytes (for three
+                        ; 16-bit numbers)
+
+ LDA QQ21,X             ; Copy the X-th byte in QQ21 to the X-th byte in QQ15
  STA QQ15,X
- DEX                    ; to planet seeds to twist
- BPL TT81+2
- RTS
+
+ DEX                    ; Decrement the counter
+
+ BPL TT81+2             ; Loop back up to the LDA instruction if we still have
+                        ; more bytes to copy
+
+ RTS                    ; Return from the subroutine
 }
 
 \ *****************************************************************************
 \ Subroutine: TT111
 \
-\ Rectangle Closest to QQ9,10. Could be arriving in new galaxy with initial
-\ (96,96)
+\ Given a set of galactic coordinates in (QQ9, QQ10), find the nearest system
+\ to this point in the galaxy, and set this as the currently selected system.
+\
+\ Arguments:
+\
+\   QQ9         The x-coordinate near which we want to find a system
+\
+\   QQ10        The y-coordinate near which we want to find a system
+\
+\ Returns:
+\
+\   (QQ8 QQ8+1) The distance from the current system to the
+\               nearest system to the original coordinates
+\
+\   QQ9         The x-coordinate of the nearest system to the original
+\               coordinates
+\ 
+\   QQ10        The y-coordinate of the nearest system to the original
+\               coordinates
+\
+\   QQ15 to     The three 16-bit seeds of the nearest system to the original
+\   QQ15+5      coordinates
 \ *****************************************************************************
 
-.TT111                  ; rectangle Closest to QQ9,10. Could be arriving in new galaxy with initial (96,96)
+.TT111
 {
- JSR TT81               ; QQ15 loaded with galaxy seeds
- LDY #127               ; distance tracker, starts at half of screen width.
- STY T
- LDA #0                 ; trial system id starts at 0
- STA U
+ JSR TT81               ; Set the seeds in (QQ15) to those of the current
+                        ; system (QQ21)
 
-.TT130                  ; counter U, visit each trial system.
+                        ; We now loop through every single system in the galaxy
+                        ; and check the distance from (QQ9, QQ10). We get the
+                        ; galactic coordinates of each system from the system's
+                        ; seeds, like this:
+                        ;
+                        ;   x = w1_hi
+                        ;   y = w0_hi
+                        ;
+                        ; so the following loops through each system in the
+                        ; galaxy in turn and calculates the distance between
+                        ; (QQ9, QQ10) and (w1_hi, w0_hi) to find the closest one
 
- LDA QQ15+3
- SEC                    ; Xsystem
+ LDY #127               ; Set Y = T = 127 to hold the shortest distance we've
+ STY T                  ; found so far, which we initially set to half the
+                        ; distance across the galaxy, or 127, as our coordinate
+                        ; system ranges from (0,0) to (255, 255)
+
+ LDA #0                 ; Set A = U = 0 to act as a counter for each system in
+ STA U                  ; the current galaxy, which we start at system 0 and
+                        ; loop through to 255, the last system
+
+.TT130
+
+ LDA QQ15+3             ; Set A = w1_hi - QQ9, the horizontal distance between
+ SEC                    ; (w1_hi, w0_hi) and (QQ9, QQ10)
  SBC QQ9
- BCS TT132              ; skip xnegate
- EOR #&FF
- ADC #1
 
-.TT132                  ; skip xnegate
+ BCS TT132              ; If a borrow didn't occur, i.e. w1_hi >= QQ9, then the
+                        ; result is positive, so jump to TT132 and skip the
+                        ; following two instructions
 
- LSR A                  ; halve this x-distance
- STA S
- LDA QQ15+1
- SEC                    ; Ysystem
+ EOR #&FF               ; Otherwise negate the result in A, so A is always
+ ADC #1                 ; positive (i.e. A = |w1_hi - QQ9|)
+
+.TT132
+
+ LSR A                  ; Set S = A / 2
+ STA S                  ;       = |w1_hi - QQ9| / 2
+
+ LDA QQ15+1             ; Set A = w0_hi - QQ10, the vertical distance between
+ SEC                    ; (w1_hi, w0_hi) and (QQ9, QQ10)
  SBC QQ10
- BCS TT134              ; skip ynegate
- EOR #&FF
- ADC #1
 
-.TT134                  ; skip ynegate
+ BCS TT134              ; If a borrow didn't occur, i.e. w0_hi >= QQ10, then the
+                        ; result is positive, so jump to TT134 and skip the
+                        ; following two instructions
 
- LSR A                  ; halve y distance,
- CLC                    ; so total mag will fit in 1 byte
- ADC S                  ; sum of abs(delta_x/2) + abs(delta_y/4)
- CMP T                  ; distance tracker
- BCS TT135              ; not close, else update distance tracker
+ EOR #&FF               ; Otherwise negate the result in A, so A is always
+ ADC #1                 ; positive (i.e. A = |w0_hi - QQ10|)
 
- STA T
- LDX #5                 ; and new best seeds update
+.TT134
 
-.TT136                  ; counter X
+ LSR A                  ; Set A = S + A / 2
+ CLC                    ;       = |w1_hi - QQ9| / 2 + |w0_hi - QQ10| / 2
+ ADC S                  ;
+                        ; So A now contains the sum of the horizontal and
+                        ; vertical distances, both divided by 2 so the result
+                        ; fits into one byte, and although this doesn't contain
+                        ; the actual distance between the systems, it's a good
+                        ; enough approximation to use for comparing distances
 
- LDA QQ15,X
- STA QQ19,X
- DEX                    ; present best system seed values
- BPL TT136              ; loop X for 6 bytes.
+ CMP T                  ; If A >= T, then this system's distance is bigger than
+ BCS TT135              ; our "minimum distance so far" stored in T, so it's no
+                        ; closer than the systems we have already found, so
+                        ; skip to TT135 to move on to the next system
 
-.TT135                  ; not close
+ STA T                  ; This system is the closest to (QQ9, QQ10) so far, so
+                        ; update T with the new "distance" approximation
 
- JSR TT20               ; Twist galaxy seed
- INC U
- BNE TT130              ; loop U next sys id, not 256 yet.
- LDX #5                 ; finished
+ LDX #5                 ; As this system is the closest we have found yet, we
+                        ; want to store the system's seeds in case it ends up
+                        ; being the closest of all, so we set up a counter in X
+                        ; to copy six bytes (for three 16-bit numbers)
 
-.TT137                  ; counter X, copy out present best seeds
+.TT136
 
- LDA QQ19,X
+ LDA QQ15,X             ; Copy the X-th byte in QQ15 to the X-th byte in QQ19,
+ STA QQ19,X             ; where QQ15 contains the seeds for the system we just
+                        ; found to be the closest so far, and QQ19 is temporary
+                        ; storage
+
+ DEX                    ; Decrement the counter
+
+ BPL TT136              ; Loop back to TT136 if we still have more bytes to
+                        ; copy
+
+.TT135
+
+ JSR TT20               ; We want to move on to the next system, so call TT20
+                        ; to twist the three 16-bit seeds in QQ15
+
+ INC U                  ; Increment the system counter in U
+
+ BNE TT130              ; If U > 0 then we haven't done all 256 systems yet, so
+                        ; loop back up to TT130 
+
+                        ; We have now finished checking all the systems in the
+                        ; galaxy, and the seeds for the closest system are in
+                        ; QQ19, so now we want to copy these seeds to QQ15,
+                        ; to set the selected system to this closest system
+                        
+ LDX #5                 ; So we set up a counter in X to copy six bytes (for
+                        ; three 16-bit numbers)
+
+.TT137
+
+ LDA QQ19,X             ; Copy the X-th byte in QQ19 to the X-th byte in QQ15,
  STA QQ15,X
- DEX
- BPL TT137              ; loop X
 
-                        ; use QQ15 to QQ9,10 to set distance QQ8
- LDA QQ15+1
- STA QQ10               ; target y-coordinate updated to closest system
- LDA QQ15+3
- STA QQ9                ; target x-coordinate updated to closest system
+ DEX                    ; Decrement the counter
 
- SEC                    ; present X
- SBC QQ0
- BCS TT139              ; x dist-org
- EOR #&FF               ; else negate
- ADC #1
+ BPL TT137              ; Loop back to TT137 if we still have more bytes to
+                        ; copy
 
-.TT139                  ; x dist-org
+ LDA QQ15+1             ; The y-coordinate of the system described by the seeds
+ STA QQ10               ; in QQ15 is in QQ15+1 (w0_hi), so we copy this to QQ10
+                        ; as this is where we store the selected system's
+                        ; y-coordinate
 
- JSR SQUA2              ; (P,A) = A*A
- STA K+1
- LDA P                  ; xlo
- STA K
- LDA QQ10
+ LDA QQ15+3             ; The x-coordinate of the system described by the seeds
+ STA QQ9                ; in QQ15 is in QQ15+3 (w1_hi), so we copy this to QQ9
+                        ; as this is where we store the selected system's
+                        ; x-coordinate
 
- SEC                    ; Y subtracted
- SBC QQ1
- BCS TT141              ; y dist-org
- EOR #&FF               ; else negate
- ADC #1
+                        ; We have now found the closest system to (QQ9, QQ10)
+                        ; and have set it as the selected system, so now we
+                        ; need to work out the distance between the selected
+                        ; system and the current system
 
-.TT141                  ; y dist-org
+ SEC                    ; Set A = QQ9 - QQ0, the horizontal distance between
+ SBC QQ0                ; the selected system's x-coordinate (QQ9) and the
+                        ; current system's x-coordinate (QQ0)
 
- LSR A                  ; Acc = abs(delta_y)/2
- JSR SQUA2              ; (P,A) = A*A
- PHA                    ; highest bytes for delta_y ^2
+ BCS TT139              ; If a borrow didn't occur, i.e. QQ9 >= QQ0, then the
+                        ; result is positive, so jump to TT139 and skip the
+                        ; following two instructions
+
+ EOR #&FF               ; Otherwise negate the result in A, so A is always
+ ADC #1                 ; positive (i.e. A = |QQ9 - QQ0|)
+
+                        ; A now contains the difference between the two
+                        ; systems' x-coordinates, with the sign removed. We
+                        ; will refer to this as the x-delta ("delta" means
+                        ; change or difference in maths)
+
+.TT139
+
+ JSR SQUA2              ; Set (A P) = A * A
+                        ;           = |QQ9 - QQ0| ^ 2
+                        ;           = x_delta ^ 2
+
+ STA K+1                ; Store (A P) in K(1 0)
  LDA P
- CLC                    ; y lo
- ADC K
+ STA K
 
- STA Q                  ; r^2 lo
- PLA                    ; highest bytes for delta_y ^2
- ADC K+1
- STA R                  ; r^2 hi
- JSR LL5                ; SQRT  Q = SQR(Q,R)
- LDA Q
- ASL A                  ; distance lo *=2
- LDX #0                 ; distance hi
- STX QQ8+1
+ LDA QQ10               ; Set A = QQ10 - QQ1, the vertical distance between the
+ SEC                    ; selected system's y-coordinate (QQ10) and the current
+ SBC QQ1                ; system's y-coordinate (QQ1)
+
+ BCS TT141              ; If a borrow didn't occur, i.e. QQ10 >= QQ1, then the
+                        ; result is positive, so jump to TT141 and skip the
+                        ; following two instructions
+
+ EOR #&FF               ; Otherwise negate the result in A, so A is always
+ ADC #1                 ; positive (i.e. A = |QQ10 - QQ1|)
+
+.TT141
+
+ LSR A                  ; Set A = A / 2
+
+                        ; A now contains the difference between the two
+                        ; systems' y-coordinates, with the sign removed, and
+                        ; halved. We halve the value because the galaxy in
+                        ; in Elite is rectangular rather than square, and is
+                        ; twice as wide (x-axis) as it is high (y-axis), so to
+                        ; get a distance that matches the shape of the
+                        ; long-range galaxy chart, we need to halve the
+                        ; distance between the vertical y-coordinates. We will
+                        ; refer to this as the y-delta.
+
+
+ JSR SQUA2              ; Set (A P) = A * A
+                        ;           = (|QQ10 - QQ1| / 2) ^ 2
+                        ;           = y_delta ^ 2
+
+                        ; By this point we have the following results:
+                        ;
+                        ;  K(1 0) = x_delta ^ 2
+                        ;   (A P) = y_delta ^ 2
+                        ;
+                        ; so to find the distance between the two points, we
+                        ; can use Pythagoras - so first we need to add the two
+                        ; results together, and then take the square root
+
+ PHA                    ; Store the high byte of the y-axis value on the stack,
+                        ; so we can use A for another purpose
+
+ LDA P                  ; Set Q = P + K, which adds the low bytes of the two
+ CLC                    ; calculated values
+ ADC K
+ STA Q
+
+ PLA                    ; Restore the high byte of the y-axis value from the
+                        ; stack into A again
+
+ ADC K+1                ; Set R = A + K+1, which adds the high bytes of the two
+ STA R                  ; calculated values, so we now have:
+                        ;
+                        ;   (R Q) = K(1 0) + (A P)
+                        ;         = x_delta ^ 2 + y_delta ^ 2
+
+ JSR LL5                ; Set Q = SQRT(R Q), so Q now contains the distance
+                        ; between the two systems, in terms of coordinates
+
+                        ; We now store the distance to the selected system * 4
+                        ; in the two-byte location QQ8, by taking (0 Q) and
+                        ; shifting it left twice, storing it in (QQ8+1 QQ8)
+
+ LDA Q                  ; First we shift the low byte left by setting
+ ASL A                  ; A = Q * 2, with bit 7 of A going into the C flag
+
+ LDX #0                 ; Now we set the high byte in QQ8+1 to 0 and rotate
+ STX QQ8+1              ; the C flag into bit 0 of QQ8+1
  ROL QQ8+1
- ASL A
+
+ ASL A                  ; And then we repeat the shift left of (QQ8+1 A)
  ROL QQ8+1
- STA QQ8                ; QQ8(0,1) is 4*distance in x-units
- JMP TT24               ; Calculate System Data from QQ15(0to5).
+
+ STA QQ8                ; And store A in the low byte, QQ8, so (QQ8+1 QQ8) now
+                        ; contains Q * 4. Given that the width of the galaxy is
+                        ; 256 in coordinate terms, the width of the galaxy
+                        ; would be 1024 in the units we store in QQ8
+
+ JMP TT24               ; Call TT24 to calculate system data from the seeds in
+                        ; QQ15 and store them in the relevant locations, so our
+                        ; new selected system is fully set up
 }
 
 \ *****************************************************************************
