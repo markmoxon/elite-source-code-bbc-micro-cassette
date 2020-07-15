@@ -27,25 +27,25 @@ The original source files for BBC Elite can be found on [Ian Bell's personal web
 
 The following archives are available:
 
-- [Cassette sources](http://www.elitehomepage.org/archive/a/a4080602.zip) as DFS disk image
+- [Cassette sources](http://www.elitehomepage.org/archive/a/a4080602.zip) as DFS disc image
 - [Cassette sources](http://www.elitehomepage.org/archive/a/a4080610.zip) as text files
-- [BBC 2nd processor sources](http://www.elitehomepage.org/archive/a/a5022201.zip) as DFS disk image
-- [Original Elite ship sources](http://www.elitehomepage.org/archive/a/a4100082.zip) as DFS disk image
-- [Elite 2 ship sources](http://www.elitehomepage.org/archive/a/b80000C0.zip) as DFS disk image
-- [Original BBC Disk version](http://www.elitehomepage.org/archive/a/a4100000.zip) of Elite (game only)
+- [BBC 2nd processor sources](http://www.elitehomepage.org/archive/a/a5022201.zip) as DFS disc image
+- [Original Elite ship sources](http://www.elitehomepage.org/archive/a/a4100082.zip) as DFS disc image
+- [Elite 2 ship sources](http://www.elitehomepage.org/archive/a/b80000C0.zip) as DFS disc image
+- [Original BBC disc version](http://www.elitehomepage.org/archive/a/a4100000.zip) of Elite (game only)
 - [Master 128 and 2nd Processor versions](http://www.elitehomepage.org/archive/a/b8020001.zip) of Elite (game only)
-- [BBC disk source (docked) annotated by Paul Brink](http://www.elitehomepage.org/archive/a/d4090010.txt) as text file
-- [BBC disk source (flight) annotated by Paul Brink](http://www.elitehomepage.org/archive/a/d4090012.txt) as text file
+- [BBC disc source (docked) annotated by Paul Brink](http://www.elitehomepage.org/archive/a/d4090010.txt) as text file
+- [BBC disc source (flight) annotated by Paul Brink](http://www.elitehomepage.org/archive/a/d4090012.txt) as text file
 
-As the game was written on 8-bit machines with very limited RAM and disk storage (the game started life on an Acorn Atom) the source code is incredibly terse, densely packed and effectively unreadable to anyone but the original authors (even then, I'd imagine both would struggle some 30+ years later..!)
+As the game was written on 8-bit machines with very limited RAM and disc storage (the game started life on an Acorn Atom) the source code is incredibly terse, densely packed and effectively unreadable to anyone but the original authors (even then, I'd imagine both would struggle some 30+ years later..!)
 
 This project aims to develop a readable, fast and reproducible build of Elite that can be used for learning and non-profit modification purposes.
 
 ## Version
 
-The BBC Cassette version of the game but built for disk was chosen as the initial starting point for simplicity. It generates just two binary executable files - `ELITE` (the loader) and `ELTcode` (the game) - and will run on a standard issue Model B with DFS, which is the most common configuration of any BBC system and easily emulated.
+The BBC Cassette version of the game but built for disc was chosen as the initial starting point for simplicity. It generates just two binary executable files - `ELITE` (the loader) and `ELTcode` (the game) - and will run on a standard issue Model B with DFS, which is the most common configuration of any BBC system and easily emulated.
 
-Future versions may include BBC Disk, Master and 2nd processor configurations.
+Future versions may include BBC disc, Master and 2nd processor configurations.
 
 ## Source files
 
@@ -106,9 +106,9 @@ Secondly it performs the checksum and encryption functions from the `ELITES` loa
 
 ### elite-disc.asm
 
-This script builds the final disk image. It copies the assembled `ELITE` and `ELTcode` binary files from the `output` folder to the disk image, and is passed as an argument to BeebAsm by the `Makefile` when it creates the disk image. The BeebAsm command is configured to add a `!Boot` file that `*RUN`s the `ELITE` binary, so the result is a bootable BBC Micro disk image that runs the tape version of Elite.
+This script builds the final disc image. It copies the assembled `ELITE` and `ELTcode` binary files from the `output` folder to the disc image, and is passed as an argument to BeebAsm by the `Makefile` when it creates the disc image. The BeebAsm command is configured to add a `!Boot` file that `*RUN`s the `ELITE` binary, so the result is a bootable BBC Micro disc image that runs the tape version of Elite.
 
-The disk image is called `elite.ssd`, and you can load it into an emulator, or into a real BBC Micro using a device like a Gotek.
+The disc image is called `elite.ssd`, and you can load it into an emulator, or into a real BBC Micro using a device like a Gotek.
 
 ## Building Elite from the source
 
@@ -199,7 +199,7 @@ make encrypt verify
 
 The Python script `crc32.py` does the actual verification, and shows the checksums and file sizes of both sets of files, alongside each other, and with a Match column that flags any discrepancies. If you are building an unencrypted set of files then there will be lots of differences, while the encrypted files should mostly match (see the Differences section below for more on this).
 
-The binaries in the `extracted` folder were taken straight from the [cassette sources disk image](http://www.elitehomepage.org/archive/a/a4080602.zip) (though see the notes on `ELTB` below), while those in the `output` folder are produced by the build process. For example, if you build with `make encrypt verify`, then this is the output of the verification process:
+The binaries in the `extracted` folder were taken straight from the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip) (though see the notes on `ELTB` below), while those in the `output` folder are produced by the build process. For example, if you build with `make encrypt verify`, then this is the output of the verification process:
 
 ```
 [--extracted--]  [---output----]
@@ -225,7 +225,7 @@ c4547e5e   1023  c4547e5e   1023   Yes   WORDS9.bin
 
 ### ELITEC
 
-It was discovered that the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip) do not contain identical code to the binaries in the [cassette sources disk image](http://www.elitehomepage.org/archive/a/a4080602.zip). Specifically, there are three instructions in the `ELTC` binary that are missing from the `ELITEC.TXT` source file:
+It was discovered that the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip) do not contain identical code to the binaries in the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip). Specifically, there are three instructions in the `ELTC` binary that are missing from the `ELITEC.TXT` source file:
 
 ```
 .WARP
@@ -262,7 +262,7 @@ These missing instructions have been added to the BeebAsm version so that the bu
 
 ### ELTB
 
-It turns out there are two versions of the `ELITEB` BASIC source program on the cassette sources disk, called `$.ELITEB` and `O.ELITEB`. These two versions of `ELITEB` differ by just one byte in the default Commander data. This byte controls whether or not the Commander has a rear pulse laser. In `O.ELITEB` this byte is generated by:
+It turns out there are two versions of the `ELITEB` BASIC source program on the cassette sources disc, called `$.ELITEB` and `O.ELITEB`. These two versions of `ELITEB` differ by just one byte in the default Commander data. This byte controls whether or not the Commander has a rear pulse laser. In `O.ELITEB` this byte is generated by:
 
 ```
 EQUB (POW + 128) AND Q%
@@ -278,15 +278,15 @@ The BASIC variable `Q%` is a Boolean flag that, if `TRUE`, will create a default
 
 The BASIC variable `POW` has a value of 15, which is the power of a pulse laser. `POW + 128`, meanwhile, is the power of a beam laser.
 
-Given the above, we can see that `O.ELITEB` correctly produces a default Commander with no a rear laser if `Q%` is `FALSE`, but adds a rear beam laser if `Q%` is `TRUE`. This matches the released game, whose executable can be found as `ELTcode` on the same disk. The version of `ELITEB` in the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip) matches this version, `O.ELITEB`.
+Given the above, we can see that `O.ELITEB` correctly produces a default Commander with no a rear laser if `Q%` is `FALSE`, but adds a rear beam laser if `Q%` is `TRUE`. This matches the released game, whose executable can be found as `ELTcode` on the same disc. The version of `ELITEB` in the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip) matches this version, `O.ELITEB`.
 
 In contrast, `$.ELITEB` will always produce a default Commander with a rear pulse laser, irrespective of the setting of `Q%`, so it doesn't match the released version.
 
-The `ELTB` binary file in the `extracted` folder of this repository is the release version, so we can easily tell whether any changes we've made to the code deviate from the release version. However, the `ELTB` binary file on the sources disk matches the version produced by `$.ELITEB`, rather than the released version produced by `O.ELITEB` - in other words, `ELTB` on the source disk is not the release version.
+The `ELTB` binary file in the `extracted` folder of this repository is the release version, so we can easily tell whether any changes we've made to the code deviate from the release version. However, the `ELTB` binary file on the sources disc matches the version produced by `$.ELITEB`, rather than the released version produced by `O.ELITEB` - in other words, `ELTB` on the source disc is not the release version.
 
-The implication is that the `ELTB` binary file on the cassette sources disk was produced by `$.ELITEB`, while the `ELTcode` file (the released game) used `O.ELITEB`. Perhaps the released game was compiled, and then someone backed up the `ELITEB` source to `O.ELITEB`, edited the `$.ELITEB` to have a rear pulse laser, and then generated a new `ELTB` binary file. Who knows? Unfortunately, files on DFS disks don't have timestamps, so it's hard to tell.
+The implication is that the `ELTB` binary file on the cassette sources disc was produced by `$.ELITEB`, while the `ELTcode` file (the released game) used `O.ELITEB`. Perhaps the released game was compiled, and then someone backed up the `ELITEB` source to `O.ELITEB`, edited the `$.ELITEB` to have a rear pulse laser, and then generated a new `ELTB` binary file. Who knows? Unfortunately, files on DFS discs don't have timestamps, so it's hard to tell.
 
-To support this discrepancy, there is an extra build target for building the `ELTB` binary as found on the sources disk, and as produced by `$.ELITEB`. You can build this version, which has the rear pulse laser, with:
+To support this discrepancy, there is an extra build target for building the `ELTB` binary as found on the sources disc, and as produced by `$.ELITEB`. You can build this version, which has the rear pulse laser, with:
 
   `make extract`
 
@@ -305,9 +305,10 @@ The next steps are:
 - ~~Remove loader code requiring checksums and copy protection to allow game source to be modified freely~~
 - Commenting of critical functions in Elite game code
 - Improve label names for readability
-- Add BBC Disk, Master and 2nd processor versions to build
+- Add BBC disc, Master and 2nd processor versions to build
 
 I am fully open to PR's if anyone feels like contributing to this project!
 
 ---
 #### Kieran Connell | July 2018
+#### Mark Moxon | July 2020

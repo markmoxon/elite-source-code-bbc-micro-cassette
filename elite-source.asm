@@ -5778,7 +5778,7 @@ Q% = _ENABLE_MAX_COMMANDER
                         ; commander. Q% can be set to TRUE to give the default
                         ; commander lots of credits and equipment.
 
- EQUB 0                 ; Mission status. The disk version of the game has two
+ EQUB 0                 ; Mission status. The disc version of the game has two
                         ; missions, and this byte contains the status of those
                         ; missions (the possible values are 0, 1, 2, &A, &E). As
                         ; the tape version doesn't have missions, this byte will
@@ -10536,7 +10536,7 @@ NEXT
 \ Subroutine: Unused repeat of MULTU?
 \
 \ AP=P*Qunsg \ Repeat of multu not needed?
-\ Has label MULTU6 in disk version?
+\ Has label MULTU6 in disc version?
 \ ******************************************************************************
 
                         ; AP=P*Qunsg \ Repeat of multu not needed?
@@ -13610,7 +13610,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \JSR FLKB               ; This instruction is commented out in the original
                         ; source. It calls a routine to flush the keyboard
                         ; buffer (FLKB) that isn't present in the tape version
-                        ; but is in the disk version.
+                        ; but is in the disc version.
 
  LDA #0                 ; We're going to loop through all the available market
  STA QQ29               ; items, so we set up a counter in QQ29 to denote the
@@ -13885,7 +13885,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \JSR FLKB               ; This instruction is commented out in the original
                         ; source. It calls a routine to flush the keyboard
                         ; buffer (FLKB) that isn't present in the tape version
-                        ; but is in the disk version.
+                        ; but is in the disc version.
 
  LDA #205               ; Print recursive token 45 ("SELL")
  JSR TT27
@@ -17341,9 +17341,9 @@ MAPCHAR '4', '4'
  LSR FIST               ; reduce Fugitative/Innocent legal status
  JSR ZINF               ; Call ZINF to reset the INWK ship workspace
  LDA QQ15+1             ; w0_h is Economy
- AND #7                 ; disk version has AND 3
- ADC #6                 ; disk version has ADC 3
- LSR A                  ; not in disk version
+ AND #7                 ; disc version has AND 3
+ ADC #6                 ; disc version has ADC 3
+ LSR A                  ; not in disc version
  STA INWK+8             ; zsg is planet distance
  ROR A                  ; planet off to top right
  STA INWK+2             ; xsg
@@ -20985,7 +20985,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \LDX #3                 ; source. This block starts with the same *FX call as
 \STX XC                 ; above, then clears the screen, calls a routine to
 \JSR FX200              ; flush the keyboard buffer (FLKB) that isn't present
-\LDA #1                 ; in the tape version but is in the disk version, and 
+\LDA #1                 ; in the tape version but is in the disc version, and 
 \JSR TT66               ; then it displays "LOAD NEW COMMANDER (Y/N)?" and
 \JSR FLKB               ; lists the current cargo, before falling straight into
 \LDA #14                ; the load routine below, whether or not we have
@@ -21694,7 +21694,7 @@ ENDIF
                         ; to BR1... so this instruction restarts the game from
                         ; the title screen. Valid commander files for the tape
                         ; version of Elite only have 0 for the first byte, while
-                        ; the disk version can have 0, 1, 2, &A or &E, so having
+                        ; the disc version can have 0, 1, 2, &A or &E, so having
                         ; bit 7 set is invalid anyway.
 
  LDX #NT%               ; We have successfully loaded the commander file at
