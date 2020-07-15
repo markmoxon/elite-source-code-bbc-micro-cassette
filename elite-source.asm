@@ -6505,26 +6505,41 @@ NEXT
  EQUD &0103070F
 }
 
-\ *****************************************************************************
+\ ******************************************************************************
 \ Subroutine: PX3
 \
-\ Draw 1 pixel for the case ZZ >= &90
-\ *****************************************************************************
+\ This routine is called from PIXEL to set 1 pixel within a character block for
+\ a distant point (i.e. where the distance ZZ >= &90). See the PIXEL routine for
+\ details, as this routine is effectively part of PIXEL.
+\
+\ Arguments:
+\
+\   X           The x-coordinate of the pixel within the character block
+\
+\   Y           The y-coordinate of the pixel within the character block
+\
+\   (SC+1 SC)   The screen addresss of the character block
+\
+\   T1          The value of Y to restore on exit, so Y is preserved by the call
+\               to PIXEL
+\ ******************************************************************************
 
-.PX3                    ; Draw 1 pixel for the case ZZ >= &90
+.PX3
 {
- LDA TWOS,X             ; Mode 4 single pixel
+ LDA TWOS,X             ; Fetch a 1-pixel byte from TWOS and EOR it into SC+Y
  EOR (SC),Y
  STA (SC),Y
- LDY T1                 ; restore Yreg
- RTS
+
+ LDY T1                 ; Restore Y from T1, so Y is preserved by the routine
+
+ RTS                    ; Return from the subroutine
 }
 
-\ *****************************************************************************
+\ ******************************************************************************
 \ Subroutine: PIX1
 \
 \ Draw dust Pixel, Acc has ALPHA or BETA in it
-\ *****************************************************************************
+\ ******************************************************************************
 
 .PIX1                   ; dust Pixel, Acc has ALPHA or BETA in it
 {
@@ -6568,65 +6583,385 @@ NEXT
  SBC T
 }
 
-\ *****************************************************************************
+\ ******************************************************************************
 \ Subroutine: PIXEL
 \
-\ at (X,A) ZZ away. Yreg protected
-\ *****************************************************************************
+\ Other entry points: PX4 (RTS)
+\
+\ Draw a point at screen coordinate (X, A) at a distance of ZZ away, on the
+\ top part of the screen (the monochrome mode 4 portion).
+\
+\ Arguments:
+\
+\   X           The screen x-coordinate of the point to draw
+\
+\   A           The screen y-coordinate of the point to draw
+\
+\   ZZ          The distance of the point (further away = smaller point)
+\
+\ Returns:
+\
+\   Y           Y is preserved
+\
+\ ******************************************************************************
+\
+\ The top part of Elite's split screen mode - the monochrome mode 4 part -
+\ consists of 192 rows of pixels, with 256 pixels in each row. That sounds nice
+\ and simple... except the way the BBC Micro stores its screen memory isn't
+\ completely straightforward, and to understand Elite's drawing routines, an
+\ understanding of this memory structure is essential.
+\ 
+\ Screen memory
+\ -------------
+\ First up, the simple part. Because mode 4 is a monochrome screen mode, each
+\ pixel is represented by one bit (1 for white, 0 for black). It's more complex
+\ for the four-colour mode 5 that's used for the dashboard portion of the
+\ screen, but for mode 4 it's as simple as it gets.
+\ 
+\ However, screen memory is not laid out as you would expect. It isn't a simple
+\ sequence of 256-bit lines, one for each horizontal pixel line, but instead
+\ the screen is split into rows and columns. Each row is 8 pixels high, and
+\ each column is 8 pixels wide, so the 192x256 space view has 24 rows and 32
+\ columns. That 8x8 size is the same size as a standard BBC Micro text
+\ character, so the screen memory is effectively split up into character rows
+\ and columns (and it's no coincidence that these match the character layout
+\ used in Elite, where XC and YC hold the location of the text cursor, with XC
+\ in the range 0 to 23 and YC in the range 0 to 32).
+\ 
+\ The mode 4 screen starts in memory at &6000, and each character row takes up
+\ 8 rows of 256 bits, or 256 bytes, so that means each character row takes up
+\ one page of memory. So the first character row starts at &6000, the second
+\ character row starts at &6100, and so on.
+\ 
+\ Each character row on screen is laid out like this in memory, where each
+\ digit (0, 1, 2 etc.) represents a pixel, or bit:
+\ 
+\         01234567 ->-.      ,------->- 01234567->-.
+\                      |    |                       |
+\    ,-------<--------´     |     ,-------<--------´
+\   |                       |    |
+\    `->- 01234567 ->-.     |     `->- 01234567 ->-.
+\                      |    |                       |
+\    ,-------<--------´     |     ,-------<--------´
+\   |                       |    |
+\    `->- 01234567 ->-.     |     `->- 01234567 ->-.
+\                      |    |                       |
+\    ,-------<--------´     |     ,-------<--------´
+\   |                       |    |
+\    `->- 01234567 ->-.     |     `->- 01234567 ->-.
+\                      |    |                       |
+\    ,-------<--------´     |     ,-------<--------´
+\   |                       |    |
+\    `->- 01234567 ->-.     |     `->- 01234567 ->-.
+\                      |    |                       |
+\    ,-------<--------´     |     ,-------<--------´
+\   |                       |    |
+\    `->- 01234567 ->-.     |     `->- 01234567 ->-.
+\                      |    |                       |
+\    ,-------<--------´     |     ,-------<--------´
+\   |                       |    |
+\    `->- 01234567 ->-.     |     `->- 01234567 ->-.      ^
+\                      |    |                       |     :
+\    ,-------<--------´     |     ,-------<--------´      :
+\   |                       |    |                        |
+\    `->- 01234567 ->------´      `->- 01234567 ->-------´
+\ 
+\ The left-hand half of the diagram displays one 8x8 character's worth of
+\ pixels, while the right-hand half shows a second 8x8 character's worth, and
+\ so on along the row, for 32 characters. Specifically, the diagram above would
+\ produce the following pixels in the top-left corner of the screen:
+\ 
+\   0123456701234567
+\   0123456701234567
+\   0123456701234567
+\   0123456701234567
+\   0123456701234567
+\   0123456701234567
+\   0123456701234567
+\   0123456701234567
+\ 
+\ So let's imagine we want to draw a 2x2 bit of stardust on the screen at pixel
+\ location (7, 2) - where the origin (0, 0) is in the top-left corner - so that
+\ the top-left corner of the screen looks like this:
+\ 
+\   ................
+\   ................
+\   .......XX.......
+\   .......XX.......
+\   ................
+\   ................
+\   ................
+\   ................
+\ 
+\ Let's split this up to match the above diagram a bit more closely:
+\ 
+\   ........ ........
+\   ........ ........
+\   .......X X.......
+\   .......X X.......
+\   ........ ........
+\   ........ ........
+\   ........ ........
+\   ........ ........
+\ 
+\ As this is the first screen row, the address of the top-left corner is &6000.
+\ The first byte is the first row on the left, the second byte is the second
+\ row, and so on, like this:
+\ 
+\   &6000 = ........    &6008 = ........
+\   &6001 = ........    &6009 = ........
+\   &6002 = .......X    &600A = X.......
+\   &6003 = .......X    &600B = X.......
+\   &6004 = ........    &600C = ........
+\   &6005 = ........    &600D = ........
+\   &6006 = ........    &600E = ........
+\   &6007 = ........    &600F = ........
+\ 
+\ So you can see that if we want to draw our 2x2 bit of stardust, we need to do
+\ the following:
+\ 
+\   Set &6002 = %00000001
+\   Set &6003 = %00000001
+\   Set &600A = %10000000
+\   Set &600B = %10000000
+\ 
+\ Or, if we want to draw our stardust without obliterating anything that's
+\ already on screen in this area, we can use EOR logic, like this:
+\ 
+\   Set &6002 = ?&6002 EOR %00000001
+\   Set &6003 = ?&6002 EOR %00000001
+\   Set &600A = ?&6002 EOR %10000000
+\   Set &600B = ?&6002 EOR %10000000
+\ 
+\ where ?&6002 denotes the current value of location &6002. Because of the way
+\ EOR works:
+\ 
+\   0 EOR x = x
+\   1 EOR x = NOT x
+\ 
+\ this means that the screen display will only change when we want to poke a
+\ bit with value 1 into the screen memory (i.e. paint it white), and when we're
+\ doing this, it will invert what's already on screen. This not only means that
+\ poking a 0 into the screen memory means "leave this pixel as it is", it also
+\ means we can draw something on the screen, and then redraw the exact same
+\ thing to remove it from the screen, which can be a lot more efficient than
+\ clearing the whole screen and redrawing the whole thing every time something
+\ moves.
+\ 
+\ (The downside of EOR screen logic is that when white pixels overlap, they go
+\ black, but that's not a particularly big deal in space - and it also means
+\ that things like in-flight messages show up as black when they overlap the
+\ sun, without complex logic.)
+\ 
+\ Converting pixel coordinates to screen locations
+\ ------------------------------------------------
+\ Given the above, we clearly need a way of converting pixel coordinates like
+\ (7, 2) into screen memory locations. There are two parts to this - first, we
+\ need to find out which character block we need to write into, and second,
+\ which pixel row and column within that character corresponds to the pixel we
+\ want to paint.
+\ 
+\ The first step is pretty easy. The screen is split up into character rows and
+\ columns, with 8 pixels per character in both directions, so we can simply
+\ divide the pixel coordinates by 8 to get the character location. Let's look
+\ at some examples:
+\ 
+\   (7,   2)     becomes   (0.875,  0.25)
+\   (57,  82)    becomes   (7.125,  10.25)
+\   (191, 255)   becomes   (23.875, 31.875)
+\ 
+\ So the first pixel is at (0.875, 0.25), which is the same as saying it's in
+\ the first character block (0, 0), and is at position (0.875, 0.25) within
+\ that character. For the second example, the pixel is inside character (7, 10)
+\ and is at position (0.125, 0.25) within that character, and the third is in
+\ character (23, 31) at (0.875, 0.875) inside the character.
+\ 
+\ We can now codify this. To get the character block that contains a specific
+\ pixel, we can divide the coordinates by 8 and ignore any remainder to get the
+\ result we want, which is what the div operator does. So:
+\ 
+\   (7,   2)     is in character block   (7   div 8,   2 div 8)   =   (0, 0)
+\   (57,  82)    is in character block   (57  div 8,  82 div 8)   =   (7, 10)
+\   (191, 255)   is in character block   (191 div 8, 255 div 8)   =   (23, 31)
+\ 
+\ We can do the div 8 operation really easily in assembly language, by shifting
+\ right three times, so in assembly, we get this:
+\ 
+\   Pixel (x, y) is in the character block at (x >> 3, y >> 3)
+\ 
+\ Next, we can then use the remainder to work out where our pixel is within
+\ this 8x8 character block. The remainder is given by the mod operator, so:
+\ 
+\   (7, 2)       is at pixel   (7   mod 8,   2 mod 8)   =   (7, 2)
+\   (57, 82)     is at pixel   (57  mod 8,  82 mod 8)   =   (1, 2)
+\   (191, 255)   is at pixel   (191 mod 8, 255 mod 8)   =   (7, 7)
+\ 
+\ We can do a mod 8 operation really easily in assembly language by simply
+\ ANDing with %111, so in assembly, we get this:
+\ 
+\   Pixel (x, y) is at position (x AND %111, y AND %111) within the character
+\ 
+\ And this is the algorithm that's implemented in this routine, though with a
+\ small twist.
+\ 
+\ Poking bytes into screen addresses
+\ ----------------------------------
+\ To summarise, in order to paint pixel (x, y) on screen, we need to update
+\ this character block:
+\ 
+\   (x >> 3, y >> 3)
+\ 
+\ and this specific pixel within that character block:
+\ 
+\   (x AND %111, y AND %111)
+\ 
+\ As mentioned above, we can update this pixel by poking a byte into screen
+\ memory, so now we need to work out which memory location we need to update,
+\ and what to update it with.
+\ 
+\ We've already discussed how each character row takes up one page (256 bytes)
+\ of memory in Elite's mode 4 screen, so we can work out the page of the
+\ location we need to update by taking the y-coordinate of the character for
+\ the page. So, if (SCH SC) is the 16-bit address of the byte that we need to
+\ update in order to paint pixel (x, y) on screen (i.e. SCH is the high byte and
+\ SC is the low byte), then we know:
+\ 
+\   SCH = &60 + y >> 3
+\ 
+\ because the first character row takes up page &60 (screen memory starts at
+\ &6000), and each character row takes up one page.
+\ 
+\ Next, within this page of memory, we want to update the character number x >>
+\ 3. Each character takes up 8x8 pixels, which is 64 bits, or 8 bytes, so we
+\ can calculate the memory location of where that character is stored in screen
+\ memory by multiplying the character number by 8, like this:
+\ 
+\   The character starts at byte (x >> 3) * 8 within the row's page
+\ 
+\ Next, we know that the pixel we want to update within this block is on row (y
+\ AND %111) in the character, and because there are 8 bits in each row (one
+\ byte), this is also the byte offset of the start of that row within the
+\ character block. So we also know this:
+\ 
+\   The pixel is in the character byte number (y AND %111)
+\ 
+\ So, to summarise, we know we need to update this byte in the row's memory
+\ page:
+\ 
+\   (x >> 3) * 8 + (y AND %111)
+\ 
+\ The final question is what to poke into this byte.
+\
+\ The two TWOS tables
+\ -------------------
+\ So we know which byte to update, and we also know which bit to set within
+\ that byte - it's bit number (x AND %111). We could always fetch that byte and
+\ EOR it with 1 shifted by the relevant number of spaces, but Elite chooses a
+\ slightly different approach, one which makes it easier for us to plot not only
+\ individual pixels, but also two pixels and even blocks of four.
+\
+\ The are two tables of bytes, one at TWOS and the other at TWOS2, that contain
+\ ready-made bytes for plotting one-pixel and two-pixel points. In each table,
+\ the byte at offset X contains a byte that, when poked into a character row,
+\ will plot a single-pixel at column X (for TWOS) or a two-pixel "dash" at
+\ column X (for TWOS2). As one example, this is what's in the fourth entry from
+\ each table (i.e. the entry at offset 3):
+\
+\   TWOS+3  = %00010000
+\
+\   TWOS2+3 = %00011000
+\
+\ This is the value we need to EOR with the byte we worked out above, where the
+\ offset is the bit number we want to set, i.e. (x AND %111). Or to put it
+\ another way, if we set the following:
+\
+\   SCH = &60 + y >> 3
+\   SC = (x >> 3) * 8 + (y AND %111)
+\   X = x AND %111
+\
+\ then we want to fetch this byte:
+\
+\   TWOS+X
+\
+\ and poke it here:
+\
+\   (SCH SC)
+\
+\ to set the pixel (x, y) on screen. (Or, if we want to set two pixels at this
+\ location, we can use TWOS2, and if we wants a 2x2 square of pixels setting,
+\ we can do the same again on the row below.)
+\
+\ And that's the approach used below.
+\ ******************************************************************************
 
-.PIXEL                  ; at (X,A) ZZ away. Yreg protected
+.PIXEL
 {
- STY T1                 ; save Yreg
- TAY                    ; copy of ycoord
+ STY T1                 ; Store Y in T1
+
+ TAY                    ; Copy A into Y, for use later
+
+ LSR A                  ; Set SCH = &60 + A >> 3
  LSR A
  LSR A
- LSR A
- ORA #&60
- STA SCH                ; screen hi
- TXA                    ; xscreen
- AND #&F8               ; column given by upper 5 bits of X
- STA SC                 ; screen lo
- TYA                    ; copy of ycoord
- AND #7                 ; char row is lower 3 bits of Yreg
+ ORA #%01100000
+ STA SCH
+  
+ TXA                    ; Set SC = (X >> 3) * 8
+ AND #%11111000
+ STA SC
+
+ TYA                    ; Set Y = Y AND %111
+ AND #%00000111
  TAY
- TXA
- AND #7
- TAX                    ; mask index is lower 3 bits of Xreg
 
- LDA ZZ                 ; distance
- CMP #&90               ; Bigger number is further away
- BCS PX3                ; for the case ZZ >= &90. Draw 1 pixel
- LDA TWOS2,X            ; Mode 4 double-width pixel
- EOR (SC),Y
- STA (SC),Y
- LDA ZZ
- CMP #&50
- BCS PX13               ; middle distance pixel ended
- DEY                    ; char row below
- BPL PX14               ; double-size
- LDY #1                 ; add row above not below
+ TXA                    ; Set X = X AND %111
+ AND #%00000111
+ TAX
 
-.PX14                   ; double size
+ LDA ZZ                 ; If distance in ZZ >= &90, then this point is a very
+ CMP #&90               ; long way away, so jump to PX3 to fetch a 1-pixel point
+ BCS PX3                ; from TWOS and EOR it into SC+Y
 
- LDA TWOS2,X            ; double-width pixel
- EOR (SC),Y
+ LDA TWOS2,X            ; Otherwise fetch a 2-pixel dash from TWOS2 and EOR it
+ EOR (SC),Y             ; into SC+Y
  STA (SC),Y
 
-.PX13                   ; middle distance pixel ended
+ LDA ZZ                 ; If distance in ZZ >= &50, then this point is a medium
+ CMP #&50               ; distance away, so jump to PX13 to stop drawing, as a
+ BCS PX13               ; 2-pixel dash is enough
+ 
+                        ; Otherwise we keep going to draw another 2 pixel point
+                        ; either above or below the one we just drew, to make a
+                        ; 4-pixel square
+ 
+ DEY                    ; Reduce Y by 1 to point to the pixel row above the one
+ BPL PX14               ; we just plotted, and if it is still positive, jump to
+                        ; PX14 to draw our second 2-pixel dash
 
- LDY T1                 ; restore Yreg
+ LDY #1                 ; Reducing Y by 1 made it negative, which means Y was
+                        ; 0 before we did the DEY above, so set Y to 1 to point
+                        ; to the pixel row after the one we just plotted
+
+.PX14
+
+ LDA TWOS2,X            ; Fetch a 2-pixel dash from TWOS2 and EOR it into this
+ EOR (SC),Y             ; second row to make a 4-pixel square
+ STA (SC),Y
+
+.PX13
+
+ LDY T1                 ; Restore Y from T1, so Y is preserved by the routine
+
+.^PX4
+
+ RTS                    ; Return from the subroutine
 }
 
-.PX4                    ; rts
-{
- RTS                    ; end Pixel
-}
-
-\ *****************************************************************************
+\ ******************************************************************************
 \ Subroutine: BLINE
 \
 \ Ball line for Circle2 uses (X.T) as next y offset for arc
-\ *****************************************************************************
+\ ******************************************************************************
 
 .BLINE                  ; Ball line for Circle2 uses (X.T) as next y offset for arc
 {
