@@ -5929,13 +5929,12 @@ NEXT
 \ ******************************************************************************
 \ Variable: TWOS
 \
-\ Mode 4 single pixel.
+\ Ready-made bytes for plotting one-pixel points in mode 4 (the top part of the
+\ split screen). See the PIXEL routine for details.
 \ ******************************************************************************
 
-.TWOS                   ; Mode 4 single pixel
+.TWOS
 {
- \EQUD &10204080
- \EQUD &01020408
  EQUB %10000000
  EQUB %01000000
  EQUB %00100000
@@ -5949,13 +5948,12 @@ NEXT
 \ ******************************************************************************
 \ Variable: TWOS2
 \
-\ Mode 4 double-width pixel approx as contained in 1 column.
+\ Ready-made bytes for plotting two-pixel dashes in mode 4 (the top part of the
+\ split screen). See the PIXEL routine for details.
 \ ******************************************************************************
 
-.TWOS2                  ; Mode 4 double-width pixel approx as contained in 1 column
+.TWOS2
 {
- \EQUD &183060C0
- \EQUD &0303060C
  EQUB %11000000
  EQUB %01100000
  EQUB %00110000
@@ -5969,19 +5967,18 @@ NEXT
 \ ******************************************************************************
 \ Variable: CTWOS
 \
-\ Mode 5 coloured pixel.
+\ Ready-made bytes for plotting one-pixel points in mode 5 (the bottom part of
+\ the split screen). See the dashboard routines SCAN, DIL2 and CPIX2 for
+\ details.
 \ ******************************************************************************
 
-.CTWOS                  ; Mode 5 coloured pixel
+.CTWOS
 {
- \EQUD &11224488
- \EQUB &88               ; need extra for compass
- 
  EQUB %10001000
  EQUB %01000100
  EQUB %00100010
  EQUB %00010001
- EQUB %10001000
+ EQUB %10001000         ; One extra for the compass
 }
 
 \ ******************************************************************************
