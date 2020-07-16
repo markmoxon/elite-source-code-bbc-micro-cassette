@@ -442,7 +442,7 @@ ORG &0000
 .QQ15
 
  SKIP 6                 ; Contains the three 16-bit seeds (6 bytes) for the
-                        ; selected system, i.e. the one in the cross-hairs in
+                        ; selected system, i.e. the one in the crosshairs in
                         ; the short range chart.
                         ;
                         ; The seeds are stored as little-endian 16-bit numbers,
@@ -497,7 +497,7 @@ ORG &0000
                         ; when calculating adjectives to show for system species
                         ; names, and in TT151 when printing market prices, and
                         ; in TT111 when working out which system is nearest to
-                        ; the cross-hairs in the system charts)
+                        ; the crosshairs in the system charts)
 
 .K6
 
@@ -1070,7 +1070,7 @@ ORG CODE_WORDS%
 \   0   Current cash, right-aligned to width 9, then " CR", newline
 \   1   Current galaxy number, right-aligned to width 3
 \   2   Current system name
-\   3   Selected system name (the cross-hairs in the short range chart)
+\   3   Selected system name (the crosshairs in the short range chart)
 \   4   Commander's name
 \   5   "FUEL: ", fuel level, " LIGHT YEARS", newline, "CASH:", {0}, newline
 \   6   Switch case to Sentence Case
@@ -1287,7 +1287,7 @@ ORG CODE_WORDS%
 \   [131]         Recursive token 131               " ON "
 \   {3}           Control character 3               The selected system name
 \ 
-\ So if the system under the cross-hairs in the short range chart is Tionisla,
+\ So if the system under the crosshairs in the short range chart is Tionisla,
 \ this expands into "DATA ON TIONISLA".
 \ ******************************************************************************
 
@@ -2839,11 +2839,15 @@ ORG &0D40
 
 .QQ9
 
- SKIP 1                 ; Selected system's galactic x-coordinate
+ SKIP 1                 ; The galactic x-coordinate of the crosshairs in the
+                        ; galaxy chart (and, most of the time, the selected
+                        ; system' galactic x-coordinate)
 
 .QQ10
 
- SKIP 1                 ; Selected system's galactic y-coordinate
+ SKIP 1                 ; The galactic y-coordinate of the crosshairs in the
+                        ; galaxy chart (and, most of the time, the selected
+                        ; system' galactic y-coordinate)
 
 .NOSTM
 
@@ -3860,7 +3864,7 @@ LOAD_A% = LOAD%
  JSR PLUT               ; Call PLUT to update the geometric axes in INWK to
                         ; match the view (forward, rear, left, right)
 
- JSR HITCH              ; Call HITCH to see if this ship is in the cross-hairs,
+ JSR HITCH              ; Call HITCH to see if this ship is in the crosshairs,
  BCC MA8                ; in which case carry will be set (so if there is no
                         ; missile or laser lock, we jump to MA8 to skip the
                         ; following)
@@ -3888,7 +3892,7 @@ LOAD_A% = LOAD%
                         ; is zero, jump down to MA8 to skip the following
 
  LDX #15                ; We are firing our laser and the ship in INWK is in
- JSR EXNO               ; the cross-hairs, so call EXNO to make the sound of
+ JSR EXNO               ; the crosshairs, so call EXNO to make the sound of
                         ; us making a laser strike on another ship
 
  LDA INWK+35            ; Fetch the hit ship's energy from INWK+35 and subtract
@@ -4073,9 +4077,9 @@ LOAD_A% = LOAD%
                         ; if we set off an energy bomb, it stays activated
                         ; (BOMB > 0) for four iterations of the main loop
 
- JSR WSCAN              ; Wait for the vertical sync, so the whole screen has
-                        ; been drawn and the following palette change won't
-                        ; kick in while the screen is still refreshing
+ JSR WSCAN              ; Call WSCAN to wait for the vertical sync, so the whole
+                        ; screen gets drawn and the following palette change
+                        ; won't kick in while the screen is still refreshing
 
  LDA #%00110000         ; Set the palette byte at SHEILA+&21 to map logical
  STA SHEILA+&21         ; colour 0 to physical colour 7 (white), but with only
@@ -5116,7 +5120,7 @@ LOAD_A% = LOAD%
 \ is in the direction our Cobra is pointing in.
 \ 
 \ Of course, our first thought is to roll and pitch our Cobra to get the new
-\ arrival firmly into the cross-hairs, and in doing this the enemy ship will
+\ arrival firmly into the crosshairs, and in doing this the enemy ship will
 \ appear to move in space, relative to us. For example, if we do a pitch by
 \ pulling back on the joystick or pressing "X", this will pull the nose of our
 \ Cobra Mk III up, and the point (x, y, z) will appear to move down in the sky
@@ -11891,7 +11895,7 @@ NEXT
 {
  STX VIEW               ; laser mount
  JSR TT66               ; box border with menu id QQ11 set to Acc
- JSR SIGHT              ; laser cross-hairs
+ JSR SIGHT              ; laser crosshairs
  JMP NWSTARS            ; new dust field
 }
 
@@ -11917,14 +11921,14 @@ NEXT
 \ ******************************************************************************
 \ Subroutine: SIGHT
 \
-\ Laser cross-hairs
+\ Laser crosshairs
 \ ******************************************************************************
 
-.SIGHT                  ; Laser cross-hairs
+.SIGHT                  ; Laser crosshairs
 {
  LDY VIEW
  LDA LASER,Y
- BEQ LO2                ; no laser cross-hairs, rts
+ BEQ LO2                ; no laser crosshairs, rts
  LDA #128               ; xscreen mid
  STA QQ19
  LDA #Y-24              ; #Y-24 = #72 yscreen mid
@@ -11932,9 +11936,9 @@ NEXT
  LDA #20                ; size of cross hair
  STA QQ19+2
  JSR TT15               ; the cross hair using QQ19(0to2)
- LDA #10                ; negate out small cross-hairs
+ LDA #10                ; negate out small crosshairs
  STA QQ19+2
- JMP TT15               ; again, negate out small cross-hairs.
+ JMP TT15               ; again, negate out small crosshairs.
 }
 
 \ ******************************************************************************
@@ -12068,7 +12072,8 @@ NEXT
 
 .DELAY
 {
- JSR WSCAN              ; Jump to WSCAN to wait for the next vertical sync
+ JSR WSCAN              ; Call WSCAN to wait for the vertical sync, so the whole
+                        ; screen gets drawn
 
  DEY                    ; Decrement the counter in Y
 
@@ -12081,24 +12086,28 @@ NEXT
 \ ******************************************************************************
 \ Subroutine: hm
 \
-\ Move hyperspace cross-hairs. Returns A = 0.
+\ Move the crosshairs to the system closest to galactic coordinates (QQ9, QQ10)
+\ and, if this is not a space view, clear the bottom three text rows of the
+\ screen.
 \ ******************************************************************************
 
 .hm
 {
- JSR TT103              ; Draw small cross-hairs at coordinates (QQ9, QQ10),
-                        ; which will erase the cross-hairs that are currently
-                        ; there
+ JSR TT103              ; Draw small crosshairs at coordinates (QQ9, QQ10),
+                        ; which will erase the crosshairs currently there
 
  JSR TT111              ; Select the target system closest to galactic
                         ; coordinates (QQ9, QQ10)
 
- JSR TT103              ; Draw small cross-hairs at coordinates (QQ9, QQ10),
-                        ; which will draw the cross-hairs at our current home
+ JSR TT103              ; Draw small crosshairs at coordinates (QQ9, QQ10),
+                        ; which will draw the crosshairs at our current home
                         ; system
 
- LDA QQ11
- BEQ SC5
+ LDA QQ11               ; If this is a space view, return from the subroutine
+ BEQ SC5                ; (as SC5 contains an RTS)
+
+                        ; Otherwise fall through into CLYNS to clear space at
+                        ; the bottom of the screen
 }
 
 \ ******************************************************************************
@@ -12111,9 +12120,9 @@ NEXT
 \   &7607 to &76F0
 \   &7707 to &77F0
 \
-\ which clears the three bottom text rows of the space view (rows 21 to 23),
-\ from text column 1 to 30 (so it doesn't overwrite the box border in columns 0
-\ and 32, or the last usable column, column 31).
+\ which clears the three bottom text rows of the mode 4 screen (rows 21 to 23),
+\ clearing each row from text column 1 to 30 (so it doesn't overwrite the box
+; border in columns 0 and 32, or the last usable column in column 31).
 \
 \ Returns:
 \
@@ -13383,7 +13392,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; is 128 pixels high, starting on row 24 and ending on
                         ; row 151
 
- JSR TT14               ; Call TT14 to draw a circle with a cross-hair at the
+ JSR TT14               ; Call TT14 to draw a circle with crosshairs at the
                         ; current system's galactic coordinates
 
  LDX #0                 ; We're now going to plot each of the galaxy's systems,
@@ -13440,14 +13449,14 @@ LOAD_D% = LOAD% + P% - CODE%
  LSR A                  ; halved to fit it into the chart
  STA QQ19+1
 
- LDA #4                 ; Set QQ19+2 to 4 and fall through into TT15 to draw a
- STA QQ19+2             ; cross-hair of size 4 at the target system
+ LDA #4                 ; Set QQ19+2 to 4 and fall through into TT15 to draw
+ STA QQ19+2             ; crosshairs of size 4 at the target system
 }
 
 \ ******************************************************************************
 \ Subroutine: TT15
 \
-\ Cross hair using QQ19(0to2) for laser or chart
+\ Crosshairs using QQ19(0to2) for laser or chart
 \ ******************************************************************************
 
 .TT15                   ; cross hair using QQ19(0to2) for laser or chart
@@ -13459,15 +13468,15 @@ LOAD_D% = LOAD% + P% - CODE%
  STA QQ19+5             ; Ycross could be #24
  LDA QQ19               ; Xorg
  SEC
- SBC QQ19+2             ; cross-hair size
- BCS TT84               ; Xorg-cross-hair ok
+ SBC QQ19+2             ; crosshair size
+ BCS TT84               ; Xorg-crosshair ok
  LDA #0
 
-.TT84                   ; Xorg-cross-hair ok
+.TT84                   ; Xorg-crosshair ok
 
  STA XX15               ; left
  LDA QQ19               ; Xorg
- CLC                    ; Xorg+cross-hair size
+ CLC                    ; Xorg+crosshair size
  ADC QQ19+2
  BCC P%+4               ; no X overflow
  LDA #&FF               ; else right edge
@@ -13479,19 +13488,19 @@ LOAD_D% = LOAD% + P% - CODE%
  STA XX15+1             ; Yorg + Ycross
  JSR HLOIN              ; horizontal line  X1,Y1,X2  Yreg protected.
  LDA QQ19+1
- SEC                    ; Yorg - cross-hair size
+ SEC                    ; Yorg - crosshair size
  SBC QQ19+2
- BCS TT86               ; Yorg-cross-hair ok
+ BCS TT86               ; Yorg-crosshair ok
  LDA #0
 
-.TT86                   ; Yorg-cross-hair ok
+.TT86                   ; Yorg-crosshair ok
 
  CLC
  ADC QQ19+5             ; could be #24
  STA XX15+1             ; the top-most extent
  LDA QQ19+1             ; Yorg
  CLC
- ADC QQ19+2             ; cross-hair size
+ ADC QQ19+2             ; crosshair size
  ADC QQ19+5             ; could be #24
  CMP #152               ; Ytop
  BCC TT87               ; Yscreen sum ok
@@ -13509,13 +13518,13 @@ LOAD_D% = LOAD% + P% - CODE%
  JMP LL30               ; draw vertical line using (X1,Y1), (X2,Y2)
 }
 
-.TT126                  ; default  Circle with a cross-hair
+.TT126                  ; default  Circle with a crosshair
 {
  LDA #104               ; Xorg
  STA QQ19
  LDA #90                ; Yorg
  STA QQ19+1
- LDA #16                ; cross-hair size
+ LDA #16                ; crosshair size
  STA QQ19+2
  JSR TT15               ; the cross hair using QQ19(0to2)
  LDA QQ14               ; ship fuel #70 = #&46
@@ -13526,7 +13535,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: TT14
 \
-\ Draw a circle with a cross-hair at the current system's galactic coordinates.
+\ Draw a circle with crosshairs at the current system's galactic coordinates.
 \ ******************************************************************************
 
 .TT14                   ; Crcl/+ \ their comment \ Circle with a cross hair
@@ -13542,7 +13551,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA QQ1                ; present Y
  LSR A                  ; Y /=2
  STA QQ19+1             ; Yorg
- LDA #7                 ; cross-hair size
+ LDA #7                 ; crosshair size
  STA QQ19+2
  JSR TT15               ; present cross hair using QQ19
  LDA QQ19+1             ; Yorg
@@ -14112,133 +14121,209 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: TT16
 \
-\ Move the chart cross-hairs by the amount in X and Y.
+\ Move the chart crosshairs by the amount in X and Y.
 \
 \ Arguments:
 \
-\   X           The amount to move the cross-hairs in the x-axis, if applicable
+\   X           The amount to move the crosshairs in the x-axis, if applicable
 \
-\   Y           The amount to move the cross-hairs in the y-axis, if applicable
+\   Y           The amount to move the crosshairs in the y-axis, if applicable
 \ ******************************************************************************
 
 .TT16
 {
- TXA
- PHA                    ; Xinc
- DEY                    ; negate Yinc
- TYA
+ TXA                    ; Push the change in X onto the stack (let's call this
+ PHA                    ; the x-delta)
+
+ DEY                    ; Negate the change in Y and push it onto the stack
+ TYA                    ; (let's call this the y-delta)
  EOR #255
- PHA                    ; negate Yinc
- JSR WSCAN              ; wait for line scan, ie whole frame completed.
- JSR TT103              ; erase small cross hairs at target hyperspace
- PLA                    ; negated Yinc
- STA QQ19+3             ; inc
+ PHA
 
- LDA QQ10               ; target y
- JSR TT123              ; coordinate update, fix overflow
- LDA QQ19+4             ; result
- STA QQ10               ; target y
- STA QQ19+1             ; new Y
- PLA                    ; Xinc
+ JSR WSCAN              ; Call WSCAN to wait for the vertical sync, so the whole
+                        ; screen gets drawn and we can move the crosshairs with
+                        ; no screen flicker
 
- STA QQ19+3             ; inc
- LDA QQ9                ; target x
- JSR TT123              ; coordinate update, fix overflow
- LDA QQ19+4             ; result
- STA QQ9                ; target x
- STA QQ19               ; new X
+ JSR TT103              ; Draw small crosshairs at coordinates (QQ9, QQ10),
+                        ; which will erase the crosshairs currently there
+
+ PLA                    ; Store the y-delta in QQ19+3 and fetch the current
+ STA QQ19+3             ; y-coordinate of the crosshairs from QQ10 into A, ready
+ LDA QQ10               ; for the call to TT123
+
+ JSR TT123              ; Call TT123 to move the selected system's galactic
+                        ; y-coordinate by the y-delta, putting the new value in
+                        ; QQ19+4
+
+ LDA QQ19+4             ; Store the updated y-coordinate in QQ10 (the current
+ STA QQ10               ; y-coordinate of the crosshairs)
+
+ STA QQ19+1             ; This instruction has no effect, as QQ19+1 is
+                        ; overwritten below, both in TT103 and TT105
+
+ PLA                    ; Store the x-delta in QQ19+3 and fetch the current
+ STA QQ19+3             ; x-coordinate of the crosshairs from QQ10 into A, ready
+ LDA QQ9                ; for the call to TT123
+
+ JSR TT123              ; Call TT123 to move the selected system's galactic
+                        ; x-coordinate by the x-delta, putting the new value in
+                        ; QQ19+4
+
+ LDA QQ19+4             ; Store the updated x-coordinate in QQ9 (the current
+ STA QQ9                ; x-coordinate of the crosshairs)
+
+ STA QQ19               ; This instruction has no effect, as QQ19 is overwritten
+                        ; below, both in TT103 and TT105
+
+                        ; Now we've updated the coordinates of the crosshairs,
+                        ; fall through into TT103 to redraw them at their new
+                        ; location
 }
 
 \ ******************************************************************************
 \ Subroutine: TT103
 \
-\ Draw small cross hairs at target hyperspace system.
+\ Draw a small set of crosshairs on a galactic chart at the cooordinates in
+\ (QQ9, QQ10).
 \ ******************************************************************************
 
-.TT103                  ; Draw small cross hairs at target hyperspace system.
+.TT103
 {
- LDA QQ11               ; menu i.d.
- BEQ TT180
- BMI TT105              ; bit7 set is Short range chart cross-hair clip
- LDA QQ9                ; target x
+ LDA QQ11               ; If this is a space view, return from the subroutine
+ BEQ TT180              ; (as TT180 contains an RTS), as there are no moveable
+                        ; crosshairs in space
+
+ BMI TT105              ; If this is the Short-range Chart screen, jump to TT105
+
+ LDA QQ9                ; Store the crosshairs x-coordinate in QQ19
  STA QQ19
- LDA QQ10               ; target y
- LSR A                  ; Y /=2
- STA QQ19+1
- LDA #4                 ; small cross hair
+
+ LDA QQ10               ; Halve the crosshairs y-coordinate and store it in QQ19
+ LSR A                  ; (we halve it because the long-range chart is half as
+ STA QQ19+1             ; high as it is wide)
+
+ LDA #4                 ; Set QQ19+2 to 4 denote crosshairs of size 4
  STA QQ19+2
- JMP TT15               ; cross hairs for laser or chart
+
+ JMP TT15               ; Jump to TT15 to draw crosshairs of size 4 at the
+                        ; crosshairs coordinates, returning from the subroutine
+                        ; using a tail call
 }
 
 \ ******************************************************************************
 \ Subroutine: TT123
 \
-\ Coordinate update, fix overflow
+\ Other entry points: TT180 (RTS)
+\
+\ Move an 8-bit galactic coordinate by a certain distance in either direction
+\ (i.e. a signed 8-bit delta), but only if it doesn't cause the coordinate to
+\ overflow. The coordinate is in a single axis, so it's either an x-coordinate
+\ or a y-coordinate.
+\
+\ Arguments:
+\
+\   A           The galactic coordinate to update
+\
+\   QQ19+3      The delta (can be positive or negative)
+\
+\ Returns:
+\
+\   QQ19+4      The updated coordinate after moving by the delta (this will be
+\               the same as A if moving by the delta overflows)
 \ ******************************************************************************
 
-.TT123                  ; coordinate update, fix overflow
+.TT123
 {
- STA QQ19+4             ; coordinate to update
- CLC                    ; add inc
- ADC QQ19+3
- LDX QQ19+3
- BMI TT124              ; shift was -ve
- BCC TT125              ; else addition went o.k.
- RTS
+ STA QQ19+4             ; Store the original coordinate in temporary storage at
+                        ; QQ19+4
 
-.TT124                  ; shift was -ve
+ CLC                    ; Set A = A + QQ19+3, so A now contains the original
+ ADC QQ19+3             ; coordinate, moved by the delta
 
- BCC TT180              ; shift was -ve,  RTS.
+ LDX QQ19+3             ; If the delta is negative, jump to TT124
+ BMI TT124
 
-.TT125                  ; update ok
+ BCC TT125              ; If the C flag is clear, then the above addition didn't
+                        ; overflow, so jump to TT125 to return the updated value
 
- STA QQ19+4             ; updated coordinate
-}
+ RTS                    ; Otherwise the C flag is set and the above addition
+                        ; overflowed, so do not update the return value
 
-.TT180                  ; rts
-{
- RTS
+.TT124
+
+ BCC TT180              ; If the C flag is clear, then because the delta is
+                        ; negative, this indicates the addition (which is
+                        ; effectively a subtraction) underflowed, so jump to
+                        ; TT180 to return from the subroutine without updating
+                        ; the return value
+
+.TT125
+
+ STA QQ19+4             ; Store the updated coordinate in QQ19+4
+
+.^TT180
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
 \ Subroutine: TT105
 \
-\ Short range chart cross-hair clip
+\ Check whether the crosshairs are close enough to the current system to appear
+\ on the short-range chart, and if so, draw them.
 \ ******************************************************************************
 
-.TT105                  ; Short range chart cross-hair clip
+.TT105
 {
- LDA QQ9                ; target X
- SEC
- SBC QQ0                ; present X
- CMP #38
- BCC TT179              ; targetX-presentX, X is close
- CMP #230
- BCC TT180              ; rts
+ LDA QQ9                ; Set A = QQ9 - QQ0, the horizontal distance between the
+ SEC                    ; crosshairs (QQ9) and the current system (QQ0)
+ SBC QQ0
 
-.TT179                  ; X is close
+ CMP #38                ; If the horizontal distance in A is < 38, then the
+ BCC TT179              ; crosshairs are close enough to the current system to
+                        ; appear in the short-range chart, so jump to TT179 to
+                        ; check the vertical distance
 
- ASL A
- ASL A                  ; X*4
- CLC
- ADC #104               ; cross X
- STA QQ19
+ CMP #230               ; If the horizontal distance in A is < -26, then the
+ BCC TT180              ; crosshairs are too far from the current system to
+                        ; appear in the short-range chart, so jump to TT180 to
+                        ; return from the subroutine (as TT180 contains an RTS)
 
- LDA QQ10               ; target Y
- SEC
- SBC QQ1                ; present Y
- CMP #38
- BCC P%+6               ; targetY-presentY, Y is close
- CMP #220
- BCC TT180              ; rts
+.TT179
 
- ASL A                  ; Y*2
- CLC
- ADC #90                ; cross Y
- STA QQ19+1
- LDA #8                 ; big cross
+ ASL A                  ; Set QQ19 = 104 + A * 4
+ ASL A                  ;
+ CLC                    ; 104 is the x-coordinate of the centre of the chart,
+ ADC #104               ; so this sets QQ19 to the screen pixel x-coordinate
+ STA QQ19               ; of the crosshairs
+
+ LDA QQ10               ; Set A = QQ10 - QQ1, the vertical distance between the
+ SEC                    ; crosshairs (QQ10) and the current system (QQ1)
+ SBC QQ1
+
+ CMP #38                ; If the vertical distance in A is < 38, then the
+ BCC P%+6               ; crosshairs are close enough to the current system to
+                        ; appear in the short-range chart, so skip the next two
+                        ; instructions
+
+ CMP #220               ; If the horizontal distance in A is < -36, then the
+ BCC TT180              ; crosshairs are too far from the current system to
+                        ; appear in the short-range chart, so jump to TT180 to
+                        ; return from the subroutine (as TT180 contains an RTS)
+
+ ASL A                  ; Set QQ19+1 = 90 + A * 2
+ CLC                    ;
+ ADC #90                ; 90 is the y-coordinate of the centre of the chart,
+ STA QQ19+1             ; so this sets QQ19+1 to the screen pixel x-coordinate
+                        ; of the crosshairs
+
+
+ LDA #8                 ; Set QQ19+2 to 8 denote crosshairs of size 8
  STA QQ19+2
- JMP TT15               ; the cross hair using QQ19(0to2)
+
+ JMP TT15               ; Jump to TT15 to draw crosshairs of size 8 at the
+                        ; crosshairs coordinates, returning from the subroutine
+                        ; using a tail call
 }
 
 \ ******************************************************************************
@@ -14260,10 +14345,10 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR NLIN3              ; draw a horizontal line at pixel row 19 to box in the
                         ; title
 
- JSR TT14               ; Call TT14 to draw a circle with a cross-hair at the
+ JSR TT14               ; Call TT14 to draw a circle with crosshairs at the
                         ; current system's galactic coordinates
 
- JSR TT103              ; Draw small cross-hairs at coordinates (QQ9, QQ10),
+ JSR TT103              ; Draw small crosshairs at coordinates (QQ9, QQ10),
                         ; i.e. at the selected system
 
  JSR TT81               ; Set the seeds in QQ15 to those of the current system
@@ -16418,8 +16503,8 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: cpl
 \
-\ Print control code 3 (the selected system name, i.e. the one in the
-\ cross-hairs in the short range chart).
+\ Print control code 3 (the selected system name, i.e. the one in the crosshairs
+\ in the short range chart).
 \
 \ ******************************************************************************
 \
@@ -20662,9 +20747,9 @@ LOAD_F% = LOAD% + P% - CODE%
 \   A           The internal key number of the key pressed (see p.142 of the
 \               Advanced User Guide for a list of internal key values)
 \
-\   X           The amount to move the cross-hairs in the x-axis, if applicable
+\   X           The amount to move the crosshairs in the x-axis, if applicable
 \
-\   Y           The amount to move the cross-hairs in the y-axis, if applicable
+\   Y           The amount to move the crosshairs in the y-axis, if applicable
 \ ******************************************************************************
 
 .TT102
@@ -20683,7 +20768,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
  CMP #f6                ; If red key f6 was pressed, call TT111 to select the
  BNE TT92               ; system nearest to galactic coordinates (QQ9, QQ10)
- JSR TT111              ; (the location of the chart cross-hairs) and jump to
+ JSR TT111              ; (the location of the chart crosshairs) and jump to
  JMP TT25               ; TT25 to show the Data on System screen, returning
                         ; from the subroutine using a tail call
 
@@ -20765,21 +20850,20 @@ LOAD_F% = LOAD% + P% - CODE%
  CMP #&36               ; If "O" was pressed, do the following three JSRs,
  BNE ee2                ; otherwise jump to ee2 to skip the following
 
- JSR TT103              ; Draw small cross-hairs at coordinates (QQ9, QQ10),
-                        ; which will erase the cross-hairs that are currently
-                        ; there
+ JSR TT103              ; Draw small crosshairs at coordinates (QQ9, QQ10),
+                        ; which will erase the crosshairs currently there
 
  JSR ping               ; Set the target system to the current system (which
                         ; will move the location in (QQ9, QQ10) to the current
                         ; home system
 
- JSR TT103              ; Draw small cross-hairs at coordinates (QQ9, QQ10),
-                        ; which will draw the cross-hairs at our current home
+ JSR TT103              ; Draw small crosshairs at coordinates (QQ9, QQ10),
+                        ; which will draw the crosshairs at our current home
                         ; system
 
 .ee2
 
- JSR TT16               ; Call TT16 to move the cross-hairs by the amount in X
+ JSR TT16               ; Call TT16 to move the crosshairs by the amount in X
                         ; and Y, which were passed to this subroutine as
                         ; arguments
 
@@ -20841,7 +20925,7 @@ LOAD_F% = LOAD% + P% - CODE%
  AND #%11000000         ; keep going, otherwise return from the subroutine (as
  BEQ t95                ; t95 contains an RTS)
 
- JSR hm                 ; Call hm to move the cross-hairs to the target system
+ JSR hm                 ; Call hm to move the crosshairs to the target system
                         ; in (QQ9, QQ10), returning with A = 0
 
  STA QQ17               ; Set QQ17 = 0 to switch to ALL CAPS
@@ -22746,7 +22830,8 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
                         ; pauses the game when COPY is pressed, and unpauses
                         ; it when DELETE is pressed.
 
- JSR WSCAN              ; Wait for line scan, so the whole frame is completed
+ JSR WSCAN              ; Call WSCAN to wait for the vertical sync, so the whole
+                        ; screen gets drawn
 
  JSR RDKEY              ; Scan the keyboard from Q upwards and fetch any key
                         ; press into X
