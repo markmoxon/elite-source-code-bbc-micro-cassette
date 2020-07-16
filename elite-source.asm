@@ -2504,11 +2504,11 @@ ORG &0D40
                         ;
                         ; Each slot contains a ship type from 1-13 (see the list
                         ; of ship types in location XX21), or 0 if the slot is
-                        ; empty
+                        ; empty.
                         ; 
                         ; The corresponding address in the lookup table at UNIV
                         ; points to the ship's data block, which in turn points
-                        ; to that ship's line heap space
+                        ; to that ship's line heap space.
                         ;
                         ; The first ship slot at location FRIN is reserved for
                         ; the planet.
@@ -13387,7 +13387,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; row 151
 
  JSR TT14               ; Call TT14 to draw a circle with a cross-hair at the
-                        ; current system's galaxtic coordinates
+                        ; current system's galactic coordinates
 
  LDX #0                 ; We're now going to plot each of the galaxy's systems,
                         ; so set up a counter in X for each system, starting at
@@ -13529,7 +13529,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: TT14
 \
-\ Circle with a cross hair
+\ Draw a circle with a cross-hair at the current system's galactic coordinates.
 \ ******************************************************************************
 
 .TT14                   ; Crcl/+ \ their comment \ Circle with a cross hair
@@ -13672,7 +13672,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  JSR TT67               ; Print a newline
  
- LDX #0                 ; These instructions are not needed, as they are
+ LDX #0                 ; These instructions have no effect, as they are
  STX R                  ; repeated at the start of gnum, which we call next.
  LDX #12                ; Perhaps they were left behind when code was moved from
  STX T1                 ; here into gnum, and weren't deleted?
@@ -14045,8 +14045,8 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #164               ; Print recursive token 4 ("INVENTORY{crlf}") followed
  JSR TT60               ; by a paragraph break and Sentence Case
 
- JSR NLIN4              ; Draw a horizontal line at pixel row 19, to box out
-                        ; the title
+ JSR NLIN4              ; Draw a horizontal line at pixel row 19 to box in the
+                        ; title
 
  JSR fwl                ; Call fwl to print the fuel and cash levels on two
                         ; separate lines
@@ -14115,10 +14115,16 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: TT16
 \
-\ Arrive with X and Y values values to shift cross-hairs on charts by
+\ Move the chart cross-hairs by the amount in X and Y.
+\
+\ Arguments:
+\
+\   X           The amount to move the cross-hairs in the x-axis, if applicable
+\
+\   Y           The amount to move the cross-hairs in the y-axis, if applicable
 \ ******************************************************************************
 
-.TT16                   ; Arrive with X and Y values values to shift cross-hairs on charts by
+.TT16
 {
  TXA
  PHA                    ; Xinc
@@ -14244,122 +14250,240 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Show the Short-range Chart (red key f5).
 \ ******************************************************************************
 
-.TT23                   ; ShrtSc \ their comment \ Short range chart
+.TT23
 {
- LDA #128               ; Set bit7 of menu i.d.
- JSR TT66               ; box border with QQ11 set to A
- LDA #7                 ; indent
+ LDA #128               ; Clear the top part of the screen, draw a box border,
+ JSR TT66               ; and set the current view type in QQ11 to 128 (Short-
+                        ; range Chart)
+
+ LDA #7                 ; Move the text cursor to column 7
  STA XC
- LDA #190               ; token = SHORT RANGE CHART
- JSR NLIN3              ; title string and draw line underneath
- JSR TT14               ; Circle+cross hair, small cross at target
- JSR TT103              ; draw small cross hairs at target hyperspace system
+
+ LDA #190               ; Print recursive token 30 ("SHORT RANGE CHART") and
+ JSR NLIN3              ; draw a horizontal line at pixel row 19 to box in the
+                        ; title
+
+ JSR TT14               ; Call TT14 to draw a circle with a cross-hair at the
+                        ; current system's galactic coordinates
+
+ JSR TT103              ; Draw small cross-hairs at coordinates (QQ9, QQ10),
+                        ; i.e. at the selected system
 
  JSR TT81               ; Set the seeds in QQ15 to those of the current system
                         ; (i.e. copy the seeds from QQ21 to QQ15)
 
- LDA #0                 ; future counter
- STA XX20
- LDX #24                ; Clear 24 row to label stars
+ LDA #0                 ; Set A = 0, which we'll use below to zero out the INWK
+                        ; workspace
 
-.EE3                    ; counter X
+ STA XX20               ; We're about to start working our way through each of
+                        ; the galaxy's systems, so set up a counter in XX20 for
+                        ; each system, starting at 0 and looping through to 255
 
- STA INWK,X
- DEX
- BPL EE3                ; loop X
+ LDX #24                ; First, though, we need to zero out the 25 bytes at
+                        ; INWK so we can use them to work out which systems have
+                        ; room for a label, so set a counter in X for 25 bytes
 
-.TT182                  ; Counter XX20 through 256 stars
+.EE3
 
- LDA QQ15+3
- SEC                    ; Xcoord of star
+ STA INWK,X             ; Set the X-th byte of INWK to zero
+
+ DEX                    ; Decrement the counter
+
+ BPL EE3                ; Loop back to EE3 for the next byte until we've zeroed
+                        ; all 25 bytes
+
+                        ; We now loop through every single system in the galaxy
+                        ; and check the distance from the current system whose
+                        ; coordinates are in (QQ0, QQ1). We get the galactic
+                        ; coordinates of each system from the system's seeds,
+                        ; like this:
+                        ;
+                        ;   x = w1_hi (which is stored in QQ15+3)
+                        ;   y = w0_hi (which is stored in QQ15+1)
+                        ;
+                        ; so the following loops through each system in the
+                        ; galaxy in turn and calculates the distance between
+                        ; (QQ0, QQ1) and (w1_hi, w0_hi) to find the closest one
+
+.TT182
+
+ LDA QQ15+3             ; Set A = w1_hi - QQ0, the horizontal distance between
+ SEC                    ; (w1_hi, w0_hi) and (QQ0, QQ1)
  SBC QQ0
- BCS TT184              ; xsubtracted
- EOR #&FF               ; else negate
- ADC #1
 
-.TT184                  ; xsubtracted
+ BCS TT184              ; If a borrow didn't occur, i.e. w1_hi >= QQ0, then the
+                        ; result is positive, so jump to TT184 and skip the
+                        ; following two instructions
 
- CMP #20                ; x distance close?
- BCS TT187              ; skip star plotting
- LDA QQ15+1
- SEC                    ; Ycoord of star
- SBC QQ1                ; Ypresent
- BCS TT186              ; ysubtracted
- EOR #&FF               ; else negate
- ADC #1
+ EOR #&FF               ; Otherwise negate the result in A, so A is always
+ ADC #1                 ; positive (i.e. A = |w1_hi - QQ0|)
 
-.TT186                  ; ysubstracted
+.TT184
 
- CMP #38                ; y distance close?
- BCS TT187              ; skip star plotting
+ CMP #20                ; If the horizontal distance in A is >= 20, then this
+ BCS TT187              ; system is too far away from the current system to
+                        ; appear in the short-range chart, so jump to TT187 to
+                        ; move on to the next system
 
- LDA QQ15+3
- SEC                    ; X coord of star
- SBC QQ0
- ASL A                  ; X present
- ASL A                  ; *=4
- ADC #104               ; xplot
- STA XX12
- LSR A
- LSR A                  ; x text cursor
+ LDA QQ15+1             ; Set A = w0_hi - QQ1, the vertical distance between
+ SEC                    ; (w1_hi, w0_hi) and (QQ0, QQ1)
+ SBC QQ1
+
+ BCS TT186              ; If a borrow didn't occur, i.e. w0_hi >= QQ1, then the
+                        ; result is positive, so jump to TT186 and skip the
+                        ; following two instructions
+
+ EOR #&FF               ; Otherwise negate the result in A, so A is always
+ ADC #1                 ; positive (i.e. A = |w0_hi - QQ1|)
+
+.TT186
+
+ CMP #38                ; If the vertical distance in A is >= 38, then this
+ BCS TT187              ; system is too far away from the current system to
+                        ; appear in the short-range chart, so jump to TT187 to
+                        ; move on to the next system
+
+                        ; This system should be shown on the short-range chart,
+                        ; so now we need to work out where the label should go,
+                        ; and set up the various variables we need to draw the
+                        ; system's filled circle on the chart
+
+ LDA QQ15+3             ; Set A = w1_hi - QQ0, the horizontal distance between
+ SEC                    ; this system and the current system, where |A| < 20.
+ SBC QQ0                ; Let's call this the x-delta, as it's the horizontal
+                        ; difference between the current system at the centre of
+                        ; the chart, and this system (and this time we keep the
+                        ; sign of A, so it can be negative if it's to the left
+                        ; of the chart's centre, or positive if it's to the
+                        ; right)
+
+ ASL A                  ; Set XX12 = 104 + x-delta * 4
+ ASL A                  ;
+ ADC #104               ; 104 is the x-coordinate of the centre of the chart,
+ STA XX12               ; so this sets XX12 to the centre 104 +/- 76, the pixel
+                        ; x-coordinate of this system
+
+ LSR A                  ; Move the text cursor to column x-delta / 2 + 1
+ LSR A                  ; which will be in the range 1-10
  LSR A
  STA XC
  INC XC
- LDA QQ15+1
- SEC                    ; Y coord of star
- SBC QQ1
- ASL A                  ; Y present
- ADC #90                ; yplot
- STA K4
+
+ LDA QQ15+1             ; Set A = w0_hi - QQ1, the vertical distance between
+ SEC                    ; this system and the current system, where |A| < 38.
+ SBC QQ1                ; Let's call this the y-delta, as it's the vertical
+                        ; difference between the current system at the centre of
+                        ; the chart, and this system (and this time we keep the
+                        ; sign of A, so it can be negative if it's above the
+                        ; chart's centre, or positive if it's below)
+
+ ASL A                  ; Set K4 = 90 + y-delta * 2
+ ADC #90                ;
+ STA K4                 ; 90 is the y-coordinate of the centre of the chart,
+                        ; so this sets K4 to the centre 90 +/- 74, the pixel
+                        ; y-coordinate of this system
+
+ LSR A                  ; Set Y = K4 / 8, so Y contains the number of the text
+ LSR A                  ; row that contains this system
  LSR A
- LSR A
- LSR A
+ TAY
 
- TAY                    ; y text cursor
- LDX INWK,Y
- BEQ EE4                ; empty label row
- INY                    ; else try row above
- LDX INWK,Y
- BEQ EE4                ; empty label row
- DEY                    ; else try row below
- DEY
- LDX INWK,Y
- BNE ee1
+                        ; Now to see if there is room for this system's label.
+                        ; Ideally we would print the system name on the same
+                        ; text row as the system, but we only want to print one
+                        ; label per row, to prevent overlap, so now we check
+                        ; this system's row, and if that's already occupied,
+                        ; the row above, and if that's already occupied, the
+                        ; row below... and if that's already occupied, we give
+                        ; up and don't print a label for this system
 
-.EE4                    ; found empty label row
+ LDX INWK,Y             ; If the value in INWK+Y is 0 (i.e. the text row
+ BEQ EE4                ; containing this system does not already have another
+                        ; system's label on it), jump to EE4 to store this
+                        ; system's label on this row
 
- STY YC
- CPY #3                 ; < 3rd row?
- BCC TT187              ; skip star plotting
- DEX
- STX INWK,Y
+ INY                    ; If the value in INWK+Y+1 is 0 (i.e. the text row below
+ LDX INWK,Y             ; the one containing this system does not already have
+ BEQ EE4                ; another system's label on it), jump to EE4 to store
+                        ; this system's label on this row
 
- LDA #128               ; First label letter capital
+ DEY                    ; If the value in INWK+Y-1 is 0 (i.e. the text row above
+ DEY                    ; the one containing this system does not already have
+ LDX INWK,Y             ; another system's label on it), fall through into to
+ BNE ee1                ; EE4 to store this system's label on this row,
+                        ; otherwise jump to ee1 to skip printing a label for
+                        ; this system (as there simply isn't room)
+
+.EE4
+
+ STY YC                 ; Now to print the label, so move the text cursor to row
+                        ; Y (which contains the row where we can print this
+                        ; system's label)
+
+ CPY #3                 ; If Y < 3, then the label would clash with the chart
+ BCC TT187              ; title, so jump to TT187 to skip printing the label
+
+ DEX                    ; We entered the EE4 routine with X = 0, so this stores
+ STX INWK,Y             ; &FF in INWK+Y, to denote that this row is now occupied
+                        ; so we don't try to print another system's label on
+                        ; this row
+
+ LDA #128               ; Set QQ17 to 128, which denotes Sentence Case
  STA QQ17
- JSR cpl
 
-.ee1                    ; bigstars \ their comment \ no label, just the star.
+ JSR cpl                ; Call cpl to print out the system name for the seeds
+                        ; in QQ15 (which now contains the seeds for the current
+                        ; system)
 
- LDA #0                 ; hi = 0
- STA K3+1
+.ee1
+
+ LDA #0                 ; Now to plot the star, so set the high bytes of K, K3
+ STA K3+1               ; and K4 to 0
  STA K4+1
  STA K+1
- LDA XX12               ; xplot for star
- STA K3
- LDA QQ15+5             ; seed w2_h
- AND #1                 ; use lowest bit of w2_h for star size, lowest 4 did planet radius
- ADC #2                 ; sun radius
- STA K
- JSR FLFLLS             ; clear array
- JSR SUN                ; clear lines
- JSR FLFLLS
 
-.TT187                  ; skipped star plotting
+ LDA XX12               ; Set the low byte of K3 to XX12, the pixel x-coordinate
+ STA K3                 ; of this system
 
- JSR TT20               ; Twist galaxy seed
- INC XX20
- BEQ TT111-1            ; all 256 done, rts 
- JMP TT182              ; loop XX20 next star
+ LDA QQ15+5             ; Fetch w2_hi for this system from QQ15+5, extract bit 0
+ AND #1                 ; and add 2 to get the size of the star, which we store
+ ADC #2                 ; in K. This will be either 2, 3 or 4, depending on the
+ STA K                  ; value of bit 0, and whether the C flag is set (which
+                        ; will vary depending on what happens in the above call
+                        ; to cpl). Incidentally, the planet's average radius
+                        ; also uses w2_hi, bits 0-3 to be precise, but that
+                        ; doesn't mean the two sizes affect each other
+
+                        ; We now have the following:
+                        ;
+                        ;   K(1 0)  = radius of star (2, 3 or 4)
+                        ;
+                        ;   K3(1 0) = pixel x-coordinate of system
+                        ;
+                        ;   K4(1 0) = pixel y-coordinate of system
+                        ;
+                        ; which we can now pass to the SUN routine to draw a
+                        ; small "sun" on the short-range chart for this system
+
+ JSR FLFLLS             ; Call FLFLLS to reset the LSO block
+
+ JSR SUN                ; Call SUN to plot a sun with radius K at pixel
+                        ; coordinate (K3, K4)
+
+ JSR FLFLLS             ; Call FLFLLS to reset the LSO block
+
+.TT187
+
+ JSR TT20               ; We want to move on to the next system, so call TT20
+                        ; to twist the three 16-bit seeds in QQ15
+
+ INC XX20               ; Increment the counter
+
+ BEQ TT111-1            ; If X = 0 then we have done all 256 systems, so return
+                        ; from the subroutine (as TT111-1 contains an RTS)
+
+ JMP TT182              ; Otherwise jump back up to TT182 to process the next
+                        ; system
 }
 
 \ ******************************************************************************
@@ -14388,6 +14512,8 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \ Subroutine: TT111
+\
+\ Other entry points: TT111-1 (RTS)
 \
 \ Given a set of galactic coordinates in (QQ9, QQ10), find the nearest system
 \ to this point in the galaxy, and set this as the currently selected system.
@@ -14423,8 +14549,8 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; galactic coordinates of each system from the system's
                         ; seeds, like this:
                         ;
-                        ;   x = w1_hi
-                        ;   y = w0_hi
+                        ;   x = w1_hi (which is stored in QQ15+3)
+                        ;   y = w0_hi (which is stored in QQ15+1)
                         ;
                         ; so the following loops through each system in the
                         ; galaxy in turn and calculates the distance between
@@ -15192,7 +15318,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  LDA #167               ; Print recursive token 7 token ("{current system name}
  JSR NLIN3              ; MARKET PRICES") and draw a horizontal line at pixel
-                        ; row 19
+                        ; row 19 to box in the title
 
  LDA #3                 ; Move the text cursor to row 3
  STA YC
@@ -16359,10 +16485,12 @@ MAPCHAR '4', '4'
                         ; 2 instructions to go to step 3
 
  ORA #%10000000         ; We now have a number in the range 1-31, which we can
- JSR TT27               ; easily convert into a two-letter token, but first we
+                        ; easily convert into a two-letter token, but first we
                         ; need to add 128 (or set bit 7) to get a range of
                         ; 129-159
 
+ JSR TT27               ; Print the two-letter token in A
+ 
  JSR TT54               ; Step 3: twist the seeds in QQ15
 
  DEC T                  ; Decrement the loop counter
