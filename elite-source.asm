@@ -17579,22 +17579,39 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: FLFLLS
 \
-\ New Flood-filled Sun, ends with Acc=0
+\ Reset the LSO block by zero-filling it and setting LSO to &FF.
+\
+\ Returns:
+\
+\   A           Set to 0
 \ ******************************************************************************
 
-.FLFLLS                 ; New Flood-filled Sun, ends with Acc=0
+.FLFLLS
 {
- LDY #2*Y-1             ; #2*Y-1 is top of Yscreen
- LDA #0                 ; clear each line
+ LDY #2*Y-1             ; #Y is the y-coordinate of the centre of the mode 4
+                        ; space view, so this sets Y as a counter for the number
+                        ; of lines in the space view (i.e. 191), which is also
+                        ; the number of lines in the LSO block
 
-.SAL6                   ; counter Y
+ LDA #0                 ; Set A to 0 so we can zero-fill the LSO block
 
- STA LSO,Y              ; line buffer solar
- DEY                    ; fill next line with zeros
- BNE SAL6               ; loop Y
- DEY                    ; Yreg = #&FF
- STY LSX                ; overlaps with LSO vector
- RTS
+.SAL6
+
+ STA LSO,Y              ; Set the Y-th byte of the LSO block to 0
+
+ DEY                    ; Decrement the counter
+
+ BNE SAL6               ; Loop back until we have filled all the way to LSO+1
+
+ DEY                    ; Decrement Y to value of &FF (as we exit the above loop
+                        ; with Y = 0)
+
+ STY LSX                ; Set the first byte of the LSO block, which shares its
+                        ; location with LSX, to &FF (this could also be written
+                        ; STY LSO, which would be clearer, but for some reason
+                        ; it isn't)
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -18809,7 +18826,15 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: SUN
 \
-\ Sun with radius K
+\ Plot a sun with radius K at pixel coordinate (K3, K4).
+\
+\ Arguments:
+\
+\   K(1 0)      The sun's radius as a 16-bit integer
+\
+\   K3(1 0)     Pixel x-coordinate of the centre of the sun as a 16-bit integer
+\
+\   K4(1 0)     Pixel y-coordinate of the centre of the sun as a 16-bit integer
 \ ******************************************************************************
 
 .SUN                    ; Sun with radius K
@@ -19181,7 +19206,7 @@ MAPCHAR '4', '4'
 
 .WPLS                   ; Wipe Sun
 {
- LDA LSX                ; LSO
+ LDA LSX
  BMI WPLS-1             ; rts
  LDA SUNX
  STA YY                 ; mid-point of line lo
@@ -19197,7 +19222,7 @@ MAPCHAR '4', '4'
  DEY
  BNE WPL2               ; loop Y
  DEY                    ; Yreg = #&FF, solar empty.
- STY LSX                ; LSO
+ STY LSX
  RTS
 }
 
