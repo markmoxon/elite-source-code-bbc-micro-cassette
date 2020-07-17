@@ -389,46 +389,60 @@ ORG &0000
                         ;
                         ; INWK    = x_lo
                         ; INWK+1  = x_hi
-                        ; INWK+2  = x_sign (for planets, x_distance)
+                        ; INWK+2  = x_distance (for planet or sun)
+                        ;           x_sign     (for ship)
+                        ;
                         ; INWK+3  = y_lo
                         ; INWK+4  = y_hi
-                        ; INWK+5  = y_sign (for planets, y_distance)
+                        ; INWK+5  = y_distance (for planet or sun)
+                        ;           y_sign     (for ship)
+                        ;
                         ; INWK+6  = z_lo
                         ; INWK+7  = z_hi
-                        ; INWK+8  = z_sign (for planets, z_distance)
+                        ; INWK+8  = z_distance (for planet or sun)
+                        ;           z_sign     (for ship)
+                        ;
                         ; INWK+9  = rotmat0x_lo
                         ; INWK+10 = rotmat0x_hi     xincrot_hi
                         ; INWK+11 = rotmat0y_lo
                         ; INWK+12 = rotmat0y_hi     yincrot_hi
                         ; INWK+13 = rotmat0z_lo
                         ; INWK+14 = rotmat0z_hi     zincrot_hi
+                        ;
                         ; INWK+15 = rotmat1x_lo
                         ; INWK+16 = rotmat1x_hi
                         ; INWK+17 = rotmat1y_lo
                         ; INWK+18 = rotmat1y_hi
                         ; INWK+19 = rotmat1z_lo
                         ; INWK+20 = rotmat1z_hi
+                        ;
                         ; INWK+21 = rotmat2x_lo
                         ; INWK+22 = rotmat2x_hi
                         ; INWK+23 = rotmat2y_lo
                         ; INWK+24 = rotmat2y_hi
                         ; INWK+25 = rotmat2z_lo
                         ; INWK+26 = rotmat2z_hi
+                        ;
                         ; INWK+27 = speed (32 = quite fast)
                         ; INWK+28 = acceleration
+                        ;
                         ; INWK+29 = rotx counter, 127 = no damping, damps roll
                         ; INWK+30 = rotz counter, 127 = no damping, damps pitch
+                        ;
                         ; INWK+31 = exploding/killed state, or missile count
                         ;           Bit 5 = 0 (not exploding) or 1 (exploding)
                         ;           Bit 7 = 1 (ship has been killed)
+                        ;
                         ; INWK+32 = AI, hostitity and E.C.M.
                         ;           Bit 0 = 0 (no E.C.M.) or 1 (has E.C.M.)
                         ;           Bit 6 = 0 (friendly) or 1 (hostile)
                         ;           Bit 7 = 0 (dumb) or 1 (has AI)
                         ;           So &FF = AI, hostile, has E.C.M.
                         ;           For space station, bit 7 set = angry
-                        ; INWK+33 = ship lines heap space pointer lo
-                        ; INWK+34 = ship lines heap space pointer hi
+                        ;
+                        ; INWK+33 = ship lines heap space pointer low byte
+                        ; INWK+34                                 high byte
+                        ;
                         ; INWK+35 = ship energy
 
 .XX19
@@ -2503,8 +2517,9 @@ ORG &0D40
  SKIP NOSH + 1          ; Slots for the 13 ships in the local bubble of universe
                         ;
                         ; Each slot contains a ship type from 1-13 (see the list
-                        ; of ship types in location XX21), or 0 if the slot is
-                        ; empty.
+                        ; of ship types in location XX21), 0 if the slot is
+                        ; empty, 80 or 82 for the planet, or 129 if this is the
+                        ; sun.
                         ; 
                         ; The corresponding address in the lookup table at UNIV
                         ; points to the ship's data block, which in turn points
@@ -17525,54 +17540,80 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: SOS1
 \
-\ Set up planet
+\ Update the missile indicators, and set up a data block for the planet, but
+\ only setting the rotx and rotz counters to 127 (no damping).
 \ ******************************************************************************
 
-.SOS1                   ; Set up planet
+.SOS1
 {
- JSR msblob             ; draw all missile indicators
- LDA #127               ; no damping of rotation
- STA INWK+29            ; rotx counter
- STA INWK+30            ; roty counter
- LDA tek                ; techlevel of present system
- AND #2                 ; bit1 determines planet type 80..82
- ORA #128               ; type is planet
- JMP NWSHP              ; new ship type Acc
+ JSR msblob             ; Update the dashboard's missile indicators
+ 
+ LDA #127               ; Set the rotx and rotz counters to 127 (no damping
+ STA INWK+29            ; so the planet's rotation doesn't slow down)
+ STA INWK+30
+ 
+ LDA tek                ; Set A = 128 or 130 depending on bit 1 of the system's
+ AND #%00000010         ; tech level in tek
+ ORA #%10000000
+
+ JMP NWSHP              ; Add a new planet to our little bubble of universe,
+                        ; with the planet type defined by A (128 is a planet
+                        ; with an equator and meridian, 130 is a planet with
+                        ; a crater)
 }
 
 \ ******************************************************************************
 \ Subroutine: SOLAR
 \
-\ Set up planet and sun
+\ Halve our legal status, update the missile indicators, and set up data blocks
+\ and slots for the planet and sun.
 \ ******************************************************************************
 
-.SOLAR                  ; Set up planet and sun
+.SOLAR
 {
- LSR FIST               ; reduce Fugitative/Innocent legal status
- JSR ZINF               ; Call ZINF to reset the INWK ship workspace
- LDA QQ15+1             ; w0_h is Economy
- AND #7                 ; disc version has AND 3
- ADC #6                 ; disc version has ADC 3
- LSR A                  ; not in disc version
- STA INWK+8             ; zsg is planet distance
- ROR A                  ; planet off to top right
- STA INWK+2             ; xsg
- STA INWK+5             ; ysg
+ LSR FIST               ; Halve our legal status in FIST, making us less bad
+                        ; moving bit 0 into the C flag (so every time we arrive
+                        ; in a new system, our legal status improves a bit)
 
- JSR SOS1               ; set up planet,up.
- LDA QQ15+3             ; w1_h
- AND #7
- ORA #129               ; sun behind you
- STA INWK+8             ; zsg
- LDA QQ15+5             ; w2_h
- AND #3
- STA INWK+2             ; xsg
- STA INWK+1             ; xhi
- LDA #0                 ; no rotation for sun
- STA INWK+29            ; rotx counter
- STA INWK+30            ; rotz counter
- LDA #&81               ; type is Sun
- JSR NWSHP              ; new ship type Acc
+ JSR ZINF               ; Call ZINF to reset the INWK ship workspace, which
+                        ; doesn't affect the C flag
+
+ LDA QQ15+1             ; Fetch w0_hi, extract bits 0-2 (which also happen to
+ AND #%00000111         ; determine the economy), add 6 + C, divide by 2, and
+ ADC #6                 ; store the result - which will be between 3 and 7 - in
+ LSR A                  ; z_distance in INWK+6
+ STA INWK+8
+ 
+ ROR A                  ; Halve A, rotating in the C flag, which was previously
+ STA INWK+2             ; bit 0 of w0_hi + 6 + C, so when this is stored in both
+ STA INWK+5             ; x_distance and y_distance, it moves the planet to the
+                        ; upper right or lower left
+
+ JSR SOS1               ; Call SOS1 to set up the planet's data block and add it
+                        ; to FRIN, where it will get put in the first slot as
+                        ; it's the first one to be added to our little bubble of
+                        ; this new system's universe
+
+ LDA QQ15+3             ; Fetch w1_hi, extract bits 0-2, set bits 0 and 7 and
+ AND #%00000111         ; store in z_distance, so the sun is behind us at a
+ ORA #%10000001         ; distance of 1 to 7
+ STA INWK+8
+
+ LDA QQ15+5             ; Fetch w2_hi, extract bits 0-1 and store in x_distance
+ AND #%00000011         ; and y_distance, so the sun is either dead in our rear
+ STA INWK+2             ; laser crosshairs, or off to the top left by a distance
+ STA INWK+1             ; of 1 or 2 when we look out the back
+
+ LDA #0                 ; Set the rotx and rotz counters to 0 (no rotation)
+ STA INWK+29
+ STA INWK+30
+
+ LDA #&81               ; Set A = 129, the "ship" type for the sun
+
+ JSR NWSHP              ; Call NWSHP to set up the sun's data block and add it
+                        ; to FRIN, where it will get put in the second slot as
+                        ; it's the second one to be added to our little bubble
+                        ; of this new system's universe
 }
 
 \ ******************************************************************************
