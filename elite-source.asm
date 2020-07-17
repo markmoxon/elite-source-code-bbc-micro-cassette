@@ -156,7 +156,9 @@ ORG &0000
 
 .XX0
 
- SKIP 2                 ; Stores address of ship blueprint in NWSHP
+ SKIP 2                 ; Stores the address of the ship blueprint in NWSHP,
+                        ; and the blurprint of the current ship being analysed
+                        ; in the main flight loop
 
 .INF
 
@@ -359,8 +361,8 @@ ORG &0000
 
  SKIP 1                 ; Missile lock target
                         ; 
-                        ; &FF = no target, otherwise contains the number of the
-                        ; ship in the missile lock
+                        ; &FF = no target, otherwise contains the slot number of
+                        ; the ship that our missile is locked onto
 
 .XX1
  
@@ -433,12 +435,20 @@ ORG &0000
                         ;           Bit 5 = 0 (not exploding) or 1 (exploding)
                         ;           Bit 7 = 1 (ship has been killed)
                         ;
-                        ; INWK+32 = AI, hostitity and E.C.M.
-                        ;           Bit 0 = 0 (no E.C.M.) or 1 (has E.C.M.)
-                        ;           Bit 6 = 0 (friendly) or 1 (hostile)
-                        ;           Bit 7 = 0 (dumb) or 1 (has AI)
-                        ;           So &FF = AI, hostile, has E.C.M.
-                        ;           For space station, bit 7 set = angry
+                        ; INWK+32 = AI, hostility and E.C.M. flags
+                        ;
+                        ;           For ships:
+                        ;               Bit 0 = 0 (no E.C.M.) or 1 (has E.C.M.)
+                        ;               Bit 6 = 0 (friendly) or 1 (hostile)
+                        ;               Bit 7 = 0 (dumb) or 1 (has AI)
+                        ;
+                        ;           For space station:
+                        ;               Bit 7 = 0 (friendly) or 1 (angry)
+                        ;
+                        ;           For missiles:
+                        ;               Bit 0 = 0 (not locked) or 1 (target locked)
+                        ;               Bits 1-6 = target's slot number
+                        ;               Bit 7 = 0 (dumb) or 1 (has AI)
                         ;
                         ; INWK+33 = ship lines heap space pointer low byte
                         ; INWK+34                                 high byte
@@ -2530,8 +2540,9 @@ ORG &0D40
                         ;
                         ; The second ship slot at FRIN+1 is reserved for the
                         ; sun or space station (we only ever have one of these
-                        ; in our local bubble of space). If FRIN+1 is 0, we
-                        ; show the space station, otherwise we show the sun.
+                        ; in our local bubble of space). If FRIN+1 is #SST (8)
+                        ; then we show the space station, otherwise it is 0 and
+                        ; we show the sun.
                         ;
                         ; Ships in our local bubble start at FRIN+2 onwards.
                         ; The slots are kept in order, with asteroids first.
@@ -2592,9 +2603,14 @@ ORG &0D40
 
 .MSAR
 
- SKIP 1                 ; Leftmost missile is currently armed
+ SKIP 1                 ; Leftmost missile is currently armed and seeking a
+                        ; target
                         ;
-                        ; 0 = no, non-zero = yes
+                        ; 0 = missile is not looking for a target, or it already
+                        ;     has a target lock (indicator is not yellow)
+                        ;
+                        ; non-zero = missile is currently looking for a target
+                        ;            (indicator is yellow)
 
 .VIEW
 
@@ -2792,10 +2808,11 @@ ORG &0D40
 
 .SLSP
 
- SKIP 2                 ; Points to the start of the ship lines heap space,
-                        ; which is a descending block that starts at SLSP and
-                        ; ends at WP, and which can be extended downwards by
-                        ; lowering SLSP if more heap space is required
+ SKIP 2                 ; Points to the bottom of the ship lines heap space,
+                        ; which is a descending block that starts at WP and
+                        ; descends down to SLSP, and which can be extended
+                        ; downwards by lowering SLSP if more heap space is
+                        ; required
 
 .XX24
 
@@ -2856,13 +2873,13 @@ ORG &0D40
 
  SKIP 1                 ; The galactic x-coordinate of the crosshairs in the
                         ; galaxy chart (and, most of the time, the selected
-                        ; system' galactic x-coordinate)
+                        ; system's galactic x-coordinate)
 
 .QQ10
 
  SKIP 1                 ; The galactic y-coordinate of the crosshairs in the
                         ; galaxy chart (and, most of the time, the selected
-                        ; system' galactic y-coordinate)
+                        ; system's galactic y-coordinate)
 
 .NOSTM
 
@@ -3151,7 +3168,7 @@ LOAD_A% = LOAD%
 
  LDY #&EE               ; The "disarm missiles" key is being pressed, so call
  JSR ABORT              ; ABORT to disarm the missile and update the missile
-                        ; indicators on the dashboard
+                        ; indicators on the dashboard to green (Y = &EE)
 
  LDA #40                ; Call the NOISE routine with A = 40 to make a low,
  JSR NOISE              ; long beep to indicate the missile is now disarmed
@@ -3343,9 +3360,11 @@ LOAD_A% = LOAD%
 \
 \ Other entry points:
 \
-\   MAL1        Marks the beginning of the ship loop, so we can jump back here
-\               from part 12 of the main flight loop, looping to process each
-\               ship in the local bubble
+\   MAL1        Marks the beginning of the ship analysis loop, so we can jump
+\               back here from part 12 of the main flight loop to work our way
+\               through each ship in the local bubble. We also jump back here
+\               when a ship is removed from the bubble, so we can continue
+\               processing from the next ship
 \ ******************************************************************************
 
 .MA3
@@ -3900,7 +3919,7 @@ LOAD_A% = LOAD%
                         ; the BEEP subroutine to make a short, high beep
 
  LDX XSAV               ; Call ABORT2 to store the details of this missile
- LDY #&E                ; lock, with the targeted ship's slot number in X
+ LDY #&0E               ; lock, with the targeted ship's slot number in X
  JSR ABORT2             ; (which we stored in XSAV at the start of this ship's
                         ; loop at MAL1), and set the colour of the misile
                         ; indicator to the colour in Y (red = &0E)
@@ -7549,8 +7568,8 @@ NEXT
  JSR TT66               ; and set the current view type in QQ11 to 8 (Status
                         ; Mode screen)
 
- JSR TT111              ; Select the target system closest to galactic
-                        ; coordinates (QQ9, QQ10)
+ JSR TT111              ; Select the system closest to galactic coordinates
+                        ; (QQ9, QQ10)
 
  LDA #7                 ; Move the text cursor to column 7
  STA XC
@@ -9797,8 +9816,11 @@ LOAD_C% = LOAD% +P% - CODE%
  JSR GINF               ; get address, INF, for ship X nearby from UNIV.
  LDA FRIN,X             ; get nearby ship type
  JSR ANGRY              ; for ship type Acc., visit down.
- LDY #0                 ; black missile indicator as gone
- JSR ABORT              ; draw missile indicator
+
+ LDY #0                 ; We have just launched a missile, so we need to remove
+ JSR ABORT              ; missile lock and hide the leftmost indicator on the
+                        ; dashboard by setting it to black (Y = 0)
+
  DEC NOMSL              ; reduce number of player's missles
 
  LDA #48                ; Call the NOISE routine with A = 48 to make the sound
@@ -12153,8 +12175,8 @@ NEXT
  JSR TT103              ; Draw small crosshairs at coordinates (QQ9, QQ10),
                         ; which will erase the crosshairs currently there
 
- JSR TT111              ; Select the target system closest to galactic
-                        ; coordinates (QQ9, QQ10)
+ JSR TT111              ; Select the system closest to galactic coordinates
+                        ; (QQ9, QQ10)
 
  JSR TT103              ; Draw small crosshairs at coordinates (QQ9, QQ10),
                         ; which will draw the crosshairs at our current home
@@ -13504,15 +13526,15 @@ LOAD_D% = LOAD% + P% - CODE%
  BNE TT83               ; If X > 0 then we haven't done all 256 systems yet, so
                         ; loop back up to TT83
 
- LDA QQ9                ; Set QQ19 to the target system's x-coordinate
+ LDA QQ9                ; Set QQ19 to the selected system's x-coordinate
  STA QQ19
 
- LDA QQ10               ; Set QQ19+1 to the target system's y-coordinate,
+ LDA QQ10               ; Set QQ19+1 to the selected system's y-coordinate,
  LSR A                  ; halved to fit it into the chart
  STA QQ19+1
 
  LDA #4                 ; Set QQ19+2 to 4 and fall through into TT15 to draw
- STA QQ19+2             ; crosshairs of size 4 at the target system
+ STA QQ19+2             ; crosshairs of size 4 at the selected system
 }
 
 \ ******************************************************************************
@@ -15053,20 +15075,28 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: jmp
 \
-\ move target coordinates to become new present
+\ Set the current system to the selected system.
+\
+\ Returns:
+\
+\   (QQ0, QQ1)  The galactic coordinates of the new system
+\
+\ Other entry points:
+\
+\   hy5         Contains an RTS
 \ ******************************************************************************
 
-.jmp                    ; move target coordinates to become new present
+.jmp
 {
- LDA QQ9
- STA QQ0
- LDA QQ10
- STA QQ1
-}
+ LDA QQ9                ; Set the current system's galactic x-coordinate to the
+ STA QQ0                ; x-coordinate of the selected system
 
-.hy5
-{
- RTS                    ; ee3-1
+ LDA QQ10               ; Set the current system's galactic y-coordinate to the
+ STA QQ1                ; y-coordinate of the selected system
+
+.^hy5
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -15562,37 +15592,68 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: hyp1
 \
-\ Arrive in the system closest to galactic coordinates (QQ9, QQ10).
+\ Do a hyperspace jump to the system closest to galactic coordinates
+\ (QQ9, QQ10), and set up the current system's state to those of the new system.
+\
+\ Returns:
+\
+\   (QQ0, QQ1)  The galactic coordinates of the new system
+\
+\   QQ2...QQ2+6 The seeds of the new system
+\
+\   EV          Set to 0
+\
+\   QQ28        The new system's economy
+\
+\   tek         The new system's tech level
+\
+\   gov         The new system's government
 \
 \ Other entry points:
 \
-\   hyp1+3      Arrive in the system at (QQ9, QQ10) without first calculating
-\               which system is closest to those coordinates
+\   hyp1+3      Jump straight to the the system at (QQ9, QQ10) without first
+\               calculating which system is closest. We do this if we already
+\               know that (QQ9, QQ10) points to a system
 \ ******************************************************************************
 
 .hyp1
 {
- JSR TT111              ; Select the target system closest to galactic
-                        ; coordinates (QQ9, QQ10)
+ JSR TT111              ; Select the system closest to galactic coordinates
+                        ; (QQ9, QQ10)
 
- JSR jmp                ; move target coordinates to present
- LDX #5                 ; 6 bytes
+ JSR jmp                ; Set the current system to the selected system
 
-.TT112                  ; counter X
+ LDX #5                 ; We now want to copy the seeds for the selected system
+                        ; in QQ15 into QQ2, where we store the seeds for the
+                        ; current system, so set up a counter in X for copying
+                        ; 6 bytes (for three 16-bit seeds)
 
- LDA QQ15,X             ; safehouse,X  target seeds
- STA QQ2,X              ; copied over to home seeds
- DEX                    ; next seed
- BPL TT112              ; loop X
- INX                    ; X = 0
- STX EV                 ; 0 extra vessels
- LDA QQ3                ; economy of target system
- STA QQ28               ; economy of present system
- LDA QQ5                ; Tech
- STA tek                ; techlevel-1 of present system 
- LDA QQ4                ; Government, 0 is Anarchy
- STA gov                ; gov of present system
- RTS
+.TT112
+
+ LDA QQ15,X             ; Copy the X-th byte in QQ15 to the X-th byte in QQ2,
+ STA QQ2,X
+
+ DEX                    ; Decrement the counter
+
+ BPL TT112              ; Loop back to TT112 if we still have more bytes to
+                        ; copy
+
+ INX                    ; Set X = 0 (as we ended the above loop with X = &FF)
+
+ STX EV                 ; Set EV, the extra vessels spawning counter, to 0, as
+                        ; we are entering a new system with no extra vessels
+                        ; spawned
+
+ LDA QQ3                ; Set the current system's economy in QQ28 to the
+ STA QQ28               ; selected system's economy from QQ3
+
+ LDA QQ5                ; Set the current system's tech level in tek to the
+ STA tek                ; selected system's economy from QQ5
+
+ LDA QQ4                ; Set the current system's government in gov to the
+ STA gov                ; selected system's government from QQ4
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -15760,8 +15821,8 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR LAUN               ; launched from space station
  JSR RES2               ; reset2, small reset.
 
- JSR TT111              ; Select the target system closest to galactic
-                        ; coordinates (QQ9, QQ10)
+ JSR TT111              ; Select the system closest to galactic coordinates
+                        ; (QQ9, QQ10)
 
  INC INWK+8             ; zsg, push away planet in front.
  JSR SOS1               ; set up planet
@@ -17674,7 +17735,7 @@ MAPCHAR '4', '4'
  STA INWK+29
  STA INWK+30
 
- LDA #&81               ; Set A = 129, the "ship" type for the sun
+ LDA #129               ; Set A = 129, the "ship" type for the sun
 
  JSR NWSHP              ; Call NWSHP to set up the sun's data block and add it
                         ; to FRIN, where it will get put in the second slot as
@@ -18302,7 +18363,7 @@ MAPCHAR '4', '4'
                         ; space. SLSP points to the start of the current
                         ; heap space, and we can extend it downwards with the
                         ; heap for our new ship (as the heap space always ends
-                        ; just before the workspace at WP).
+                        ; just before the workspace at WP)
 
  LDY #5                 ; Fetch ship blueprint byte #5, which contains the
  LDA (XX0),Y            ; maximum heap size required for plotting the new ship,
@@ -18474,27 +18535,50 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: ABORT
 \
-\ draw missile indicator, Unarm missile
+\ Disarm missiles and update the dashboard.
 \ ******************************************************************************
 
-.ABORT                  ; draw missile indicator, Unarm missile
+.ABORT
 {
- LDX #&FF
+ LDX #&FF               ; Set X to &FF, which is the value in MSTG when we have
+                        ; no target lock for our missile
+
+                        ; Fall through into ABORT2 to set the missile lock to
+                        ; the value in X, which effectively disarms the missile
 }
 
 \ ******************************************************************************
 \ Subroutine: ABORT2
 \
-\ missile found a target
+\ Set the lock target for the leftmost missile and update the dashboard.
+\
+\ Arguments:
+\
+\   X           The slot number of the ship in our missile lock, or &FF to
+\               remove missile lock
+\
+\   Y           The new colour of the missile indicator:
+\
+\                 * &00 = black (no missile)
+\
+\                 * &0E = red (armed and locked)
+\
+\                 * &E0 = yellow (armed)
+\
+\                 * &EE = green (disarmed)
 \ ******************************************************************************
 
-.ABORT2                 ; Xreg stored as Missile target
+.ABORT2
 {
- STX MSTG               ; missile targeted 12 choices
- LDX NOMSL              ; number of missiles
- JSR MSBAR              ; draw missile bar, returns with Y = 0.
- STY MSAR               ; missiles armed status
- RTS
+ STX MSTG               ; Store the target of our missile lock in MSTG
+
+ LDX NOMSL              ; Update the leftmost indicator in the dashboards's
+ JSR MSBAR              ; missile bar, returns with Y = 0
+
+ STY MSAR               ; Set MSAR = 0 to indicate that the leftmost missile
+                        ; is no longer seeking a target lock
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -18530,7 +18614,7 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: SPBLB
 \
-\ Light up the space station bulb on the dashboard.
+\ Draw (or erase) the space station bulb on the dashboard.
 \ ******************************************************************************
 
 .SPBLB                  ; Space Station bulb
@@ -18609,6 +18693,10 @@ MAPCHAR '4', '4'
 \                 * &E0 = yellow (armed)
 \
 \                 * &EE = green (disarmed)
+\
+\ Returns:
+\
+\   Y           Y is set to 0
 \ ******************************************************************************
 
 .MSBAR                  ; draw Missile bar. X is number of missiles. Y is strip design.
@@ -19751,13 +19839,13 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: ping
 \
-\ Set the target system to the current system.
+\ Set the selected system to the current system.
 \ ******************************************************************************
 
 .ping
 {
  LDX #1                 ; We want to copy the X- and Y-coordinates of the
-                        ; current system in (QQ0, QQ1) to the target system's
+                        ; current system in (QQ0, QQ1) to the selected system's
                         ; coordinates in (QQ9, QQ10), so set up a counter to
                         ; copy two bytes
 
@@ -19765,7 +19853,7 @@ MAPCHAR '4', '4'
 
  LDA QQ0,X              ; Load byte X from the current system in QQ0/QQ1
 
- STA QQ9,X              ; Store byte X in the target system in QQ9/QQ10
+ STA QQ9,X              ; Store byte X in the selected system in QQ9/QQ10
  
  DEX                    ; Decrement the loop counter
 
@@ -19800,200 +19888,452 @@ LOAD_F% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: KS3
 \
-\ exit as end found, temp P correct.
+\ The final part of the KILLSHP routine, called after we have shuffled the ship
+\ slots and sorted out our missiles. This simply sets SLSP to the new bottom of
+\ the ship heap space.
+\
+\ Arguments:
+\
+\   P(1 0)              Points to the heap space of the ship in the last
+\                       occupied slot (i.e. it points to the bottom of the
+\                       descending heap)
 \ ******************************************************************************
 
-.KS3                    ; exit as end found, temp P correct.
+.KS3
 {
- LDA P                  ; temp pointer lo
- STA SLSP               ; last ship lines stack pointer
- LDA P+1                ; temp pointer hi
+ LDA P                  ; After shuffling the ship slots, P(1 0) will point to
+ STA SLSP               ; the new bottom of the ship heap, so store this in
+ LDA P+1                ; SLSP(1 0), which stores the bottom of the heap
  STA SLSP+1
- RTS
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
 \ Subroutine: KS1
 \
-\ Kill ships from Block A loop Enters here
+\ Part 12 of the main flight loop calls this routine to remove the ship that is
+\ currently being analysed by the flight loop. Once the ship is removed, it
+\ jumps back to MAL1 to rejoin the main flight loop, with X pointing to the same
+\ slot that we just cleared (and which now contains the next ship in the local
+\ bubble of universe).
+\
+\ Arguments:
+\
+\   XX0         The address of the blueprint for this ship
+\
+\   INF         The address of the data block for this ship
 \ ******************************************************************************
 
-.KS1                    ; Kill ships from Block A loop Enters here
+.KS1
 {
- LDX XSAV               ; nearby ship index
- JSR KILLSHP            ; Kill target X, down.
- LDX XSAV               ; reload ship index
- JMP MAL1               ; rejoin loop in Block A
+ LDX XSAV               ; Store the current ship's slot number in XSAV
+
+ JSR KILLSHP            ; Call KILLSHP to remove the ship in slot X from our
+                        ; little bubble of universe
+
+ LDX XSAV               ; Restore the current ship's slot number from XSAV,
+                        ; which now points to the next ship in the bubble
+
+ JMP MAL1               ; Jump to MAL1 to rejoin the main flight loop at the
+                        ; start of the ship analysis loop
 }
 
 \ ******************************************************************************
 \ Subroutine: KS4
 \
-\ Removing Space Station to make new Sun
+\ Removing the space station from our local bubble of universe, and replace it
+\ with the sun.
 \ ******************************************************************************
 
-.KS4                    ; removing Space Station to make new Sun
+.KS4
 {
  JSR ZINF               ; Call ZINF to reset the INWK ship workspace
-                        ; ends with A = #&C0.
- JSR FLFLLS             ; ends with A=0
- STA FRIN+1             ; #SST slot emptied
- STA SSPR               ; space station present, 0 is SUN.
- JSR SPBLB              ; erase space station bulb "S" symbol
- LDA #6                 ; sun location up in the sky
- STA INWK+5             ; ysg
- LDA #&81               ; new Sun
- JMP NWSHP              ; new ship type Acc
+
+ JSR FLFLLS             ; Reset the LSO block, returns with A = 0
+
+ STA FRIN+1             ; Set the second slot in the FRIN table to 0, to
+                        ; indicate that we should show the sun instead of the
+                        ; space station
+
+ STA SSPR               ; Set the "space station present" flag to 0, as we are
+                        ; no longer in the space station's safe zone
+
+ JSR SPBLB              ; Call SPBLB to redraw the space station bulb, which
+                        ; will erase it from the dashboard
+
+ LDA #6                 ; Set the sun's y_distance to 6
+ STA INWK+5
+
+ LDA #129               ; Set A = 129, the "ship" type for the sun
+
+ JMP NWSHP              ; Call NWSHP to set up the sun's data block and add it
+                        ; to FRIN, where it will get put in the second slot as
+                        ; we just cleared out the second slot, and the first
+                        ; slot is already taken by the planet
 }
 
 \ ******************************************************************************
 \ Subroutine: KS2
 \
-\ frin shuffled, update Missiles
+\ Check the local bubble of universe to see if there are any missiles with
+\ target lock in the vicinity. If there are, then check their targets; if we
+\ just removed their target in the KILLSHP routine, then switch off their AI so
+\ they just drift in space, otherwise update their targets to reflect the newly
+\ shuffled slot numbers.
+\
+\ This is called from KILLSHP once the slots have been shuffled down, following
+\ the removal of a ship.
+\
+\ Arguments:
+\
+\   XX4         The slot number of the ship we removed just before calling this
+\               routine
 \ ******************************************************************************
 
-.KS2                    ; frin shuffled, update Missiles
+.KS2
 {
- LDX #&FF
+ LDX #&FF               ; We want to go through the ships in our local bubble
+                        ; and pick out all the missiles, so set X to &FF to
+                        ; use as a counter
 
-.KSL4                   ; counter X
+.KSL4
 
- INX                    ; starts at X=0
- LDA FRIN,X             ; nearby ship types
- BEQ KS3                ; exit as end found, up temp P correct.
- CMP #MSL               ; else this slot is a missile?
- BNE KSL4               ; not missile, loop X
- TXA                    ; else, missile
- ASL A                  ; slot*2
- TAY                    ; build index Y into
+ INX                    ; Increment the counter (so it starts at 0 on the first
+                        ; iteration)
+
+ LDA FRIN,X             ; If slot X is empty, loop round again until it isn't,
+ BEQ KS3                ; at which point A contains the ship type in that slot
+
+ CMP #MSL               ; If the slot does not contain a missile, loop back to
+ BNE KSL4               ; KSL4 to check the next slot
+
+                        ; We have found a slot containing a missile, so now we
+                        ; want to check whether it has target lock
+
+ TXA                    ; Set Y = X * 2 and fetch the Y-th address from UNIV
+ ASL A                  ; and store it in SC and SC+1 - in other words, set
+ TAY                    ; SC(1 0) to point to the missile's ship data block
  LDA UNIV,Y
- STA SC                 ; missile info lo
+ STA SC
  LDA UNIV+1,Y
- STA SC+1               ; missile info hi
+ STA SC+1
 
- LDY #32                ; info byte#32 is ai_attack_univ_ecm
+ LDY #32                ; Fetch byte #32 from the missile's ship data (AI)
  LDA (SC),Y
- BPL KSL4               ; ai dumb, loop X
- AND #&7F               ; else, drop ai active bit
- LSR A                  ; bit6, attack you, can be ignored here
- CMP XX4                ; kill target id
- BCC KSL4               ; loop if missile doesn't have target XX4
- BEQ KS6                ; else found missile X with kill target XX4
- SBC #1                 ; else update target -=1
- ASL A                  ; update missile ai
- ORA #128               ; set bit7, ai is active.
- STA (SC),Y
- BNE KSL4               ; guaranteed loop X
 
-.KS6                    ; found missile X with kill target XX4
+ BPL KSL4               ; If bit 7 of byte #32 is clear, then the missile is
+                        ; dumb and has no AI, so loop back to KSL4 to move on
+                        ; to the next slot
 
- LDA #0                 ; missile dumb, no attack target.
- STA (SC),Y
- BEQ KSL4               ; guaranteed loop X
+ AND #%01111111         ; Otherwise this missile has AI, so clear bit 7 and
+ LSR A                  ; shift right to set the C flag to the missile's "is
+                        ; locked" flag, and A to the target's slot number
+
+ CMP XX4                ; If this missile was not locked on a target, jump to
+ BCC KSL4               ; KSL4 to move on to the next slot
+
+ BEQ KS6                ; If this missile was locked onto the ship that we just
+                        ; removed in KILLSHP, jump to KS6 to stop the missile
+                        ; from continuing to hunt it down
+
+ SBC #1                 ; Otherwise this missile is locked and has AI enabled,
+                        ; and its target will have moved down a slot, so
+                        ; subtract 1 from the target number (we know C is set
+                        ; from the BCC above)
+
+ ASL A                  ; Shift the target number left by 1, so it's in bits
+                        ; 1-6 once again, and also set bit 0 to 1, as the C
+                        ; flag is still set, so this makes sure the missile is
+                        ; still set to being locked
+
+ ORA #%10000000         ; Set bit 7, so the missile's AI is enabled
+
+ STA (SC),Y             ; Update the missile's AI flag to the value in A
+
+ BNE KSL4               ; Loop back to KSL4 to move on to the next slot (this
+                        ; BNE is effectively a JMP as A will never be zero)
+
+.KS6
+
+ LDA #0                 ; The missile's target lock just got removed, so set the
+ STA (SC),Y             ; AI flag to 0 to make it dumb and not locked
+
+ BEQ KSL4               ; Loop back to KSL4 to move on to the next slot (this
+                        ; BEQ is effectively a JMP as A is always zero)
 }
 
 \ ******************************************************************************
 \ Subroutine: KILLSHP
 \
-\ Kill target X Entry
+\ Remove the ship in slot X from our little bubble of universe. This happens
+\ when we kill a ship, collide with a ship and destroy it, or when a ship moves
+\ outside our little bubble.
+\
+\ We also use this routine when we move out of range of the space station, in
+\ which case we replace it with the sun.
+\
+\ When removing a ship, this creates a gap in the ship slots at FRIN, so we
+\ shuffle all the later slots down to close the gap. We also shuffle the ship
+\ data blocks at K% and ship lines heap at WP, to reclaim all the memory that
+\ the removed ship used to occupy.
+\
+\ Arguments:
+\
+\   X           The slot number of the ship to remove
+\
+\   XX0         The address of the blueprint for the ship to remove
+\
+\   INF         The address of the data block for the ship to remove
 \ ******************************************************************************
 
-.KILLSHP                ; Kill target X Entry
+.KILLSHP
 {
- STX XX4                ; store kill target slot id
-\CPX MSTG
- LDA MSTG               ; NOT IN ELITEF.TXT but is in ELITE SOURCE IMAGE
- CMP XX4                ; was targeted by player's missile? NOT IN ELITEF.TXT but is in ELITE SOURCE IMAGE
- BNE KS5                ; dstar, else no target for player's missile
- LDY #&EE               ; colour strip green for missile indicator
- JSR ABORT              ; draw missile indicator
- LDA #200               ; token = target lost
- JSR MESS               ; message and rejoin
+ STX XX4                ; Store the slot number of the ship to remove in XX4
 
-.KS5                    ; dstar
+                        ; The following two instructions appear in the BASIC
+                        ; source file (ELITEF), but in the text source file
+                        ; (ELITEF.TXT) they are replaced by CPX MSTG, which is
+                        ; a more efficient way of doing the same thing
 
- LDY XX4                ; kill target slot id
- LDX FRIN,Y             ; target ship type
- CPX #SST               ; #SST space station?
- BEQ KS4                ; removing Space Station, up
- DEC MANY,X             ; remove from sums of each type 
- LDX XX4                ; reload kill target id, lost type.
+ LDA MSTG               ; Check whether this slot matches the slot number in
+ CMP XX4                ; MSTG, which is the target of our missile lock
 
- LDY #5                 ; target Hull byte#5 maxlines
- LDA (XX0),Y
- LDY #33                ; info byte#33 is XX19, the ship heap pointer lo
- CLC                    ; unwind lines pointer
+ BNE KS5                ; If our missile is not locked on this ship, jump to KS5
+
+ LDY #&EE               ; Otherwise we need to remove our missile lock, so call
+ JSR ABORT              ; ABORT to disarm the missile and update the missile
+                        ; indicators on the dashboard to green (Y = &EE)
+
+ LDA #200               ; Print recursive token 40 ("TARGET LOST") as an
+ JSR MESS               ; in-flight message
+
+.KS5
+
+ LDY XX4                ; Restore the slot number of the ship to remove into Y
+
+ LDX FRIN,Y             ; Fetch the contents of the slot, which contains the
+                        ; ship type
+
+ CPX #SST               ; If this is the space station, then jump to KS4 to
+ BEQ KS4                ; replace the space station with the sun
+
+ DEC MANY,X             ; Decrease the number of this type of ship in our little
+                        ; bubble, which is stored in MANY+X (where X is the ship
+                        ; type)
+
+ LDX XX4                ; Restore the slot number of the ship to remove into X
+
+                        ; We now want to remove this ship and reclaim all the
+                        ; memory that it uses. Removing the ship will leave a
+                        ; gap in three places, which we need to close up:
+                        ;
+                        ;   * The ship slots in FRIN
+                        ;
+                        ;   * The ship data blocks in K%
+                        ;
+                        ;   * The descending ship lines heap space at WP down
+                        ;
+                        ; The rest of this routine closes up these gaps by
+                        ; looping through all the occupied ship slots after the
+                        ; slot we are removing, one by one, and shuffling each
+                        ; ship's slot, data block and heap space down to close
+                        ; up the gaps left by the removed ship. As part of this,
+                        ; we have to make sure we update any address pointers
+                        ; so they point to the newly shuffled data blocks and
+                        ; heap space.
+                        ;
+                        ; In the following, when shuffling a ship's data down
+                        ; into the preceding empty slot, we call the ship that
+                        ; we are shuffling down the "source", and we call the
+                        ; empty slot we are shuffling it into the "destination".
+                        ;
+                        ; Before we start looping through the ships we need to
+                        ; shuffle down, we need to set up some variables to
+                        ; point to the source and destination heap spaces
+
+ LDY #5                 ; Fetch byte #5 of the removed ship's blueprint into A,
+ LDA (XX0),Y            ; which gives the ship's maximum heap size for the ship
+                        ; we are removing (i.e. the size of the gap in the heap
+                        ; created by the ship removal)
+
+                        ; INF currently contains the ship data for the ship we
+                        ; are removing, and INF(34 33) contains the address of
+                        ; the bottom of the ship's heap, so we can calculate
+                        ; the address of the top of the heap by adding the heap
+                        ; size to this address
+
+ LDY #33                ; First we add A and the address in INF+33, to get the
+ CLC                    ; low byte of the top of the heap, which we store in P
  ADC (INF),Y
- STA P                  ; new pointer lo
- INY                    ; info byte#34 is XX19 hi
- LDA (INF),Y
- ADC #0                 ; new pointer hi 
- STA P+1
+ STA P
 
-.KSL1                   ; counter X shuffle higher ships down
+ INY                    ; And next we add A and address in INF+34, with any
+ LDA (INF),Y            ; from the previous addition, to get the high byte of
+ ADC #0                 ; the top of the heap, which we store in P+1, so P(1 0)
+ STA P+1                ; points to the top of this ship's heap
 
- INX                    ; above target id
- LDA FRIN,X             ; nearby ship types
- STA FRIN-1,X           ; down one
- BEQ KS2                ; else exit as frin shuffled, update Missiles up
- ASL A                  ; build index
- TAY                    ; for hull type
- LDA XX21-2,Y
- STA SC                 ; hull data lo
+                        ; Now, we're ready to start looping through the ships
+                        ; we want to move, moving the slots, data blocks and
+                        ; heap space from the source to the destination. In the
+                        ; following, we set up SC to point to the source data,
+                        ; and INF (which currently points to the removed ship's
+                        ; data that we can now overwrite) points to the
+                        ; destination.
+                        ;
+                        ; So P(1 0) now points to the top of the heap space for
+                        ; the destination.
+
+.KSL1
+
+ INX                    ; On entry, X points to the empty slot we want to
+                        ; shuffle the next ship into (the destination), so
+                        ; this increment points X to the next slot - i.e. the
+                        ; source slot we want to shuffle down
+
+ LDA FRIN,X             ; Copy the contents of the source slot into the
+ STA FRIN-1,X           ; destination slot
+
+ BEQ KS2                ; If the slot we just shuffled down contains 0, then
+                        ; the source slot is empty and we are done shuffling,
+                        ; so jump to KS2 to move on to processing missiles
+
+ ASL A                  ; Otherwise we have a source ship to shuffle down into
+ TAY                    ; the destination, so set Y = A * 2 so it can act as an
+                        ; index into the two-byte ship blueprint lookup table
+                        ; at XX21 for the source ship
+
+ LDA XX21-2,Y           ; Set SC(0 1) to point to the blueprint data for the
+ STA SC                 ; source ship
  LDA XX21-1,Y
- STA SC+1               ; hull data hi
- LDY #5                 ; higher Hull byte#5 maxlines
- LDA (SC),Y
- STA T                  ; maxlines for ship heap after XX4
- LDA P                  ; pointer temp lo
+ STA SC+1
+
+ LDY #5                 ; Fetch blueprint byte #5 for the source ship, which
+ LDA (SC),Y             ; gives us its maximum heap size, and store it in T
+ STA T
+
+                        ; We now subtract T from P(1 0), so P(1 0) will point to
+                        ; the bottom of the heap space for the destination
+                        ; (which we will use later when closing up the gap in
+                        ; the heap space)
+
+ LDA P                  ; First, we subtract the low bytes
  SEC
- SBC T                  ; maxlines for ship heap after XX4
- STA P                  ; pointer temp lo -= maxlines
- LDA P+1
- SBC #0                 ; any carry
- STA P+1
- TXA                    ; slot above target
- ASL A                  ; build index
- TAY                    ; for ship info
- LDA UNIV,Y
- STA SC                 ; inf pointer of higher ship
+ SBC T
+ STA P
+
+ LDA P+1                ; And then we do the high bytes, for which we subtract
+ SBC #0                 ; 0 to include any carry, so this is effectively doing
+ STA P+1                ; P(1 0) = P(1 0) - (0 T)
+
+                        ; Next, we want to set SC(1 0) to point to the source
+                        ; ship's data block
+
+ TXA                    ; Set Y = X * 2 so it can act as an index into the
+ ASL A                  ; two-byte lookup table at UNIV, which contains the
+ TAY                    ; addresses of the ship data blocks. In this case we are
+                        ; multiplying X by 2, and X contains the source ship's
+                        ; slot number so Y is now an index for the source ship's
+                        ; entry in UNIV
+
+ LDA UNIV,Y             ; Set SC(1 0) to the address of the data block for the
+ STA SC                 ; source ship
  LDA UNIV+1,Y
- STA SC+1               ; hi
- LDY #35                ; NEWB of higher ship
- LDA (SC),Y
- STA (INF),Y
- DEY                    ; info#byte35 = energy
- LDA (SC),Y
- STA K+1                ; heap pointer temp hi
- LDA P+1                ; pointer temp hi - maxlines
- STA (INF),Y            ; new XX19 hi
- DEY                    ; info byte#33 = XX19 ship heap pointer lo
- LDA (SC),Y
- STA K                  ; heap pointer temp lo
- LDA P                  ; pointer temp lo - maxlines
- STA (INF),Y            ; new XX19 lo
- DEY                    ; #32 = rest of inwk, ai downwards.
+ STA SC+1
 
-.KSL2                   ; counter Y
+                        ; We have now set up our variables as follows:
+                        ;
+                        ;   SC(1 0) points to the source's ship data block
+                        ;
+                        ;   INF(1 0) points to the destination's ship data block
+                        ;
+                        ;   P(1 0) points to the destination's heap space
+                        ;
+                        ; so let's start copying data from the source to the
+                        ; destination
 
- LDA (SC),Y
- STA (INF),Y
- DEY                    ; next inwk byte
- BPL KSL2               ; loop Y
- LDA SC                 ; pointer for inf in slot above
- STA INF
- LDA SC+1               ; hi
+ LDY #35                ; We are going to be using Y as a counter for the 36
+                        ; bytes of ship data we want to copy from the source
+                        ; to the destination, so we set it to 35 to start things
+                        ; off, and will decrement Y for each byte we copy
+
+ LDA (SC),Y             ; Fetch byte #35 of the source's ship data block at SC,
+ STA (INF),Y            ; and store it in byte #35 of the destination's block
+                        ; at INF, so that's the ship's energy copied from the
+                        ; source to the destination. One down, quite a few to
+                        ; go...
+
+ DEY                    ; Fetch byte #34 of the source ship, which is the 
+ LDA (SC),Y             ; high byte of the source ship's heap space, and store
+ STA K+1                ; in K+1
+
+ LDA P+1                ; Set the low byte of the destination's heap pointer
+ STA (INF),Y            ; to P+1
+
+ DEY                    ; Fetch byte #33 of the source ship, which is the 
+ LDA (SC),Y             ; low byte of the source ship's heap, and store in K
+ STA K                  ; so now we have the following:
+                        ;
+                        ;   K(1 0) points to the source's heap space
+
+ LDA P                  ; Set the low byte of the destination's heap pointer
+ STA (INF),Y            ; to P, so now the destination's heap pointer is to
+                        ; P(1 0), so that's the heap pointer in bytes #33 and
+                        ; #34 done
+
+ DEY                    ; Luckily, we can just copy the rest of the source's
+                        ; ship data block into the destination, as there are no
+                        ; more address pointers, so first we decrement our
+                        ; counter in Y to point to the next byte (the AI flag)
+                        ; in byte #32) and then start looping
+
+.KSL2
+
+ LDA (SC),Y             ; Copy the Y-th byte of the source to the Y-th byte of
+ STA (INF),Y            ; the destination
+
+ DEY                    ; Decrement the counter
+
+ BPL KSL2               ; Loop back to KSL2 to copy the next byte until we have
+                        ; copied the whole block
+
+                        ; We have now shuffled the ship's slot and the ship's
+                        ; data block, so we only have the heap data itself to do
+
+ LDA SC                 ; First, we copy SC into INF, so when we loop round again,
+ STA INF                ; INF will correctly point to the destination for the next
+ LDA SC+1               ; iteration
  STA INF+1
- LDY T                  ; maxlines for ship heap after XX4 counter
 
-.KSL3                   ; counter Y
+ LDY T                  ; Now we want to move the contents of the heap, as all
+                        ; we did above was to update the pointers, so first
+                        ; we set a counter in Y that is initially set to T
+                        ; (which we set above to the maximum heap size for the
+                        ; source ship)
+                        ;
+                        ; As a reminder, we have already set the following:
+                        ;
+                        ;   K(1 0) points to the source's heap space
+                        ;
+                        ;   P(1 0) points to the destination's heap space
+                        ;
+                        ; so we can move the heap data by simply copying the
+                        ; correct number of bytes from K(1 0) to P(1 0)
+.KSL3                   
 
- DEY                    ; move entries
- LDA (K),Y              ; on old heap to
- STA (P),Y              ; new temp heap
- TYA
- BNE KSL3               ; loop Y
- BEQ KSL1               ; guaranteed up, shuffle higher slots remaining
+ DEY                    ; Decrement the counter
+
+ LDA (K),Y              ; Copy the Y-th byte of the source heap at K(1 0) to
+ STA (P),Y              ; the destination heap at P(1 0)
+
+ TYA                    ; Loop back to KSL3 to copy the next byte, until we 
+ BNE KSL3               ; have done them all
+
+ BEQ KSL1               ; We have now shuffled everything down one slot, so
+                        ; jump back up to KSL1 to see if there is another slot
+                        ; that needs shuffling down (this BEQ is effectively a
+                        ; JMP as A will always be zero)
+
 }
 
 \ ******************************************************************************
