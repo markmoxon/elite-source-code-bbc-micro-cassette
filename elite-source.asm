@@ -3333,8 +3333,6 @@ LOAD_A% = LOAD%
 \ ******************************************************************************
 \ Subroutine: M% (Part 4)
 \
-\ Other entry points: MAL1
-\
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
 \
@@ -3342,6 +3340,12 @@ LOAD_A% = LOAD%
 \     one:
 \
 \     * Copy the ship's data block from K% to INWK
+\
+\ Other entry points:
+\
+\   MAL1        Marks the beginning of the ship loop, so we can jump back here
+\               from part 12 of the main flight loop, looping to process each
+\               ship in the local bubble
 \ ******************************************************************************
 
 .MA3
@@ -3597,12 +3601,15 @@ LOAD_A% = LOAD%
 \ ******************************************************************************
 \ Subroutine: M% (Part 9)
 \
-\ Other entry points: GOIN
-\
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
 \
 \   * Process docking with space station
+\
+\ Other entry points:
+\
+\   GOIN        We jump here from part 3 of the main flight loop if the
+\               docking computer is activated by pressing "C"
 \
 \ ******************************************************************************
 \
@@ -4496,8 +4503,6 @@ LOAD_A% = LOAD%
 \ ******************************************************************************
 \ Subroutine: MAS1
 \
-\ Other entry points: MA9 (RTS)
-\
 \ Add a doubled rotmat0 axis, e.g. (rotmat0y_hi rotmat0y_lo) * 2, to an INWK
 \ coordinate, e.g. (x_sign x_hi x_lo), storing the result in the INWK
 \ coordinate. The axes used in each side of the addition are specified by the
@@ -4529,6 +4534,10 @@ LOAD_A% = LOAD%
 \
 \   A           The high byte of the result with the sign cleared (e.g. |x_hi|
 \               if X = 0, etc.)
+\
+\ Other entry points:
+\
+\   MA9         Contains an RTS
 \ ******************************************************************************
 
 .MAS1
@@ -5765,12 +5774,11 @@ Q% = _ENABLE_MAX_COMMANDER
 \ ******************************************************************************
 \ Variable: NA%
 \
-\ Other entry points: CHK, CHK2
-\
 \ Contains the last saved commander data, with the name at NA% and the data at
-\ NA%+8 onwards. The size of the data block is given in NT%. This block is
-\ initially set up with the default commander, which can be maxed out for
-\ testing purposes by setting Q% to TRUE.
+\ NA%+8 onwards. The size of the data block is given in NT% (which also includes
+\ the two checksum bytes that follow this block. This block is initially set up
+\ with the default commander, which can be maxed out for testing purposes by
+\ setting Q% to TRUE.
 \
 \ The commander's name is stored at NA%, and can be up to 7 characters long
 \ (the DFS filename limit). It is terminated with a carriage return character,
@@ -5892,6 +5900,13 @@ ENDIF
  EQUW 0                 ; TALLY = Number of kills
 
  EQUB 128               ; SVC = Save count
+}
+
+\ ******************************************************************************
+\ Variable: CHK2
+\
+\ Second checksum byte, see elite-checksum.py for more details.
+\ ******************************************************************************
 
 IF _FIX_REAR_LASER
  CH% = &3
@@ -5899,18 +5914,24 @@ ELSE
  CH% = &92
 ENDIF
 
-PRINT "CH% = ", ~CH%
-
-.^CHK2
-
+.CHK2
+{
  EQUB CH% EOR &A9       ; Commander checksum byte, EOR'd with &A9 to make it
                         ; harder to tamper with the checksum byte
-
-.^CHK
-
- EQUB CH%               ; Commander checksum byte, see elite-checksum.py for
-                        ; more details
 }
+
+\ ******************************************************************************
+\ Variable: CHK
+\
+\ Commander checksum byte, see elite-checksum.py for more details.
+\ ******************************************************************************
+
+.CHK
+{
+EQUB CH%
+}
+
+PRINT "CH% = ", ~CH%
 
 \ ******************************************************************************
 \ Variable: UNIV
@@ -6623,8 +6644,6 @@ NEXT
 \ ******************************************************************************
 \ Subroutine: PIXEL
 \
-\ Other entry points: PX4 (RTS)
-\
 \ Draw a point at screen coordinate (X, A) at a distance of ZZ away, on the
 \ top part of the screen (the monochrome mode 4 portion).
 \
@@ -6639,6 +6658,10 @@ NEXT
 \ Returns:
 \
 \   Y           Y is preserved
+\
+\ Other entry points:
+\
+\   PX4         Contains an RTS
 \
 \ ******************************************************************************
 \
@@ -8296,8 +8319,6 @@ NEXT
 \ ******************************************************************************
 \ Subroutine: TT26
 \
-\ Other entry points: RR3, RREN, RR4, rT9 RTS, R5
-\
 \ Print a character at the text cursor (XC, YC), do a beep, print a newline,
 \ or delete left (backspace).
 \
@@ -8329,6 +8350,15 @@ NEXT
 \   Y           Y is preserved
 \
 \   C flag      Carry is cleared
+\
+\ Other entry points:
+\
+\   RR3+1       Contains an RTS
+\
+\   RREN        Prints the character definition pointed to by P(2 1) at the
+\               screen address pointed to by (A SC). Used by the BULB routine
+\
+\   rT9         Contains an RTS
 \ ******************************************************************************
 
 .TT26
@@ -8626,7 +8656,7 @@ NEXT
 
  BPL RRL1               ; Loop back for the next byte to print to the screen=
 
-.^RR4
+.RR4
 
  LDY YSAV2              ; We're done printing, so restore the values of the
  LDX XSAV2              ; A, X and Y registers that we saved above and clear
@@ -8637,7 +8667,7 @@ NEXT
 
  RTS                    ; Return from the subroutine
 
-.^R5
+.R5
 
  JSR BEEP               ; Call the BEEP subroutine to make a short, high beep
 
@@ -11284,8 +11314,6 @@ NEXT
 \ ******************************************************************************
 \ Subroutine: BUMP2
 \
-\ Other entry points: RE2
-\
 \ Increase ("bump up") X by A, where X is either the current rate of pitch or
 \ the current rate of roll.
 \
@@ -11302,6 +11330,10 @@ NEXT
 \ bump X up to the mid-point, 128. This is the equivalent of having a roll or
 \ pitch in the left half of the indicator, when increasing the roll or pitch
 \ should jump us straight to the mid-point.
+\
+\ Other entry points:
+\
+\   RE2+2       Restore A from T and return from the subroutine. Used by REDU2
 \ ******************************************************************************
 
 .BUMP2
@@ -11339,8 +11371,6 @@ NEXT
 \ ******************************************************************************
 \ Subroutine: REDU2
 \
-\ Other entry points: RE3
-\
 \ Reduce X by A, where X is either the current rate of pitch or the current
 \ rate of roll.
 \
@@ -11357,6 +11387,10 @@ NEXT
 \ reduce X down to the mid-point, 128. This is the equivalent of having a roll
 \ or pitch in the right half of the indicator, when decreasing the roll or pitch
 \ should jump us straight to the mid-point.
+\
+\ Other entry points:
+\
+\   RE3+2       Auto-recentre the value in X, if configured. Used by BUMP2
 \ ******************************************************************************
 
 .REDU2
@@ -11602,11 +11636,17 @@ NEXT
 \ ******************************************************************************
 \ Subroutine: PLUT
 \
-\ Other entry points: PU1-1 (RTS), LO2 (RTS)
-\
 \ This routine flips the relevant geometric axes in INWK depending on which
 \ view we are looking through (forward, rear, left, right).
-
+\
+\ Other entry points:
+\
+\   LO2         Contains an RTS
+\
+\   PU1-1       Contains an RTS
+\
+\ ******************************************************************************
+\
 \ The easiest way to think about this is that the z-axis always points into the
 \ screen, the y-axis always points up, and the x-axis always points to the
 \ right, like this:
@@ -11959,8 +11999,6 @@ NEXT
 \ ******************************************************************************
 \ Subroutine: TT66
 \
-\ Other entry points: TT66-2 (set A to 1)
-\
 \ Clear the top part of the screen (mode 4), draw a box border, and set the
 \ current view type in QQ11 to A.
 \
@@ -11968,6 +12006,10 @@ NEXT
 \
 \   A           The type of the new current view (see QQ11 for a list of view
 \               types)
+\
+\ Other entry points:
+\
+\   TT66-2      Call TT66 with A = 1
 \ ******************************************************************************
 
 {
@@ -12178,8 +12220,6 @@ NEXT
 \ ******************************************************************************
 \ Subroutine: LYN
 \
-\ Other entry points: SC5 (RTS)
-\
 \ Set pixels 0-233 to the value in A, starting at the pixel pointed to by SC.
 \
 \ Arguments:
@@ -12190,6 +12230,10 @@ NEXT
 \ Returns:
 \
 \   Y           Y is set to 0
+\
+\ Other entry points:
+\
+\   SC5         Contains an RTS
 \ ******************************************************************************
 
 .LYN
@@ -12792,9 +12836,12 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: TT25
 \
-\ Other entry points: TT72
-\
 \ Show the Data on System screen (red key f6).
+\
+\ Other entry points:
+\
+\ TT72          Used by TT70 to re-enter the routine after displaying "MAINLY"
+\               for the economy type
 \
 \ ******************************************************************************
 \
@@ -13607,9 +13654,12 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: TT219
 \
-\ Other entry points: BAY2
-\
 \ Show the Buy Cargo screen (red key f1).
+\
+\ Other entry points:
+\
+\   BAY2        Jump into the main loop at FRCE, setting the key "pressed" to
+\               red key f9 (so we show the Inventory sacreen)
 \ ******************************************************************************
 
 .TT219
@@ -14228,8 +14278,6 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: TT123
 \
-\ Other entry points: TT180 (RTS)
-\
 \ Move an 8-bit galactic coordinate by a certain distance in either direction
 \ (i.e. a signed 8-bit delta), but only if it doesn't cause the coordinate to
 \ overflow. The coordinate is in a single axis, so it's either an x-coordinate
@@ -14245,6 +14293,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \   QQ19+4      The updated coordinate after moving by the delta (this will be
 \               the same as A if moving by the delta overflows)
+\
+\ Other entry points:
+\
+\   TT180       Contains an RTS
 \ ******************************************************************************
 
 .TT123
@@ -14610,8 +14662,6 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: TT111
 \
-\ Other entry points: TT111-1 (RTS)
-\
 \ Given a set of galactic coordinates in (QQ9, QQ10), find the nearest system
 \ to this point in the galaxy, and set this as the currently selected system.
 \
@@ -14634,6 +14684,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \   QQ15 to     The three 16-bit seeds of the nearest system to the original
 \   QQ15+5      coordinates
+\
+\ Other entry points:
+\
+\   TT111-1     Contains an RTS
 \ ******************************************************************************
 
 .TT111
@@ -14995,6 +15049,12 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #116               ; token = Galactic Hyperspace
  JSR MESS               ; message
 }
+
+\ ******************************************************************************
+\ Subroutine: jmp
+\
+\ move target coordinates to become new present
+\ ******************************************************************************
 
 .jmp                    ; move target coordinates to become new present
 {
@@ -15503,22 +15563,18 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: hyp1
 \
 \ Arrive in the system closest to galactic coordinates (QQ9, QQ10).
+\
+\ Other entry points:
+\
+\   hyp1+3      Arrive in the system at (QQ9, QQ10) without first calculating
+\               which system is closest to those coordinates
 \ ******************************************************************************
 
 .hyp1
 {
  JSR TT111              ; Select the target system closest to galactic
-                        ; coordinates (QQ9, QQ10), and then fall through into
-                        ; the arrival routine below
-}
+                        ; coordinates (QQ9, QQ10)
 
-\ ******************************************************************************
-\ Subroutine: hyp1+3
-\
-\ Arrive in the system at (QQ9, QQ10)
-\ ******************************************************************************
-
-{
  JSR jmp                ; move target coordinates to present
  LDX #5                 ; 6 bytes
 
@@ -15788,12 +15844,14 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: MCASH
 \
-\ Other entry points: TT113 (RTS)
-\
 \ Add (Y X) cash to the cash pot in CASH. As CASH is a four-byte number, this
 \ calculates:
 \
 \   CASH(0 1 2 3) = CASH(0 1 2 3) + (0 0 Y X)
+\
+\ Other entry points:
+\
+\   TT113       Contains an RTS
 \ ******************************************************************************
 
 .MCASH
@@ -15861,9 +15919,12 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: EQSHP
 \
-\ Other entry points: err
-\
 \ Show the Equip Ship screen (red key f3).
+\
+\ Other entry points:
+\
+\   err         Beep, pause and go to the docking bay (i.e. show the Status Mode
+\               screen)
 \ ******************************************************************************
 
 {
@@ -16352,10 +16413,6 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Return the price of a piece of equipment, as listed in the table at PRXS.
 \
-\ Other entry points:
-\
-\   prx-3       Return the price of the item with number A - 1
-\
 \ Arguments:
 \
 \   A           The item number of the piece of equipment (0-11) as shown in
@@ -16364,6 +16421,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Returns:
 \
 \   (Y X)       The item price in Cr * 10 (Y = high byte, X = low byte)
+\
+\ Other entry points:
+\
+\   prx-3       Return the price of the item with number A - 1
 \ ******************************************************************************
 
 {
@@ -16940,8 +17001,6 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: TT42
 \
-\ Other entry points: TT44
-\
 \ Print a letter in lower case.
 \
 \ Arguments:
@@ -16953,6 +17012,11 @@ MAPCHAR '4', '4'
 \                 * 10-13 (line feeds and carriage returns)
 \
 \                 * 32-95 (ASCII capital letters, numbers and punctuation)
+\
+\ Other entry points:
+\
+\   TT44        Jumps to TT26 to print the character in A (used to enable us to
+\               use a branch instruction to jump to TT26)
 \ ******************************************************************************
 
 .TT42
@@ -17209,13 +17273,15 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: ex
 \
-\ Other entry points: TT48 (RTS)
-\
 \ Print a recursive token.
 \
 \ Arguments:
 \
 \   A           The recursive token to be printed, in the range 0-148
+\
+\ Other entry points:
+\
+\   TT148       Contains an RTS
 \
 \ ******************************************************************************
 \
@@ -18495,7 +18561,9 @@ MAPCHAR '4', '4'
  STX P+1                ; font pointer lo
  STY P+2                ; font pointer hi
  LDA #&7D               ; screen hi SC+1 destination (SC) = &7DC0
- JMP RREN               ; Acc has screen hi for 8 bytes from (P+1)
+
+ JMP RREN               ; Call RREN to print the character definition pointed to
+                        ; by P(2 1) at the screen address pointed to by (A SC)
 }
 
 \ ******************************************************************************
@@ -19016,9 +19084,11 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: PLF5
 \
-\ Other entry points: RTS2 (RTS)
-\
 \ Xreg = height ready, Acc is flag for run direction
+\
+\ Other entry points:
+\
+\   RTS2        Contains an RTS
 \ ******************************************************************************
 
 .PLF5                   ; Xreg = height ready, Acc is flag for run direction
@@ -20395,13 +20465,20 @@ LOAD_F% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: Main game loop (Part 2)
 \
-\ Other entry points: TT100, me3
-\
 \ This is part of the main game loop. This section covers the following:
 \
 \   * Call M% to do the main flight loop
 \
 \   * Potentially spawn a trader, asteroid or cargo canister
+\
+\ Other entry points:
+\
+\   TT100       The entry point for the start of the main game loop, which
+\               calls the main flight loop and the moves into the spawning
+\               routine
+\
+\   me3         Used by me2 to jump back into the main game loop after printing
+\               an in-flight message
 \ ******************************************************************************
 
 .^TT100
@@ -20689,6 +20766,14 @@ LOAD_F% = LOAD% + P% - CODE%
 \   * Cool down lasers
 \
 \   * Make calls to update the dashboard
+\
+\ Other entry points:
+\
+\   MLOOP       The entry point for the main game loop. This entry point comes
+\               after the the call to the main flight loop and spawning
+\               routines, so it marks the start of the main game loop for when
+\               we are docked (as we don't need to call the main flight loop or
+\               spawning routines if we aren't in space)
 \ ******************************************************************************
 
 .^MLOOP
@@ -20724,8 +20809,6 @@ LOAD_F% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: Main game loop (Part 6)
 \
-\ Other entry points: FRCE
-\
 \ This is part of the main game loop. This section covers the following:
 \
 \   * Process more keypresses (red function keys, docked keys etc.)
@@ -20739,6 +20822,11 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Arguments for FRCE:
 \
 \   A           The internal key number of the key we want to "press"
+\
+\ Other entry points:
+\
+\   FRCE        The entry point for the main game loop if we want to jump
+\               straight to a specific screen, by pretending to "press" a key
 \ ******************************************************************************
 
 .^FRCE
@@ -21220,12 +21308,15 @@ LOAD_F% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: TT170
 \
-\ Other entry points: BR1
-\
 \ Entry point for Elite game code. Also called following death or quitting a
 \ game (by pressing Escape when paused).
 \
 \ BRKV is set to point to BR1 by elite-loader.asm.
+\
+\ Other entry points:
+\
+\   BR1         Restarts the game, but without resetting the stack pointer. BRKV
+\               is set to point here by elite-loader.asm
 \ ******************************************************************************
 
 .TT170
@@ -21264,8 +21355,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \JSR TT66               ; then it displays "LOAD NEW COMMANDER (Y/N)?" and
 \JSR FLKB               ; lists the current cargo, before falling straight into
 \LDA #14                ; the load routine below, whether or not we have
-\JSR TT214              ; pressed "Y". This may be a testing loop for testing
-\BCC QU5                ; the cargo aspect of loading commander files.
+\JSR TT214              ; pressed "Y". This may be a bit of testing code, as the
+\BCC QU5                ; first line is a commented label, BR1, which is where
+                        ; BRKV points, so when this is uncommented, pressing
+                        ; the Break key should jump straight to the load screen
 
  JSR GTNME              ; We want to load a new commander, so we need to get
                         ; the commander name to load
@@ -22970,8 +23063,6 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \ ******************************************************************************
 \ Subroutine: TT217
 \
-\ Other entry points: out (RTS)
-\
 \ Scan the keyboard until a key is pressed, and return the key's ASCII code.
 \ If, on entry, a key is already being held down, then wait until that key is
 \ released first (so this routine detects the first key down event following
@@ -22984,6 +23075,10 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \   A           Contains the same as X
 \
 \   Y           Y is preserved
+\
+\ Other entry points:
+\
+\   out         Contains an RTS
 \ ******************************************************************************
 
 .TT217
