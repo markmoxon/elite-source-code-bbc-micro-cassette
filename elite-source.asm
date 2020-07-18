@@ -2528,24 +2528,25 @@ ORG &0D40
                         ;
                         ; Each slot contains a ship type from 1-13 (see the list
                         ; of ship types in location XX21), 0 if the slot is
-                        ; empty, 80 or 82 for the planet, or 129 if this is the
-                        ; sun.
+                        ; empty, 128 or 130 for the planet, or 129 if this is
+                        ; the sun.
                         ; 
                         ; The corresponding address in the lookup table at UNIV
                         ; points to the ship's data block, which in turn points
                         ; to that ship's line heap space.
                         ;
                         ; The first ship slot at location FRIN is reserved for
-                        ; the planet.
+                        ; the planet, which will have 128 or 130 in the slot
+                        ; (128 is a planet with an equator and meridian, 130 is
+                        ; a planet with a crater).
                         ;
                         ; The second ship slot at FRIN+1 is reserved for the
                         ; sun or space station (we only ever have one of these
                         ; in our local bubble of space). If FRIN+1 is #SST (8)
-                        ; then we show the space station, otherwise it is 0 and
-                        ; we show the sun.
+                        ; then we show the space station, otherwise it is 129
+                        ; and we show the sun.
                         ;
                         ; Ships in our local bubble start at FRIN+2 onwards.
-                        ; The slots are kept in order, with asteroids first.
 
 .CABTMP                 ; Cabin temperature
                         ;
@@ -7601,11 +7602,12 @@ NEXT
                         ; of universe
 
  LDX FRIN+2,Y           ; The ship slots at FRIN are ordered with the first two
-                        ; slots reserved for the planet and sun/space staion,
-                        ; then asteroids, and then ships, so FRIN+2+Y points to
-                        ; the first ship-occupied slot, we we fetch into X
+                        ; slots reserved for the planet and sun/space station,
+                        ; and then any ships, so if the slot at FRIN+2+Y is not
+                        ; empty (i.e is non-zero), then that means the number of
+                        ; non-asteroids in the vicinity is at least 1
 
- BEQ st6                ; If X = 0 then there are no ships in the vicinity, so
+ BEQ st6                ; So if X = 0, there are no ships in the vicinity, so
                         ; jump to st6 to print "Green" for our ship's condition
 
  LDY ENERGY             ; Otherwise we have ships in the vicinity, so we load
@@ -15214,6 +15216,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \   QQ24        The item's price / 4
 \
 \   QQ25        The item's availability
+\
 \ ******************************************************************************
 \
 \ Item prices are calculated using a formula that takes a number of variables
@@ -15287,8 +15290,8 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #14                ; Set the text cursor to column 14, for the price
  STA XC
 
- LDX QQ19               ; Fetch byte #1 from the market prices table for this
- LDA QQ23+1,X           ; item and store in QQ19+1
+ LDX QQ19               ; Fetch byte #1 from the market prices table (units and
+ LDA QQ23+1,X           ; economic_factor) for this item and store in QQ19+1
  STA QQ19+1
 
  LDA QQ26               ; Fetch the random number for this system visit and 
@@ -15305,7 +15308,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR TT152              ; Call TT152 to print the item's unit ("t", "kg" or
                         ; "g"), padded to a width of two characters
 
- JSR var                ; Call var to set QQ19+3  = economy * |economic_factor|
+ JSR var                ; Call var to set QQ19+3 = economy * |economic_factor|
                         ; (and set the availability of Alien Items to 0)
 
  LDA QQ19+1             ; Fetch the byte #1 that we stored above and jump to
@@ -15544,6 +15547,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Set QQ19+3 = economy * |economic_factor|, given byte #1 of the market prices
 \ table for an item. Also sets the availability of Alien Items to 0.
 \
+\ This routine forms part of the calculations for market item prices (TT151)
+\ and availability (GVL).
+\
 \ Arguments:
 \
 \   QQ19+1      Byte #1 of the market prices table for this market item (which
@@ -15659,83 +15665,131 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: GVL
 \
-\ Set up system market on arrival?
+\ Calculate the availability for each market item and store it in AVL. This is
+\ called on arrival in a new system.
+\
+\ Other entry points:
+\
+\   hyR         Contains an RTS
+\
+\ ******************************************************************************
+\
+\ Item availability is calculated using a formula that takes a number of
+\ variables into consideration, and mixes in a bit of random behaviour to boot.
+\ This is the formula, which is performed as an 8-bit calculation:
+\
+\   availability =
+\       ((base_availability + (random AND mask) - economy * economic_factor))
+\       mod 64
+\
+\ If the result of the above is less than 0, then availability is set to 0. See
+\ the documentation for routine TT151 for more details of the values in the
+\ above calculation.
 \ ******************************************************************************
 
 .GVL
 {
  JSR DORND              ; Set A and X to random numbers
- STA QQ26               ; random byte for each system vist (for market)
- LDX #0                 ; set up availability
- STX XX4
 
-.hy9                    ; counter XX4  availability table
+ STA QQ26               ; Set QQ26 to the random byte that's used in the market
+                        ; calculations
 
- LDA QQ23+1,X
- STA QQ19+1
- JSR var                ; slope QQ19+3  = economy * gradient
- LDA QQ23+3,X           ; byte3 of Market Prxs info
- AND QQ26               ; random byte for system market
- CLC                    ; masked by market byte3
- ADC QQ23+2,X           ; base price byte2 of Market Prxs info
- LDY QQ19+1
- BMI TT157              ; -ve byte1
- SEC                    ; else subtract
- SBC QQ19+3             ; slope
- JMP TT158              ; hop over to both avail
+ LDX #0                 ; We are now going to loop through the market item
+ STX XX4                ; availability table in AVL, so set a counter in XX4
+                        ; (and X) for the market item number, starting with 0
 
-.TT157                  ; -ve byte1
+.hy9
 
- CLC                    ; add slope
- ADC QQ19+3
+ LDA QQ23+1,X           ; Fetch byte #1 from the market prices table (units and
+ STA QQ19+1             ; economic_factor) for item number X and store it in
+                        ; QQ19+1
 
-.TT158                  ; both avail
+ JSR var                ; Call var to set QQ19+3 = economy * |economic_factor|
+                        ; (and set the availability of Alien Items to 0)
 
- BPL TT159
- LDA #0                 ; else negative avail, set to zero.
+ LDA QQ23+3,X           ; Fetch byte #3 from the market prices table (mask) and
+ AND QQ26               ; AND with the random number for this system visit
+                        ; to give:
+                        ;
+                        ;   A = random AND mask
+ 
+ CLC                    ; Add byte #2 from the market prices table 
+ ADC QQ23+2,X           ; (base_quantity) so we now have:
+                        ;
+                        ;   A = base_quantity + (random AND mask)
 
-.TT159                  ; both options arrive here
+ LDY QQ19+1             ; Fetch the byte #1 that we stored above and jump to
+ BMI TT157              ; TT157 if it is negative (i.e. if the economic_factor
+                        ; is negative)
 
- LDY XX4                ; counter as index
- AND #63                ; take lower 6 bits as quantity available
- STA AVL,Y              ; availability
- INY                    ; next item
- TYA                    ; counter
+ SEC                    ; Set A = A - QQ19+3
+ SBC QQ19+3             ;
+                        ;       = base_quantity + (random AND mask)
+                        ;         - (economy * |economic_factor|)
+                        ;
+                        ; which is the result we want, as the economic_factor
+                        ; is positive
+                        
+ JMP TT158              ; Jump to TT158 to skip TT157
+
+.TT157
+
+ CLC                    ; Set A = A + QQ19+3
+ ADC QQ19+3             ;
+                        ;       = base_quantity + (random AND mask)
+                        ;         + (economy * |economic_factor|)
+                        ;
+                        ; which is the result we want, as the economic_factor
+                        ; is negative
+
+.TT158
+
+ BPL TT159              ; If A < 0, then set A = 0, so we don't have negative
+ LDA #0                 ; availibility
+
+.TT159
+
+ LDY XX4                ; Fetch the counter (the market item number) into Y
+
+ AND #%00111111         ; Take bits 0-5 of A, i.e. A mod 64, and store this as
+ STA AVL,Y              ; this item's availability in the Y=th byte of AVL, so
+                        ; each item has a maximum availability of 63t
+
+ INY                    ; Increment the counter into XX44, Y and A
+ TYA
  STA XX4
- ASL A                  ; build index
- ASL A                  ; *=4
- TAX                    ; X = Y*4 to index table
- CMP #63                ; XX4 < 63?
- BCC hy9                ; loop XX4 availability
-}
 
-.hyR
-{
- RTS
+ ASL A                  ; Set X = counter * 4, so that X points to the next
+ ASL A                  ; item's entry in the four-byte market prices table,
+ TAX                    ; ready for the next loop
+
+ CMP #63                ; If A < 63, jump back up to hy9 to set the availability
+ BCC hy9                ; for the next market item
+
+.^hyR
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
 \ Subroutine: GTHG
 \
-\ Get Thargoid ship
+\ Spawn a Thargoid ship and a Thargon companion.
 \ ******************************************************************************
 
-.GTHG                   ; get Thargoid ship
+.GTHG
 {
- JSR Ze                 ; Zero for new ship, new inwk coords, ends with dornd and T1 = rnd too.
- LDA #&FF               ; ai attack everyone, has ecm.
- STA INWK+32
- LDA #THG               ; thargoid ship
- JSR NWSHP              ; new ship type Acc
- LDA #TGL               ; accompanying thargon
- JMP NWSHP              ; new ship type Acc
-}
+ JSR Ze                 ; Call Ze to initialise INWK
 
-.ptg                    ; shift forced hyperspace misjump
-{
- LSR COK                ; Set bit 0 of COK, the competition code
- SEC
- ROL COK
+ LDA #&FF               ; Set the AI flag in INWK+32 so that the ship has AI, is
+ STA INWK+32            ; hostile and has E.C.M.
+
+ LDA #THG               ; Call NWSHP to add a new Thargoid ship to our local
+ JSR NWSHP              ; bubble of universe
+
+ LDA #TGL               ; Call NWSHP to add a new Thargon ship to our local
+ JMP NWSHP              ; bubble of universe, and return from the subroutine
+                        ; using a tail call
 }
 
 \ ******************************************************************************
@@ -15744,8 +15798,14 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Miss-jump to Thargoids in witchspace
 \ ******************************************************************************
 
-.MJP                    ; miss jump
+.ptg                    ; shift forced hyperspace misjump
 {
+ LSR COK                ; Set bit 0 of COK, the competition code
+ SEC
+ ROL COK
+
+.^MJP                   ; miss jump
+
 \LDA #1                 ; not required as this is present at TT66-2
  JSR TT66-2             ; box border with QQ11 set to A = 1
  JSR LL164              ; hyperspace noise and tunnel
@@ -15754,7 +15814,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .MJP1                   ; counter MANY + #29 thargoids
 
- JSR GTHG               ; get Thargoid ship
+ JSR GTHG               ; Call GTHG to spawn a Thargoid ship
  LDA #3                 ; 3 Thargoid ships
  CMP MANY+THG           ; thargoids
  BCS MJP1               ; loop if thargoids < 3
@@ -19952,9 +20012,9 @@ LOAD_F% = LOAD% + P% - CODE%
 
  JSR FLFLLS             ; Reset the LSO block, returns with A = 0
 
- STA FRIN+1             ; Set the second slot in the FRIN table to 0, to
-                        ; indicate that we should show the sun instead of the
-                        ; space station
+ STA FRIN+1             ; Set the second slot in the FRIN table to 0, which
+                        ; sets this slot to empty, so when we call NWSHP below
+                        ; the new sun that gets created will go into FRIN+1
 
  STA SSPR               ; Set the "space station present" flag to 0, as we are
                         ; no longer in the space station's safe zone
@@ -21196,7 +21256,7 @@ LOAD_F% = LOAD% + P% - CODE%
  CMP #200               ; If A < 200 (78% chance), skip the next instruction
  BCC P%+5
 
- JSR GTHG               ; Call GTHG to spawn a Thargoid
+ JSR GTHG               ; Call GTHG to spawn a Thargoid ship
 
  JMP MLOOP              ; Jump back into the main loop at MLOOP, which is just
                         ; after the ship-spawning section
