@@ -157,7 +157,7 @@ ORG &0000
 .XX0
 
  SKIP 2                 ; Stores the address of the ship blueprint in NWSHP,
-                        ; and the blurprint of the current ship being analysed
+                        ; and the blueprint of the current ship being analysed
                         ; in the main flight loop
 
 .INF
@@ -3975,13 +3975,12 @@ LOAD_A% = LOAD%
 
  LDX #OIL               ; Call SFS1 to spawn a cargo canister from the now
  LDA #0                 ; deceased parent ship, giving the spawned canister an
- JSR SFS1               ; AI flag of 0 (no AI)
+ JSR SFS1               ; AI flag of 0 (no AI, no E.C.M., non-hostile)
 
  DEC CNT                ; Decrease the loop counter
 
  BPL um                 ; Jump back up to um (this BPL is effectively a JMP as
                         ; CNT will never be negative)
-
 
 .oh
 
@@ -4973,64 +4972,153 @@ LOAD_A% = LOAD%
  AND #&EF               ; clear bit4, now invisible.
  STA INWK+31
  RTS
-
- AND #128               ; use Abit7 for x+=R
 }
 
-.MVT1                   ; Add Rlo.Ahi.sg to inwk,x+0to2 ship translation
+\ ******************************************************************************
+\ Subroutine: MVT1
+\
+\ Add the signed delta (A R) to a ship's coordinate, along the axis given in X.
+\ Mathematically speaking, this routine translates the ship along a single axis
+\ by a signed delta. Taking the example of X = 0, the x-axis, it does the
+\ following:
+\
+\   (x_sign x_hi x_lo) = (x_sign x_hi x_lo) + (A R)
+\
+\ (In practice, MVT1 is only ever called directly with A = 0 or 128, otherwise
+\ it is always called via MVT-2, which clears A apart from the sign bit. The
+\ routine is written to cope with a non-zero delta_hi, so it supports a full
+\ 16-bit delta, but it appears that delta_hi is only ever used to carry the
+\ sign of the delta.)
+\
+\ The comments below assume we are adding delta to the x-axis, though the axis
+\ is determined by the value of X.
+\
+\ Arguments:
+\
+\   (A R)       The signed delta, so A = delta_hi and R = delta_lo
+\
+\   X           Determines which coordinate axis of the INWK space to change:
+\
+\                 * X = 0 adds the delta to (x_lo, x_hi, x_sign)
+\
+\                 * X = 3 adds the delta to (y_lo, y_hi, y_sign)
+\
+\                 * X = 6 adds the delta to (z_lo, z_hi, z_sign)
+\
+\ Other entry points:
+\
+\   MVT1-2      Clear bits 0-6 of A before entering MVT1
+\ ******************************************************************************
+
 {
- ASL A                  ; bit7 into carry
- STA S                  ; A6to0
- LDA #0
- ROR A                  ; sign bit from Acc
+ AND #%10000000         ; Clear bits 0-6 of A
+
+.^MVT1
+
+ ASL A                  ; Set the C flag to the sign bit of the delta, leaving
+                        ; delta_hi << 1 in A
+
+ STA S                  ; Set S = delta_hi << 1
+                        ;
+                        ; This also clears bit 0 of S
+
+ LDA #0                 ; Set T = just the sign bit of delta (in bit 7)
+ ROR A
  STA T
- LSR S                  ; A6to0
- EOR INWK+2,X
- BMI MV10               ; -ve sg eor T
- LDA R                  ; lo
- ADC INWK,X
- STA INWK,X
- LDA S                  ; hi
- ADC INWK+1,X
- STA INWK+1,X
- LDA INWK+2,X
- ADC #0                 ; sign bit from Acc
- ORA T
+
+ LSR S                  ; Set S = delta_hi >> 1
+                        ;       = |delta_hi|
+                        ;
+                        ; This also clear the C flag, as we know that bit 0 of
+                        ; S was clear before the LSR
+
+ EOR INWK+2,X           ; If T EOR x_sign has bit 7 set, then x_sign and delta
+ BMI MV10               ; have different signs, so jump to MV10
+
+                        ; At this point, we know x_sign and delta have the same
+                        ; sign, that sign is in T, and S contains |delta_hi|,
+                        ; so now we want to do:
+                        ;
+                        ;   (x_sign x_hi x_lo) = (x_sign x_hi x_lo) + (S R)
+                        ;
+                        ; and then set the sign of the result to the same sign
+                        ; as x_sign and delta
+
+ LDA R                  ; First we add the low bytes, so:
+ ADC INWK,X             ;
+ STA INWK,X             ;   x_lo = x_lo + R
+
+ LDA S                  ; Then we add the high bytes:
+ ADC INWK+1,X           ;
+ STA INWK+1,X           ;   x_hi = x_hi + S
+
+ LDA INWK+2,X           ; And finally we add any carry into x_sign, and if the
+ ADC #0                 ; sign of x_sign and delta in T is negative, make sure
+ ORA T                  ; the result is negative (by OR'ing with T)
  STA INWK+2,X
- RTS
 
-.MV10                   ; -ve sg eor T
+ RTS                    ; Return from the subroutine
 
- LDA INWK,X             ; INWK+0,X
- SEC                    ; lo sub
- SBC R
+.MV10                   ; If we get here, we know x_sign and delta have
+                        ; different signs, with delta's sign in T, and
+                        ; |delta_hi| in S, so now we want to do:
+                        ;
+                        ;   (x_sign x_hi x_lo) = (x_sign x_hi x_lo) - (S R)
+                        ;
+                        ; and then set the sign of the result according to
+                        ; the signs of x_sign and delta
+
+ LDA INWK,X             ; First we subtract the low bytes, so:
+ SEC                    ;
+ SBC R                  ;   x_lo = x_lo - R
  STA INWK,X
- LDA INWK+1,X
- SBC S                  ; hi
- STA INWK+1,X
- LDA INWK+2,X
- AND #127               ; keep far
- SBC #0                 ; any carry
- ORA #128               ; sign
+
+ LDA INWK+1,X           ; Then we subtract the high bytes:
+ SBC S                  ;
+ STA INWK+1,X           ;   x_hi = x_hi - S
+
+ LDA INWK+2,X           ; And finally we subtract any borrow from bits 0-6 of
+ AND #%01111111         ; x_sign, and give the result the opposite sign bit to T
+ SBC #0                 ; (i.e. give it the sign of the original x_sign)
+ ORA #%10000000
  EOR T
  STA INWK+2,X
- BCS MV11               ; rts
 
- LDA #1                 ; else need to flip sign
- SBC INWK,X
- STA INWK,X
- LDA #0                 ; hi
- SBC INWK+1,X
- STA INWK+1,X
- LDA #0                 ; sg
- SBC INWK+2,X
- AND #127               ; keep far
- ORA T
- STA INWK+2,X
+ BCS MV11               ; If the C flag is set by the above SBC, then our sum
+                        ; above didn't underflow and is correct - to put it
+                        ; another way, (x_sign x_hi x_lo) >= (S R) so the result
+                        ; should indeed have the same sign as x_sign, so jump to
+                        ; MV11 to return from the subroutine
+
+                        ; Otherwise our subtraction underflowed because
+                        ; (x_sign x_hi x_lo) < (S R), so we now need to flip the
+                        ; subtraction around by using two's complement to this:
+                        ;
+                        ;   (S R) - (x_sign x_hi x_lo)
+                        ;
+                        ; and then we need to give the result the same sign as
+                        ; (S R), the delta, as that's the dominant figure in the
+                        ; sum
+
+ LDA #1                 ; First we subtract the low bytes, so:
+ SBC INWK,X             ;
+ STA INWK,X             ;   x_lo = 1 - x_lo
+
+ LDA #0                 ; Then we subtract the high bytes:
+ SBC INWK+1,X           ;
+ STA INWK+1,X           ;   x_high = 0 - x_high
+
+ LDA #0                 ; And then we subtract the sign bytes:
+ SBC INWK+2,X           ;
+                        ;   x_sign = 0 - x_sign
+
+ AND #%01111111         ; Finally, we set the sign bit to the sign in T, the
+ ORA T                  ; sign of the original delta, as the delta is the
+ STA INWK+2,X           ; dominant figure in the sum
 
 .MV11
 
- RTS                    ; MVT1 done
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -5045,7 +5133,9 @@ LOAD_A% = LOAD%
 \   X           The coordinate to add to K(3 2 1), as follows:
 \
 \                 * If X = 0, set K(3 2 1) = K(3 2 1) + (x_sign x_hi x_lo)
+\
 \                 * If X = 3, set K(3 2 1) = K(3 2 1) + (y_sign y_hi y_lo)
+\
 \                 * If X = 6, set K(3 2 1) = K(3 2 1) + (z_sign z_hi z_lo)
 \ ******************************************************************************
 
@@ -9892,110 +9982,208 @@ LOAD_C% = LOAD% +P% - CODE%
 \ ******************************************************************************
 \ Subroutine: SFS1
 \
-\ Spawn ship from parent ship, Acc is ai, Xreg is type created.
+\ Spawn a child ship from the current (parent) ship. If the parent is a space
+\ station then the child ship is spawned coming out of the slot, and if the
+\ child is a cargo canister, it is sent tumbling through space. Otherwise the
+\ child ship is spawned with the same ship data as the parent, just with damping
+\ disabled and the ship type and AI flag that are passed in A and X.
+\
+\ Arguments:
+\
+\   A           AI flag for the new ship (see the documentation on INWK for
+\               details)
+\
+\   X           The ship type of the child to spawn
+\
+\   INF         Address of the parent's ship data block
+\
+\   TYPE        The type of the parent ship
 \
 \ Returns:
 \
 \   C flag      Set if ship successfully added, clear if it failed
+\
+\   INF         INF is preserved
+\
+\   XX0         XX0 is preserved
+\
+\   INWK        The whole INWK workspace is preserved
 \ ******************************************************************************
 
-.SFS1                   ; spawn ship from parent ship, Acc is ai, Xreg is type created.
+.SFS1
 {
- STA T1                 ; daughter ai_attack_univ_ecm
- LDA XX0
- PHA                    ; pointer lo to Hull data
+ STA T1                 ; Store the child ship's AI flag in T1
+
+                        ; Before spawning our child ship, we need to save the
+                        ; INF and XX00 variables and the whole INWK workspace,
+                        ; so we can restore them later when returning from the
+                        ; subroutine
+
+ LDA XX0                ; Store XX0(1 0) on the stack, so we can restore it
+ PHA                    ; later when returning from the subroutine
  LDA XX0+1
- PHA                    ; pointer hi to Hull data
- LDA INF
  PHA
+
+ LDA INF                ; Store INF(1 0) on the stack, so we can restore it
+ PHA                    ; later when returning from the subroutine
  LDA INF+1
- PHA                    ; parent INF pointer
- LDY #NI%-1             ; whole workspace
+ PHA
 
-.FRL2                   ; counter Y
+ LDY #NI%-1             ; Now we want to store the current INWK data block in
+                        ; temporary memory so we can restore it when we are
+                        ; done, and we also want to copy the parent's ship data
+                        ; into INWK, which we can do at the same time, so set up
+                        ; a counter in Y for NI% bytes
 
- LDA INWK,Y
- STA XX3,Y              ; move inwk to heap
- LDA (INF),Y
- STA INWK,Y             ; get parent info
- DEY                    ; next bytes
- BPL FRL2               ; loop Y
+.FRL2
 
- LDA TYPE               ; ship type of parent
- CMP #SST               ; space station
- BNE rx                 ; skip as space station not parent
- TXA                    ; else ship launched by space station
- PHA                    ; second copy of new type pushed
- LDA #32                ; speed quite fast
+ LDA INWK,Y             ; Copy the Y-th byte of INWK to the Y-th byte of
+ STA XX3,Y              ; temporary memory in XX3, so we can restore it later
+                        ; when returning from the subroutine
+ 
+ LDA (INF),Y            ; Copy the Y-th byte of the parent ship's data block to
+ STA INWK,Y             ; the Y-th byte of INWK
+ 
+ DEY                    ; Decrement the loop counter
+ 
+ BPL FRL2               ; Loop back to copy the next byte until we have done
+                        ; them all
+
+                        ; INWK now contains the ship data for the parent ship,
+                        ; so now we need to tweak the data before creating the
+                        ; new child ship (in this way, the child inherits things
+                        ; like location from the parent)
+
+ LDA TYPE               ; Fetch the ship type of the parent into A
+ 
+ CMP #SST               ; If the parent is not a space station, jump to rx to
+ BNE rx                 ; skip the following
+
+                        ; The parent is a space station, so the child needs to
+                        ; launch out of the space station's slot. The space
+                        ; station's rotmat0 vector points out of the station's
+                        ; slot, so we want to move the ship along this vector.
+                        ; We do this by taking the unit vector in rotmat0 and
+                        ; doubling it, so we spawn our ship 2 units along the
+                        ; vector from the space station's centre.
+
+ TXA                    ; Store the child's ship type in X on the stack
+ PHA
+
+ LDA #32                ; Set the child's INWK+27 (speed) to 32
  STA INWK+27
- LDX #0                 ; xcoord
- LDA INWK+10
- JSR SFS2               ; xincrot added to inwk coord, below
- LDX #3                 ; ycoord
- LDA INWK+12
- JSR SFS2               ; yincrot added to inwk coord
- LDX #6                 ; zcoord
- LDA INWK+14
- JSR SFS2               ; zincrot added to inwk coord
- PLA
- TAX                    ; second copy of type restored
 
-.rx                     ; skipped space station not parent
+ LDX #0                 ; Add 2 * rotmat0x_hi to (x_lo, x_hi, x_sign) to get the
+ LDA INWK+10            ; child's x-coordinate
+ JSR SFS2
 
- LDA T1                 ; daughter ai_attack_univ_ecm.
- STA INWK+32            ; ai_attack_univ_ecm
- LSR INWK+29            ; rotx counter
- ASL INWK+29            ; clear bit0 to start damping roll.
- TXA                    ; second copy of daughter type restored
- CMP #OIL
- BNE NOIL               ; type is not cargo
+ LDX #3                 ; Add 2 * rotmat0y_hi to (y_lo, y_hi, y_sign) to get the
+ LDA INWK+12            ; child's y-coordinate
+ JSR SFS2
+
+ LDX #6                 ; Add 2 * rotmat0z_hi to (z_lo, z_hi, z_sign) to get the
+ LDA INWK+14            ; child's z-coordinate
+ JSR SFS2
+
+ PLA                    ; Restore the child's ship type from the stack into X
+ TAX
+
+.rx
+
+ LDA T1                 ; Restore the child ship's AI flag from T1 and store it
+ STA INWK+32            ; in the child's INWK+32 (AI)
+
+ LSR INWK+29            ; Clear bit 0 of the child's INWK+29 (rotx counter) so
+ ASL INWK+29            ; that its roll dampens (so if we are spawning from a
+                        ; space station, for example, the spawned ship won't
+                        ; keep rolling forever)
+
+ TXA                    ; If the child we are spawning is not a cargo canister,
+ CMP #OIL               ; jump to NOIL to skip us setting up the pitch and roll
+ BNE NOIL               ; for the canister
+
  JSR DORND              ; Set A and X to random numbers
- ASL A                  ; pitch damped, and need rnd carry later.
- STA INWK+30            ; rotz counter
- TXA                    ; Xrnd
- AND #15                ; keep lower 4 bits as
- STA INWK+27            ; speed
- LDA #&FF               ; no damping
- ROR A                  ; rnd carry gives sign
- STA INWK+29            ; rotx counter roll has no damping
- LDA #OIL
 
-.NOIL                   ; not cargo, launched missile or escape pod.
+ ASL A                  ; Set the child's INWK+30 (rotz counter) to a random
+ STA INWK+30            ; value, and at the same time set the C flag randomly
 
- JSR NWSHP              ; New ship type Acc
+ TXA                    ; Set the child's INWK+27 (speed) to a random value
+ AND #%00001111         ; between 0 and 15
+ STA INWK+27
 
- PLA                    ; restore parent info pointer
+ LDA #&FF               ; Set the child's INWK+29 (rotx counter) to a full roll,
+ ROR A                  ; so the canister tumbles through space, with damping
+ STA INWK+29            ; randomly enabled or disabled, depending on the C flag
+                        ; from above
+
+ LDA #OIL               ; Set A to the ship type of a cargo canister
+
+.NOIL
+
+ JSR NWSHP              ; Add a new ship of type A to the local bubble
+
+                        ; We have now created our child ship, so we need to
+                        ; restore all the variables we saved at the start of
+                        ; the routine, so they are preserved when we return
+                        ; from the subroutine
+
+ PLA                    ; Restore INF(1 0) from the stack
  STA INF+1
  PLA
  STA INF
- LDX #NI%-1             ; #(NI%-1) whole workspace
 
-.FRL3                   ; counter X
+ LDX #NI%-1             ; Now to restore the INWK workspace that we saved into
+                        ; XX3 above, so set a counter in X for NI% bytes
 
- LDA XX3,X              ; heap
- STA INWK,X             ; restore initial inwk.
- DEX                    ; next byte
- BPL FRL3               ; loop X
- PLA                    ; restore Hull data pointer
+.FRL3
+
+ LDA XX3,X              ; Copy the Y-th byte of XX3 to the Y-th byte of INWK
+ STA INWK,X
+
+ DEX                    ; Decrement the loop counter
+
+ BPL FRL3               ; Loop back to copy the next byte until we have done
+                        ; them all
+
+ PLA                    ; Restore XX0(1 0) from the stack
  STA XX0+1
- PLA                    ; lo
+ PLA
  STA XX0
- RTS
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
 \ Subroutine: SFS2
 \
-\ X=0,3,6 for Acc = inc added to x,y,z coords
+\ Move a ship's coordinates by a certain amount in the direction of one of the
+\ axes, where X determines the axis. Mathematically speaking, this routine
+\ translates the ship along a single axis by a signed delta.
+\
+\ Arguments:
+\
+\   A           The amount of movement, i.e. the signed delta
+\
+\   X           Determines which coordinate axis of the INWK space to move:
+\
+\                 * X = 0 moves the ship along the x-axis (x_lo, x_hi, x_sign)
+\
+\                 * X = 3 moves the ship along the y-axis (y_lo, y_hi, y_sign)
+\
+\                 * X = 6 moves the ship along the z-axis (z_lo, z_hi, z_sign)
 \ ******************************************************************************
 
-.SFS2                   ; X=0,3,6 for Acc = inc added to x,y,z coords
+.SFS2
 {
- ASL A                  ; sign into carry
- STA R                  ; inc
- LDA #0
- ROR A                  ; bring any carry back into bit 7
- JMP MVT1               ; Add R|sgnA to inwk,x+0to2
+ ASL A                  ; Set R = |A * 2|, with the C flag set to bit 7 of A
+ STA R
+
+ LDA #0                 ; Set bit 7 of A to the C flag, i.e. the sign bit from
+ ROR A                  ; the original argument in A
+
+ JMP MVT1               ; Add the delta R with sign A to (x_lo, x_hi, x_sign)
+                        ; (or y or z, depending on the value in X) and return
+                        ; from the subroutine using a tail call
 }
 
 \ ******************************************************************************
@@ -18330,10 +18518,11 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: NWSHP
 \
-\ Add a new ship to our local bubble of universe. This creates a block of ship
-\ data in the workspace at K% (where we store the ships in our current bubble),
-\ and we also add the ship type into the slot index table at FRIN. We can
-\ retrieve this block of ship data later using the lookup table at UNIV.
+\ Add a new ship to our local bubble of universe. This creates a new block of
+\ ship data in the workspace at K%, allocates a new block in the ship lines heap
+\ space at WP, adds the new ship's type into the first empty slot in FRIN, and
+\ adds a pointer to the ship data into UNIV. If there isn't enough free memory
+\ for the new ship, it isn't added.
 \
 \ Arguments:
 \
