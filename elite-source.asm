@@ -317,6 +317,7 @@ ORG &0000
 .KY7
 
  SKIP 1                 ; A key pressed (0 = no, non-zero = yes)
+                        ;
                         ; Also, joystick fire button pressed
 
 .KY12
@@ -446,12 +447,13 @@ ORG &0000
                         ;               Bit 7 = 0 (friendly) or 1 (angry)
                         ;
                         ;           For missiles:
-                        ;               Bit 0 = 0 (not locked) or 1 (target locked)
+                        ;               Bit 0 = 0 (no lock) or 1 (target locked)
                         ;               Bits 1-6 = target's slot number
                         ;               Bit 7 = 0 (dumb) or 1 (has AI)
                         ;
                         ; INWK+33 = ship lines heap space pointer low byte
-                        ; INWK+34                                 high byte
+                        ;
+                        ; INWK+34 = ship lines heap space pointer high byte
                         ;
                         ; INWK+35 = ship energy
 
@@ -971,7 +973,7 @@ PRINT "T% workspace from  ", ~T%, " to ", ~SXL
 \ ******************************************************************************
 \ ELITE WORDS9 at &0400 - &07FF
 \
-\ Produces the binary file WORDS9.bin which gets loaded by elite-loader.asm.
+\ Produces the binary file WORDS9.bin that gets loaded by elite-loader.asm.
 \
 \ The recursive token table is loaded at &1100 and is moved down to &0400 as
 \ part of elite-loader.asm.
@@ -2891,7 +2893,7 @@ PRINT "WP workspace from  ", ~WP," to ", ~P%
 \ ******************************************************************************
 \ ELITE A
 \
-\ Produces the binary file ELTA.bin which gets loaded by elite-bcfs.asm.
+\ Produces the binary file ELTA.bin that gets loaded by elite-bcfs.asm.
 \
 \ The main game code (ELITE A through G, plus the ship data) is loaded at &1128
 \ and is moved down to &0F40 as part of elite-loader.asm.
@@ -3272,7 +3274,7 @@ LOAD_A% = LOAD%
  AND SSPR               ; zone, keep going, otherwise jump down to MA68 to
  BEQ MA68               ; skip the following
 
- LDA K% + NI% + 32      ; Fetch the AI counter (byte 32) of the second ship
+ LDA K%+NI%+32          ; Fetch the AI counter (byte 32) of the second ship
  BMI MA68               ; in the ship data workspace at K%, which is reserved
                         ; for the sun or the space station (in this case it's
                         ; the latter), and if it's negative, meaning the
@@ -3768,7 +3770,7 @@ LOAD_A% = LOAD%
 
 .ISDK
 
- LDA K% + NI% + 32      ; 1. Fetch the AI counter (byte 32) of the second ship
+ LDA K%+NI%+32          ; 1. Fetch the AI counter (byte 32) of the second ship
  BMI MA62               ; in the ship data workspace at K%, which is reserved
                         ; for the sun or the space station (in this case it's
                         ; the latter), and if it's negative, meaning the
@@ -5874,7 +5876,7 @@ SAVE "output/ELTA.bin", CODE%, P%, LOAD%
 \ ******************************************************************************
 \ ELITE B
 \
-\ Produces the binary file ELTB.bin which gets loaded by elite-bcfs.asm.
+\ Produces the binary file ELTB.bin that gets loaded by elite-bcfs.asm.
 \ ******************************************************************************
 
 CODE_B% = P%
@@ -9456,7 +9458,7 @@ SAVE "output/ELTB.bin", CODE_B%, P%, LOAD%
 \ ******************************************************************************
 \ ELITE C
 \
-\ Produces the binary file ELTC.bin which gets loaded by elite-bcfs.asm.
+\ Produces the binary file ELTC.bin that gets loaded by elite-bcfs.asm.
 \ ******************************************************************************
 
 CODE_C% = P%
@@ -10033,7 +10035,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ Arguments:
 \
-\   A           AI flag for the new ship (see the documentation on INWK for
+\   A           AI flag for the new ship (see the documentation on INWK+32 for
 \               details)
 \
 \   X           The ship type of the child to spawn
@@ -12340,7 +12342,7 @@ NEXT
 \ ******************************************************************************
 \ Subroutine: LOOK1
 \
-\ Start view X
+\ Initialise the space view in X (forward, rear, left or right)
 \ ******************************************************************************
 
 .LOOK1                  ; Start view X
@@ -12822,7 +12824,7 @@ SAVE "output/ELTC.bin", CODE_C%, P%, LOAD%
 \ ******************************************************************************
 \ ELITE D
 \
-\ Produces the binary file ELTD.bin which gets loaded by elite-bcfs.asm.
+\ Produces the binary file ELTD.bin that gets loaded by elite-bcfs.asm.
 \ ******************************************************************************
 
 CODE_D% = P%
@@ -17015,7 +17017,7 @@ SAVE "output/ELTD.bin", CODE_D%, P%, LOAD%
 \ ******************************************************************************
 \ ELITE E
 \
-\ Produces the binary file ELTE.bin which gets loaded by elite-bcfs.asm.
+\ Produces the binary file ELTE.bin that gets loaded by elite-bcfs.asm.
 \ ******************************************************************************
 
 CODE_E% = P%
@@ -20299,7 +20301,7 @@ SAVE "output/ELTE.bin", CODE_E%, P%, LOAD%
 \ ******************************************************************************
 \ ELITE F
 \
-\ Produces the binary file ELTF.bin which gets loaded by elite-bcfs.asm.
+\ Produces the binary file ELTF.bin that gets loaded by elite-bcfs.asm.
 \ ******************************************************************************
 
 CODE_F% = P%
@@ -20513,8 +20515,13 @@ LOAD_F% = LOAD% + P% - CODE%
 
                         ; The following two instructions appear in the BASIC
                         ; source file (ELITEF), but in the text source file
-                        ; (ELITEF.TXT) they are replaced by CPX MSTG, which is
-                        ; a more efficient way of doing the same thing
+                        ; (ELITEF.TXT) they are replaced by:
+                        ;
+                        ;   CPX MSTG
+                        ;
+                        ; which does the same thing, but saves two bytes of
+                        ; memory (as CPX MSTG is a two-byte opcode, while LDA
+                        ; MSTG and CMP XX4 take up four bytes between them)
 
  LDA MSTG               ; Check whether this slot matches the slot number in
  CMP XX4                ; MSTG, which is the target of our missile lock
@@ -24331,7 +24338,7 @@ SAVE "output/ELTF.bin", CODE_F%, P%, LOAD%
 \ ******************************************************************************
 \ ELITE G
 \
-\ Produces the binary file ELTG.bin which gets loaded by elite-bcfs.asm.
+\ Produces the binary file ELTG.bin that gets loaded by elite-bcfs.asm.
 \ ******************************************************************************
 
 CODE_G% = P%
@@ -26113,7 +26120,7 @@ SKIP 1
 \ ******************************************************************************
 \ ELITE SHIP BLUEPRINTS
 \
-\ Produces the binary file SHIPS.bin which gets loaded by elite-bcfs.asm.
+\ Produces the binary file SHIPS.bin that gets loaded by elite-bcfs.asm.
 \ ******************************************************************************
 
 CODE_SHIPS% = P%
@@ -26974,7 +26981,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 
  EQUB &00
  EQUB &40, &06
- EQUB &A8                           ; use Thargoid edge data at &FFA8 = -88
+ EQUB &A8                           ; use canister edge data at &FFA8 = -88
  EQUB &50
  EQUB &41
  EQUB &00                           ; gun vertex = 0
@@ -26986,7 +26993,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUB &14
  EQUB &14
  EQUB &1E
- EQUB &FF                           ; use Thargoid edge data at &FFA8 = -88
+ EQUB &FF                           ; use canister edge data at &FFA8 = -88
  EQUB &00
  EQUB &02
  EQUB %00010000                     ; laser power = 2, missiles = 0
