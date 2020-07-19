@@ -9357,47 +9357,86 @@ NEXT
 \ ******************************************************************************
 \ Subroutine: ESCAPE
 \
-\ Escape pod launch
+\ Launch our escape pod, displaying our Cobra disappearing off into the ether
+\ before arranging our replacement ship. Called when we press Escape during
+\ flight and have an escape pod fitted.
 \ ******************************************************************************
 
-.ESCAPE                 ; your Escape pod launch
+.ESCAPE
 {
- LDA MJ
- PHA
- JSR RES2               ; reset2
- LDX #CYL               ; Cobra Mk3
- STX TYPE
- JSR FRS1               ; escape pod launch, missile launch.
- LDA #8                 ; modest speed 
+ LDA MJ                 ; Store the value of MJ on the stack (the "are we in
+ PHA                    ; witchspace?" flag)
+
+ JSR RES2               ; Reset a number of flight variables and workspaces
+
+ LDX #CYL               ; Set the current ship type to a Cobra Mk III, so we
+ STX TYPE               ; can show our ship disappear into the distance when we
+                        ; eject in our pod
+
+ JSR FRS1               ; Call FRS1 to launch the Cobra Mk III straight ahead,
+                        ; like a missile launch, but with our ship instead
+
+ LDA #8                 ; Set the Cobra's INWK+27 (speed) to 8
  STA INWK+27
- LDA #&C2               ; rotz, pitch counter
- STA INWK+30
- LSR A                  ; #&61 = ai dumb but has ecm, also counter.
- STA INWK+32
 
-.ESL1                   ; ai counter INWK+32, ship flys out of view.
+ LDA #194               ; Set the Cobra's INWK+30 (rotz counter) to 194, so it
+ STA INWK+30            ; pitches as we pull away
 
- JSR MVEIT
- JSR LL9                ; object ENTRY
- DEC INWK+32
- BNE ESL1               ; loop ai counter
- JSR SCAN               ; ships on scanner
- JSR RESET
- PLA
- BEQ P%+5
- JMP DEATH
- LDX #16
+ LSR A                  ; Set the Cobra's INWK+32 (AI flag) to %01100001, so it
+ STA INWK+32            ; has no AI, and we can use this value as a counter to
+                        ; do the following loop 97 times
 
-.ESL2                   ; counter X
+.ESL1
 
- STA QQ20,X             ; cargo
- DEX
- BPL ESL2               ; loop X
- STA FIST               ; fugitative/innocent status, make clean
- STA ESCP               ; no escape pod
- LDA #70                ; max fuel allowed #70 = #&46
- STA QQ14
- JMP BAY                ; dock code
+ JSR MVEIT              ; Call MVEIT to move the Cobra in space
+
+ JSR LL9                ; Call LL9 to draw the  Cobra on screen
+
+ DEC INWK+32            ; Decrement the counter in INWK+32
+
+ BNE ESL1               ; Loop back to keep moving the Cobra until the AI flag
+                        ; is 0, which gives it time to drift away from our pod
+
+ JSR SCAN               ; Call SCAN to remove all ships from the scanner
+
+ JSR RESET              ; Call RESET to reset our ship and various controls
+
+ PLA                    ; Restore the witchspace flag from before the escape pod
+ BEQ P%+5               ; launch, and if we were in normal space, skip the
+                        ; following instruction
+
+ JMP DEATH              ; Launching an escape pod in witchspace is fatal, so
+                        ; jump to DEATH to begin the funeral and return from the
+                        ; subroutine using a tail call
+
+ LDX #16                ; We lose all our cargo when using our escape pod, so
+                        ; up a counter in X so we can zero the 17 cargo slots
+                        ; in QQ20
+
+.ESL2
+
+ STA QQ20,X             ; Set the X-th byte of QQ20 to zero (as we know A = 0
+                        ; from the BEQ above), so we no longer have any of item
+                        ; type X in the cargo hold
+
+ DEX                    ; Decrement the counter
+
+ BPL ESL2               ; Loop back to ESL2 until we have emptied the entire
+                        ; cargo hold
+
+ STA FIST               ; Launching an escape pod also clears our criminal
+                        ; record, so set our legal status in FIST to 0 ("clean")
+
+ STA ESCP               ; The escape pod is a one-use item, so set ESCP to 0 so
+                        ; we no longer have one fitted
+
+ LDA #70                ; Our replacement ship is delivered with a full tank of
+ STA QQ14               ; fuel, so set the current fuel level in QQ14 to 70, or
+                        ; 7.0 light years
+
+ JMP BAY                ; Go to the docking bay (i.e. show the Status Mode
+                        ; screen) and return from the subroutine with a tail
+                        ; call
 }
 
 \ ******************************************************************************
@@ -9970,13 +10009,17 @@ LOAD_C% = LOAD% +P% - CODE%
 \ ******************************************************************************
 \ Subroutine: SESCP
 \
-\ Ships launch Escape pod
+\ Spawn an escape pod from the current (parent) ship.
 \ ******************************************************************************
 
-.SESCP                  ; from tactics, ships launch Escape pod
+.SESCP
 {
- LDX #ESC               ; #ESC type escape pod. On next line missiles.
- LDA #&FE               ; SFRMIS arrives \ SFS1-2 \ ai has bit6 set, attack player. No ecm.
+ LDX #ESC               ; Set X to the ship type for an escape pod
+
+ LDA #%11111110         ; Set A to an AI flag that has AI enabled, is hostile,
+                        ; but has no E.C.M.
+                        
+                        ; Fall through into SFS1 to spawn the escape pod
 }
 
 \ ******************************************************************************
