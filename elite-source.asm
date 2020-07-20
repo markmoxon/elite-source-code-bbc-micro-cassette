@@ -779,7 +779,16 @@ ORG &0300               ; Start of the commander block
 
 .QQ21
 
- SKIP 6                 ; Three 16-bit seeds for the current system
+ SKIP 6                 ; The three 16-bit seeds for the current galaxy
+                        ;
+                        ; These seeds define system 0 in the current galaxy, so
+                        ; they can be used as a starting point to generate all
+                        ; 256 systems in this galaxy
+                        ;
+                        ; Using a galactic hyperdrive rotates each byte to the
+                        ; left (rolling each byte within itself) to get the
+                        ; seeds for the next galaxy, so after 8 galactic jumps,
+                        ; the seeds roll round to the first galaxy again
 
 .CASH
 
@@ -11780,10 +11789,10 @@ NEXT
 \
 \   * If we are facing the sun, make sure we aren't too close
 \
-\ If the following checks are passed, then we perform an in-system jump by
-\ moving the sun and planet in the opposite direction to travel, so we appear
-\ to jump in space. This means that any asteroids, cargo canisters or escape
-\ pods get dragged along for the ride.
+\ If the above checks are passed, then we perform an in-system jump by moving
+\ the sun and planet in the opposite direction to travel, so we appear to jump
+\ in space. This means that any asteroids, cargo canisters or escape pods get
+\ dragged along for the ride.
 \ ******************************************************************************
 
 .WARP
@@ -12320,65 +12329,92 @@ NEXT
  STA INWK+1,Y
  STX INWK+5,Y
 
-.^LO2
-
- RTS                    ; Return from the subroutine
-}
-
-\ ******************************************************************************
-\ Subroutine: LQ
-\
-\ new view X, Acc = 0
-\ ******************************************************************************
-
-.LQ                     ; new view X, Acc = 0
-{
- STX VIEW               ; laser mount
- JSR TT66               ; box border with menu id QQ11 set to Acc
- JSR SIGHT              ; laser crosshairs
- JMP NWSTARS            ; new dust field
+                        ; Fall through into LOOK1 to return from the subtroutine
 }
 
 \ ******************************************************************************
 \ Subroutine: LOOK1
 \
-\ Initialise the space view in X (forward, rear, left or right)
-\ ******************************************************************************
-
-.LOOK1                  ; Start view X
-{
- LDA #0                 ; menu id is space view
- LDY QQ11
- BNE LQ                 ; new view X, Acc = 0.
- CPX VIEW
- BEQ LO2                ; rts as view unchanged
- STX VIEW               ; else new view
- JSR TT66               ; box border with QQ11 set to Acc
- JSR FLIP               ; switch dusty and dustx
- JSR WPSHPS             ; wipe ships on scanner
-}
-
-\ ******************************************************************************
-\ Subroutine: SIGHT
+\ Initialise the space view, with the direction of view given in X. This clears
+\ the upper screen and draws the laser crosshairs, if the view in X has lasers
+\ fitted.
 \
-\ Laser crosshairs
+\ Arguments:
+\
+\   X           The space view to set:
+\
+\               0 = forward
+\               1 = rear
+\               2 = left
+\               3 = right
 \ ******************************************************************************
 
-.SIGHT                  ; Laser crosshairs
 {
- LDY VIEW
- LDA LASER,Y
- BEQ LO2                ; no laser crosshairs, rts
- LDA #128               ; xscreen mid
- STA QQ19
- LDA #Y-24              ; #Y-24 = #72 yscreen mid
- STA QQ19+1
- LDA #20                ; size of cross hair
+.LO2
+
+ RTS                    ; Return from the subroutine
+
+.LQ
+
+ STX VIEW               ; Set the current space view to X
+
+ JSR TT66               ; Clear the top part of the screen, draw a box border,
+                        ; and set the current view type in QQ11 to 0 (space
+                        ; view)
+
+ JSR SIGHT              ; Draw the laser crosshairs
+
+ JMP NWSTARS            ; Set up a new new stardust field and return from the
+                        ; subroutine using a tail call
+
+.^LOOK1
+
+ LDA #0                 ; Set A = 0, the type number of a space view
+
+ LDY QQ11               ; If the current view is not a space view, jump up to LQ
+ BNE LQ                 ; to set up a new space view
+
+ CPX VIEW               ; If the current view is already of type X, jump to LO2
+ BEQ LO2                ; to return from the subroutine (as LO2 contains an RTS)
+
+ STX VIEW               ; Change the current space view to X
+
+ JSR TT66               ; Clear the top part of the screen, draw a box border,
+                        ; and set the current view type in QQ11 to 0 (space
+                        ; view)
+ 
+ JSR FLIP               ; switch dusty and dustx
+
+ JSR WPSHPS             ; Wipe all the ships from the scanner
+ 
+                        ; And fall through into SIGHT to draw the laser
+                        ; crosshairs
+.SIGHT
+
+ LDY VIEW               ; Fetch the laser power for our new view, and if it is
+ LDA LASER,Y            ; zero (i.e. there is no laser fitted to this view),
+ BEQ LO2                ; jump to LO2 to return from the subroutine (as LO2
+                        ; contains an RTS)
+
+ LDA #128               ; Set QQ19 to the x-coordinate of the centre of the
+ STA QQ19               ; screen
+
+ LDA #Y-24              ; Set QQ19+1 to the y-coordinate of the centre of the
+ STA QQ19+1             ; screen, minus 24 (so that's just above the middle)
+
+ LDA #20                ; Set QQ19+2 to size 20 for the crosshairs size
  STA QQ19+2
- JSR TT15               ; the cross hair using QQ19(0to2)
- LDA #10                ; negate out small crosshairs
+
+ JSR TT15               ; Call TT15 to draw crosshairs of size 20 just to the
+                        ; left of the middle of the screen
+
+ LDA #10                ; Set QQ19+2 to size 10 for the crosshairs size
  STA QQ19+2
- JMP TT15               ; again, negate out small crosshairs.
+
+ JMP TT15               ; Call TT15 to draw crosshairs of size 10 at the same
+                        ; location, which will remove the centre part from the
+                        ; laser crosshairs, leaving a gap in the middle, and
+                        ; return from the subroutine using a tail call
 }
 
 \ ******************************************************************************
@@ -12528,9 +12564,10 @@ NEXT
 \ ******************************************************************************
 \ Subroutine: hm
 \
-\ Move the crosshairs to the system closest to galactic coordinates (QQ9, QQ10)
-\ and, if this is not a space view, clear the bottom three text rows of the
-\ screen.
+\ Set the system closest to galactic coordinates (QQ9, QQ10) as the selected
+\ system, redraw the crosshairs on the chart accordingly (if they are being
+\ shown), and, if this is not a space view, clear the bottom three text rows of
+\ the screen.
 \ ******************************************************************************
 
 .hm
@@ -13824,8 +13861,8 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #7                 ; Move the text cursor to column 7
  STA XC
 
- JSR TT81               ; Set the seeds in QQ15 to those of the current system
-                        ; (i.e. copy the seeds from QQ21 to QQ15)
+ JSR TT81               ; Set the seeds in QQ15 to those of system 0 in the
+                        ; current galaxy (i.e. copy the seeds from QQ21 to QQ15)
 
  LDA #199               ; Print recursive token 39 ("GALACTIC CHART{galaxy
  JSR TT27               ; number right-aligned to width 3}")
@@ -13896,14 +13933,25 @@ LOAD_D% = LOAD% + P% - CODE%
  LSR A                  ; halved to fit it into the chart
  STA QQ19+1
 
- LDA #4                 ; Set QQ19+2 to 4 and fall through into TT15 to draw
- STA QQ19+2             ; crosshairs of size 4 at the selected system
+ LDA #4                 ; Set QQ19+2 to size 4 for the crosshairs size
+ STA QQ19+2
+
+                        ; Fall through into TT15 to draw crosshairs of size 4 at
+                        ; the selected system's coordinates
 }
 
 \ ******************************************************************************
 \ Subroutine: TT15
 \
-\ Crosshairs using QQ19(0to2) for laser or chart
+\ Draw a set of crosshairs.
+\
+\ Arguments:
+\
+\   QQ19        The pixel x-coordinate of the centre of the crosshairs
+\
+\   QQ19+1      The pixel y-coordinate of the centre of the crosshairs
+\
+\   QQ19+2      The size of the crosshairs
 \ ******************************************************************************
 
 .TT15                   ; cross hair using QQ19(0to2) for laser or chart
@@ -14803,8 +14851,8 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR TT103              ; Draw small crosshairs at coordinates (QQ9, QQ10),
                         ; i.e. at the selected system
 
- JSR TT81               ; Set the seeds in QQ15 to those of the current system
-                        ; (i.e. copy the seeds from QQ21 to QQ15)
+ JSR TT81               ; Set the seeds in QQ15 to those of system 0 in the
+                        ; current galaxy (i.e. copy the seeds from QQ21 to QQ15)
 
  LDA #0                 ; Set A = 0, which we'll use below to zero out the INWK
                         ; workspace
@@ -15023,9 +15071,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: TT81
 \
-\ Copy the three 16-bit seeds for the current system (QQ21) into the seeds for
-\ the selected system (QQ15) - in other words, set the selected system's seeds
-\ to those of the current system.
+\ Copy the three 16-bit seeds for the current galaxy's system 0 (QQ21) into the
+\ seeds for the selected system (QQ15) - in other words, set the selected
+\ system's seeds to those of the system 0.
 \ ******************************************************************************
 
 .TT81
@@ -15077,8 +15125,8 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT111
 {
- JSR TT81               ; Set the seeds in QQ15 to those of the current system
-                        ; (i.e. copy the seeds from QQ21 to QQ15)
+ JSR TT81               ; Set the seeds in QQ15 to those of system 0 in the
+                        ; current galaxy (i.e. copy the seeds from QQ21 to QQ15)
 
                         ; We now loop through every single system in the galaxy
                         ; and check the distance from (QQ9, QQ10). We get the
@@ -15315,7 +15363,8 @@ LOAD_D% = LOAD% + P% - CODE%
 
  JMP TT24               ; Call TT24 to calculate system data from the seeds in
                         ; QQ15 and store them in the relevant locations, so our
-                        ; new selected system is fully set up
+                        ; new selected system is fully set up, and return from
+                        ; the subroutine using a tail call
 }
 
 \ ******************************************************************************
@@ -15343,7 +15392,22 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: hyp
 \
-\ hyperspace start, key H hit.
+\ Start the hyperspace process. Called when "H" or CTRL-H is pressed during
+\ flight. Checks the following:
+\
+\   * We are in space
+\
+\   * We are not already in a hyperspace countdown
+\
+\ If CTRL is being held down, we jump to Ghy to engage the galactic hyperdrive,
+\ othwerwise we check that:
+\
+\   * The selected system is not the current system
+\
+\   * We have enough fuel to make the jump
+\
+\ and if all the pre-jump checks are passed, we print the destination on screen
+\ and start the countdown.
 \ ******************************************************************************
 
 .hyp
@@ -15352,87 +15416,184 @@ LOAD_D% = LOAD% + P% - CODE%
  BNE hy6                ; print an error message and return from the subroutine
                         ; using a tail call (as we can't hyperspace when docked)
 
- LDA QQ22+1             ; hyp countdown lo
- BNE zZ+1               ; rts! as countdown already going on
- JSR CTRL               ; scan from ctrl key upwards on keyboard
- BMI Ghy                ; Galactic hyperdrive for ctrl-H
- JSR hm                 ; move hyperspace cross on chart
+ LDA QQ22+1             ; Fetch QQ22+1, which contains the number that's shown
+                        ; on-screen during hyperspace countdown
 
-                        ; check range, all.
- LDA QQ8                ; distance in 0.1 LY units
- ORA QQ8+1              ; zero?
- BEQ zZ+1               ; rts!
- LDA #7                 ; indent
- STA XC
- LDA #23                ; near bottom row for hyperspace message
+ BNE zZ+1               ; If it is non-zero, return from the subroutine (as zZ+1
+                        ; contains an RTS), as there is already a countdown in
+                        ; progress
+
+ JSR CTRL               ; Scan the keyboard to see if CTRL is currently pressed
+
+ BMI Ghy                ; If it is, then the galactic hyperdrive has been
+                        ; activated, so jump to Ghy to process it
+
+ JSR hm                 ; Set the system closest to galactic coordinates (QQ9,
+                        ; QQ10) as the selected system
+
+ LDA QQ8                ; If both bytes of the distance to the selected system
+ ORA QQ8+1              ; in QQ8 are zero, return from the subroutine (as zZ+1
+ BEQ zZ+1               ; contains an RTS), as the selected system is the
+                        ; current system
+
+ LDA #7                 ; Move the text cursor to column 7, row 23 (in the
+ STA XC                 ; middle of the bottom text row)
+ LDA #23
  STA YC
- LDA #0                 ; All upper case
- STA QQ17
- LDA #189               ; token = HYPERSPACE
- JSR TT27               ; process flight text token
- LDA QQ8+1              ; distance hi
- BNE TT147              ; hyperspace range too far
- LDA QQ14               ; ship fuel #70 = #&46
- CMP QQ8                ; distance lo
- BCC TT147              ; hyperspace too far
 
- LDA #&2D               ; ascii "-" in  "HYPERSPACE -ISINOR"
+ LDA #0                 ; Set QQ17 = 0 for ALL CAPS
+ STA QQ17
+
+ LDA #189               ; Print recursive token 29 ("HYPERSPACE ")
  JSR TT27
- JSR cpl                ; Planet name for seed QQ15
+
+ LDA QQ8+1              ; If the high byte of the distance to the selected
+ BNE TT147              ; system in QQ8 is > 0, then it is definitely too far to
+                        ; jump (as our maximum range is 7.0 light years, or a
+                        ; value of 70 in QQ8(1 0), so jump to TT147 to print
+                        ; "RANGE?" and return from the subroutine using a tail
+                        ; call
+
+ LDA QQ14               ; Fetch our current fuel level from Q114 into A
+
+ CMP QQ8                ; If our fuel reserves are less than the distance to the
+ BCC TT147              ; selected system, then we don't have enough fuel for
+                        ; this jump, so jump to TT147 to print "RANGE?" and
+                        ; return from the subroutine using a tail call
+
+ LDA #'-'               ; Print a hyphen
+ JSR TT27
+
+ JSR cpl                ; Call cpl to print the name of the selected system
+ 
+                        ; Fall through into wW to start the hyperspace
+                        ; countdown
 }
 
-.wW                     ; Also Galactic hyperdrive countdown starting
-{
- LDA #15                ; counter for outer and inner hyperspace countdown loops
- STA QQ22+1
- STA QQ22               ; inner hyperspace countdown
- TAX                    ; starts at 15
- JMP ee3                ; digit in top left hand corner, using Xreg.
+\ ******************************************************************************
+\ Subroutine: wW
+\
+\ Start the hyperspace countdown (for both inter-system hyperspace and the
+\ galactic hyperdrive).
+\ ******************************************************************************
 
-\hy5 RTS
+.wW
+{
+ LDA #15                ; The hyperspace countdown starts from 15, so set A to
+                        ; to 15 so we can set the two hyperspace counters
+
+ STA QQ22+1             ; Set the number in QQ22+1 to 15, which is the number
+                        ; that's shown on screen during the hyperspace countdown
+
+ STA QQ22               ; Set the number in QQ22 to 15, which is the internal
+                        ; counter that counts down by 1 each iteration of the
+                        ; main game loop, and each time it reaches zero, the
+                        ; on-screen counter gets decremented, and QQ22 gets set
+                        ; to 5, so setting QQ22 to 15 here makes the first tick
+                        ; of the hyperspace counter longer than subsequent ticks
+
+ TAX                    ; Print the 8-bit number in X (i.e. 15) at text location
+ JMP ee3                ; (0, 1), padded to 5 digits, so it appears in the top
+                        ; left corner of the screen, and return from the
+                        ; subroutine using a tail call
+
+\hy5                    ; This instruction and the hy5 label are commented out
+\RTS                    ; in the original - they can actually be found at the
+                        ; end of the jmp routine below, so perhaps this is where
+                        ; they were originally, but the authors realised they
+                        ; could save a byte by using a tail call instead of an
+                        ; RTS?
 }
 
 \ ******************************************************************************
 \ Subroutine: Ghy
 \
-\ Galactic hyperdrive for ctrl-H
+\ Engage the galactic hyperdrive. Called from the hyp routine above if CTRL-H is
+\ being pressed.
+\
+\ This routine also updates the galaxy seeds to point to the next galaxy. Using
+\ a galactic hyperdrive rotates each seed byte to the left, rolling each byte
+\ left within itself like this:
+\
+\   01234567 -> 12345670
+\
+\ to get the seeds for the next galaxy. So after 8 galactic jumps, the seeds
+\ roll round to those of the first galaxy again.
+\
+\ We always arrive in a new galaxy at galactic coordinates (96, 96), and then
+\ find the nearest system and set that as our location.
+\
+\ Other entry points:
+\
+\   zZ+1        Contains an RTS
 \ ******************************************************************************
 
-.Ghy                    ; Galactic hyperdrive for ctrl-H
+.Ghy
 {
-\JSR TT111              ; is in ELITED.TXT but not in ELITE SOURCE IMAGE
- LDX GHYP               ; possess galactic hyperdrive?
- BEQ hy5                ; rts
- INX                    ; Xreg = 0
- STX QQ8
- STX QQ8+1
- STX GHYP               ; works once
- STX FIST               ; clean Fugitive/Innocent status
- JSR wW                 ; start countdown
- LDX #5                 ; 6 seeds
- INC GCNT               ; next galaxy
- LDA GCNT
- AND #7                 ; round count to just 8
- STA GCNT
+\JSR TT111              ; This instruction is commented out in the original
+                        ; source, and appears in the text cassette code source
+                        ; (ELITED.TXT) but not in the BASIC source file on the
+                        ; source disc (ELITED). It finds the closest system to
+                        ; coordinates (QQ9, QQ10)
 
-.G1                     ; counter X  ROLL galaxy seeds
+ LDX GHYP               ; Fetch GHYP, which tells us whether we own a galactic 
+ BEQ hy5                ; hyperdrive, and if it is zero, which means we don't,
+                        ; return from the subroutine (as hy5 contains an RTS)
 
- LDA QQ21,X             ; Galaxy seeds, 6 bytes
- ASL A                  ; to get carry to load back into bit 0
- ROL QQ21,X             ; rolled galaxy seeds
- DEX
- BPL G1                 ; loop X
-\JSR DORND
-}
+ INX                    ; We own a galactic hyperdrive, so X is &FF, so this
+                        ; instruction sets X = 0
 
-.zZ                     ; Arrive closest to (96,96)
-{
- LDA #&60               ; zZ+1 is an rts !
- STA QQ9
- STA QQ10
- JSR TT110              ; Launch ship decision
- LDA #116               ; token = Galactic Hyperspace
- JSR MESS               ; message
+ STX QQ8                ; Set the distance to the selected system in (QQ8+1 QQ8)
+ STX QQ8+1              ; to 0
+
+ STX GHYP               ; The galactic hyperdrive is a one-use item, so set GHYP
+                        ; to 0 so we no longer have one fitted
+ 
+ STX FIST               ; Changing galaxy also clears our criminal record, so
+                        ; set our legal status in FIST to 0 ("clean")
+ 
+ JSR wW                 ; Call wW to start the hyperspace countdown
+
+ LDX #5                 ; To move galaxy, we rotate the galaxy's seeds left, so
+                        ; set a counter in X for the 6 seed bytes
+
+ INC GCNT               ; Increment the current galaxy number in GCNT
+
+ LDA GCNT               ; Set GCNT = GCNT mod 7, so we jump from galaxy 7 back
+ AND #7                 ; to galaxy 0 (shown in-game as going from galaxy 8 back
+ STA GCNT               ; to the starting point in galaxy 1)
+
+.G1
+
+ LDA QQ21,X             ; Load the X-th seed byte into A
+
+ ASL A                  ; Set the C flag to bit 7 of the seed
+
+ ROL QQ21,X             ; Rotate the seed in memory, which will add bit 7 back
+                        ; in as bit 0, so this rolls the seed around on itself
+
+ DEX                    ; Decrement the counter
+
+ BPL G1                 ; Loop back for the next seed byte, until we have
+                        ; rotated them all
+
+\JSR DORND              ; This instruction is commented out in the original
+                        ; source, and would set A and X to random numbers
+
+.^zZ
+
+ LDA #&60               ; Set (QQ9, QQ10) to (96, 96), which is where we always
+ STA QQ9                ; arrive in a new galaxy, and a call to TT111 from the
+ STA QQ10               ; TT110 routine finds the nearest system to our arrival
+                        ; point and sets that as the current system
+ 
+ JSR TT110              ; Call TT110 to launch our ship into the new galaxy
+ 
+ LDA #116               ; Print recursive token 116 (GALACTIC HYPERSPACE ")
+ JSR MESS               ; as an in-flight message
+
+                        ; Fall through into jmp to set the system to the
+                        ; current system and return from the subroutine there
 }
 
 \ ******************************************************************************
