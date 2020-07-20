@@ -15583,11 +15583,10 @@ LOAD_D% = LOAD% + P% - CODE%
 .^zZ
 
  LDA #&60               ; Set (QQ9, QQ10) to (96, 96), which is where we always
- STA QQ9                ; arrive in a new galaxy, and a call to TT111 from the
- STA QQ10               ; TT110 routine finds the nearest system to our arrival
-                        ; point and sets that as the current system
+ STA QQ9                ; arrive in a new galaxy (the selected system will be
+ STA QQ10               ; set to the nearest actual system later on)
  
- JSR TT110              ; Call TT110 to launch our ship into the new galaxy
+ JSR TT110              ; Call TT110 to show the forward space view
  
  LDA #116               ; Print recursive token 116 (GALACTIC HYPERSPACE ")
  JSR MESS               ; as an in-flight message
@@ -16317,123 +16316,236 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \ Subroutine: MJP
 \
-\ Miss-jump to Thargoids in witchspace
+\ Process a mis-jump into witchspace (which happens very rarely). Witchspace has
+\ a strange, almost dust-free aspect to it, and it is populated by hostile
+\ Thargoids. Using our escape pod will be fatal, and our position on the
+\ galactic chart is inbetween systems. It is a scary place...
+\
+\ There is a 1% chance that this routine is is called from TT18 instead of doing
+\ a normal hyperspace, or we can manually trigger a mis-jump by holding down
+\ CTRL after first enabling the "author display" configuration option ("X") when
+\ paused.
+\
+\ Other entry points:
+\
+\   ptg         Called when the user forces a manual mis-jump
 \ ******************************************************************************
 
-.ptg                    ; shift forced hyperspace misjump
 {
- LSR COK                ; Set bit 0 of COK, the competition code
- SEC
- ROL COK
+.^ptg
 
-.^MJP                   ; miss jump
+ LSR COK                ; Set bit 0 of COK, the competition code, so that the
+ SEC                    ; code shows we have manually forced a mis-jump into
+ ROL COK                ; witchspace
 
-\LDA #1                 ; not required as this is present at TT66-2
- JSR TT66-2             ; box border with QQ11 set to A = 1
- JSR LL164              ; hyperspace noise and tunnel
- JSR RES2               ; reset2
- STY MJ                 ; mis-jump flag set #&FF
+.^MJP
 
-.MJP1                   ; counter MANY + #29 thargoids
+\LDA #1                 ; This instruction is commented out in the original
+                        ; source - it is not required as a call to TT66-2 sets
+                        ; A to 1 for us. This is presumably an example of the
+                        ; authors saving a couple of bytes by calling TT66-2
+                        ; instead of TT66, while leaving the original LDA
+                        ; instruction in place
+
+ JSR TT66-2             ; Clear the top part of the screen, draw a box border,
+                        ; and set the current view type in QQ11 to 1
+
+ JSR LL164              ; Call LL164 to show the hyperspace tunnel for a second
+                        ; time (as we already called LL164 in TT18)
+
+ JSR RES2               ; Reset a number of flight variables and workspaces, as
+                        ; well as setting Y to &FF
+
+ STY MJ                 ; Set the mis-jump flag in MJ to &FF, to indicate that
+                        ; we are now in witchspace
+
+.MJP1
 
  JSR GTHG               ; Call GTHG to spawn a Thargoid ship
- LDA #3                 ; 3 Thargoid ships
- CMP MANY+THG           ; thargoids
- BCS MJP1               ; loop if thargoids < 3
- STA NOSTM              ; number of stars, dust = 3
- LDX #0                 ; forward view
+
+ LDA #3                 ; Fetch the number of Thargoid ships from MANY+THG, and
+ CMP MANY+THG           ; if it is less than 3, loop back to MJP1 to spawn
+ BCS MJP1               ; another one, until we have three Thargoids
+
+ STA NOSTM              ; Set NOSTM (the maximum number of stardust particles)
+                        ; to 3, so there are fewer bits of stardust in
+                        ; witchspace (normal space has a maximum of 18)
+
+ LDX #0                 ; Initialise the forward space view
  JSR LOOK1
- LDA QQ1                ; present Y
- EOR #31                ; flip lower y coord bits
- STA QQ1
- RTS
+
+ LDA QQ1                ; Fetch the current system's galactic y-coordinate in
+ EOR #%00011111         ; QQ1 and flip bits 0-5, so we end up somewhere in the
+ STA QQ1                ; vicinity of our original destination, but above or
+                        ; below it in the galactic chart
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
 \ Subroutine: TT18
 \
-\ Countdown finished, (try) go through Hyperspace
+\ Try to go through hyperspace. Called from TT102 in the main loop when the
+\ hyperspace countdown has finished.
 \ ******************************************************************************
 
-.TT18                   ; HSPC \ their comment \ Countdown finished, (try) go through Hyperspace
+.TT18
 {
- LDA QQ14               ; ship fuel #70 = #&46
- SEC                    ; Subtract distance in 0.1 LY units
+ LDA QQ14               ; Subtract the distance to the selected system (in QQ8)
+ SEC                    ; from the amount of fuel in our tank (in QQ14)
  SBC QQ8
  STA QQ14
- LDA QQ11
- BNE ee5                ; menu i.d. not a space view
- JSR TT66               ; else box border with QQ11 set to Acc
- JSR LL164              ; hyperspace noise and tunnel
 
-.ee5                    ; not a space view
+ LDA QQ11               ; If ths current view is not a space view, jump to ee5
+ BNE ee5                ; to skip the following
 
- JSR CTRL               ; scan from ctrl on keyboard
- AND PATG               ; PATG = &FF if credits have been enabled
- BMI ptg                ; shift key forced misjump, up.
+ JSR TT66               ; Clear the top part of the screen, draw a box border,
+                        ; and set the current view type in QQ11 to 0 (space
+                        ; view)
+
+ JSR LL164              ; Call LL164 to show the hyperspace tunnel
+
+.ee5
+
+ JSR CTRL               ; Scan the keyboard to see if CTRL is currently pressed,
+                        ; returning a negative value in A if it is
+
+ AND PATG               ; If the game is configured to show the author's names
+                        ; on the start-up screen, then PATG will contain &FF,
+                        ; otherwise it will be 0
+
+ BMI ptg                ; By now, A will be negative if we are holding down CTRL
+                        ; and author names are configured, which is what we have
+                        ; to do in order to trigger a manual mis-jump, so jump
+                        ; to ptg to do a mis-jump (ptg not only mis-jumps, but
+                        ; changes the competition code, so Acornsoft could tell
+                        ; whether this feature had been used in a competition
+                        ; entry)
+
  JSR DORND              ; Set A and X to random numbers
- CMP #253               ; also small chance that
- BCS MJP                ; miss-jump to Thargoids in witchspace
- \JSR TT111
- JSR hyp1+3             ; else don't move to QQ9,10 but do Arrive in system.
- JSR GVL
- JSR RES2               ; reset2, MJ flag cleared.
- JSR SOLAR              ; Set up planet and sun
 
- LDA QQ11
- AND #63                ; menu i.d. not space views, but maybe charts.
- BNE hyR                ; rts
- JSR TTX66              ; else new box for space view or new chart.
- LDA QQ11
- BNE TT114              ; menu i.d. not space view, a new chart.
- INC QQ11               ; else space, menu id = 1 for new dust view.
+ CMP #253               ; If A >= 253 (1% chance) then jump to MJP to trigger a
+ BCS MJP                ; mis-jump into witchspace
+
+\JSR TT111              ; This instruction is commented out in the original
+                        ; source. It finds the closest system to coordinates
+                        ; (QQ9, QQ10), but we don't need to do this as the
+                        ; crosshairs will already be on a system by this point
+
+ JSR hyp1+3             ; Jump straight to the the system at (QQ9, QQ10) without
+                        ; first calculating which system is closest
+
+ JSR GVL                ; Calculate the availability for each market item in the
+                        ; new system
+
+ JSR RES2               ; Reset a number of flight variables and workspaces
+
+ JSR SOLAR              ; Halve our legal status, update the missile indicators,
+                        ; and set up data blocks and slots for the planet and
+                        ; sun
+
+ LDA QQ11               ; If the current view in QQ11 is not a space view (0) or
+ AND #%00111111         ; one of the charts (64 or 128), return from the
+ BNE hyR                ; subroutine (as hyR contains an RTS)
+
+ JSR TTX66              ; Otherwise clear the screen and draw a box border
+
+ LDA QQ11               ; If the current view is one of the charts, jump to
+ BNE TT114              ; TT114 (from which we jump to the correct routine to
+                        ; display the chart)
+
+ INC QQ11               ; This is a space view, so increment QQ11 to 1
+
+                        ; Fall through into TT110 to show the forward space view
 }
 
 \ ******************************************************************************
 \ Subroutine: TT110
 \
-\ Launch ship decision. Also arrive here after galactic hyperdrive jump, and
-\ after f0 hit.
+\ Launch the ship (if we are docked), or show the forward space view (if we are
+\ already in space).
+\
+\ Called when red key f0 is pressed while docked (launch), after we arrive in a
+\ new galaxy, or after a hyperspace if the current view is a space view.
 \ ******************************************************************************
 
-.TT110                  ; Launch ship decision. Also arrive here after galactic hyperdrive jump, and after f0 hit.
+.TT110
 {
- LDX QQ12               ; Docked flag
- BEQ NLUNCH             ; not launched
- JSR LAUN               ; launched from space station
- JSR RES2               ; reset2, small reset.
+ LDX QQ12               ; If we are not docked (QQ12 = 0) then jump to NLUNCH
+ BEQ NLUNCH
+
+ JSR LAUN               ; Show the space station launch tunnel
+
+ JSR RES2               ; Reset a number of flight variables and workspaces
 
  JSR TT111              ; Select the system closest to galactic coordinates
                         ; (QQ9, QQ10)
 
- INC INWK+8             ; zsg, push away planet in front.
- JSR SOS1               ; set up planet
- LDA #128               ; space station behind you
- STA INWK+8
- INC INWK+7             ; zhi=1
- JSR NWSPS              ; New space station at INWK, S bulb appears.
- LDA #12                ; launch speed
+ INC INWK+8             ; Increment z_distance ready for the call to SOS, so the
+                        ; planet appears at a z_distance of 1 in front of us
+                        ; when we launch
+
+ JSR SOS1               ; Call SOS1 to set up the planet's data block and add it
+                        ; to FRIN, where it will get put in the first slot as
+                        ; it's the first one to be added to our little bubble of
+                        ; universe following the call to RES2 above
+
+ LDA #128               ; For the space station, set z_distance to &80, so it's
+ STA INWK+8             ; behind us (&80 is negative)
+
+ INC INWK+7             ; And increment z_hi, so it's only just behind us
+
+ JSR NWSPS              ; Add a new space station to our little bubble of
+                        ; universe
+
+ LDA #12                ; Set our launch speed in DELTA to 12
  STA DELTA
- JSR BAD                ; scan for QQ20(3,6,10), 32 tons of Slaves, Narcotics
- ORA FIST               ; fugitive/innocent status
- STA FIST
 
-.NLUNCH                 ; also not launched
+ JSR BAD                ; Call BAD to work out how much illegal contraband we
+                        ; are carrying in our hold (A is up to 40 for a
+                        ; standard hold crammed with contraband, up to 70 for
+                        ; an extended cargo hold full of narcotics and slaves)
 
- LDX #0                 ; forward
- STX QQ12               ; check messages
- JMP LOOK1              ; start view Xreg = 0
+ ORA FIST               ; OR the value in A with our legal status in FIST to
+                        ; get a new value that is at least as high as both
+                        ; values, to reflect the fact that launching with a
+                        ; hold full of contraband can only make matters worse
+
+ STA FIST               ; Update our legal status with the new value
+
+.NLUNCH
+
+ LDX #0                 ; Set QQ12 to 0 to indicate we are not docked
+ STX QQ12
+
+ JMP LOOK1              ; Jump to LOOK1 to switch to the forward view (X = 0),
+                        ; returning from the subroutine using a tail call
 }
 
-.TT114                  ; not space view, a chart.
+\ ******************************************************************************
+\ Subroutine: TT114
+\
+\ Display either a long-range or short-range chart, depending on the current
+\ view setting. Called from TT18 once we know the current view is one of the
+\ charts.
+\
+\ Arguments:
+\
+\   A           The current view, loaded from QQ11
+\ ******************************************************************************
+
+.TT114
 {
- BMI TT115              ; menu i.d. bit7 Short range chart
+ BMI TT115              ; If bit 7 of the current view is set (i.e. the view is
+                        ; the short-range chart, 128), skip to TT115 below to
+                        ; jump to TT23 to display the chart
 
- JMP TT22               ; else Long range galactic chart
+ JMP TT22               ; Otherwise the current view is the long-range chart, so
+                        ; jump to TT22 to display it
 
-.TT115                  ; Short range chart
+.TT115
 
- JMP TT23               ; Short range chart
+ JMP TT23               ; Jump to TT23 to display the short-range chart
 }
 
 \ ******************************************************************************
@@ -21055,6 +21167,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \ This is called after we launch from a space station, arrive in a new system
 \ after hyperspace, launch an escape pod, or die a cold, lonely death in the
 \ depths of space.
+\
+\ Returns:
+\
+\   Y           Y is set to &FF
 \ ******************************************************************************
 
 .RES2
@@ -21119,6 +21235,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: ZINF
 \
 \ Zero-fill the INWK ship workspace and reset the rotation matrix.
+\
+\ Returns:
+\
+\   Y           Y is set to &FF
 \ ******************************************************************************
 
 .ZINF
@@ -21135,7 +21255,8 @@ LOAD_F% = LOAD% + P% - CODE%
  DEY                    ; Decrement the loop counter
 
  BPL ZI1                ; Loop back for the next byte, ending when we have
-                        ; zero-filled the last byte at INWK
+                        ; zero-filled the last byte at INWK, which leaves Y
+                        ; with a value of &FF
 
                         ; Finally, we reset the rotation matrix to unity,
                         ; as follows:
@@ -21875,12 +21996,12 @@ LOAD_F% = LOAD% + P% - CODE%
  AND #3                 ; If we get here then we are either in space, or we are
  TAX                    ; docked and none of f1-f3 were pressed, so we can now
  JMP LOOK1              ; process f1-f3 with their in-flight functions, i,e.
-                        ; switching space views.
+                        ; switching space views
                         ;
                         ; A will contain &71, &72 or &73 (for f1, f2 or f3), so
                         ; set X to the last digit (1, 2 or 3) and jump to LOOK1
                         ; to switch to view X (back, left or right), returning
-                        ; from the subroutine using a tail call.
+                        ; from the subroutine using a tail call
 
 .LABEL_3
 
@@ -23528,6 +23649,14 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \ Subroutine: CTRL
 \
 \ Scan the keyboard to see if CTRL is currently pressed.
+\
+\ Returns:
+\
+\   X           X = %10000001 (i.e. 129 or -127) if CTRL is being pressed
+\
+\               X = 1 if CTRL is not being pressed
+\
+\   A           Contains the same as X
 \ ******************************************************************************
 
 .CTRL
