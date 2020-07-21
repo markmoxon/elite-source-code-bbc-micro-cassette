@@ -15578,7 +15578,9 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; rotated them all
 
 \JSR DORND              ; This instruction is commented out in the original
-                        ; source, and would set A and X to random numbers
+                        ; source, and would set A and X to random numbers, so
+                        ; perhaps the original plan was to arrive in each new
+                        ; galaxy in a random place?
 
 .^zZ
 
@@ -18598,42 +18600,60 @@ MAPCHAR '4', '4'
 }
 
 \ ******************************************************************************
-\ Subroutine: SHD-2
-\
-\ cap Shield = #&FF \ SHD-2
-\ ******************************************************************************
-
-{
- DEX                    ; cap Shield = #&FF \ SHD-2
- RTS                    ; Shield = #&FF
-}
-
-\ ******************************************************************************
 \ Subroutine: SHD
 \
-\ let Shield X recharge
+\ Charge up a shield, and if it needs charging, drain some energy from the
+\ energy banks.
+\
+\ Arguments:
+\
+\   X           The value of the shield to recharge
 \ ******************************************************************************
 
-.SHD                    ; let Shield X recharge
 {
- INX
- BEQ SHD-2              ; cap Shield up = #&FF if too big else
+ DEX                    ; Increment the shield value so that it doesn't go past
+                        ; a maximum of 255
+
+ RTS                    ; Return from the subroutine
+
+.^SHD
+
+ INX                    ; Increment the shield value
+
+ BEQ SHD-2              ; If the shield value is 0 then this means it was 255
+                        ; before, which is the maximum value, so jump to SHD-2
+                        ; to bring it back down to 258 and return
+                        
+                        ; Otherwise fall through into DENGY to drain our energy
+                        ; to pay for all this shield charging
 }
 
 \ ******************************************************************************
 \ Subroutine: DENGY
 \
-\ Drain player's Energy
+\ Drain some energy from the energy banks.
+\
+\ Returns:
+\
+\   Z flag      Set if we have no energy left, clear otherwise
 \ ******************************************************************************
 
-.DENGY                  ; Drain player's Energy
+.DENGY
 {
- DEC ENERGY
- PHP                    ; push dec flag
- BNE P%+5               ; skip inc, else underflowing
- INC ENERGY             ; energy set back to 1
- PLP                    ; pull dec flag
- RTS
+ DEC ENERGY             ; Decrement the energy banks in ENERGY
+
+ PHP                    ; Save the flags on the stack
+ 
+ BNE P%+5               ; If the energy levels are not yet zero, skip the
+                        ; following instruction
+
+ INC ENERGY             ; The minimum allowed energy level is 1, amd we just
+                        ; reached 0, so increment ENERGY back to 1
+
+ PLP                    ; Restore the flags from the stack, so we return with
+                        ; the zero flag from the DEC instruction above
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -18823,52 +18843,99 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: OOPS
 \
-\ Lose some shield strength, cargo, could die.
+\ We just took some damage, so reduce the shields if we have any, or reduce the
+\ energy levels and potentially take some damage to the cargo if we don't.
 \
-\ A = amount of damage
+\ Arguments:
+\
+\   A           The mmount of damage to take
+\
+\   INF         The address of the ship block for the ship that attacked us, or
+\               the ship that we just ran into
 \ ******************************************************************************
 
-.OOPS                   ; Lose some shield strength, cargo, could die.
+.OOPS
 {
- STA T                  ; dent was in Acc
- LDY #8                 ; get zsg of ship hit
- LDX #0                 ; min
+ STA T                  ; Store the amount of damage in T
+
+ LDY #8                 ; Fetch byte #8 (z_sign) for the ship attacking us, and
+ LDX #0                 ; set X = 0
  LDA (INF),Y
- BMI OO1                ; aft shield hit
- LDA FSH                ; forward shield
- SBC T                  ; dent
- BCC OO2                ; clamp forward at 0
- STA FSH                ; forward shield
- RTS
 
-.OO2                    ; clamp forward at 0
+ BMI OO1                ; If A is negative, then we got hit in the rear, so jump
+                        ; to OO1 to process damage to the aft shield
+ 
+ LDA FSH                ; Otherwise the forward shield was damaged, so fetch the
+ SBC T                  ; shield strength from FSH and subtract the damage in T
 
-\LDX #0
- STX FSH                ; forward shield = 0
- BCC OO3                ; guaranteed, Shield gone
+ BCC OO2                ; If the C flag is clear then this amount of damage was
+                        ; too much for the shields, so jump to OO2 to set the
+                        ; shield level to 0 and start taking damage directly
+                        ; from the energy banks
+
+ STA FSH                ; Store the new value of the forward shield in FSH
+
+ RTS                    ; Return from the subroutine
+
+.OO2
+
+\LDX #0                 ; This instruction is commented out in the original
+                        ; source, and isn't required as X is set to 0 above
+
+ STX FSH                ; Set the forward shield to 0
+
+ BCC OO3                ; Jump to OO3 to start taking damage directly from the
+                        ; energy banks (this BCC is effectively a JMP as the C
+                        ; flag is clear, as we jumped to OO2 with a BCC)
 
 .OO1                    ; Aft shield hit
 
- LDA ASH                ; aft shield = 0
- SBC T                  ; dent
- BCC OO5                ; clamp aft at 0
- STA ASH                ; aft shield
- RTS
+ LDA ASH                ; The aft shield was damaged, so fetch the shield
+ SBC T                  ; strength from ASH and subtract the damage in T
 
-.OO5                    ; clamp aft at 0
+ BCC OO5                ; If the C flag is clear then this amount of damage was
+                        ; too much for the shields, so jump to OO5 to set the
+                        ; shield level to 0 and start taking damage directly
+                        ; from the energy banks
 
-\LDX #0
- STX ASH                ; aft shield
+ STA ASH                ; Store the new value of the aft shield in ASH
 
-.OO3                    ; Shield gone
+ RTS                    ; Return from the subroutine
 
- ADC ENERGY             ; some energy added, wraps as small dent.
- STA ENERGY
- BEQ P%+4               ; if 0, DEATH
- BCS P%+5               ; overflow just noise EXNO3, OUCH
- JMP DEATH
- JSR EXNO3              ; ominous noises
- JMP OUCH               ; lose cargo/equipment
+.OO5
+
+\LDX #0                 ; This instruction is commented out in the original
+                        ; source, and isn't required as X is set to 0 above
+
+ STX ASH                ; Set the aft shield to 0
+
+.OO3
+
+ ADC ENERGY             ; A is negative and contains the amount by which the
+ STA ENERGY             ; damage overwhelmed the shields, so this drains the
+                        ; energy banks by that amount (and because the energy
+                        ; banks are shown over four indicators rather than one,
+                        ; but with the same value range of 0-255, energy will
+                        ; appear to drain away four times faster than the
+                        ; shields did)
+
+ BEQ P%+4               ; If we have just run out of energy, skip the next
+                        ; instruction to jump straight to our death
+ 
+ BCS P%+5               ; If the C flag is set, then subtracting the damage from
+                        ; the energy banks didn't underflow, so we had enough
+                        ; energy to survive, and we can skip the next
+                        ; instruction to make a noise and take some damage
+ 
+ JMP DEATH              ; Otherwise our energy levels are either 0 or negative,
+                        ; and in either case that means we jump to our DEATH,
+                        ; returning from the subroutine using a tail call
+ 
+ JSR EXNO3              ; We didn't die, so call EXNO3 to make the sound of a
+                        ; collision
+ 
+ JMP OUCH               ; And jump to OUCH to take damage and return from the
+                        ; subroutine using a tail call
 }
 
 \ ******************************************************************************
@@ -23341,8 +23408,9 @@ ENDIF
 \ Make the sound of death in the cold, hard vacuum of space. Apparently, in
 \ Elite space, everyone can hear you scream.
 \
-\ This routine also makes the noise of a destroyed cargo canister if you don't
-\ get scooping right, and the noise of us colliding with another ship.
+\ This routine also makes the noise of a destroyed cargo canister if we don't
+\ get scooping right, the noise of us colliding with another ship, and the noise
+\ of us being hit with depleted shields. It is not a good noise to hear.
 \ ******************************************************************************
 
 .EXNO3
@@ -24271,7 +24339,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \ ******************************************************************************
 \ Subroutine: mes9
 \
-\ Print a text token, followed by "DESTROYED" if the destruction flag is set
+\ Print a text token, followed by " DESTROYED" if the destruction flag is set
 \ (for when a piece of equipment is destroyed).
 \ ******************************************************************************
 
@@ -24289,36 +24357,69 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \ ******************************************************************************
 \ Subroutine: OUCH
 \
-\ Shield depleted and taking hits to energy, lose cargo/equipment.
+\ Our shields are dead and we are taking damage, so there is a small chance of
+\ losing cargo or equipment.
 \ ******************************************************************************
 
-.OUCH                   ; Shield depleted and taking hits to energy, lose cargo/equipment.
+.OUCH
 {
  JSR DORND              ; Set A and X to random numbers
- BMI out                ; rts, 50% prob
- CPX #22                ; max equipment
- BCS out                ; item too high
- LDA QQ20,X             ; cargo or equipment
- BEQ out                ; dont have, rts.
- LDA DLY                ; delay printing already going on
- BNE out                ; rts
- LDY #3                 ; also Acc now 0
- STY de                 ; message flag for item + destroyed
- STA QQ20,X             ; = 0
- CPX #17                ; max cargo
- BCS ou1                ; if yes, equipment Lost, down.
- TXA                    ; else cargo lost, carry is clear.
- ADC #208               ; add to token = food
- BNE MESS               ; guaranteed up, Message start.
+ 
+ BMI out                ; If A < 0 (50% chance), return from the subroutine
+                        ; (as out contains an RTS)
+ 
+ CPX #22                ; If X >= 22 (89% chance), return from the subroutine
+ BCS out                ; (as out contains an RTS)
+ 
+ LDA QQ20,X             ; If we do not have any of item QQ20+X, return from the
+ BEQ out                ; subroutine (as out contains an RTS). X is in the range
+                        ; 0-21, so this not only checks for cargo, but also for
+                        ; E.C.M., fuel scoops, energy bomb, energy unit and
+                        ; docking computer, all of which can be destroyed
 
-.ou1                    ; equipment Lost
+ LDA DLY                ; If there is already an in-flight message on screen,
+ BNE out                ; return from the subroutine (as out contains an RTS)
 
- BEQ ou2                ; equipment lost is X=17 ecm, up.
- CPX #18                ; equipment item is 
- BEQ ou3                ; fuel scoops, up.
- TXA                    ; else carry set probably
- ADC #113-20            ; #113-20, token = Bomb, energy unit, docking computer
- BNE MESS               ; guaranteed up, Message start.
+ LDY #3                 ; Set bit 1 of de, the equipment destruction flag, so
+ STY de                 ; that when we call MESS below, " DESTROYED" is appended
+                        ; to the in-flight message
+
+ STA QQ20,X             ; A is 0 (as we didn't branch with the BNE above), so
+                        ; this sets QQ20+X to 0, which destroys any cargo or
+                        ; equipment we have of that type
+
+ CPX #17                ; If X >= 17 then we just lost a piece of equipment, so
+ BCS ou1                ; jump to ou1 to print the relevant message
+
+ TXA                    ; Print recursive token 48 + A as an in-flight token,
+ ADC #208               ; which will be in the range 48 ("FOOD") to 64 ("ALIEN
+ BNE MESS               ; ITEMS") as the C flag is clear, so this prints the
+                        ; destroyed item's name, followed by " DESTROYED" (as we
+                        ; set bit 1 of the de flag above), and returns from the
+                        ; subroutine using a tail call
+
+.ou1
+
+ BEQ ou2                ; If X = 17, jump to ou2 to print "E.C.M.SYSTEM
+                        ; DESTROYED" and return from the subroutine using a tail
+                        ; call
+
+ CPX #18                ; If X = 18, jump to ou3 to print "FUEL SCOOPS
+ BEQ ou3                ; DESTROYED" and return from the subroutine using a tail
+                        ; call
+
+ TXA                    ; Otherwise X is in the range 19 to 21 and the C flag is
+ ADC #113-20            ; set (as we got here via a BCS to ou1), so we set A as
+                        ; follows:
+                        ;
+                        ;   A = 113 - 20 + X + C
+                        ;     = 113 - 19 + X
+                        ;     = 113 to 115
+ 
+ BNE MESS               ; Print recursive token A ("ENERGY BOMB", "ENERGY UNIT"
+                        ; or "DOCKING COMPUTERS") as an in-flight message,
+                        ; followed by " DESTROYED", and return from the
+                        ; subroutine using a tail call
 }
 
 \ ******************************************************************************
