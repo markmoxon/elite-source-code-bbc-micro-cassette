@@ -1185,9 +1185,9 @@ ORG CODE_WORDS%
 \ When talking about encoded strings in the code comments below, two-letter
 \ tokens are shown as <n>, so <150> expands to VE.
 \ 
-\ The set of two-letter tokens is stored as one long string ("ALLEXEGE...") at
-\ location QQ16. This string is also used to generate system names
-\ procedurally, as described in routine cpl.
+\ The set of two-letter tokens is stored at location QQ16, in a two-byte lookup
+\ table. This table is also used to generate system names procedurally, as
+\ described in routine cpl.
 \ 
 \ Note that question marks are not printed, so token <143> expands to A. This
 \ allows names with an odd number of characters to be generated from sequences
@@ -17997,10 +17997,11 @@ MAPCHAR '4', '4'
  BCS TT47               ; jump to TT47 below to process it
 
  AND #127               ; This is a two-letter token with number 128-159. The
- ASL A                  ; set of two-letter tokens is stored as one long string
-                        ; ("ALLEXEGE...") at QQ16, so to convert this into the
-                        ; token's position in this string, we subtract 128 (or
-                        ; just clear bit 7) and multiply by 2 (or shift left)
+ ASL A                  ; set of two-letter tokens is stored in a lookup table
+                        ; at QQ16, with each token taking up two bytes, so to
+                        ; convert this into the token's position in the table,
+                        ; we subtract 128 (or just clear bit 7) and multiply
+                        ; by 2 (or shift left)
 
  TAY                    ; Transfer the token's position into Y so we can look
                         ; up the token using absolute indexed mode
@@ -24323,13 +24324,44 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \ ******************************************************************************
 \ Variable: QQ16
 \
-\ Two-letter token lookup string for tokens 128-159. See variable QQ18 for
+\ Two-letter token lookup table for tokens 128-159. See variable QQ18 for
 \ details of how the two-letter token system works.
 \ ******************************************************************************
 
 .QQ16
 {
- EQUS "ALLEXEGEZACEBISOUSESARMAINDIREA?ERATENBERALAVETIEDORQUANTEISRION"
+ EQUS "AL"
+ EQUS "LE"
+ EQUS "XE"
+ EQUS "GE"
+ EQUS "ZA"
+ EQUS "CE"
+ EQUS "BI"
+ EQUS "SO"
+ EQUS "US"
+ EQUS "ES"
+ EQUS "AR"
+ EQUS "MA"
+ EQUS "IN"
+ EQUS "DI"
+ EQUS "RE"
+ EQUS "A?"
+ EQUS "ER"
+ EQUS "AT"
+ EQUS "EN"
+ EQUS "BE"
+ EQUS "RA"
+ EQUS "LA"
+ EQUS "VE"
+ EQUS "TI"
+ EQUS "ED"
+ EQUS "OR"
+ EQUS "QU"
+ EQUS "AN"
+ EQUS "TE"
+ EQUS "IS"
+ EQUS "RI"
+ EQUS "ON"
 }
 
 \ ******************************************************************************
