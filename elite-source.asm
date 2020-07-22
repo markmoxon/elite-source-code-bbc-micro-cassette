@@ -10731,7 +10731,7 @@ NEXT
 \ ******************************************************************************
 \ Subroutine: MU11
 \
-\ Do the following multiplication of unsigned 8-bit numbers:
+\ Do the following multiplication of two unsigned 8-bit numbers:
 \
 \   (A P) = P * X
 \
@@ -10775,7 +10775,7 @@ NEXT
 
  ROR P                  ; Add the overspill from shifting A to the right onto
                         ; the start of P, and shift P right to fetch the next
-                        ; bit for the calculation
+                        ; bit for the calculation into the C flag
 
  DEX                    ; Decrement the loop counter
 
@@ -10816,107 +10816,196 @@ NEXT
 \ ******************************************************************************
 \ Subroutine: FMLTU
 \
-\ A=A*Q/256unsg  Fast multiply
+\ Do the following multiplication of two unsigned 8-bit numbers, returning only
+\ the high byte of the result:
+\
+\   (A ?) = A * Q
+\
+\ or, to put it another way:
+\
+\   A = A * Q / 256
+\
+\ ******************************************************************************
+\
+\ This routine uses the same basic algorithm as MU11, but because we are only
+\ interested in the high byte of the result, we can optimise away a few
+\ instructions. Instead of having a loop counter to count the 8 bits in the
+\ multiplication, we can instead invert one of the arguments (A in this case,
+\ which we then store in P to pull bits off), and then reverse the logic so that
+\ ones get skipped and zeroes cause an addition. Also, when we do the first
+\ shift right, we can stick a one into bit 7, so we can keep looping and
+\ shifting right until we run out of ones, which is an easy BNE test. This works
+\ because we don't have to store the low byte of the result anywhere, so we can
+\ just shift P to the right, rather than ROR'ing it as we did in MULT1 - and
+\ that lets us do the BNE test, saving few precious instructions in the process.
+\
+\ The result is a really slick, optimised multiplication routine that does a
+\ specialised job, at the expense of clarity. To understand this routine, first
+\ try to understand MULT1, then look at MU11, and finally try this one (I have
+\ kept the comments similar so they are easier to compare). And if your eyes
+\ aren't crossed by that point, then hats off to you, because this is properly
+\ gnarly stuff.
 \ ******************************************************************************
 
-.FMLTU                  ; A=A*Q/256unsg  Fast multiply
+.FMLTU
 {
- EOR #&FF
- SEC
- ROR A                  ; bring a carry into bit7
- STA P                  ; slide counter
- LDA #0
+ EOR #%11111111         ; Flip the bits in A, set the C flag and rotate right, 
+ SEC                    ; so the C flag now contains bit 0 of A inverted, and P
+ ROR A                  ; contains A inverted and shifted right by one, with bit
+ STA P                  ; 7 set to a 1. We can now use P as our source of bits
+                        ; to shift right, just as in MU11, just with the logic
+                        ; reversed
 
-.MUL3                   ; roll P
+ LDA #0                 ; Set A = 0 so we can start building the answer in A
 
- BCS MU7                ; carry set, don't add Q
- ADC Q                  ; maybe a carry
- ROR A
- LSR P
- BNE MUL3               ; loop P
- RTS
+.MUL3
 
-.MU7                    ; carry set, don't add Q
+ BCS MU7                ; If C (i.e. the next bit from P) is set, do not do the
+                        ; addition for this bit of P, and instead skip to MU7
+                        ; to just do the shifts
 
- LSR A                  ; not ROR A
- LSR P
- BNE MUL3               ; loop P
- RTS
+ ADC Q                  ; Do the addition for this bit of P:
+                        ;
+                        ;   A = A + Q + C
+                        ;     = A + Q
+
+ ROR A                  ; Shift A right to catch the next digit of our result.
+                        ; If we were interested in the low byte of the result we
+                        ; would want to save the bit that falls off the end, but
+                        ; we aren't, so we can ignore it
+
+ LSR P                  ; Shift P right to fetch the next bit for the
+                        ; calculation into the C flag
+
+ BNE MUL3               ; Loop back to MUL3 if P still contains some set bits
+                        ; (so we loop through the bits of P until we get to the
+                        ; 1 we inserted before the loop, and then we stop)
+
+ RTS                    ; Return from the subroutine
+
+.MU7
+
+ LSR A                  ; Shift A right to catch the next digit of our result,
+                        ; pushing a 0 into bit 7 as we aren't adding anything
+                        ; here (we can't use a ROR here as the C flag is set, so
+                        ; a ROR would push a 1 into bit 7)
+
+ LSR P                  ; Fetch the next bit from P into the C flag
+
+ BNE MUL3               ; Loop back to MUL3 if P still contains some set bits
+                        ; (so we loop through the bits of P until we get to the
+                        ; 1 we inserted before the loop, and then we stop)
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
-\ Subroutine: Unused repeat of MULTU?
+\ Subroutine: Unused duplicate of MULTU
 \
-\ AP=P*Qunsg \ Repeat of multu not needed?
-\ Has label MULTU6 in disc version?
+\ This is a duplicate of the MULTU routine, but with no entry label, so it can't
+\ be called by name. It is unused, and could have been culled to save a few
+\ bytes, but it's still here.
+\
+\ In the disc version it has the label MULTU6, but here in the tape version it's
+\ unnamed, unloved and unvisited, through no fault of its own.
 \ ******************************************************************************
 
-                        ; AP=P*Qunsg \ Repeat of multu not needed?
 {
  LDX Q
- BEQ MU1                ; up, P = Acc = Xreg = 0
- 
-      	                ; P*X will be done
+ BEQ MU1
  DEX
- STX T                  ; = Q-1 as carry will be set for addition
+ STX T
  LDA #0
- LDX #8                 ; counter
+ LDX #8
  LSR P
 
-.MUL6                   ; counter X
+.MUL6
 
- BCC P%+4               ; low bit of P lo clear
- ADC T                  ; +=Q as carry set
- ROR A                  ; hi
+ BCC P%+4
+ ADC T
+ ROR A
  ROR P
  DEX
- BNE MUL6               ; loop X
- RTS                    ; Repeat of mul6 not needed ?
-
+ BNE MUL6
+ RTS
 }
-
-\ ******************************************************************************
-\ Subroutine: MLTU2-2
-\
-\ AP(2)= AP* Xunsg(EOR P)
-\ ******************************************************************************
-
- STX Q                  ; AP(2)= AP* Xunsg(EOR P)
 
 \ ******************************************************************************
 \ Subroutine: MLTU2
 \
-\ AP(2)= AP* Qunsg(EOR P)
+\ Do the following multiplication of an unsigned 16-bit number and an unsigned
+\ 8-bit number, returning only the highest two bytes of the result:
+\
+\ (A P+1 ?) = (A P) * Q
+\
+\ or, to put it another way:
+\
+\   (A P+1) = (A P) * Q / 256
+\
+\ Other entry points:
+\
+\   MLTU2-2     Set Q to X, so this calculates (A P+1 ?) = (A P) * X
+\
+\ ******************************************************************************
+\
+\ This routine is like a mash-up of MU11 and FMLTU. It uses part of FMLTU's
+\ inverted argument trick to work out whether or not to do an addition, and like
+\ MU11 it sets up a counter in X to extract bits from (P+1 P). But this time we
+\ extract 16 bits from (P+1 P), so the result is a 24-bit number. The core of
+\ the algorithm is still the "shift and add" approach explained in MULT1, just
+\ with more bits.
 \ ******************************************************************************
 
-.MLTU2                  ; AP(2)= AP* Qunsg(EOR P)
 {
- EOR #&FF               ; use 2 bytes of P and A for result
- LSR A                  ; hi
+ STX Q                  ; Store X in Q
+
+.^MLTU2
+
+ EOR #%11111111         ; Flip the bits in A and rotate right, storing the
+ LSR A                  ; result in P+1, so we now calculate (P+1 P) * Q
  STA P+1
- LDA #0
- LDX #16                ; 2 bytes
- ROR P                  ; lo
 
-.MUL7                   ; counter X
+ LDA #0                 ; Set A = 0 so we can start building the answer in A
 
- BCS MU21               ; carry set, don't add Q
- ADC Q
- ROR A                  ; 3 byte result
- ROR P+1
- ROR P
- DEX
- BNE MUL7               ; loop X
- RTS
+ LDX #16                ; Set up a counter in X to count the 16 bits in (P+1 P)
 
-.MU21                   ; carry set, don't add Q
+ ROR P                  ; Set P = P >> 1 with bit 7 = bit 0 of A
+                        ; and carry = bit 0 of P
 
- LSR A                  ; not ROR A
- ROR P+1
- ROR P
- DEX
- BNE MUL7               ; loop X
- RTS
+.MUL7
+
+ BCS MU21               ; If C (i.e. the next bit from P) is set, do not do the
+                        ; addition for this bit of P, and instead skip to MU21
+                        ; to just do the shifts
+
+ ADC Q                  ; Do the addition for this bit of P:
+                        ;
+                        ;   A = A + Q + C
+                        ;     = A + Q
+
+ ROR A                  ; Rotate (A P+1 P) to the right, so we capture the next
+ ROR P+1                ; digit of the result in P+1, and extract the next digit
+ ROR P                  ; of (P+1 P) in the C flag
+
+ DEX                    ; Decrement the loop counter
+
+ BNE MUL7               ; Loop back for the next bit until P has been rotated
+                        ; all the way
+
+ RTS                    ; Return from the subroutine
+
+.MU21
+
+ LSR A                  ; Shift (A P+1 P) to the right, so we capture the next
+ ROR P+1                ; digit of the result in P+1, and extract the next digit
+ ROR P                  ; of (P+1 P) in the C flag
+
+ DEX                    ; Decrement the loop counter
+
+ BNE MUL7               ; Loop back for the next bit until P has been rotated
+                        ; all the way
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -10959,12 +11048,14 @@ NEXT
 \ ******************************************************************************
 \ Subroutine: MULT1
 \
-\ Do the following multiplication of signed 8-bit numbers:
+\ Do the following multiplication of two signed 8-bit numbers:
 \
 \   (A P) = Q * A
 \
+\ ******************************************************************************
+\
 \ This routine implements simple multiplication of two 8-bit numbers into a
-\ 16-bit result using the "shift and add algorithm". Consider multiplying two
+\ 16-bit result using the "shift and add" algorithm. Consider multiplying two
 \ example numbers, which we'll call p and a (as this makes it easier to map the
 \ following to the code below):
 \
@@ -11019,7 +11110,7 @@ NEXT
 \     a7a6a5a4a3a2a1        -> result bit 0 is a0
 \   a7a6a5a4a3a2a1a0 +
 \ 
-\ So the reviews approach is to work our way through the digits in the first
+\ So the routine's approach is to work our way through the digits in the first
 \ number p, shifting the result right every time and saving the rightmost bit
 \ in the final result, and every time there's a 1 in p, we add another a to the
 \ sum.
@@ -11030,8 +11121,6 @@ NEXT
 \ result bits out into a separate location, we can stick them onto the left end
 \ of p, because every time we shift p to the right, we gain a spare bit on the
 \ left end of p that we no longer use.
-\ 
-\ See http://nparker.llx.com/a2/mult.html for an explanation
 \ ******************************************************************************
 
 .MULT1
