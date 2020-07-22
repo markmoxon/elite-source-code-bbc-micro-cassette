@@ -427,7 +427,9 @@ ORG &0000
                         ; INWK+26 = rotmat2z_hi
                         ;
                         ; INWK+27 = speed (32 = quite fast)
-                        ; INWK+28 = acceleration
+                        ;
+                        ; INWK+28 = acceleration (this gets added to the speed
+                        ;           once, in MVEIT, before being zeroed again)
                         ;
                         ; INWK+29 = rotx counter, 127 = no damping, damps roll
                         ; INWK+30 = rotz counter, 127 = no damping, damps pitch
@@ -926,7 +928,8 @@ ORG &0300               ; Start of the commander block
                         ; The available amount of market item X is in AVL+X, so
                         ; AVL contains the amount of food (item 0) while AVL+7
                         ; contains the amount of computers (item 7). See QQ23
-                        ; for a list of market item numbers.
+                        ; for a list of market item numbers, and GVL for the
+                        ; algorithm for calculating item availability.
 
 .QQ26
 
@@ -4734,92 +4737,210 @@ LOAD_A% = LOAD%
 \ ******************************************************************************
 \ Subroutine: MVEIT
 \
-\ Move ship/planet/object
+\ Move the current ship, planet or sun in space.
+\
+\ Arguments:
+\
+\   INWK        The current ship/planet/sun's data block
+\
+\   XSAV        The slot number of the current ship/planet/sun
+\
+\   TYPE        The type of the current ship/planet/sun
+\
+\ ******************************************************************************
+\
+\ Tidy ship slots
+\
+\ Apply tactics
+\
+\ Move the ship forward (along the vector pointing in the direction of travel)
+\ according to its speed:
+\
+\   (x, y, z) += rotmat0_hi * speed / 64
+\
+\ Apply any acceleration to the ship's speed, then zero it
+\
 \ ******************************************************************************
 
-.MVEIT                  ; Move It, data in INWK and hull XXX0
+.MVEIT
 {
- LDA INWK+31            ; exploding/display state|missiles
- AND #&A0               ; kill or in explosion?
- BNE MV30               ; Dumb ship or exploding
+ LDA INWK+31            ; If bits 5 or 7 are set, jump to MV30 as the ship is
+ AND #%10100000         ; either exploding or has been killed, so we don't need
+ BNE MV30               ; to tidy its matrix or apply tactics
 
- LDA MCNT               ; Fetch main loop counter
- EOR XSAV               ; nearby ship slot
- AND #15                ; only tidy ship if slot survives
- BNE MV3                ; else skip tidy
- JSR TIDY               ; re-orthogonalize rotation matrix
+ LDA MCNT               ; Fetch the main loop counter
 
-.MV3                    ; skipped tidy
+ EOR XSAV               ; Fetch the slot number of the ship we are moving, EOR
+ AND #15                ; with the loop counter and apply mod 15 to the result.
+ BNE MV3                ; The result will be zero when "counter mod 15" matches
+                        ; the slot number, so this makes sure we call TIDY 13
+                        ; times every 16 main loop iteration, like this:
+                        ;
+                        ;   Iteration 0, tidy the ship in slot 0
+                        ;   Iteration 1, tidy the ship in slot 1
+                        ;   Iteration 2, tidy the ship in slot 2
+                        ;     ...
+                        ;   Iteration 11, tidy the ship in slot 11
+                        ;   Iteration 12, tidy the ship in slot 12
+                        ;   Iteration 13, do nothing
+                        ;   Iteration 14, do nothing
+                        ;   Iteration 15, do nothing
+                        ;   Iteration 16, tidy the ship in slot 0
+                        ;     ...
+                        ;
+                        ; and so on
 
- LDX TYPE               ; ship type
- BPL P%+5               ; not planet
- JMP MV40               ; else, move Planet.
- LDA INWK+32            ; ai_attack_univ_ecm
- BPL MV30               ; Dumb ship
- CPX #MSL
- BEQ MV26               ; missile done every mcnt
+ JSR TIDY               ; Call TIDY to tidy up the rotation matrix, to prevent
+                        ; the ship from getting elongated and out of shape due
+                        ; to the imprecise nature of trigonometry in assembly
+                        ; language
 
- LDA MCNT               ; Fetch main loop counter
- EOR XSAV               ; nearby ship slot
- AND #7                 ; else tactics only needed every 8
- BNE MV30               ; Dumb ship
+.MV3
 
-.MV26                   ; missile done every mcnt
+ LDX TYPE               ; If the type of the ship we are moving is positive,
+ BPL P%+5               ; i.e. it is not a planet (types 128 and 130) or sun
+                        ; (type 129), then skip the following instruction
 
- JSR TACTICS
+ JMP MV40               ; This item is the planet or sun, so jump to MV40 to
+                        ; move it, which ends by jumping back into this routine
+                        ; at MV45 (after all the rotation code, which we don't
+                        ; need to apply to planets or suns)
 
-.MV30                   ; Dumb ship or exploding
+ LDA INWK+32            ; Fetch the ship's INWK+32 byte (AI flag) into A
 
- JSR SCAN               ; erase inwk ship on scanner
+ BPL MV30               ; If bit 7 of the AI flag is clear, then the ship is
+                        ; dumb and has no AI, so skip the following as it has
+                        ; no tactics
 
- LDA INWK+27            ; speed
+ CPX #MSL               ; If the ship is a missile, skip straight to MV26 to
+ BEQ MV26               ; call the TACTICS routine, as we do this every
+                        ; iteration of the main loop for missiles only
+
+ LDA MCNT               ; Fetch the main loop counter
+
+ EOR XSAV               ; Fetch the slot number of the ship we are moving, EOR
+ AND #7                 ; with the loop counter and apply mod 7 to the result.
+ BNE MV30               ; The result will be zero when "counter mod 7" matches
+                        ; the slot number mod 7, so this makes sure we call
+                        ; TACTICS 13 times every 8 main loop iteration, like
+                        ; this:
+                        ;
+                        ;   Iteration 0, apply tactics to slots 0 and 8
+                        ;   Iteration 1, apply tactics to slots 1 and 9
+                        ;   Iteration 2, apply tactics to slots 2 and 10
+                        ;   Iteration 3, apply tactics to slots 3 and 11
+                        ;   Iteration 4, apply tactics to slots 4 and 12
+                        ;   Iteration 5, apply tactics to slot 5
+                        ;   Iteration 6, apply tactics to slot 6
+                        ;   Iteration 7, apply tactics to slot 7
+                        ;   Iteration 8, apply tactics to slots 0 and 8
+                        ;     ...
+                        ;
+                        ; and so on
+
+.MV26
+
+ JSR TACTICS            ; Call TACTICS to apply AI tactics to this ship
+
+.MV30
+
+ JSR SCAN               ; Draw the ship on the scanner, which has the effect of
+                        ; removing it, as it's already at this point and hasn't
+                        ; yet moved
+
+ LDA INWK+27            ; Set Q = the ship's speed (INWK+27) * 4
  ASL A
- ASL A                  ; *=4 speed
+ ASL A
  STA Q
- LDA INWK+10
- AND #127               ; x_inc/2 hi
- JSR FMLTU              ; x_inc*speed/256unsg
- STA R
- LDA INWK+10
- LDX #0                 ; x_inc/2 hi
- JSR MVT1-2             ; use Abit7 for x+=R
 
- LDA INWK+12
- AND #127               ; y_inc/2 hi
- JSR FMLTU              ; y_inc*speed/256unsg
- STA R
- LDA INWK+12
- LDX #3                 ; y_inc/2 hi
- JSR MVT1-2             ; use Abit7 for y+=R
- LDA INWK+14
- AND #127               ; z_inc/2 hi
- JSR FMLTU              ; z_inc*speed/256unsg
- STA R
- LDA INWK+14
- LDX #6                 ; z_inc/2 hi
- JSR MVT1-2             ; use Abit7 for z+=R
+ LDA INWK+10            ; Set A = |rotmat0x_hi|
+ AND #%01111111
 
- LDA INWK+27
- CLC                    ; update speed with
- ADC INWK+28            ; accel used for 1 frame
- BPL P%+4               ; keep speed +ve
- LDA #0                 ; cant go -ve
- LDY #15                ; hull byte#15 is max speed
- CMP (XX0),Y
- BCC P%+4               ; else clamp speed to hull max
- LDA (XX0),Y
- STA INWK+27            ; speed
+ JSR FMLTU              ; Set R = A * Q / 256
+ STA R                  ;       = |rotmat0x_hi| * speed / 64
 
- LDA #0                 ; accel was used for 1 frame
- STA INWK+28
+ LDA INWK+10            ; If INWK+10 (rotmat0x_hi) is positive, then:
+ LDX #0                 ;
+ JSR MVT1-2             ;   (x_sign x_hi x_lo) = (x_sign x_hi x_lo) + R
+                        ;
+                        ; If INWK+10 (rotmat0x_hi) is negative, then:
+                        ;
+                        ;   (x_sign x_hi x_lo) = (x_sign x_hi x_lo) - R
+                        ;
+                        ; So in effect, this does:
+                        ;
+                        ;   (x_sign x_hi x_lo) += rotmat0x_hi * speed / 64
+
+ LDA INWK+12            ; Set A = |rotmat0y_hi|
+ AND #%01111111
+
+ JSR FMLTU              ; Set R = A * Q / 256
+ STA R                  ;       = |rotmat0y_hi| * speed / 64
+
+ LDA INWK+12            ; If INWK+12 (rotmat0y_hi) is positive, then:
+ LDX #3                 ;
+ JSR MVT1-2             ;   (y_sign y_hi y_lo) = (y_sign y_hi y_lo) + R
+                        ;
+                        ; If INWK+12 (rotmat0y_hi) is negative, then:
+                        ;
+                        ;   (y_sign y_hi y_lo) = (y_sign y_hi y_lo) - R
+                        ;
+                        ; So in effect, this does:
+                        ;
+                        ;   (y_sign y_hi y_lo) += rotmat0y_hi * speed / 64
+
+ LDA INWK+14            ; Set A = |rotmat0z_hi|
+ AND #%01111111
+
+ JSR FMLTU              ; Set R = A * Q / 256
+ STA R                  ;       = |rotmat0z_hi| * speed / 64
+
+ LDA INWK+14            ; If INWK+14 (rotmat0y_hi) is positive, then:
+ LDX #6                 ;
+ JSR MVT1-2             ;   (z_sign z_hi z_lo) = (z_sign z_hi z_lo) + R
+                        ;
+                        ; If INWK+14 (rotmat0z_hi) is negative, then:
+                        ;
+                        ;   (z_sign z_hi z_lo) = (z_sign z_hi z_lo) - R
+                        ;
+                        ; So in effect, this does:
+                        ;
+                        ;   (z_sign z_hi z_lo) += rotmat0z_hi * speed / 64
+
+ LDA INWK+27            ; Set A = the ship's speed (INWK+24) + the ship's
+ CLC                    ; acceleration (INWK+28)
+ ADC INWK+28
+
+ BPL P%+4               ; If the result is positive, skip the following
+                        ; instruction
+
+ LDA #0                 ; Set A to 0 to stop the speed from going negative
+
+ LDY #15                ; Fetch byte #15 from the ship's blueprint, which 
+                        ; contains the ship's maximum speed
+
+ CMP (XX0),Y            ; If A < the ship's maximum speed, skip the following
+ BCC P%+4               ; instruction
+
+ LDA (XX0),Y            ; Set A to the ship's maximum speed
+
+ STA INWK+27            ; We have now calculated the new ship's speed after
+                        ; accelerating and keeping the speed within the ship's
+                        ; limits, so store the updated speed in INWK+27
+
+ LDA #0                 ; We have added the ship's acceleration, so we now set
+ STA INWK+28            ; it back to 0 in INWK+28, as it's a one-off change
 
  LDX ALP1               ; roll mag lower7 bits
+
  LDA INWK
  EOR #&FF               ; flip xlo
  STA P
+
  LDA INWK+1             ; xhi
  JSR MLTU2-2            ; AP(2)= AP* alp1_unsg(EOR P)
  STA P+2
+
  LDA ALP2+1             ; flipped roll sign
  EOR INWK+2             ; xsg
  LDX #3                 ; y_shift
@@ -4828,39 +4949,50 @@ LOAD_A% = LOAD%
  STA K2+3               ; sg for Y-aX
  LDA P+1
  STA K2+1
+
  EOR #&FF               ; flip
  STA P
+
  LDA P+2
- STA K2+2;              ; K2=Y-aX \ their comment \ Yinwk corrected for alpha roll
+ STA K2+2               ; K2=Y-aX \ their comment \ Yinwk corrected for alpha roll
 
  LDX BET1               ; pitch mag lower7 bits
+ 
  JSR MLTU2-2            ; AP(2)= AP* bet1_unsg(EOR P)
  STA P+2
+
  LDA K2+3
  EOR BET2               ; pitch sign
  LDX #6                 ; z_shift
  JSR MVT6               ; P(1,2) += inwk,x (A is protected but with new sign)
+
  STA INWK+8             ; zsg
  LDA P+1
  STA INWK+6             ; zlo
+
  EOR #&FF               ; flip
  STA P
  LDA P+2
  STA INWK+7             ; zhi \ Z=Z+bK2 \ their comment
 
  JSR MLTU2              ; AP(2)= AP* Qunsg(EOR P) \ Q = speed
+
  STA P+2
  LDA K2+3
  STA INWK+5             ; ysg
+
  EOR BET2               ; pitch sign
  EOR INWK+8             ; zsg
  BPL MV43               ; +ve zsg
+
  LDA P+1
  ADC K2+1
  STA INWK+3             ; ylo
+
  LDA P+2
  ADC K2+2
  STA INWK+4             ; yhi
+
  JMP MV44               ; roll&pitch continue
 
 .MV43                   ; +ve ysg zsg
@@ -4868,16 +5000,21 @@ LOAD_A% = LOAD%
  LDA K2+1
  SBC P+1
  STA INWK+3             ; ylo
+
  LDA K2+2
  SBC P+2
  STA INWK+4             ; yhi
+
  BCS MV44               ; roll&pitch continue
+
  LDA #1                 ; ylo flipped
  SBC INWK+3
  STA INWK+3
+
  LDA #0                 ; any carry into yhi
  SBC INWK+4
  STA INWK+4
+
  LDA INWK+5
  EOR #128               ; flip ysg
  STA INWK+5             ; ysg \ Y=K2-bZ \ their comment
@@ -4888,48 +5025,58 @@ LOAD_A% = LOAD%
  LDA INWK+3
  EOR #&FF               ; flip ylo
  STA P
+
  LDA INWK+4             ; yhi
  JSR MLTU2-2            ; AP(2)= AP* alp1_unsg(EOR P)
  STA P+2
+
  LDA ALP2               ; roll sign
  EOR INWK+5             ; ysg
  LDX #0                 ; x_shift
  JSR MVT6               ; P(1,2) += inwk,x (A is protected but with new sign)
+
  STA INWK+2             ; xsg
  LDA P+2
  STA INWK+1             ; xhi
  LDA P+1
  STA INWK               ; X=X+aY \ their comment
-}
 
-.MV45                   ; move inwk by speed
-{
+.^MV45                  ; move inwk by speed
+
  LDA DELTA              ; speed
  STA R
+
  LDA #128               ; force inc sign to be -ve
  LDX #6                 ; z_shift
  JSR MVT1               ; Add R|sgnA to inwk,x+0to2
+
  LDA TYPE               ; ship type
  AND #&81               ; sun bits
  CMP #&81               ; is sun?
  BNE P%+3
+
  RTS                    ; Z=Z-d \ their comment
 
                         ; All except Suns
 
  LDY #9                 ; select row
  JSR MVS4               ; pitch&roll update to rotmat
+
  LDY #15
  JSR MVS4               ; pitch&roll update to rotmat
+
  LDY #21
  JSR MVS4               ; pitch&roll update to rotmat
+
  LDA INWK+30            ; rotz counter
- AND #128               ; rotz sign
+ AND #%10000000         ; rotz sign
  STA RAT2
+
  LDA INWK+30
- AND #127               ; pitch mag lower 7bits
+ AND #%01111111         ; pitch mag lower 7bits
  BEQ MV8                ; rotz=0, Other rotation.
- CMP #127               ; C set if equal, no damping of pitch
+
+ CMP #%01111111         ; C set if equal, no damping of pitch
  SBC #0                 ; reduce z pitch, rotz
  ORA RAT2               ; reinclude rotz sign
  STA INWK+30            ; rotz counter
@@ -4937,9 +5084,11 @@ LOAD_A% = LOAD%
  LDX #15                ; select column
  LDY #9                 ; select row
  JSR MVS5               ; moveship5, small rotation in matrix
+
  LDX #17
  LDY #11
  JSR MVS5
+
  LDX #19
  LDY #13
  JSR MVS5
@@ -4947,12 +5096,14 @@ LOAD_A% = LOAD%
 .MV8                    ; Other rotation, roll.
 
  LDA INWK+29            ; rotx counter
- AND #128               ; rotx sign
+ AND #%10000000         ; rotx sign
  STA RAT2
+
  LDA INWK+29            ; rotx counter
- AND #127               ; roll mag lower 7 bits
+ AND #%01111111         ; roll mag lower 7 bits
  BEQ MV5                ; rotations Done
- CMP #127               ; C set if equal, no damping of x roll
+
+ CMP #%01111111         ; C set if equal, no damping of x roll
  SBC #0                 ; reduce x roll
  ORA RAT2               ; reinclude sign
  STA INWK+29            ; rotx counter
@@ -4960,9 +5111,11 @@ LOAD_A% = LOAD%
  LDX #15                ; select column
  LDY #21                ; select row
  JSR MVS5               ; moveship5, small rotation in matrix
+
  LDX #17
  LDY #23
  JSR MVS5
+
  LDX #19
  LDY #25
  JSR MVS5
@@ -4970,18 +5123,21 @@ LOAD_A% = LOAD%
 .MV5                    ; rotations Done
 
  LDA INWK+31            ; display explosion state|missiles
- AND #&A0               ; do kill at end of explosion
+ AND #%10100000         ; do kill at end of explosion
  BNE MVD1               ; end explosion
+
  LDA INWK+31
- ORA #16                ; else keep visible on scanner, set bit4.
+ ORA #%00010000         ; else keep visible on scanner, set bit4.
  STA INWK+31
+
  JMP SCAN               ; ships inwk on scanner
 
 .MVD1                   ; end explosion
 
  LDA INWK+31
- AND #&EF               ; clear bit4, now invisible.
+ AND #%11101111         ; clear bit4, now invisible.
  STA INWK+31
+
  RTS
 }
 
@@ -5753,7 +5909,7 @@ LOAD_A% = LOAD%
 \ ******************************************************************************
 \ Subroutine: MV40
 \
-\ Move Planet
+\ Move Planet/sun
 \ ******************************************************************************
 
 .MV40                   ; move Planet
@@ -18077,7 +18233,9 @@ MAPCHAR '4', '4'
 \ Arguments:
 \
 \   A           One of the following:
+\
 \                 * 128-159 (two-letter token)
+\
 \                 * 160-255 (the argument to TT27 that refers to a recursive
 \                   token in the range 0-95)
 \ ******************************************************************************
