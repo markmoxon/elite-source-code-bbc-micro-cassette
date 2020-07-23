@@ -188,7 +188,8 @@ ORG &0000
 
 .BET1
 
- SKIP 1                 ;
+ SKIP 1                 ; Pitch rate, reduced from the dashboard indicator
+                        ; value in JSTY to a value between 0 and 16
 
 .XC
 
@@ -536,17 +537,17 @@ ORG &0000
 .ALP1
 
  SKIP 1                 ; Roll rate, reduced from the dashboard indicator
-                        ; value in JSTX
+                        ; value in JSTX to a value between 0 and 64
 
 .ALP2
 
- SKIP 2                 ; ALP2   = flipped sign of the roll rate
-                        ; ALP2+1 = correct sign of the roll rate
+ SKIP 2                 ; ALP2   = correct sign of the alpha angle (roll rate)
+                        ; ALP2+1 = flipped sign of the alpha angle (roll rate)
 
 .BET2
 
- SKIP 2                 ; BET2   = correct sign of the pitch rate
-                        ; BET2+1 = flipped sign of the pitch rate
+ SKIP 2                 ; BET2   = correct sign of the beta angle (pitch rate)
+                        ; BET2+1 = flipped sign of the beta angle (pitch rate)
 
 .DELTA
 
@@ -3011,7 +3012,7 @@ LOAD_A% = LOAD%
                         ; Toggled by pressing "K" when paused, see DKS3
 
 \ ******************************************************************************
-\ Subroutine: M% (Part 1)
+\ Subroutine: Main flight loop (Part 1 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -3026,7 +3027,7 @@ LOAD_A% = LOAD%
                         ; where we store the ship data blocks
 
 \ ******************************************************************************
-\ Subroutine: M% (Part 2)
+\ Subroutine: Main flight loop (Part 2 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -3047,17 +3048,25 @@ LOAD_A% = LOAD%
  JSR cntr               ; apply keyboard damping twice (if enabled) so the roll
  JSR cntr               ; rate in X creeps towards the centre by 2
 
+                        ; The roll rate increases if we press ">" (and the RL
+                        ; indicator on the dashboard goes to the right). This
+                        ; rolls our ship to the right (clockwise), but we
+                        ; actually implement this by rolling everything else
+                        ; to the left (anticlockwise), so a positive roll rate
+                        ; in JSTX translates to a negative alpha angle
+
  TXA                    ; Set A and Y to the roll rate but with the sign
- EOR #%10000000         ; bit flipped
+ EOR #%10000000         ; bit flipped (i.e. the sign of alpha)
  TAY
  
  AND #%10000000         ; Extract the flipped sign of the roll rate and store
- STA ALP2               ; in ALP2
+ STA ALP2               ; in ALP2 (so ALP2 contains the sign of the alpha angle)
 
  STX JSTX               ; Update JSTX with the damped value that's still in X
 
  EOR #%10000000         ; Extract the correct sign of the roll rate and store
- STA ALP2+1             ; in APL2+1
+ STA ALP2+1             ; in ALP2+1 (so ALP2+1 contains the flipped sign of the
+                        ; angle alpha)
 
  TYA                    ; If the roll rate but with the sign bit flipped is
  BPL P%+7               ; positive (i.e. if the current roll rate is negative),
@@ -3083,10 +3092,11 @@ LOAD_A% = LOAD%
                         ;
                         ;   ALP1 = |JSTX| / 4    if |JSTX| > 32
                         ;
-                        ; So higher roll rates are reduced closer to zero
+                        ; So higher roll rates are reduced closer to zero and
+                        ; ALP1 <= 64
 
  ORA ALP2               ; Store A in ALPHA, but with the sign set to ALP2 (so
- STA ALPHA              ; ALPHA has a different sign to the actual roll rate
+ STA ALPHA              ; ALPHA has a different sign to the actual roll rate)
 
  LDX JSTY               ; Set X to the current rate of pitch in JSTY, and
  JSR cntr               ; apply keyboard damping so the pitch rate in X creeps
@@ -3128,7 +3138,7 @@ LOAD_A% = LOAD%
  STA BETA               ; BETA has the same sign as the actual pitch rate)
 
 \ ******************************************************************************
-\ Subroutine: M% (Part 3)
+\ Subroutine: Main flight loop (Part 3 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -3363,7 +3373,7 @@ LOAD_A% = LOAD%
                         ; MA23 below for more on laser pulsing and LASCT.
                         
 \ ******************************************************************************
-\ Subroutine: M% (Part 4)
+\ Subroutine: Main flight loop (Part 4 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -3436,7 +3446,7 @@ LOAD_A% = LOAD%
  STA XX0+1              ; blueprint and store it in XX0+1
 
 \ ******************************************************************************
-\ Subroutine: M% (Part 5)
+\ Subroutine: Main flight loop (Part 5 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -3468,7 +3478,7 @@ LOAD_A% = LOAD%
                         ; noise and so on)
 
 \ ******************************************************************************
-\ Subroutine: M% (Part 6)
+\ Subroutine: Main flight loop (Part 6 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -3499,7 +3509,7 @@ LOAD_A% = LOAD%
                         ; copied the last byte from INWK back to INF
 
 \ ******************************************************************************
-\ Subroutine: M% (Part 7)
+\ Subroutine: Main flight loop (Part 7 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -3561,7 +3571,7 @@ LOAD_A% = LOAD%
                         ; to process a collision
 
 \ ******************************************************************************
-\ Subroutine: M% (Part 8)
+\ Subroutine: Main flight loop (Part 8 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -3633,7 +3643,7 @@ LOAD_A% = LOAD%
                         ; and to move on to missile targeting
 
 \ ******************************************************************************
-\ Subroutine: M% (Part 9)
+\ Subroutine: Main flight loop (Part 9 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -3836,7 +3846,7 @@ LOAD_A% = LOAD%
                         ; process our death
 
 \ ******************************************************************************
-\ Subroutine: M% (Part 10)
+\ Subroutine: Main flight loop (Part 10 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -3899,7 +3909,7 @@ LOAD_A% = LOAD%
                         ; fall through into MA26 to try targeting a missile
 
 \ ******************************************************************************
-\ Subroutine: M% (Part 11)
+\ Subroutine: Main flight loop (Part 11 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4010,7 +4020,7 @@ LOAD_A% = LOAD%
  JSR ANGRY              ; have hit it
 
 \ ******************************************************************************
-\ Subroutine: M% (Part 12)
+\ Subroutine: Main flight loop (Part 12 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4108,7 +4118,7 @@ LOAD_A% = LOAD%
                         ; the next ship in the local bubble for processing
 
 \ ******************************************************************************
-\ Subroutine: M% (Part 13)
+\ Subroutine: Main flight loop (Part 13 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4172,7 +4182,7 @@ LOAD_A% = LOAD%
  STA ENERGY             ; energy level is &FF), then store A in ENERGY
 
 \ ******************************************************************************
-\ Subroutine: M% (Part 14)
+\ Subroutine: Main flight loop (Part 14 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4285,7 +4295,7 @@ LOAD_A% = LOAD%
                         ; altitude checks
 
 \ ******************************************************************************
-\ Subroutine: M% (Part 15)
+\ Subroutine: Main flight loop (Part 15 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4453,7 +4463,7 @@ LOAD_A% = LOAD%
  JSR MESS               ; in-flight message
 
 \ ******************************************************************************
-\ Subroutine: M% (Part 16)
+\ Subroutine: Main flight loop (Part 16 of 16)
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4735,9 +4745,12 @@ LOAD_A% = LOAD%
 }
 
 \ ******************************************************************************
-\ Subroutine: MVEIT
+\ Subroutine: MVEIT (Part 1 of 9)
 \
-\ Move the current ship, planet or sun in space.
+\ Move the current ship, planet or sun in space. This routine has multiple
+\ stages. This stage does the following:
+\
+\   * Tidy ship slots
 \
 \ Arguments:
 \
@@ -4746,20 +4759,6 @@ LOAD_A% = LOAD%
 \   XSAV        The slot number of the current ship/planet/sun
 \
 \   TYPE        The type of the current ship/planet/sun
-\
-\ ******************************************************************************
-\
-\ Tidy ship slots
-\
-\ Apply tactics
-\
-\ Move the ship forward (along the vector pointing in the direction of travel)
-\ according to its speed:
-\
-\   (x, y, z) += rotmat0_hi * speed / 64
-\
-\ Apply any acceleration to the ship's speed, then zero it
-\
 \ ******************************************************************************
 
 .MVEIT
@@ -4794,6 +4793,25 @@ LOAD_A% = LOAD%
                         ; the ship from getting elongated and out of shape due
                         ; to the imprecise nature of trigonometry in assembly
                         ; language
+
+\ ******************************************************************************
+\ Subroutine: MVEIT (Part 2 of 9)
+\
+\ Move the current ship, planet or sun in space. This routine has multiple
+\ stages. This stage does the following:
+\
+\   * Apply tactics to ships with AI enabled
+\
+\   * Remove the ship from the scanner, so we can move it
+\
+\ Arguments:
+\
+\   INWK        The current ship/planet/sun's data block
+\
+\   XSAV        The slot number of the current ship/planet/sun
+\
+\   TYPE        The type of the current ship/planet/sun
+\ ******************************************************************************
 
 .MV3
 
@@ -4847,6 +4865,26 @@ LOAD_A% = LOAD%
  JSR SCAN               ; Draw the ship on the scanner, which has the effect of
                         ; removing it, as it's already at this point and hasn't
                         ; yet moved
+
+\ ******************************************************************************
+\ Subroutine: MVEIT (Part 3 of 9)
+\
+\ Move the current ship, planet or sun in space. This routine has multiple
+\ stages. This stage does the following:
+\
+\   * Move the ship forward (along the vector pointing in the direction of
+\     travel) according to its speed:
+\
+\     (x, y, z) += rotmat0_hi * speed / 64
+\
+\ Arguments:
+\
+\   INWK        The current ship/planet/sun's data block
+\
+\   XSAV        The slot number of the current ship/planet/sun
+\
+\   TYPE        The type of the current ship/planet/sun
+\ ******************************************************************************
 
  LDA INWK+27            ; Set Q = the ship's speed (INWK+27) * 4
  ASL A
@@ -4907,6 +4945,24 @@ LOAD_A% = LOAD%
                         ;
                         ;   (z_sign z_hi z_lo) += rotmat0z_hi * speed / 64
 
+\ ******************************************************************************
+\ Subroutine: MVEIT (Part 4 of 9)
+\
+\ Move the current ship, planet or sun in space. This routine has multiple
+\ stages. This stage does the following:
+\
+\   * Apply acceleration to the ship's speed (if acceleration is non-zero),
+\     and then zero the acceleration as it's a one-off change
+\
+\ Arguments:
+\
+\   INWK        The current ship/planet/sun's data block
+\
+\   XSAV        The slot number of the current ship/planet/sun
+\
+\   TYPE        The type of the current ship/planet/sun
+\ ******************************************************************************
+
  LDA INWK+27            ; Set A = the ship's speed (INWK+24) + the ship's
  CLC                    ; acceleration (INWK+28)
  ADC INWK+28
@@ -4931,115 +4987,260 @@ LOAD_A% = LOAD%
  LDA #0                 ; We have added the ship's acceleration, so we now set
  STA INWK+28            ; it back to 0 in INWK+28, as it's a one-off change
 
- LDX ALP1               ; roll mag lower7 bits
+\ ******************************************************************************
+\ Subroutine: MVEIT (Part 5 of 9)
+\
+\ Move the current ship, planet or sun in space. This routine has multiple
+\ stages. This stage does the following:
+\
+\   * Rotate the ship's location in space by the amount of pitch and roll of
+\     our ship. See below for a deeper explanation of this routine
+\
+\ Arguments:
+\
+\   INWK        The current ship/planet/sun's data block
+\
+\   XSAV        The slot number of the current ship/planet/sun
+\
+\   TYPE        The type of the current ship/planet/sun
+\
+\ ******************************************************************************
+\
+\ When we rotate our ship with the keyboard or joystick, we actually just rotate
+\ the whole universe around our Cobra, as everything is drawn from the
+\ perspective of our cockpit. This routine therefore applies the rotation
+\ equations, which are described in MVS4, to the (x, y, z) coordinate of the
+\ ship we are processing, so the ship moves as we pitch and roll. Specifically,
+\ the calculation is as follows:
+\
+\   x -> x + alpha * (y - alpha * x)
+\   y -> y - alpha * x - beta * z
+\   z -> z + beta * (y - alpha * x - beta * z)
+\
+\ which we implement like this:
+\
+\   1. K2 = y - alpha * x
+\   2. z = z + beta * K2        z = z + beta * (y - alpha * x)
+\   3. y = K2 - beta * z        y = y - alpha * x - beta * z
+\   4. x = x + alpha * y        x = x + alpha * y
+\
+\ We also discard the low bytes from the angle multiplications, so all of the
+\ above multiplications get divided by 256. This effectively converts the values
+\ of alpha and beta from their stored value ranges of 0 to 64 and 0 to 16 in ALP1
+\ and BET1 into the ranges 0 to 0.25 and 0 to 0.0625. These figures work well as
+\ small angles in radians, which is why we can apply the small angle
+\ approximation to them above.
+\ ******************************************************************************
 
- LDA INWK
- EOR #&FF               ; flip xlo
+ LDX ALP1               ; Fetch the magnitude of the current roll into X, so
+                        ; if the roll angle is alpha, X contains |alpha|
+
+ LDA INWK               ; Set P = ~x_lo (i.e. with all its bits flipped) so that
+ EOR #%11111111         ; we can pass x_lo to MLTU2 below)
  STA P
 
- LDA INWK+1             ; xhi
- JSR MLTU2-2            ; AP(2)= AP* alp1_unsg(EOR P)
- STA P+2
+ LDA INWK+1             ; Set A = x_hi
 
- LDA ALP2+1             ; flipped roll sign
- EOR INWK+2             ; xsg
- LDX #3                 ; y_shift
- JSR MVT6               ; P(1,2) += inwk,x (A is protected but with new sign)
+ JSR MLTU2-2            ; Set (A P+1 P) = (A ~P) * X
+                        ;               = (x_hi x_lo) * alpha
 
- STA K2+3               ; sg for Y-aX
- LDA P+1
+ STA P+2                ; Store the high byte of the result in P+2, so we now
+                        ; have:
+                        ;
+                        ; P(2 1 0) = (x_hi x_lo) * alpha
+
+ LDA ALP2+1             ; Fetch the flipped sign of the current roll angle alpha
+ EOR INWK+2             ; from ALP2+1 and EOR with INWK+2 (x_sign), so if the
+                        ; flipped roll angle and x_sign have the same sign, A
+                        ; will be positive, else it will be negative. So A will
+                        ; contain the sign bit of x_sign * flipped alpha sign,
+                        ; which is the opposite to the sign of the above result,
+                        ; so we now have:
+                        ;
+                        ; (A P+2 P+1) = - (x_sign x_hi x_lo) * alpha / 256
+
+ LDX #3                 ; Set (A P+2 P+1) = (y_sign y_hi y_lo) + (A P+2 P+1)
+ JSR MVT6               ;                 = y - x * alpha / 256
+
+ STA K2+3               ; Set K2(3) = A = the sign of the result
+
+ LDA P+1                ; Set K2(1) = P+1, the low byte of the result
  STA K2+1
 
- EOR #&FF               ; flip
- STA P
+ EOR #%11111111         ; Set P = ~K2+1 (i.e. with all its bits flipped) so
+ STA P                  ; that we can pass K2+1 to MLTU2 below)
 
- LDA P+2
- STA K2+2               ; K2=Y-aX \ their comment \ Yinwk corrected for alpha roll
-
- LDX BET1               ; pitch mag lower7 bits
+ LDA P+2                ; Set K2(2) = A = P+2
+ STA K2+2
  
- JSR MLTU2-2            ; AP(2)= AP* bet1_unsg(EOR P)
- STA P+2
+                        ; So we now have result 1 above:
+                        ;
+                        ; K2(3 2 1) = (A P+2 P+1)
+                        ;           = y - x * alpha / 256
 
- LDA K2+3
- EOR BET2               ; pitch sign
- LDX #6                 ; z_shift
- JSR MVT6               ; P(1,2) += inwk,x (A is protected but with new sign)
+ LDX BET1               ; Fetch the magnitude of the current pitch into X, so
+                        ; if the pitch angle is beta, X contains |beta|
+ 
+ JSR MLTU2-2            ; Set (A P+1 P) = (A ~P) * X
+                        ;               = K2(2 1) * beta
 
- STA INWK+8             ; zsg
- LDA P+1
- STA INWK+6             ; zlo
+ STA P+2                ; Store the high byte of the result in P+2, so we now
+                        ; have:
+                        ;
+                        ; P(2 1 0) = K2(2 1) * beta
 
- EOR #&FF               ; flip
- STA P
- LDA P+2
- STA INWK+7             ; zhi \ Z=Z+bK2 \ their comment
+ LDA K2+3               ; Fetch the sign of the above result in K(3 2 1) from
+ EOR BET2               ; K2+3 and EOR with BET2, the sign of the current pitch
+                        ; rate, so if the pitch and K(3 2 1) have the same sign,
+                        ; A will be positive, else it will be negative. So A
+                        ; will contain the sign bit of K(3 2 1) * beta, which is
+                        ; the same as the sign of the above result, so we now
+                        ; have:
+                        ;
+                        ; (A P+2 P+1) = K2(3 2 1) * beta / 256
 
- JSR MLTU2              ; AP(2)= AP* Qunsg(EOR P) \ Q = speed
+ LDX #6                 ; Set (A P+2 P+1) = (z_sign z_hi z_lo) + (A P+2 P+1)
+ JSR MVT6               ;                 = z + K2 * beta / 256
 
- STA P+2
- LDA K2+3
- STA INWK+5             ; ysg
+ STA INWK+8             ; Set z_sign = A = the sign of the result
 
- EOR BET2               ; pitch sign
- EOR INWK+8             ; zsg
- BPL MV43               ; +ve zsg
+ LDA P+1                ; Set z_lo = P+1, the low byte of the result
+ STA INWK+6
 
- LDA P+1
+ EOR #%11111111         ; Set P = ~z_lo (i.e. with all its bits flipped) so that
+ STA P                  ; we can pass z_lo to MLTU2 below)
+
+ LDA P+2                ; Set z_hi = P+2
+ STA INWK+7
+ 
+                        ; So we now have result 2 above:
+                        ;
+                        ; (z_sign z_hi z_lo) = (A P+2 P+1)
+                        ;                    = z + K2 * beta / 256
+
+ JSR MLTU2              ; MLTU2 doesn't change Q, and Q was set to beta in
+                        ; the previous call to MLTU2, so this call does:
+                        ;
+                        ; (A P+1 P) = (A ~P) * Q
+                        ;           = (z_hi z_lo) * beta
+
+ STA P+2                ; Set P+2 = A = the high byte of the result, so we
+                        ; now have:
+                        ;
+                        ; P(2 1 0) = (z_hi z_lo) * beta
+
+ LDA K2+3               ; Set y_sign = K2+3
+ STA INWK+5
+
+ EOR BET2               ; EOR y_sign with BET2, the sign of the current pitch
+ EOR INWK+8             ; rate, and z_sign. If the result is positive jump to
+ BPL MV43               ; MV43, otherwise this means beta * z and y have
+                        ; different signs, i.e. P(2 1) and K2(3 2 1) have
+                        ; different signs, so we need to add them in order to
+                        ; calculate K2(2 1) - P(2 1)
+
+ LDA P+1                ; Set (y_hi y_lo) = K2(2 1) + P(2 1)
  ADC K2+1
- STA INWK+3             ; ylo
-
+ STA INWK+3
  LDA P+2
  ADC K2+2
- STA INWK+4             ; yhi
-
- JMP MV44               ; roll&pitch continue
-
-.MV43                   ; +ve ysg zsg
-
- LDA K2+1
- SBC P+1
- STA INWK+3             ; ylo
-
- LDA K2+2
- SBC P+2
- STA INWK+4             ; yhi
-
- BCS MV44               ; roll&pitch continue
-
- LDA #1                 ; ylo flipped
- SBC INWK+3
- STA INWK+3
-
- LDA #0                 ; any carry into yhi
- SBC INWK+4
  STA INWK+4
 
- LDA INWK+5
- EOR #128               ; flip ysg
- STA INWK+5             ; ysg \ Y=K2-bZ \ their comment
+ JMP MV44               ; Jump to MV44 to continue the calculation
 
-.MV44                   ; roll&pitch continue
+.MV43
 
- LDX ALP1               ; roll mag lower7 bits
- LDA INWK+3
- EOR #&FF               ; flip ylo
+ LDA K2+1               ; Reversing the logic above, we need to subtract P(2 1)
+ SBC P+1                ; and K2(3 2 1) to calculate K2(2 1) - P(2 1), so this
+ STA INWK+3             ; sets (y_hi y_lo) = K2(2 1) - P(2 1)
+ LDA K2+2
+ SBC P+2
+ STA INWK+4
+
+ BCS MV44               ; If the above subtraction did not underflow, then
+                        ; jump to MV44, otherwise we need to negate the result
+
+ LDA #1                 ; Negate (y_sign y_hi y_lo) using two's complement,
+ SBC INWK+3             ; first doing the low bytes:
+ STA INWK+3             ;
+                        ; y_lo = 1 - y_lo
+
+ LDA #0                 ; Then the high bytes:
+ SBC INWK+4             ;
+ STA INWK+4             ; y_hi = 0 - y_hi
+
+ LDA INWK+5             ; And finally flip the sign in y_sign
+ EOR #%10000000
+ STA INWK+5
+
+.MV44
+
+                        ; So we now have result 3 above:
+                        ;
+                        ; (y_sign y_hi y_lo) = K2(2 1) - P(2 1)
+                        ;                    = K2 - beta * z
+
+ LDX ALP1               ; Fetch the magnitude of the current roll into X, so
+                        ; if the roll angle is alpha, X contains |alpha|
+
+ LDA INWK+3             ; Set P = ~y_lo (i.e. with all its bits flipped) so that
+ EOR #&FF               ; we can pass y_lo to MLTU2 below)
  STA P
 
- LDA INWK+4             ; yhi
- JSR MLTU2-2            ; AP(2)= AP* alp1_unsg(EOR P)
- STA P+2
+ LDA INWK+4             ; Set A = Y_hi
 
- LDA ALP2               ; roll sign
- EOR INWK+5             ; ysg
- LDX #0                 ; x_shift
- JSR MVT6               ; P(1,2) += inwk,x (A is protected but with new sign)
+ JSR MLTU2-2            ; Set (A P+1 P) = (A ~P) * X
+                        ;               = (x_hi x_lo) * alpha
 
- STA INWK+2             ; xsg
- LDA P+2
- STA INWK+1             ; xhi
- LDA P+1
- STA INWK               ; X=X+aY \ their comment
+ STA P+2                ; Store the high byte of the result in P+2, so we now
+                        ; have:
+                        ;
+                        ; P(2 1 0) = (y_hi y_lo) * alpha
+
+ LDA ALP2               ; Fetch the correct sign of the current roll angle alpha
+ EOR INWK+5             ; from ALP2 and EOR with INWK+5 (y_sign), so if the
+                        ; correct roll angle and y_sign have the same sign, A
+                        ; will be positive, else it will be negative. So A will
+                        ; contain the sign bit of x_sign * correct alpha sign,
+                        ; which is the same as the sign of the above result,
+                        ; so we now have:
+                        ;
+                        ; (A P+2 P+1) = (y_sign y_hi y_lo) * alpha / 256
+
+ LDX #0                 ; Set (A P+2 P+1) = (x_sign x_hi x_lo) + (A P+2 P+1)
+ JSR MVT6               ;                 = x + y * alpha / 256
+
+ STA INWK+2             ; Set x_sign = A = the sign of the result
+
+ LDA P+2                ; Set x_hi = P+2, the high byte of the result
+ STA INWK+1
+
+ LDA P+1                ; Set x_lo = P+1, the low byte of the result
+ STA INWK
+ 
+                        ; So we now have result 4 above:
+                        ;
+                        ; x = x + alpha * y
+                        ;
+                        ; and the rotation of (x, y, z) is done
+
+\ ******************************************************************************
+\ Subroutine: MVEIT (Part 6 of 9)
+\
+\ Move the current ship, planet or sun in space. This routine has multiple
+\ stages. This stage does the following:
+\
+\   * Move the ship in space according to our speed (we already moved it
+\     according to its own speed in part 3 above)
+\
+\ Arguments:
+\
+\   INWK        The current ship/planet/sun's data block
+\
+\   XSAV        The slot number of the current ship/planet/sun
+\
+\   TYPE        The type of the current ship/planet/sun
+\ ******************************************************************************
 
 .^MV45                  ; move inwk by speed
 
@@ -5057,6 +5258,23 @@ LOAD_A% = LOAD%
 
  RTS                    ; Z=Z-d \ their comment
 
+\ ******************************************************************************
+\ Subroutine: MVEIT (Part 7 of 9)
+\
+\ Move the current ship, planet or sun in space. This routine has multiple
+\ stages. This stage does the following:
+\
+\   * Rotate the ship's rotation matrix according to our pitch and roll
+\
+\ Arguments:
+\
+\   INWK        The current ship/planet/sun's data block
+\
+\   XSAV        The slot number of the current ship/planet/sun
+\
+\   TYPE        The type of the current ship/planet/sun
+\ ******************************************************************************
+
                         ; All except Suns
 
  LDY #9                 ; select row
@@ -5067,6 +5285,24 @@ LOAD_A% = LOAD%
 
  LDY #21
  JSR MVS4               ; pitch&roll update to rotmat
+
+\ ******************************************************************************
+\ Subroutine: MVEIT (Part 8 of 9)
+\
+\ Move the current ship, planet or sun in space. This routine has multiple
+\ stages. This stage does the following:
+\
+\   * If the ship we are processing is rolling or pitching, rotate it and apply
+\     damping if required
+\
+\ Arguments:
+\
+\   INWK        The current ship/planet/sun's data block
+\
+\   XSAV        The slot number of the current ship/planet/sun
+\
+\   TYPE        The type of the current ship/planet/sun
+\ ******************************************************************************
 
  LDA INWK+30            ; rotz counter
  AND #%10000000         ; rotz sign
@@ -5119,6 +5355,25 @@ LOAD_A% = LOAD%
  LDX #19
  LDY #25
  JSR MVS5
+
+\ ******************************************************************************
+\ Subroutine: MVEIT (Part 9 of 9)
+\
+\ Move the current ship, planet or sun in space. This routine has multiple
+\ stages. This stage does the following:
+\
+\   * Update the ship's explosion status, if it is exploding
+\
+\   * Redraw the ship on the scanner, if it isn't being removed
+\
+\ Arguments:
+\
+\   INWK        The current ship/planet/sun's data block
+\
+\   XSAV        The slot number of the current ship/planet/sun
+\
+\   TYPE        The type of the current ship/planet/sun
+\ ******************************************************************************
 
 .MV5                    ; rotations Done
 
@@ -5627,7 +5882,7 @@ LOAD_A% = LOAD%
 \
 \   http://www.iancgbell.clara.net/elite/design/index.htm
 \
-\ judt below the original design for the cockpit, before the iconic 3D scanner
+\ just below the original design for the cockpit, before the iconic 3D scanner
 \ was added (which is a whole other story...).
 \
 \ Minsky circles
@@ -5862,48 +6117,93 @@ LOAD_A% = LOAD%
 \ ******************************************************************************
 \ Subroutine: MVT6
 \
-\ P(1,2) += inwk,x (A is protected but with new sign)
+\ (A P+2 P+1) = (x_sign x_hi x_lo) + (A P+2 P+1)
+\
+\ Arguments:
+\
+\   A           The sign of P(2 1) in bit 7
+\
+\   P(2 1)      The 16-bit value we want to add the coordinate to
+\
+\   X           The coordinate to add, as follows:
+\
+\                 * If X = 0, add to (x_sign x_hi x_lo)
+\                 * If X = 3, add to (y_sign y_hi y_lo)
+\                 * If X = 6, add to (z_sign z_hi z_lo)
+\
+\ Returns:
+\
+\   A           The sign of the result (in bit 7)
 \ ******************************************************************************
 
-.MVT6                   ; Planet P(1,2) += inwk,x for planet (Asg is protected but with new sign)
+.MVT6
 {
- TAY                    ; Yreg = sg
- EOR INWK+2,X
- BMI MV50               ; sg -ve
- LDA P+1
- CLC                    ; add lo
- ADC INWK,X
+ TAY                    ; Store argument A into Y, for later use
+
+ EOR INWK+2,X           ; Set A = A EOR x_sign
+
+ BMI MV50               ; If the sign is negative, i.e. A and x_sign have
+                        ; different signs, jump to MV50
+
+                        ; The signs are the same, so we can add the two
+                        ; arguments and keep the sign to get the result
+
+ LDA P+1                ; First we add the low bytes:
+ CLC                    ;
+ ADC INWK,X             ;   P+1 = P+1 + x_lo
  STA P+1
- LDA P+2                ; add hi
- ADC INWK+1,X
- STA P+2
- TYA                    ; restore old sg ok
- RTS
 
-.MV50                   ; sg -ve
+ LDA P+2                ; And then the high bytes:
+ ADC INWK+1,X           ;
+ STA P+2                ;   P+2 = P+2 + x_hi
 
- LDA INWK,X
- SEC                    ; sub lo
- SBC P+1
+ TYA                    ; Restore the original A argument that we stored earlier
+                        ; so that we keep the original sign
+
+ RTS                    ; Return from the subroutine
+
+.MV50
+
+ LDA INWK,X             ; First we subtract the low bytes:
+ SEC                    ;
+ SBC P+1                ;   P+1 = x_lo - P+1
  STA P+1
- LDA INWK+1,X
- SBC P+2                ; sub hi
- STA P+2
- BCC MV51               ; fix -ve
- TYA                    ; restore Asg
- EOR #128               ; but flip sign
- RTS
 
-.MV51                   ; fix -ve
+ LDA INWK+1,X           ; And then the high bytes:
+ SBC P+2                ;
+ STA P+2                ;   P+2 = x_hi - P+2
 
- LDA #1                 ; carry was clear
- SBC P+1
- STA P+1
- LDA #0                 ; sub hi
- SBC P+2
- STA P+2
- TYA                    ; old Asg ok
- RTS                    ; MVT6 done.
+ BCC MV51               ; If the last subtraction underflowed, then the C flag
+                        ; will be clear and x_hi < P+2, so jump to MV51 to
+                        ; negate the result
+
+ TYA                    ; Restore the original A argument that we stored earlier
+ EOR #%10000000         ; but flip bit 7, which flips the sign. We do this
+                        ; because x_hi >= P+2 so we want the result to have the
+                        ; same sign as x_hi (as it's the dominant side in this
+                        ; calculation). The sign of x_hi is x_sign, and x_sign
+                        ; has the opposite sign to A, so we flip the sign in A
+                        ; to return the correct result
+
+ RTS                    ; Return from the subroutine
+
+.MV51
+
+ LDA #1                 ; Our subtraction underflowed, so we negate the result
+ SBC P+1                ; using two's complement, first with the high byte:
+ STA P+1                ;
+                        ;   P+1 = 1 - P+1
+
+ LDA #0                 ; And then the high byte:
+ SBC P+2                ;
+ STA P+2                ;   P+2 = 0 - P+2
+
+ TYA                    ; Restore the original A argument that we stored earlier
+                        ; as this is the correct sign for the result. This is
+                        ; because x_hi < P+2, so we want to return the same sign
+                        ; as P+2, the dominant side. P+2 and 
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -11090,17 +11390,26 @@ NEXT
 \ Subroutine: MLTU2
 \
 \ Do the following multiplication of an unsigned 16-bit number and an unsigned
-\ 8-bit number, returning only the highest two bytes of the result:
+\ 8-bit number:
 \
-\ (A P+1 ?) = (A P) * Q
+\   (A P+1 P) = (A ~P) * Q
 \
-\ or, to put it another way:
+\ where ~P means P EOR %11111111 (i.e. P with all its bits flipped). In other
+\ words, if you wanted to calculate &1234 * &56, you would:
 \
-\   (A P+1) = (A P) * Q / 256
+\   * Set A to &12
+\   * Set P to &34 EOR %11111111 = &CB
+\   * Set Q to &56
+\
+\ before calling MLTU2.
+\
+\ Returns:
+\
+\   Q           Q is preserved
 \
 \ Other entry points:
 \
-\   MLTU2-2     Set Q to X, so this calculates (A P+1 ?) = (A P) * X
+\   MLTU2-2     Set Q to X, so this calculates (A P+1 P) = (A ~P) * X
 \
 \ ******************************************************************************
 \
@@ -21792,7 +22101,7 @@ LOAD_F% = LOAD% + P% - CODE%
 }
 
 \ ******************************************************************************
-\ Subroutine: Main game loop (Part 1)
+\ Subroutine: Main game loop (Part 1 of 6)
 \
 \ This is part of the main game loop. This section covers the following:
 \
@@ -21827,7 +22136,7 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR NWSHP              ; through into the main game loop again
 
 \ ******************************************************************************
-\ Subroutine: Main game loop (Part 2)
+\ Subroutine: Main game loop (Part 2 of 6)
 \
 \ This is part of the main game loop. This section covers the following:
 \
@@ -21847,7 +22156,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
 .^TT100
 
- JSR M%                 ; Call the M% routine to do the main flight loop
+ JSR M%                 ; Call M% to enter the main flight loop
 
  DEC DLY                ; Decrement the delay counter in DLY, so any in-flight
                         ; messages get removed once the counter reaches zero
@@ -21969,7 +22278,7 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR NWSHP              ; Add our new asteroid or canister to the universe
 
 \ ******************************************************************************
-\ Subroutine: Main game loop (Part 3)
+\ Subroutine: Main game loop (Part 3 of 6)
 \
 \ This is part of the main game loop. This section covers the following:
 \
@@ -22018,7 +22327,7 @@ LOAD_F% = LOAD% + P% - CODE%
                         ; next part to look at spawning something else
 
 \ ******************************************************************************
-\ Subroutine: Main game loop (Part 4)
+\ Subroutine: Main game loop (Part 4 of 6)
 \
 \ This is part of the main game loop. This section covers the following:
 \
@@ -22121,7 +22430,7 @@ LOAD_F% = LOAD% + P% - CODE%
                         ; the end of the main loop at MLOOP
 
 \ ******************************************************************************
-\ Subroutine: Main game loop (Part 5)
+\ Subroutine: Main game loop (Part 5 of 6)
 \
 \ Other entry points: MLOOP
 \
@@ -22171,7 +22480,7 @@ LOAD_F% = LOAD% + P% - CODE%
                         ; the key pressed in A
 
 \ ******************************************************************************
-\ Subroutine: Main game loop (Part 6)
+\ Subroutine: Main game loop (Part 6 of 6)
 \
 \ This is part of the main game loop. This section covers the following:
 \
