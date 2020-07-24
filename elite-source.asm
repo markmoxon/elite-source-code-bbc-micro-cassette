@@ -116,6 +116,128 @@ MACRO ITEM price, factor, units, quantity, mask
 ENDMACRO
 
 \ ******************************************************************************
+\ Elite memory map
+\
+\ The tape version of Elite uses almost every nook and cranny of the BBC Micro,
+\ which isn't surprising when you consider just how much the authors managed to
+\ squeeze into this 32K micro, without the disc version's luxury of being able
+\ to switch out the codebase when docking and launching.
+\
+\ When Elite is loaded, this is how the memory map of the BBC Micro looks.
+\
+\     +-----------------------------------+   &FFFF
+\     |                                   |
+\     | Machine Operating System (MOS)    |
+\     |                                   |
+\     +-----------------------------------+   &C000
+\     |                                   |
+\     | Paged ROMs                        |
+\     |                                   |
+\     +-----------------------------------+   &8000
+\     |                                   |
+\     | Screen memory                     |
+\     |                                   |
+\     +-----------------------------------+   &6000
+\     |                                   |
+\     | Ship definitions (SHIPS.bin)      |
+\     |                                   |
+\     +-----------------------------------+   &563A = XX21
+\     |                                   |
+\     | Main game code (ELTcode.bin)      |
+\     |                                   |
+\     +-----------------------------------+   &0F40
+\     |                                   |
+\     | &0F34-&0F40 not used              |
+\     |                                   |
+\     +-----------------------------------+   &0F34
+\     |                                   |
+\     | Workspace at WP                   |
+\     |                                   |
+\     +-----------------------------------+   &0D40 = WP
+\     |                                   |
+\     | Ship lines heap descends from WP  |
+\     |                                   |
+\     +-----------------------------------+   SLSP
+\     |                                   |
+\     .                                   .
+\     .                                   .
+\     .                                   .
+\     .                                   .
+\     .                                   .
+\     |                                   |
+\     +-----------------------------------+   INF
+\     |                                   |
+\     | Ship data blocks                  |
+\     |                                   |
+\     +-----------------------------------+   &0900 = K%
+\     |                                   |
+\     | Page 8, MOS sound/printer buffers |
+\     |                                   |
+\     +-----------------------------------+   &0800
+\     |                                   |
+\     | Recursive tokens (WORDS9.bin)     |
+\     |                                   |
+\     +-----------------------------------+   &0400 = QQ18
+\     |                                   |
+\     | &035F - &03FF used for stardust?  |
+\     |                                   |
+\     +-----------------------------------+   &035F = SXL
+\     |                                   |
+\     | Workspace at T%                   |
+\     |                                   |
+\     +-----------------------------------+   &0300 = T%
+\     |                                   |
+\     | Page 2, MOS workspace             |
+\     |                                   |
+\     +-----------------------------------+   &0200
+\     |                                   |
+\     | 6502 stack descends from &01FF    |
+\     |                                   |
+\     +-----------------------------------+
+\     |                                   |
+\     | Heap space at XX3                 |
+\     |                                   |
+\     +-----------------------------------+   &0100 = XX3
+\     |                                   |
+\     | Zero page workspace at ZP         |
+\     |                                   |
+\     +-----------------------------------+   &0000 = ZP
+\     
+\ More details on all of the memory blocks can be found in the source code
+\ below. Of the 64K of addressable memory that the BBC's 6502 supports, this
+\ is the breakdown of memory usage once Elite is loaded and running, shown in
+\ bytes:
+\
+\   Operating system ROM                                 16384
+\   Paged ROMs                                           16384
+\   6502 stack                                             256
+\   Operating system workspace in page 2                   256
+\   Sound and printer buffers                              256
+\
+\   Elite's split screen memory                           8192
+\
+\   Game code                                            18170
+\   Ship blueprints (11 different designs)                2502
+\   K% workspace (ship data blocks and heap space)        1088
+\   Game text (recursive tokens)                          1024
+\   WP workspace (ship slots, variables)                   512
+\   Zero page workspace (INWK workspace, variables)        256
+\   T% workspace (current commander data, stardust data)   256
+\
+\   Total                                                65536
+\
+\ Contrary to popular legend, Elite does not use every single last byte of
+\ usable memory. There are 12 unused bytes at the end of the WP workspace,
+\ and 6 unused bytes in T% for equipment, as well as an unused duplicated maths
+\ routine that takes up 24 bytes that could have been reclaimed... and that's
+\ not including quite a few instructions that have no effect and could have been
+\ culled without impact. But this is splitting hairs, as Elite swells the BBC
+\ Micro to near bursting point, and for that, respect is due to the authors.
+\ ******************************************************************************
+
+
+
+\ ******************************************************************************
 \ Zero page workspace ZP at &0000 - &00B0
 \ ******************************************************************************
 
@@ -6051,13 +6173,13 @@ LOAD_A% = LOAD%
 \
 \ Arguments:
 \
-\   X           The row of the rotation matrix to rotate, as follows:
+\   X           The first axis of the rotation matrix to rotate, as follows:
 \
 \                 * If X = 15, rotate rotmat1x
 \                 * If X = 17, rotate rotmat1y
 \                 * If X = 19, rotate rotmat1z
 \
-\   Y           The row of the rotation matrix to rotate, as follows:
+\   Y           The second axis of the rotation matrix to rotate, as follows:
 \
 \                 * If Y = 9,  rotate rotmat0x
 \                 * If Y = 11, rotate rotmat0y
@@ -11538,7 +11660,7 @@ NEXT
 \
 \ This is a duplicate of the MULTU routine, but with no entry label, so it can't
 \ be called by name. It is unused, and could have been culled to save a few
-\ bytes, but it's still here.
+\ bytes (24 to be precise), but it's still here.
 \
 \ In the disc version it has the label MULTU6, but here in the tape version it's
 \ unnamed, unloved and unvisited, through no fault of its own.
