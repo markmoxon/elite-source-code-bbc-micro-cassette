@@ -5307,15 +5307,15 @@ LOAD_A% = LOAD%
 
  STA INWK+30            ; Store the updated rotz counter in INWK+30
 
- LDX #15                ; select column
- LDY #9                 ; select row
- JSR MVS5               ; moveship5, small rotation in matrix
+ LDX #15                ; Rotate (rotmat1x, rotmat0x) by a small angle (pitch)
+ LDY #9
+ JSR MVS5
 
- LDX #17
+ LDX #17                ; Rotate (rotmat1y, rotmat0y) by a small angle (pitch)
  LDY #11
  JSR MVS5
 
- LDX #19
+ LDX #19                ; Rotate (rotmat1z, rotmat0z) by a small angle (pitch)
  LDY #13
  JSR MVS5
 
@@ -5343,15 +5343,15 @@ LOAD_A% = LOAD%
 
  STA INWK+29            ; Store the updated rotz counter in INWK+29
 
- LDX #15                ; select column
- LDY #21                ; select row
- JSR MVS5               ; moveship5, small rotation in matrix
+ LDX #15                ; Rotate (rotmat1x, rotmat2x) by a small angle (roll)
+ LDY #21
+ JSR MVS5
 
- LDX #17
+ LDX #17                ; Rotate (rotmat1y, rotmat2y) by a small angle (roll)
  LDY #23
  JSR MVS5
 
- LDX #19
+ LDX #19                ; Rotate (rotmat1z, rotmat2z) by a small angle (roll)
  LDY #25
  JSR MVS5
 
@@ -5841,7 +5841,7 @@ LOAD_A% = LOAD%
 \ approximations hold true:
 \
 \   sin a ~= a
-\   cos a ~= 1
+\   cos a ~= 1 - (a * a) / 2 ~= 1
 \   tan a ~= a
 \
 \ These approximations make sense when you look at the triangle geometry that
@@ -6029,25 +6029,25 @@ LOAD_A% = LOAD%
 \ small rotation in matrix (1-1/2/256 = cos  1/16 = sine)
 \ 1/16th of a radian rotation
 \
-\ Pitch or roll a ship by a small, fixed amount, in a specified direction, by
-\ rotating the rotation matrix. The rows of the matrix to rotate are given in
-\ X and Y, and the direction of the rotation is given in RAT2. The calculation
-\ is as follows:
+\ Pitch or roll a ship by a small, fixed amount (1/16 radians, or 3.6 degrees),
+\ in a specified direction, by rotating the rotation matrix. The rows of the
+\ matrix to rotate are given in X and Y, and the direction of the rotation is
+\ given in RAT2. The calculation is as follows:
 \
-\   If the direction is positive:
+\   * If the direction is positive:
 \
-\   Y = (1 - 1/512) * Y - X / 16
-\   X = (1 - 1/512) * X + Y / 16
+\     X = X * (1 - 1/512) + Y / 16
+\     Y = Y * (1 - 1/512) - X / 16
 \
-\   If the direction is negative:
+\   * If the direction is negative:
 \
-\   Y = (1 - 1/512) * Y + X / 16
-\   X = (1 - 1/512) * X - Y / 16
+\     X = X * (1 - 1/512) - Y / 16
+\     Y = Y * (1 - 1/512) + X / 16
 \
-\ So if X = 15 (rotmat1x), Y = 9 (rotmat0x) and RAT2 is negative, it does:
+\ So if X = 15 (rotmat1x), Y = 21 (rotmat2x) and RAT2 is positive, it does this:
 \
-\   rotmat0x = (1 - 1/512) * rotmat0x + rotmat1x / 16
-\   rotmat1x = (1 - 1/512) * rotmat1x - rotmat0x / 16
+\   rotmat1x = rotmat1x * (1 - 1/512)  + rotmat2x / 16
+\   rotmat2x = rotmat2x * (1 - 1/512)  - rotmat1x / 16
 \
 \ Arguments:
 \
@@ -6062,12 +6062,98 @@ LOAD_A% = LOAD%
 \                 * If Y = 9,  rotate rotmat0x
 \                 * If Y = 11, rotate rotmat0y
 \                 * If Y = 13, rotate rotmat0z
+\
 \                 * If Y = 21, rotate rotmat2x
 \                 * If Y = 23, rotate rotmat2y
 \                 * If Y = 25, rotate rotmat2z
 \
 \   RAT2        The direction of the pitch or roll to perform, positive or
 \               negative (i.e. the sign of the rotx or rotz counter in bit 7)
+\
+\ ******************************************************************************
+\
+\ This routine applies the same trigonomety as described in routine MVS4, but
+\ this time the angle is fixed at a very small 1/16 radians (around 3.6 degrees)
+\ so the maths is rather simpler. If you refer to the documentation for MVS4,
+\ you can see that the equations for rolling a point (x, y, z) through an angle
+\ a to (x´, y´, z´) are:
+\
+\   x´ = x * cos(a) - y * sin(a)
+\   y´ = y * cos(a) + x * sin(a)
+\   z´ = z
+\
+\ In this case, angle a is fixed at 1/16 radians, so we can take the small angle
+\ approximations described in MVS4, and reduce them like this:
+\
+\   sin a ~= a
+\          = 1/16
+\
+\   cos a ~= 1 - (a * a) / 2
+\          = 1 - (1/16 * 1/16) / 2
+\          = 1 - (1/256) / 2
+\          = 1 - 1/512
+\
+\ Plugging these into the above equations, we get:
+\
+\   x´ = x * cos(a) - y * sin(a)
+\      = x * (1 - 1/512) - y / 16
+\
+\   y´ = y * cos(a) + x * sin(a)
+\      = y * (1 - 1/512) + x / 16
+\
+\   z´ = z
+\
+\ so this is what this routine implements.
+\
+\ To clarify further, let's consider the example when X = 15 (rotmat1x) and
+\ Y = 21 (rotmat2x), which applies roll to the ship. If we consider the rotation
+\ matrix, this it how the three vectors in the matrix look if we're sitting in
+\ in the ship's cockpit:
+\
+\   rotmat1 (points up out of the ship's sunroof... or it would if it had one)
+\   ^
+\   |
+\   |
+\   |
+\   |    rotmat0 (points forward out of the ship's nose and into the screen)
+\   |   /
+\   |  /
+\   | /
+\   |/
+\   +-----------------------> rotmat2 (points out of the ship's right view)
+\
+\ If we are doing a roll, then the rotmat0 vector won't change, but rotmat1 and
+\ rotmat2 will rotate around, so let's just consider the x-y plane (i.e. the
+\ screen) and ignore the z-axis. It looks like this when we roll to the left by
+\ angle a, rotating rotmat1 to rotmat1´ and rotmat2 to rotmat2´:
+\
+\             rotmat1
+\                ^
+\   rotmat1´     |
+\         \      |           <-_ 
+\          \     |              `.
+\           \    |            a   \
+\            \   |
+\             \  |                 __ rotmat2´
+\              \ |         __..--''
+\               \| __..--''
+\                +-----------------------> rotmat2
+\
+\ Applying trigonometry to the above diagram, we get:
+\
+\   rotmat1´ = rotmat1 * cos(a) - rotmat2 * sin(a)
+\
+\   rotmat2´ = rotmat2 * cos(a) + rotmat1 * sin(a)
+\
+\ so calling MVS5 with X = 15 (rotmat1x) and Y = 21 (rotmat2x) does this maths
+\ for the x coordinates, like this:
+\
+\   rotmat1x = rotmat1x * (1 - 1/512) + rotmat2x / 16
+\
+\   rotmat2x = rotmat2x * (1 - 1/512) - rotmat1x / 16
+\
+\ Subsequent calls with X = 17, Y = 23 and X = 19, Y = 25 cover the y and z
+\ coordinates, so that's exactly what the roll section of this routine does.
 \ ******************************************************************************
 
 .MVS5
