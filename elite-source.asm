@@ -427,15 +427,35 @@ ORG &0000
                         ; INWK+25 = rotmat2z_lo
                         ; INWK+26 = rotmat2z_hi
                         ;
-                        ; INWK+27 = speed (32 = quite fast)
+                        ; INWK+27 = speed
                         ;
-                        ; INWK+28 = acceleration (this gets added to the speed
-                        ;           once, in MVEIT, before being zeroed again)
+                        ;           32 = quite fast
                         ;
-                        ; INWK+29 = rotx counter, 127 = no damping, damps roll
-                        ; INWK+30 = rotz counter, 127 = no damping, damps pitch
+                        ; INWK+28 = acceleration
                         ;
-                        ; INWK+31 = exploding/killed state, or missile count
+                        ;           Gets added to the speed once, in MVEIT,
+                        ;           before being zeroed again
+                        ;
+                        ; INWK+29 = rotx counter
+                        ;           Ship rolls when bits 0-6 counter > 0
+                        ;
+                        ;           Bit 7 = direction of roll (sign)
+                        ;           Bits 0-6 = counter, reduces by 1 every
+                        ;           iteration of the main flight loop if
+                        ;           damping is enabled
+                        ;
+                        ; INWK+30 = rotx counter
+                        ;           Ship pitches when bits 0-6 counter > 0
+                        ;
+                        ;           Bit 7 = direction of pitch (sign)
+                        ;           Bits 0-6 = counter, reduces by 1 every
+                        ;           iteration of the main flight loop if
+                        ;           damping is enabled
+                        ;
+                        ; INWK+31 = exploding/killed state, scanner flag, or
+                        ;           missile count
+                        ;
+                        ;           Bit 4 = 0 (hide on scanner) or 1 (show)
                         ;           Bit 5 = 0 (not exploding) or 1 (exploding)
                         ;           Bit 7 = 1 (ship has been killed)
                         ;
@@ -4803,14 +4823,6 @@ LOAD_A% = LOAD%
 \   * Apply tactics to ships with AI enabled
 \
 \   * Remove the ship from the scanner, so we can move it
-\
-\ Arguments:
-\
-\   INWK        The current ship/planet/sun's data block
-\
-\   XSAV        The slot number of the current ship/planet/sun
-\
-\   TYPE        The type of the current ship/planet/sun
 \ ******************************************************************************
 
 .MV3
@@ -4876,14 +4888,6 @@ LOAD_A% = LOAD%
 \     travel) according to its speed:
 \
 \     (x, y, z) += rotmat0_hi * speed / 64
-\
-\ Arguments:
-\
-\   INWK        The current ship/planet/sun's data block
-\
-\   XSAV        The slot number of the current ship/planet/sun
-\
-\   TYPE        The type of the current ship/planet/sun
 \ ******************************************************************************
 
  LDA INWK+27            ; Set Q = the ship's speed (INWK+27) * 4
@@ -4953,14 +4957,6 @@ LOAD_A% = LOAD%
 \
 \   * Apply acceleration to the ship's speed (if acceleration is non-zero),
 \     and then zero the acceleration as it's a one-off change
-\
-\ Arguments:
-\
-\   INWK        The current ship/planet/sun's data block
-\
-\   XSAV        The slot number of the current ship/planet/sun
-\
-\   TYPE        The type of the current ship/planet/sun
 \ ******************************************************************************
 
  LDA INWK+27            ; Set A = the ship's speed (INWK+24) + the ship's
@@ -4996,14 +4992,6 @@ LOAD_A% = LOAD%
 \   * Rotate the ship's location in space by the amount of pitch and roll of
 \     our ship. See below for a deeper explanation of this routine
 \
-\ Arguments:
-\
-\   INWK        The current ship/planet/sun's data block
-\
-\   XSAV        The slot number of the current ship/planet/sun
-\
-\   TYPE        The type of the current ship/planet/sun
-\
 \ ******************************************************************************
 \
 \ When we rotate our ship with the keyboard or joystick, we actually just rotate
@@ -5026,9 +5014,9 @@ LOAD_A% = LOAD%
 \
 \ We also discard the low bytes from the angle multiplications, so all of the
 \ above multiplications get divided by 256. This effectively converts the values
-\ of alpha and beta from their stored value ranges of 0 to 64 and 0 to 16 in ALP1
-\ and BET1 into the ranges 0 to 0.25 and 0 to 0.0625. These figures work well as
-\ small angles in radians, which is why we can apply the small angle
+\ of alpha and beta from their stored value ranges of 0 to 64 and 0 to 16 in
+\ ALP1 and BET1 into the ranges 0 to 0.25 and 0 to 0.0625. These figures work
+\ well as small angles in radians, which is why we can apply the small angle
 \ approximation to them above.
 \ ******************************************************************************
 
@@ -5231,32 +5219,37 @@ LOAD_A% = LOAD%
 \ stages. This stage does the following:
 \
 \   * Move the ship in space according to our speed (we already moved it
-\     according to its own speed in part 3 above)
+\     according to its own speed in part 3).
 \
-\ Arguments:
-\
-\   INWK        The current ship/planet/sun's data block
-\
-\   XSAV        The slot number of the current ship/planet/sun
-\
-\   TYPE        The type of the current ship/planet/sun
+\ We do this by subtracting our speed (i.e. the distance we travel in this
+\ iteration of the loop) from the other ship's z-coordinate. We subtract because
+\ they appear to be "moving" in the opposite direction to us, and the whole
+\ MVEIT routine is about moving the other ships rather than us (even though we
+\ are the one doing the moving).
 \ ******************************************************************************
 
-.^MV45                  ; move inwk by speed
+.^MV45
 
- LDA DELTA              ; speed
+ LDA DELTA              ; Set R to our speed in DELTA
  STA R
 
- LDA #128               ; force inc sign to be -ve
- LDX #6                 ; z_shift
- JSR MVT1               ; Add R|sgnA to inwk,x+0to2
+ LDA #%10000000         ; Set A to zeroes but with bit 7 set, so that (A R) is
+                        ; a 16-bit number containing -R, or -speed
+ 
+ LDX #6                 ; Set X to the z-axis so the call to MVT1 does this:
+ JSR MVT1               ;
+                        ; (z_sign z_hi z_lo) = (z_sign z_hi z_lo) + (A R)
+                        ;                    = (z_sign z_hi z_lo) - speed
 
- LDA TYPE               ; ship type
- AND #&81               ; sun bits
- CMP #&81               ; is sun?
- BNE P%+3
+ LDA TYPE               ; If the ship type is not the sun (129) then skip the
+ AND #%10000001         ; next instruction, otherwise return from the subroutine
+ CMP #129               ; as we don't need to rotate the sun around its origin.
+ BNE P%+3               ; Having both the AND and the CMP is a little odd, as
+                        ; the sun is the only ship type with bits 0 and 7 set,
+                        ; so the AND has no effect and could be removed
 
- RTS                    ; Z=Z-d \ their comment
+ RTS                    ; Return from the subroutine, as the ship we are moving
+                        ; is the sun and doesn't need any of the following
 
 \ ******************************************************************************
 \ Subroutine: MVEIT (Part 7 of 9)
@@ -5266,25 +5259,21 @@ LOAD_A% = LOAD%
 \
 \   * Rotate the ship's rotation matrix according to our pitch and roll
 \
-\ Arguments:
-\
-\   INWK        The current ship/planet/sun's data block
-\
-\   XSAV        The slot number of the current ship/planet/sun
-\
-\   TYPE        The type of the current ship/planet/sun
+\ As with the previous step, this is all about moving the other ships rather
+\ than us (even though we are the one doing the moving). So we rotate the
+\ current ship's rotation matrix (which defines its orientation in space), by
+\ the angles we are "moving" the rest of the sky through (alpha and beta, our
+\ roll and pitch), so the ship appears to us to be stationary while we rotate.
 \ ******************************************************************************
 
-                        ; All except Suns
+ LDY #9                 ; Apply our pitch and roll rotations to the current
+ JSR MVS4               ; ship's rotmatx matrix
 
- LDY #9                 ; select row
- JSR MVS4               ; pitch&roll update to rotmat
+ LDY #15                ; Apply our pitch and roll rotations to the current
+ JSR MVS4               ; ship's rotmaty matrix
 
- LDY #15
- JSR MVS4               ; pitch&roll update to rotmat
-
- LDY #21
- JSR MVS4               ; pitch&roll update to rotmat
+ LDY #21                ; Apply our pitch and roll rotations to the current
+ JSR MVS4               ; ship's rotmatz matrix
 
 \ ******************************************************************************
 \ Subroutine: MVEIT (Part 8 of 9)
@@ -5292,30 +5281,31 @@ LOAD_A% = LOAD%
 \ Move the current ship, planet or sun in space. This routine has multiple
 \ stages. This stage does the following:
 \
-\   * If the ship we are processing is rolling or pitching, rotate it and apply
-\     damping if required
-\
-\ Arguments:
-\
-\   INWK        The current ship/planet/sun's data block
-\
-\   XSAV        The slot number of the current ship/planet/sun
-\
-\   TYPE        The type of the current ship/planet/sun
+\   * If the ship we are processing is rolling or pitching itself, rotate it and
+\     apply damping if required
 \ ******************************************************************************
 
- LDA INWK+30            ; rotz counter
- AND #%10000000         ; rotz sign
+ LDA INWK+30            ; Fetch the ship's rotz counter and extract the sign
+ AND #%10000000         ; into RAT2
  STA RAT2
 
- LDA INWK+30
- AND #%01111111         ; pitch mag lower 7bits
- BEQ MV8                ; rotz=0, Other rotation.
+ LDA INWK+30            ; Fetch the ship's rotz counter and extract the value
+ AND #%01111111         ; without the sign bit into A
 
- CMP #%01111111         ; C set if equal, no damping of pitch
- SBC #0                 ; reduce z pitch, rotz
- ORA RAT2               ; reinclude rotz sign
- STA INWK+30            ; rotz counter
+ BEQ MV8                ; If the rotz counter is 0, then jump to MV8 to skip the
+                        ; following, as the ship is not pitching
+
+ CMP #%01111111         ; If bits 0-6 are set in the rotz counter (i.e. the
+                        ; ship's pitch is not damping down), then the C flag
+                        ; will be set by this instruction
+ 
+ SBC #0                 ; Set A = A - 0 - (1 - C), so if we are damping then we
+                        ; reduce A by 1, otherwise it is unchanged
+ 
+ ORA RAT2               ; Change bit 7 of A to the sign we saved in RAT2, so 
+                        ; the updated rotz counter in A retains its sign
+
+ STA INWK+30            ; Store the updated rotz counter in INWK+30
 
  LDX #15                ; select column
  LDY #9                 ; select row
@@ -5329,20 +5319,29 @@ LOAD_A% = LOAD%
  LDY #13
  JSR MVS5
 
-.MV8                    ; Other rotation, roll.
+.MV8
 
- LDA INWK+29            ; rotx counter
- AND #%10000000         ; rotx sign
+ LDA INWK+29            ; Fetch the ship's rotx counter and extract the sign
+ AND #%10000000         ; into RAT2
  STA RAT2
 
- LDA INWK+29            ; rotx counter
- AND #%01111111         ; roll mag lower 7 bits
- BEQ MV5                ; rotations Done
+ LDA INWK+29            ; Fetch the ship's rotx counter and extract the value
+ AND #%01111111         ; without the sign bit into A
 
- CMP #%01111111         ; C set if equal, no damping of x roll
- SBC #0                 ; reduce x roll
- ORA RAT2               ; reinclude sign
- STA INWK+29            ; rotx counter
+ BEQ MV5                ; If the rotx counter is 0, then jump to MV5 to skip the
+                        ; following, as the ship is not rolling
+
+ CMP #%01111111         ; If bits 0-6 are set in the rotx counter (i.e. the
+                        ; ship's roll is not damping down), then the C flag
+                        ; will be set by this instruction
+ 
+ SBC #0                 ; Set A = A - 0 - (1 - C), so if we are damping then we
+                        ; reduce A by 1, otherwise it is unchanged
+ 
+ ORA RAT2               ; Change bit 7 of A to the sign we saved in RAT2, so 
+                        ; the updated rotx counter in A retains its sign
+
+ STA INWK+29            ; Store the updated rotz counter in INWK+29
 
  LDX #15                ; select column
  LDY #21                ; select row
@@ -5362,38 +5361,32 @@ LOAD_A% = LOAD%
 \ Move the current ship, planet or sun in space. This routine has multiple
 \ stages. This stage does the following:
 \
-\   * Update the ship's explosion status, if it is exploding
+\   * If the ship is exploding or being removed, hide it on the scanner
 \
-\   * Redraw the ship on the scanner, if it isn't being removed
-\
-\ Arguments:
-\
-\   INWK        The current ship/planet/sun's data block
-\
-\   XSAV        The slot number of the current ship/planet/sun
-\
-\   TYPE        The type of the current ship/planet/sun
+\   * Otherwise redraw the ship on the scanner, now that it's been moved
 \ ******************************************************************************
 
-.MV5                    ; rotations Done
+.MV5
 
- LDA INWK+31            ; display explosion state|missiles
- AND #%10100000         ; do kill at end of explosion
- BNE MVD1               ; end explosion
+ LDA INWK+31            ; Fetch the ship's exploding/killed state from INWK+31
 
- LDA INWK+31
- ORA #%00010000         ; else keep visible on scanner, set bit4.
+ AND #%10100000         ; If we are exploding or removing this ship then jump to
+ BNE MVD1               ; MVD1 to remove it from the scanner permanently
+
+ LDA INWK+31            ; Set bit 4 to keep the ship visible on the scanner
+ ORA #%00010000
  STA INWK+31
 
- JMP SCAN               ; ships inwk on scanner
+ JMP SCAN               ; Display the ship on the scanner, returning from the
+                        ; subroutine with a tail call
 
-.MVD1                   ; end explosion
+.MVD1
 
- LDA INWK+31
- AND #%11101111         ; clear bit4, now invisible.
+ LDA INWK+31            ; Clear bit 4 to hide the ship on the scanner
+ AND #%11101111
  STA INWK+31
 
- RTS
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -6033,91 +6026,190 @@ LOAD_A% = LOAD%
 \ ******************************************************************************
 \ Subroutine: MVS5
 \
-\ Moveship5, small rotation in matrix (1-1/2/256 = cos  1/16 = sine)
+\ small rotation in matrix (1-1/2/256 = cos  1/16 = sine)
+\ 1/16th of a radian rotation
+\
+\ Pitch or roll a ship by a small, fixed amount, in a specified direction, by
+\ rotating the rotation matrix. The rows of the matrix to rotate are given in
+\ X and Y, and the direction of the rotation is given in RAT2. The calculation
+\ is as follows:
+\
+\   If the direction is positive:
+\
+\   Y = (1 - 1/512) * Y - X / 16
+\   X = (1 - 1/512) * X + Y / 16
+\
+\   If the direction is negative:
+\
+\   Y = (1 - 1/512) * Y + X / 16
+\   X = (1 - 1/512) * X - Y / 16
+\
+\ So if X = 15 (rotmat1x), Y = 9 (rotmat0x) and RAT2 is negative, it does:
+\
+\   rotmat0x = (1 - 1/512) * rotmat0x + rotmat1x / 16
+\   rotmat1x = (1 - 1/512) * rotmat1x - rotmat0x / 16
+\
+\ Arguments:
+\
+\   X           The row of the rotation matrix to rotate, as follows:
+\
+\                 * If X = 15, rotate rotmat1x
+\                 * If X = 17, rotate rotmat1y
+\                 * If X = 19, rotate rotmat1z
+\
+\   Y           The row of the rotation matrix to rotate, as follows:
+\
+\                 * If Y = 9,  rotate rotmat0x
+\                 * If Y = 11, rotate rotmat0y
+\                 * If Y = 13, rotate rotmat0z
+\                 * If Y = 21, rotate rotmat2x
+\                 * If Y = 23, rotate rotmat2y
+\                 * If Y = 25, rotate rotmat2z
+\
+\   RAT2        The direction of the pitch or roll to perform, positive or
+\               negative (i.e. the sign of the rotx or rotz counter in bit 7)
 \ ******************************************************************************
 
-.MVS5                   ; Moveship5, small rotation in matrix (1-1/2/256 = cos  1/16 = sine)
+.MVS5
 {
- LDA INWK+1,X
- AND #127               ; hi7
- LSR A                  ; hi7/2
- STA T
- LDA INWK,X
- SEC                    ; lo
- SBC T
- STA R                  ; Xindex one is 1-1/512
- LDA INWK+1,X
- SBC #0                 ; hi
- STA S
- LDA INWK,Y
- STA P                  ; Prepare to divide Yindex one by 16
- LDA INWK+1,Y
- AND #128               ; sign bit
- STA T
- LDA INWK+1,Y
- AND #127               ; hi7
- LSR A                  ; hi7/2
- ROR P                  ; lo
- LSR A
- ROR P
- LSR A
- ROR P
- LSR A
- ROR P                  ; divided by 16
- ORA T                  ; sign bit
- EOR RAT2               ; rot sign
- STX Q                  ; protect Xindex
- JSR ADD                ; (A X) = (A P) + (S R)
- STA K+1                ; hi
- STX K                  ; lo, save for later
+ LDA INWK+1,X           ; Fetch rotmat1x_hi, clear the sign bit, divide by 2 and
+ AND #%01111111         ; store in T, so:
+ LSR A                  ;
+ STA T                  ; T = |rotmat1x_hi| / 2
+                        ;   = |rotmat1x| / 512
+                        ;
+                        ; The above is true because:
+                        ;
+                        ; |rotmat1x| = |rotmat1x_hi| * 256 + rotmat1x_lo
+                        ;
+                        ; so:
+                        :
+                        ; |rotmat1x| / 512 = |rotmat1x_hi| * 256 / 512
+                        ;                    + rotmat1x_lo / 512
+                        ;                  = |rotmat1x_hi| / 2
 
- LDX Q                  ; restore Xindex
- LDA INWK+1,Y
- AND #127               ; hi7
- LSR A                  ; hi7/2
- STA T
- LDA INWK,Y
- SEC                    ; sub lo
- SBC T
- STA R                  ; Yindex one is 1-1/512
- LDA INWK+1,Y
- SBC #0                 ; sub hi
- STA S
- LDA INWK,X
- STA P                  ; Prepare to divide Xindex one by 16
- LDA INWK+1,X
- AND #128               ; sign bit
- STA T
- LDA INWK+1,X
- AND #127               ; hi7
- LSR A
- ROR P
- LSR A
- ROR P
- LSR A
- ROR P
- LSR A
- ROR P                  ; divided by 16
- ORA T                  ; sign bit
- EOR #128               ; flip sign
- EOR RAT2               ; rot sign
+ LDA INWK,X             ; Now we do the following subtraction:
+ SEC                    ;
+ SBC T                  ; (S R) = (rotmat1x_hi rotmat1x_lo) - |rotmat1x| / 512
+ STA R                  ;       = (1 - 1/512) * rotmat1x
+                        ;
+                        ; by doing the low bytes first
 
- STX Q                  ; protect Xindex
+ LDA INWK+1,X           ; And then the high bytes (the high byte of the right
+ SBC #0                 ; side of the subtraction being 0)
+ STA S
+
+ LDA INWK,Y             ; Set P = rotmat0x_lo
+ STA P
+
+ LDA INWK+1,Y           ; Fetch the sign of rotmat0x_hi (bit 7) and store in T
+ AND #%10000000
+ STA T
+
+ LDA INWK+1,Y           ; Fetch rotmat0x_hi into A and clear the sign bit, so
+ AND #%01111111         ; A = |rotmat0x_hi|
+
+ LSR A                  ; Set (A P) = (A P) / 16
+ ROR P                  ;           = |rotmat0x_hi rotmat0x_lo| / 16
+ LSR A                  ;           = |rotmat0x| / 16
+ ROR P
+ LSR A
+ ROR P
+ LSR A
+ ROR P
+
+ ORA T                  ; Set the sign of A to the sign in T (i.e. the sign of
+                        ; the original rotmat0x), so now:
+                        ;
+                        ; (A P) = rotmat0x / 16
+
+ EOR RAT2               ; Give it the sign as if we multiplied by the direction
+                        ; by the pitch or roll direction
+
+ STX Q                  ; Store the value of X so it can be restored after the
+                        ; call to ADD
+
  JSR ADD                ; (A X) = (A P) + (S R)
- STA INWK+1,Y
- STX INWK,Y             ; Yindex one now updated by 1/16th of a radian rotation
- LDX Q                  ; restore Xindex
- LDA K                  ; restore Xindex one lo
- STA INWK,X
- LDA K+1                ; Xindex one now updated by 1/16th of a radian rotation
+                        ;       = +/-rotmat0x / 16 + (1 - 1/512) * rotmat1x
+
+ STA K+1                ; Set K(1 0) = (1 - 1/512) * rotmat1x +/- rotmat0x / 16
+ STX K
+
+ LDX Q                  ; Restore the value of X from before the call to ADD
+
+ LDA INWK+1,Y           ; Fetch rotmat0x_hi, clear the sign bit, divide by 2 and
+ AND #%01111111         ; store in T, so:
+ LSR A                  ;
+ STA T                  ; T = |rotmat0x_hi| / 2
+                        ;   = |rotmat0x| / 512
+
+ LDA INWK,Y             ; Now we do the following subtraction:
+ SEC                    ;
+ SBC T                  ; (S R) = (rotmat0x_hi rotmat0x_lo) - |rotmat0x| / 512
+ STA R                  ;       = (1 - 1/512) * rotmat0x
+                        ;
+                        ; by doing the low bytes first
+                        
+ LDA INWK+1,Y           ; And then the high bytes (the high byte of the right
+ SBC #0                 ; side of the subtraction being 0)
+ STA S
+
+ LDA INWK,X             ; Set P = rotmat1x_lo
+ STA P
+
+ LDA INWK+1,X           ; Fetch the sign of rotmat1x_hi (bit 7) and store in T
+ AND #%10000000
+ STA T
+
+ LDA INWK+1,X           ; Fetch rotmat1x_hi into A and clear the sign bit, so
+ AND #%01111111         ; A = |rotmat1x_hi|
+
+ LSR A                  ; Set (A P) = (A P) / 16
+ ROR P                  ;           = |rotmat1x_hi rotmat1x_lo| / 16
+ LSR A                  ;           = |rotmat1x| / 16
+ ROR P
+ LSR A
+ ROR P
+ LSR A
+ ROR P
+
+ ORA T                  ; Set the sign of A to the opposite sign to T (i.e. the
+ EOR #%10000000         ; sign of the original -rotmat1x), so now:
+                        ;
+                        ; (A P) = -rotmat1x / 16
+
+ EOR RAT2               ; Give it the sign as if we multiplied by the direction
+                        ; by the pitch or roll direction
+
+ STX Q                  ; Store the value of X so it can be restored after the
+                        ; call to ADD
+
+ JSR ADD                ; (A X) = (A P) + (S R)
+                        ;       = -/+rotmat1x / 16 + (1 - 1/512) * rotmat0x
+
+ STA INWK+1,Y           ; Set rotmat0x = (1-1/512) * rotmat0x -/+ rotmat1x / 16
+ STX INWK,Y
+
+ LDX Q                  ; Restore the value of X from before the call to ADD
+
+ LDA K                  ; Set rotmat1x = K(1 0)
+ STA INWK,X             ;              = (1-1/512) * rotmat1x +/- rotmat0x / 16
+ LDA K+1
  STA INWK+1,X
- RTS                    ; MVS5 done
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
 \ Subroutine: MVT6
 \
-\ (A P+2 P+1) = (x_sign x_hi x_lo) + (A P+2 P+1)
+\ Do the following calculation, for the coordinate given by X (so this is what
+\ it does for the x-coordinate):
+\
+\   (A P+2 P+1) = (x_sign x_hi x_lo) + (A P+2 P+1)
+\
+\ A is a sign bit and is not included in the calculation, but bits 0-6 of A are
+\ preserved. Bit 7 is set to the sign of the result.
 \
 \ Arguments:
 \
