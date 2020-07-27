@@ -23085,7 +23085,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \   * Call M% to do the main flight loop
 \
-\   * Potentially spawn a trader, asteroid or cargo canister
+\   * Potentially spawn a trader (Cobra Mk III), asteroid or cargo canister
 \
 \ Other entry points:
 \
@@ -23132,11 +23132,15 @@ LOAD_F% = LOAD% + P% - CODE%
                         ; We only get here once every 256 iterations of the
                         ; main loop. If we aren't in witchspace and don't
                         ; already have 3 or more asteroids in our local bubble,
-                        ; then this section has a 13% chance of spawning a new
-                        ; ship. 50% of the time this will be a Cobra Mk III,
-                        ; and the other 50% of the time it will either be an
-                        ; asteroid (98.5% chance) or, very rarely, a cargo
-                        ; (1.5% chance) canister.
+                        ; then this section has a 13% chance of spawning
+                        ; something benign (the other 87% of the time we jump
+                        ; down to consider spawning cops, pirates and bounty
+                        ; hunters)
+                        ;
+                        ; If we are in that 13%, then 50% of the time this will
+                        ; be a Cobra Mk III trader, and the other 50% of the
+                        ; time it will either be an asteroid (98.5% chance) or,
+                        ; very rarely, a cargo (1.5% chance) canister
 
  LDA MJ                 ; If we are in witchspace following a mis-jump, skip the
  BNE ytq                ; following by jumping down to MLOOP (via ytq above)
@@ -23225,7 +23229,9 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ This is part of the main game loop. This section covers the following:
 \
-\   * Potentially spawn a cop
+\   * Potentially spawn a cop (in a Viper), very rarely if we have been good,
+\     more often if have been naughty, and very often if we have been properly
+\     bad
 \ ******************************************************************************
 
 .MTT1
@@ -23274,8 +23280,9 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ This is part of the main game loop. This section covers the following:
 \
-\   * Potentially spawn a lone bounty hunter, a Thargoid, or a group of up to 4
-\     pirates
+\   * Potentially spawn (35% chance) either a lone bounty hunter (a Mamba,
+\     Python or Cobra Mk III), a Thargoid, or a group of up to 4 pirates
+\     (Sidewinders and/or Mambas)
 \ ******************************************************************************
 
  DEC EV                 ; Decrement EV, the extra vessels spawning delay, and 
@@ -23310,7 +23317,7 @@ LOAD_F% = LOAD% + P% - CODE%
                         ; ship, and set X to a random value and A to a random
                         ; value between 192 and 255
 
- CMP #200               ; If the random number in A >= 200 (87% chance), jump
+ CMP #200               ; If the random number in A >= 200 (13% chance), jump
  BCS mt1                ; to mt1 to spawn pirates, otherwise keep going to
                         ; spawn a lone bounty hunter or a Thargoid
 
@@ -23338,8 +23345,8 @@ LOAD_F% = LOAD% + P% - CODE%
 
  STA INWK+32            ; Store A in the AI flag of this ship
 
- TYA                    ; Add a new ship of type Y to the local bubble
- JSR NWSHP
+ TYA                    ; Add a new ship of type Y to the local bubble, so
+ JSR NWSHP              ; that's a Mamba, Cobra Mk III or Python
 
 .mj1
 
@@ -28061,10 +28068,10 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUW SHIP1                         ;         1 = Sidewinder
  EQUW SHIP2                         ; COPS =  2 = Viper
  EQUW SHIP3                         ; MAM  =  3 = Mamba
- EQUW &7F00                         ;         4 = &7F00
- EQUW SHIP5                         ;         5 = Points to Cobra Mk III
+ EQUW &7F00                         ;         4 = Python
+ EQUW SHIP5                         ;         5 = Cobra Mk III (bounty hunter)
  EQUW SHIP6                         ; THG  =  6 = Thargoid
- EQUW SHIP5                         ; CYL  =  7 = Cobra Mk III
+ EQUW SHIP5                         ; CYL  =  7 = Cobra Mk III (trader)
  EQUW SHIP8                         ; SST  =  8 = Coriolis space station
  EQUW SHIP9                         ; MSL  =  9 = Missile
  EQUW SHIP10                        ; AST  = 10 = Asteroid
