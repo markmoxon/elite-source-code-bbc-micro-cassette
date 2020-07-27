@@ -307,13 +307,13 @@ ORG &0000
 
 .BETA
 
- SKIP 1                 ; Pitch rate, reduced from JSTY to a value between -7
-                        ; and +7, with same sign as BET2 (the correct sign)
+ SKIP 1                 ; Pitch rate, reduced from JSTY to a value between -8
+                        ; and +8, with same sign as BET2 (the correct sign)
 
 .BET1
 
  SKIP 1                 ; Pitch rate magnitude, reduced from JSTY to a positive
-                        ; value between 0 and 7, i.e. |pitch rate|
+                        ; value between 0 and 8, i.e. |pitch rate|
 
 .XC
 
@@ -3262,10 +3262,12 @@ LOAD_A% = LOAD%
 
  TYA                    ; If the pitch rate but with the sign bit flipped is
  BPL P%+4               ; positive (i.e. if the current pitch rate is
-                        ; negative), skip the following 2 instructions
+                        ; negative), skip the following instruction
 
- EOR #%11111111         ; The current pitch rate is negative, so flip the
- ADC #4                 ; bits and add 4
+ EOR #%11111111         ; The current pitch rate is negative, so flip the bits
+
+ ADC #4                 ; Add 4 to the (positive) pitch rate, so the maximum
+                        ; value is now up to 131 (rather than 127)
 
  LSR A                  ; Divide the (positive) pitch rate in A by 16
  LSR A
@@ -3277,8 +3279,8 @@ LOAD_A% = LOAD%
 
  LSR A                  ; A < 3, so halve A again
 
- STA BET1               ; Store A in BET1, and because JSTY is in the range -127
-                        ; to +127, BET1 is in the range 0 to 7
+ STA BET1               ; Store A in BET1, and because JSTY is in the range -131
+                        ; to +131, BET1 is in the range 0 to 8
 
  ORA BET2               ; Store A in BETA, but with the sign set to BET2 (so
  STA BETA               ; BETA has the same sign as the actual pitch rate)
@@ -5140,7 +5142,7 @@ LOAD_A% = LOAD%
 \
 \ We also discard the low bytes from the angle multiplications, so all of the
 \ above multiplications get divided by 256. This effectively converts the values
-\ of alpha and beta from their stored value ranges of 0 to 31 and 0 to 7 in
+\ of alpha and beta from their stored value ranges of 0 to 31 and 0 to 8 in
 \ ALP1 and BET1 into the ranges 0 to 0.125 and 0 to 0.03125. These figures work
 \ well as small angles in radians, which is why we can apply the small angle
 \ approximation to them above.
@@ -9781,15 +9783,16 @@ NEXT
                         ; and increment SC to point to the next indicator (the
                         ; pitch indicator)
 
- LDA BETA               ; Fetch the pitch rate as a value between -7 and +7
+ LDA BETA               ; Fetch the pitch rate as a value between -8 and +8
 
  LDX BET1               ; Fetch the magnitude of the pitch rate, and if it is 0
  BEQ P%+4               ; (i.e. we are not pitching), skip the next instruction
 
- SBC #1                 ; We are pitching, so subtract 1 from A (the C flag is
-                        ; set by the call to DIL2 above, so this does
-                        ; A = A - 1). This gives us a value of A from -6 to +6
-                        ; because these are magnitude-based numbers ????
+ SBC #1                 ; The pitch angle is non-zero, so set A = A - 1 (the C
+                        ; flag is set by the call to DIL2 above, so we don't
+                        ; need to do a SEC). This gives us a value of A from
+                        ; -7 to +7 because these are magnitude-based numbers
+                        ; with sign bits, rather than two's complement numbers
 
  JSR ADD                ; We now add A to S to give us a value in the range 1 to
                         ; 15, which we can pass to DIL2 to draw the vertical
@@ -9967,15 +9970,15 @@ NEXT
                         ; (the altitude)
 
  LDA #240               ; Set T1 to 240, the threshold at which we change the
- STA T1                 ; altitude indicator's colour. The STA instruction has
-                        ; no effect, as the next line changes the colours so
-                        ; they don't change when we cross the threshold, so it
-                        ; doesn't matter what the threshold value is
+ STA T1                 ; altitude indicator's colour. As the altitude has a
+                        ; range of 0-255, pixel 16 will not be filled in, and
+                        ; 240 would change the colour when moving between pixels
+                        ; 15 and 16, so this effectively switches off the colour
+                        ; change for the altitude indicator
 
  STA K+1                ; Set K+1 (the colour we should show for low values) to
                         ; 240, or &F0 (dashboard colour 2, yellow/white), so the
-                        ; altitude indicator doesn't show a different colour
-                        ; for danger
+                        ; altitude indicator always shows in this colour
 
  LDA ALTIT              ; Draw the altitude indicator using a range of 0-255
  JSR DILX
