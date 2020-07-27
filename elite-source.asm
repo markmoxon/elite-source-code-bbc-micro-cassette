@@ -307,13 +307,13 @@ ORG &0000
 
 .BETA
 
- SKIP 1                 ; Pitch rate, reduced from the dashboard indicator
-                        ; value in JSTY, with the sign flipped
+ SKIP 1                 ; Pitch rate, reduced from JSTY to a value between -7
+                        ; and +7, with same sign as BET2 (the correct sign)
 
 .BET1
 
- SKIP 1                 ; Pitch rate, reduced from the dashboard indicator
-                        ; value in JSTY to a value between 0 and 16
+ SKIP 1                 ; Pitch rate magnitude, reduced from JSTY to a positive
+                        ; value between 0 and 7, i.e. |pitch rate|
 
 .XC
 
@@ -680,8 +680,8 @@ ORG &0000
 
 .ALP1
 
- SKIP 1                 ; Roll rate, reduced from the dashboard indicator
-                        ; value in JSTX to a value between 0 and 64
+ SKIP 1                 ; Roll rate magnitude, reduced from JSTX to a positive
+                        ; value between 0 and 31, i.e. |roll rate|
 
 .ALP2
 
@@ -809,8 +809,8 @@ ORG &0000
 
 .ALPHA
 
- SKIP 1                 ; Roll rate, reduced from the dashboard indicator
-                        ; value in JSTX, with the sign flipped
+ SKIP 1                 ; Roll rate, reduced from JSTX to a value between -31
+                        ; and +31, with same sign as ALP2 (the correct sign)
 
 .QQ12
 
@@ -3087,7 +3087,7 @@ LOAD_A% = LOAD%
 
  EQUB 0                 ; Sound on/off configuration setting
                         ;
-                        ; 0 = on (default), non-zero = off
+                        ; 0 = on (default), &10 = off
                         ;
                         ; Toggled by pressing "S" when paused, see DK4
 
@@ -3095,7 +3095,7 @@ LOAD_A% = LOAD%
 
  EQUB 0                 ; Keyboard damping configuration setting
                         ;
-                        ; 0 = enabled (default), non-zero = disabled
+                        ; 0 = enabled (default), &FF = disabled
                         ;
                         ; Toggled by pressing Caps Lock when paused, see DKS3
 
@@ -3103,7 +3103,7 @@ LOAD_A% = LOAD%
 
  EQUB 0                 ; Keyboard auto-recentre configuration setting
                         ;
-                        ; 0 = enabled (default), non-zero = disabled
+                        ; 0 = enabled (default), &FF = disabled
                         ;
                         ; Toggled by pressing "A" when paused, see DKS3
 
@@ -3127,7 +3127,7 @@ LOAD_A% = LOAD%
 
  EQUB 0                 ; Flashing console bars configuration setting
                         ;
-                        ; 0 = static (default), non-zero = flashing
+                        ; 0 = static (default), &FF = flashing
                         ;
                         ; Toggled by pressing "F" when paused, see DKS3
 
@@ -3151,7 +3151,7 @@ LOAD_A% = LOAD%
 
  EQUB 0                 ; Keyboard or joystick configuration setting
                         ;
-                        ; 0 = keyboard (default), non-zero = joystick
+                        ; 0 = keyboard (default), &FF = joystick
                         ;
                         ; Toggled by pressing "K" when paused, see DKS3
 
@@ -3237,7 +3237,8 @@ LOAD_A% = LOAD%
                         ;   ALP1 = |JSTX| / 4    if |JSTX| > 32
                         ;
                         ; So higher roll rates are reduced closer to zero and
-                        ; ALP1 <= 64
+                        ; because JSTX is in the range -127 to +127, ALP1 is
+                        ; in the range 0 to 31
 
  ORA ALP2               ; Store A in ALPHA, but with the sign set to ALP2 (so
  STA ALPHA              ; ALPHA has a different sign to the actual roll rate)
@@ -3276,7 +3277,8 @@ LOAD_A% = LOAD%
 
  LSR A                  ; A < 3, so halve A again
 
- STA BET1               ; Store A in BET1
+ STA BET1               ; Store A in BET1, and because JSTY is in the range -127
+                        ; to +127, BET1 is in the range 0 to 7
 
  ORA BET2               ; Store A in BETA, but with the sign set to BET2 (so
  STA BETA               ; BETA has the same sign as the actual pitch rate)
@@ -5138,8 +5140,8 @@ LOAD_A% = LOAD%
 \
 \ We also discard the low bytes from the angle multiplications, so all of the
 \ above multiplications get divided by 256. This effectively converts the values
-\ of alpha and beta from their stored value ranges of 0 to 64 and 0 to 16 in
-\ ALP1 and BET1 into the ranges 0 to 0.25 and 0 to 0.0625. These figures work
+\ of alpha and beta from their stored value ranges of 0 to 31 and 0 to 7 in
+\ ALP1 and BET1 into the ranges 0 to 0.125 and 0 to 0.03125. These figures work
 \ well as small angles in radians, which is why we can apply the small angle
 \ approximation to them above.
 \ ******************************************************************************
@@ -7029,6 +7031,11 @@ NEXT
 \ Ready-made bytes for plotting one-pixel points in mode 5 (the bottom part of
 \ the split screen). See the dashboard routines SCAN, DIL2 and CPIX2 for
 \ details.
+\
+\ There is one extra row to support the use of CTWOS+1,X indexing in the CPIX2
+\ routine. The extra row is a repeat of the first row, and saves us from having
+\ to work out whether CTWOS+1+X needs to be wrapped around. See CPIS2 for more
+\ details.
 \ ******************************************************************************
 
 .CTWOS
@@ -7037,7 +7044,7 @@ NEXT
  EQUB %01000100
  EQUB %00100010
  EQUB %00010001
- EQUB %10001000         ; One extra for the compass
+ EQUB %10001000
 }
 
 \ ******************************************************************************
@@ -9696,274 +9703,698 @@ NEXT
 }
 
 \ ******************************************************************************
-\ Subroutine: DIALS
+\ Subroutine: DIALS (Part 1 of 4)
 \
-\ Update the dashboard.
+\ Update the dashboard. This section draws the speed indicator.
+\
+\ First we draw all the indicators in the right part of the dashboard, from top
+\ (speed) to bottom (energy banks), and then we move on to the left part, again
+\ drawing from top (forward shield) to bottom (altitude). This first section
+\ us off with the speedometer in the top right.
 \ ******************************************************************************
 
-.DIALS                  ; update displayed Dials
+.DIALS
 {
- LDA #&D0               ; screen lo
- STA SC                 ; bottom console (SC) = &78D0
- LDA #&78               ; screen hi
- STA SC+1
- JSR PZW                ; flashing X.A = F0.0F or F0.0?
- STX K+1
- STA K
- LDA #14                ; threshold to change colour
- STA T1
- LDA DELTA              ; player ship's speed
-\LSR A
- JSR DIL-1              ; only /2
+ LDA #&D0               ; Set SC(1 0) = &78D0, which is the screen address for
+ STA SC                 ; the character block containing the left end of the
+ LDA #&78               ; top indicator in the right part of the dashboard, the
+ STA SC+1               ; one showing our speed
 
- LDA #0
- STA R                  ; lo
- STA P                  ; lo
- LDA #8                 ; center indicator
- STA S                  ; = 8 hi
- LDA ALP1               ; roll magnitude
+ JSR PZW                ; Call PZW to set A to the colour for dangerous values
+                        ; and and X to the colour for safe values
+
+ STX K+1                ; Set K+1 (the colour we should show for low values) to
+                        ; X (the colour to use for safe values)
+
+ STA K                  ; Set K (the colour we should show for high values) to
+                        ; A (the colour to use for dangerous values)
+
+                        ; The above sets the following indicators to show red
+                        ; for high values and yellow/white for low values
+
+ LDA #14                ; Set T1 to 14, the threshold at which we change the
+ STA T1                 ; indicator's colour
+
+ LDA DELTA              ; Fetch our ship's speed into A, in the range 0-40
+ 
+\LSR A                  ; Draw the speed indicator using a range of 0-31, and
+ JSR DIL-1              ; increment SC to point to the next indicator (the roll
+                        ; indicator). The LSR is commented out as it isn't
+                        ; required with a call to DIL-1, so perhaps this was
+                        ; originally a call to DIL that got optimised
+
+\ ******************************************************************************
+\ Subroutine: DIALS (Part 2 of 4)
+\
+\ Update the dashboard. This section draws the roll and pitch indicators.
+\ ******************************************************************************
+
+ LDA #0                 ; Set R = P = 0 for the low bytes in the call to the ADD
+ STA R                  ; routine below
+ STA P
+
+ LDA #8                 ; Set S = 8, which is the value of the centre of the
+ STA S                  ; roll indicator
+
+ LDA ALP1               ; Fetch the roll rate as a value between 0 and 31, and
+ LSR A                  ; divide by 4 to get a value of 0 to 7
  LSR A
- LSR A
- ORA ALP2               ; roll sign
- EOR #128               ; flipped
- JSR ADD                ; (A X) = (A P) + (S R)
- JSR DIL2               ; roll/pitch indicator takes X.A
- LDA BETA               ; pitch
- LDX BET1               ; pitch sign
- BEQ P%+4               ; skip sbc #1
- SBC #1                 ; will add S=8 to Acc to center
- JSR ADD                ; (A X) = (A P) + (S R)
- JSR DIL2               ; roll/pitch indicator takes X.A
 
- LDA MCNT               ; movecount
- AND #3                 ; only 1in4 times
- BNE rT9                ; continue, else rts
- LDY #0
- JSR PZW                ; flashing X.A = F0.0F or F0.0
- STX K
- STA K+1
- LDX #3                 ; 4 energy banks
- STX T1                 ; threshold
+ ORA ALP2               ; Apply the roll sign to the value, and flip the sign,
+ EOR #%10000000         ; so it's now in the range -7 to +7, with a positive
+                        ; roll rate giving a negative value in A
 
-.DLL23                  ; counter X
+ JSR ADD                ; We now add A to S to give us a value in the range 1 to
+                        ; 15, which we can pass to DIL2 to draw the vertical
+                        ; bar on the indicator at this position. We use the ADD
+                        ; routine like this:
+                        ;
+                        ; (A X) = (A 0) + (S 0)
+                        ;
+                        ; and just take the high byte of the result. We use ADD
+                        ; rather than a normal ADC because ADD separates out the
+                        ; sign bit and does the arithmetic using absolute values
+                        ; and separate sign bits, which we want here rather than
+                        ; the two's complement that ADC uses
 
- STY XX12,X
- DEX                    ; energy bank
- BPL DLL23              ; loop X
- LDX #3                 ; player's energy
- LDA ENERGY
- LSR A
- LSR A                  ; = ENERGY/4
- STA Q
+ JSR DIL2               ; Draw a vertical bar on the roll indicator at offset A
+                        ; and increment SC to point to the next indicator (the
+                        ; pitch indicator)
 
-.DLL24                  ; counter X
+ LDA BETA               ; Fetch the pitch rate as a value between -7 and +7
 
- SEC
- SBC #16                ; each bank
- BCC DLL26              ; exit subtraction with valid Q, X
- STA Q                  ; bank fraction
- LDA #16                ; full bank
- STA XX12,X
- LDA Q
- DEX                    ; next energy bank, 0 will be top one.
- BPL DLL24              ; loop X
- BMI DLL9               ; guaranteed hop, all full.
+ LDX BET1               ; Fetch the magnitude of the pitch rate, and if it is 0
+ BEQ P%+4               ; (i.e. we are not pitching), skip the next instruction
 
-.DLL26                  ; exit subtraction with valid Q, X
+ SBC #1                 ; We are pitching, so subtract 1 from A (the C flag is
+                        ; set by the call to DIL2 above, so this does
+                        ; A = A - 1). This gives us a value of A from -6 to +6
+                        ; because these are magnitude-based numbers ????
 
- LDA Q                  ; bank fraction
- STA XX12,X
+ JSR ADD                ; We now add A to S to give us a value in the range 1 to
+                        ; 15, which we can pass to DIL2 to draw the vertical
+                        ; bar on the indicator at this position (see the JSR ADD
+                        ; above for more on this)
 
-.DLL9                   ; all full, counter Y
+ JSR DIL2               ; Draw a vertical bar on the pitch indicator at offset A
+                        ; and increment SC to point to the next indicator (the
+                        ; four energy banks)
 
- LDA XX12,Y
- STY P                  ; store Y
- JSR DIL                ; energy bank
- LDY P                  ; restore Y
- INY
- CPY #4                 ; reached last energy bank?
- BNE DLL9               ; loop Y
+\ ******************************************************************************
+\ Subroutine: DIALS (Part 3 of 4)
+\
+\ Update the dashboard. This section draws the four energy banks.
+\
+\ This and the next section only run once every four iterations of the main
+\ loop, so while the speed, roll and pitch indicators update every iteration,
+\ the other indicators update less often.
+\ ******************************************************************************
 
- LDA #&78               ; move to top left row
- STA SC+1
- LDA #16                ; some comment about in range 0to80, shield range
- STA SC
- LDA FSH                ; forward shield
- JSR DILX               ; shield bar
- LDA ASH                ; aft shield
- JSR DILX               ; shield bar
- LDA QQ14               ; ship fuel #70 = #&46
- JSR DILX+2             ; /8 not /16 bar
+ LDA MCNT               ; If the main loop counter has either of bits 0 and 1
+ AND #%00000011         ; set, return from the subroutine (as rT9 contains an
+ BNE rT9                ; RTS), so we fall through to the following in one of
+                        ; every four main loop iterations
 
- JSR PZW                ; flashing X.A = F0.0F or F0.0
- STX K+1
- STA K
- LDX #11                ; ambient cabin temperature
- STX T1                 ; threshold to change bar colour
- LDA CABTMP             ; cabin temperature
- JSR DILX               ; shield bar
- LDA GNTMP              ; laser temperature
- JSR DILX               ; shield bar
+ LDY #0                 ; Set Y = 0, for use in various places below
+ 
+ JSR PZW                ; Call PZW to set A to the colour for dangerous values
+                        ; and and X to the colour for safe values
 
- LDA #&F0               ; high altitude
- STA T1                 ; threshold to change bar colour
- STA K+1
- LDA ALTIT              ; Altimeter
- JSR DILX               ; shield bar
- JMP COMPAS             ; space compass.
+ STX K                  ; Set K (the colour we should show for high values) to X
+                        ; (the colour to use for safe values)
 
-.PZW                    ; Flashing X.A = F0.0F or F0.0?
+ STA K+1                ; Set K+1 (the colour we should show for low values) to
+                        ; A (the colour to use for dangerous values)
 
- LDX #&F0               ; yellow
- LDA MCNT               ; movecount
- AND #8
- AND FLH                ; flash toggle
- BEQ P%+4               ; if zero default to lda #&0F
- TXA                    ; else return A = X
+                        ; The above sets the following indicators to show red
+                        ; for low values and yellow/white for high values, which
+                        ; we use not only for the energy banks, but also for the
+                        ; shield levels and current fuel
+
+ LDX #3                 ; Set up a counter in X so we can zero the four bytes at
+                        ; XX12, so we can then calculate each of the four energy
+                        ; banks' values before drawing them later
+
+ STX T1                 ; Set T1 to 3, the threshold at which we change the
+                        ; indicator's colour
+
+.DLL23
+
+ STY XX12,X             ; Set the X-th byte of XX12 to 0
+
+ DEX                    ; Decrement the counter
+
+ BPL DLL23              ; Loop back for the next byte until the four bytes at
+                        ; XX12 are all zeroed
+
+ LDX #3                 ; Set up a counter in X to loop through the 4 energy
+                        ; bank indicators, so we can calculate each of the four
+                        ; energy banks' values and store them in XX12
+
+ LDA ENERGY             ; Set A = Q = ENERGY / 4, so they are both now in the
+ LSR A                  ; range 0-63 (so that's a maximum of 16 in each of the
+ LSR A                  ; banks, and a maximum of 15 in the top bank)
+
+ STA Q                  ; Set Q to A, so we can use Q to hold the remaining
+                        ; energy as we work our way through each bank, from the
+                        ; full ones at the bottom to the empty ones at the top
+
+.DLL24
+
+ SEC                    ; Set A = A - 16 to reduce the energy count by a full
+ SBC #16                ; bank
+
+ BCC DLL26              ; If the C flag is clear then A < 16, so this bank is
+                        ; not full to the brim, and is therefore the last one
+                        ; with any energy in it, so jump to DLL26
+
+ STA Q                  ; This bank is full, so update Q with the energy of the
+                        ; remaining banks
+
+ LDA #16                ; Store this bank's level in XX12 as 16, as it is full,
+ STA XX12,X             ; with XX12+3 for the bottom bank and XX12+0 for the top
+
+ LDA Q                  ; Set A to the remaining energy level again
+
+ DEX                    ; Decrement X to point to the next bank, i.e. the one
+                        ; above the bank we just processed
+
+ BPL DLL24              ; Loop back to DLL24 until we have either processed all
+                        ; four banks, or jumped out early to DLL26 if the top
+                        ; banks have no charge
+
+ BMI DLL9               ; Jump to DLL9 as we have processed all four banks (this
+                        ; BMI is effectively a JMP as A will never be positive)
+
+.DLL26
+
+ LDA Q                  ; If we get here then the bank we just checked is not
+ STA XX12,X             ; fully charged, so store its value in XX12 (using Q,
+                        ; which contains the energy of the remaining banks -
+                        ; i.e. this one)
+
+                        ; Now that we have the four energy bank values in XX12,
+                        ; we can draw them, starting with the top bank in XX12
+                        ; and looping down to the bottom bank in XX12+3, using Y
+                        ; as a loop counter, which was set to 0 above
+
+.DLL9
+
+ LDA XX12,Y             ; Fetch the value of the Y-th indicator, starting from
+                        ; the top
+
+ STY P                  ; Store the indicator number in P for retrieval later
+
+ JSR DIL                ; Draw the energy bank using a range of 0-15, and
+                        ; increment SC to point to the next indicator (the
+                        ; next energy bank down)
+
+ LDY P                  ; Restore the indicator number into Y
+
+ INY                    ; Increment the indicator number
+
+ CPY #4                 ; Check to see if we have drawn the last energy bank
+
+ BNE DLL9               ; Loop back to DLL9 if we have more banks to draw,
+                        ; otherwise we are done
+
+\ ******************************************************************************
+\ Subroutine: DIALS (Part 4 of 4)
+\
+\ Update the dashboard. This section draws the indicators in the left part of
+\ the dashboard.
+\ ******************************************************************************
+
+ LDA #&78               ; Set SC(1 0) = &7816, which is the screen address for
+ STA SC+1               ; the character block containing the left end of the
+ LDA #16                ; top indicator in the left part of the dashboard, the
+ STA SC                 ; one showing the forward shield
+
+ LDA FSH                ; Draw the forward shield indicator using a range of
+ JSR DILX               ; 0-255, and increment SC to point to the next indicator
+                        ; (the aft shield)
+
+ LDA ASH                ; Draw the aft shield indicator using a range of 0-255,
+ JSR DILX               ; and increment SC to point to the next indicator (the
+                        ; fuel level)
+
+ LDA QQ14               ; Draw the fuel level indicator using a range of 0-63,
+ JSR DILX+2             ; and increment SC to point to the next indicator (the
+                        ; cabin temperature)
+
+ JSR PZW                ; Call PZW to set A to the colour for dangerous values
+                        ; and and X to the colour for safe values
+
+ STX K+1                ; Set K+1 (the colour we should show for low values) to
+                        ; X (the colour to use for safe values)
+
+ STA K                  ; Set K+1 (the colour we should show for high values) to
+                        ; A (the colour to use for dangerous values)
+
+                        ; The above sets the following indicators to show red
+                        ; for high values and yellow/white for low values, which
+                        ; we use for the cabin and laser temperature bars
+ 
+ LDX #11                ; Set T1 to 11, the threshold at which we change the
+ STX T1                 ; cabin and laser temperature indicators' colours
+
+ LDA CABTMP             ; Draw the cabin temperature indicator using a range of
+ JSR DILX               ; 0-255, and increment SC to point to the next indicator
+                        ; (the laser temperature)
+
+ LDA GNTMP              ; Draw the laser temperature indicator using a range of
+ JSR DILX               ; 0-255, and increment SC to point to the next indicator
+                        ; (the altitude)
+
+ LDA #240               ; Set T1 to 240, the threshold at which we change the
+ STA T1                 ; altitude indicator's colour. The STA instruction has
+                        ; no effect, as the next line changes the colours so
+                        ; they don't change when we cross the threshold, so it
+                        ; doesn't matter what the threshold value is
+
+ STA K+1                ; Set K+1 (the colour we should show for low values) to
+                        ; 240, or &F0 (dashboard colour 2, yellow/white), so the
+                        ; altitude indicator doesn't show a different colour
+                        ; for danger
+
+ LDA ALTIT              ; Draw the altitude indicator using a range of 0-255
+ JSR DILX
+
+ JMP COMPAS             ; We have now drawn all the indicators, so jump to
+                        ; COMPAS to draw the compass, returning from the
+                        ; subroutine using a tail call
+
+\ ******************************************************************************
+\ Subroutine: PZW
+\
+\ Set A and X to the colours we should use for indicators showing dangerous and
+\ safe values respectively. This enables us to implement flashing indicators,
+\ which is one of the game's configurable options. If flashing is enabled, the
+\ colour returned in A (dangerous values) will be red for 8 iterations of the
+\ main loop, and yellow/white for the next 8, before going back to red. If we
+\ always use PZW to decide which colours we should use when updating indicators,
+\ flashing colours will be automatically taken care of for us.
+\
+\ The values returned are &F0 for yellow/white and &0F for red. These are mode 5
+\ bytes that contain 4 pixels, with the colour of each pixel given in two bits,
+\ the high bit from the first nibble (bits 4-7) and the low bit from the second
+\ nibble (bits 0-3). So in &F0 each pixel is %10, or colour 2 (yellow or white,
+\ depending on the dashboard palette), while in &0F each pixel is %01, or colour
+\ 1 (red).
+\
+\ Returns:
+\
+\   A           The colour to use for indicators with dangerous values
+\
+\   X           The colour to use for indicators with safe values
+\ ******************************************************************************
+
+.PZW
+
+ LDX #&F0               ; Set X to dashboard colour 2 (yellow/white)
+
+ LDA MCNT               ; A will be non-zero for 8 out of every 16 main loop
+ AND #%00001000         ; counts, when bit 4 is set, so this is what we use to
+                        ; flash the "danger" colour
+
+ AND FLH                ; A will be zeroed if flashing colours are disabled
+
+ BEQ P%+4               ; If A is zero, skip to the LDA instruction below
+
+ TXA                    ; Otherwise flashing colours are enabled and it's the
+                        ; main loop iteration where we flash them, so set A to
+                        ; colour 2 (yellow/white) and use the BIT trick below to
+                        ; return from the subroutine
 
  EQUB &2C               ; Skip the next instruction by turning it into
                         ; &2C &A9 &0F, or BIT &0FA9, which does nothing bar
                         ; affecting the flags
 
- LDA #15                ; red
+ LDA #&0F               ; Set A to dashboard colour 1 (red)
 
- RTS
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
 \ Subroutine: DILX
 \
-\ Show speed, shield bar, fuel
+\ Update a bar-based indicator on the dashboard. The range of values shown on
+\ the indicator depends on which entry point is called. For the default entry
+\ point of DILX, the range is 0-255 (as the value passed in A is one byte).
+\ The other entry points are shown below.
+\
+\ Arguments:
+\
+\   A           The value to be shown on the indicator (so the larger the value,
+\               the longer the bar).
+\
+\   T1          The threshold at which we change the indicator's colour from
+\               the low value colour to the high value colour. The threshold
+\               is in pixels, so it should have a value from 0-16, as each bar
+\               indicator is 16 pixels wide
+\
+\   K           The colour to use when A is a high value, as a 4-pixel mode 5
+\               character row byte
+\
+\   K+1         The colour to use when A is a low value, as a 4-pixel mode 5
+\               character row byte
+\
+\   SC(1 0)     The screen address of the first character block in the indicator
+\
+\ Other entry points:
+\
+\   DILX+2      The range of the indicator is 0-64 (for the fuel indicator)
+\
+\   DIL-1       The range of the indicator is 0-32 (for the speed indicator)
+\
+\   DIL         The range of the indicator is 0-16 (for the energy banks)
+\
+\ ******************************************************************************
+\
+\ Using one routine to display all the different bar indicators in the dashboard
+\ leads to some interesting behaviour. Each bar indicator is 16 pixels long, and
+\ the default entry point at DILX can show values from 0-255, with each pixel in
+\ the bar representing 16 units (so in the default mode, the last pixel, the
+\ 16th, is not used). For comparison, if the routine is called via the entry
+\ point at DIL, then the bar's range is 0-16, with each pixel representing 1
+\ unit (and in this case, the 16th pixel can be used).
+\ 
+\ The dashboard's bar-based indicators are as follows, along with the range of
+\ values shown by the bar, plus the range of that particular measurement in the
+\ game in brackets:
+\
+\   * Forward and aft shields   0-255
+\   * Fuel                      0-64    (fuel is actually 0-70)
+\   * Cabin temperature         0-255
+\   * Laser temperature         0-255
+\   * Altitude                  0-255
+\   * Speed                     0-32    (speed is actually 0-40)
+\   * Energy banks              0-16    (the first bank is actually 0-15)
+\
+\ Most of the indicators have internal values of 0-255 and use the standard DILX
+\ bar (so, as noted above, they only use pixels 0-15 in the bar, and don't use
+\ the last one).
+\
+\ The energy banks are the same, as the maximum value for the ship's energy
+\ levels is 255, which is divided into four banks to give a range of 0-15 for
+\ the first bank, and a range of 0-16 for the other banks. This means that when
+\ the energy banks are fully charged, the top indicator doesn't use the last
+\ pixel, while the other energy banks do.
+\
+\ As a result of the above, most of the indicators have a comfortable fit within
+\ the dashboard, with an empty pixel at the end of the bar that gives a nice,
+\ black gap between the left-hand indicators and the left edge of the scanner.
+\ However, the maximum values for fuel and speed don't fit nicely into the space
+\ available in their bar-based indicators. Here's why:
+\
+\   * The maximum value for fuel is 70 (for 7.0 light years), so when this
+\     this routine is called via DILX+2 to show the fuel reserves, the fuel
+\     level in A is reduced down to a maximum of 17 (70 >> 2), which is one
+\     bigger than the maximum of 16 that each bar can show. You never really
+\     notice this as it's only the first 0.6 light years that fall off the end
+\     of the bar, and jumps that small aren't that common, but the fuel level
+\     does start off using all 16 pixels in its bar, which is one greater than
+\     the other indicators in that column (all of which slot into the 0-15
+\     pixel range), so it's clear that this indicator is slightly different.
+\
+\   * The speed indicator is at another level, though. The maximum speed of our
+\     ship in Elite is a DELTA value of 40, which reduces down to an indicator
+\     value of 20, four greater than the maximum value shown on the bar. The bar
+\     simply cuts off any values greater than 16 and doesn't display the four
+\     pixels that fall off the end. You can test this in-flight by tapping Space
+\     until the speed indicator is just full, and then tapping it again four
+\     times (during which your speed will still increase). If you then tap the
+\     "?" key to slow down, you have to tap it five times before the speed
+\     indicator starts to drop again. I guess there just wasn't room to let this
+\     particular control knob go up to 11...
+\
+\ The only other dashboard indicators are missiles, pitch and roll, the compass
+\ and the scanner, all of which have their own routines.
 \ ******************************************************************************
 
-.DILX                   ; shield bar
+.DILX
 {
- LSR A                  ; /=  2
- LSR A                  ; fuel bar starts here
- LSR A                  ; DILX+2
- LSR A                  ; DIL-1
-}
+ LSR A                  ; If we call DILX, we set A = A / 16, so A is 0-15
+ LSR A
 
-.DIL                    ; energy bank
-{
- STA Q                  ; bar value 0to15
- LDX #&FF               ; mask
- STX R
- CMP T1                 ; threshold to change bar colour
- BCS DL30               ; Acc >= threshold colour will be K
- LDA K+1                ; other colour
- BNE DL31               ; skip lda K
+ LSR A                  ; If we call DILX+2, we set A = A / 4, so A is 0-15
 
-.DL30                   ; threshold colour will be K
+ LSR A                  ; If we call DIL-1, we set A = A / 2, so A is 0-15
 
- LDA K
+.^DIL                   ; If we call DIL-1, we leave A alone, so A is 0-15
+
+ STA Q                  ; Store the indicator value in Q, now reduced to 0-15,
+                        ; which is the length of the indicator to draw in pixels
+
+ LDX #&FF               ; Set R = &FF, to use as a mask for drawing each row of
+ STX R                  ; each character block of the bar, starting with a full
+                        ; character's width of 4 pixels
+
+ CMP T1                 ; If A >= T1 then we have passed the threshold where we
+ BCS DL30               ; change bar colour, so jump to DL30 to set A to the
+                        ; "high value" colour
+
+ LDA K+1                ; Set A to K+1, the "low value" colour to use
+
+ BNE DL31               ; Jump down to DL31 (this BNE is effectively a JMP as A
+                        ; will never be zero)
+
+.DL30
+
+ LDA K                  ; Set A to K, the "high value" colour to use
 
 .DL31
 
- STA COL                ; the colour
- LDY #2                 ; height offset
- LDX #3                 ; height of bar-1
+ STA COL                ; Store the colour of the indicator in COL
 
-.DL1                    ; counter X height
+ LDY #2                 ; We want to start drawing the indicator on the third
+                        ; line in this character row, so set Y to point to that
+                        ; row's offset
 
- LDA Q                  ; bar value 0to15
- CMP #4
- BCC DL2                ; exit, Q < 4
- SBC #4
- STA Q
- LDA R                  ; mask
+ LDX #3                 ; Set up a counter in X for the width of the indicator,
+                        ; which is 4 characters (each of which is 4 pixel wide,
+                        ; to give a total width of 16 pixels)
 
-.DL5                    ; loop Mask
+.DL1
 
- AND COL
+ LDA Q                  ; Fetch the indicator value (0-15) from Q into A
+
+ CMP #4                 ; If Q < 4, then we need to draw the end cap of the
+ BCC DL2                ; indicator, which is less than a full character's
+                        ; width, so jump down to DL2 to do this
+
+ SBC #4                 ; Otherwise we can draw a 4-pixel wide block, so
+ STA Q                  ; subtract 4 from Q so it contains the amount of the
+                        ; indicator that's left to draw after this character
+
+ LDA R                  ; Fetch the shape of the indicator row that we need to
+                        ; display from R, so we can use it as a mask when
+                        ; painting the indicator. It will be &FF at this point
+                        ; (i.e. a full 4-pixel row)
+
+.DL5
+
+ AND COL                ; Fetch the 4-pixel mode 5 colour byte from COL, and
+                        ; only keep pixels that have their equivalent bits set
+                        ; in the mask byte in A
+ 
+ STA (SC),Y             ; Draw the shape of the mask on pixel row Y of the
+                        ; character block we are processing
+
+ INY                    ; Draw the next pixel row, incrementing Y
  STA (SC),Y
- INY
+
+ INY                    ; And draw the third pixel row, incrementing Y
  STA (SC),Y
- INY
- STA (SC),Y
- TYA                    ; step to next char
- CLC
- ADC #6                 ; +=6
- TAY
- DEX                    ; reduce height
- BMI DL6                ; ended, next bar.
- BPL DL1                ; else guaranteed loop X height
 
-.DL2                    ; exited, Q < 4
+ TYA                    ; Add 6 to Y, so Y is now 8 more than when we started
+ CLC                    ; this loop iteration, so Y now points to the address
+ ADC #6                 ; of the first line of the indicator bar in the next
+ TAY                    ; character block (as each character is 8 bytes of
+                        ; screen memory)
 
- EOR #3                 ; counter
- STA Q
- LDA R                  ; load up mask colour byte = &FF
+ DEX                    ; Decrement the loop counter for the next character
+                        ; block along in the indicator
 
-.DL3                    ; counter small Q
+ BMI DL6                ; If we just drew the last character block then we are
+                        ; done drawing, so jump down to DL6 to finish off
 
- ASL A                  ; empty out mask
- AND #239
- DEC Q
- BPL DL3                ; loop Q
- PHA                    ; store mask
- LDA #0                 ; black
- STA R
- LDA #99                ; into Q
- STA Q
- PLA                    ; restore mask
- JMP DL5                ; up, loop mask
+ BPL DL1                ; Loop back to DL1 to draw the next character block of
+                        ; the indicator (this BPL is effectively a JMP as A will
+                        ; never be negative following the previous BMI)
 
-.DL6                    ; next bar
+.DL2
 
- INC SC+1
+ EOR #3                 ; If we get here then we are drawing the indicator's
+ STA Q                  ; end cap, so Q is < 4, and this EOR flips the bits, so
+                        ; instead of containing the number of indicator columns
+                        ; we need to fill in on the left side of the cap's
+                        ; character block, Q now contains the number of blank
+                        ; columns there should be on the right side of the cap's
+                        ; character block
 
-.DL9
+ LDA R                  ; Fetch the current mask from R, which will be &FF at
+                        ; this point, so we need to turn Q of the columns on the
+                        ; right side of the mask to black to get the correct end
+                        ; cap shape for the indicator
 
- RTS
+.DL3
+
+ ASL A                  ; Shift the mask left and clear bits 0 and 4, which has
+ AND #%11101111         ; the effect of shifting zeroes from the left into each
+                        ; nibble (i.e. xxxx xxxx becomes xxx0 xxx0, which blanks
+                        ; out the last column in the 4-pixel mode 5 character
+                        ; block)
+
+ DEC Q                  ; Decrement the counter for the number of columns to
+                        ; blank out
+
+ BPL DL3                ; If we still have columns to blank out in the mask,
+                        ; loop back to DL3 until the mask is correct for the
+                        ; end cap
+
+ PHA                    ; Store the mask byte on the stack while we use the
+                        ; accumulator for a bit
+
+ LDA #0                 ; Change the mask so no bits are set, so the characters
+ STA R                  ; after the one we're about to draw will be all blank
+
+ LDA #99                ; Set Q to a high number (99, why not) so we will keep
+ STA Q                  ; drawing blank characters until we reach the end of
+                        ; the indicator row
+
+ PLA                    ; Restore the mask byte from the stack so we can use it
+                        ; to draw the end cap of the indicator
+
+ JMP DL5                ; Jump back up to DL5 to draw the mask byte on screen
+
+.DL6
+
+ INC SC+1               ; Increment the high byte of SC to point to the next
+                        ; character row on screen (as each row takes up exactly
+                        ; one page of 256 bytes) - so this sets up SC to point
+                        ; to the next indicator, i.e. the one below the one we
+                        ; just drew
+
+.DL9                    ; This label is never called and has no effect
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
 \ Subroutine: DIL2
 \
-\ Show roll/pitch indicator
+\ Update the roll or pitch indicator on the dashboard. The indicator can show a
+\ vertical bar in 16 positions, with a value of 8 showing the bar in the middle
+\ of the indicator.
+\
+\ In practice this routine is only ever called with A in the range 1 to 15, so
+\ the vertical bar never appears in the leftmost position (though it does appear
+\ in the rightmost).
+\
+\   A           The offset of the vertical bar to show in the indicator, from
+\               0 at the far left, to 8 in the middle, and 15 at the far right
+\
+\ Returns:
+\
+\   C flag      C flag is set
 \ ******************************************************************************
 
-.DIL2                   ; roll/pitch indicator takes X.A
+.DIL2
 {
- LDY #1                 ; counter Y = 1
- STA Q                  ; xpos
+ LDY #1                 ; We want to start drawing the vertical indicator bar on
+                        ; the second line in the indicator's character block, so
+                        ; set Y to point to that row's offset
 
-.DLL10                  ; counter Y til #30
+ STA Q                  ; Store the offset of the vertical bar to draw in Q
 
- SEC
- LDA Q                  ; xpos
- SBC #4                 ; xpos-4
- BCS DLL11              ; blank
- LDA #&FF               ; else indicator
- LDX Q                  ; palette index
- STA Q                  ; = #&FF
- LDA CTWOS,X
- AND #&F0               ; Mode5 colour yellow
- BNE DLL12              ; fill
+                        ; We are now going to work our way along the indicator
+                        ; on the dashboard, from left to right, working our way
+                        ; along one character block at a time. Y will be used as
+                        ; a pixel row counter to work our way through the
+                        ; character blocks, so each time we draw a character
+                        ; block, we will increment Y by 8 to move on to the next
+                        ; block
 
-.DLL11                  ; blank
+.DLL10
 
- STA Q                  ; new xpos
- LDA #0
+ SEC                    ; Set A = Q - 4, so that A contains the offset of the
+ LDA Q                  ; vertical bar from the start of this character block
+ SBC #4
 
-.DLL12                  ; fill
+ BCS DLL11              ; If Q >= 4 then the character block we are drawing does
+                        ; not contain the vertical indicator bar, so jump to
+                        ; DLL11 to draw a blank character block
 
+ LDA #&FF               ; Set A to a high number (and &FF is as high as they go)
+
+ LDX Q                  ; Set X to the offset of the vertical bar, which is
+                        ; within this character block as Q < 4
+
+ STA Q                  ; Set Q to a high number (&FF, why not) so we will keep
+                        ; drawing blank characters after this one until we reach
+                        ; the end of the indicator row
+
+ LDA CTWOS,X            ; CTWOS is a table of ready-made 1-pixel mode 5 bytes,
+                        ; just like the TWOS and TWOS2 tables for mode 4 (see
+                        ; the PIXEL routine for details of how they work). This
+                        ; fetches a mode 5 1-pixel byte with the pixel position
+                        ; at X, so the pixel is at the offset that we want for
+                        ; our vertical bar
+
+ AND #&F0               ; The 4-pixel mode 5 colour byte &F0 represents four
+                        ; pixels of colour %10 (3), which is yellow in the
+                        ; normal dashboard palette. We AND this with A so that
+                        ; we only keep the pixel that matches the position of
+                        ; the vertical bar (i.e. A is acting as a mask on the
+                        ; 4-pixel colour byte)
+
+ BNE DLL12              ; If A is non-zero then we have something to draw, so
+                        ; jump to DLL12 to skip the following and move on to the
+                        ; drawing
+
+.DLL11
+
+                        ; If we get here then we want to draw a blank for this
+                        ; character block
+
+ STA Q                  ; Update Q with the new offset of the vertical bar, so
+                        ; it becomes the offset after the character block we
+                        ; are about to draw
+
+ LDA #0                 ; Change the mask so no bits are set, so all of the
+                        ; character blocks we display from now on will be blank
+.DLL12
+
+ STA (SC),Y             ; Draw the shape of the mask on pixel row Y of the
+                        ; character block we are processing
+
+ INY                    ; Draw the next pixel row, incrementing Y
  STA (SC),Y
- INY
+
+ INY                    ; And draw the third pixel row, incrementing Y
  STA (SC),Y
- INY
+
+ INY                    ; And draw the fourth pixel row, incrementing Y
  STA (SC),Y
- INY
- STA (SC),Y
- TYA                    ; step to next char
- CLC
- ADC #5
- TAY                    ; Y updated to next char
- CPY #30
- BCC DLL10              ; loop Y
- INC SC+1               ; next row, at end.
- RTS
+
+ TYA                    ; Add 5 to Y, so Y is now 8 more than when we started
+ CLC                    ; this loop iteration, so Y now points to the address
+ ADC #5                 ; of the first line of the indicator bar in the next
+ TAY                    ; character block (as each character is 8 bytes of
+                        ; screen memory)
+
+ CPY #30                ; If Y < 30 then we still have some more character
+ BCC DLL10              ; blocks to draw, so loop back to DLL10 to display the
+                        ; next one along
+
+ INC SC+1               ; Increment the high byte of SC to point to the next
+                        ; character row on screen (as each row takes up exactly
+                        ; one page of 256 bytes) - so this sets up SC to point
+                        ; to the next indicator, i.e. the one below the one we
+                        ; just drew
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
