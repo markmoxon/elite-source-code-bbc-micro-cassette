@@ -111,11 +111,11 @@ MACRO ITEM price, factor, units, quantity, mask
   ELSE                  ;
     s = 0               ; Arguments:
   ENDIF                 ;
-  IF units == 't'       ;   price = Base price
-    u = 0               ;   factor = Economic factor
-  ELIF units == 'k'     ;   units = "t", "g" or "k"
-    u = 1 << 5          ;   quantity = Base quantity
-  ELSE                  ;   mask = Fluctutaions mask
+  IF units == 't'       ;   * price = Base price
+    u = 0               ;   * factor = Economic factor
+  ELIF units == 'k'     ;   * units = "t", "g" or "k"
+    u = 1 << 5          ;   * quantity = Base quantity
+  ELSE                  ;   * mask = Fluctutaions mask
     u = 1 << 6          ;
   ENDIF                 ; See location QQ23 for details of how the above data
   e = ABS(factor)       ; is stored in the table
@@ -3571,11 +3571,11 @@ LOAD_A% = LOAD%
 \
 \ Other entry points:
 \
-\   MAL1        Marks the beginning of the ship analysis loop, so we can jump
-\               back here from part 12 of the main flight loop to work our way
-\               through each ship in the local bubble. We also jump back here
-\               when a ship is removed from the bubble, so we can continue
-\               processing from the next ship
+\   MAL1                Marks the beginning of the ship analysis loop, so we
+\                       can jump back here from part 12 of the main flight loop
+\                       to work our way through each ship in the local bubble.
+\                       We also jump back here when a ship is removed from the
+\                       bubble, so we can continue processing from the next ship
 \
 \ ******************************************************************************
 
@@ -3848,8 +3848,8 @@ LOAD_A% = LOAD%
 \
 \ Other entry points:
 \
-\   GOIN        We jump here from part 3 of the main flight loop if the
-\               docking computer is activated by pressing "C"
+\   GOIN                We jump here from part 3 of the main flight loop if the
+\                       docking computer is activated by pressing "C"
 \
 \ ******************************************************************************
 \
@@ -4766,33 +4766,33 @@ LOAD_A% = LOAD%
 \ In the comments below, we document the routine as if we are doing the
 \ following, i.e. if X = 0 and Y = 11:
 \
-\   (x_sign x_hi x_lo) += (rotmat0y_hi rotmat0y_lo) * 2
+\   (x_sign x_hi x_lo) = (x_sign x_hi x_lo) + (rotmat0y_hi rotmat0y_lo) * 2
 \
 \ as that way the variable names in the comments contain "x" and "y" to match
 \ the registers that specify the axes to use.
 \
 \ Arguments:
 \
-\   X           The coordinate to add, as follows:
+\   X                   The coordinate to add, as follows:
 \
-\                 * If X = 0, add the rotmat to (x_sign x_hi x_lo)
-\                 * If X = 3, add the rotmat to (y_sign y_hi y_lo)
-\                 * If X = 6, add the rotmat to (z_sign z_hi z_lo)
+\                         * If X = 0, add (x_sign x_hi x_lo)
+\                         * If X = 3, add (y_sign y_hi y_lo)
+\                         * If X = 6, add (z_sign z_hi z_lo)
 \
-\   Y           The rotmat to add, as follows:
+\   Y                   The rotmat to add, as follows:
 \
-\                 * If Y = 9,  add (rotmat0x_hi rotmat0x_lo) to the coordinate
-\                 * If Y = 11, add (rotmat0y_hi rotmat0y_lo) to the coordinate
-\                 * If Y = 13, add (rotmat0z_hi rotmat0z_lo) to the coordinate
+\                         * If Y = 9,  add (rotmat0x_hi rotmat0x_lo)
+\                         * If Y = 11, add (rotmat0y_hi rotmat0y_lo)
+\                         * If Y = 13, add (rotmat0z_hi rotmat0z_lo)
 \
 \ Returns:
 \
-\   A           The high byte of the result with the sign cleared (e.g. |x_hi|
-\               if X = 0, etc.)
+\   A                   The high byte of the result with the sign cleared (e.g.
+\                       |x_hi| if X = 0, etc.)
 \
 \ Other entry points:
 \
-\   MA9         Contains an RTS
+\   MA9                 Contains an RTS
 \
 \ ******************************************************************************
 
@@ -4848,18 +4848,18 @@ LOAD_A% = LOAD%
 \
 \ Arguments:
 \
-\   Y           The offset from K% for the three values to OR
+\   Y                   The offset from K% for the three values to OR
 \
 \ Returns:
 \
-\   A           K%+2+Y OR K%+5+Y OR K%+8+Y, with bit 7 cleared
+\   A                   K%+2+Y OR K%+5+Y OR K%+8+Y, with bit 7 cleared
 \
 \ ******************************************************************************
 
 .m
 {
- LDA #0               ; Set A = 0 and fall through into MAS2 to calculate the
-                      ; OR of the three bytes at K%+2+Y, K%+5+Y and K%+8+Y
+ LDA #0                 ; Set A = 0 and fall through into MAS2 to calculate the
+                        ; OR of the three bytes at K%+2+Y, K%+5+Y and K%+8+Y
 }
 
 \ ******************************************************************************
@@ -4886,11 +4886,12 @@ LOAD_A% = LOAD%
 \
 \ Arguments:
 \
-\   Y           The offset from K% for the start of the ship data block to use
+\   Y                   The offset from K% for the start of the ship data block
+\                       to use
 \
 \ Returns:
 \
-\   A           A OR K%+2+Y OR K%+5+Y OR K%+8+Y, with bit 7 cleared
+\   A                   A OR K%+2+Y OR K%+5+Y OR K%+8+Y, with bit 7 cleared
 \
 \ ******************************************************************************
 
@@ -4920,13 +4921,14 @@ LOAD_A% = LOAD%
 \
 \ Arguments:
 \
-\   Y           The offset from K% for the start of the ship data block to use
+\   Y                   The offset from K% for the start of the ship data block
+\                       to use
 \
 \ Returns
 \
-\   A           A = x_hi^2 + y_hi^2 + z_hi^2
+\   A                   A = x_hi^2 + y_hi^2 + z_hi^2
 \
-\               A = &FF if the calculation overflows a one-byte result
+\                       A = &FF if the calculation overflows a one-byte result
 \
 \ ******************************************************************************
 
@@ -4974,11 +4976,11 @@ LOAD_A% = LOAD%
 \
 \ Arguments:
 \
-\   INWK        The current ship/planet/sun's data block
+\   INWK                The current ship/planet/sun's data block
 \
-\   XSAV        The slot number of the current ship/planet/sun
+\   XSAV                The slot number of the current ship/planet/sun
 \
-\   TYPE        The type of the current ship/planet/sun
+\   TYPE                The type of the current ship/planet/sun
 \
 \ ******************************************************************************
 
@@ -5628,19 +5630,19 @@ LOAD_A% = LOAD%
 \
 \ Arguments:
 \
-\   (A R)       The signed delta, so A = delta_hi and R = delta_lo
+\   (A R)               The signed delta, so A = delta_hi and R = delta_lo
 \
-\   X           Determines which coordinate axis of the INWK space to change:
+\   X                   Determines which coordinate axis of INWK to change:
 \
-\                 * X = 0 adds the delta to (x_lo, x_hi, x_sign)
+\                         * X = 0 adds the delta to (x_lo, x_hi, x_sign)
 \
-\                 * X = 3 adds the delta to (y_lo, y_hi, y_sign)
+\                         * X = 3 adds the delta to (y_lo, y_hi, y_sign)
 \
-\                 * X = 6 adds the delta to (z_lo, z_hi, z_sign)
+\                         * X = 6 adds the delta to (z_lo, z_hi, z_sign)
 \
 \ Other entry points:
 \
-\   MVT1-2      Clear bits 0-6 of A before entering MVT1
+\   MVT1-2              Clear bits 0-6 of A before entering MVT1
 \
 \ ******************************************************************************
 
@@ -5767,13 +5769,13 @@ LOAD_A% = LOAD%
 \
 \ Arguments:
 \
-\   X           The coordinate to add to K(3 2 1), as follows:
+\   X                   The coordinate to add to K(3 2 1), as follows:
 \
-\                 * If X = 0, set K(3 2 1) = K(3 2 1) + (x_sign x_hi x_lo)
+\                         * If X = 0, add (x_sign x_hi x_lo)
 \
-\                 * If X = 3, set K(3 2 1) = K(3 2 1) + (y_sign y_hi y_lo)
+\                         * If X = 3, add (y_sign y_hi y_lo)
 \
-\                 * If X = 6, set K(3 2 1) = K(3 2 1) + (z_sign z_hi z_lo)
+\                         * If X = 6, add (z_sign z_hi z_lo)
 \
 \ ******************************************************************************
 
@@ -5874,13 +5876,14 @@ LOAD_A% = LOAD%
 \
 \ Arguments:
 \
-\   Y           Determines which row of the INWK rotation matrix to transform:
+\   Y                   Determines which row of the INWK rotation matrix to
+\                       transform:
 \
-\                 * Y = 9 rotates row 0 (rotmat0x, rotmat0y, rotmat0z)
+\                         * Y = 9 rotates row 0 (rotmat0x, rotmat0y, rotmat0z)
 \
-\                 * Y = 15 rotates row 1 (rotmat1x, rotmat1y, rotmat1z)
+\                         * Y = 15 rotates row 1 (rotmat1x, rotmat1y, rotmat1z)
 \
-\                 * Y = 21 rotates row 2 (rotmat2x, rotmat2y, rotmat2z)
+\                         * Y = 21 rotates row 2 (rotmat2x, rotmat2y, rotmat2z)
 \
 \ ******************************************************************************
 \
@@ -6277,24 +6280,31 @@ LOAD_A% = LOAD%
 \
 \ Arguments:
 \
-\   X           The first axis of the rotation matrix to rotate, as follows:
+\   X                   The first axis of the rotation matrix to rotate:
 \
-\                 * If X = 15, rotate rotmat1x
-\                 * If X = 17, rotate rotmat1y
-\                 * If X = 19, rotate rotmat1z
+\                         * If X = 15, rotate rotmat1x
 \
-\   Y           The second axis of the rotation matrix to rotate, as follows:
+\                         * If X = 17, rotate rotmat1y
 \
-\                 * If Y = 9,  rotate rotmat0x
-\                 * If Y = 11, rotate rotmat0y
-\                 * If Y = 13, rotate rotmat0z
+\                         * If X = 19, rotate rotmat1z
 \
-\                 * If Y = 21, rotate rotmat2x
-\                 * If Y = 23, rotate rotmat2y
-\                 * If Y = 25, rotate rotmat2z
+\   Y                   The second axis of the rotation matrix to rotate:
 \
-\   RAT2        The direction of the pitch or roll to perform, positive or
-\               negative (i.e. the sign of the rotx or rotz counter in bit 7)
+\                         * If Y = 9,  rotate rotmat0x
+\
+\                         * If Y = 11, rotate rotmat0y
+\
+\                         * If Y = 13, rotate rotmat0z
+\
+\                         * If Y = 21, rotate rotmat2x
+\
+\                         * If Y = 23, rotate rotmat2y
+\
+\                         * If Y = 25, rotate rotmat2z
+\
+\   RAT2                The direction of the pitch or roll to perform, positive
+\                       or negative (i.e. the sign of the rotx or rotz counter
+\                       in bit 7)
 \
 \ ******************************************************************************
 \
@@ -6529,19 +6539,21 @@ LOAD_A% = LOAD%
 \
 \ Arguments:
 \
-\   A           The sign of P(2 1) in bit 7
+\   A                   The sign of P(2 1) in bit 7
 \
-\   P(2 1)      The 16-bit value we want to add the coordinate to
+\   P(2 1)              The 16-bit value we want to add the coordinate to
 \
-\   X           The coordinate to add, as follows:
+\   X                   The coordinate to add, as follows:
 \
-\                 * If X = 0, add to (x_sign x_hi x_lo)
-\                 * If X = 3, add to (y_sign y_hi y_lo)
-\                 * If X = 6, add to (z_sign z_hi z_lo)
+\                         * If X = 0, add to (x_sign x_hi x_lo)
+\
+\                         * If X = 3, add to (y_sign y_hi y_lo)
+\
+\                         * If X = 6, add to (z_sign z_hi z_lo)
 \
 \ Returns:
 \
-\   A           The sign of the result (in bit 7)
+\   A                   The sign of the result (in bit 7)
 \
 \ ******************************************************************************
 
@@ -7557,7 +7569,7 @@ NEXT
 \
 \ Arguments:
 \
-\   A           The pixel row on which to draw the horizontal line
+\   A                   The pixel row on which to draw the horizontal line
 \
 \ ******************************************************************************
 
@@ -7738,14 +7750,14 @@ NEXT
 \
 \ Arguments:
 \
-\   X           The x-coordinate of the pixel within the character block
+\   X                   The x-coordinate of the pixel within the character block
 \
-\   Y           The y-coordinate of the pixel within the character block
+\   Y                   The y-coordinate of the pixel within the character block
 \
-\   (SC+1 SC)   The screen addresss of the character block
+\   (SC+1 SC)           The screen addresss of the character block
 \
-\   T1          The value of Y to restore on exit, so Y is preserved by the call
-\               to PIXEL
+\   T1                  The value of Y to restore on exit, so Y is preserved by
+\                       the call to PIXEL
 \
 \ ******************************************************************************
 
@@ -7821,19 +7833,19 @@ NEXT
 \
 \ Arguments:
 \
-\   X           The screen x-coordinate of the point to draw
+\   X                   The screen x-coordinate of the point to draw
 \
-\   A           The screen y-coordinate of the point to draw
+\   A                   The screen y-coordinate of the point to draw
 \
-\   ZZ          The distance of the point (further away = smaller point)
+\   ZZ                  The distance of the point (further away = smaller point)
 \
 \ Returns:
 \
-\   Y           Y is preserved
+\   Y                   Y is preserved
 \
 \ Other entry points:
 \
-\   PX4         Contains an RTS
+\   PX4                 Contains an RTS
 \
 \ ******************************************************************************
 \
@@ -8987,7 +8999,7 @@ NEXT
 \
 \ Arguments:
 \
-\   A           The text token to be printed
+\   A                   The text token to be printed
 \
 \ ******************************************************************************
 
@@ -9036,9 +9048,9 @@ NEXT
 \
 \ Arguments:
 \
-\   X           The number to print
+\   X                   The number to print
 \
-\   C flag      If set, include a decimal point
+\   C flag              If set, include a decimal point
 \
 \ ******************************************************************************
 
@@ -9062,13 +9074,13 @@ NEXT
 \
 \ Arguments:
 \
-\   X           The low byte of the number to print
+\   X                   The low byte of the number to print
 \
-\   Y           The high byte of the number to print
+\   Y                   The high byte of the number to print
 \
-\   A           The number of digits
+\   A                   The number of digits
 \
-\   C flag      If set, include a decimal point
+\   C flag              If set, include a decimal point
 \
 \ ******************************************************************************
 
@@ -9095,27 +9107,28 @@ NEXT
 \
 \ Subroutine: BPRNT
 \
-\ Print the 32-bit number stored in K to K+3 to a specific number of digits,
+\ Print the 32-bit number stored in K(0 1 2 3) to a specific number of digits,
 \ left-padding with spaces for numbers with fewer digits (so lower numbers are
 \ right-aligned). Optionally include a decimal point.
 \
 \ Arguments:
 \
-\   K...K+3     The number to print, stored with the most significant byte in K
-\               and the least significant in K+3 (big-endian, which is not the
-\               same way that 6502 assembler stores addresses)
+\   K(0 1 2 3)          The number to print, stored with the most significant
+\                       byte in K and the least significant in K+3 (big-endian,
+\                       which is not the same way that 6502 assembler stores
+\                       addresses)
 \
-\   U           The maximum number of digits to print, including the decimal
-\               point (spaces will be used on the left to pad out the result to
-\               this width, so the number is right-aligned to this width). The
-\               maximum number of characters including any decimal point must
-\               be 11 or less.
+\   U                   The maximum number of digits to print, including the
+\                       decimal point (spaces will be used on the left to pad
+\                       out the result to this width, so the number is right-
+\                       aligned to this width). The maximum number of characters
+\                       including any decimal point must be 11 or less
 \
-\   C flag      If set, include a decimal point followed by one fractional
-\               digit (i.e. show the number to 1 decimal place). In this case,
-\               the number in K to K+3 contains 10 * the number we end up
-\               printing, so to print 123.4, we would pass 1234 in K to K+3 and
-\               would set the C flag.
+\   C flag              If set, include a decimal point followed by one
+\                       fractional digit (i.e. show the number to 1 decimal
+\                       place). In this case, the number in K to K+3 contains
+\                       10 * the number we end up printing, so to print 123.4,
+\                       we would pass 1234 in K to K+3 and would set the C flag
 \
 \ ******************************************************************************
 \
@@ -9529,39 +9542,42 @@ NEXT
 \
 \ Arguments:
 \
-\   A           The character to be printed. Can be one of the following:
+\   A                   The character to be printed. Can be one of the
+\                       following:
 \
-\                 * 7 (beep)
+\                         * 7 (beep)
 \
-\                 * 10-13 (line feeds and carriage returns)
+\                         * 10-13 (line feeds and carriage returns)
 \
-\                 * 32-95 (ASCII capital letters, numbers and punctuation)
+\                         * 32-95 (ASCII capital letters, numbers and
+\                           punctuation)
 \
-\                 * 127 (delete the character to the left of the text cursor
-\                   and move the cursor to the left)
+\                         * 127 (delete the character to the left of the text
+\                           cursor and move the cursor to the left)
 \
-\   XC            Contains the text column to print at (the x-coordinate)
+\   XC                    Contains the text column to print at (the x-coordinate)
 \
-\   YC            Contains the line number to print on (the y-coordinate)
+\   YC                    Contains the line number to print on (the y-coordinate)
 \
 \ Returns:
 \
-\   A           A is preserved
+\   A                   A is preserved
 \
-\   X           X is preserved
+\   X                   X is preserved
 \
-\   Y           Y is preserved
+\   Y                   Y is preserved
 \
-\   C flag      Carry is cleared
+\   C flag              Carry is cleared
 \
 \ Other entry points:
 \
-\   RR3+1       Contains an RTS
+\   RR3+1               Contains an RTS
 \
-\   RREN        Prints the character definition pointed to by P(2 1) at the
-\               screen address pointed to by (A SC). Used by the BULB routine
+\   RREN                Prints the character definition pointed to by P(2 1) at
+\                       the screen address pointed to by (A SC). Used by the
+\                       BULB routine
 \
-\   rT9         Contains an RTS
+\   rT9                 Contains an RTS
 \
 \ ******************************************************************************
 
@@ -10191,9 +10207,9 @@ NEXT
 \
 \ Returns:
 \
-\   A           The colour to use for indicators with dangerous values
+\   A                   The colour to use for indicators with dangerous values
 \
-\   X           The colour to use for indicators with safe values
+\   X                   The colour to use for indicators with safe values
 \
 \ ******************************************************************************
 
@@ -10234,29 +10250,33 @@ NEXT
 \
 \ Arguments:
 \
-\   A           The value to be shown on the indicator (so the larger the value,
-\               the longer the bar).
+\   A                   The value to be shown on the indicator (so the larger
+\                       the value, the longer the bar)
 \
-\   T1          The threshold at which we change the indicator's colour from
-\               the low value colour to the high value colour. The threshold
-\               is in pixels, so it should have a value from 0-16, as each bar
-\               indicator is 16 pixels wide
+\   T1                  The threshold at which we change the indicator's colour
+\                       from the low value colour to the high value colour. The
+\                       threshold is in pixels, so it should have a value from
+\                       0-16, as each bar indicator is 16 pixels wide
 \
-\   K           The colour to use when A is a high value, as a 4-pixel mode 5
-\               character row byte
+\   K                   The colour to use when A is a high value, as a 4-pixel
+\                       mode 5 character row byte
 \
-\   K+1         The colour to use when A is a low value, as a 4-pixel mode 5
-\               character row byte
+\   K+1                 The colour to use when A is a low value, as a 4-pixel
+\                       mode 5 character row byte
 \
-\   SC(1 0)     The screen address of the first character block in the indicator
+\   SC(1 0)             The screen address of the first character block in the
+\                       indicator
 \
 \ Other entry points:
 \
-\   DILX+2      The range of the indicator is 0-64 (for the fuel indicator)
+\   DILX+2              The range of the indicator is 0-64 (for the fuel
+\                       indicator)
 \
-\   DIL-1       The range of the indicator is 0-32 (for the speed indicator)
+\   DIL-1               The range of the indicator is 0-32 (for the speed
+\                       indicator)
 \
-\   DIL         The range of the indicator is 0-16 (for the energy banks)
+\   DIL                 The range of the indicator is 0-16 (for the energy
+\                       banks)
 \
 \ ******************************************************************************
 \
@@ -10483,12 +10503,15 @@ NEXT
 \ the vertical bar never appears in the leftmost position (though it does appear
 \ in the rightmost).
 \
-\   A           The offset of the vertical bar to show in the indicator, from
-\               0 at the far left, to 8 in the middle, and 15 at the far right
+\ Arguments:
+\
+\   A                   The offset of the vertical bar to show in the indicator,
+\                       from 0 at the far left, to 8 in the middle, and 15 at
+\                       the far right
 \
 \ Returns:
 \
-\   C flag      C flag is set
+\   C flag              C flag is set
 \
 \ ******************************************************************************
 
@@ -11598,24 +11621,24 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ Arguments:
 \
-\   A           AI flag for the new ship (see the documentation on INWK+32 for
-\               details)
+\   A                   AI flag for the new ship (see the documentation on
+\                       INWK+32 for details)
 \
-\   X           The ship type of the child to spawn
+\   X                   The ship type of the child to spawn
 \
-\   INF         Address of the parent's ship data block
+\   INF                 Address of the parent's ship data block
 \
-\   TYPE        The type of the parent ship
+\   TYPE                The type of the parent ship
 \
 \ Returns:
 \
-\   C flag      Set if ship successfully added, clear if it failed
+\   C flag              Set if ship successfully added, clear if it failed
 \
-\   INF         INF is preserved
+\   INF                 INF is preserved
 \
-\   XX0         XX0 is preserved
+\   XX0                 XX0 is preserved
 \
-\   INWK        The whole INWK workspace is preserved
+\   INWK                The whole INWK workspace is preserved
 \
 \ ******************************************************************************
 
@@ -11772,15 +11795,15 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ Arguments:
 \
-\   A           The amount of movement, i.e. the signed delta
+\   A                   The amount of movement, i.e. the signed delta
 \
-\   X           Determines which coordinate axis of the INWK space to move:
+\   X                   Determines which coordinate axis of INWK to move:
 \
-\                 * X = 0 moves the ship along the x-axis (x_lo, x_hi, x_sign)
+\                         * X = 0 moves the ship along the x-axis
 \
-\                 * X = 3 moves the ship along the y-axis (y_lo, y_hi, y_sign)
+\                         * X = 3 moves the ship along the y-axis
 \
-\                 * X = 6 moves the ship along the z-axis (z_lo, z_hi, z_sign)
+\                         * X = 6 moves the ship along the z-axis
 \
 \ ******************************************************************************
 
@@ -12105,7 +12128,7 @@ NEXT
 \
 \ Returns:
 \
-\   C flag      The C flag is cleared
+\   C flag              The C flag is cleared
 \
 \ ******************************************************************************
 
@@ -12617,11 +12640,11 @@ NEXT
 \
 \ Returns:
 \
-\   Q           Q is preserved
+\   Q                   Q is preserved
 \
 \ Other entry points:
 \
-\   MLTU2-2     Set Q to X, so this calculates (A P+1 P) = (A ~P) * X
+\   MLTU2-2             Set Q to X, so this calculates (A P+1 P) = (A ~P) * X
 \
 \ ******************************************************************************
 \
@@ -13395,7 +13418,8 @@ NEXT
 \
 \ Other entry points:
 \
-\   RE2+2       Restore A from T and return from the subroutine. Used by REDU2
+\   RE2+2               Restore A from T and return from the subroutine. Used by
+\                       REDU2
 \
 \ ******************************************************************************
 
@@ -13454,7 +13478,8 @@ NEXT
 \
 \ Other entry points:
 \
-\   RE3+2       Auto-recentre the value in X, if configured. Used by BUMP2
+\   RE3+2               Auto-recentre the value in X, if configured. Used by
+\                       BUMP2
 \
 \ ******************************************************************************
 
@@ -13845,9 +13870,9 @@ NEXT
 \
 \ Other entry points:
 \
-\   LO2         Contains an RTS
+\   LO2                 Contains an RTS
 \
-\   PU1-1       Contains an RTS
+\   PU1-1               Contains an RTS
 \
 \ ******************************************************************************
 \
@@ -14153,12 +14178,15 @@ NEXT
 \
 \ Arguments:
 \
-\   X           The space view to set:
+\   X                   The space view to set:
 \
-\               0 = forward
-\               1 = rear
-\               2 = left
-\               3 = right
+\                         * 0 = forward
+\
+\                         * 1 = rear
+\
+\                         * 2 = left
+\
+\                         * 3 = right
 \
 \ ******************************************************************************
 
@@ -14239,12 +14267,12 @@ NEXT
 \
 \ Arguments:
 \
-\   A           The type of the new current view (see QQ11 for a list of view
-\               types)
+\   A                   The type of the new current view (see QQ11 for a list of
+\                       view types)
 \
 \ Other entry points:
 \
-\   TT66-2      Call TT66 with A = 1
+\   TT66-2              Call TT66 with A = 1
 \
 \ ******************************************************************************
 
@@ -14367,7 +14395,7 @@ NEXT
 \
 \ Arguments:
 \
-\   Y           The number of vertical sync events to wait for
+\   Y                   The number of vertical sync events to wait for
 \
 \ ******************************************************************************
 
@@ -14431,9 +14459,9 @@ NEXT
 \
 \ Returns:
 \
-\   A           A is set to 0
+\   A                   A is set to 0
 \
-\   Y           Y is set to 0
+\   Y                   Y is set to 0
 \
 \ ******************************************************************************
 
@@ -14474,16 +14502,16 @@ NEXT
 \
 \ Arguments:
 \
-\   A           The value to store in pixels 1-233 (the only value that is
-\               actually used is A = 0, which clears those pixels)
+\   A                   The value to store in pixels 1-233 (the only value that
+\                       is actually used is A = 0, which clears those pixels)
 \
 \ Returns:
 \
-\   Y           Y is set to 0
+\   Y                   Y is set to 0
 \
 \ Other entry points:
 \
-\   SC5         Contains an RTS
+\   SC5                 Contains an RTS
 \
 \ ******************************************************************************
 
@@ -14720,20 +14748,20 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   A           The number of units of this market item
+\   A                   The number of units of this market item
 \
-\   QQ29        The type of market item (see QQ23 for a list of market item
-\               numbers)
+\   QQ29                The type of market item (see QQ23 for a list of market
+\                       item numbers)
 \
 \ Returns:
 \
-\   A           A is preserved
+\   A                   A is preserved
 \
-\   C flag      Returns the result:
+\   C flag              Returns the result:
 \
-\                 * Set if there is no room for this item
+\                         * Set if there is no room for this item
 \
-\                 * Clear if there is room for this item
+\                         * Clear if there is room for this item
 \
 \ ******************************************************************************
 
@@ -15017,7 +15045,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   A           The text token to be printed
+\   A                   The text token to be printed
 \
 \ ******************************************************************************
 
@@ -15100,7 +15128,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   A           The text token to be printed
+\   A                   The text token to be printed
 \
 \ ******************************************************************************
 
@@ -15120,8 +15148,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\ TT72          Used by TT70 to re-enter the routine after displaying "MAINLY"
-\               for the economy type
+\ TT72                  Used by TT70 to re-enter the routine after displaying
+\                       "MAINLY" for the economy type
 \
 \ ******************************************************************************
 \
@@ -15811,11 +15839,11 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   QQ19        The pixel x-coordinate of the centre of the crosshairs
+\   QQ19                The pixel x-coordinate of the centre of the crosshairs
 \
-\   QQ19+1      The pixel y-coordinate of the centre of the crosshairs
+\   QQ19+1              The pixel y-coordinate of the centre of the crosshairs
 \
-\   QQ19+2      The size of the crosshairs
+\   QQ19+2              The size of the crosshairs
 \
 \ ******************************************************************************
 
@@ -15961,8 +15989,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   BAY2        Jump into the main loop at FRCE, setting the key "pressed" to
-\               red key f9 (so we show the Inventory sacreen)
+\   BAY2                Jump into the main loop at FRCE, setting the key
+\                       "pressed" to red key f9 (so we show the Inventory
+\                       screen)
 \
 \ ******************************************************************************
 
@@ -16162,15 +16191,15 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   QQ25        Maximum number allowed
+\   QQ25                The maximum number allowed
 \
 \ Returns:
 \
-\   A           The number entered
+\   A                   The number entered
 \
-\   R           Also contains the number entered
+\   R                   Also contains the number entered
 \
-\   C flag      Set if the number is too large (> QQ25), clear otherwise
+\   C flag              Set if the number is too large (> QQ25), clear otherwise
 \
 \ ******************************************************************************
 
@@ -16286,7 +16315,11 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   QQ11        Current view, 4 = Sell Cargo, 8 = Inventory
+\   QQ11                The current view:
+\
+\                           * 4 = Sell Cargo
+\
+\                           * 8 = Inventory
 \
 \ ******************************************************************************
 
@@ -16454,11 +16487,11 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   A           The text token to print before the "Y/N?" prompt
+\   A                   The text token to print before the "Y/N?" prompt
 \
 \ Returns:
 \
-\   C flag      Set if the response was "yes", clear otherwise
+\   C flag              Set if the response was "yes", clear otherwise
 \
 \ ******************************************************************************
 
@@ -16505,9 +16538,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   X           The amount to move the crosshairs in the x-axis, if applicable
+\   X                   The amount to move the crosshairs in the x-axis
 \
-\   Y           The amount to move the crosshairs in the y-axis, if applicable
+\   Y                   The amount to move the crosshairs in the y-axis
 \
 \ ******************************************************************************
 
@@ -16604,18 +16637,18 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   A           The galactic coordinate to update
+\   A                   The galactic coordinate to update
 \
-\   QQ19+3      The delta (can be positive or negative)
+\   QQ19+3              The delta (can be positive or negative)
 \
 \ Returns:
 \
-\   QQ19+4      The updated coordinate after moving by the delta (this will be
-\               the same as A if moving by the delta overflows)
+\   QQ19+4              The updated coordinate after moving by the delta (this
+\                       will be the same as A if moving by the delta overflows)
 \
 \ Other entry points:
 \
-\   TT180       Contains an RTS
+\   TT180               Contains an RTS
 \
 \ ******************************************************************************
 
@@ -16994,27 +17027,27 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   QQ9         The x-coordinate near which we want to find a system
+\   QQ9                 The x-coordinate near which we want to find a system
 \
-\   QQ10        The y-coordinate near which we want to find a system
+\   QQ10                The y-coordinate near which we want to find a system
 \
 \ Returns:
 \
-\   (QQ8 QQ8+1) The distance from the current system to the
-\               nearest system to the original coordinates
+\   QQ8(1 0)            The distance from the current system to the nearest
+\                       system to the original coordinates
 \
-\   QQ9         The x-coordinate of the nearest system to the original
-\               coordinates
+\   QQ9                 The x-coordinate of the nearest system to the original
+\                       coordinates
 \
-\   QQ10        The y-coordinate of the nearest system to the original
-\               coordinates
+\   QQ10                The y-coordinate of the nearest system to the original
+\                       coordinates
 \
-\   QQ15 to     The three 16-bit seeds of the nearest system to the original
-\   QQ15+5      coordinates
+\   QQ15 to QQ15+5      The three 16-bit seeds of the nearest system to the
+\                       original coordinates
 \
 \ Other entry points:
 \
-\   TT111-1     Contains an RTS
+\   TT111-1             Contains an RTS
 \
 \ ******************************************************************************
 
@@ -17251,7 +17284,7 @@ LOAD_D% = LOAD% + P% - CODE%
  ASL A                  ; And then we repeat the shift left of (QQ8+1 A)
  ROL QQ8+1
 
- STA QQ8                ; And store A in the low byte, QQ8, so (QQ8+1 QQ8) now
+ STA QQ8                ; And store A in the low byte, QQ8, so QQ8(1 0) now
                         ; contains Q * 4. Given that the width of the galaxy is
                         ; 256 in coordinate terms, the width of the galaxy
                         ; would be 1024 in the units we store in QQ8
@@ -17427,7 +17460,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   zZ+1        Contains an RTS
+\   zZ+1                Contains an RTS
 \
 \ ******************************************************************************
 
@@ -17508,11 +17541,11 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Returns:
 \
-\   (QQ0, QQ1)  The galactic coordinates of the new system
+\   (QQ0, QQ1)          The galactic coordinates of the new system
 \
 \ Other entry points:
 \
-\   hy5         Contains an RTS
+\   hy5                 Contains an RTS
 \
 \ ******************************************************************************
 
@@ -17539,7 +17572,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   X           The number to print
+\   X                   The number to print
 \
 \ ******************************************************************************
 
@@ -17564,9 +17597,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   X           The low byte of the number to print
+\   X                   The low byte of the number to print
 \
-\   Y           The high byte of the number to print
+\   Y                   The high byte of the number to print
 \
 \ ******************************************************************************
 
@@ -17587,11 +17620,11 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   X           The low byte of the number to print
+\   X                   The low byte of the number to print
 \
-\   Y           The high byte of the number to print
+\   Y                   The high byte of the number to print
 \
-\   C flag      If set, include a decimal point
+\   C flag              If set, include a decimal point
 \
 \ ******************************************************************************
 
@@ -17625,7 +17658,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   A           The text token to be printed
+\   A                   The text token to be printed
 \
 \ ******************************************************************************
 
@@ -17645,16 +17678,16 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   A           The number of the market item to print, 0-16 (see QQ23 for
-\               details of item numbers)
+\   A                   The number of the market item to print, 0-16 (see QQ23
+\                       for details of item numbers)
 \
 \ Results:
 \
-\   QQ19+1      Byte #1 from the market prices table for this item
+\   QQ19+1              Byte #1 from the market prices table for this item
 \
-\   QQ24        The item's price / 4
+\   QQ24                The item's price / 4
 \
-\   QQ25        The item's availability
+\   QQ25                The item's availability
 \
 \ ******************************************************************************
 \
@@ -18007,9 +18040,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   QQ19+1      Byte #1 of the market prices table for this market item (which
-\               contains the economic_factor in bits 0-5, and the sign of the
-\               economic_factor in bit 7)
+\   QQ19+1              Byte #1 of the market prices table for this market item
+\                       (which contains the economic_factor in bits 0-5, and the
+\                       sign of the economic_factor in bit 7)
 \
 \ ******************************************************************************
 
@@ -18060,23 +18093,23 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Returns:
 \
-\   (QQ0, QQ1)  The galactic coordinates of the new system
+\   (QQ0, QQ1)          The galactic coordinates of the new system
 \
-\   QQ2...QQ2+6 The seeds of the new system
+\   QQ2 to QQ2+6        The seeds of the new system
 \
-\   EV          Set to 0
+\   EV                  Set to 0
 \
-\   QQ28        The new system's economy
+\   QQ28                The new system's economy
 \
-\   tek         The new system's tech level
+\   tek                 The new system's tech level
 \
-\   gov         The new system's government
+\   gov                 The new system's government
 \
 \ Other entry points:
 \
-\   hyp1+3      Jump straight to the the system at (QQ9, QQ10) without first
-\               calculating which system is closest. We do this if we already
-\               know that (QQ9, QQ10) points to a system
+\   hyp1+3              Jump straight to the the system at (QQ9, QQ10) without
+\                       first calculating which system is closest. We do this
+\                       if we already know that (QQ9, QQ10) points to a system
 \
 \ ******************************************************************************
 
@@ -18129,7 +18162,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   hyR         Contains an RTS
+\   hyR                 Contains an RTS
 \
 \ ******************************************************************************
 \
@@ -18270,7 +18303,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   ptg         Called when the user forces a manual mis-jump
+\   ptg                 Called when the user manually forces a mis-jump
 \
 \ ******************************************************************************
 
@@ -18479,7 +18512,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   A           The current view, loaded from QQ11
+\   A                   The current view, loaded from QQ11
 \
 \ ******************************************************************************
 
@@ -18508,9 +18541,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Returns:
 \
-\   C flag      If set, there was enough cash to do the subtraction
+\   C flag              If set, there was enough cash to do the subtraction
 \
-\               If clear, there was not enough cash to do the subtraction
+\                       If clear, there was not enough cash to do the
+\                       subtraction
 \
 \ ******************************************************************************
 
@@ -18558,7 +18592,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   TT113       Contains an RTS
+\   TT113               Contains an RTS
 \
 \ ******************************************************************************
 
@@ -18636,8 +18670,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   err         Beep, pause and go to the docking bay (i.e. show the Status Mode
-\               screen)
+\   err                 Beep, pause and go to the docking bay (i.e. show the
+\                       Status Mode screen)
 \
 \ ******************************************************************************
 
@@ -19103,8 +19137,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   A           The item number of the piece of equipment (0-11) as shown in
-\               the table at PRXS
+\   A                   The item number of the piece of equipment (0-11) as
+\                       shown in the table at PRXS
 \
 \ ******************************************************************************
 
@@ -19136,16 +19170,16 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   A           The item number of the piece of equipment (0-11) as shown in
-\               the table at PRXS
+\   A                   The item number of the piece of equipment (0-11) as
+\                       shown in the table at PRXS
 \
 \ Returns:
 \
-\   (Y X)       The item price in Cr * 10 (Y = high byte, X = low byte)
+\   (Y X)               The item price in Cr * 10 (Y = high byte, X = low byte)
 \
 \ Other entry points:
 \
-\   prx-3       Return the price of the item with number A - 1
+\   prx-3               Return the price of the item with number A - 1
 \
 \ ******************************************************************************
 
@@ -19185,7 +19219,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Returns:
 \
-\   X           The chosen view number (0-3)
+\   X                   The chosen view number (0-3)
 \
 \ ******************************************************************************
 
@@ -19588,7 +19622,7 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   A           The text token to be printed
+\   A                   The text token to be printed
 \
 \ ******************************************************************************
 
@@ -19608,7 +19642,7 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   A           The text token to be printed
+\   A                   The text token to be printed
 \
 \ ******************************************************************************
 
@@ -19642,7 +19676,7 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   A           The text token to be printed
+\   A                   The text token to be printed
 \
 \ ******************************************************************************
 
@@ -19754,18 +19788,20 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   A           The character to be printed. Can be one of the following:
+\   A                   The character to be printed. Can be one of the
+\                       following:
 \
-\                 * 7 (beep)
+\                         * 7 (beep)
 \
-\                 * 10-13 (line feeds and carriage returns)
+\                         * 10-13 (line feeds and carriage returns)
 \
-\                 * 32-95 (ASCII capital letters, numbers and punctuation)
+\                         * 32-95 (ASCII capital letters, numbers and
+\                           punctuation)
 \
 \ Other entry points:
 \
-\   TT44        Jumps to TT26 to print the character in A (used to enable us to
-\               use a branch instruction to jump to TT26)
+\   TT44                Jumps to TT26 to print the character in A (used to
+\                       enable us to use a branch instruction to jump to TT26)
 \
 \ ******************************************************************************
 
@@ -19804,17 +19840,19 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   A           The character to be printed. Can be one of the following:
+\   A                   The character to be printed. Can be one of the
+\                       following:
 \
-\                 * 7 (beep)
+\                         * 7 (beep)
 \
-\                 * 10-13 (line feeds and carriage returns)
+\                         * 10-13 (line feeds and carriage returns)
 \
-\                 * 32-95 (ASCII capital letters, numbers and punctuation)
+\                         * 32-95 (ASCII capital letters, numbers and
+\                           punctuation)
 \
-\   X           Contains the current value of QQ17
+\   X                   Contains the current value of QQ17
 \
-\   QQ17        Bit 7 is set
+\   QQ17                Bit 7 is set
 \
 \ ******************************************************************************
 
@@ -19855,8 +19893,8 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   A           A value from 128-145, which refers to a recursive token in the
-\               range 14-31
+\   A                   A value from 128-145, which refers to a recursive token
+\                       in the range 14-31
 \
 \ ******************************************************************************
 
@@ -19900,17 +19938,19 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   A           The character to be printed. Can be one of the following:
+\   A                   The character to be printed. Can be one of the
+\                       following:
 \
-\                 * 7 (beep)
+\                         * 7 (beep)
 \
-\                 * 10-13 (line feeds and carriage returns)
+\                         * 10-13 (line feeds and carriage returns)
 \
-\                 * 32-95 (ASCII capital letters, numbers and punctuation)
+\                         * 32-95 (ASCII capital letters, numbers and
+\                           punctuation)
 \
-\   X           Contains the current value of QQ17
+\   X                   Contains the current value of QQ17
 \
-\   QQ17        Bits 6 and 7 are set
+\   QQ17                Bits 6 and 7 are set
 \
 \ ******************************************************************************
 
@@ -19940,17 +19980,19 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   A           The character to be printed. Can be one of the following:
+\   A                   The character to be printed. Can be one of the
+\                       following:
 \
-\                 * 7 (beep)
+\                         * 7 (beep)
 \
-\                 * 10-13 (line feeds and carriage returns)
+\                         * 10-13 (line feeds and carriage returns)
 \
-\                 * 32-95 (ASCII capital letters, numbers and punctuation)
+\                         * 32-95 (ASCII capital letters, numbers and
+\                           punctuation)
 \
-\   X           Contains the current value of QQ17
+\   X                   Contains the current value of QQ17
 \
-\   QQ17        Bits 6 and 7 are set
+\   QQ17                Bits 6 and 7 are set
 \
 \ ******************************************************************************
 
@@ -19975,7 +20017,7 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   A           The character to be printed
+\   A                   The character to be printed
 \
 \ ******************************************************************************
 
@@ -19993,12 +20035,12 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   A           One of the following:
+\   A                   One of the following:
 \
-\                 * 128-159 (two-letter token)
+\                         * 128-159 (two-letter token)
 \
-\                 * 160-255 (the argument to TT27 that refers to a recursive
-\                   token in the range 0-95)
+\                         * 160-255 (the argument to TT27 that refers to a
+\                           recursive token in the range 0-95)
 \
 \ ******************************************************************************
 
@@ -20045,11 +20087,11 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   A           The recursive token to be printed, in the range 0-148
+\   A                   The recursive token to be printed, in the range 0-148
 \
 \ Other entry points:
 \
-\   TT148       Contains an RTS
+\   TT148               Contains an RTS
 \
 \ ******************************************************************************
 \
@@ -20559,7 +20601,7 @@ MAPCHAR '4', '4'
 \
 \ Returns:
 \
-\   A           Set to 0
+\   A                   Set to 0
 \
 \ ******************************************************************************
 
@@ -20604,12 +20646,12 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   X           The number of text rows to display on screen (24 will hide the
-\               dashboard, 31 will make it reappear)
+\   X                   The number of text rows to display on screen (24 will
+\                       hide the dashboard, 31 will make it reappear)
 \
 \ Returns
 \
-\   A           A is set to 6
+\   A                   A is set to 6
 \
 \ ******************************************************************************
 
@@ -20637,7 +20679,7 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   X           The value of the shield to recharge
+\   X                   The value of the shield to recharge
 \
 \ ******************************************************************************
 
@@ -20667,7 +20709,7 @@ MAPCHAR '4', '4'
 \
 \ Returns:
 \
-\   Z flag      Set if we have no energy left, clear otherwise
+\   Z flag              Set if we have no energy left, clear otherwise
 \
 \ ******************************************************************************
 
@@ -20915,10 +20957,10 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   A           The mmount of damage to take
+\   A                   The amount of damage to take
 \
-\   INF         The address of the ship block for the ship that attacked us, or
-\               the ship that we just ran into
+\   INF                 The address of the ship block for the ship that attacked
+\                       us, or the ship that we just ran into
 \
 \ ******************************************************************************
 
@@ -21019,13 +21061,13 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   X           Determines which coordinate to copy, and to where:
+\   X                   Determines which coordinate to copy, and to where:
 \
-\                 * X = 0 copies (x_hi, x_distance) into K3(2 1 0)
+\                         * X = 0 copies (x_hi, x_distance) into K3(2 1 0)
 \
-\                 * X = 3 copies (y_hi, y_distance) into K3(5 4 3)
+\                         * X = 3 copies (y_hi, y_distance) into K3(5 4 3)
 \
-\                 * X = 6 copies (z_hi, z_distance) into K3(8 7 6)
+\                         * X = 6 copies (z_hi, z_distance) into K3(8 7 6)
 \
 \ ******************************************************************************
 
@@ -21057,7 +21099,7 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   X           The ship number for which we want the data block address
+\   X                   The ship number for which we want the data block address
 \
 \ ******************************************************************************
 
@@ -21134,13 +21176,13 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   A           The type of the ship to add (see variable XX21 for a list of
-\               ship types)
+\   A                   The type of the ship to add (see variable XX21 for a
+\                       list of ship types)
 \
 \ Returns:
 \
-\   C flag      Set if the ship was successfully added, clear if it wasn't
-\               (as there wasn't enough free memory)
+\   C flag              Set if the ship was successfully added, clear if it
+\                       wasn't (as there wasn't enough free memory)
 \
 \ ******************************************************************************
 
@@ -21372,11 +21414,11 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   X           The offset of the INWK byte to be flipped
+\   X                   The offset of the INWK byte to be flipped
 \
 \ Returns:
 \
-\   X           X is incremented by 2
+\   X                   X is incremented by 2
 \
 \ ******************************************************************************
 
@@ -21417,18 +21459,18 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   X           The slot number of the ship in our missile lock, or &FF to
-\               remove missile lock
+\   X                   The slot number of the ship in our missile lock, or &FF
+\                       to remove missile lock
 \
-\   Y           The new colour of the missile indicator:
+\   Y                   The new colour of the missile indicator:
 \
-\                 * &00 = black (no missile)
+\                         * &00 = black (no missile)
 \
-\                 * &0E = red (armed and locked)
+\                         * &0E = red (armed and locked)
 \
-\                 * &E0 = yellow (armed)
+\                         * &E0 = yellow (armed)
 \
-\                 * &EE = green (disarmed)
+\                         * &EE = green (disarmed)
 \
 \ ******************************************************************************
 
@@ -21560,22 +21602,23 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   X           Number of the missile indicator to update (counting from right
-\               to left, so indicator NOMSL is the leftmost indicator)
+\   X                   Number of the missile indicator to update (counting from
+\                       right to left, so indicator NOMSL is the leftmost
+\                       indicator)
 \
-\   Y           New colour of the missile indicator:
+\   Y                   New colour of the missile indicator:
 \
-\                 * &00 = black (no missile)
+\                         * &00 = black (no missile)
 \
-\                 * &0E = red (armed and locked)
+\                         * &0E = red (armed and locked)
 \
-\                 * &E0 = yellow (armed)
+\                         * &E0 = yellow (armed)
 \
-\                 * &EE = green (disarmed)
+\                         * &EE = green (disarmed)
 \
 \ Returns:
 \
-\   Y           Y is set to 0
+\   Y                   Y is set to 0
 \
 \ ******************************************************************************
 
@@ -22011,11 +22054,13 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   K(1 0)      The sun's radius as a 16-bit integer
+\   K(1 0)              The sun's radius as a 16-bit integer
 \
-\   K3(1 0)     Pixel x-coordinate of the centre of the sun as a 16-bit integer
+\   K3(1 0)             Pixel x-coordinate of the centre of the sun as a 16-bit
+\                       integer
 \
-\   K4(1 0)     Pixel y-coordinate of the centre of the sun as a 16-bit integer
+\   K4(1 0)             Pixel y-coordinate of the centre of the sun as a 16-bit
+\                       integer
 \
 \ ******************************************************************************
 
@@ -22077,7 +22122,7 @@ MAPCHAR '4', '4'
 \
 \ Other entry points:
 \
-\   RTS2        Contains an RTS
+\   RTS2                Contains an RTS
 \
 \ ******************************************************************************
 
@@ -22671,13 +22716,15 @@ MAPCHAR '4', '4'
 \
 \ Returns:
 \
-\   A           The key pressed, if the arrow keys were used
+\   A                   The key pressed, if the arrow keys were used
 \
-\   X           Change in the x-coordinate according to the cursor keys being
-\               pressed or joystick movement, as an integer (see above)
+\   X                   Change in the x-coordinate according to the cursor keys
+\                       being pressed or joystick movement, as an integer (see
+\                        above)
 \
-\   Y           Change in the y-coordinate according to the cursor keys being
-\               pressed or joystick movement, as an integer (see above)
+\   Y                   Change in the y-coordinate according to the cursor keys
+\                       being pressed or joystick movement, as an integer (see
+\                       above)
 \
 \ ******************************************************************************
 
@@ -22859,9 +22906,9 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   XX0         The address of the blueprint for this ship
+\   XX0                 The address of the blueprint for this ship
 \
-\   INF         The address of the data block for this ship
+\   INF                 The address of the data block for this ship
 \
 \ ******************************************************************************
 
@@ -22930,8 +22977,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   XX4         The slot number of the ship we removed just before calling this
-\               routine
+\   XX4                 The slot number of the ship we removed just before
+\                       calling this routine
 \
 \ ******************************************************************************
 
@@ -23025,11 +23072,11 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   X           The slot number of the ship to remove
+\   X                   The slot number of the ship to remove
 \
-\   XX0         The address of the blueprint for the ship to remove
+\   XX0                 The address of the blueprint for the ship to remove
 \
-\   INF         The address of the data block for the ship to remove
+\   INF                 The address of the data block for the ship to remove
 \
 \ ******************************************************************************
 
@@ -23428,7 +23475,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Returns:
 \
-\   Y           Y is set to &FF
+\   Y                   Y is set to &FF
 \
 \ ******************************************************************************
 
@@ -23498,7 +23545,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Returns:
 \
-\   Y           Y is set to &FF
+\   Y                   Y is set to &FF
 \
 \ ******************************************************************************
 
@@ -23796,12 +23843,12 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   TT100       The entry point for the start of the main game loop, which
-\               calls the main flight loop and the moves into the spawning
-\               routine
+\   TT100               The entry point for the start of the main game loop,
+\                       which calls the main flight loop and the moves into the
+\                       spawning routine
 \
-\   me3         Used by me2 to jump back into the main game loop after printing
-\               an in-flight message
+\   me3                 Used by me2 to jump back into the main game loop after
+\                       printing an in-flight message
 \
 \ ******************************************************************************
 
@@ -24105,11 +24152,12 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   MLOOP       The entry point for the main game loop. This entry point comes
-\               after the the call to the main flight loop and spawning
-\               routines, so it marks the start of the main game loop for when
-\               we are docked (as we don't need to call the main flight loop or
-\               spawning routines if we aren't in space)
+\   MLOOP               The entry point for the main game loop. This entry point
+\                       comes after the the call to the main flight loop and
+\                       spawning routines, so it marks the start of the main
+\                       game loop for when we are docked (as we don't need to
+\                       call the main flight loop or spawning routines if we
+\                       aren't in space)
 \
 \ ******************************************************************************
 
@@ -24157,14 +24205,12 @@ LOAD_F% = LOAD% + P% - CODE%
 \     (red key f8), and when we finish buying or selling cargo in BAY2 to jump
 \     to the Inventory (red key f9).
 \
-\ Arguments for FRCE:
-\
-\   A           The internal key number of the key we want to "press"
-\
 \ Other entry points:
 \
-\   FRCE        The entry point for the main game loop if we want to jump
-\               straight to a specific screen, by pretending to "press" a key
+\   FRCE                The entry point for the main game loop if we want to
+\                       jump straight to a specific screen, by pretending to
+\                       "press" a key, in which case A contains the internal key
+\                       number of the key we want to "press"
 \
 \ ******************************************************************************
 
@@ -24215,12 +24261,13 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   A           The internal key number of the key pressed (see p.142 of the
-\               Advanced User Guide for a list of internal key values)
+\   A                   The internal key number of the key pressed (see p.142 of
+\                       the Advanced User Guide for a list of internal key
+\                       values)
 \
-\   X           The amount to move the crosshairs in the x-axis, if applicable
+\   X                   The amount to move the crosshairs in the x-axis
 \
-\   Y           The amount to move the crosshairs in the y-axis, if applicable
+\   Y                   The amount to move the crosshairs in the y-axis
 \
 \ ******************************************************************************
 
@@ -24456,8 +24503,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Returns:
 \
-\   C flag      Set if x_hi <= &E0 and y_hi <= &E0 and z_hi <= &E0
-\               Clear otherwise (i.e. if any one of them are bigger than &E0)
+\   C flag              Set if x_hi <= &E0 and y_hi <= &E0 and z_hi <= &E0
+\
+\                       Clear otherwise (i.e. if any one of them are bigger than
+\                       &E0)
 \
 \ ******************************************************************************
 
@@ -24476,8 +24525,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Returns:
 \
-\   C flag      Set if x_hi <= A and y_hi <= A and z_hi <= A
-\               Clear otherwise (i.e. if any one of them are bigger than A)
+\   C flag              Set if x_hi <= A and y_hi <= A and z_hi <= A
+\
+\                       Clear otherwise (i.e. if any one of them are bigger than
+\                       A)
 \
 \ ******************************************************************************
 
@@ -24507,7 +24558,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Returns:
 \
-\   A           A OR x_hi OR y_hi OR z_hi
+\   A                   A OR x_hi OR y_hi OR z_hi
 \
 \ ******************************************************************************
 
@@ -24671,8 +24722,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   BR1         Restarts the game, but without resetting the stack pointer. BRKV
-\               is set to point here by elite-loader.asm
+\   BR1                 Restarts the game, but without resetting the stack
+\                       pointer. BRKV is set to point here by elite-loader.asm
 \
 \ ******************************************************************************
 
@@ -24866,11 +24917,12 @@ ENDIF
 \
 \ Arguments:
 \
-\   A           The number of the recursive token to show below the rotating
-\               ship (see variable QQ18 for details of recursive tokens)
+\   A                   The number of the recursive token to show below the
+\                       rotating ship (see variable QQ18 for details of
+\                       recursive tokens)
 \
-\   X           The type of the ship to show (see variable XX21 for a list of
-\               ship types)
+\   X                   The type of the ship to show (see variable XX21 for a
+\                       list of ship types)
 \
 \ ******************************************************************************
 
@@ -25199,7 +25251,7 @@ ENDIF
 \
 \ Arguments:
 \
-\   X           The page we want to zero-fill
+\   X                   The page we want to zero-fill
 \
 \ ******************************************************************************
 
@@ -25224,12 +25276,12 @@ ENDIF
 \
 \ Arguments:
 \
-\   X           The page where we want to zero-fill
+\   X                   The page where we want to zero-fill
 \
-\   Y           A negative value denoting how many bytes before SC we want
-\               to start zeroing
+\   Y                   A negative value denoting how many bytes before SC we
+\                       want to start zeroing
 \
-\   SC          The position in the page where we should zero fill up to
+\   SC                  The position in the page where we should zero fill up to
 \
 \ ******************************************************************************
 
@@ -25385,15 +25437,16 @@ ENDIF
 \
 \ Arguments:
 \
-\   A           File operation to be performed. Can be one of the following:
+\   A                   File operation to be performed. Can be one of the following:
 \
-\                 * 0 (save file)
+\                         * 0 (save file)
 \
-\                 * &FF (load file)
+\                         * &FF (load file)
 \
-\   Y           Points to the page number containing the OSFILE block, which
-\               must be &C because that's where the pointer to the filename in
-\               INWK is stored below (by the STX &C00 instruction)
+\   Y                   Points to the page number containing the OSFILE block,
+\                       which must be &C because that's where the pointer to the
+\                       filename in INWK is stored below (by the STX &C00
+\                       instruction)
 \
 \ ******************************************************************************
 
@@ -25522,24 +25575,24 @@ ENDIF
 \
 \ Arguments:
 \
-\   K3(2 1 0)   The 16-bit x-coordinate as (x_sign x_hi x_lo), where x_sign is
-\               just bit 7
+\   K3(2 1 0)           The 16-bit x-coordinate as (x_sign x_hi x_lo), where
+\                       x_sign is just bit 7
 \
-\   K3(5 4 3)   The 16-bit y-coordinate as (y_sign y_hi y_lo), where y_sign is
-\               just bit 7
+\   K3(5 4 3)           The 16-bit y-coordinate as (y_sign y_hi y_lo), where
+\                       y_sign is just bit 7
 \
-\   K3(8 7 6)   The 16-bit z-coordinate as (z_sign z_hi z_lo), where z_sign is
-\               just bit 7
+\   K3(8 7 6)           The 16-bit z-coordinate as (z_sign z_hi z_lo), where
+\                       z_sign is just bit 7
 \
 \ Returns:
 \
-\   XX15        The normalised vector, with:
+\   XX15                The normalised vector, with:
 \
-\                 * The x-coordinate in XX15
+\                         * The x-coordinate in XX15
 \
-\                 * The y-coordinate in XX15+1
+\                         * The y-coordinate in XX15+1
 \
-\                 * The z-coordinate in XX15+2
+\                         * The z-coordinate in XX15+2
 \
 \ ******************************************************************************
 
@@ -25618,21 +25671,21 @@ ENDIF
 \
 \ Arguments:
 \
-\   XX15        The vector to normalise, with:
+\   XX15                The vector to normalise, with:
 \
-\                 * The x-coordinate in XX15
+\                         * The x-coordinate in XX15
 \
-\                 * The y-coordinate in XX15+1
+\                         * The y-coordinate in XX15+1
 \
-\                 * The z-coordinate in XX15+2
+\                         * The z-coordinate in XX15+2
 \
 \ Returns:
 \
-\   XX15        The normalised vector
+\   XX15                The normalised vector
 \
 \ Other entry points:
 \
-\   NO1         Contains an RTS
+\   NO1                 Contains an RTS
 \
 \ ******************************************************************************
 
@@ -25719,10 +25772,10 @@ ENDIF
 \
 \ Returns:
 \
-\   X           If a key is being pressed, X contains the internal key number,
-\               otherwise it contains 0
+\   X                   If a key is being pressed, X contains the internal key
+\                       number, otherwise it contains 0
 \
-\   A           Contains the same as X
+\   A                   Contains the same as X
 \
 \ ******************************************************************************
 
@@ -25873,13 +25926,14 @@ ENDIF
 \
 \ Arguments:
 \
-\   X           The larger the value of X, the fainter the explosion. Allowed
-\               values are:
+\   X                   The larger the value of X, the fainter the explosion.
+\                       Allowed values are:
 \
-\                 * 7  = explosion is louder (i.e. the ship has exploded)
+\                         * 7  = explosion is louder (i.e. the ship has
+\                                exploded)
 \
-\                 * 15 = explosion is quieter (i.e. this is just a laser
-\                        strike)
+\                         * 15 = explosion is quieter (i.e. this is just a laser
+\                                strike)
 \
 \ ******************************************************************************
 
@@ -25950,8 +26004,9 @@ ENDIF
 \
 \ Arguments:
 \
-\   A           The number of the sound to be made. See the documentation for
-\               variable SFX for a list of sound numbers.
+\   A                   The number of the sound to be made. See the
+\                       documentation for variable SFX for a list of sound
+\                       numbers
 \
 \ ******************************************************************************
 
@@ -26003,8 +26058,8 @@ ENDIF
 \
 \ Arguments:
 \
-\   A           The sound number to copy from SFX to XX16, which is always a
-\               multiple of 8
+\   A                   The sound number to copy from SFX to XX16, which is
+\                       always a multiple of 8
 \
 \ ******************************************************************************
 
@@ -26091,8 +26146,8 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \
 \ Arguments:
 \
-\   Y           The offset into the KYTB table above of the key that we want to
-\               scan on the keyboard
+\   Y                   The offset into the KYTB table above of the key that we
+\                       want to scan on the keyboard
 \
 \ ******************************************************************************
 
@@ -26121,11 +26176,12 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \
 \ Returns:
 \
-\   X           X = %10000001 (i.e. 129 or -127) if CTRL is being pressed
+\   X                   X = %10000001 (i.e. 129 or -127) if CTRL is being
+\                       pressed
 \
-\               X = 1 if CTRL is not being pressed
+\                       X = 1 if CTRL is not being pressed
 \
-\   A           Contains the same as X
+\   A                   Contains the same as X
 \
 \ ******************************************************************************
 
@@ -26144,16 +26200,18 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \
 \ Arguments:
 \
-\   X           The internal number of the key to check (see p.142 of the
-\               Advanced User Guide for a list of internal key values)
+\   X                   The internal number of the key to check (see p.142 of
+\                       the Advanced User Guide for a list of internal key
+\                       values)
 \
 \ Returns:
 \
-\   X           If the key in X is being pressed, X contains the original
-\               argument X, but with bit 7 set (i.e. X + 128). If the key in
-\               X is not being pressed, the value in X is unchanged.
+\   X                   If the key in X is being pressed, X contains the
+\                       original argument X, but with bit 7 set (i.e. X + 128).
+\                       If the key in X is not being pressed, the value in X is
+\                       unchanged
 \
-\   A           Contains the same as X
+\   A                   Contains the same as X
 \
 \ ******************************************************************************
 
@@ -26207,12 +26265,17 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \
 \ Arguments:
 \
-\   X           The ADC channel to read (1 = joystick X, 2 = joystick Y)
+\   X                   The ADC channel to read:
+\
+\                         * 1 = joystick X
+\
+\                         * 2 = joystick Y
 \
 \ Returns:
 \
-\   (A X)       The 16-bit value read from channel X, with the value inverted
-\               if the game has been configured to reverse the joystick
+\   (A X)               The 16-bit value read from channel X, with the value
+\                       inverted if the game has been configured to reverse the
+\                       joystick
 \
 \ ******************************************************************************
 
@@ -26258,10 +26321,11 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \
 \ Arguments:
 \
-\   X           The internal number of the key that's been pressed
+\   X                   The internal number of the key that's been pressed
 \
-\   Y           The internal number of the configuration key to check against,
-\               from the list above (i.e. Y must be from &40 to &46)
+\   Y                   The internal number of the configuration key to check
+\                       against, from the list above (i.e. Y must be from &40 to
+\                       &46)
 \
 \ ******************************************************************************
 
@@ -26365,7 +26429,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \
 \ Returns:
 \
-\   A           A is set to 0
+\   A                   A is set to 0
 \
 \ ******************************************************************************
 
@@ -26612,15 +26676,15 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \
 \ Returns:
 \
-\   X           The ASCII code of the key that was pressed
+\   X                   The ASCII code of the key that was pressed
 \
-\   A           Contains the same as X
+\   A                   Contains the same as X
 \
-\   Y           Y is preserved
+\   Y                   Y is preserved
 \
 \ Other entry points:
 \
-\   out         Contains an RTS
+\   out                 Contains an RTS
 \
 \ ******************************************************************************
 
@@ -26672,9 +26736,9 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \
 \ Arguments:
 \
-\   A           The text token to be printed
+\   A                   The text token to be printed
 \
-\   X           Must be set to 0
+\   X                   Must be set to 0
 \
 \ ******************************************************************************
 
@@ -26737,7 +26801,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 \
 \ Arguments:
 \
-\   A           The text token to be printed
+\   A                   The text token to be printed
 \
 \ ******************************************************************************
 
