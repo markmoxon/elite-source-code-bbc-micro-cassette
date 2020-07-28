@@ -1,6 +1,8 @@
 \ ******************************************************************************
-\* Prepare the Big Code File
-\* ELTcode
+\
+\ Prepare the Big Code File
+\ ELTcode
+\
 \ ******************************************************************************
 
 C%=&F40             ; assembly address of Elite game code (elite-source.asm)
@@ -11,9 +13,11 @@ ZP=&70
 ORG &1100           ; load address of ELTcode
 
 \ ******************************************************************************
+\
 \ Code entered at LBL+1 (&1101) as defined in elite-loader.asm CHECKV
 \ Calculates checksum and compares to value in CHECKbyt (&B00) from loader
 \ Any trivial modification in this code results in a machine reset (&FFFC)
+\
 \ ******************************************************************************
 
 .LBL
