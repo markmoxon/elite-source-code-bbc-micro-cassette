@@ -20161,16 +20161,23 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: COMPAS
 \
-\ space Compass
+\ Update the compass.
 \ ******************************************************************************
 
-.COMPAS                 ; space Compass
+.COMPAS
 {
- JSR DOT                ; compass dot remove
- LDA SSPR               ; space station present? 0 is SUN.
- BNE SP1                ; compass point to space station, down.
- JSR SPS1               ; XX15 vector to planet
- JMP SP2                ; compass point to XX15
+ JSR DOT                ; Call DOT to redraw (i.e. remove) the current compass
+                        ; dot
+
+ LDA SSPR               ; If we are inside the space station safe zone, jump to
+ BNE SP1                ; SP1 to draw the space station on the compass
+
+ JSR SPS1               ; Otherwise we need to draw the planet on the compass,
+                        ; so first call SPS1 to calculate the vector to the
+                        ; planet and store it in XX15
+
+ JMP SP2                ; Jump to SP2 to draw XX15 on the compass, returning
+                        ; from the subroutine with a tail call
 }
 
 \ ******************************************************************************
@@ -20210,37 +20217,47 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: SPS4
 \
-\ XX15 vector to #SST
+\ Calculate the vector to the space station and store it in XX15.
 \ ******************************************************************************
 
-.SPS4                   ; XX15 vector to #SST
+.SPS4
 {
- LDX #8                 ; 9 coords
+ LDX #8                 ; First we need to copy the space station's coordinates
+                        ; into K3, so set a counter to copy the first 9 bytes
+                        ; (the 3-byte x, y and z coordinates) from the station's
+                        ; data block at K% + NI% into K3
 
-.SPL1                   ; counter X
+.SPL1
 
- LDA K%+NI%,X           ; allwk+37,X
- STA K3,X
- DEX                    ; next coord
- BPL SPL1               ; loop X
- JMP TAS2               ; build XX15 from K3
+ LDA K%+NI%,X           ; Copy the X-th byte from the station's data block at
+ STA K3,X               ; K% + NI% to the X-th byte of K3
+
+ DEX                    ; Decrement the loop countr
+
+ BPL SPL1               ; Loop back to SPL1 until we have copied all 9 bytes
+
+ JMP TAS2               ; Call TAS2 to build XX15 from K3, returning from the
+                        ; subroutine using a tail call
 }
 
 \ ******************************************************************************
 \ Subroutine: SP1
 \
-\ compass point to space station
+\ Draw the space station on the compass.
 \ ******************************************************************************
 
-.SP1                    ; compass point to space station
+.SP1
 {
- JSR SPS4               ; XX15 vector to #SST, up.
+ JSR SPS4               ; Call SPS4 to calculate the vector to the space station
+                        ; and store it in XX15
+                        
+                        ; Fall through into SP2 to draw XX15 on the compass
 }
 
 \ ******************************************************************************
 \ Subroutine: SP2
 \
-\ compass point to XX15
+\ Draw the compass dot, pointing to XX15.
 \ ******************************************************************************
 
 .SP2                    ; compass point to XX15
@@ -20267,7 +20284,7 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: DOT
 \
-\ Compass dot
+\ Draw the compass dot at position (COMX, COMY) with colour COMC.
 \ ******************************************************************************
 
 .DOT                    ; Compass dot
@@ -20443,21 +20460,40 @@ MAPCHAR '4', '4'
 \ ******************************************************************************
 \ Subroutine: SPS3
 \
-\ planet if Xreg=0 for space compass into K3(0to8)
+\ Copy one of the the planet's coordinates into the corresponding location in
+\ the temporary variable K3. The high byte and absolute value of the distance
+\ byte are copied into the first two K3 bytes, and the sign of the distance byte
+\ is copied into the highest K3 byte.
+\
+\ The comments below are written for the x-coordinate.
+\
+\ Arguments:
+\
+\   X           Determines which coordinate to copy, and to where:
+\
+\                 * X = 0 copies (x_hi, x_distance) into K3(2 1 0)
+\
+\                 * X = 3 copies (y_hi, y_distance) into K3(5 4 3)
+\
+\                 * X = 6 copies (z_hi, z_distance) into K3(8 7 6)
 \ ******************************************************************************
 
-.SPS3                   ; planet if Xreg=0 for space compass into K3(0to8)
+.SPS3
 {
- LDA K%+1,X             ; allwk+1,X
- STA K3,X               ; hi
- LDA K%+2,X             ; allwk+2,X
- TAY                    ; sg
- AND #127               ; sg far7
+ LDA K%+1,X             ; Copy x_hi into K3+X
+ STA K3,X
+
+ LDA K%+2,X             ; Set A = Y = x_distance
+ TAY
+
+ AND #%01111111         ; Set K3+1 = |x_distance|
  STA K3+1,X
- TYA                    ; sg
- AND #128               ; bit7 sign
+ 
+ TYA                    ; Set K3+2 = the sign of x_distance
+ AND #%10000000
  STA K3+2,X
- RTS
+ 
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -24729,115 +24765,219 @@ ENDIF
 \ ******************************************************************************
 \ Subroutine: SPS1
 \
-\ XX15 vector to planet
-\ ******************************************************************************
+\ Calculate the vector to the planet and store it in XX15. ******************************************************************************
 
-.SPS1                   ; XX15 vector to planet
+.SPS1
 {
- LDX #0                 ; xcoord planet
- JSR SPS3               ; planet for space compass into K3(0to8)
- LDX #3                 ; ycoord
- JSR SPS3
- LDX #6                 ; zcoord
- JSR SPS3
+ LDX #0                 ; Copy the two high bytes of the planet's x-coordinate
+ JSR SPS3               ; into K3(2 1 0), separating out the sign bit into K3+2
+
+ LDX #3                 ; Copy the two high bytes of the planet's y-coordinate
+ JSR SPS3               ; into K3(5 4 3), separating out the sign bit into K3+5
+
+ LDX #6                 ; Copy the two high bytes of the planet's z-coordinate
+ JSR SPS3               ; into K3(8 7 6), separating out the sign bit into K3+8
+
+                        ; Fall through into TAS2 to build XX15 from K3
 }
 
 \ ******************************************************************************
 \ Subroutine: TAS2
 \
-\ XX15=r~96 \ their comment \ build XX15 from K3
+\ Normalise the vector in K3, which has 16-bit values and separate sign bits,
+\ and store the normalised version in XX15 as a signed 8-bit vector.
+\
+\ A normalised vector (also known as a unit vector) has length 1, so this
+\ routine takes an existing vector in K3 and scales it so the length of the
+\ new vector is 1. This is used in two places: when drawing the compass, and
+\ when applying AI tactics to ships.
+\
+\ We do this in two stages. This stage shifts the 16-bit vector coordinates in
+\ K3 to the left as far as they will go without losing any bits off the end, so
+\ we can then take the high bytes and use them as the most accurate 8-bit vector
+\ to normalise. Then the next stage (in routine NORM) does the normalisation.
+\
+\ Arguments:
+\
+\   K3(2 1 0)   The 16-bit x-coordinate as (x_sign x_hi x_lo), where x_sign is
+\               just bit 7
+\
+\   K3(5 4 3)   The 16-bit y-coordinate as (y_sign y_hi y_lo), where y_sign is
+\               just bit 7
+\
+\   K3(8 7 6)   The 16-bit z-coordinate as (z_sign z_hi z_lo), where z_sign is
+\               just bit 7
+\
+\ Returns:
+\
+\   XX15        The normalised vector, with:
+\
+\                 * The x-coordinate in XX15
+\
+\                 * The y-coordinate in XX15+1
+\
+\                 * The z-coordinate in XX15+2
 \ ******************************************************************************
 
-.TAS2                   ; XX15=r~96 \ their comment \ build XX15 from K3
+.TAS2
 {
- LDA K3
- ORA K3+3
- ORA K3+6
- ORA #1                 ; not zero
- STA K3+9               ; lo or'd max
- LDA K3+1               ; x hi
- ORA K3+4               ; y hi
- ORA K3+7               ; z hi
+ LDA K3                 ; OR the three low bytes and 1 to get a byte that has
+ ORA K3+3               ; a 1 wherever any of the three low bytes has a 1
+ ORA K3+6               ; (as well as always having bit 0 set), and store in
+ ORA #1                 ; K3+9
+ STA K3+9
 
-.TAL2                   ; roll Acc = xyz  hi
+ LDA K3+1               ; OR the three high bytes to get a byte in A that has a
+ ORA K3+4               ; 1 wherever any of the three high bytes has a 1
+ ORA K3+7
 
- ASL K3+9               ; all lo max
- ROL A                  ; all hi max
- BCS TA2                ; exit when xyz hi*=2 overflows
- ASL K3                 ; xlo
- ROL K3+1               ; xhi*=2
- ASL K3+3               ; ylo
- ROL K3+4               ; yhi*=2
- ASL K3+6               ; zlo
- ROL K3+7               ; zhi*=2
- BCC TAL2               ; loop roll Acc xyz hi
+                        ; (A K3+9) now has a 1 wherever any of the 16-bit
+                        ; values in K3 has a 1
+.TAL2
+
+ ASL K3+9               ; Shift (A K3+9) to the left, so bit 7 of the high byte
+ ROL A                  ; goes into the C flag
+
+ BCS TA2                ; If the left shift pushed a 1 out of the end, then we
+                        ; know that at least one of the coordinates has a 1 in
+                        ; this position, so jump to TA2 as we can't shift the
+                        ; values in K3 any further to the left
+
+ ASL K3                 ; Shift K3(1 0), the x-coordinate, to the left
+ ROL K3+1
+
+ ASL K3+3               ; Shift K3(4 3), the y-coordinate, to the left
+ ROL K3+4
+
+ ASL K3+6               ; Shift K3(6 7), the z-coordinate, to the left
+ ROL K3+7
+
+ BCC TAL2               ; Jump back to TAL2 to do another shift left (this BCC
+                        ; is effectively a JMP as we know bit 7 of K3+7 is not a
+                        ; 1, as otherwise bit 7 of A would have been a 1 and we
+                        ; would have taken the BCS above)
 
 .TA2                    ; exited, Build XX15(0to2) from (raw) K3(1to8)
 
- LDA K3+1               ; xhi
- LSR A                  ; clear bit7 for sign
- ORA K3+2               ; xsg
- STA XX15               ; xunit, bit7 is xsign
- LDA K3+4               ; yhi
- LSR A
- ORA K3+5               ; ysg
- STA XX15+1             ; yunit, bit7 is ysign
- LDA K3+7               ; zhi
- LSR A
- ORA K3+8               ; zsg
- STA XX15+2             ; zunit, bit7 is zsign
+ LDA K3+1               ; Fetch the high byte of the x-coordinate from our left-
+ LSR A                  ; shifted K3, shift it right to clear bit 7, stick the
+ ORA K3+2               ; sign bit in there from the x_sign part of K3, and
+ STA XX15               ; store the resulting signed 8-bit x-coordinate in XX15
+
+ LDA K3+4               ; Fetch the high byte of the y-coordinate from our left-
+ LSR A                  ; shifted K3, shift it right to clear bit 7, stick the
+ ORA K3+5               ; sign bit in there from the y_sign part of K3, and
+ STA XX15+1             ; store the resulting signed 8-bit y-coordinate in
+                        ; XX15+1
+
+ LDA K3+7               ; Fetch the high byte of the z-coordinate from our left-
+ LSR A                  ; shifted K3, shift it right to clear bit 7, stick the
+ ORA K3+8               ; sign bit in there from the z_sign part of K3, and
+ STA XX15+2             ; store the resulting signed 8-bit  z-coordinate in
+                        ; XX15+2
+                        
+                        ; Now we have a signed 8-bit version of the vector K3 in
+                        ; XX15, so fall through into NORM to normalise it
 }
 
 \ ******************************************************************************
 \ Subroutine: NORM
 \
-\ Normalize 3-vector length of XX15
+\ Normalise the three-coordinate vector in XX15.
+\
+\ We do this by dividing each of the three coordinates by the length of the
+\ vector, which we can calculate using Pythagoras. Once normalised, 96 (&E0) is
+\ used to represent a value of 1, and 96 with bit 7 set (&E0) is used to
+\ represent -1. This enables us to represent fractional values of less than 1
+\ using integers.
+\
+\ Arguments:
+\
+\   XX15        The vector to normalise, with:
+\
+\                 * The x-coordinate in XX15
+\
+\                 * The y-coordinate in XX15+1
+\
+\                 * The z-coordinate in XX15+2
+\
+\ Returns:
+\
+\   XX15        The normalised vector
+\
+\ Other entry points:
+\
+\   NO1         Contains an RTS
 \ ******************************************************************************
 
-.NORM                   ; Normalize 3-vector length of XX15
+.NORM
 {
- LDA XX15
- JSR SQUA               ; P.A =A7*A7  x^2
- STA R                  ; hi sum
- LDA P                  ; lo
- STA Q                  ; lo sum
- LDA XX15+1
- JSR SQUA               ; P.A =A7*A7 y^2
- STA T                  ; temp hi
- LDA P                  ; lo
- ADC Q
+ LDA XX15               ; Fetch the x-coordinate into A
+
+ JSR SQUA               ; Set (A P) = A * A = x^2
+
+ STA R                  ; Set (R Q) = (A P) = x^2
+ LDA P
  STA Q
- LDA T                  ; hi
+ 
+ LDA XX15+1             ; Fetch the y-coordinate into A
+
+ JSR SQUA               ; Set (A P) = A * A = y^2
+
+ STA T                  ; Set (T P) = (A P) = y^2
+ 
+ LDA P                  ; Set (R Q) = (R Q) + (T P) = x^2 + y^2
+ ADC Q                  ;
+ STA Q                  ; First, doing the low bytes, Q = Q + P
+ 
+ LDA T                  ; And then the high bytes, R = R + T
  ADC R
  STA R
- LDA XX15+2
- JSR SQUA               ; P.A =A7*A7 z^2
- STA T
- LDA P                  ; lo
- ADC Q
- STA Q                  ; xlo2 + ylo2 + zlo2
- LDA T                  ; temp hi
+
+ LDA XX15+2             ; Fetch the z-coordinate into A
+
+ JSR SQUA               ; Set (A P) = A * A = z^2
+
+ STA T                  ; Set (T P) = (A P) = z^2
+
+ LDA P                  ; Set (R Q) = (R Q) + (T P) = x^2 + y^2 + z^2
+ ADC Q                  ;
+ STA Q                  ; First, doing the low bytes, Q = Q + P
+ 
+ LDA T                  ; And then the high bytes, R = R + T
  ADC R
  STA R
 
- JSR LL5                ; Q = SQR(Qlo.Rhi), Q <~127
+ JSR LL5                ; We now have the following:
+                        ;
+                        ; (R Q) = x^2 + y^2 + z^2
+                        ;
+                        ; so we can call LL5 to use Pythagoras to get:
+                        ;
+                        ; Q = SQRT(R Q)
+                        ;   = SQRT(x^2 + y^2 + z^2)
+                        ;
+                        ; So Q now contains the length of the vector (x, y, z),
+                        ; and we can normalise the vector by dividing each of
+                        ; the coordinates by this value, which we do by calling
+                        ; routine TIS2. TIS2 returns the divided figure, using
+                        ; 96 to represent 1 and 96 with bit 7 set for -1
 
- LDA XX15
- JSR TIS2               ; *96/Q
- STA XX15               ; xunit
+ LDA XX15               ; Call TIS2 to divide the x-coordinate in XX15 by Q,
+ JSR TIS2               ; with 1 being represented by 96
+ STA XX15
 
- LDA XX15+1
- JSR TIS2
- STA XX15+1             ; yunit
+ LDA XX15+1             ; Call TIS2 to divide the y-coordinate in XX15+1 by Q,
+ JSR TIS2               ; with 1 being represented by 96
+ STA XX15+1
 
- LDA XX15+2
- JSR TIS2
- STA XX15+2             ; zunit
-}
+ LDA XX15+2             ; Call TIS2 to divide the z-coordinate in XX15+2 by Q,
+ JSR TIS2               ; with 1 being represented by 96
+ STA XX15+2
 
-.NO1
-{
- RTS                    ; end of norm
+.^NO1
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -26037,28 +26177,24 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 }
 
 \ ******************************************************************************
-\ Subroutine: TI2
+\ Subroutine: TIDY
 \
-\ Tidy2 \ yunit small, used to renormalize rotation matrix Xreg = index1 = 0
+\ Orthogonalize rotation matrix that uses 0x60 as unity
+\ returns INWK(16,18,20) = INWK(12*18+14*20, 10*16+14*20, 10*16+12*18) / INWK(10,12,14)
+\ Ux,Uy,Uz = -(FyUy+FzUz, FxUx+FzUz, FxUx+FyUy)/ Fx,Fy,Fz
 \ ******************************************************************************
 
-.TI2                    ; Tidy2 \ yunit small, used to renormalize rotation matrix Xreg = index1 = 0
 {
+.TI2                    ; Tidy2 \ yunit small, used to renormalize rotation matrix Xreg = index1 = 0
+
  TYA                    ; Acc  index3 = 4
  LDY #2                 ; Yreg index2 = 2
  JSR TIS3               ; below, denom is z
  STA INWK+20            ; Uz=-(FxUx+FyUy)/Fz \ their comment \ rotmat1z hi
  JMP TI3                ; Tidy3
-}
-
-\ ******************************************************************************
-\ Subroutine: TI1
-\
-\ Tidy1 \ xunit small, with Y = 4
-\ ******************************************************************************
 
 .TI1                    ; Tidy1 \ xunit small, with Y = 4
-{
+
  TAX                    ; Xreg = index1 = 0
  LDA XX15+1
  AND #&60               ; is yunit vector small
@@ -26067,18 +26203,9 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  JSR TIS3               ; below, denom is y
  STA INWK+18            ; rotmat1 hi
  JMP TI3                ; Tidy3
-}
 
-\ ******************************************************************************
-\ Subroutine: TIDY
-\
-\ Orthogonalize rotation matrix that uses 0x60 as unity
-\ returns INWK(16,18,20) = INWK(12*18+14*20, 10*16+14*20, 10*16+12*18) / INWK(10,12,14)
-\ Ux,Uy,Uz = -(FyUy+FzUz, FxUx+FzUz, FxUx+FyUy)/ Fx,Fy,Fz
-\ ******************************************************************************
+.^TIDY                   ; Orthogonalize rotation matrix that uses 0x60 as unity
 
-.TIDY                   ; Orthogonalize rotation matrix that uses 0x60 as unity
-{
  LDA INWK+10            ; rotmat0x hi
  STA XX15               ; XX15(0,1,2) = Fx,Fy,Fz
  LDA INWK+12            ; rotmat0y hi
@@ -26101,10 +26228,9 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  LDA #0                 ; index3 = 0
  JSR TIS3               ; below with Yreg = index2 = 4, denom = x
  STA INWK+16            ; rotmat1x hi
-}
 
 .TI3                    ; Tidy3  \ All 3 choices continue with rotmat1? updated
-{
+
  LDA INWK+16            ; rotmat1x hi
  STA XX15
  LDA INWK+18            ; rotmat1y hi
@@ -26152,6 +26278,15 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
  BPL TIL1               ; loop X
  RTS
 }
+
+\ ******************************************************************************
+\ Subroutine: TIS2
+\
+\ Reduce Acc in NORM routine i.e. *96/Q
+\
+\ returns the divided figure, using 96 to represent 1 and 96 with bit 7 set for
+\ -1
+\ ******************************************************************************
 
 .TIS2                   ; Reduce Acc in NORM routine i.e. *96/Q
 {
