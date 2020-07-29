@@ -2796,10 +2796,10 @@ ORG &0D40
                         ; target
                         ;
                         ; 0 = missile is not looking for a target, or it already
-                        ;     has a target lock (indicator is not yellow)
+                        ;     has a target lock (indicator is not yellow/white)
                         ;
                         ; non-zero = missile is currently looking for a target
-                        ;            (indicator is yellow)
+                        ;            (indicator is yellow/white)
 
 .VIEW
 
@@ -3378,7 +3378,7 @@ LOAD_A% = LOAD%
 
  LDY #&EE               ; The "disarm missiles" key is being pressed, so call
  JSR ABORT              ; ABORT to disarm the missile and update the missile
-                        ; indicators on the dashboard to green (Y = &EE)
+                        ; indicators on the dashboard to green/cyan (Y = &EE)
 
  LDA #40                ; Call the NOISE routine with A = 40 to make a low,
  JSR NOISE              ; long beep to indicate the missile is now disarmed
@@ -3409,11 +3409,12 @@ LOAD_A% = LOAD%
                         ; value &FF, as we just loaded it from MSTG and checked
                         ; that it was negative)
 
- LDY #&E0               ; Change the leftmost missile indicator to yellow on the
- JSR MSBAR              ; missile bar (this changes the leftmost indicator
-                        ; because we set X to the number of missiles in NOMSL
-                        ; above, and the indicators are numbered from right to
-                        ; left, so X is the number of the leftmost indicator)
+ LDY #&E0               ; Change the leftmost missile indicator to yellow/white
+ JSR MSBAR              ; on the missile bar (this changes the leftmost
+                        ; indicator because we set X to the number of missiles
+                        ; in NOMSL above, and the indicators are numbered from
+                        ; right to left, so X is the number of the leftmost
+                        ; indicator)
 
 .MA25
 
@@ -7166,8 +7167,9 @@ NEXT
 \
 \ There is one extra row to support the use of CTWOS+1,X indexing in the CPIX2
 \ routine. The extra row is a repeat of the first row, and saves us from having
-\ to work out whether CTWOS+1+X needs to be wrapped around. See CPIS2 for more
-\ details.
+\ to work out whether CTWOS+1+X needs to be wrapped around when drawing a
+\ two-pixel dash that crosses from one character block into another. See CPIX2
+\ for more details.
 \
 \ ******************************************************************************
 
@@ -9555,9 +9557,9 @@ NEXT
 \                         * 127 (delete the character to the left of the text
 \                           cursor and move the cursor to the left)
 \
-\   XC                    Contains the text column to print at (the x-coordinate)
+\   XC                  Contains the text column to print at (the x-coordinate)
 \
-\   YC                    Contains the line number to print on (the y-coordinate)
+\   YC                  Contains the line number to print on (the y-coordinate)
 \
 \ Returns:
 \
@@ -10559,9 +10561,10 @@ NEXT
 
  AND #&F0               ; The 4-pixel mode 5 colour byte &F0 represents four
                         ; pixels of colour %10 (3), which is yellow in the
-                        ; normal dashboard palette. We AND this with A so that
-                        ; we only keep the pixel that matches the position of
-                        ; the vertical bar (i.e. A is acting as a mask on the
+                        ; normal dashboard palette and white if we have an
+                        ; escape pod fitted. We AND this with A so that we only
+                        ; keep the pixel that matches the position of the
+                        ; vertical bar (i.e. A is acting as a mask on the
                         ; 4-pixel colour byte)
 
  BNE DLL12              ; If A is non-zero then we have something to draw, so
@@ -13210,13 +13213,21 @@ NEXT
 \
 \ P-R=A/Qunsg \ P.R = A/Q unsigned  called by compass in Block E
 \
+\ (R P) = A / Q
+\
+\ Returns:
+\
+\   C flag              The C flag is cleared
+\
 \ ******************************************************************************
 
-.DVID4                  ; P-R=A/Qunsg \ P.R = A/Q unsigned  called by compass in Block E
+.DVID4
 {
- LDX #8                 ; counter
- ASL A
+ LDX #8                 ; Set up a counter in X for 8 bits
+
+ ASL A                  ; Set P = A << 1
  STA P
+
  LDA #0
 
 .DVL4                   ; counter X
@@ -13234,8 +13245,11 @@ NEXT
 .DV5                    ; skip subtraction
 
  ROL P                  ; hi
- DEX
+
+ DEX                    ; Decrement the counter
+
  BNE DVL4               ; loop X, hi left in P.
+
  JMP LL28+4             ; Block G remainder R for A*256/Q
 }
 
@@ -14548,7 +14562,7 @@ NEXT
  BEQ SC5                ; rts
  LDA TYPE               ; ship type
  BMI SC5                ; dont show planet, rts
- LDX #&FF               ; default scanner colour Yellow
+ LDX #&FF               ; default scanner colour Yellow/white
 \CMP #TGL
 \BEQ SC49
  CMP #MSL               ; missile
@@ -20759,36 +20773,57 @@ MAPCHAR '4', '4'
 \
 \ Subroutine: SPS2
 \
-\ X.Y = A/10 for space compass display
+\ Calculate the following, where A is a signed 8-bit integer and the result is a
+\ signed 16-bit integer:
+\
+\   (Y X) = A / 10
+\
+\ Returns:
+\
+\   C flag              The C flag is cleared
 \
 \ ******************************************************************************
 
-.SPS2                   ; X.Y = A/10 for space compass display
+.SPS2
 {
- ASL A                  ; A is signed unit vector
- TAX                    ; X = 7bits
- LDA #0                 ; Acc gets sign in bit7
- ROR A                  ; from any carry
- TAY                    ; Yreg = bit7 sign
- LDA #20                ; denominator
+ ASL A                  ; Set X = |A| * 2, and set the C flag to the sign bit of
+ TAX                    ; A
+
+ LDA #0                 ; Set Y to have the sign bit from A in bit 7, with the
+ ROR A                  ; rest of its bits zeroed, so Y now contains the sign of
+ TAY                    ; the original argument
+
+ LDA #20                ; Set Q = 20
  STA Q
- TXA                    ; 7bits
- JSR DVID4              ; Phi.Rlo=A/20
- LDX P
 
- TYA                    ; sign bit
- BMI LL163              ; flip sign of X
- LDY #0                 ; hi +ve
- RTS
+ TXA                    ; Copy X into A, so A now contains the argument A * 2
 
-.LL163                  ; flip sign of X
+ JSR DVID4              ; Calculate the following:
+                        ;
+                        ; (R P) = A / Q
+                        ;       = |argument A| * 2 / 20
+                        ;       = |argument A| / 10
 
- LDY #&FF               ; hi -ve
- TXA                    ; 7bits
- EOR #&FF
- TAX                    ; flipped
- INX                    ; -ve P
- RTS                    ; X -> -X, Y = #&FF.
+ LDX P                  ; Set X to P, the low byte of the result
+
+ TYA                    ; If the sign of the original argument A is negative,
+ BMI LL163              ; jump to LL163 to flip the sign of the result
+
+ LDY #0                 ; Set the high byte of the result to 0, as the result is
+                        ; positive
+
+ RTS                    ; Return from the subroutine
+
+.LL163
+
+ LDY #&FF               ; The result is negative, so set the high byte to &FF
+
+ TXA                    ; Flip the the low byte and add 1 to get the negated
+ EOR #&FF               ; low byte, using two's complement
+ TAX
+ INX
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -20839,113 +20874,338 @@ MAPCHAR '4', '4'
 \
 \ Subroutine: SP2
 \
-\ Draw the compass dot, pointing to XX15.
+\ Draw a dot on the compass to represent the planet or station, whose normalised
+\ vector is in XX15.
+\
+\   XX15 to XX15+2      The normalised vector to the planet or space station,
+\                       stored as x in XX15, y in XX15+1 and z in XX15+2
 \
 \ ******************************************************************************
 
-.SP2                    ; compass point to XX15
+.SP2
 {
- LDA XX15               ; xunit
- JSR SPS2               ; X.Y = xunit/10 for space compass display
- TXA                    ; left edge of compass
- ADC #195               ; X-1 \ their comment
- STA COMX               ; compass-x
- LDA XX15+1             ; yunit
- JSR SPS2               ; X.Y = yunit/10 for space compass display
- STX T
- LDA #204               ; needs to be flipped around
- SBC T
- STA COMY               ; compass-y
+ LDA XX15               ; Set A to the x-coordinate of the planet or station to
+                        ; show on the compass, which will be in the range -96 to
+                        ; +96 as the vector has been normalised
 
- LDA #&F0               ; default compass colour yellow
- LDX XX15+2             ; zunit
- BPL P%+4               ; its in front
- LDA #&FF               ; else behind colour is green
- STA COMC               ; compass colour
+ JSR SPS2               ; Set (Y X) = A / 10, so X will be from -9 to +9, which
+                        ; is the x-offset from the centre of the compass of the
+                        ; dot we want to draw. Returns with the C flag clear
+
+ TXA                    ; Set COMX = 195 + X, as 186 is the pixel x-coordinate
+ ADC #195               ; of the leftmost dot possible on the compass, and X can
+ STA COMX               ; be -9, which would be 195 - 9 = 186. This also means
+                        ; that the highest value for COMX is 195 + 9 = 204,
+                        ; which is the pixel x-coordinate of the rightmost dot
+                        ; in the compass... but the compass dot is actually two
+                        ; pixels wide, so the compass dot can overlap the right
+                        ; edge of the compass, but not the left edge
+
+ LDA XX15+1             ; Set A to the y-coordinate of the planet or station to
+                        ; show on the compass, which will be in the range -96 to
+                        ; +96 as the vector has been normalised
+
+ JSR SPS2               ; Set (Y X) = A / 10, so X will be from -9 to +9, which
+                        ; is the y-offset from the centre of the compass of the
+                        ; dot we want to draw. Returns with the C flag clear
+
+ STX T                  ; Set COMY = 204 - X, as 203 is the pixel y-coordinate
+ LDA #204               ; of the centre of the compass, the C flag is clear,
+ SBC T                  ; and the y-axis needs to be flipped around (because
+ STA COMY               ; when the planet or station is above us, and the
+                        ; vector is therefore positive, we want to show the dot
+                        ; higher up on the compass, which has a smaller pixel
+                        ; y-coordinate). So this calculation does this:
+                        ;
+                        ; COMY = 204 - X - (1 - 0) = 203 - X
+
+ LDA #&F0               ; Set A to a 4-pixel mode 5 byte row in colour 2
+                        ; (yellow/white), the colour for when the planet or
+                        ; station in the compass is in front of us
+
+ LDX XX15+2             ; If the z-coordinate of the XX15 vector is positive,
+ BPL P%+4               ; skip the following instruction
+
+ LDA #&FF               ; The z-coordinate of XX15 is negative, so the planet or
+                        ; station is behind us and the compass dot should be in
+                        ; green/cyan, so set A to a 4-pixel mode 5 byte row in
+                        ; colour 3
+
+ STA COMC               ; Store the compass colour in COMC
+
+                        ; Fall through into DOT to draw the dot on the compass
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: DOT
 \
-\ Draw the compass dot at position (COMX, COMY) with colour COMC.
+\ Draw a dot on the compass.
+\
+\ Arguments:
+\
+\   COMX                The screen pixel x-coordinate of the dot
+\
+\   COMY                The screen pixel y-coordinate of the dot
+\
+\   COMC                The colour and thickness of the dot:
+\
+\                         * &F0 = a double-height dot in yellow/white, for when
+\                           the object in the compass is in front of us
+\
+\                         * &FF = a single-height dot in green/cyan, for when
+\                           the object in the compass is behind us
 \
 \ ******************************************************************************
 
-.DOT                    ; Compass dot
+.DOT
 {
- LDA COMY               ; compass-y
+ LDA COMY               ; Set Y1 = COMY, the y-coordinate of the dot
  STA Y1
- LDA COMX               ; compass-x
+
+ LDA COMX               ; Set X1 = COMX, the x-coordinate of the dot
  STA X1
- LDA COMC               ; compass colour
- STA COL                ; the colour
- CMP #&F0               ; yellow is in front?
- BNE CPIX2              ; hop ahead 4 lines if behind you, narrower bar
+ 
+ LDA COMC               ; Set COL = COMC, the mode 5 colour byte for the dot
+ STA COL
+
+ CMP #&F0               ; If COL is &F0 then the dot is in front of us and we
+ BNE CPIX2              ; want to draw a double-height dot, so if it isn't &F0
+                        ; jump to CPIX2 to draw a single-height dot
+
+                        ; Otherwise fall through into CPIX4 to draw a double-
+                        ; height dot
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: CPIX4
 \
-\ stick head on scanner at height Y1
+\ Draw a double-height mode 5 dot (2 pixels high, 2 pixels wide).
+\
+\ Arguments:
+\
+\   X1                  The screen pixel x-coordinate of the dot
+\
+\   Y1                  The screen pixel y-coordinate of the dot
+\
+\   COL                 The colour of the dot as a mode 5 character row byte
 \
 \ ******************************************************************************
 
-.CPIX4                  ; stick head on scanner at height Y1
+.CPIX4
 {
- JSR CPIX2              ; two visits, Y1 then Y1-1 to make twice as thick.
- DEC Y1                 ; next bar
+ JSR CPIX2              ; Call CPIX2 to draw a single-height dash at (X1, Y1)
+
+ DEC Y1                 ; Decrement Y1
+
+                        ; Fall through into CPIX2 to draw a second single-height
+                        ; dash on the pixel row below the first one, to create a
+                        ; double-height dot
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: CPIX2
 \
-\ narrower bar
+\ Draw a single-height mode 5 dash (1 pixel high, 2 pixels wide).
+\
+\ Arguments:
+\
+\   X1                  The screen pixel x-coordinate of the dash
+\
+\   Y1                  The screen pixel y-coordinate of the dash
+\
+\   COL                 The colour of the dash as a mode 5 character row byte
+\
+\ ******************************************************************************
+\
+\ Drawing pixels in the four-colour mode 5 screen that Elite uses for the
+\ dashboard is not as straightforward as you might think. It's slightly simpler
+\ in the two-colour mode 4 screen that Elite uses for the space view, and I
+\ highly recommend you first read the documentation in the PIXEL routine, where
+\ we discuss screen addresses and plotting techniques for this simpler mode.
+\ 
+\ As with mode 4, the mode 5 screen is laid out in memory using character
+\ blocks. Indeed, the character blocks are the same size and height in terms of
+\ bits and bytes, and pixel coordinates are identical in both screen modes (both
+\ screen modes are 256 coordinates wide), so as far as the end used is
+\ concerned, the screen modes are really similar. At the screen memory level,
+\ however, there are some key differences.
+\ 
+\ The main difference is that each pixel can be one of four colours rather than
+\ two, so as a result each pixel takes up twice as much memory (2 bits as
+\ opposed to 1 bit). If we look at the way character blocks are laid out in
+\ terms of bits, it looks the same as for mode 4 - here's what two neighbouring
+\ character blocks look like in both modes:
+\ 
+\   01234567 01234567
+\   01234567 01234567
+\   01234567 01234567
+\   01234567 01234567
+\   01234567 01234567
+\   01234567 01234567
+\   01234567 01234567
+\   01234567 01234567
+\ 
+\ However, while in mode 4 each bit represents one pixel, so the above block
+\ would 16 pixels across and 8 pixels high, in mode 5 each pixel takes up two
+\ bits, so the above block shows as 8 pixels across and 8 pixels high. Pixels in
+\ mode 5 are stretched out so they appear twice as wide as they are high, so
+\ everything still fits on screen in a sensible manner.
+\ 
+\ So we know that a character block row in mode 5 consists of four pixels in one
+\ byte. The complicated part is how that byte stores those four pixels. If we
+\ consider a character row byte like this:
+\ 
+\   01234567
+\ 
+\ then the first pixel is defined by bits 0 and 4, the second by bits 1 and 5,
+\ and so on. If we split it up into nibbles:
+\ 
+\   0123 4567
+\ 
+\ then the first pixel is defined by the first bits of each nibble (0 and 4),
+\ the second is defined by the second bits of each nibble (1 and 5), and so on
+\ with bits 2 and 6, and bits 3 and 7. So consider this character row byte:
+\ 
+\   1111 0000
+\ 
+\ Each of the four bits has a 1 as the first bit and a 0 as the second bit,
+\ giving %10, or 2, so this defines four pixels in a row of colour 2. And this
+\ one:
+\ 
+\  1010 0011
+\ 
+\ contains the following pixels: %10, %00, %11 and %01, so this is a four-pixel
+\ row consisting of pixel colours 2, 0, 3 and 1.
+\ 
+\ That aside, modes 4 and 5 work in the same way. Each character row takes up
+\ 256 bytes, or exactly one page, so we can convert from screen coordinates to
+\ character blocks using the same code. We can even work out the correct row in
+\ the relevant character block in the same way, as the screen x- and
+\ y-coordinate systems are identical. The only differences are:
+\ 
+\   * How we manipulate the individual character row bytes to support the nibble
+\     system for four colours
+\ 
+\   * The fact that the y-coordinate still ranges from 0 to 256, but this time
+\     there are only 128 pixels across the screen, so each pixel effectively has
+\     two different screen coordinates (though we can easily cater for this by
+\     ignoring the last bit of the y-coordinate)
+\ 
+\ We can even use a similar system to the TWOS table that we use in PIXEL, but
+\ this time it's set up for the nibble system above. As a reminder, the TWOS
+\ table provides ready-made bytes for plotting single pixels, such as this one
+\ for plotting the third pixel in the row (out of 8):
+\ 
+\   TWOS+2  = %00100000
+\ 
+\ We can do the same for mode 5, but for the third pixel in the row (out of 4),
+\ the table returns this value instead:
+\ 
+\   CTWOS+2  = %00100010
+\ 
+\ which breaks up into 0010 0010, or %11 in the third pixel. As with TWOS, we
+\ can use this byte as a mask onto a 4-pixel colour byte to work out what to
+\ poke into screen memory.
+\ 
+\ On the subject of 4-pixel colour bytes, this is what they look like for the
+\ four colours used in the dashboard:
+\ 
+\   * Colour 0: %00000000 = &00 (black)
+\ 
+\   * Colour 1: %00001111 = &0F (red)
+\ 
+\   * Colour 2: %11110000 = &F0 (yellow/white)
+\ 
+\   * Colour 3: %11111111 = &FF (green/cyan)
+\ 
+\ So aside from having two bits per pixel and four pixels per character row,
+\ mode 5 is pretty similar to the monochrome mode 4.
 \
 \ ******************************************************************************
 
-.CPIX2                  ; Colour Pixel Mode 5
+.CPIX2
 {
- LDA Y1                 ; yscreen
+ LDA Y1                 ; Fetch the y-coordinate into A
 
-\.CPIX
+\.CPIX                  ; This label is commented out in the original source. It
+                        ; would provide a new entry point with A specifying the
+                        ; y-coordinate instead of Y1, but it isn't used anywhere
 
- TAY                    ; build screen page
- LSR A
- LSR A                  ; upper 5 bits
- LSR A                  ; Y1/8
- ORA #&60               ; screen hi
- STA SCH                ; SC+1
- LDA X1                 ; xscreen
- AND #&F8               ; upper 5 bits
- STA SC
- TYA                    ; yscreen
- AND #7                 ; lower 3 bits
- TAY                    ; byte row set
- LDA X1
- AND #6                 ; build mask index bits 2,1
- LSR A                  ; /=2, carry cleared.
- TAX                    ; color mask index for Mode 5, coloured.
- LDA CTWOS,X
- AND COL                ; the colour
- EOR (SC),Y
- STA (SC),Y
+ TAY                    ; Store the y-coordinate in Y
 
- LDA CTWOS+1,X
- BPL CP1                ; same column
- LDA SC
- ADC #8                 ; next screen column
- STA SC
- LDA CTWOS+1,X
+ LSR A                  ; Set A = A / 8, so A now contains the character row we
+ LSR A                  ; need to draw in (as each character row contains 8
+ LSR A                  ; pixel rows)
 
-.CP1                    ; same column
+ ORA #&60               ; Each character row in Elite's screen mode takes up one
+                        ; page in memory (256 bytes), so we now OR with &60 to
+                        ; get the page containing the dash (see the comments in
+                        ; routine TT26 for more discussion about calculating
+                        ; screen memory addresses
 
- AND COL                ; the colour
- EOR (SC),Y
- STA (SC),Y
- RTS
+ STA SCH                ; Store the screen page in the high byte of SC(1 0)
+
+ LDA X1                 ; Each character block covers 8 screen x-coordinates, so 
+ AND #%11111000         ; to get the address of the first byte in the character
+                        ; block that we need to draw into, as an offset from the
+                        ; start of the row we clear bits 0-2
+
+ STA SC                 ; Store the address of the character block in the low
+                        ; byte of SC(1 0), so now SC(1 0) points to the
+                        ; character block we need to draw into
+
+ TYA                    ; Set Y to just bits 0-2 of the y-coordinate, which will
+ AND #%00000111         ; be the number of the pixel row we need to draw into
+ TAY                    ; within the character block
+
+ LDA X1                 ; Copy bits 0-1 of X to bits 1-2 of X1, and clear the C
+ AND #%00000110         ; flag in the process (using the LSR). X will now be
+ LSR A                  ; a value between 0 and 3, and will be the pixel number
+ TAX                    ; in the character row for the left pixel in the dash.
+                        ; This is because each character row is one byte that
+                        ; contains 4 pixels, but covers 8 screen coordinates, so
+                        ; this effectively does the division by 2 that we need
+
+ LDA CTWOS,X            ; Fetch a mode 5 1-pixel byte with the pixel position
+ AND COL                ; at X, and AND with the colour byte so that pixel takes
+                        ; on the colour we want to draw (i.e. A is acting as a
+                        ; mask on the colour byte)
+
+ EOR (SC),Y             ; Draw the pixel on screen using EOR logic, so we can
+ STA (SC),Y             ; remove it later without ruining the background that's
+                        ; already on screen
+
+ LDA CTWOS+1,X          ; Fetch a mode 5 1-pixel byte with the pixel position
+                        ; at X+1, so we can draw the right pixel of the dash
+
+ BPL CP1                ; The CTWOS table has an extra row at the end of it that
+                        ; repeats the first value, %10001000, so if we have not
+                        ; fetched that value, then the right pixel of the dash
+                        ; is in the same character block as the left pixel, so
+                        ; jump to CP1 to draw it
+
+ LDA SC                 ; Otherwise the left pixel we drew was at the last
+ ADC #8                 ; position of four in this character block, so we add
+ STA SC                 ; 8 to the screen address to move onto the next block
+                        ; along (as there are 8 bytes in a character block).
+                        ; The C flag was cleared above, so this ADC is correct
+
+ LDA CTWOS+1,X          ; Refetch the mode 5 1-pixel byte, as we just overwrote
+                        ; A (the byte will still be the fifth byte from the
+                        ; table, which is correct as we want to draw the
+                        ; leftmost pixel in the next character along as the
+                        ; dash's right pixel)
+
+.CP1
+
+ AND COL                ; Draw the dash's right pixel according to the mask in
+ EOR (SC),Y             ; A, with the colour in COL, using EPR logic, just as
+ STA (SC),Y             ; above
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -21468,9 +21728,9 @@ MAPCHAR '4', '4'
 \
 \                         * &0E = red (armed and locked)
 \
-\                         * &E0 = yellow (armed)
+\                         * &E0 = yellow/white (armed)
 \
-\                         * &EE = green (disarmed)
+\                         * &EE = green/cyan (disarmed)
 \
 \ ******************************************************************************
 
@@ -21502,7 +21762,7 @@ MAPCHAR '4', '4'
  ASL A                  ; #64
 
  JSR NOISE              ; Call the NOISE routine with A = 64 to make the sound
-                        ; the E.C.M. being switched on
+                        ; of the E.C.M. being switched on
 }
 
 \ ******************************************************************************
@@ -21612,9 +21872,9 @@ MAPCHAR '4', '4'
 \
 \                         * &0E = red (armed and locked)
 \
-\                         * &E0 = yellow (armed)
+\                         * &E0 = yellow/white (armed)
 \
-\                         * &EE = green (disarmed)
+\                         * &EE = green/cyan (disarmed)
 \
 \ Returns:
 \
@@ -23101,7 +23361,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
  LDY #&EE               ; Otherwise we need to remove our missile lock, so call
  JSR ABORT              ; ABORT to disarm the missile and update the missile
-                        ; indicators on the dashboard to green (Y = &EE)
+                        ; indicators on the dashboard to green/cyan (Y = &EE)
 
  LDA #200               ; Print recursive token 40 ("TARGET LOST") as an
  JSR MESS               ; in-flight message
@@ -23615,16 +23875,16 @@ LOAD_F% = LOAD% + P% - CODE%
 .ss                     ; counter X
 
  CPX NOMSL              ; compare Xreg to number of missiles
- BEQ SAL8               ; remaining missiles are green
+ BEQ SAL8               ; remaining missiles are green/cyan
  LDY #0                 ; else black bar
  JSR MSBAR              ; draw missile indicator Xreg
  DEX                    ; next missile
  BNE ss                 ; loop X
  RTS
 
-.SAL8                   ; remaining missiles are green, counter X
+.SAL8                   ; remaining missiles are green/cyan, counter X
 
- LDY #&EE               ; green
+ LDY #&EE               ; green/cyan
  JSR MSBAR              ; draw missile indicator Xreg
  DEX                    ; next missile
  BNE SAL8               ; loop X
@@ -25929,7 +26189,7 @@ ENDIF
 \   X                   The larger the value of X, the fainter the explosion.
 \                       Allowed values are:
 \
-\                         * 7  = explosion is louder (i.e. the ship has
+\                         * 7  = explosion is louder (i.e. the ship has just
 \                                exploded)
 \
 \                         * 15 = explosion is quieter (i.e. this is just a laser
@@ -27409,12 +27669,21 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ BFRDIV R=A*256/Q \ byte from remainder of division
 \
+\
+\ Returns:
+\
+\   C flag              Set if answer is too big for one byte, clear otherwise
+\
+\ Other entry points:
+\
+\   LL28+4              Skips A >= Q check
 \ ******************************************************************************
 
 .LL28                   ; BFRDIV R=A*256/Q \ byte from remainder of division
 {
- CMP Q                  ; is A >=  Q ?
+ CMP Q                  ; is A >= Q ?
  BCS LL2                ; if yes, answer too big for 1 byte, R=#&FF
+
  LDX #254               ; remainder R for AofQ *256/Q
  STX R                  ; div roll counter
 }
