@@ -7778,52 +7778,91 @@ NEXT
 \
 \ Subroutine: PIX1
 \
-\ Draw dust Pixel, Acc has ALPHA or BETA in it
+\ Draw a stardust pixel.
+\ X1 has xscreen yscreen = R.S+P.A
+\
+\ Arguments:
+\
+\   (A P)               A is the angle ALPHA or BETA, P is always 0
+\
+\   (S R)               YY(1 0) or YY(1 0) + Q * A
+\
+\   Y                   Stardust number
+\
+\   X1                  The x-coordinate offset
+\
+\   Y1                  The y-coordinate offset
+\
+\   ZZ                  The distance of the point (further away = smaller point)
 \
 \ ******************************************************************************
 
-.PIX1                   ; dust Pixel, Acc has ALPHA or BETA in it
+.PIX1
 {
- JSR ADD                ; (A X) = (A P) + (S R)
- STA YY+1               ; hi
- TXA                    ; lo
- STA SYL,Y              ; dust ylo
+ JSR ADD                ; Set (A X) = (A P) + (S R)
+
+ STA YY+1               ; Set YY+1 to A, the high byte of the result
+
+ TXA                    ; Set SYL+Y to X, the low byte of the result
+ STA SYL,Y
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: PIXEL2
 \
-\ Draw dust (X1,Y1) from middle
+\ Draw a point (X1,Y1) from the middle of the screen.
+\
+\ Arguments:
+\
+\   X1                  The x-coordinate offset
+\
+\   Y1                  The y-coordinate offset (positive means up the screen
+\                       from the centre, negative means down the screen)
+\
+\   ZZ                  The distance of the point (further away = smaller point)
 \
 \ ******************************************************************************
 
-.PIXEL2                 ; dust (X1,Y1) from middle
+.PIXEL2
 {
- LDA X1                 ; xscreen
- BPL PX1                ; +ve X dust
- EOR #&7F               ; else negate
- CLC
- ADC #1
+ LDA X1                 ; Fetch the x-coordinate offset into A
 
-.PX1                    ; +ve X dust
+ BPL PX1                ; If the x-coordinate offset is positive, jump to PX1
+                        ; to skip the following negation
 
- EOR #128               ; flip bit7 of X1
- TAX                    ; xscreen
- LDA Y1
- AND #127
- CMP #96                ; #Y screen half height
- BCS PX4                ; too high, rts
- LDA Y1
- BPL PX2                ; +ve Y dust
- EOR #&7F               ; else negate
- ADC #1
+ EOR #%01111111         ; The x-coordinate offset is negative, so flip all the
+ CLC                    ; bits apart from the sign bit and add 1, to negate
+ ADC #1                 ; it to a positive number, i.e. A is now |X1|
 
-.PX2                    ; +ve Y dust
+.PX1
 
- STA T                  ; temp y dust
- LDA #97                ; #Y+1 above mid-point
- SBC T
+ EOR #%10000000         ; Set X = -|A|
+ TAX                    ;       = -|X1|
+
+ LDA Y1                 ; Fetch the y-coordinate offset into A and clear the
+ AND #%01111111         ; sign bit, so A = |Y1|
+
+ CMP #96                ; If |Y1| >= 96 then it's off the screen (as 96 is half 
+ BCS PX4                ; the screen height), so return from the subroutine (as
+                        ; PX4 contains an RTS)
+
+ LDA Y1                 ; Fetch the y-coordinate offset into A
+
+ BPL PX2                ; If the y-coordinate offset is positive, jump to PX2
+                        ; to skip the following negation
+
+ EOR #%01111111         ; The y-coordinate offset is negative, so flip all the
+ ADC #1                 ; bits apart from the sign bit and subtract 1, to negate
+                        ; it to a positive number, i.e. A is now |Y1|
+
+.PX2
+
+ STA T                  ; Set A = 97 - A
+ LDA #97                ;       = 97 - |Y1|
+ SBC T                  ;
+                        ; so if Y is positive we display the point up from the
+                        ; centre, while a negative Y means down from the centre
 }
 
 \ ******************************************************************************
