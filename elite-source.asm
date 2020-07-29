@@ -336,7 +336,7 @@ ORG &0000
                         ;
                         ; A value of 0 denotes the leftmost column and 32 the
                         ; rightmost column, but because the top part of the
-                        ; screen (the mode 4 part) has a box border that
+                        ; screen (the mode 4 part) has a white border that
                         ; clashes with columns 0 amd 32, text is only shown
                         ; at columns 1-31
 
@@ -347,7 +347,7 @@ ORG &0000
                         ; the text row), from 0 to 23
                         ;
                         ; A value of 0 denotes the top row, but because the
-                        ; top part of the screen has a box border that clashes
+                        ; top part of the screen has a white border that clashes
                         ; with row 0, text is always shown at row 1 or greater
 
 .QQ22
@@ -8748,7 +8748,7 @@ NEXT
 
 .^STATUS
 
- LDA #8                 ; Clear the top part of the screen, draw a box border,
+ LDA #8                 ; Clear the top part of the screen, draw a white border,
  JSR TT66               ; and set the current view type in QQ11 to 8 (Status
                         ; Mode screen)
 
@@ -9818,7 +9818,7 @@ NEXT
                         ; character
 
  JSR TTX66              ; Otherwise we are off the bottom of the screen, so
-                        ; clear the screen and draw a box border
+                        ; clear the screen and draw a white border
 
  JMP RR4                ; And restore the registers and return from the
                         ; subroutine
@@ -13075,7 +13075,7 @@ NEXT
                         ; OR-ing the result with the sign bit from argument A
                         ; (which we stored in T)
 
- RTS                    ; Return from subroutine
+ RTS                    ; Return from the subroutine
 
 .MU8                    ; If we reach here, then A and S have different signs,
                         ; so we can subtract their absolute values and set the
@@ -13137,7 +13137,7 @@ NEXT
                         ; the sign of the result with an EOR (to make it
                         ; negative)
 
- RTS                    ; Return from subroutine
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -14213,7 +14213,7 @@ NEXT
 
  STX VIEW               ; Set the current space view to X
 
- JSR TT66               ; Clear the top part of the screen, draw a box border,
+ JSR TT66               ; Clear the top part of the screen, draw a white border,
                         ; and set the current view type in QQ11 to 0 (space
                         ; view)
 
@@ -14234,7 +14234,7 @@ NEXT
 
  STX VIEW               ; Change the current space view to X
 
- JSR TT66               ; Clear the top part of the screen, draw a box border,
+ JSR TT66               ; Clear the top part of the screen, draw a white border,
                         ; and set the current view type in QQ11 to 0 (space
                         ; view)
 
@@ -14276,7 +14276,7 @@ NEXT
 \
 \ Subroutine: TT66
 \
-\ Clear the top part of the screen (mode 4), draw a box border, and set the
+\ Clear the top part of the screen (mode 4), draw a white border, and set the
 \ current view type in QQ11 to A.
 \
 \ Arguments:
@@ -14302,7 +14302,12 @@ NEXT
 \
 \ Subroutine: TTX66
 \
-\ Clear the top part of the screen (mode 4) and draw a box border.
+\ Clear the top part of the screen (mode 4) and draw a white border.
+\
+\ Other entry points:
+\
+\   BOX                 Just draw the border (which can be used to remove the
+\                       border as it is drawn using EOR logic)
 \
 \ ******************************************************************************
 
@@ -15249,7 +15254,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT25
 {
- JSR TT66-2             ; Clear the top part of the screen, draw a box border,
+ JSR TT66-2             ; Clear the top part of the screen, draw a white border,
                         ; and set the current view type in QQ11 to 1
 
  LDA #9                 ; Set the text cursor XC to column 9
@@ -15759,7 +15764,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT22
 {
- LDA #64                ; Clear the top part of the screen, draw a box border,
+ LDA #64                ; Clear the top part of the screen, draw a white border,
  JSR TT66               ; and set the current view type in QQ11 to 32 (Long-
                         ; range Chart)
 
@@ -16017,7 +16022,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; so the authors found they could just use a view value
                         ; of 1 and save an instruction at the same time?
 
- JSR TT66-2             ; Clear the top part of the screen, draw a box border,
+ JSR TT66-2             ; Clear the top part of the screen, draw a white border,
                         ; and set the current view type in QQ11 to 1
 
  JSR TT163              ; Print the column headers for the prices table
@@ -16296,7 +16301,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT208
 {
- LDA #4                 ; Clear the top part of the screen, draw a box border,
+ LDA #4                 ; Clear the top part of the screen, draw a white border,
  JSR TT66               ; and set the current view type in QQ11 to 4 (Sell
                         ; Cargo screen)
 
@@ -16465,7 +16470,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT213
 {
- LDA #8                 ; Clear the top part of the screen, draw a box border,
+ LDA #8                 ; Clear the top part of the screen, draw a white border,
  JSR TT66               ; and set the current view type in QQ11 to 8 (Inventory
                         ; screen)
 
@@ -16772,7 +16777,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT23
 {
- LDA #128               ; Clear the top part of the screen, draw a box border,
+ LDA #128               ; Clear the top part of the screen, draw a white border,
  JSR TT66               ; and set the current view type in QQ11 to 128 (Short-
                         ; range Chart)
 
@@ -18000,7 +18005,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT167
 {
- LDA #16                ; Clear the top part of the screen, draw a box border,
+ LDA #16                ; Clear the top part of the screen, draw a white border,
  JSR TT66               ; and set the current view type in QQ11 to 16 (Market
                         ; Price screen)
 
@@ -18337,7 +18342,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; instead of TT66, while leaving the original LDA
                         ; instruction in place
 
- JSR TT66-2             ; Clear the top part of the screen, draw a box border,
+ JSR TT66-2             ; Clear the top part of the screen, draw a white border,
                         ; and set the current view type in QQ11 to 1
 
  JSR LL164              ; Call LL164 to show the hyperspace tunnel for a second
@@ -18391,7 +18396,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA QQ11               ; If ths current view is not a space view, jump to ee5
  BNE ee5                ; to skip the following
 
- JSR TT66               ; Clear the top part of the screen, draw a box border,
+ JSR TT66               ; Clear the top part of the screen, draw a white border,
                         ; and set the current view type in QQ11 to 0 (space
                         ; view)
 
@@ -18440,7 +18445,7 @@ LOAD_D% = LOAD% + P% - CODE%
  AND #%00111111         ; one of the charts (64 or 128), return from the
  BNE hyR                ; subroutine (as hyR contains an RTS)
 
- JSR TTX66              ; Otherwise clear the screen and draw a box border
+ JSR TTX66              ; Otherwise clear the screen and draw a white border
 
  LDA QQ11               ; If the current view is one of the charts, jump to
  BNE TT114              ; TT114 (from which we jump to the correct routine to
@@ -18699,7 +18704,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  JSR DIALS              ; Call DIALS to update the dashboard
 
- LDA #32                ; Clear the top part of the screen, draw a box border,
+ LDA #32                ; Clear the top part of the screen, draw a white border,
  JSR TT66               ; and set the current view type in QQ11 to 32 (Equip
                         ; Ship screen)
 
@@ -20443,7 +20448,8 @@ MAPCHAR '4', '4'
 
 .SOS1
 {
- JSR msblob             ; Update the dashboard's missile indicators
+ JSR msblob             ; Update the dashboard's missile indicators to all be
+                        ; green/cyan
 
  LDA #127               ; Set the rotx and rotz counters to 127 (no damping
  STA INWK+29            ; so the planet's rotation doesn't slow down)
@@ -21049,7 +21055,7 @@ MAPCHAR '4', '4'
 \   01234567 01234567
 \ 
 \ However, while in mode 4 each bit represents one pixel, so the above block
-\ would 16 pixels across and 8 pixels high, in mode 5 each pixel takes up two
+\ would be 16 pixels across and 8 pixels high, in mode 5 each pixel takes up two
 \ bits, so the above block shows as 8 pixels across and 8 pixels high. Pixels in
 \ mode 5 are stretched out so they appear twice as wide as they are high, so
 \ everything still fits on screen in a sensible manner.
@@ -21751,59 +21757,70 @@ MAPCHAR '4', '4'
 \
 \ Subroutine: ECBLB2
 \
-\ set ECM bulb
+\ Light up the E.C.M. indicator bulb on the dashboard, set the E.C.M. countdown
+\ timer to 32, and start making the E.C.M. sound.
 \
 \ ******************************************************************************
 
-.ECBLB2                 ; set ECM bulb
+.ECBLB2
 {
- LDA #32
- STA ECMA               ; ECM on
- ASL A                  ; #64
+ LDA #32                ; Set the E.C.M. countdown timer in ECMA to 32
+ STA ECMA
 
- JSR NOISE              ; Call the NOISE routine with A = 64 to make the sound
-                        ; of the E.C.M. being switched on
+ ASL A                  ; Call the NOISE routine with A = 64 to make the sound
+ JSR NOISE              ; of the E.C.M. being switched on
+
+                        ; Fall through into ECBLB to light up the E.C.M. bulb
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: ECBLB
 \
-\ Light up the E.C.M. bulb on the dashboard.
+\ Light up the E.C.M. indicator bulb ("E") on the dashboard.
 \
 \ ******************************************************************************
 
-.ECBLB                  ; ECM bulb switch
+.ECBLB
 {
- LDA #7*8               ; SC lo for E on left of row
- LDX #LO(ECBT)
- LDY #HI(ECBT)
- BNE BULB-2             ; guaranteed, but assume same Y page
+ LDA #7*8               ; The E.C.M. bulb is in character block number 7
+                        ; with each character taking 8 bytes, so this sets the
+                        ; low byte of the screen address of the character block
+                        ; we want to draw to
+
+ LDX #LO(ECBT)          ; Set (Y X) to point to the character definition in
+ LDY #HI(ECBT)          ; ECBT. The LDY has no effect, as we overwrite Y with
+                        ; the jump to BULB-2, which writes the high byte of SPBT
+                        ; into Y. This works as long as ECBT and SPBT are in
+                        ; the same page of memory, so perhaps the BNE below got
+                        ; changed from BULB to BULB-2 so they could remove the
+                        ; LDY, but for some reason it didn't get culled? Who
+                        ; knows...
+
+ BNE BULB-2             ; Jump down to BULB-2 (this BNE is effectively a JMP as
+                        ; A will never be zero)
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: SPBLB
 \
-\ Draw (or erase) the space station bulb on the dashboard.
+\ Draw (or erase) the space station indicator bulb ("S") on the dashboard.
+\
+\ Other entry points:
+\
+\   BULB-2              Set the Y screen address
 \
 \ ******************************************************************************
 
 .SPBLB                  ; Space Station bulb
 {
- LDA #24*8              ; Screen lo destination SC on right of row
- LDX #LO(SPBT)          ; font source
-}
+ LDA #24*8              ; The space station bulb is in character block number 24
+                        ; with each character taking 8 bytes, so this sets the
+                        ; low byte of the screen address of the character block
+                        ; we want to draw to
 
-\ ******************************************************************************
-\
-\ Subroutine: BULB-2
-\
-\ Bulb
-\
-\ ******************************************************************************
-
-{
+ LDX #LO(SPBT)          ; Set (Y X) to point to the character definition in SPBT
  LDY #HI(SPBT)
 }
 
@@ -21811,62 +21828,92 @@ MAPCHAR '4', '4'
 \
 \ Subroutine: BULB
 \
-\ Bulb
+\ Draw an indicator bulb on the dashboard.
+\
+\ Arguments:
+\
+\   A                   The y-coordinate of the bulb as a low-byte screen
+\                       address offset within screen page &7D (as both bulbs
+\                       are on this character row in the dashboard)
+\
+\   (Y X)               The address of the character definition of the bulb to
+\                       be drawn (i.e ECBT for the E.C.M. bulb, or SPBT for the
+\                       space station bulb)
 \
 \ ******************************************************************************
 
 .BULB
 {
- STA SC                 ; screen lo
- STX P+1                ; font pointer lo
+ STA SC                 ; Store the low byte of the screen address in SC
+
+ STX P+1                ; Set P(2 1) = (Y X)
  STY P+2                ; font pointer hi
- LDA #&7D               ; screen hi SC+1 destination (SC) = &7DC0
+
+ LDA #&7D               ; Set A to the high byte of the screen address, which is
+                        ; &7D as the bulbs are both in the character row from
+                        ; &7D00 to &7DFF
 
  JMP RREN               ; Call RREN to print the character definition pointed to
-                        ; by P(2 1) at the screen address pointed to by (A SC)
+                        ; by P(2 1) at the screen address pointed to by (A SC),
+                        ; returning from the subroutine using a tail call
 }
 
 \ ******************************************************************************
 \
 \ Variable: ECBT
 \
-\ "E" displayed in lower console.
+\ The character definition for the E.C.M. indicator's "E" bulb that gets
+\ displayed on the dashboard. The E.C.M. indicator uses the first 5 rows of the
+\ space station's "S" bulb below, as the bottom 5 rows of the "E" match the top
+\ 5 rows of the "S". Each pixel is in mode 5 colour 2 (%10), which is
+\ yellow/white.
 \
 \ ******************************************************************************
 
 .ECBT
 {
- EQUW &E0E0             ; "E" displayed in lower console
- EQUB &80
+ EQUB %11100000
+ EQUB %11100000
+ EQUB %10000000
 }
 
 \ ******************************************************************************
 \
 \ Variable: SPBT
 \
-\ "S" displayed in lower console.
+\ The character definition for the space station indicator's "S" bulb that gets
+\ displayed on the dashboard. Each pixel is in mode 5 colour 2 (%10), which is
+\ yellow/white.
 \
 \ ******************************************************************************
 
-.SPBT                   ; make sure same page !
+.SPBT
 {
- EQUD &E080E0E0         ; "S" displayed in lower console
- EQUD &E0E020E0
+ EQUB %11100000
+ EQUB %11100000
+ EQUB %10000000
+ EQUB %11100000
+ EQUB %11100000
+ EQUB %00100000
+ EQUB %11100000
+ EQUB %11100000
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: MSBAR
 \
-\ Update a specific indicator in the dashboards's missile bar.
+\ Draw a specific indicator in the dashboards's missile bar. Each indicator is
+\ a rectangle that's 3 pixels wide and 5 pixels high. If the indicator is set to
+\ black, this effectively removes a missile.
 \
 \ Arguments:
 \
-\   X                   Number of the missile indicator to update (counting from
-\                       right to left, so indicator NOMSL is the leftmost
+\   X                   The number of the missile indicator to update (counting
+\                       from right to left, so indicator NOMSL is the leftmost
 \                       indicator)
 \
-\   Y                   New colour of the missile indicator:
+\   Y                   The colour of the missile indicator:
 \
 \                         * &00 = black (no missile)
 \
@@ -21882,27 +21929,56 @@ MAPCHAR '4', '4'
 \
 \ ******************************************************************************
 
-.MSBAR                  ; draw Missile bar. X is number of missiles. Y is strip design.
+.MSBAR
 {
- TXA                    ; missile i.d.
+ TXA                    ; Set T = X * 8
  ASL A
  ASL A
- ASL A                  ; X*8 move over to missile indicator of interest
+ ASL A
  STA T
- LDA #49                ; far right
- SBC T
- STA SC                 ; screen low byte in console
- LDA #&7E               ; bottom row of visible console
- STA SCH
- TYA                    ; strip mask
- LDY #5                 ; 5 strips
 
-.MBL1                   ; counter Y to build block
+ LDA #49                ; Set SC = 49 - T
+ SBC T                  ;        = 48 + 1 - (X * 8)
+ STA SC                 ;
+                        ; So the low byte of SC(1 0) contains the row address
+                        ; for the rightmost missile indicator, made up as
+                        ; follows:
+                        ;
+                        ;   * 48 (character block 7, or byte 7 * 8 = 48, which
+                        ;     is the character block of the rightmost missile
+                        ;
+                        ;   * 1 (so we start drawing on the second row of the
+                        ;     character block)
+                        ;
+                        ;   * Move right one character (8 bytes) for each count
+                        ;     of X, so when X = 0 we are drawing the rightmost
+                        ;     missile, for X = 1 we hop to the left by one
+                        ;     character, and so on
 
- STA (SC),Y
- DEY                    ; next strip
- BNE MBL1               ; loop Y
- RTS
+ LDA #&7E               ; Set the high byte of SC(1 0) to &7E, the character row
+ STA SCH                ; that contains the missile indicators (i.e. the bottom
+                        ; row of the screen)
+
+ TYA                    ; Set A to the correct colour, which is a 3-pixel wide
+                        ; mode 5 character row in the correct colour (for
+                        ; example, a green block has Y = &EE, or %1110 1110, so
+                        ; the missile blocks are 3 pixels wide, with the
+                        ; fourth pixel on the character row being empty)
+
+ LDY #5                 ; We now want to draw this line five times, so set a
+                        ; counter in Y
+
+.MBL1
+
+ STA (SC),Y             ; Draw the 3-pixel row, as as we do not use EOR logic,
+                        ; this will overwrite anything that is already there
+                        ; (so drawing a black missile will delete what's there)
+
+ DEY                    ; Decrement the counter for the next row
+
+ BNE MBL1               ; Loop back to MBL1 if have more rows to draw
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -23045,7 +23121,7 @@ MAPCHAR '4', '4'
 
  LDA KL                 ; Set A to the value of KL (the key pressed)
 
- RTS                    ; Return from subroutine
+ RTS                    ; Return from the subroutine
 
 .TJ1                    ; Arrows from keyboard
 
@@ -23070,7 +23146,7 @@ MAPCHAR '4', '4'
  BNE P%+3
  DEY
 
- RTS                    ; Return from subroutine
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -23864,31 +23940,42 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Subroutine: msblob
 \
-\ Update the dashboard's missile indicators
+\ Display the dashboard's missile indicators, with all the missiles reset to
+\ green/cyan (i.e. not armed or locked).
 \
 \ ******************************************************************************
 
-.msblob                 ; update missile indicators on console
+.msblob
 {
- LDX #4                 ; number of missile indicators
+ LDX #4                 ; Set up a loop counter in X to count through all four
+                        ; missile indicators
 
-.ss                     ; counter X
+.ss
 
- CPX NOMSL              ; compare Xreg to number of missiles
- BEQ SAL8               ; remaining missiles are green/cyan
- LDY #0                 ; else black bar
- JSR MSBAR              ; draw missile indicator Xreg
- DEX                    ; next missile
- BNE ss                 ; loop X
- RTS
+ CPX NOMSL              ; If the counter is equal to the number of missiles,
+ BEQ SAL8               ; jump down to SQL8 to draw remaining the missiles, as
+                        ; the rest of them are present and should be drawn in
+                        ; green/cyan
 
-.SAL8                   ; remaining missiles are green/cyan, counter X
+ LDY #0                 ; Draw the missile indicator at position X in black
+ JSR MSBAR
 
- LDY #&EE               ; green/cyan
- JSR MSBAR              ; draw missile indicator Xreg
- DEX                    ; next missile
- BNE SAL8               ; loop X
- RTS
+ DEX                    ; Decrement the counter to point to the next missile
+
+ BNE ss                 ; Loop back to ss if we stil have missiles to draw
+
+ RTS                    ; Return from the subroutine
+
+.SAL8
+
+ LDY #&EE               ; Draw the missile indicator at position X in green/cyan
+ JSR MSBAR
+
+ DEX                    ; Decrement the counter to point to the next missile
+
+ BNE SAL8               ; Loop back to SAL8 if we stil have missiles to draw
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -24751,7 +24838,7 @@ LOAD_F% = LOAD% + P% - CODE%
  ASL A                  ; Double the result and add the number of tonnes of
  ADC QQ20+10            ; firearms in the hold
 
- RTS                    ; Return from subroutine
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -24851,12 +24938,12 @@ LOAD_F% = LOAD% + P% - CODE%
  LDX #24                ; Set the screen to only show 24 text rows, which hides
  JSR DET1               ; the dashboard, setting A to 6 in the process
 
- JSR TT66               ; Clear the top part of the screen, draw a box border,
+ JSR TT66               ; Clear the top part of the screen, draw a white border,
                         ; and set the current view type in QQ11 to 6 (death
                         ; screen)
 
- JSR BOX                ; Call BOX to redraw the same box border (BOX is part of
-                        ; TT66), which removes the border as the box is drawn
+ JSR BOX                ; Call BOX to redraw the same white border (BOX is part
+                        ; of TT66), which removes the border as it is drawn
                         ; using EOR logic
 
  JSR nWq                ; Create a cloud of stardust containing the maximum
@@ -25038,7 +25125,7 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR TRNME              ; Once loaded, we copy the commander name to NA%
 
  JSR TTX66              ; And we clear the top part of the screen and draw a
-                        ; box border
+                        ; white border
 
 .QU5                    ; By the time we get here, the correct commander name
                         ; is at NA% and the correct commander data is at NA%+8.
@@ -25126,7 +25213,8 @@ ENDIF
 
  STA COK                ; Store the competition code A in COK
 
- JSR msblob             ; Update the dashboard's missile indicators
+ JSR msblob             ; Reset the dashboard's missile indicators to all be
+                        ; green/cyan
 
  LDA #147               ; Call the TITLE subroutine to show the rotating ship
  LDX #MAM               ; and fire/space prompt. The arguments sent to TITLE
@@ -25195,7 +25283,7 @@ ENDIF
  JSR RESET              ; Reset our ship so we can use it for the rotating
                         ; title ship
 
- LDA #1                 ; Clear the top part of the screen, draw a box border,
+ LDA #1                 ; Clear the top part of the screen, draw a white border,
  JSR TT66               ; and set the current view type in QQ11 to 1
 
  DEC QQ11               ; Decrement QQ11 to 0, so from here on we are using a
@@ -25426,7 +25514,7 @@ ENDIF
 
 .GTNME
 {
- LDA #1                 ; Clear the top part of the screen, draw a box border,
+ LDA #1                 ; Clear the top part of the screen, draw a white border,
  JSR TT66               ; and set the current view type in QQ11 to 1
 
  LDA #123               ; Print recursive token 123 ("{crlf}COMMANDER'S NAME? ")
@@ -25793,7 +25881,7 @@ ENDIF
  LDA #200               ; set to X
  JMP OSBYTE
 
- RTS                    ; Return from subroutine
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -26922,7 +27010,7 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 
 .DK5
 
- RTS                    ; Return from subroutine
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
