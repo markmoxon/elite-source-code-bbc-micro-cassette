@@ -20609,47 +20609,72 @@ MAPCHAR '4', '4'
 \
 \ Subroutine: WPSHPS
 \
-\ Wipe Ships on scanner
+\ Remove all ships from the scanner and reset the LSO block and variables.
 \
 \ ******************************************************************************
 
-.WPSHPS                 ; Wipe Ships on scanner
+.WPSHPS
 {
- LDX #0
+ LDX #0                 ; Set up a counter in X to work our way through all the
+                        ; ship slots in FRIN
 
-.WSL1                   ; outer counter X
+.WSL1
 
- LDA FRIN,X             ; the Type for each of the 12 ships allowed
- BEQ WS2                ; exit as Nothing
- BMI WS1                ; loop as Planet or Sun
- STA TYPE               ; ship type
- JSR GINF               ; Get info on ship X, update INF pointer
- LDY #31                ; load some INWK from (INF)
+ LDA FRIN,X             ; Fetch the ship type in slot X
 
-.WSL2                   ; inner counter Y
+ BEQ WS2                ; If the slot contains 0 then it is empty and we have
+                        ; checked all ths slots (as they are always shuffled
+                        ; down in the main loop to close up and gaps), so jump
+                        ; to WS2 as we are done
 
- LDA (INF),Y
- STA INWK,Y
- DEY                    ; next byte of univ inf to inwk
- BPL WSL2               ; inner loop Y
- STX XSAV               ; store nearby ship count outer
- JSR SCAN               ; ships on scanner
- LDX XSAV               ; restore
- LDY #31                ; need to adjust INF display state
- LDA (INF),Y
- AND #&A7               ; clear bits 6,4,3 (explode,invisible,dot)
- STA (INF),Y            ; keep bits 7,5,2,1,0 (kill,exploding,missiles)
+ BMI WS1                ; If the slot contains a ship type with bit 7 set, then
+                        ; it contains the planet or the sun, so jump down to WS1
+                        ; to skip this slot, as the planet and sun don't appear
+                        ; on the scanner
 
-.WS1                    ; loop as Planet or Sun
+ STA TYPE               ; Store the ship type in TYPE
 
- INX                    ; next nearby slot
- BNE WSL1               ; outer loop X
+ JSR GINF               ; Call GINF to get the address of the data block for
+                        ; ship slot X and store it in INF
 
-.WS2                    ; exit as Nothing
+ LDY #31                ; We now want to copy the first 32 bytes from the ship's
+                        ; data block into INWK, so set a counter in Y
 
- LDX #&FF               ; clear line buffers
- STX LSX2               ; lines X2
- STX LSY2               ; lines Y2
+.WSL2
+
+ LDA (INF),Y            ; Copy the Y-th byte from the data block pointed to by
+ STA INWK,Y             ; INF into the Y-th byte of INWK workspace
+
+ DEY                    ; Decrement the counter to point at the next byte
+
+ BPL WSL2               ; Loop back to WSL2 until we have copied all 32 bytes
+
+ STX XSAV               ; Store the ship slot number in XSAV while we call SCAN
+
+ JSR SCAN               ; Call SCAN to plot this ship on the scanner, which will
+                        ; remove it as it's plotted with EOR logic
+
+ LDX XSAV               ; Restore the ship slot number from XSAV into X
+
+ LDY #31                ; Clear bits 3, 4 and 6 in the ship's byte #31, which
+ LDA (INF),Y            ; stops drawing the explosion cloud (bit 3), hides it
+ AND #%10100111         ; from the scanner (bit 4) and stops any lasers firing
+ STA (INF),Y            ; at it (bit 6)
+
+.WS1
+
+ INX                    ; Increment X to point to the next ship slot
+
+ BNE WSL1               ; Loop back up to process the next slot (this BNE is
+                        ; effectively a JMP as X will never be zero)
+
+.WS2
+
+ LDX #&FF               ; Set LSX2 = LSY2 = &FF to clear the line buffers
+ STX LSX2
+ STX LSY2
+
+                        ; Fall through into FLFLLS to reset the LSO block
 }
 
 \ ******************************************************************************
