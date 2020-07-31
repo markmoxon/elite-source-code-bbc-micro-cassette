@@ -14595,148 +14595,568 @@ NEXT
 \
 \ Subroutine: SCAN
 \
-\ Ships on Scanner - last code written
+\ Display the current ship on the scanner.
+\
+\
+\ Arguments:
+\
+\   INWK                The ship's data block
+\
+\ ******************************************************************************
+\
+\ To display a ship on the iconic 3D scanner in Elite, there are six main hoops
+\ we have to jump through.
+\ 
+\ We start with the ship's coordinates in space, given relative to our position
+\ (and therefore relative to the centre of the ellipse in the scanner, which
+\ represents our ship). Let's call the other ship's coordinates (x, y, z), with
+\ our position being at the origin (0, 0, 0).
+\ 
+\ We want to display a dot on the scanner at the ship's position, as well as a
+\ stick that drops down (or rises up) from the dot onto the scanner's ellipse.
+\ 
+\ The steps we have to perform are as follows:
+\ 
+\   1. Check that the ship is within the scanner range (and stop if it isn't)
+\ 
+\   2. Set X1 = the screen x-coordinate of the ship's dot (and stick)
+\ 
+\   3. Set SC = the screen y-coordinate of the base of the ship's stick
+\ 
+\   4. Set A = the screen height of the ship's stick
+\ 
+\   5. Use these values to calculate Y1, the screen y-coordinate of the ship's
+\      dot
+\ 
+\   6. Draw the dot at (X1, Y1) and draw a stick of length A from that dot (up
+\      or down as appropriate)
+\ 
+\ Before looking at these steps individually, first we need to talk about the
+\ scanner's dimensions.
+\ 
+\ Scanner dimensions
+\ ------------------
+\ In terms of screen coordinates, the scanner is laid out as follows.
+\ 
+\ The rectangle containing the scanner and compass has the following range of
+\ screen coordinates inside the rectangle (so we definitely don't want to draw
+\ anything outside these values, or the scanner will leak out into the
+\ surrounding dashboard and space view):
+\ 
+\   * x-coordinate from  50 to 204
+\   * y-coordinate from 193 to 246
+\ 
+\ The scanner's ellipse is 138 screen coordinates wide and 36 screen coordinates
+\ high, and the range of coordinates is:
+\ 
+\   * x-coordinate from  56 to 192
+\   * y-coordinate from 204 to 239
+\ 
+\ The centre of the scanner is at (124, 220).
+\ 
+\ That said, this routine restricts itself to a slightly smaller range when
+\ passing coordinates to the drawing routines, only drawing dots and sticks
+\ within this range:
+\ 
+\   * x-coordinate from  60 to 186
+\   * y-coordinate from 194 to 246
+\ 
+\ These values are explained in the following.
+\ 
+\ Now that we know the screen area in which we are going to show our ships,
+\ let's look at the different things we have to do.
+\ 
+\ Check the ship is in range
+\ --------------------------
+\ Elite does a simple check to see whether to show a ship on the scanner. Ship
+\ coordinates are stored in the INWK workspace using three bytes, like this:
+\ 
+\   x = (x_sign x_hi x_lo)
+\   y = (y_sign y_hi y_lo)
+\   z = (z_sign z_hi z_lo)
+\ 
+\ The sign bytes only use bit 7, so the actual value is in the high and low
+\ bytes (these two bytes store the absolute value, without the sign).
+\ 
+\ A ship should be shown on the scanner if bits 7 and 6 of all the high bytes
+\ are 0. This means that ships to be shown on the scanner have high bytes in the
+\ range 0-63, as 63 = %00111111, and because the sign is kept separately, it
+\ means that for ships that we show on the scanner, the following are true:
+\ 
+\   -63 <= x_hi <= 63
+\   -63 <= y_hi <= 63
+\   -63 <= z_hi <= 63
+\ 
+\ We can now move on to calculating the screen coordinates of the dot and stick.
+\ 
+\ Calculate the x-coordinate
+\ --------------------------
+\ The x-coordinate is the easiest, as all we have to do is scale x so that it
+\ fits into the horizontal range of the scanner... and it turns out that the
+\ range of (x_sign x_hi) is already pretty close to the full width of the
+\ scanner (the ellipse is 138 screen coordinates wide, while the range of
+\ (x_sign x_hi) values from -63 to +63 is 127, which is in the right ballpark).
+\ 
+\ So if we take the x-coordinate of the centre of the scanner, 124, and add
+\ (x_sign x_hi), we get a range of 61 to 187, which fits nicely within the the
+\ ellipse range of 56 to 192 and is quick and easy to calculate.
+\ 
+\ There is one small tweak to this, however. If we add 124 to (x_sign x_hi),
+\ then if the other ship is dead ahead of us - i.e. when (x_sign x_hi) = 0 - the
+\ dot will be drawn with the left pixel on the centre line and the right pixel
+\ just to the right of the line. This isn't a problem, but because we draw the
+\ stick down (or up) from the right-hand pixel, this means that ships that are
+\ dead ahead have a stick that lands on the ellipse just to the right of the
+\ centre line. So to fix this, we actually add 123 to get the scanner
+\ x-coordinate, as this not only moves the stick to the correct spot, it also
+\ has the benefit of making the end-points even numbers, as the range of 123 +
+\ (x_sign x_hi) is 60 to 186 (and even numbers are good news when your pixels
+\ are always 2 screen coordinates wide).
+\ 
+\ So this is how we get the screen x-coordinate of the ship on the scanner:
+\ 
+\   X1 = 123 + (x_sign x_hi)
+\   
+\ This was the easy one. Now for the y-coordinate of the base of the stick,
+\ which is a bit more challenging.
+\ 
+\ Calculate the base of the stick
+\ ---------------------------------
+\ We already know the x-coordinate of dot, as we just calculated that, and the
+\ stick will have the same x-coordinate as the dot, though we will add 1 when
+\ drawing it, as the stick is on the right side of the 2-pixel-wide dot. So we
+\ already know the x-coordinate of the base of the stick - now to find the
+\ y-coordinate.
+\ 
+\ The main observation here is that the scanner's ellipse is a plane in space,
+\ and for every point in that plane, the space y-coordinate is zero, and the
+\ space x- and z-coordinates determine where those points appear, either from
+\ left to right (for the x-axis) or front to back (the z-axis). We've already
+\ worked out where the base of the stick is in terms of left and right, but what
+\ about front to back?
+\ 
+\ If you think about it, points on the ellipse that are further in front of us
+\ will be further up the screen, while those behind us will be lower down the
+\ screen. It turns out that this is an easy way to work out the y-coordinate of
+\ the base of the stick - we just take the space y-coordinate and scale it so
+\ that it fits into the height of the ellipse on screen. As long as we reverse
+\ things so that large positive y-coordinates (far in front of us) are scaled to
+\ smaller screen y-coordinates (higher up the screen), this should work pretty
+\ well.
+\ 
+\ The maths for this is relatively simple. We take (z_sign z_hi), which is in
+\ the range -63 to +63, divide it by 4 to get a range of -15 to +15, and then
+\ negate it. We then add this to the coordinate of the centre of the ellipse,
+\ which is at screen y-coordinate 220, to get the following:
+\ 
+\   SC = 220 - (z_sign z_hi) / 4
+\ 
+\ This is in the range 205 to 235, which is really close to the range of
+\ y-coordinates of the ellipse on screen (204 to 239), and fits within the
+\ ellipse nicely.
+\ 
+\ Next, we need to work out the height of the stick, and then we'll have all the
+\ information we need to draw this thing.
+\ 
+\ Convert the stick height
+\ ------------------------
+\ The stick height should be a signed number that contains the number of pixels
+\ in the stick, with the sign set so that we can get the dot's y-coordinate by
+\ adding the height to the y-coordinate of the base of the stick. This means
+\ that we want the following to be true:
+\ 
+\   * The stick height should be negative for dots above the ellipse (as the dot
+\     is above the base of the stick, so it has a lower y-coordinate)
+\ 
+\   * The stick height should be zero for dots on the ellipse
+\ 
+\   * The stick height should be positive for dots below the ellipse (as the dot
+\     is below the base of the stick, so it has a lower y-coordinate)
+\ 
+\ The main observation here is that the length of the stick is effectively the
+\ same as the ship's y-coordinate in space, just negated. Specifically:
+\ 
+\   * If the y-coordinate is 0, then the dot is in the plane of the ellipse and
+\     there is no stick
+\ 
+\   * If the y-coordinate is positive, then the ship is above us and the stick
+\     length should be negative
+\ 
+\   * If the y-coordinate is negative, then the ship is above us and the stick
+\     length should be positive
+\ 
+\   * The further the ship is above or below us, the longer the stick
+\ 
+\ It turns out that it's good enough just to scale the y-coordinate to get the
+\ stick length. Sure, if you were building an accurate scanner than the stick
+\ length would also have to be scaled for reasons of perspective, but this is an
+\ 8-bit space simulation from 1984 where every processor cycle counts, and the
+\ following approximation is easily good enough.
+\ 
+\ It also turns out that dividing the y-coordinate by 2 does a good enough job.
+\ We take (y_sign y_hi), which is in the range -63 to +63, and divide it by 2 to
+\ get a range of -31 to +31. As we noted above, the y-coordinate for the base of
+\ the stick is in the range 205 to 235, so this means the range of screen
+\ y-coordinates for our dots comes out as 174 to 266.
+\ 
+\ But this is a bit of a problem - the dashboard only covers y-coordinates from
+\ 193 to 246, so quite a few of the more distant dots will end up spilling out
+\ of the dashboard if we don't do something about it. The solution is pretty
+\ simple - if the dot is outside of the dashboard limits, we move it back
+\ inside. This does mean that the dots and sticks of distant ships don't behave
+\ correctly - they get shifted up or down to keep them within the dashboard,
+\ which isn't correct - but somehow our brains don't seem to care. The stick
+\ heights still remain correct, and the orientation of these outliers is still
+\ generally in the right direction, so we can get away with this simplification.
+\ 
+\ In terms of this clipping, we actually clip the dot's y-coordinate so that it
+\ is in the range 194 to 246, rather than 193 to 246. This is because the
+\ double-height dot-drawing routine at CPIX2 takes the coordinate of the bottom
+\ row of the dot, so we have to restrict it to a minimum of 194, as passing 193
+\ would draw a dot that overlapped the top border of the dashboard.
+\ 
+\ So this is how we calculate the stick height from the ship's y-coordinate in
+\ space:
+\ 
+\   A = - (y_sign y_hi) / 2
+\ 
+\ and clip the result so that it's in the range 193 to 246.
 \
 \ ******************************************************************************
 
-.SCAN                   ; ships on Scanner - last code written
+.SCAN
 {
- LDA INWK+31            ; display explosion state|missiles
- AND #16                ; dont show on scanner if bit4 clear, invisible.
- BEQ SC5                ; rts
- LDA TYPE               ; ship type
- BMI SC5                ; dont show planet, rts
- LDX #&FF               ; default scanner colour Yellow/white
-\CMP #TGL
-\BEQ SC49
- CMP #MSL               ; missile
- BNE P%+4               ; not missile
- LDX #&F0               ; scanner colour updated for missile to Red
-\CMP #AST
-\BCC P%+4
-\LDX #&F
+ LDA INWK+31            ; Fetch the ship's scanner flag from INWK+31
 
+ AND #16                ; If bit 4 is clear then the ship should not be shown
+ BEQ SC5                ; on the scanner, so return from the subroutine (as SC5
+                        ; contains an RTS)
+
+ LDA TYPE               ; Fetch the ship's type from TYPE into A
+
+ BMI SC5                ; If this is the planet or the sun, then the type will
+                        ; have bit 7 set and we don't want to display it on the
+                        ; scanner, so return from the subroutine (as SC5
+                        ; contains an RTS)
+
+ LDX #&FF               ; Set X to the default scanner colour of green/cyan
+                        ; (a 4-pixel mode 5 byte in colour 3)
+
+\CMP #TGL               ; These instructions are commented out in the original
+\BEQ SC49               ; source. Along with the block just below, they would
+                        ; set X to colour 1 (red) for asteroids, cargo canisters
+                        ; and escape pods, rather than green/cyan. Presumably
+                        ; they decided it didn't work that well against the red
+                        ; ellipse and took this code out for release
+
+ CMP #MSL               ; If this is not a missile, skip the following
+ BNE P%+4               ; instruction
+
+ LDX #&F0               ; This is a missile, so set X to colour 2 (yellow/white)
+
+\CMP #AST               ; These instructions are commented out in the original
+\BCC P%+4               ; source. See above for an explanation of what they do
+\LDX #&0F
 \.SC49
 
- STX COL                ; the colour for stick
- LDA INWK+1             ; xhi
- ORA INWK+4             ; yhi
- ORA INWK+7             ; zhi
- AND #&C0               ; too far away?
- BNE SC5                ; rts
+ STX COL                ; Store X, the colour of this ship on the scanner, in
+                        ; COL
 
- LDA INWK+1             ; xhi
- CLC                    ; build stick xcoord
- LDX INWK+2             ; xsg
- BPL SC2                ; xsg +ve
- EOR #&FF               ; else flip
- ADC #1
+ LDA INWK+1             ; If any of x_hi, y_hi and z_hi have a 1 in bit 6 or 7,
+ ORA INWK+4             ; then the ship is too far away to be shown on the
+ ORA INWK+7             ; scanner, so return from the subroutine (as SC5
+ AND #%11000000         ; contains an RTS)
+ BNE SC5
 
-.SC2                    ; xsg +ve
+                        ; If we get here, we know x_hi, y_hi and z_hi are all
+                        ; 63 (%00111111) or less
 
- ADC #123               ; xhi+#123
- STA X1                 ; Xscreen for stick
+                        ; Now, we convert the x_hi coordinate of the ship into
+                        ; the screen x-coordinate of the dot on the scanner,
+                        ; using the following (see above for an explanation):
+                        ;
+                        ;   X1 = 123 + (x_sign x_hi)
 
- LDA INWK+7
- LSR A                  ; zhi
- LSR A                  ; Acc = zhi /4
- CLC                    ; onto zsg
- LDX INWK+8
- BPL SC3                ; z +ve
- EOR #&FF               ; else
- SEC                    ; flip zhi/4
+ LDA INWK+1             ; Set x_hi
 
-.SC3                    ; z +ve
+ CLC                    ; Clear the C flag so we can do addition below
 
- ADC #35                ; zhi/4+ #35
- EOR #&FF               ; flip to screen lo
- STA SC                 ; store Z component of stick base
+ LDX INWK+2             ; Set X = x_sign
 
- LDA INWK+4             ; yhi
- LSR A                  ; Acc = yhi/2
- CLC                    ; onto ysg
- LDX INWK+5
- BMI SCD6               ; y +ve
- EOR #&FF               ; else flip yhi/2
- SEC
+ BPL SC2                ; If x_sign is positive, skip the following
 
-.SCD6                   ; y +ve , now add to z-component
+ EOR #%11111111         ; x_sign is negative, so flip the bits in A and subtract
+ ADC #1                 ; 1 to make it a negative number (bit 7 will now be set
+                        ; as we confirmed above that bits 6 and 7 are clear). So
+                        ; this gives A the sign of x_sign and gives it a value
+                        ; range of -63 (%11000001) to 0
 
- ADC SC                 ; add Z component of stick base
- BPL ld246              ; stick goes up
- CMP #194               ; >= #194 ?
- BCS P%+4               ; skip min at #194
- LDA #194               ; clamp y min
- CMP #247               ; < #247 ?
- BCC P%+4               ; skip max at #246
+.SC2
 
-.ld246                  ; stick goes up
+ ADC #123               ; Set X1 = 123 + x_hi
+ STA X1
+                        ; Next, we convert the z_hi coordinate of the ship into
+                        ; the y-coordinate of the base of the ship's stick,
+                        ; like this (see above for an explanation):
+                        ;
+                        ;   SC = 220 - (z_sign z_hi) / 4
+                        ;
+                        ; though the following code actually does it like this:
+                        ;
+                        ;   SC = 255 - (35 + z_hi / 4)
 
- LDA #246               ; clamp y max
- STA Y1                 ; Yscreen for stick head
- SEC                    ; sub z-component to leave y length
- SBC SC
- PHP                    ; push sign
-\BCS SC48
-\EOR #&FF
-\ADC #1
+ LDA INWK+7             ; Set A = z_hi / 4
+ LSR A                  ;
+ LSR A                  ; So A is in the range 0-15
+
+ CLC                    ; Clear the C flag
+
+ LDX INWK+8             ; Set X = z_sign
+
+ BPL SC3                ; If z_sign is positive, skip the following
+
+ EOR #%11111111         ; z_sign is negative, so flip the bits in A and set the
+ SEC                    ; C flag. As above, this makes A negative, this time
+                        ; with a range of -16 (%11110000) to -1 (%11111111). And
+                        ; as we are about to do an ADC, the SEC effectively adds
+                        ; another 1 to that value, giving a range of -15 to 0
+
+.SC3
+
+ ADC #35                ; Set A = 35 + A to give a number in the range 20 to 50
+
+ EOR #%11111111         ; Flip all the bits and store in SC, so SC is in the
+ STA SC                 ; range 205 to 235, with a higher z_hi giving a lower SC
+
+                        ; Now for the stick height, which we calculate using the
+                        ; following (see above for an explanation):
+                        ;
+                        ; A = - (y_sign y_hi) / 2
+
+ LDA INWK+4             ; Set A = y_hi / 2
+ LSR A
+
+ CLC                    ; Clear the C flag
+
+ LDX INWK+5             ; Set X = y_sign
+
+ BMI SCD6               ; If y_sign is negative, skip the following, as we
+                        ; already have a positive value in A
+
+ EOR #%11111111         ; y_sign is positive, so flip the bits in A and set the
+ SEC                    ; C flag. This makes A negative, and as we are about to
+                        ; do an ADC below, the SEC effectively adds another 1 to
+                        ; that value to implement two's complement negation, so
+                        ; we don't need to add another 1 here
+
+.SCD6                   ; We now have all the information we need to draw this
+                        ; ship on the scanner, namely:
+                        ;
+                        ;   X1 = the screen x-coordinate of the ship's dot
+                        ;
+                        ;   SC = the screen y-coordinate of the base of the
+                        ;        stick
+                        ;
+                        ;   A = the screen height of the ship's stick, with the
+                        ;       correct sign for adding to the base of the stick
+                        ;       to get the dot's y-coordinate
+                        ;
+                        ; First, though, we have to make sure the dot is inside
+                        ; the dashboard, by moving it if necessary
+
+ ADC SC                 ; Set A = SC + A, so A now contains the y-coordinate of
+                        ; the end of the stick, plus the length of the stick, to
+                        ; give us the screen y-coordinate of the dot
+
+ BPL ld246              ; If the result has bit 0 clear, then the result has
+                        ; overflowed and is bigger than 256, so jump to ld246 to
+                        ; set A to the maximum allowed value of 246 (this
+                        ; instruction isn't required as we test both the maximum
+                        ; and minimum below, but it might save a few cycles)
+
+ CMP #194               ; If A >= 194, skip the following instruction, as 194 is
+ BCS P%+4               ; the minimum allowed value of A
+
+ LDA #194               ; A < 194, so set A to 194, the minimum allowed value
+                        ; for the y-coordinate of our ship's dot
+
+ CMP #247               ; If A < 247, skip the following instruction, as 246 is
+ BCC P%+4               ; the maximum allowed value of A
+
+.ld246
+
+ LDA #246               ; A >= 247, so set A to 246, the maximum allowed value
+                        ; for the y-coordinate of our ship's dot
+
+ STA Y1                 ; Store A in Y1, as it now contains the screen 
+                        ; y-coordinate for the ship's dot, clipped so that it
+                        ; fits within the dashboard
+
+ SEC                    ; Set A = A - SC to get the stick length, by reversing
+ SBC SC                 ; the ADC SC we did above. This clears the C flag if the
+                        ; result is negative (i.e. the stick length is negative)
+                        ; and sets it if the result is positive (i.e. the stick
+                        ; length is negative)
+
+                        ; So now we have the following:
+                        ;
+                        ;   X1 = the screen x-coordinate of the ship's dot,
+                        ;        clipped to fit into the dashboard
+                        ;
+                        ;   Y1 = the screen y-coordinate of the ship's dot,
+                        ;        clipped to fit into the dashboard
+                        ;
+                        ;   SC = the screen y-coordinate of the base of the
+                        ;        stick
+                        ;
+                        ;   A = the screen height of the ship's stick, with the
+                        ;       correct sign for adding to the base of the stick
+                        ;       to get the dot's y-coordinate
+                        ;
+                        ;   C = 0 if A is negative, 1 if A is positive
+                        ;
+                        ; and we can get on with drawing the dot and stick
+
+ PHP                    ; Store the flags (specifically the C flag) from the
+                        ; above subtraction
+
+\BCS SC48               ; These instructions are commented out in the original
+\EOR #&FF               ; source. They would negate A if the C flag were set,
+\ADC #1                 ; which would reverse the direction of all the sticks.
+                        ; Goodness knows why you would want to do that, but
+                        ; there you go
 
 .SC48
 
- PHA                    ; sub result used as counter
- JSR CPIX4              ; big flag on stick, at (X1,Y1)
- LDA CTWOS+1,X          ; recall mask
- AND COL                ; the colour
- STA X1                 ; colour temp
- PLA                    ; sub result used as counter
- PLP                    ; sign info
- TAX                    ; sub result used as counter
- BEQ RTS                ; no stick height, rts
- BCC RTS+1              ; -ve stick length
+ PHA                    ; Store the stick height in A on the stack
 
-.VLL1                   ; positive stick counter X.
+ JSR CPIX4              ; Draw a double-height mode 5 dot at (X1, Y1). This also
+                        ; leaves the following variables set up for the dot's
+                        ; top-right pixel, the last pixel to be drawn (as the
+                        ; dot gets drawn from the bottom up):
+                        ;
+                        ;   SC(1 0) = screen address of the pixel's character
+                        ;             block
+                        ; 
+                        ;   Y = number of the character row containing the pixel
+                        ;
+                        ;   X = the pixel's number (0-3) in that row
+                        ;
+                        ; We can use there as the starting point for drawing the
+                        ; stick, if there is one
 
- DEY                    ; Y was running through byte char in CPIX4
- BPL VL1                ; else reset Y to 7 for
- LDY #7                 ; next row
- DEC SC+1               ; screen hi
+ LDA CTWOS+1,X          ; Load the same mode 5 1-pixel byte that we just used
+ AND COL                ; for the top-right pixel, and mask it with the same
+ STA X1                 ; colour, storing the result in X1, so we can use it as
+                        ; the character row byte for the stick
+ 
+ PLA                    ; Restore the stick height from the stack into A
+ 
+ PLP                    ; Restore the flags from above, so the C flag once again
+                        ; reflects the sign of the stick height
+ 
+ TAX                    ; Copy the stick height into X
+ 
+ BEQ RTS                ; If the stick height is zero, then there is no stick to
+                        ; draw, so return from the subroutine (as RTS contains
+                        ; an RTS)
+ 
+ BCC RTS+1              ; If the C flag is clear then the stick height in A is
+                        ; negative, so jump down to RTS+1
 
-.VL1                    ; Y reset done
+.VLL1                   ; If we get here then the stick length is positive (so
+                        ; the dot is below the ellipse and the stick is above
+                        ; the dot, and we need to draw the stick upwards from
+                        ; the dot)
 
- LDA X1                 ; colour temp for stick
- EOR (SC),Y
+ DEY                    ; We want to draw the stick upwards, so decrement the
+                        ; pixel row in Y
+
+ BPL VL1                ; If Y is still positive then it correctly points at the
+                        ; line above, so jump to VL1 to skip the following
+
+ LDY #7                 ; We just decremented Y up through the top of the
+                        ; character block, so we need to move it to the last row
+                        ; in the character above, so set Y to 7, the number of
+                        ; the last row
+
+ DEC SC+1               ; Decrement the high byte of the screen address to move
+                        ; to the character block above
+
+.VL1
+
+ LDA X1                 ; Set A to the character row byte for the stick, which
+                        ; we stored in X1 above, and which has the same pixel
+                        ; pattern as the bottom-right pixel of the dot (so the
+                        ; stick comes out of the right side of the dot)
+
+ EOR (SC),Y             ; Draw the stick on row Y of the character block using
  STA (SC),Y
- DEX                    ; next dot of stick up
- BNE VLL1               ; loop X
+
+ DEX                    ; Decrement (positive) the stick height in X
+
+ BNE VLL1               ; If we still have more stick to draw, jump up to VLL1
+                        ; to draw the next pixel
 
 .RTS
 
- RTS
+ RTS                    ; Return from the subroutine
 
-\.SCRTS+1               ; -ve stick length
+\.SCRTS+1               ; If we get here then the stick length is negative (so
+                        ; the dot is above the ellipse and the stick is below
+                        ; the dot, and we need to draw the stick downwards from
+                        ; the dot)
 
- INY                    ; Y was running through byte char in CPIX4
- CPY #8                 ; hop reset
- BNE P%+6               ; Y continue
- LDY #0                 ; else reset for next row
- INC SC+1               ; screen hi
+ INY                    ; We want to draw the stick downwards, so we first
+                        ; increment the row counter so that it's pointing to the
+                        ; bottom-right pixel in the dot (as opposed to the top-
+                        ; right pixel that the call to CPIX2 finished on)
 
-.VLL2                   ; Y continue, counter X
+ CPY #8                 ; If the row number in Y is less than 8, then it
+ BNE P%+6               ; correctly points at the next line down, so jump to
+                        ; VLL2 to skip the following
 
- INY                    ; Y was running through byte char in CPIX4
- CPY #8                 ; hop reset
- BNE VL2                ; same row
- LDY #0                 ; else reset for next row
- INC SC+1               ; screen hi
+ LDY #0                 ; We just incremented Y down through the bottom of the
+                        ; character block, so we need to move it to the first
+                        ; row in the character below, so set Y to 0, the number
+                        ; of the first row
 
-.VL2                    ; same row
+ INC SC+1               ; Increment the high byte of the screen address to move
+                        ; to the character block above
 
- LDA X1                 ; colour temp for stick
- EOR (SC),Y
+.VLL2
+
+ INY                    ; We want to draw the stick itsef, heading downwards, so
+                        ; increment the pixel row in Y
+
+ CPY #8                 ; If the row number in Y is less than 8, then it
+ BNE VL2                ; correctly points at the next line down, so jump to
+                        ; VL2 to skip the following
+
+ LDY #0                 ; We just incremented Y down through the bottom of the
+                        ; character block, so we need to move it to the first
+                        ; row in the character below, so set Y to 0, the number
+                        ; of the first row
+
+ INC SC+1               ; Increment the high byte of the screen address to move
+                        ; to the character block above
+
+.VL2
+
+ LDA X1                 ; Set A to the character row byte for the stick, which
+                        ; we stored in X1 above, and which has the same pixel
+                        ; pattern as the bottom-right pixel of the dot (so the
+                        ; stick comes out of the right side of the dot)
+
+ EOR (SC),Y             ; Draw the stick on row Y of the character block using
  STA (SC),Y
- INX                    ; next dot of stick down
- BNE VLL2               ; loop X
- RTS
+
+ INX                    ; Decrement the (negative) stick height in X
+
+ BNE VLL2               ; If we still have more stick to draw, jump up to VLL2
+                        ; to draw the next pixel
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
