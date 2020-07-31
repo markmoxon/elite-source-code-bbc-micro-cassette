@@ -14335,86 +14335,152 @@ NEXT
 .^TT66
 
  STA QQ11               ; Set the current view type in QQ11 to A
+
+                        ; Fall through into TTX66 to clear the screen and draw a
+                        ; white border
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: TTX66
 \
-\ Clear the top part of the screen (mode 4) and draw a white border.
+\ Clear the top part of the screen (the mode 4 part) and draw a white border
+\ along the top and sides.
 \
 \ Other entry points:
 \
-\   BOX                 Just draw the border (which can be used to remove the
-\                       border as it is drawn using EOR logic)
+\   BOX                 Just draw the border and (if this is a space view) the
+\                       view name. This can be used to remove the border and
+\                       view name, as it is drawn using EOR logic
 \
 \ ******************************************************************************
 
-.TTX66                  ; New box
+.TTX66
 {
- LDA #128               ; set bit7 One uppercase letter
- STA QQ17               ; flag for flight tokens
- ASL A
- STA LASCT              ; Acc =0, is LAS2 in ELITEC.TXT
- STA DLY                ; delay printing
- STA de                 ; clear flag for item + destroyed
- LDX #&60               ; screen hi page start
+ LDA #128               ; Set QQ17 to 128, which denotes Sentence Case
+ STA QQ17
 
-.BOL1                   ; box loop 1, counter X
+ ASL A                  ; Set LASCT to 0, as 128 << 1 = %10000000 << 1 = 0. This
+ STA LASCT              ; stops any laser pulsing. This instruction is STA LS2
+                        ; in the text source file ELITEC.TXT
 
- JSR ZES1               ; zero page X
- INX                    ; next page
- CPX #&78               ; last screen page
- BNE BOL1               ; loop X
+ STA DLY                ; Set the delay in DLY to 0, to indicate that we are
+                        ; no longer showing an in-flight message, so any new
+                        ; in-flight messages will be shown instantly
 
- LDX QQ22+1
- BEQ BOX                ; skip if no outer hyperspace countdown
- JSR ee3                ; else reprint hyperspace countdown in X
-}
+ STA de                 ; Clear de, the flag that appends " DESTROYED" to the
+                        ; end of the next text token, so that it doesn't
 
-.BOX                    ; front view box but no title if menu id > 0
-{
- LDY #1                 ; Y text cursor to top
+ LDX #&60               ; Set X to the screen memory page for the top row of the
+                        ; screen (as screen memory starts at &6000)
+
+.BOL1
+
+ JSR ZES1               ; Call ZES1 below to zero-fill the page in X, which
+                        ; clears that character row on the screen
+
+ INX                    ; Increment X to point to the next page, i.e. the next
+                        ; character row
+
+ CPX #&78               ; Loop back to BOL1 until we have cleared page &7700,
+ BNE BOL1               ; the last character row in the space view part of the
+                        ; screen (the mode 4 part)
+
+ LDX QQ22+1             ; Fetch into X the number that's shown on-screen during
+                        ; the hyperspace countdown
+
+ BEQ BOX                ; If the counter is zero then we are not counting down
+                        ; to hyperspace, so jump to BOX to skip the next
+                        ; instruction
+
+ JSR ee3                ; Print the 8-bit number in X at text location (0, 1),
+                        ; i.e. print the hyperspace countdown in the top-left
+                        ; corner
+
+.^BOX                   ; front view box but no title if menu id > 0
+
+ LDY #1                 ; Move the text cursor to row 1
  STY YC
- LDA QQ11               ; menu id
- BNE tt66
- LDY #11                ; X text cursor indent
+
+ LDA QQ11               ; If this is not a space view, jump to tt66 to skip
+ BNE tt66               ; displaying the view name
+
+ LDY #11                ; Move the text cursor to row 11
  STY XC
- LDA VIEW
- ORA #&60               ; build token = front rear
- JSR TT27               ; process flight text token
- JSR TT162              ; white space
- LDA #175               ; token = VIEW
+
+ LDA VIEW               ; Load the current view into A:
+                        ;
+                        ;   0 = front
+                        ;   1 = rear
+                        ;   2 = left
+                        ;   3 = right
+
+ ORA #&60               ; OR with &60 so we get a value of &60 to &63 (96 to 99)
+
+ JSR TT27               ; Print recursive token 96 to 99, which will be in the
+                        ; range "FRONT" to "RIGHT"
+
+ JSR TT162              ; Print a space
+
+ LDA #175               ; Print recursive token 15 ("VIEW ")
  JSR TT27
 
-.tt66                   ; no view title
+.tt66
 
- LDX #0                 ; top horizontal line
+ LDX #0                 ; Set (X1, Y1) to (0, 0)
  STX X1
  STX Y1
- STX QQ17               ; printing flag all Upper case
- DEX                    ; #255
- STX X2
- JSR HLOIN              ; horizontal line  X1,X2,Y1. Yreg protected.
 
- LDA #2                 ; 2 then 1, 0, 255, 254
+ STX QQ17               ; Set QQ17 = 0 to set ALL CAPS
+
+ DEX                    ; Set X2 = 255
+ STX X2
+
+ JSR HLOIN              ; Draw a horizontal line from (X1, Y1) to (X2, Y1), so
+                        ; that's (0, 0) to (255, 0), along the very top of the
+                        ; screen
+
+ LDA #2                 ; Set X1 = X2 = 2
  STA X1
  STA X2
- JSR BOS2               ; do twice
+
+ JSR BOS2               ; Call BOS2 below, which will call BOS1 twice, and then
+                        ; fall through into BOS2 again, so we effectively do
+                        ; BOS1 four times, decrementing X1 and X2 each time
+                        ; before calling LOIN, so this whole loop-within-a-loop
+                        ; mind-bender ends up drawing these four lines:
+                        ;
+                        ;   (1, 0)   to (1, 191)
+                        ;   (0, 0)   to (0, 191)
+                        ;   (255, 0) to (255, 191)
+                        ;   (254, 0) to (254, 191)
+                        ;
+                        ; So that's a 2-pixel wide vertical border along the
+                        ; left edge of the upper, mode 4 part of the screen, and
+                        ; a 2-pixel wide vertical border along the right edge
 
 .BOS2
 
- JSR BOS1               ; do twice
+ JSR BOS1               ; Call BOS1 below and then fall through into it, which
+                        ; ends up running BOS1 twice. This is all part of the
+                        ; loop-the-loop border-drawing mind-bender explained
+                        ; above
 
 .BOS1
 
- LDA #0                 ; bottom of screen
+ LDA #0                 ; Set Y1 = 0
  STA Y1
- LDA #2*Y-1             ; #(2*Y-1) is top of screen
- STA Y2
- DEC X1
+
+ LDA #2*Y-1             ; Set Y2 = 2 * #Y - 1. The constant #Y is 96, the
+ STA Y2                 ; y-coordinate of the mid-point of the space view, so
+                        ; this sets Y2 to 191, the y-coordinate of the bottom
+                        ; pixel row of the space view
+
+ DEC X1                 ; Decrement X1 and X2
  DEC X2
- JMP LOIN               ; line using (X1,Y1), (X2,Y2) Yreg protected.
+
+ JMP LOIN               ; Draw a line from (X1, Y1) to (X2, Y2), and return from
+                        ; the subroutine using a tail call
 }
 
 \ ******************************************************************************
