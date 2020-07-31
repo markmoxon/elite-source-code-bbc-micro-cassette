@@ -593,8 +593,11 @@ ORG &0000
                         ; INWK+31 = exploding/killed state, scanner flag, or
                         ;           missile count
                         ;
+                        ;           Bits 0-2 = number of missiles
+                        ;           Bit 3 = keep updating explosion cloud?
                         ;           Bit 4 = 0 (hide on scanner) or 1 (show)
                         ;           Bit 5 = 0 (not exploding) or 1 (exploding)
+                        ;           Bit 6 = laser firing at ship?
                         ;           Bit 7 = 1 (ship has been killed)
                         ;
                         ; INWK+32 = AI, hostility and E.C.M. flags
@@ -2805,7 +2808,7 @@ ORG &0D40
 
  SKIP 1                 ; Current space view
                         ;
-                        ; 0 = forward
+                        ; 0 = front
                         ; 1 = rear
                         ; 2 = left
                         ; 3 = right
@@ -2877,7 +2880,7 @@ ORG &0D40
 
  SKIP 1                 ; Equipment destruction flag
                         ;
-                        ; Bit 1 set means "DESTROYED" is appended to the
+                        ; Bit 1 set means " DESTROYED" is appended to the
                         ; in-flight message printed by MESS
 
 .LSX
@@ -3598,7 +3601,7 @@ LOAD_A% = LOAD%
 
  STA TYPE               ; Store the ship type in TYPE
 
- JSR GINF               ; Get the address of the data block for ship number X
+ JSR GINF               ; Get the address of the data block for ship slot X
                         ; and store it in INF
 
                         ; Next we want to copy the ship data from INF to the
@@ -3665,7 +3668,7 @@ LOAD_A% = LOAD%
 
  JSR EXNO2              ; Call EXNO2 to process the fact that we have killed a
                         ; ship (so increase the kill tally, make an explosion
-                        ; noise and so on)
+                        ; sound and so on)
 
 \ ******************************************************************************
 \
@@ -3814,7 +3817,7 @@ LOAD_A% = LOAD%
                         ; to do something, and didn't get removed
 
  BCS MA59               ; If carry is set then we have no room in the hold for
-                        ; the scooped item, so jump down to MA59 make a noise
+                        ; the scooped item, so jump down to MA59 make a sound
                         ; to indicate failure, and destroy the canister
 
  LDY QQ29               ; Scooping was successful, so set Y to the type of
@@ -4212,7 +4215,7 @@ LOAD_A% = LOAD%
 
  JSR EXNO2              ; Call EXNO2 to process the fact that we have killed a
                         ; ship (so increase the kill tally, make an explosion
-                        ; noise and so on)
+                        ; sound and so on)
 
 .MA14
 
@@ -7611,6 +7614,10 @@ NEXT
 \ Subroutine: HLOIN
 \
 \ Draw a horizontal line from (X1, Y1) to (X2, Y1).
+\
+\ Returns:
+\
+\   Y                   Y is preserved
 \
 \ ******************************************************************************
 
@@ -11866,38 +11873,65 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ Subroutine: LL164
 \
-\ Hyperspace noise and Tunnel inc. misjump
+\ Make the hyperspace sound and draw the hyperspace tunnel.
 \
 \ ******************************************************************************
 
-.LL164                  ; hyperspace noise and Tunnel inc. misjump
+.LL164
 {
  LDA #56                ; Call the NOISE routine with A = 56 to make the sound
  JSR NOISE              ; of the hyperspace drive being engaged
 
- LDA #1                 ; toggle Mode 4 to 5 colours for Hyperspace effects
- STA HFX
- LDA #4                 ; finer circles for launch code tunnel
- JSR HFS2
- DEC HFX                ; = 0
- RTS
+ LDA #1                 ; Set HFX to 1, which switches the screen mode to a full
+ STA HFX                ; mode 5 screen, therefore making the hyperspace rings
+                        ; multi-coloured and all zig-zaggy (see the IRQ1 routine
+                        ; for details)
+
+ LDA #4                 ; Set the step size for the hyperspace rings to 4, so
+                        ; there are more sections in the rings and thay are
+                        ; quite round (compared to the step size of 8 used in
+                        ; the much more polygonal launch rings)
+
+ JSR HFS2               ; Call HFS2 to draw the hyperspace tunnel rings
+
+ DEC HFX                ; Set HFX back to 0, so we switch back to the normal
+                        ; split-screen mode
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: LAUN
 \
-\ Launch tunnel from space station
+\ Make the launch sound and draw the launch tunnel.
 \
 \ ******************************************************************************
 
-.LAUN                   ; Launch tunnel from space station
+.LAUN
 {
  LDA #48                ; Call the NOISE routine with A = 48 to make the sound
  JSR NOISE              ; of the ship launching from the station
 
- LDA #8                 ; crude octagon rings
+ LDA #8                 ; Set the step size for the hyperspace rings to 8, so
+                        ; there are fewer sections in the rings and thay are
+                        ; quite ploygonal (compared to the step size of 4 used
+                        ; in the much rounder launch rings)
+                    
+                        ; Fall through into HFS2 to draw the launch tunnel rings
 }
+
+\ ******************************************************************************
+\
+\ Subroutine: HFS2
+\
+\ Draw the launch or hyperspace tunnel
+\
+\ Arguments:
+\
+\   A                   The step size of the straight lines making up the rings
+\
+\ ******************************************************************************
 
 .HFS2                   ; Rings for tunnel
 {
@@ -13942,7 +13976,7 @@ NEXT
 \     +---------> x
 \
 \ This rule applies, whichever view we are looking through. So when we're
-\ looking through the forward view, z is into the screen - in the direction of
+\ looking through the front view, z is into the screen - in the direction of
 \ travel - but if we switch, then the direction of travel is now to our right.
 \
 \ The local universe is stored as if we are looking forward, so the z-axis is
@@ -13952,11 +13986,11 @@ NEXT
 \ switch the axes so that the value of the z-coordinate that we've stored in
 \ our universe - the direction of travel - is translated into the correct axis
 \ for the view we are looking at (for the z-axis, which points into the screen
-\ for the forward view, we move it to point out of the screen if we are looking
+\ for the front view, we move it to point out of the screen if we are looking
 \ backwards, to the right if we're looking out of the left view, or to the left
 \ if we are looking out of the right view).
 \
-\ For the forward view, then we change nothing as the default universe is set up
+\ For the front view, then we change nothing as the default universe is set up
 \ for this view (so the coordinates and matrices in K%, UNIV, INWK etc. are
 \ already correct for this view). Let's look at the other views in more detail.
 \
@@ -14102,10 +14136,10 @@ NEXT
 {
  LDX VIEW               ; Load the current view into X:
                         ;
-                        ; 0 = forward
-                        ; 1 = rear
-                        ; 2 = left
-                        ; 3 = right
+                        ;   0 = forward
+                        ;   1 = rear
+                        ;   2 = left
+                        ;   3 = right
 
 
  BNE PU1                ; If the current view is forward, return from the
@@ -14115,9 +14149,10 @@ NEXT
 .^PU1
 
  DEX                    ; Decrement the view, so now:
-                        ; 0 = rear
-                        ; 1 = left
-                        ; 2 = right
+                        ;
+                        ;   0 = rear
+                        ;   1 = left
+                        ;   2 = right
 
  BNE PU2                ; If the current view is left or right, jump to PU2,
                         ; otherwise this is the rear view, so continue on
@@ -14158,8 +14193,8 @@ NEXT
 
 .PU2                    ; We enter this with X set to the view, as follows:
                         ;
-                        ; 1 = left
-                        ; 2 = right
+                        ;   1 = left
+                        ;   2 = right
 
  LDA #0                 ; Set RAT2 = 0 (left view) or -1 (right view)
  CPX #2
@@ -14218,7 +14253,7 @@ NEXT
  STA INWK+1,Y
  STX INWK+5,Y
 
-                        ; Fall through into LOOK1 to return from the subtroutine
+                        ; Fall through into LOOK1 to return from the subroutine
 }
 
 \ ******************************************************************************
@@ -14227,7 +14262,8 @@ NEXT
 \
 \ Initialise the space view, with the direction of view given in X. This clears
 \ the upper screen and draws the laser crosshairs, if the view in X has lasers
-\ fitted.
+\ fitted. It also wipes all the ships from the scanner, so we can recalculate
+\ ship positions for the new view (they get put back in the main flight loop).
 \
 \ Arguments:
 \
@@ -14277,7 +14313,7 @@ NEXT
                         ; and set the current view type in QQ11 to 0 (space
                         ; view)
 
- JSR FLIP               ; switch dusty and dustx
+ JSR FLIP               ; Swap the stardust X and Y blocks
 
  JSR WPSHPS             ; Wipe all the ships from the scanner
 
@@ -18870,8 +18906,9 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR TT66-2             ; Clear the top part of the screen, draw a white border,
                         ; and set the current view type in QQ11 to 1
 
- JSR LL164              ; Call LL164 to show the hyperspace tunnel for a second
-                        ; time (as we already called LL164 in TT18)
+ JSR LL164              ; Call LL164 to show the hyperspace tunnel and make the
+                        ; hyperspace sound for a second time (as we already
+                        ; called LL164 in TT18)
 
  JSR RES2               ; Reset a number of flight variables and workspaces, as
                         ; well as setting Y to &FF
@@ -18925,7 +18962,8 @@ LOAD_D% = LOAD% + P% - CODE%
                         ; and set the current view type in QQ11 to 0 (space
                         ; view)
 
- JSR LL164              ; Call LL164 to show the hyperspace tunnel
+ JSR LL164              ; Call LL164 to show the hyperspace tunnel and make the
+                        ; hyperspace sound
 
 .ee5
 
@@ -19042,7 +19080,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDX #0                 ; Set QQ12 to 0 to indicate we are not docked
  STX QQ12
 
- JMP LOOK1              ; Jump to LOOK1 to switch to the forward view (X = 0),
+ JMP LOOK1              ; Jump to LOOK1 to switch to the front view (X = 0),
                         ; returning from the subroutine using a tail call
 }
 
@@ -21541,9 +21579,11 @@ MAPCHAR '4', '4'
 \
 \ Arguments:
 \
-\   X1                  The screen pixel x-coordinate of the dot
+\   X1                  The screen pixel x-coordinate of the bottom-left corner
+\                       of the dot
 \
-\   Y1                  The screen pixel y-coordinate of the dot
+\   Y1                  The screen pixel y-coordinate of the bottom-left corner
+\                       of the dot
 \
 \   COL                 The colour of the dot as a mode 5 character row byte
 \
@@ -21556,7 +21596,7 @@ MAPCHAR '4', '4'
  DEC Y1                 ; Decrement Y1
 
                         ; Fall through into CPIX2 to draw a second single-height
-                        ; dash on the pixel row below the first one, to create a
+                        ; dash on the pixel row above the first one, to create a
                         ; double-height dot
 }
 
@@ -21758,7 +21798,7 @@ MAPCHAR '4', '4'
 .CP1
 
  AND COL                ; Draw the dash's right pixel according to the mask in
- EOR (SC),Y             ; A, with the colour in COL, using EPR logic, just as
+ EOR (SC),Y             ; A, with the colour in COL, using EOR logic, just as
  STA (SC),Y             ; above
 
  RTS                    ; Return from the subroutine
@@ -21851,7 +21891,7 @@ MAPCHAR '4', '4'
  BCS P%+5               ; If the C flag is set, then subtracting the damage from
                         ; the energy banks didn't underflow, so we had enough
                         ; energy to survive, and we can skip the next
-                        ; instruction to make a noise and take some damage
+                        ; instruction to make a sound and take some damage
 
  JMP DEATH              ; Otherwise our energy levels are either 0 or negative,
                         ; and in either case that means we jump to our DEATH,
@@ -21909,13 +21949,14 @@ MAPCHAR '4', '4'
 \
 \ Subroutine: GINF
 \
-\ Get the address of the data block for ship number X and store it in INF. This
+\ Get the address of the data block for ship slot X and store it in INF. This
 \ address is fetched from the UNIV table, which stores the addresses of the 13
 \ ship data blocks in workspace K%.
 \
 \ Arguments:
 \
-\   X                   The ship number for which we want the data block address
+\   X                   The ship slot number for which we want the data block
+\                       address
 \
 \ ******************************************************************************
 
@@ -22043,8 +22084,8 @@ MAPCHAR '4', '4'
                         ; when we are done, copying the block from INWK into
                         ; the workspace at K% (specifically, to INF).
 
- JSR GINF               ; Get the address of the data block for ship X (which
-                        ; is in workspace K%) and store it in INF
+ JSR GINF               ; Get the address of the data block for ship slot X
+                        ; (which is in workspace K%) and store it in INF
 
  LDA T                  ; If the type of ship that we want to create is
  BMI NW2                ; negative, then this indicates a planet or sun, so
@@ -24543,8 +24584,8 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR MESS               ; Call MESS to print the token, which will remove it
                         ; from the screen as printing uses EOR logic
 
- LDA #0                 ; Set the delay in DLY to 0, to indicate that we are
- STA DLY                ; no longer showing an in-flight message
+ LDA #0                 ; Set the delay in DLY to 0, so any new in-flight
+ STA DLY                ; messages will be shown instantly
 
  JMP me3                ; Jump back into the main spawning loop at TT100
 }
@@ -26739,9 +26780,9 @@ ENDIF
 \ Make the sound of death in the cold, hard vacuum of space. Apparently, in
 \ Elite space, everyone can hear you scream.
 \
-\ This routine also makes the noise of a destroyed cargo canister if we don't
-\ get scooping right, the noise of us colliding with another ship, and the noise
-\ of us being hit with depleted shields. It is not a good noise to hear.
+\ This routine also makes the sound of a destroyed cargo canister if we don't
+\ get scooping right, the sound of us colliding with another ship, and the sound
+\ of us being hit with depleted shields. It is not a good sound to hear.
 \
 \ ******************************************************************************
 
@@ -26789,7 +26830,7 @@ ENDIF
 \
 \ We have killed a ship, so increase the kill tally, displaying an iconic
 \ message of encouragement if the kill total is a multiple of 256, and then
-\ make a nearby explosion noise.
+\ make a nearby explosion sound.
 \
 \ ******************************************************************************
 
@@ -26814,7 +26855,7 @@ ENDIF
 \
 \ Subroutine: EXNO
 \
-\ Make the two-part explosion noise of us making a laser strike, or of another
+\ Make the two-part explosion sound of us making a laser strike, or of another
 \ ship exploding.
 \
 \ The volume of the first explosion is affected by the distance of the ship
@@ -27642,7 +27683,8 @@ KYTB = P% - 1           ; Point KYTB to the byte before the start of the table
 
 .me1
 {
- STX DLY                ; Set the message delay in DLY to 0
+ STX DLY                ; Set the message delay in DLY to 0, so any new
+                        ; in-flight messages will be shown instantly
 
  PHA                    ; Store the new message token we want to print
 
