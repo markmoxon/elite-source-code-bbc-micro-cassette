@@ -13890,62 +13890,94 @@ NEXT
 \
 \ Subroutine: LASLI
 \
-\ Laser lines
+\ Draw the laser lines, aiming them to slightly different place each time so
+\ they appear to flicker and dance. Also heat up the laser temperature and drain
+\ some energy.
+\
+\
+\ Other entry points:
+\
+\   LASLI2              Just draw the current laser lines without moving the
+\                       centre point, draining energy or heating up. This has
+\                       the effect of removing the lines from the screen
 \
 \ ******************************************************************************
 
-.LASLI                  ; laser lines
+.LASLI
 {
  JSR DORND              ; Set A and X to random numbers
- AND #7
- ADC #Y-4               ; below center of screen
- STA LASY
+
+ AND #7                 ; Restrict A to a random value in the range 0 to 7
+
+ ADC #Y-4               ; Set LASY to four pixels above the centre of the
+ STA LASY               ; screen (#Y), plus our random number, so the laser
+                        ; dances above and below the centre point
+
  JSR DORND              ; Set A and X to random numbers
- AND #7
- ADC #X-4               ; left of center
- STA LASX
- LDA GNTMP              ; gun temperature
- ADC #8                 ; heat up laser temperature
+
+ AND #7                 ; Restrict A to a random value in the range 0 to 7
+
+ ADC #X-4               ; Set LASX to four pixels left of the centre of the
+ STA LASX               ; screen (#X), plus our random number, so the laser
+                        ; dances to the left and right of the centre point
+
+ LDA GNTMP              ; Add 8 to the laser temperature in GNTMP
+ ADC #8
  STA GNTMP
- JSR DENGY              ; drain energy by 1 for active ECM pulse
-}
 
-\ ******************************************************************************
-\
-\ Subroutine: LASLI2
-\
-\ Stops drawing laser lines early for pulse laser
-\
-\ ******************************************************************************
+ JSR DENGY              ; Call DENGY to deplete our energy banks by 1
 
-.LASLI2
-{
- LDA QQ11               ; If not zero then not a space view
- BNE PU1-1              ; rts
- LDA #32                ; xleft
- LDY #224               ; xright
- JSR las                ; (a few lines below) twice
- LDA #48                ; new xleft
- LDY #208               ; new xright
+.^LASLI2
+
+ LDA QQ11               ; If this is not a space view (i.e. QQ11 is non-zero)
+ BNE PU1-1              ; then jump to MA9 to return from the main flight loop
+                        ; (as PU1-1 is an RTS)
+
+ LDA #32                ; Call las with A = 32 and Y = 224 to draw one set of
+ LDY #224               ; laser lines
+ JSR las
+
+ LDA #48                ; Fall through into las with A = 48 and Y = 208 to draw
+ LDY #208               ; a second set of lines
+
+                        ; The following routine draws two laser lines, one from
+                        ; the centre point down to point A on the bottom row,
+                        ; and the other from the centre point down to point Y
+                        ; on the bottom row. We therefore get lines from the
+                        ; centre point to points 32, 48, 208 and 224 along the
+                        ; bottom row, giving us the triangular laser effect
+                        ; we're after
 
 .las
 
- STA X2
- LDA LASX               ; center-X
- STA X1
- LDA LASY               ; center-Y
- STA Y1
- LDA #2*Y-1             ; bottom of screen
- STA Y2
- JSR LOIN               ; from center (X1,Y1) to bottom left (X2,Y2)
- LDA LASX
+ STA X2                 ; Set X2 = A
+
+ LDA LASX               ; Set (X1, Y1) to the random centre point we set above
  STA X1
  LDA LASY
  STA Y1
- STY X2
- LDA #2*Y-1
- STA Y2
- JMP LOIN
+
+ LDA #2*Y-1             ; Set Y2 = 2 * #Y - 1. The constant #Y is 96, the
+ STA Y2                 ; y-coordinate of the mid-point of the space view, so
+                        ; this sets Y2 to 191, the y-coordinate of the bottom
+                        ; pixel row of the space view
+
+ JSR LOIN               ; Draw a line from (X1, Y1) to (X2, Y2), so that's from
+                        ; the centre point to (A, 191)
+
+ LDA LASX               ; Set (X1, Y1) to the random centre point we set above
+ STA X1
+ LDA LASY
+ STA Y1
+
+ STY X2                 ; Set X2 = Y
+
+ LDA #2*Y-1             ; Set Y2 = 2 * #Y - 1, the y-coordinate of the bottom
+ STA Y2                 ; pixel row of the space view (as before)
+
+ JMP LOIN               ; Draw a line from (X1, Y1) to (X2, Y2), so that's from
+                        ; the centre point to (Y, 191), and return from
+                        ; the subroutine using a tail call
 }
 
 \ ******************************************************************************
@@ -16427,77 +16459,124 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-.TT15                   ; cross hair using QQ19(0to2) for laser or chart
+.TT15
 {
- LDA #24                ; default cross size
- LDX QQ11               ; menu i.d.
- BPL P%+4               ; if bit7 clear hop over lda #0
- LDA #0                 ; else Short range chart
- STA QQ19+5             ; Ycross could be #24
- LDA QQ19               ; Xorg
- SEC
- SBC QQ19+2             ; crosshair size
- BCS TT84               ; Xorg-crosshair ok
- LDA #0
+ LDA #24                ; Set A to 24, which we will use as the minimum
+                        ; screen indent for the crosshairs (i.e. the minimum
+                        ; distance from the top-left corner of the screen)
 
-.TT84                   ; Xorg-crosshair ok
+ LDX QQ11               ; If the current view is not the Short-range Chart,
+ BPL P%+4               ; which is the only view with bit 7 set, then skip the
+                        ; following instruction
 
- STA XX15               ; left
- LDA QQ19               ; Xorg
- CLC                    ; Xorg+crosshair size
- ADC QQ19+2
- BCC P%+4               ; no X overflow
- LDA #&FF               ; else right edge
- STA XX15+2
+ LDA #0                 ; This is the Short-range Chart, so set A to 0, so the
+                        ; crosshairs can go right up against the screen edges
 
- LDA QQ19+1
- CLC                    ; Yorg + Ycross
- ADC QQ19+5             ; could be #24
- STA XX15+1             ; Yorg + Ycross
- JSR HLOIN              ; horizontal line  X1,Y1,X2  Yreg protected.
- LDA QQ19+1
- SEC                    ; Yorg - crosshair size
- SBC QQ19+2
- BCS TT86               ; Yorg-crosshair ok
- LDA #0
+ STA QQ19+5             ; Set QQ19+5 to A, which now contains the correct indent
+                        ; for this view
 
-.TT86                   ; Yorg-crosshair ok
+ LDA QQ19               ; Set A = crosshairs x-coordinate - crosshairs size
+ SEC                    ; to get the x-coordinate of the left edge of the
+ SBC QQ19+2             ; crosshairs
 
- CLC
- ADC QQ19+5             ; could be #24
- STA XX15+1             ; the top-most extent
- LDA QQ19+1             ; Yorg
- CLC
- ADC QQ19+2             ; crosshair size
- ADC QQ19+5             ; could be #24
- CMP #152               ; Ytop
- BCC TT87               ; Yscreen sum ok
+ BCS TT84               ; If the above subtraction didn't underflow, then A is
+                        ; positive, so skip the next instruction
 
- LDX QQ11               ; menu id = short range chart?
- BMI TT87               ; Yscreen sum ok
- LDA #151               ; else ymax
+ LDA #0                 ; The subtraction underflowed, so set A to 0 so the
+                        ; crosshairs don't spill out of the left of the screen
 
-.TT87                   ; Yscreen sum ok
+.TT84
 
- STA XX15+3             ; Y cross top
- LDA QQ19               ; Xorg
- STA XX15               ; X1
- STA XX15+2             ; X2
- JMP LL30               ; draw vertical line using (X1,Y1), (X2,Y2)
-}
+                        ; In the following, the authors have used XX15 for
+                        ; temporary storage. XX15 shares location with X1, Y1,
+                        ; X2 and Y2, so in the following, you can consider
+                        ; the varibles like this:
+                        ;
+                        ;   XX15   is the same as X1
+                        ;   XX15+1 is the same as Y1
+                        ;   XX15+2 is the same as X2
+                        ;   XX15+3 is the same as Y2
+                        ;
+                        ; Presumably this routine was written at a different
+                        ; time to the line drawing routine, before the two
+                        ; workspaces were merged to save space
 
-.TT126                  ; default  Circle with a crosshair
-{
- LDA #104               ; Xorg
- STA QQ19
- LDA #90                ; Yorg
- STA QQ19+1
- LDA #16                ; crosshair size
- STA QQ19+2
- JSR TT15               ; the cross hair using QQ19(0to2)
- LDA QQ14               ; ship fuel #70 = #&46
- STA K                  ; radius
- JMP TT128              ; below. QQ19(0,1) and K for Circle
+ STA XX15               ; Set XX15 (X1) = A (the x-coordinate of the left edge
+                        ; of the crosshairs)
+
+ LDA QQ19               ; Set A = crosshairs x-coordinate + crosshairs size
+ CLC                    ; to get the x-coordinate of the right edge of the
+ ADC QQ19+2             ; crosshairs
+
+ BCC P%+4               ; If the above addition didn't overflow, then A is
+                        ; correct, so skip the next instruction
+
+ LDA #255               ; The addition overflowed, so set A to 255 so the
+                        ; crosshairs don't spill out of the right of the screen
+                        ; (as 255 is the x-coordinate of the rightmost pixel
+                        ; on screen)
+
+ STA XX15+2             ; Set XX15+2 (X2) = A (the x-coordinate of the right
+                        ; edge of the crosshairs)
+
+ LDA QQ19+1             ; Set XX15+1 (Y1) = crosshairs y-coordinate + indent
+ CLC                    ; to get the y-coordinate of the centre of the
+ ADC QQ19+5             ; crosshairs
+ STA XX15+1
+
+ JSR HLOIN              ; Draw a horizontal line from (X1, Y1) to (X2, Y1),
+                        ; which will draw from the left edge of the crosshairs
+                        ; to the right edge, through the centre of the
+                        ; crosshairs
+
+ LDA QQ19+1             ; Set A = crosshairs y-coordinate - crosshairs size
+ SEC                    ; to get the y-coordinate of the top edge of the
+ SBC QQ19+2             ; crosshairs
+
+ BCS TT86               ; If the above subtraction didn't underflow, then A is
+                        ; correct, so skip the next instruction
+
+ LDA #0                 ; The subtraction underflowed, so set A to 0 so the
+                        ; crosshairs don't spill out of the top of the screen
+
+.TT86
+
+ CLC                    ; Set XX15+1 (Y1) = A + indent to get the y-coordinate
+ ADC QQ19+5             ; of the top edge of the indented crosshairs
+ STA XX15+1
+
+ LDA QQ19+1             ; Set A = crosshairs y-coordinate + crosshairs size
+ CLC                    ; + indent to get the y-coordinate of the bottom edge
+ ADC QQ19+2             ; of the indented crosshairs
+ ADC QQ19+5
+
+ CMP #152               ; If A < 152 then skip the following, as the crosshairs
+ BCC TT87               ; won't spill out of the bottom of the screen
+
+ LDX QQ11               ; A >= 152, so we need to check whether this will fit in
+                        ; this view, so fetch the view number
+
+ BMI TT87               ; If this is the Short-range Chart then the y-coordinate
+                        ; is fine, so skip to TT87
+
+ LDA #151               ; Otherwise this is the Long-range Chart, so we need to
+                        ; clip the crosshairs at a maximum y-coordinate of 151
+
+.TT87
+
+ STA XX15+3             ; Set XX15+3 (Y2) = A (the y-coordinate of the bottom
+                        ; edge of the crosshairs)
+
+ LDA QQ19               ; Set XX15 (X1) = the x-coordinate of the centre of the
+ STA XX15               ; crosshairs
+
+ STA XX15+2             ; Set XX15+2 (X2) = the x-coordinate of the centre of
+                        ; the crosshairs
+
+ JMP LL30               ; Draw a vertical line (X1, Y1) to (X2, Y2), which will
+                        ; draw from the top edge of the crosshairs to the bottom
+                        ; edge, through the centre of the crosshairs, returning
+                        ; from the subroutine using a tail call
 }
 
 \ ******************************************************************************
@@ -16508,8 +16587,25 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-.TT14                   ; Crcl/+ \ their comment \ Circle with a cross hair
 {
+.TT126
+
+ LDA #104               ; Set QQ19 = 104
+ STA QQ19
+
+ LDA #90                ; Set QQ19+1 = 90
+ STA QQ19+1
+
+ LDA #16                ; crosshair size
+ STA QQ19+2
+ JSR TT15               ; the cross hair using QQ19(0to2)
+ LDA QQ14               ; ship fuel #70 = #&46
+ STA K                  ; radius
+
+ JMP TT128              ; below. QQ19(0,1) and K for Circle
+
+.^TT14
+
  LDA QQ11               ; menu i.d.
  BMI TT126              ; if bit7 set up, Short range chart default.
  LDA QQ14               ; else ship fuel #70 = #&46
@@ -16523,7 +16619,9 @@ LOAD_D% = LOAD% + P% - CODE%
  STA QQ19+1             ; Yorg
  LDA #7                 ; crosshair size
  STA QQ19+2
- JSR TT15               ; present cross hair using QQ19
+
+ JSR TT15               ; Draw the set of crosshairs defined in QQ19
+
  LDA QQ19+1             ; Yorg
  CLC
  ADC #24
