@@ -14401,7 +14401,8 @@ NEXT
  STA QQ19               ; screen
 
  LDA #Y-24              ; Set QQ19+1 to the y-coordinate of the centre of the
- STA QQ19+1             ; screen, minus 24 (so that's just above the middle)
+ STA QQ19+1             ; screen, minus 24 (because TT15 will add 24 to the
+                        ; coordinate when it draws the crosshairs)
 
  LDA #20                ; Set QQ19+2 to size 20 for the crosshairs size
  STA QQ19+2
@@ -16486,7 +16487,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: TT15
 \
-\ Draw a set of crosshairs.
+\ Draw a set of crosshairs. For all views except the Short-range Chart, the
+\ centre is drawn 24 pixels to the right of the y-coordinate given.
 \
 \ Arguments:
 \
@@ -16629,73 +16631,110 @@ LOAD_D% = LOAD% + P% - CODE%
 {
 .TT126
 
- LDA #104               ; Set QQ19 = 104
- STA QQ19
+ LDA #104               ; Set QQ19 = 104, for the x-coordinate of the centre of
+ STA QQ19               ; the fixed circle on the Short-range Chart
 
- LDA #90                ; Set QQ19+1 = 90
- STA QQ19+1
+ LDA #90                ; Set QQ19+1 = 90, for the y-coordinate of the centre of
+ STA QQ19+1             ; the fixed circle on the Short-range Chart
 
- LDA #16                ; crosshair size
- STA QQ19+2
- JSR TT15               ; the cross hair using QQ19(0to2)
- LDA QQ14               ; ship fuel #70 = #&46
- STA K                  ; radius
+ LDA #16                ; Set QQ19+2 = 16, the size of the crosshairs on the
+ STA QQ19+2             ; Short-range Chart
 
- JMP TT128              ; below. QQ19(0,1) and K for Circle
+ JSR TT15               ; Draw the set of crosshairs defined in QQ19, at the
+                        ; exact coordinates as this is the Short-range Chart
+
+ LDA QQ14               ; Set K to the fuel level from QQ14, so this can act as
+ STA K                  ; the circle's radius (70 being a full tank)
+
+ JMP TT128              ; Jump to TT128 to draw a circle with the centre at the
+                        ; same coordinates as the crosshairs, (QQ19, QQ19+1),
+                        ; and radius K that reflects the current fuel levels,
+                        ; returning from the subroutine using a tail call
 
 .^TT14
 
- LDA QQ11               ; menu i.d.
- BMI TT126              ; if bit7 set up, Short range chart default.
- LDA QQ14               ; else ship fuel #70 = #&46
- LSR A                  ; Long range chart uses
- LSR A                  ; /=4
- STA K                  ; radius
- LDA QQ0                ; present X
- STA QQ19               ; Xorg
- LDA QQ1                ; present Y
- LSR A                  ; Y /=2
- STA QQ19+1             ; Yorg
- LDA #7                 ; crosshair size
- STA QQ19+2
+ LDA QQ11               ; If the current view is the Short-range Chart, which
+ BMI TT126              ; is the only view with bit 7 set, then jump up to TT126
+                        ; to draw the crosshairs and circle for that view
+                        
+                        ; Otherwise this is the Long-range Chart, so we draw the
+                        ; crosshairs and circle for that view instead
 
- JSR TT15               ; Draw the set of crosshairs defined in QQ19
+ LDA QQ14               ; Set K to the fuel level from QQ14 divided by 4, so
+ LSR A                  ; this can act as the circle's radius (70 being a full
+ LSR A                  ; tank, which divides down to a radius of 17)
+ STA K
 
- LDA QQ19+1             ; Yorg
- CLC
- ADC #24
- STA QQ19+1             ; Ytop
+ LDA QQ0                ; Set QQ19 to the x-coordinate of the current system,
+ STA QQ19               ; which will be the centre of the circle and crosshairs
+                        ; we draw
+
+ LDA QQ1                ; Set QQ19+1 to the y-coordinate of the current system,
+ LSR A                  ; halved because the galactic chart is half as high as
+ STA QQ19+1             ; it is wide, which will again be the centre of the
+                        ; circle and crosshairs we draw
+
+ LDA #7                 ; Set QQ19+2 = 7, the size of the crosshairs on the
+ STA QQ19+2             ; Long-range Chart
+
+ JSR TT15               ; Draw the set of crosshairs defined in QQ19, which will
+                        ; be drawn 24 pixels to the right of QQ19+1
+
+ LDA QQ19+1             ; Add 24 to the y-coordinate of the crosshairs in QQ19+1
+ CLC                    ; so that the centre of the circle matches the centre
+ ADC #24                ; of the crosshairs
+ STA QQ19+1
+
+                        ; Fall through into TT128 to draw a circle with the
+                        ; centre at the same coordinates as the crosshairs,
+                        ; (QQ19, QQ19+1),  and radius K that reflects the
+                        ; current fuel levels
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: TT128
 \
-\ QQ19(0,1) and K for circle
+\ Draw a circle with the centre at (QQ19, QQ19+1) and radius K.
+\
+\ Arguments:
+\
+\   QQ19                The x-coordinate of the centre of the circle
+\
+\   QQ19+1              The y-coordinate of the centre of the circle
+\
+\   K                   The radius of the circle
 \
 \ ******************************************************************************
 
-.TT128                  ; QQ19(0,1) and K for circle
+.TT128
 {
- LDA QQ19
- STA K3                 ; Xorg
- LDA QQ19+1
- STA K4                 ; Yorg
- LDX #0                 ; hi
+ LDA QQ19               ; Set K3 = the x-coordinate of the centre
+ STA K3
+
+ LDA QQ19+1             ; Set K4 = the x-coordinate of the centre
+ STA K4
+
+ LDX #0                 ; Set the high bytes of K3(1 0) and K4(1 0) to 0
  STX K4+1
  STX K3+1
-\STX
-\LSX
- INX                    ; step size for circle = 1
+
+\STX LSX                ; This instruction is commented out in the original
+                        ; source
+
+ INX                    ; Set LSP = 1, the arc step for the circle
  STX LSP
- LDX #2                 ; load step =2, fairly big circle with small step size.
+
+ LDX #2                 ; Set STP = 2, the step size for the circle
  STX STP
 
- JSR CIRCLE2
-\LDA #&FF
-\STA
-\LSX
- RTS                    ; could have used jmp
+ JSR CIRCLE2            ; Call CIRCLE2 to draw a circle with the centre at
+                        ; (K3(1 0), K4(1 0)) and radius K
+
+\LDA #&FF               ; These instructions are commented out in the original
+\STA LSX                ; source
+
+ RTS                    ; Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -23379,6 +23418,8 @@ MAPCHAR '4', '4'
 \ Subroutine: CIRCLE2
 \
 \ also on chart at origin (K3,K4) STP already set
+\
+\ Draw a circle with the centre at (K3(1 0), K4(1 0)) and radius K.
 \
 \ ******************************************************************************
 
