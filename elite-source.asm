@@ -529,27 +529,40 @@ ORG &0000
                         \ &6000 is the figure we use to represent 1 in the
                         \ rotation matrix, while &E000 represents -1
                         \
+                        \ The x, y and z coordinates in INWK to INWK+8 are
+                        \ stored as 24-bit "sign and magnitude" numbers, where
+                        \ the sign of the number is stored in bit 7 of the sign
+                        \ byte, and the other 23 bits contain the magnitude of
+                        \ the number without any sign. So &123456 would be
+                        \ stored in x like this:
+                        \
+                        \   x_sign = &12    x_hi = &34    x_lo = &56
+                        \       00010010      00110100      01010110
+                        \
+                        \ while -&123456 is identical, just with bit 7 of the
+                        \ x_sign byte set:
+                        \
+                        \   x_sign = &82    x_hi = &34    x_lo = &56
+                        \       10010010      00110100      01010110
+                        \
                         \ INWK    = x_lo
                         \ INWK+1  = x_hi
-                        \ INWK+2  = x_distance (for planet or sun)
-                        \           x_sign     (for ship)
+                        \ INWK+2  = x_sign
                         \
                         \ INWK+3  = y_lo
                         \ INWK+4  = y_hi
-                        \ INWK+5  = y_distance (for planet or sun)
-                        \           y_sign     (for ship)
+                        \ INWK+5  = y_sign
                         \
                         \ INWK+6  = z_lo
                         \ INWK+7  = z_hi
-                        \ INWK+8  = z_distance (for planet or sun)
-                        \           z_sign     (for ship)
+                        \ INWK+8  = z_sign
                         \
                         \ INWK+9  = rotmat0x_lo
-                        \ INWK+10 = rotmat0x_hi     xincrot_hi
+                        \ INWK+10 = rotmat0x_hi
                         \ INWK+11 = rotmat0y_lo
-                        \ INWK+12 = rotmat0y_hi     yincrot_hi
+                        \ INWK+12 = rotmat0y_hi
                         \ INWK+13 = rotmat0z_lo
-                        \ INWK+14 = rotmat0z_hi     zincrot_hi
+                        \ INWK+14 = rotmat0z_hi
                         \
                         \ INWK+15 = rotmat1x_lo
                         \ INWK+16 = rotmat1x_hi
@@ -567,7 +580,7 @@ ORG &0000
                         \
                         \ INWK+27 = speed
                         \
-                        \           32 = quite fast
+                        \           31 = fast
                         \
                         \ INWK+28 = acceleration
                         \
@@ -4836,7 +4849,7 @@ LOAD_A% = LOAD%
 \ Given a value in Y that points to the start of a ship data block as an offset
 \ from K%, calculate the following:
 \
-\   A = x_distance OR y_distance OR z_distance
+\   A = x_sign OR y_sign OR z_sign
 \
 \ and clear the sign bit of the result. The K% workspace contains the ship data
 \ blocks, so the offset in Y must be 0 or a multiple of NI% (as each block in
@@ -4847,8 +4860,8 @@ LOAD_A% = LOAD%
 \ larger than all of them).
 \
 \ If Y = 0, then this calculates the maximum distance to the planet in any of
-\ the three axes, as K%+2 = x_distance, K%+5 = y_distance and K%+8 = z_distance
-\ (the first slot in the K% workspace represents the planet).
+\ the three axes, as K%+2 = x_sign, K%+5 = y_sign and K%+8 = z_sign (the first
+\ slot in the K% workspace represents the planet).
 \
 \ Arguments:
 \
@@ -4873,7 +4886,7 @@ LOAD_A% = LOAD%
 \ Given a value in Y that points to the start of a ship data block as an offset
 \ from K%, calculate the following:
 \
-\   A = A OR x_distance OR y_distance OR z_distance
+\   A = A OR x_sign OR y_sign OR z_sign
 \
 \ and clear the sign bit of the result. The K% workspace contains the ship data
 \ blocks, so the offset in Y must be 0 or a multiple of NI% (as each block in
@@ -4884,9 +4897,8 @@ LOAD_A% = LOAD%
 \ larger than all of them).
 \
 \ If Y = 0 and A = 0, then this calculates the maximum cap of the highest byte
-\ containing the distance to the planet, as K%+2 = x_distance, K%+5 = y_distance
-\ and K%+8 = z_distance (the first slot in the K% workspace represents the
-\ planet).
+\ containing the distance to the planet, as K%+2 = x_sign, K%+5 = y_sign and
+\ K%+8 = z_sign (the first slot in the K% workspace represents the planet).
 \
 \ Arguments:
 \
@@ -4901,7 +4913,7 @@ LOAD_A% = LOAD%
 
 .MAS2
 {
- ORA K%+2,Y             \ Set A = A OR x_distance OR y_distance OR z_distance
+ ORA K%+2,Y             \ Set A = A OR x_sign OR y_sign OR z_sign
  ORA K%+5,Y
  ORA K%+8,Y
 
@@ -6667,7 +6679,7 @@ LOAD_A% = LOAD%
  LDA INWK+1
  STA P+1
 
- LDA INWK+2             \ Set A = x_distance
+ LDA INWK+2             \ Set A = x_sign
 
  JSR MULT3              \ Set K(3 2 1 0) = (A P+1 P) * Q
                         \
@@ -12058,7 +12070,7 @@ LOAD_C% = LOAD% +P% - CODE%
  STA P
  LDA SX,Y               \ dustx
  STA X1                 \ x middle
- JSR ADD                \ (A X) = (A P) + (S R) = dustx+delta/z_distance
+ JSR ADD                \ (A X) = (A P) + (S R) = dustx+delta/z_sign
 
  STA S                  \ new x hi
  STX R                  \ new x lo
@@ -13782,12 +13794,11 @@ NEXT
                         \ we can't do an in-system jump
 
  LDY K%+8               \ Otherwise we can do an in-system jump, so now we fetch
-                        \ the byte at K%+8, which contains the z_distance for
-                        \ the first ship slot, i.e. the distance of the planet
+                        \ the byte at K%+8, which contains the z_sign for the
+                        \ first ship slot, i.e. the distance of the planet
 
- BMI WA3                \ If the planet's z_distance is negative, then the
-                        \ planet is behind us, so jump to WA3 to skip the
-                        \ following
+ BMI WA3                \ If the planet's z_sign is negative, then the planet
+                        \ is behind us, so jump to WA3 to skip the following
 
  TAY                    \ Set A = Y = 0 (as we didn't BNE above) so the call
                         \ to MAS2 measures the distance to the planet
@@ -13813,14 +13824,14 @@ NEXT
 
 .WA3
 
- LDY K%+NI%+8           \ Fetch the z_distance (byte 8) of the second ship
-                        \ in the ship data workspace at K%, which is reserved
-                        \ for the sun or the space station (in this case it's
-                        \ the former, as we already confirmed there isn't a
-                        \ space station in the vicinity)
+ LDY K%+NI%+8           \ Fetch the z_sign (byte 8) of the second ship in the
+                        \ ship data workspace at K%, which is reserved for the
+                        \ sun or the space station (in this case it's the
+                        \ former, as we already confirmed there isn't a space
+                        \ station in the vicinity)
 
- BMI WA2                \ If the sun's z_distance is negative, then the sun
-                        \ is behind us, so jump to WA2 to skip the following
+ BMI WA2                \ If the sun's z_sign is negative, then the sun is
+                        \ behind us, so jump to WA2 to skip the following
 
  LDY #NI%               \ Set Y to point to the offset of the ship data block
                         \ for the sun, which is NI% (as each block is NI% bytes
@@ -13865,42 +13876,40 @@ NEXT
  STA R
  STA P
 
- LDA K%+8               \ Set A = z_distance for the planet
+ LDA K%+8               \ Set A = z_sign for the planet
 
  JSR ADD                \ Set (A X) = (A P) + (S R)
-                        \           = (z_distance &81) + &8181
-                        \           = (z_distance &81) - &0181
+                        \           = (z_sign &81) + &8181
+                        \           = (z_sign &81) - &0181
                         \
                         \ This moves the planet against the direction of travel
-                        \ by reducing z_distance by 1, as the above maths is:
+                        \ by reducing z_sign by 1, as the above maths is:
                         \
-                        \     z_distance 00000000
+                        \         z_sign 00000000
                         \   +   00000000 10000001
                         \   -   00000001 10000001
                         \
                         \ or:
                         \
-                        \     z_distance 00000000
+                        \         z_sign 00000000
                         \   +   00000000 00000000
                         \   -   00000001 00000000
                         \
-                        \ i.e. the high byte is z_distance - 1, making sure the
-                        \ sign is preserved
+                        \ i.e. the high byte is z_sign - 1, making sure the sign
+                        \ is preserved
 
- STA K%+8               \ Set the planet's z_distance to the high byte of the
-                        \ result
+ STA K%+8               \ Set the planet's z_sign to the high byte of the result
 
- LDA K%+NI%+8           \ Set A = z_distance for the sun
+ LDA K%+NI%+8           \ Set A = z_sign for the sun
 
  JSR ADD                \ Set (A X) = (A P) + (S R)
-                        \           = (z_distance &81) + &8181
-                        \           = (z_distance &81) - &0181
+                        \           = (z_sign &81) + &8181
+                        \           = (z_sign &81) - &0181
                         \
                         \ which moves the sun against the direction of travel
-                        \ by reducing z_distance by 1
+                        \ by reducing z_sign by 1
 
- STA K%+NI%+8           \ Set the planet's z_distance to the high byte of the
-                        \ result
+ STA K%+NI%+8           \ Set the planet's z_sign to the high byte of the result
 
  LDA #1                 \ These instructions have no effect, as the call to
  STA QQ11               \ LOOK1 below starts by setting QQ11 to 0; instead they
@@ -19219,16 +19228,16 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR TT111              \ Select the system closest to galactic coordinates
                         \ (QQ9, QQ10)
 
- INC INWK+8             \ Increment z_distance ready for the call to SOS, so the
-                        \ planet appears at a z_distance of 1 in front of us
-                        \ when we launch
+ INC INWK+8             \ Increment z_sign ready for the call to SOS, so the
+                        \ planet appears at a z_sign of 1 in front of us when
+                        \ we launch
 
  JSR SOS1               \ Call SOS1 to set up the planet's data block and add it
                         \ to FRIN, where it will get put in the first slot as
                         \ it's the first one to be added to our little bubble of
                         \ universe following the call to RES2 above
 
- LDA #128               \ For the space station, set z_distance to &80, so it's
+ LDA #128               \ For the space station, set z_sign to &80, so it's
  STA INWK+8             \ behind us (&80 is negative)
 
  INC INWK+7             \ And increment z_hi, so it's only just behind us
@@ -21225,13 +21234,13 @@ MAPCHAR '4', '4'
  LDA QQ15+1             \ Fetch w0_hi, extract bits 0-2 (which also happen to
  AND #%00000111         \ determine the economy), add 6 + C, divide by 2, and
  ADC #6                 \ store the result - which will be between 3 and 7 - in
- LSR A                  \ z_distance in INWK+6
+ LSR A                  \ z_sign in INWK+6
  STA INWK+8
 
  ROR A                  \ Halve A, rotating in the C flag, which was previously
  STA INWK+2             \ bit 0 of w0_hi + 6 + C, so when this is stored in both
- STA INWK+5             \ x_distance and y_distance, it moves the planet to the
-                        \ upper right or lower left
+ STA INWK+5             \ x_sign and y_sign, it moves the planet to the upper
+                        \ right or lower left
 
  JSR SOS1               \ Call SOS1 to set up the planet's data block and add it
                         \ to FRIN, where it will get put in the first slot as
@@ -21239,14 +21248,14 @@ MAPCHAR '4', '4'
                         \ this new system's universe
 
  LDA QQ15+3             \ Fetch w1_hi, extract bits 0-2, set bits 0 and 7 and
- AND #%00000111         \ store in z_distance, so the sun is behind us at a
- ORA #%10000001         \ distance of 1 to 7
+ AND #%00000111         \ store in z_sign, so the sun is behind us at a distance
+ ORA #%10000001         \ of 1 to 7
  STA INWK+8
 
- LDA QQ15+5             \ Fetch w2_hi, extract bits 0-1 and store in x_distance
- AND #%00000011         \ and y_distance, so the sun is either dead in our rear
- STA INWK+2             \ laser crosshairs, or off to the top left by a distance
- STA INWK+1             \ of 1 or 2 when we look out the back
+ LDA QQ15+5             \ Fetch w2_hi, extract bits 0-1 and store in x_sign and
+ AND #%00000011         \ y_sign, so the sun is either dead in our rear laser
+ STA INWK+2             \ crosshairs, or off to the top left by a distance of 1
+ STA INWK+1             \ or 2 when we look out the back
 
  LDA #0                 \ Set the rotx and rotz counters to 0 (no rotation)
  STA INWK+29
@@ -22085,9 +22094,9 @@ MAPCHAR '4', '4'
 \ Subroutine: SPS3
 \
 \ Copy one of the the planet's coordinates into the corresponding location in
-\ the temporary variable K3. The high byte and absolute value of the distance
-\ byte are copied into the first two K3 bytes, and the sign of the distance byte
-\ is copied into the highest K3 byte.
+\ the temporary variable K3. The high byte and absolute value of the sign byte
+\ are copied into the first two K3 bytes, and the sign of the sign byte is
+\ copied into the highest K3 byte.
 \
 \ The comments below are written for the x-coordinate.
 \
@@ -22095,11 +22104,11 @@ MAPCHAR '4', '4'
 \
 \   X                   Determines which coordinate to copy, and to where:
 \
-\                         * X = 0 copies (x_hi, x_distance) into K3(2 1 0)
+\                         * X = 0 copies (x_sign, x_hi) into K3(2 1 0)
 \
-\                         * X = 3 copies (y_hi, y_distance) into K3(5 4 3)
+\                         * X = 3 copies (y_sign, y_hi) into K3(5 4 3)
 \
-\                         * X = 6 copies (z_hi, z_distance) into K3(8 7 6)
+\                         * X = 6 copies (z_sign, z_hi) into K3(8 7 6)
 \
 \ ******************************************************************************
 
@@ -22108,13 +22117,13 @@ MAPCHAR '4', '4'
  LDA K%+1,X             \ Copy x_hi into K3+X
  STA K3,X
 
- LDA K%+2,X             \ Set A = Y = x_distance
+ LDA K%+2,X             \ Set A = Y = x_sign
  TAY
 
- AND #%01111111         \ Set K3+1 = |x_distance|
+ AND #%01111111         \ Set K3+1 = |x_sign|
  STA K3+1,X
 
- TYA                    \ Set K3+2 = the sign of x_distance
+ TYA                    \ Set K3+2 = the sign of x_sign
  AND #%10000000
  STA K3+2,X
 
@@ -24056,7 +24065,7 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR SPBLB              \ Call SPBLB to redraw the space station bulb, which
                         \ will erase it from the dashboard
 
- LDA #6                 \ Set the sun's y_distance to 6
+ LDA #6                 \ Set the sun's y_sign to 6
  STA INWK+5
 
  LDA #129               \ Set A = 129, the "ship" type for the sun
@@ -28806,7 +28815,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  LDY #13                \ Hull byte#13, distance point at which ship becomes a dot
  LDA (XX0),Y
- CMP XX1+7              \ dot_distance >= z_hi will leave carry set
+ CMP XX1+7              \ dot_sign >= z_hi will leave carry set
  BCS LL17               \ hop over to draw Wireframe
  LDA #32                \ mask bit5 exploding
  AND XX1+31             \ exploding/display state|missiles
