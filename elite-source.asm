@@ -13186,17 +13186,21 @@ NEXT
 \
 \ Subroutine: MULT12
 \
-\ R.S = Q * A \ visited quite often
+\ Calculate:
+\
+\   (S R) = Q * A
 \
 \ ******************************************************************************
 
-.MULT12                 \ R.S = Q * A \ visited quite often
+.MULT12
 {
- JSR MULT1              \ visit above,  (P,A)= Q * A
- STA S                  \ hi
+ JSR MULT1              \ Set (A P) = Q * A
+
+ STA S                  \ Set (S R) = (A P)
  LDA P
- STA R                  \ lo
- RTS
+ STA R
+ 
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -13417,39 +13421,68 @@ NEXT
 \ Subroutine: TIS1
 \
 \ Tidy subroutine 1  X.A =  (-X*A  + (R.S))/96
+\ Their comment A=A/96: answer is A*255/96 ????
+\
+\ Calculate:
+\
+\   -(X * A + (S R)) / 256 / 96
 \
 \ ******************************************************************************
 
-.TIS1                   \ Tidy subroutine 1  X.A =  (-X*A  + (R.S))/96
+.TIS1
 {
- STX Q
- EOR #128               \ flip sign of Acc
- JSR MAD                \ multiply and add (X,A) =  -X*A  + (R,S)
+ STX Q                  \ Set Q = X
 
-.DVID96                 \ Their comment A=A/96: answer is A*255/96
+ EOR #%10000000         \ Flip the sign bit in A
 
- TAX
- AND #128               \ hi sign
+ JSR MAD                \ Set (A X) = Q * A + (S R)
+                        \           = X * -A + (S R)
+
+.DVID96
+
+ TAX                    \ Set T to the sign bit of the result
+ AND #%10000000
  STA T
- TXA
- AND #127               \ hi A7
- LDX #254               \ slide counter
- STX T1
 
-.DVL3                   \ roll T1  clamp Acc to #96 for orientation matrix unity
+ TXA                    \ Set A to the high byte of the result with the sign bit
+ AND #%01111111         \ cleared, so A = |X * A + (S R)| / 256
+ 
+                        \ The following is identical to TIS2, except Q is
+                        \ hard-coded to 96, so this does A = A / 96
 
- ASL A
- CMP #96                \ max 96
- BCC DV4                \ skip subtraction
- SBC #96
+ LDX #254               \ Set T to have bits 1-7 set, so we can rotate through 7
+ STX T1                 \ loop iterations, getting a 1 each time, and then
+                        \ getting a 0 on the 8th iteration... and we can also
+                        \ use T1 to catch our result bits into bit 0 each time
 
-.DV4                    \ skip subtraction
+.DVL3
 
- ROL T1
- BCS DVL3               \ loop T1
- LDA T1
- ORA T                  \ hi sign
- RTS
+ ASL A                  \ Shift A to the left
+
+ CMP #96                \ If A < 96 skip the following subtraction
+ BCC DV4
+
+ SBC #96                \ Set A = A - 96
+                        \
+                        \ Going into this subtraction we we know the C flag is
+                        \ set as we passed through the BCC above, and we also
+                        \ know that A >= 96, so the C flag will still be set
+                        \ once we are done
+
+.DV4
+
+ ROL T1                 \ Rotate the counter in T1 to the left, and catch the
+                        \ result bit into bit 0 (which will be a 0 if we didn't
+                        \ do the subtraction, or 1 if we did)
+
+ BCS DVL3               \ If we still have set bits in T1, loop back to DVL3 to
+                        \ do the next iteration of 7
+
+ LDA T1                 \ Fetch the result from T1 into A
+
+ ORA T                  \ Give A the sign of the result that we stored above
+ 
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -14467,16 +14500,16 @@ NEXT
 
 .PUS1
 
- LDA INWK,Y             \ Swap rotmatx_lo and rotmatz_lo for the vector in Y:
+ LDA INWK,Y             \ Swap the low x and z bytes for the vector in Y:
  LDX INWK+4,Y           \
  STA INWK+4,Y           \   * For Y =  9 swap nose_v_x_lo and nose_v_z_lo
  STX INWK,Y             \   * For Y = 15 swap roof_v_x_lo and roof_v_z_lo
                         \   * For Y = 21 swap side_v_x_lo and side_v_z_lo
 
- LDA INWK+1,Y           \ Swap rotmatx_hi and rotmatz_hi for the offset in Y:
+ LDA INWK+1,Y           \ Swap the high x and z bytes for the offset in Y:
  EOR RAT                \
- TAX                    \   * If left view, flip sign of new rotmatnz_hi
- LDA INWK+5,Y           \   * If right view, flip sign of new rotmatnx_hi
+ TAX                    \   * If left view, flip sign of new z-coordinate
+ LDA INWK+5,Y           \   * If right view, flip sign of new x-coordinate
  EOR RAT2
  STA INWK+1,Y
  STX INWK+5,Y
@@ -28293,225 +28326,383 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Subroutine: TIDY
 \
 \ Orthonormalize the orientation vectors for a ship. This means making the three
-\ orientation vectors orthogonal (i.e. perpendicular to each other, thus
-\ forming the shape of three axes in a left-handed 3D coordinate system), and
-\ normal (i.e. each of the vectors has length 1, stored as a sign-magnitude of
-\ 96).
+\ orientation vectors orthogonal (i.e. perpendicular to each other, thus forming
+\ the shape of three axes in a left-handed 3D coordinate system), and normal
+\ (i.e. each of the vectors has length 1, stored as a sign-magnitude of 96).
 \
 \ Orthogonalize orientation vectors that uses 0x60 as unity
 \ returns INWK(16,18,20) = INWK(12*18+14*20, 10*16+14*20, 10*16+12*18) / INWK(10,12,14)
 \ Ux,Uy,Uz = -(FyUy+FzUz, FxUx+FzUz, FxUx+FyUy)/ Fx,Fy,Fz
-\ Tidy2 \ yunit small, used to renormalize orientation vectors Xreg = index1 = 0
 \
 \ ******************************************************************************
 
 {
-.TI2
+.TI2                    \ Called from below with A = 0, X = 0, Y = 4 when
+                        \ nose_v_x and nose_v_y are small, so we assume that
+                        \ nose_v_z is big
 
- TYA                    \ Acc  index3 = 4
- LDY #2                 \ Yreg index2 = 2
- JSR TIS3               \ below, denom is z
- STA INWK+20            \ Uz=-(FxUx+FyUy)/Fz \ their comment \ roof_v_z hi
- JMP TI3                \ Tidy3
+ TYA                    \ A = Y = 4
+ LDY #2
+ JSR TIS3               \ Call TIS3 with X = 0, Y = 2, A = 4, to set roof_v_z =
+ STA INWK+20            \ (nose_v_x * roof_v_x + nose_v_y * roof_v_y) / nose_v_z
 
-.TI1                    \ Tidy1 \ xunit small, with Y = 4
+ JMP TI3                \ Jump to TI3 to keep tidying
 
- TAX                    \ Xreg = index1 = 0
- LDA XX15+1
- AND #&60               \ is yunit vector small
- BEQ TI2                \ up, Tidy2  Y = 4
- LDA #2                 \ else index2 = 4, index3 = 2
- JSR TIS3               \ below, denom is y
- STA INWK+18            \ roof_v hi
- JMP TI3                \ Tidy3
+.TI1                    \ Called from below with A = 0, Y = 4 when nose_v_x is
+                        \ small
 
-.^TIDY                  \ Orthogonalize orientation vectors that uses 0x60 as unity
+ TAX                    \ Set X = A = 0
 
- LDA INWK+10            \ nose_v_x hi
- STA XX15               \ XX15(0,1,2) = Fx,Fy,Fz
- LDA INWK+12            \ nose_v_y hi
- STA XX15+1
- LDA INWK+14            \ nose_v_z hi
- STA XX15+2
- JSR NORM               \ normalize  F= nose_v
- LDA XX15               \ XX15+0
- STA INWK+10            \ nose_v_x hi
- LDA XX15+1
- STA INWK+12            \ nose_v_y hi
- LDA XX15+2
- STA INWK+14            \ nose_v_z hi
+ LDA XX15+1             \ Set A = nose_v_y, and if the top two magnitude bits
+ AND #%01100000         \ are both clear, jump to TI2 with A = 0, X = 0, Y = 4
+ BEQ TI2
 
- LDY #4                 \ Y=#4
- LDA XX15
- AND #&60               \ is xunit small?
- BEQ TI1                \ up to Tidy1 with Y = 4
- LDX #2                 \ index1 = 2
- LDA #0                 \ index3 = 0
- JSR TIS3               \ below with Yreg = index2 = 4, denom = x
- STA INWK+16            \ roof_v_x hi
+ LDA #2                 \ Otherwise nose_v_y is big, so set up the index values
+                        \ to pass to TIS3
 
-.TI3                    \ Tidy3  \ All 3 choices continue with roof_v? updated
+ JSR TIS3               \ Call TIS3 with X = 0, Y = 4, A = 2, to set roof_v_y =
+ STA INWK+18            \ (nose_v_x * roof_v_x + nose_v_z * roof_v_z) / nose_v_y
 
- LDA INWK+16            \ roof_v_x hi
+ JMP TI3                \ Jump to TI3 to keep tidying
+
+.^TIDY
+
+ LDA INWK+10            \ Set (XX15, XX15+1, XX15+2) = nose_v
  STA XX15
- LDA INWK+18            \ roof_v_y hi
+ LDA INWK+12
  STA XX15+1
- LDA INWK+20            \ roof_v_z hi
- STA XX15+2             \ XX15(0,1,2) = Ux,Uy,Uz
- JSR NORM               \ normalize roof_v
- LDA XX15
- STA INWK+16            \ roof_v_x hi
+ LDA INWK+14
+ STA XX15+2
+
+ JSR NORM               \ Call NORM to normalise the vector in XX15, i.e. nose_v
+
+ LDA XX15               \ Set nose_v = (XX15, XX15+1, XX15+2)
+ STA INWK+10
  LDA XX15+1
- STA INWK+18            \ roof_v_y hi
+ STA INWK+12
  LDA XX15+2
- STA INWK+20            \ roof_v_z hi
- LDA INWK+12            \ nose_v_y hi
- STA Q                  \ = Fy
- LDA INWK+20            \ = Uz   \ roof_v_z hi
- JSR MULT12             \ R.S = P.A = Q * A = FyUz
- LDX INWK+14            \ = Fz	\ nose_v_z hi
- LDA INWK+18            \ = Uy	\ roof_v_y hi
- JSR TIS1               \ X.A =  -X*A  + (R.S)/96
- EOR #128               \ flip
- STA INWK+22            \ hsb(FzUy-FyUz)/96*255 \ side_v_x hi
- LDA INWK+16            \ = Ux \ roof_v_x hi
- JSR MULT12             \ R.S = Q * A = FyUx
- LDX INWK+10            \ = Fx \ nose_v_x hi
- LDA INWK+20            \ = Uz \ roof_v_z hi
- JSR TIS1               \ X.A =  -X*A  + (R.S)/96
- EOR #128               \ flip
- STA INWK+24            \ side_v_y hi
- LDA INWK+18            \ = Uy \ roof_v_y hi
- JSR MULT12             \ R.S = Q * A = FyUy
- LDX INWK+12            \ = Fy \ nose_v_y hi
- LDA INWK+16            \ = Ux \ roof_v_x hi
- JSR TIS1               \ X.A =  -X*A  + (R.S)/96
- EOR #128               \ flip
- STA INWK+26            \ side_v_z hi
- LDA #0                 \ clear matrix lo's
- LDX #14                \ except 2z's
+ STA INWK+14
 
-.TIL1                   \ counter X
+ LDY #4                 \ Set Y = 4
 
- STA INWK+9,X
- DEX                    \ +23 and down
- DEX                    \ skip hi's
- BPL TIL1               \ loop X
- RTS
+ LDA XX15               \ Set A = nose_v_x, and if the top two magnitude bits
+ AND #%01100000         \ are both clear, jump to TI1 with A = 0, Y = 4
+ BEQ TI1
+
+ LDX #2                 \ Otherwise nose_v_x is big, so set up the index values
+ LDA #0                 \ to pass to TIS3
+
+ JSR TIS3               \ Call TIS3 with X = 2, Y = 4, A = 0, to set roof_v_x =
+ STA INWK+16            \ (nose_v_y * roof_v_y + nose_v_z * roof_v_z) / nose_v_x
+
+.TI3
+
+ LDA INWK+16            \ Set (XX15, XX15+1, XX15+2) = roof_v
+ STA XX15
+ LDA INWK+18
+ STA XX15+1
+ LDA INWK+20
+ STA XX15+2
+
+ JSR NORM               \ Call NORM to normalise the vector in XX15, i.e. roof_v
+
+ LDA XX15               \ Set roof_v = (XX15, XX15+1, XX15+2)
+ STA INWK+16
+ LDA XX15+1
+ STA INWK+18
+ LDA XX15+2
+ STA INWK+20
+
+ LDA INWK+12            \ Set Q = nose_v_y
+ STA Q
+
+ LDA INWK+20            \ Set A = roof_v_z
+
+ JSR MULT12             \ Set (S R) = Q * A = nose_v_y * roof_v_z
+
+ LDX INWK+14            \ Set X = nose_v_z
+
+ LDA INWK+18            \ Set A = roof_v_y
+
+ JSR TIS1               \ 
+
+ EOR #%10000000         \ Set side_v_x = -A
+ STA INWK+22
+
+ LDA INWK+16            \ Set A = roof_v_x
+
+ JSR MULT12             \ Set (S R) = Q * A = nose_v_y * roof_v_x
+
+ LDX INWK+10            \ Set X = nose_v_x
+
+ LDA INWK+20            \ Set A = roof_v_z
+
+ JSR TIS1               \ 
+
+ EOR #%10000000         \ Set side_v_y = -A
+ STA INWK+24
+
+ LDA INWK+18            \ Set A = roof_v_y
+
+ JSR MULT12             \ Set (S R) = Q * A = nose_v_y * roof_v_y
+
+ LDX INWK+12            \ Set X = nose_v_y
+
+ LDA INWK+16            \ Set A = roof_v_x
+
+ JSR TIS1               \ 
+
+ EOR #%10000000         \ Set side_v_z = -A
+ STA INWK+26
+
+ LDA #0                 \ Set A = 0 so we can clear the low bytes of the
+                        \ orientation vectors
+
+ LDX #14                \ We want to clear the low bytes, so start from side_v_y
+                        \ at INWK+9+14 (we clear all except side_v_z_lo, though
+                        \ I suspect this is in error and that X should be 16)
+
+.TIL1
+
+ STA INWK+9,X           \ Set the low byte in INWK+9+X to zero
+
+ DEX                    \ Set X = X - 2 to jump down to the next low byte
+ DEX
+
+ BPL TIL1               \ Loop back until we have zeroed all the low bytes
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: TIS2
 \
-\ Reduce Acc in NORM routine i.e. *96/Q
+\ Calculate the following division, where A is a sign-magnitude number and Q is
+\ a positive integer:
 \
-\ returns the divided figure, using 96 to represent 1 and 96 with bit 7 set for
-\ -1
+\   A = A / Q
+\
+\ The value of A is returned as a sign-magnitude number with 96 representing 1,
+\ and the maximum value returned is 1 (i.e. 96). This routine is used when
+\ normalising vectors, where we represent fractions using integers, so this
+\ gives us an approximation to two decimal places.
+\
+\ ******************************************************************************
+\
+\ A / Q = (a7 * 2^8 + a6 * 2^7 + ... + a0 * 2^0) / Q
+\       = a7 * 2^8/Q + a6 * 2^8/Q + ... a0 * 2^1/Q
+\
+\ 2^n/Q = 
+\
+\ so we can calculate our division by adding
+\
+\ http://retro64.altervista.org/blog/6502-assembly-math-division-simple-algorithm-using-powers-of-two/
+\
+\ (A / Q) => [quotient, remainder]
+\
+\    T = 0
+\loop:
+\    T = (T << 1)
+\    A = (A << 1)
+\    if A >= Q  {
+\        A = A - Q
+\        T = T + 1
+\    }
+\    do loop 8 times
+\
+\ T is integer result of division, A contains remainder
 \
 \ ******************************************************************************
 
-.TIS2                   \ Reduce Acc in NORM routine i.e. *96/Q
+.TIS2
 {
- TAY                    \ copy of Acc
- AND #127               \ ignore sign
- CMP Q
- BCS TI4                \ clean to +/- unity
- LDX #254               \ division roll
- STX T
+ TAY                    \ Store the argument A in Y
 
-.TIL2                   \ roll T
+ AND #%01111111         \ Strip the sign bit from the argument, so A = |A|
 
- ASL A
- CMP Q
- BCC P%+4               \ skip sbc
- SBC Q
- ROL T
- BCS TIL2               \ loop T
- LDA T
+ CMP Q                  \ If A >= Q then jump to TI4 to return a 1 with the
+ BCS TI4                \ correct sign
 
+ LDX #%11111110         \ Set T to have bits 1-7 set, so we can rotate through 7
+ STX T                  \ loop iterations, getting a 1 each time, and then
+                        \ getting a 0 on the 8th iteration... and we can also
+                        \ use T to catch our result bits into bit 0 each time
+
+.TIL2
+
+ ASL A                  \ Shift A to the left
+
+ CMP Q                  \ If A < Q skip the following subtraction
+ BCC P%+4
+
+ SBC Q                  \ Set A = A - Q
+                        \
+                        \ Going into this subtraction we we know the C flag is
+                        \ set as we passed through the BCC above, and we also
+                        \ know that A >= Q, so the C flag will still be set once
+                        \ we are done
+
+ ROL T                  \ Rotate the counter in T to the left, and catch the
+                        \ result bit into bit 0 (which will be a 0 if we didn't
+                        \ do the subtraction, or 1 if we did)
+
+ BCS TIL2               \ If we still have set bits in T, loop back to TIL2 to
+                        \ do the next iteration of 7
+
+                        \ We've done the division and now have a result in the
+                        \ range 0-255 here, which we need to reduce to the range
+                        \ 0-96. We can do that by multiplying the result by 3/8,
+                        \ as 256 * 3/8 = 96
+
+ LDA T                  \ Set T = T / 4
  LSR A
- LSR A                  \ result/4
+ LSR A
  STA T
- LSR A                  \ result/8
- ADC T
- STA T                  \ T = 3/8*Acc (max = 96)
- TYA                    \ copy of Acc
- AND #128               \ sign
- ORA T
- RTS
 
-.TI4                    \ clean to +/- unity
+ LSR A                  \ Set T = T / 8 + T / 4
+ ADC T                  \       = 3T / 8
+ STA T
 
- TYA                    \ copy of Acc
- AND #128               \ sign
- ORA #96                \ +/- unity
- RTS
+ TYA                    \ Fetch the sign bit of the original argument A
+ AND #%10000000
+
+ ORA T                  \ Apply the sign bit to T
+
+ RTS                    \ Return from the subroutine
+
+.TI4
+
+ TYA                    \ Fetch the sign bit of the original argument A
+ AND #%10000000
+
+ ORA #96                \ Apply the sign bit to 96 (which represents 1)
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: TIS3
 \
+\ Calculate a dot product, determinant?
+\
+\   A = (nose_v_1 * roof_v_1 + nose_v_2 * roof_v_2) / nose_v_3
+\
 \ A = INWK(12*18+14*20, 10*16+14*20, 10*16+12*18) / INWK(10,12,14)
 \ Ux,Uy,Uz = -(FyUy+FzUz, FxUx+FzUz, FxUx+FyUy)/ Fx,Fy,Fz
-\ Xreg = index1, Yreg = index2, Acc = index3
+\
+\ Arguments:
+\
+\   X                   Index 1 (0 = nose_v_x, 2 = nose_v_y)
+\
+\   Y                   Index 2 (2 = nose_v_y, 4 = nose_v_z)
+\
+\   A                   Index 3 (0 = nose_v_x, 2 = nose_v_y, 4 = nose_v_z)
+\
+\ X = 0, Y = 2, A = 4 -> (nose_v_x * roof_v_x + nose_v_y * roof_v_y) / nose_v_z
+\
+\ X = 0, Y = 4, A = 2 -> (nose_v_x * roof_v_x + nose_v_z * roof_v_z) / nose_v_y
+\
+\ X = 2, Y = 4, A = 0 -> (nose_v_y * roof_v_y + nose_v_z * roof_v_z) / nose_v_x
 \
 \ ******************************************************************************
 
-.TIS3                   \ visited by TI1,TI2
+.TIS3
 {
- STA P+2                \ store index3
- LDA INWK+10,X          \ nose_v_x,X hi
- STA Q
- LDA INWK+16,X          \ roof_v_x,X hi
- JSR MULT12             \ R.S = Q * roof_v_x
- LDX INWK+10,Y          \ nose_v_x,Y hi
- STX Q
- LDA INWK+16,Y          \ roof_v_x,Y hi
- JSR MAD                \ X.A = nose_v_x*roof_v_y + R.S
+ STA P+2                \ Store P+2 in A for later
 
- STX P                  \ num lo
- LDY P+2                \ index3
- LDX INWK+10,Y          \ nose_v_x,A hi
- STX Q                  \ is denominator
- EOR #128               \ num -hi
+ LDA INWK+10,X          \ Set Q = nose_v_x_hi (plus X)
+ STA Q
+
+ LDA INWK+16,X          \ Set A = roof_v_x_hi (plus X)
+
+ JSR MULT12             \ Set (S R) = Q * A
+                        \           = nose_v_x_hi * roof_v_x_hi
+
+ LDX INWK+10,Y          \ Set Q = nose_v_x_hi (plus Y)
+ STX Q
+
+ LDA INWK+16,Y          \ Set A = roof_v_x_hi (plus Y)
+
+ JSR MAD                \ Set (A X) = Q * A + (S R)
+                        \           = (nose_v_x,X * roof_v_x,X) +
+                        \             (nose_v_x,Y * roof_v_x,Y)
+
+ STX P                  \ Store low byte of result in P, so result is now in
+                        \ (A P)
+
+ LDY P+2                \ Set Q = roof_v_x_hi (plus argument A)
+ LDX INWK+10,Y
+ STX Q
+
+ EOR #%10000000         \ Flip the sign of A
+
+                        \ Fall through into DIVDT to do:
+                        \
+                        \   (P+1 A) = (A P) / Q
+                        \
+                        \     = (nose_v_x,X * roof_v_x,X) +
+                        \       (nose_v_x,Y * roof_v_x,Y)
+                        \     / nose_v_x,A
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: DVIDT
 \
-\ A=AP/Q \ their comment.  A = (P,A)/Q
+\ Calculate:
+\
+\   (P+1 A) = (A P) / Q
 \
 \ ******************************************************************************
 
-.DVIDT                  \ A=AP/Q \ their comment.  A = (P,A)/Q
+.DVIDT
 {
- STA P+1                \ num hi
- EOR Q
- AND #128               \ sign bit
- STA T
- LDA #0
- LDX #16                \ counter 2 bytes
- ASL P                  \ num lo
- ROL P+1                \ num hi
- ASL Q                  \ denom
- LSR Q                  \ lose sign bit, clear carry
+ STA P+1                \ Set P+1 = A, so P(1 0) = (A P)
 
-.DVL2                   \ counter X
+ EOR Q                  \ Set T = the sign bit of A EOR Q, so it's 1 if A and Q
+ AND #%10000000         \ have different signs, i.e. it's the sign of the result
+ STA T                  \ of A / Q
+ 
+ LDA #0                 \ Set A = 0 for us to build a result
+
+ LDX #16                \ Set a counter in X to count the 16 bits in P(1 0)
+
+ ASL P                  \ Shift P(1 0) left
+ ROL P+1
+
+ ASL Q                  \ Clear the sign bit of Q the C flag at the same time
+ LSR Q
+
+.DVL2
 
  ROL A
- CMP Q
- BCC P%+4               \ skip sbc
- SBC Q
- ROL P                  \ result
- ROL P+1
- DEX
- BNE DVL2               \ loop X
- LDA P
- ORA T                  \ sign bit
- RTS                    \ -- end of TIDY
+
+ CMP Q                  \ If A < Q skip the following subtraction
+ BCC P%+4
+
+ SBC Q                  \ Set A = A - Q
+                        \
+                        \ Going into this subtraction we we know the C flag is
+                        \ set as we passed through the BCC above, and we also
+                        \ know that A >= Q, so the C flag will still be set once
+                        \ we are done
+
+ ROL P                  \ Rotate P(1 0) to the left, and catch the result bit
+ ROL P+1                \ into the C flag (which will be a 0 if we didn't
+                        \ do the subtraction, or 1 if we did)
+
+ DEX                    \ Decrement the loop counter
+
+ BNE DVL2               \ Loop back for the next bit until we have done all 16
+                        \ bits of P(1 0)
+
+ LDA P                  \ Set A = P so the low byte is in the result in A
+
+ ORA T                  \ Set A to the correct sign bit that we set in T above
+
+ RTS                    \ Return from the subroutine
 
 }
 
