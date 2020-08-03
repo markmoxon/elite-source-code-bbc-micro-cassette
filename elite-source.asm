@@ -28326,13 +28326,137 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Subroutine: TIDY
 \
 \ Orthonormalize the orientation vectors for a ship. This means making the three
-\ orientation vectors orthogonal (i.e. perpendicular to each other, thus forming
-\ the shape of three axes in a left-handed 3D coordinate system), and normal
-\ (i.e. each of the vectors has length 1, stored as a sign-magnitude of 96).
+\ orientation vectors orthogonal (perpendicular to each other), and normal (so
+\ each of the vectors has length 1).
 \
-\ Orthogonalize orientation vectors that uses 0x60 as unity
-\ returns INWK(16,18,20) = INWK(12*18+14*20, 10*16+14*20, 10*16+12*18) / INWK(10,12,14)
-\ Ux,Uy,Uz = -(FyUy+FzUz, FxUx+FzUz, FxUx+FyUy)/ Fx,Fy,Fz
+\ We do this because we use the small angle approximation to rotate these
+\ vectors in space. It is is not completely accurate, so the three vectors tend
+\ to get stretched over time, so periodically we tidy the vectors with this
+\ routine to ensure they remain as orthonormal as possible.
+\
+\ ******************************************************************************
+\
+\ The challenge here is to take the three orientation vectors, nosev, roofv and
+\ sidev, and tweak then so that they are orthogonal and normal once again. Let's
+\ call these new, tweaked vectors nosev´, roofv´ and sidev´, and let's look at
+\ how we can calculate them.
+\ 
+\ The first vector, nosev´
+\ ------------------------
+\ First, let's normalise nosev, so it has length 1 (stored internally as 96),
+\ and let's call this nosev´. We start with the node vector, as normalising it
+\ doesn't change the direction that the ship is pointing in, so if we happen to
+\ be looking at a ship as it gets tidied, at least it won't change direction.
+\ 
+\ The second vector, roofv´
+\ -------------------------
+\ Next, we want to tweak roofv into a new vector roofv´, where roofv´ is
+\ perpendicular to nosev´. When two vectors are perpendicular, their dot product
+\ is zero, so this means:
+\ 
+\   roofv´ . nosev´ = 0
+\ 
+\ This expands to:
+\ 
+\   nosev_x´ * roofv_x´ + nosev_y´ * roofv_y´ + nosev_z´ * roofv_z´ = 0
+\ 
+\ which we can expand to the following:
+\ 
+\   roofv_x´ = -(nosev_y´ * roofv_y´ + nosev_z´ * roofv_z´) / nosev_x´
+\   roofv_y´ = -(nosev_x´ * roofv_x´ + nosev_z´ * roofv_z´) / nosev_y´
+\   roofv_z´ = -(nosev_x´ * roofv_x´ + nosev_y´ * roofv_y´) / nosev_z´
+\ 
+\ Because time is of the essence, we would rather only calculate one of these,
+\ so we do a clever trick. If you think of two arbitrary lines on a piece of
+\ paper, then given any direction, it's possible to move the end of one of the
+\ lines in that direction so that the lines become parallel. In the case of our
+\ vectors, this means we can tweak roofv in one axis only - i.e. only change one
+\ of its x, y, and z coordinates - and can still get a vector that's at
+\ right-angles to nosev´.
+\ 
+\ So let's say that we tweak roofv in the x-axis only, then that means we leave
+\ roofv_y and roofv_z alone - so roofv_y´ = roofv_y and roofv_z´ = roofv_z. So
+\ this means:
+\ 
+\   roofv_x´ = -(nosev_y´ * roofv_y + nosev_z´ * roofv_z) / nosev_x´
+\   roofv_y´ = roofv_y
+\   roofv_z´ = roofv_z
+\ 
+\ So we can just tweak roofv_x to roofv_x´, using this calculation:
+\ 
+\   roofv_x´ = -(nosev_y´ * roofv_y + nosev_z´ * roofv_z) / nosev_x´
+\ 
+\ and roofv´ will be perpendicular to nosev; then all we need to do is normalise
+\ roofv´ and we've got our second orthonormal vector.
+\ 
+\ We can do the same with any of the axes, leading to these two equations:
+\ 
+\   roofv_y´ = -(nosev_x´ * roofv_x + nosev_z´ * roofv_z) / nosev_y´
+\   roofv_z´ = -(nosev_x´ * roofv_x + nosev_y´ * roofv_y) / nosev_z´
+\ 
+\ So how do we choose which coordinate axis to move? Well, seeing as we are
+\ going to be dividing by one of the coordinates of nosev´ in our calculation,
+\ and dividing by big numbers in integer arithmetic isn't so accurate (as we're
+\ dealing in integers here, not floating point numbers), we could always choose
+\ an equation with a low nosev value, and this is exactly what Elite does. First
+\ we check whether nosev_x´ is small, and if it is, we do this one:
+\ 
+\   roofv_x´ = -(nosev_y´ * roofv_y + nosev_z´ * roofv_z) / nosev_x´
+\ 
+\ Otherwise we check whether nosev_y´ is small, and if it is, we do this one:
+\ 
+\   roofv_y´ = -(nosev_x´ * roofv_x + nosev_z´ * roofv_z) / nosev_y´
+\ 
+\ Otherwise, we have no choice but to do this one:
+\ 
+\   roofv_z´ = -(nosev_x´ * roofv_x + nosev_y´ * roofv_y) / nosev_z´
+\ 
+\ And finally we normalise roofv, so it has length 1 (stored internally as 96)
+\ 
+\ The third vector, sidev´
+\ ------------------------
+\ So we have two vectors in nosev´ and roofv´ that are orthogonal and normal, so
+\ we just need to find a vector that is perpendicular to these two. There's an
+\ easy way to calculate such a vector, by using the cross-product.
+\ 
+\ The cross-product works like this. Consider two vectors, a and b, which have
+\ an angle theta between them. The cross-product of these two vectors, a x b,
+\ gives us another vector that is at right-angles to the first two, and which
+\ has length |a| * |b| * sin(theta).
+\ 
+\ In other words, if we calculate the following:
+\ 
+\   sidev = nosev x roofv
+\ 
+\ which we can do by breaking it down into axes:
+\ 
+\   [sidex_x]   [nosev_x´]   [roofv_x´]
+\   [sidex_y] = [nosev_y´] x [roofv_y´]
+\   [sidex_z]   [nosev_z´]   [roofv_z´]
+\ 
+\               [nosev_z´ * roofv_y´ - nosev_y´ * roofv_z´]
+\             = [nosev_x´ * roofv_z´ - nosev_z´ * roofv_x´]
+\               [nosev_y´ * roofv_x´ - nosev_x´ * roofv_y´]
+\ 
+\ then this sets sidev to a vector that is perpendicular to the others, and
+\ which has length |nose_v´| * |roof_v´| * sin(theta). We know that because
+\ nose_v´ and roof_v´ are orthonormal, theta must be a right-angle, and
+\ |nose_v´| and |roof_v´| must be 1, so this means sidev has length 1:
+\ 
+\   |nose_v´| * |roof_v´| * sin(theta) = 1 * 1 * 1 = 1
+\ 
+\ So if we calculate the following in the routine below, this will set sidev to
+\ a vector of length 1 that's perpendicular to the other two, which is a third
+\ orthonormal vector - exactly what we want our third vector to be.
+\ 
+\   sidev_x´ = (nosev_z´ * roofv_y´ - nosev_y´ * roofv_z´) / 96
+\   sidev_y´ = (nosev_x´ * roofv_z´ - nosev_z´ * roofv_x´) / 96
+\   sidev_z´ = (nosev_y´ * roofv_x´ - nosev_x´ * roofv_y´) / 96
+\ 
+\ We divide by 96 as we use 96 to represent 1 internally. This means the length
+\ of nosev and roofv internally is actually 96, so the length of the
+\ cross-product would be 96 96. We want the length of sidev to be 96 (so it
+\ represents 1), so we divide by 96 to get the correct result.
 \
 \ ******************************************************************************
 
@@ -28344,7 +28468,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  TYA                    \ A = Y = 4
  LDY #2
  JSR TIS3               \ Call TIS3 with X = 0, Y = 2, A = 4, to set roofv_z =
- STA INWK+20            \ (nosev_x * roofv_x + nosev_y * roofv_y) / nosev_z
+ STA INWK+20            \ -(nosev_x * roofv_x + nosev_y * roofv_y) / nosev_z
 
  JMP TI3                \ Jump to TI3 to keep tidying
 
@@ -28361,7 +28485,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
                         \ to pass to TIS3
 
  JSR TIS3               \ Call TIS3 with X = 0, Y = 4, A = 2, to set roofv_y =
- STA INWK+18            \ (nosev_x * roofv_x + nosev_z * roofv_z) / nosev_y
+ STA INWK+18            \ -(nosev_x * roofv_x + nosev_z * roofv_z) / nosev_y
 
  JMP TI3                \ Jump to TI3 to keep tidying
 
@@ -28393,7 +28517,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  LDA #0                 \ to pass to TIS3
 
  JSR TIS3               \ Call TIS3 with X = 2, Y = 4, A = 0, to set roofv_x =
- STA INWK+16            \ (nosev_y * roofv_y + nosev_z * roofv_z) / nosev_x
+ STA INWK+16            \ -(nosev_y * roofv_y + nosev_z * roofv_z) / nosev_x
 
 .TI3
 
