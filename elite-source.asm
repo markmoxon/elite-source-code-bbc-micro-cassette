@@ -2585,8 +2585,13 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \
 \ Workspace K% at &0900
 \
-\ Pointed to by the lookup table at location UNIV, the first 468 bytes of which
-\ holds data on 13 ships, 36 (NI%) bytes each.
+\ Contains ship data for all the ships, planets, suns and space stations in our
+\ local bubble of universe, along with their correspondingship lines heap space.
+\
+\ The blocks are pointed to by the lookup table at location UNIV. The first 468
+\ bytes of the K% workspace holds data on up to 13 ships, with 36 (NI%) bytes
+\ per ship, and the heap space grows downwards from WP at the end of the K%
+\ workspace.
 \
 \ ******************************************************************************
 \
@@ -2608,17 +2613,50 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ INWK+5 for byte #5 of the ship data (y_sign), or INWK+32 for byte #32 (the AI
 \ flag). Every now and then the bytes in the K% block are manipulated directly,
 \ but most of the time it's all about INWK.
-
+\
 \ There are 36 bytes of data in each ship's block, and the same data structure
-\ is usedto describe every type of object in the universe, not just ships
+\ is used to describe every type of object in the universe, not just ships
 \ (though we just refer to this as "ship data" for convenience). This means
 \ there is a data block for the planet, another for the sun and another for the
 \ space station, as well as ones for non-ship objects like asteroids and cargo
 \ canisters. They all have the same format, though not all bytes are used for
 \ all ship types (planets don't have AI or missiles, for example, though it
 \ would be fun if they did...).
+\
+\ Summary of .INWK and .K% ship data block format
+\ -----------------------------------------------
+\ The bytes in INWK and K% are arranged as follows:
+\
+\   * Ship coordinates (bytes 0-8):
+\
+\     * x = INWK(2 1 0)
+\     * y = INWK(5 4 3)
+\     * z = INWK(8 7 6)
+\
+\   * Orientation vectors (bytes 9-26):
+\
+\     * nose_v = (INWK(10 9),  INWK(12 11), INWK(14 13))
+\     * roof_v = (INWK(16 15), INWK(18 17), INWK(20 19))
+\     * side_v = (INWK(22 21), INWK(24 23), INWK(26 25))
+\
+\   * Ship movement (bytes 27-30):
+\
+\     * Speed = INWK+27
+\     * Acceleration = INWK+28
+\     * Roll counter = INWK+29
+\     * Pitch counter = INWK+30
+\
+\   * Ship flags (bytes 31-32):
+\
+\     * Exploding/killed state, scanner flag, missile count = INWK+31
+\     * AI, hostility and E.C.M. flags = INWK+32
+\
+\   * Heap pointer and energy (bytes 33-35):
+\
+\     * Ship lines heap space pointer = INWK(34 33)
+\     * Ship energy = INWK+35
 \ 
-\ Let's look through each byte in more detail.
+\ Let's look at these in more detail.
 \
 \ Ship coordinates (bytes 0-8)
 \ ----------------------------
@@ -2710,7 +2748,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ 
 \ We can refer to these three vectors in various ways, such as these variations
 \ for the nose_v vector:
-
+\
 \
 \   nose_v = (nose_v_x, nose_v_y, nose_v_z)
 \
@@ -2737,8 +2775,8 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ screen and negative out of the screen.
 \ 
 \ Internally, we store a vector value of 1 as 96, to support fractional values,
-\ and the rotmat vectors are stored as 16-bit sign-magnitude numbers. 96 is &60,
-\ and &60 with bit 7 set is &E0, so we store the above vectors like this:
+\ and the orientation vectors are stored as 16-bit sign-magnitude numbers. 96 is
+\ &60, and &60 with bit 7 set is &E0, so we store the above vectors like this:
 \
 \   nose_v = (0, 0, &E000)
 \   roof_v = (0, &6000, 0)
@@ -2773,8 +2811,8 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \
 \   * Bit 7 = direction of roll (sign)
 \
-\   * Bits 0-6 = counter, reduces by 1 every iteration of the main flight loop if
-\     damping is enabled
+\   * Bits 0-6 = counter, reduces by 1 every iteration of the main flight loop
+\     if damping is enabled
 \
 \ INWK+30 = rotx counter
 \
@@ -2782,8 +2820,8 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \
 \   * Bit 7 = direction of pitch (sign)
 \
-\   * Bits 0-6 = counter, reduces by 1 every iteration of the main flight loop if
-\     damping is enabled
+\   * Bits 0-6 = counter, reduces by 1 every iteration of the main flight loop
+\     if damping is enabled
 \
 \ Ship flags (bytes 31-32)
 \ ------------------------
@@ -2811,8 +2849,8 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \     * Bits 1-6 = target's slot number
 \     * Bit 7 = 0 (dumb) or 1 (has AI)
 \
-\ Miscellaneous (bytes 33-34)
-\ ---------------------------
+\ Heap pointer and energy (bytes 33-34)
+\ -------------------------------------
 \ INWK+33 = ship lines heap space pointer low byte
 \
 \ INWK+34 = ship lines heap space pointer high byte
@@ -4028,20 +4066,20 @@ LOAD_A% = LOAD%
 \ space station. To find out the value of t, we need to look at the geometry
 \ of ths situation.
 \
-\ The station's normal vector has length 1, because it's a unit vector. We
+\ The station's nose vector has length 1, because it's a unit vector. We
 \ actually store a 1 in a unit vector as &6000, because this means we don't
 \ have to deal with fractions. We can also just consider the high byte of
 \ this figure, so 1 has a high byte of &60 when we're talking about vectors
-\ like the station's normal vector.
+\ like the station's nose vector.
 \
-\ So the normal vector is a big stick, poking out of the slot, with a length of
+\ So the nose vector is a big stick, poking out of the slot, with a length of
 \ 1 unit (stored as a high byte of &60 internally).
 \
 \ Now, if that vector was coming perpendicularly out of the screen towards us,
 \ we would be on a perfect approach angle, the stick would be poking in our
 \ face, and the length of the stick in our direction would be the full length
 \ of 1, or &60. However, if our angle of approach is off by a bit, then the
-\ normal vector won't be pointing straight at us, and the end of the stick will
+\ nose vector won't be pointing straight at us, and the end of the stick will
 \ be further away from us - less "in our face", if you like.
 \
 \ In other words, the end of the stick is less in our direction, or to put it
@@ -4094,8 +4132,8 @@ LOAD_A% = LOAD%
 \
 \ There is one final twist, however, because we are approaching the slot head
 \ on, the z-zxis from our perspective points into the screen, so that means
-\ the station normal vector is coming out of the screen towards us, so it has
-\ a negative z-coordinate. So the station normal vector in this case is
+\ the station's nose vector is coming out of the screen towards us, so it has
+\ a negative z-coordinate. So the station's nose vector in this case is
 \ actually in the reverse direction, so we need to reverse the check and set
 \ the sign bit, to this:
 \
@@ -4884,8 +4922,8 @@ LOAD_A% = LOAD%
 \
 \ Subroutine: MAS1
 \
-\ Add a doubled nose_v axis, e.g. (nose_v_y_hi nose_v_y_lo) * 2, to an INWK
-\ coordinate, e.g. (x_sign x_hi x_lo), storing the result in the INWK
+\ Add a doubled nose_v vector coordinate, e.g. (nose_v_y_hi nose_v_y_lo) * 2, to
+\ an INWK coordinate, e.g. (x_sign x_hi x_lo), storing the result in the INWK
 \ coordinate. The axes used in each side of the addition are specified by the
 \ arguments X and Y.
 \
@@ -4895,7 +4933,7 @@ LOAD_A% = LOAD%
 \   (x_sign x_hi x_lo) = (x_sign x_hi x_lo) + (nose_v_y_hi nose_v_y_lo) * 2
 \
 \ as that way the variable names in the comments contain "x" and "y" to match
-\ the registers that specify the axes to use.
+\ the registers that specify the vector axis to use.
 \
 \ Arguments:
 \
@@ -4905,7 +4943,7 @@ LOAD_A% = LOAD%
 \                         * If X = 3, add (y_sign y_hi y_lo)
 \                         * If X = 6, add (z_sign z_hi z_lo)
 \
-\   Y                   The rotmat to add, as follows:
+\   Y                   The vector to add, as follows:
 \
 \                         * If Y = 9,  add (nose_v_x_hi nose_v_x_lo)
 \                         * If Y = 11, add (nose_v_y_hi nose_v_y_lo)
@@ -5607,13 +5645,13 @@ LOAD_A% = LOAD%
 \ ******************************************************************************
 
  LDY #9                 \ Apply our pitch and roll rotations to the current
- JSR MVS4               \ ship's rotmatx vector
+ JSR MVS4               \ ship's nose_v vector
 
  LDY #15                \ Apply our pitch and roll rotations to the current
- JSR MVS4               \ ship's rotmaty vector
+ JSR MVS4               \ ship's roof_v vector
 
  LDY #21                \ Apply our pitch and roll rotations to the current
- JSR MVS4               \ ship's rotmatz vector
+ JSR MVS4               \ ship's side_v vector
 
 \ ******************************************************************************
 \
@@ -6004,11 +6042,14 @@ LOAD_A% = LOAD%
 \   Y                   Determines which row of the INWK orientation vectors to
 \                       transform:
 \
-\                         * Y = 9 rotates row 0 (nose_v_x, nose_v_y, nose_v_z)
+\                         * Y = 9 rotates nose_v:
+\                               (nose_v_x, nose_v_y, nose_v_z)
 \
-\                         * Y = 15 rotates row 1 (roof_v_x, roof_v_y, roof_v_z)
+\                         * Y = 15 rotates roof_v:
+\                               (roof_v_x, roof_v_y, roof_v_z)
 \
-\                         * Y = 21 rotates row 2 (side_v_x, side_v_y, side_v_z)
+\                         * Y = 21 rotates side_v:
+\                               (side_v_x, side_v_y, side_v_z)
 \
 \ ******************************************************************************
 \
