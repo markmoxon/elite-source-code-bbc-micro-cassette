@@ -2635,9 +2635,9 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \
 \   * Orientation vectors (bytes 9-26):
 \
-\     * nose_v = (INWK(10 9),  INWK(12 11), INWK(14 13))
-\     * roof_v = (INWK(16 15), INWK(18 17), INWK(20 19))
-\     * side_v = (INWK(22 21), INWK(24 23), INWK(26 25))
+\     * nosev = (INWK(10 9),  INWK(12 11), INWK(14 13))
+\     * roofv = (INWK(16 15), INWK(18 17), INWK(20 19))
+\     * sidev = (INWK(22 21), INWK(24 23), INWK(26 25))
 \
 \   * Ship movement (bytes 27-30):
 \
@@ -2696,46 +2696,46 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \
 \ Orientation vectors (bytes 9-26)
 \ --------------------------------
-\ INWK+9  = nose_v_x_lo
-\ INWK+10 = nose_v_x_hi
-\ INWK+11 = nose_v_y_lo
-\ INWK+12 = nose_v_y_hi
-\ INWK+13 = nose_v_z_lo
-\ INWK+14 = nose_v_z_hi
+\ INWK+9  = nosev_x_lo
+\ INWK+10 = nosev_x_hi
+\ INWK+11 = nosev_y_lo
+\ INWK+12 = nosev_y_hi
+\ INWK+13 = nosev_z_lo
+\ INWK+14 = nosev_z_hi
 \
-\ INWK+15 = roof_v_x_lo
-\ INWK+16 = roof_v_x_hi
-\ INWK+17 = roof_v_y_lo
-\ INWK+18 = roof_v_y_hi
-\ INWK+19 = roof_v_z_lo
-\ INWK+20 = roof_v_z_hi
+\ INWK+15 = roofv_x_lo
+\ INWK+16 = roofv_x_hi
+\ INWK+17 = roofv_y_lo
+\ INWK+18 = roofv_y_hi
+\ INWK+19 = roofv_z_lo
+\ INWK+20 = roofv_z_hi
 \
-\ INWK+21 = side_v_x_lo
-\ INWK+22 = side_v_x_hi
-\ INWK+23 = side_v_y_lo
-\ INWK+24 = side_v_y_hi
-\ INWK+25 = side_v_z_lo
-\ INWK+26 = side_v_z_hi
+\ INWK+21 = sidev_x_lo
+\ INWK+22 = sidev_x_hi
+\ INWK+23 = sidev_y_lo
+\ INWK+24 = sidev_y_hi
+\ INWK+25 = sidev_z_lo
+\ INWK+26 = sidev_z_hi
 \
 \ The vectors in INWK+9 to INWK+26 are stored as 24-bit sign-magnitude numbers,
 \ where the sign of the number is stored in bit 7 of the high byte. See above
 \ for more on this number format.
 \
 \ The ship's orientation vectors determine its orientation in space. There are
-\ three different vectors, nose_v, roof_v and side_v, with each of them pointing
+\ three different vectors, nosev, roofv and sidev, with each of them pointing
 \ along one of the ship's main axes, like this:
 \
-\   roof_v (points up out of the ship's sunroof...
+\   roofv (points up out of the ship's sunroof...
 \   ^       or it would if it had one)
 \   |
 \   |
 \   |
-\   |    nose_v (points forward out of the ship's nose
+\   |    nosev (points forward out of the ship's nose
 \   |   /        and into the screen)
 \   |  /
 \   | /
 \   |/
-\   +-----------------------> side_v (points out of the
+\   +-----------------------> sidev (points out of the
 \                                    ship's right view)
 \
 \ These vectors are orthonormal, which means they are orthogonal (i.e. they are
@@ -2747,18 +2747,18 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ to ensure they remain as orthonormal as possible.
 \ 
 \ We can refer to these three vectors in various ways, such as these variations
-\ for the nose_v vector:
+\ for the nosev vector:
 \
 \
-\   nose_v = (nose_v_x, nose_v_y, nose_v_z)
+\   nosev = (nosev_x, nosev_y, nosev_z)
 \
-\            [ nose_v_x ]
-\          = [ nose_v_y ]
-\            [ nose_v_z ]
+\            [ nosev_x ]
+\          = [ nosev_y ]
+\            [ nosev_z ]
 \           
-\            [ (nose_v_x_hi nose_v_x_lo) ]
-\          = [ (nose_v_y_hi nose_v_y_lo) ]
-\            [ (nose_v_z_hi nose_v_z_lo) ]
+\            [ (nosev_x_hi nosev_x_lo) ]
+\          = [ (nosev_y_hi nosev_y_lo) ]
+\            [ (nosev_z_hi nosev_z_lo) ]
 \           
 \            [ INWK(10 9) ]
 \          = [ INWK(12 11) ]
@@ -2766,11 +2766,11 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \
 \ The vectors are initialised in ZINF as follows:
 \
-\   nose_v = (0,  0, -1)
-\   roof_v = (0,  1,  0)
-\   side_v = (1,  0,  0)
+\   nosev = (0,  0, -1)
+\   roofv = (0,  1,  0)
+\   sidev = (1,  0,  0)
 \
-\ so new ships are spawned facing out of the screen, as their nose_v vectors
+\ so new ships are spawned facing out of the screen, as their nosev vectors
 \ point in a negative direction along the z-axis, which is positive into the
 \ screen and negative out of the screen.
 \ 
@@ -2778,19 +2778,19 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ and the orientation vectors are stored as 16-bit sign-magnitude numbers. 96 is
 \ &60, and &60 with bit 7 set is &E0, so we store the above vectors like this:
 \
-\   nose_v = (0, 0, &E000)
-\   roof_v = (0, &6000, 0)
-\   side_v = (&6000, 0, 0)
+\   nosev = (0, 0, &E000)
+\   roofv = (0, &6000, 0)
+\   sidev = (&6000, 0, 0)
 \
-\ so nose_v_z_hi = &E0, side_v_x_hi = &60 and so on.
+\ so nosev_z_hi = &E0, sidev_x_hi = &60 and so on.
 \
-\ Sometimes we might refer to the orientation vectors as a matrix, with nose_v
-\ as the first row, roof_v as the second row, and side_v as the third row, like
+\ Sometimes we might refer to the orientation vectors as a matrix, with nosev
+\ as the first row, roofv as the second row, and sidev as the third row, like
 \ this:
 \
-\   [nose_v_x nose_v_y nose_v_z]
-\   [roof_v_x roof_v_y roof_v_z]
-\   [side_v_x side_v_y side_v_z]
+\   [nosev_x nosev_y nosev_z]
+\   [roofv_x roofv_y roofv_z]
+\   [sidev_x sidev_y sidev_z]
 \
 \ though generally we deal with the individual vectors, because that's easier
 \ to understand.
@@ -2805,7 +2805,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \
 \   * Gets added to the speed once, in MVEIT, before being zeroed again
 \
-\ INWK+29 = rotx counter
+\ INWK+29 = roll counter
 \
 \   * Ship rolls when bits 0-6 counter > 0
 \
@@ -2814,7 +2814,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \   * Bits 0-6 = counter, reduces by 1 every iteration of the main flight loop
 \     if damping is enabled
 \
-\ INWK+30 = rotx counter
+\ INWK+30 = pitch counter
 \
 \   * Ship pitches when bits 0-6 counter > 0
 \
@@ -4037,7 +4037,7 @@ LOAD_A% = LOAD%
 \
 \ 2. Check the angle of approach
 \ ------------------------------
-\ The space station's ship data is in INWK. The nose_v vector in INWK+9 to
+\ The space station's ship data is in INWK. The nosev vector in INWK+9 to
 \ INWK+14 is the station's forward-facing normal vector, and it's perpendicular
 \ to the face containing the slot, pointing straight out into space out of the
 \ docking slot. You can see this in the diagram on the left, which is a side-on
@@ -4045,7 +4045,7 @@ LOAD_A% = LOAD%
 \ with the docking slot on the top face of the station. You can imagine this
 \ vector as a big stick, sticking out of the slot.
 \
-\       nose_v
+\        nosev
 \          ^         ship
 \          :       /
 \          :      /
@@ -4087,8 +4087,8 @@ LOAD_A% = LOAD%
 \ and out of the screen.
 \
 \ Or, to put it mathematically, the z-coordinate of the end of the stick, or
-\ nose_v_z, is smaller when our approach angle is off. The routine below uses
-\ this method to see how well we are approaching the slot, by comparing nose_v_z
+\ nosev_z, is smaller when our approach angle is off. The routine below uses
+\ this method to see how well we are approaching the slot, by comparing nosev_z
 \ with &D6, so what does that mean?
 \
 \ We can draw a triangle showing this whole stick-slot situation, like this. The
@@ -4099,7 +4099,7 @@ LOAD_A% = LOAD%
 \          :       /                      \       |
 \          :      /                        \      |
 \          :     L                          \     v
-\          :    /                         1  \    | nose_v_z
+\          :    /                         1  \    | nosev_z
 \          : t /                              \ t |
 \          :  /                                \  |
 \          : /                                  \ |
@@ -4109,26 +4109,26 @@ LOAD_A% = LOAD%
 \ The stick is the left edge of each triangle, poking out of the slot at the
 \ bottom, and the ship is at the top, looking down towards the slot. We know
 \ that the right-hand edge of the triangle - the adjacent side - has length
-\ nose_v_z, while the hypotenuse is the length of the space station's vector, 1
+\ nosev_z, while the hypotenuse is the length of the space station's vector, 1
 \ (stored as &60). So we can do some trigonometry, like this, if we just
 \ consider the high bytes of our vectors:
 \
 \   cos(t) = adjacent / hypotenuse
-\          = nose_v_z_hi / &60
+\          = nosev_z_hi / &60
 \
 \ so:
 \
-\   nose_v_z_hi = &60 * cos(t)
+\   nosev_z_hi = &60 * cos(t)
 \
 \ We need our approach angle to be off by less than 26 degrees, so this
 \ becomes the following, if we round down the result to an integer:
 \
-\   nose_v_z_hi = &60 * cos(26)
+\   nosev_z_hi = &60 * cos(26)
 \               = &56
 \
 \ So, we get this:
 \
-\   The angle of approach is less than 26 degrees if nose_v_z_hi >= &56
+\   The angle of approach is less than 26 degrees if nosev_z_hi >= &56
 \
 \ There is one final twist, however, because we are approaching the slot head
 \ on, the z-zxis from our perspective points into the screen, so that means
@@ -4137,7 +4137,7 @@ LOAD_A% = LOAD%
 \ actually in the reverse direction, so we need to reverse the check and set
 \ the sign bit, to this:
 \
-\   The angle of approach is less than 26 degrees if nose_v_z_hi <= &D6
+\   The angle of approach is less than 26 degrees if nosev_z_hi <= &D6
 \
 \ And that's the check we make below to make sure our docking angle is correct.
 \
@@ -4161,7 +4161,7 @@ LOAD_A% = LOAD%
                         \ docking (so trying to dock at a station that we have
                         \ annoyed does not end well)
 
- LDA INWK+14            \ 2. If nose_v_z_hi < &D6, jump down to MA62 to fail
+ LDA INWK+14            \ 2. If nosev_z_hi < &D6, jump down to MA62 to fail
  CMP #&D6               \ docking, as the angle of approach is greater than 26
  BCC MA62               \ degrees (see the notes on test 2 above)
 
@@ -4175,7 +4175,7 @@ LOAD_A% = LOAD%
  CMP #&59               \ 4. If z-axis < &59, jump to MA62 to fail docking
  BCC MA62
 
- LDA INWK+16            \ 5. If |roof_v_x_hi| < &50, jump to MA62 to fail
+ LDA INWK+16            \ 5. If |roofv_x_hi| < &50, jump to MA62 to fail
  AND #%01111111         \ docking
  CMP #&50               \ Is this something to do with matching the slot
  BCC MA62               \ rotation?
@@ -4609,7 +4609,7 @@ LOAD_A% = LOAD%
 
                         \ We now check the distance from our ship (at the
                         \ origin) towards the planet's surface, by adding the
-                        \ planet's nose_v vector to the planet's centre at
+                        \ planet's nosev vector to the planet's centre at
                         \ (x, y, z) and checking our distance to the end
                         \ point along the relevant axis
 
@@ -4617,7 +4617,7 @@ LOAD_A% = LOAD%
 
  LDY #9                 \ Call MAS1 with X = 0, Y = 9 to do the following:
  JSR MAS1               \
-                        \ (x_sign x_hi x_lo) += (nose_v_x_hi nose_v_x_lo) * 2
+                        \ (x_sign x_hi x_lo) += (nosev_x_hi nosev_x_lo) * 2
                         \
                         \ A = |x_hi|
 
@@ -4627,7 +4627,7 @@ LOAD_A% = LOAD%
 
  LDX #3                 \ Call MAS1 with X = 3, Y = 11 to do the following:
  LDY #11                \
- JSR MAS1               \ (y_sign y_hi y_lo) += (nose_v_y_hi nose_v_y_lo) * 2
+ JSR MAS1               \ (y_sign y_hi y_lo) += (nosev_y_hi nosev_y_lo) * 2
                         \
                         \ A = |y_hi|
 
@@ -4637,7 +4637,7 @@ LOAD_A% = LOAD%
 
  LDX #6                 \ Call MAS1 with X = 6, Y = 13 to do the following:
  LDY #13                \
- JSR MAS1               \ (z_sign z_hi z_lo) += (nose_v_z_hi nose_v_z_lo) * 2
+ JSR MAS1               \ (z_sign z_hi z_lo) += (nosev_z_hi nosev_z_lo) * 2
                         \
                         \ A = |z_hi|
 
@@ -4922,7 +4922,7 @@ LOAD_A% = LOAD%
 \
 \ Subroutine: MAS1
 \
-\ Add a doubled nose_v vector coordinate, e.g. (nose_v_y_hi nose_v_y_lo) * 2, to
+\ Add a doubled nosev vector coordinate, e.g. (nosev_y_hi nosev_y_lo) * 2, to
 \ an INWK coordinate, e.g. (x_sign x_hi x_lo), storing the result in the INWK
 \ coordinate. The axes used in each side of the addition are specified by the
 \ arguments X and Y.
@@ -4930,7 +4930,7 @@ LOAD_A% = LOAD%
 \ In the comments below, we document the routine as if we are doing the
 \ following, i.e. if X = 0 and Y = 11:
 \
-\   (x_sign x_hi x_lo) = (x_sign x_hi x_lo) + (nose_v_y_hi nose_v_y_lo) * 2
+\   (x_sign x_hi x_lo) = (x_sign x_hi x_lo) + (nosev_y_hi nosev_y_lo) * 2
 \
 \ as that way the variable names in the comments contain "x" and "y" to match
 \ the registers that specify the vector axis to use.
@@ -4945,9 +4945,9 @@ LOAD_A% = LOAD%
 \
 \   Y                   The vector to add, as follows:
 \
-\                         * If Y = 9,  add (nose_v_x_hi nose_v_x_lo)
-\                         * If Y = 11, add (nose_v_y_hi nose_v_y_lo)
-\                         * If Y = 13, add (nose_v_z_hi nose_v_z_lo)
+\                         * If Y = 9,  add (nosev_x_hi nosev_x_lo)
+\                         * If Y = 11, add (nosev_y_hi nosev_y_lo)
+\                         * If Y = 13, add (nosev_z_hi nosev_z_lo)
 \
 \ Returns:
 \
@@ -4962,7 +4962,7 @@ LOAD_A% = LOAD%
 
 .MAS1
 {
- LDA INWK,Y             \ Set K(2 1) = (nose_v_y_hi nose_v_y_lo) * 2
+ LDA INWK,Y             \ Set K(2 1) = (nosev_y_hi nosev_y_lo) * 2
  ASL A
  STA K+1
  LDA INWK+1,Y
@@ -5256,7 +5256,7 @@ LOAD_A% = LOAD%
 \   * Move the ship forward (along the vector pointing in the direction of
 \     travel) according to its speed:
 \
-\     (x, y, z) += nose_v_hi * speed / 64
+\     (x, y, z) += nosev_hi * speed / 64
 \
 \ ******************************************************************************
 
@@ -5265,59 +5265,59 @@ LOAD_A% = LOAD%
  ASL A
  STA Q
 
- LDA INWK+10            \ Set A = |nose_v_x_hi|
+ LDA INWK+10            \ Set A = |nosev_x_hi|
  AND #%01111111
 
  JSR FMLTU              \ Set R = A * Q / 256
- STA R                  \       = |nose_v_x_hi| * speed / 64
+ STA R                  \       = |nosev_x_hi| * speed / 64
 
- LDA INWK+10            \ If INWK+10 (nose_v_x_hi) is positive, then:
+ LDA INWK+10            \ If INWK+10 (nosev_x_hi) is positive, then:
  LDX #0                 \
  JSR MVT1-2             \   (x_sign x_hi x_lo) = (x_sign x_hi x_lo) + R
                         \
-                        \ If INWK+10 (nose_v_x_hi) is negative, then:
+                        \ If INWK+10 (nosev_x_hi) is negative, then:
                         \
                         \   (x_sign x_hi x_lo) = (x_sign x_hi x_lo) - R
                         \
                         \ So in effect, this does:
                         \
-                        \   (x_sign x_hi x_lo) += nose_v_x_hi * speed / 64
+                        \   (x_sign x_hi x_lo) += nosev_x_hi * speed / 64
 
- LDA INWK+12            \ Set A = |nose_v_y_hi|
+ LDA INWK+12            \ Set A = |nosev_y_hi|
  AND #%01111111
 
  JSR FMLTU              \ Set R = A * Q / 256
- STA R                  \       = |nose_v_y_hi| * speed / 64
+ STA R                  \       = |nosev_y_hi| * speed / 64
 
- LDA INWK+12            \ If INWK+12 (nose_v_y_hi) is positive, then:
+ LDA INWK+12            \ If INWK+12 (nosev_y_hi) is positive, then:
  LDX #3                 \
  JSR MVT1-2             \   (y_sign y_hi y_lo) = (y_sign y_hi y_lo) + R
                         \
-                        \ If INWK+12 (nose_v_y_hi) is negative, then:
+                        \ If INWK+12 (nosev_y_hi) is negative, then:
                         \
                         \   (y_sign y_hi y_lo) = (y_sign y_hi y_lo) - R
                         \
                         \ So in effect, this does:
                         \
-                        \   (y_sign y_hi y_lo) += nose_v_y_hi * speed / 64
+                        \   (y_sign y_hi y_lo) += nosev_y_hi * speed / 64
 
- LDA INWK+14            \ Set A = |nose_v_z_hi|
+ LDA INWK+14            \ Set A = |nosev_z_hi|
  AND #%01111111
 
  JSR FMLTU              \ Set R = A * Q / 256
- STA R                  \       = |nose_v_z_hi| * speed / 64
+ STA R                  \       = |nosev_z_hi| * speed / 64
 
- LDA INWK+14            \ If INWK+14 (nose_v_y_hi) is positive, then:
+ LDA INWK+14            \ If INWK+14 (nosev_y_hi) is positive, then:
  LDX #6                 \
  JSR MVT1-2             \   (z_sign z_hi z_lo) = (z_sign z_hi z_lo) + R
                         \
-                        \ If INWK+14 (nose_v_z_hi) is negative, then:
+                        \ If INWK+14 (nosev_z_hi) is negative, then:
                         \
                         \   (z_sign z_hi z_lo) = (z_sign z_hi z_lo) - R
                         \
                         \ So in effect, this does:
                         \
-                        \   (z_sign z_hi z_lo) += nose_v_z_hi * speed / 64
+                        \   (z_sign z_hi z_lo) += nosev_z_hi * speed / 64
 
 \ ******************************************************************************
 \
@@ -5645,13 +5645,13 @@ LOAD_A% = LOAD%
 \ ******************************************************************************
 
  LDY #9                 \ Apply our pitch and roll rotations to the current
- JSR MVS4               \ ship's nose_v vector
+ JSR MVS4               \ ship's nosev vector
 
  LDY #15                \ Apply our pitch and roll rotations to the current
- JSR MVS4               \ ship's roof_v vector
+ JSR MVS4               \ ship's roofv vector
 
  LDY #21                \ Apply our pitch and roll rotations to the current
- JSR MVS4               \ ship's side_v vector
+ JSR MVS4               \ ship's sidev vector
 
 \ ******************************************************************************
 \
@@ -5665,17 +5665,17 @@ LOAD_A% = LOAD%
 \
 \ ******************************************************************************
 
- LDA INWK+30            \ Fetch the ship's rotz counter and extract the sign
+ LDA INWK+30            \ Fetch the ship's pitch counter and extract the sign
  AND #%10000000         \ into RAT2
  STA RAT2
 
- LDA INWK+30            \ Fetch the ship's rotz counter and extract the value
+ LDA INWK+30            \ Fetch the ship's pitch counter and extract the value
  AND #%01111111         \ without the sign bit into A
 
- BEQ MV8                \ If the rotz counter is 0, then jump to MV8 to skip the
-                        \ following, as the ship is not pitching
+ BEQ MV8                \ If the pitch counter is 0, then jump to MV8 to skip
+                        \ the following, as the ship is not pitching
 
- CMP #%01111111         \ If bits 0-6 are set in the rotz counter (i.e. the
+ CMP #%01111111         \ If bits 0-6 are set in the pitch counter (i.e. the
                         \ ship's pitch is not damping down), then the C flag
                         \ will be set by this instruction
 
@@ -5683,35 +5683,35 @@ LOAD_A% = LOAD%
                         \ reduce A by 1, otherwise it is unchanged
 
  ORA RAT2               \ Change bit 7 of A to the sign we saved in RAT2, so
-                        \ the updated rotz counter in A retains its sign
+                        \ the updated pitch counter in A retains its sign
 
- STA INWK+30            \ Store the updated rotz counter in INWK+30
+ STA INWK+30            \ Store the updated pitch counter in INWK+30
 
- LDX #15                \ Rotate (roof_v_x, nose_v_x) by a small angle (pitch)
+ LDX #15                \ Rotate (roofv_x, nosev_x) by a small angle (pitch)
  LDY #9
  JSR MVS5
 
- LDX #17                \ Rotate (roof_v_y, nose_v_y) by a small angle (pitch)
+ LDX #17                \ Rotate (roofv_y, nosev_y) by a small angle (pitch)
  LDY #11
  JSR MVS5
 
- LDX #19                \ Rotate (roof_v_z, nose_v_z) by a small angle (pitch)
+ LDX #19                \ Rotate (roofv_z, nosev_z) by a small angle (pitch)
  LDY #13
  JSR MVS5
 
 .MV8
 
- LDA INWK+29            \ Fetch the ship's rotx counter and extract the sign
+ LDA INWK+29            \ Fetch the ship's roll counter and extract the sign
  AND #%10000000         \ into RAT2
  STA RAT2
 
- LDA INWK+29            \ Fetch the ship's rotx counter and extract the value
+ LDA INWK+29            \ Fetch the ship's roll counter and extract the value
  AND #%01111111         \ without the sign bit into A
 
- BEQ MV5                \ If the rotx counter is 0, then jump to MV5 to skip the
+ BEQ MV5                \ If the roll counter is 0, then jump to MV5 to skip the
                         \ following, as the ship is not rolling
 
- CMP #%01111111         \ If bits 0-6 are set in the rotx counter (i.e. the
+ CMP #%01111111         \ If bits 0-6 are set in the roll counter (i.e. the
                         \ ship's roll is not damping down), then the C flag
                         \ will be set by this instruction
 
@@ -5719,19 +5719,19 @@ LOAD_A% = LOAD%
                         \ reduce A by 1, otherwise it is unchanged
 
  ORA RAT2               \ Change bit 7 of A to the sign we saved in RAT2, so
-                        \ the updated rotx counter in A retains its sign
+                        \ the updated roll counter in A retains its sign
 
- STA INWK+29            \ Store the updated rotz counter in INWK+29
+ STA INWK+29            \ Store the updated pitch counter in INWK+29
 
- LDX #15                \ Rotate (roof_v_x, side_v_x) by a small angle (roll)
+ LDX #15                \ Rotate (roofv_x, sidev_x) by a small angle (roll)
  LDY #21
  JSR MVS5
 
- LDX #17                \ Rotate (roof_v_y, side_v_y) by a small angle (roll)
+ LDX #17                \ Rotate (roofv_y, sidev_y) by a small angle (roll)
  LDY #23
  JSR MVS5
 
- LDX #19                \ Rotate (roof_v_z, side_v_z) by a small angle (roll)
+ LDX #19                \ Rotate (roofv_z, sidev_z) by a small angle (roll)
  LDY #25
  JSR MVS5
 
@@ -6042,14 +6042,14 @@ LOAD_A% = LOAD%
 \   Y                   Determines which row of the INWK orientation vectors to
 \                       transform:
 \
-\                         * Y = 9 rotates nose_v:
-\                               (nose_v_x, nose_v_y, nose_v_z)
+\                         * Y = 9 rotates nosev:
+\                               (nosev_x, nosev_y, nosev_z)
 \
-\                         * Y = 15 rotates roof_v:
-\                               (roof_v_x, roof_v_y, roof_v_z)
+\                         * Y = 15 rotates roofv:
+\                               (roofv_x, roofv_y, roofv_z)
 \
-\                         * Y = 21 rotates side_v:
-\                               (side_v_x, side_v_y, side_v_z)
+\                         * Y = 21 rotates sidev:
+\                               (sidev_x, sidev_y, sidev_z)
 \
 \ ******************************************************************************
 \
@@ -6314,18 +6314,18 @@ LOAD_A% = LOAD%
 \ but instead it follows a slightly sheared ellipse, but that's close enough
 \ for 8-bit space combat in 192 x 256 pixels. So, coming back to the Elite
 \ sourced code, the routine below implements the rotation like this (shown
-\ here for the nose_v orientation vectors, i.e. nose_v_x, nose_v_y and
-\ nose_v_z):
+\ here for the nosev orientation vectors, i.e. nosev_x, nosev_y and
+\ nosev_z):
 \
 \ Roll calculations:
 \
-\   nose_v_y = nose_v_y - alpha * nose_v_x_hi
-\   nose_v_x = nose_v_x + alpha * nose_v_y_hi
+\   nosev_y = nosev_y - alpha * nosev_x_hi
+\   nosev_x = nosev_x + alpha * nosev_y_hi
 \
 \ Pitch calculations:
 \
-\   nose_v_y = nose_v_y - beta * nose_v_z_hi
-\   nose_v_z = nose_v_z + beta * nose_v_y_hi
+\   nosev_y = nosev_y - beta * nosev_z_hi
+\   nosev_z = nosev_z + beta * nosev_y_hi
 \
 \ And that's how we rotate a point around the origin by pitch alpha and roll
 \ beta, using the small angle approximation to make the maths easier, and
@@ -6338,82 +6338,82 @@ LOAD_A% = LOAD%
  LDA ALPHA              \ Set Q = alpha (the roll angle to rotate through)
  STA Q
 
- LDX INWK+2,Y           \ Set (S R) = nose_v_y
+ LDX INWK+2,Y           \ Set (S R) = nosev_y
  STX R
  LDX INWK+3,Y
  STX S
 
  LDX INWK,Y             \ These instructions have no effect as MAD overwrites
- STX P                  \ X and P when called, but they set X = P = nose_v_x_lo
+ STX P                  \ X and P when called, but they set X = P = nosev_x_lo
 
- LDA INWK+1,Y           \ Set A = -nose_v_x_hi
+ LDA INWK+1,Y           \ Set A = -nosev_x_hi
  EOR #%10000000
 
  JSR MAD                \ Set (A X) = Q * A + (S R)
- STA INWK+3,Y           \           = alpha * -nose_v_x_hi + nose_v_y
+ STA INWK+3,Y           \           = alpha * -nosev_x_hi + nosev_y
  STX INWK+2,Y           \
-                        \ and store (A X) in nose_v_y, so this does:
+                        \ and store (A X) in nosev_y, so this does:
                         \
-                        \ nose_v_y = nose_v_y - alpha * nose_v_x_hi
+                        \ nosev_y = nosev_y - alpha * nosev_x_hi
 
  STX P                  \ This instruction has no effect as MAD overwrites P,
-                        \ but it sets P = nose_v_y_lo
+                        \ but it sets P = nosev_y_lo
 
- LDX INWK,Y             \ Set (S R) = nose_v_x
+ LDX INWK,Y             \ Set (S R) = nosev_x
  STX R
  LDX INWK+1,Y
  STX S
 
- LDA INWK+3,Y           \ Set A = nose_v_y_hi
+ LDA INWK+3,Y           \ Set A = nosev_y_hi
 
  JSR MAD                \ Set (A X) = Q * A + (S R)
- STA INWK+1,Y           \           = alpha * nose_v_y_hi + nose_v_x
+ STA INWK+1,Y           \           = alpha * nosev_y_hi + nosev_x
  STX INWK,Y             \
-                        \ and store (A X) in nose_v_x, so this does:
+                        \ and store (A X) in nosev_x, so this does:
                         \
-                        \ nose_v_x = nose_v_x + alpha * nose_v_y_hi
+                        \ nosev_x = nosev_x + alpha * nosev_y_hi
 
  STX P                  \ This instruction has no effect as MAD overwrites P,
-                        \ but it sets P = nose_v_x_lo
+                        \ but it sets P = nosev_x_lo
 
  LDA BETA               \ Set Q = beta (the pitch angle to rotate through)
  STA Q
 
- LDX INWK+2,Y           \ Set (S R) = nose_v_y
+ LDX INWK+2,Y           \ Set (S R) = nosev_y
  STX R
  LDX INWK+3,Y
  STX S
  LDX INWK+4,Y
 
  STX P                  \ This instruction has no effect as MAD overwrites P,
-                        \ but it sets P = nose_v_y
+                        \ but it sets P = nosev_y
 
- LDA INWK+5,Y           \ Set A = -nose_v_z_hi
+ LDA INWK+5,Y           \ Set A = -nosev_z_hi
  EOR #%10000000
 
  JSR MAD                \ Set (A X) = Q * A + (S R)
- STA INWK+3,Y           \           = beta * -nose_v_z_hi + nose_v_y
+ STA INWK+3,Y           \           = beta * -nosev_z_hi + nosev_y
  STX INWK+2,Y           \
-                        \ and store (A X) in nose_v_y, so this does:
+                        \ and store (A X) in nosev_y, so this does:
                         \
-                        \ nose_v_y = nose_v_y - beta * nose_v_z_hi
+                        \ nosev_y = nosev_y - beta * nosev_z_hi
 
  STX P                  \ This instruction has no effect as MAD overwrites P,
-                        \ but it sets P = nose_v_y_lo
+                        \ but it sets P = nosev_y_lo
 
- LDX INWK+4,Y           \ Set (S R) = nose_v_z
+ LDX INWK+4,Y           \ Set (S R) = nosev_z
  STX R
  LDX INWK+5,Y
  STX S
 
- LDA INWK+3,Y           \ Set A = nose_v_y_hi
+ LDA INWK+3,Y           \ Set A = nosev_y_hi
 
  JSR MAD                \ Set (A X) = Q * A + (S R)
- STA INWK+5,Y           \           = beta * nose_v_y_hi + nose_v_z
+ STA INWK+5,Y           \           = beta * nosev_y_hi + nosev_z
  STX INWK+4,Y           \
-                        \ and store (A X) in nose_v_z, so this does:
+                        \ and store (A X) in nosev_z, so this does:
                         \
-                        \ nose_v_z = nose_v_z + beta * nose_v_y_hi
+                        \ nosev_z = nosev_z + beta * nosev_y_hi
 
  RTS                    \ Return from the subroutine
 
@@ -6436,37 +6436,37 @@ LOAD_A% = LOAD%
 \     X = X * (1 - 1/512) - Y / 16
 \     Y = Y * (1 - 1/512) + X / 16
 \
-\ So if X = 15 (roof_v_x), Y = 21 (side_v_x) and RAT2 is positive, it does this:
+\ So if X = 15 (roofv_x), Y = 21 (sidev_x) and RAT2 is positive, it does this:
 \
-\   roof_v_x = roof_v_x * (1 - 1/512)  + side_v_x / 16
-\   side_v_x = side_v_x * (1 - 1/512)  - roof_v_x / 16
+\   roofv_x = roofv_x * (1 - 1/512)  + sidev_x / 16
+\   sidev_x = sidev_x * (1 - 1/512)  - roofv_x / 16
 \
 \ Arguments:
 \
 \   X                   The first vector to rotate:
 \
-\                         * If X = 15, rotate roof_v_x
+\                         * If X = 15, rotate roofv_x
 \
-\                         * If X = 17, rotate roof_v_y
+\                         * If X = 17, rotate roofv_y
 \
-\                         * If X = 19, rotate roof_v_z
+\                         * If X = 19, rotate roofv_z
 \
 \   Y                   The second vector to rotate:
 \
-\                         * If Y = 9,  rotate nose_v_x
+\                         * If Y = 9,  rotate nosev_x
 \
-\                         * If Y = 11, rotate nose_v_y
+\                         * If Y = 11, rotate nosev_y
 \
-\                         * If Y = 13, rotate nose_v_z
+\                         * If Y = 13, rotate nosev_z
 \
-\                         * If Y = 21, rotate side_v_x
+\                         * If Y = 21, rotate sidev_x
 \
-\                         * If Y = 23, rotate side_v_y
+\                         * If Y = 23, rotate sidev_y
 \
-\                         * If Y = 25, rotate side_v_z
+\                         * If Y = 25, rotate sidev_z
 \
 \   RAT2                The direction of the pitch or roll to perform, positive
-\                       or negative (i.e. the sign of the rotx or rotz counter
+\                       or negative (i.e. the sign of the roll or pitch counter
 \                       in bit 7)
 \
 \ ******************************************************************************
@@ -6504,83 +6504,83 @@ LOAD_A% = LOAD%
 \
 \ so this is what this routine implements.
 \
-\ To clarify further, let's consider the example when X = 15 (roof_v_x) and
-\ Y = 21 (side_v_x), which applies roll to the ship. If we consider the
+\ To clarify further, let's consider the example when X = 15 (roofv_x) and
+\ Y = 21 (sidev_x), which applies roll to the ship. If we consider the
 \ orientation vectors, this it how the three vectors look if we're sitting in
 \ in the ship's cockpit:
 \
-\   roof_v (points up out of the ship's sunroof...
+\   roofv (points up out of the ship's sunroof...
 \   ^       or it would if it had one)
 \   |
 \   |
 \   |
-\   |    nose_v (points forward out of the ship's nose
+\   |    nosev (points forward out of the ship's nose
 \   |   /        and into the screen)
 \   |  /
 \   | /
 \   |/
-\   +-----------------------> side_v (points out of the
+\   +-----------------------> sidev (points out of the
 \                                    ship's right view)
 \
-\ If we are doing a roll, then the nose_v vector won't change, but roof_v and
-\ side_v will rotate around, so let's just consider the x-y plane (i.e. the
+\ If we are doing a roll, then the nosev vector won't change, but roofv and
+\ sidev will rotate around, so let's just consider the x-y plane (i.e. the
 \ screen) and ignore the z-axis. It looks like this when we roll to the left by
-\ angle a, rotating roof_v to roof_v´ and side_v to side_v´:
+\ angle a, rotating roofv to roofv´ and sidev to sidev´:
 \
-\             roof_v
+\             roofv
 \                ^
-\   roof_v´      |
+\   roofv´       |
 \         \      |
 \          \     |
 \           \    |
 \            \   |
-\             \  |                 __ side_v´   <-.
+\             \  |                 __ sidev´     <-.
 \              \ |         __..--''                a`.
 \               \| __..--''                          |
-\                +-----------------------> side_v
+\                +-----------------------> sidev
 \
 \ Applying trigonometry to the above diagram, we get:
 \
-\   roof_v´ = roof_v * cos(a) - side_v * sin(a)
+\   roofv´ = roofv * cos(a) - sidev * sin(a)
 \
-\   side_v´ = side_v * cos(a) + roof_v * sin(a)
+\   sidev´ = sidev * cos(a) + roofv * sin(a)
 \
-\ so calling MVS5 with X = 15 (roof_v_x) and Y = 21 (side_v_x) and a negative
+\ so calling MVS5 with X = 15 (roofv_x) and Y = 21 (sidev_x) and a negative
 \ RAT2 (as the roll angle a is anticlockwise in our example), we get the
 \ following if we do the calculation for the x coordinates in-place:
 \
-\   roof_v_x = roof_v_x * (1 - 1/512) - side_v_x / 16
+\   roofv_x = roofv_x * (1 - 1/512) - sidev_x / 16
 \
-\   side_v_x = side_v_x * (1 - 1/512) + roof_v_x / 16
+\   sidev_x = sidev_x * (1 - 1/512) + roofv_x / 16
 \
 \ Subsequent calls with X = 17, Y = 23 and X = 19, Y = 25 cover the y and z
 \ coordinates, so that's exactly what the roll section of this routine does,
-\ with the pitch section doing the same maths, but on roof_v and nose_v.
+\ with the pitch section doing the same maths, but on roofv and nosev.
 \
 \ ******************************************************************************
 
 .MVS5
 {
- LDA INWK+1,X           \ Fetch roof_v_x_hi, clear the sign bit, divide by 2 and
+ LDA INWK+1,X           \ Fetch roofv_x_hi, clear the sign bit, divide by 2 and
  AND #%01111111         \ store in T, so:
  LSR A                  \
- STA T                  \ T = |roof_v_x_hi| / 2
-                        \   = |roof_v_x| / 512
+ STA T                  \ T = |roofv_x_hi| / 2
+                        \   = |roofv_x| / 512
                         \
                         \ The above is true because:
                         \
-                        \ |roof_v_x| = |roof_v_x_hi| * 256 + roof_v_x_lo
+                        \ |roofv_x| = |roofv_x_hi| * 256 + roofv_x_lo
                         \
                         \ so:
                         \
-                        \ |roof_v_x| / 512 = |roof_v_x_hi| * 256 / 512
-                        \                    + roof_v_x_lo / 512
-                        \                  = |roof_v_x_hi| / 2
+                        \ |roofv_x| / 512 = |roofv_x_hi| * 256 / 512
+                        \                    + roofv_x_lo / 512
+                        \                  = |roofv_x_hi| / 2
 
  LDA INWK,X             \ Now we do the following subtraction:
  SEC                    \
- SBC T                  \ (S R) = (roof_v_x_hi roof_v_x_lo) - |roof_v_x| / 512
- STA R                  \       = (1 - 1/512) * roof_v_x
+ SBC T                  \ (S R) = (roofv_x_hi roofv_x_lo) - |roofv_x| / 512
+ STA R                  \       = (1 - 1/512) * roofv_x
                         \
                         \ by doing the low bytes first
 
@@ -6588,19 +6588,19 @@ LOAD_A% = LOAD%
  SBC #0                 \ side of the subtraction being 0)
  STA S
 
- LDA INWK,Y             \ Set P = nose_v_x_lo
+ LDA INWK,Y             \ Set P = nosev_x_lo
  STA P
 
- LDA INWK+1,Y           \ Fetch the sign of nose_v_x_hi (bit 7) and store in T
+ LDA INWK+1,Y           \ Fetch the sign of nosev_x_hi (bit 7) and store in T
  AND #%10000000
  STA T
 
- LDA INWK+1,Y           \ Fetch nose_v_x_hi into A and clear the sign bit, so
- AND #%01111111         \ A = |nose_v_x_hi|
+ LDA INWK+1,Y           \ Fetch nosev_x_hi into A and clear the sign bit, so
+ AND #%01111111         \ A = |nosev_x_hi|
 
  LSR A                  \ Set (A P) = (A P) / 16
- ROR P                  \           = |nose_v_x_hi nose_v_x_lo| / 16
- LSR A                  \           = |nose_v_x| / 16
+ ROR P                  \           = |nosev_x_hi nosev_x_lo| / 16
+ LSR A                  \           = |nosev_x| / 16
  ROR P
  LSR A
  ROR P
@@ -6608,9 +6608,9 @@ LOAD_A% = LOAD%
  ROR P
 
  ORA T                  \ Set the sign of A to the sign in T (i.e. the sign of
-                        \ the original nose_v_x), so now:
+                        \ the original nosev_x), so now:
                         \
-                        \ (A P) = nose_v_x / 16
+                        \ (A P) = nosev_x / 16
 
  EOR RAT2               \ Give it the sign as if we multiplied by the direction
                         \ by the pitch or roll direction
@@ -6619,23 +6619,23 @@ LOAD_A% = LOAD%
                         \ call to ADD
 
  JSR ADD                \ (A X) = (A P) + (S R)
-                        \       = +/-nose_v_x / 16 + (1 - 1/512) * roof_v_x
+                        \       = +/-nosev_x / 16 + (1 - 1/512) * roofv_x
 
- STA K+1                \ Set K(1 0) = (1 - 1/512) * roof_v_x +/- nose_v_x / 16
+ STA K+1                \ Set K(1 0) = (1 - 1/512) * roofv_x +/- nosev_x / 16
  STX K
 
  LDX Q                  \ Restore the value of X from before the call to ADD
 
- LDA INWK+1,Y           \ Fetch nose_v_x_hi, clear the sign bit, divide by 2 and
+ LDA INWK+1,Y           \ Fetch nosev_x_hi, clear the sign bit, divide by 2 and
  AND #%01111111         \ store in T, so:
  LSR A                  \
- STA T                  \ T = |nose_v_x_hi| / 2
-                        \   = |nose_v_x| / 512
+ STA T                  \ T = |nosev_x_hi| / 2
+                        \   = |nosev_x| / 512
 
  LDA INWK,Y             \ Now we do the following subtraction:
  SEC                    \
- SBC T                  \ (S R) = (nose_v_x_hi nose_v_x_lo) - |nose_v_x| / 512
- STA R                  \       = (1 - 1/512) * nose_v_x
+ SBC T                  \ (S R) = (nosev_x_hi nosev_x_lo) - |nosev_x| / 512
+ STA R                  \       = (1 - 1/512) * nosev_x
                         \
                         \ by doing the low bytes first
 
@@ -6643,19 +6643,19 @@ LOAD_A% = LOAD%
  SBC #0                 \ side of the subtraction being 0)
  STA S
 
- LDA INWK,X             \ Set P = roof_v_x_lo
+ LDA INWK,X             \ Set P = roofv_x_lo
  STA P
 
- LDA INWK+1,X           \ Fetch the sign of roof_v_x_hi (bit 7) and store in T
+ LDA INWK+1,X           \ Fetch the sign of roofv_x_hi (bit 7) and store in T
  AND #%10000000
  STA T
 
- LDA INWK+1,X           \ Fetch roof_v_x_hi into A and clear the sign bit, so
- AND #%01111111         \ A = |roof_v_x_hi|
+ LDA INWK+1,X           \ Fetch roofv_x_hi into A and clear the sign bit, so
+ AND #%01111111         \ A = |roofv_x_hi|
 
  LSR A                  \ Set (A P) = (A P) / 16
- ROR P                  \           = |roof_v_x_hi roof_v_x_lo| / 16
- LSR A                  \           = |roof_v_x| / 16
+ ROR P                  \           = |roofv_x_hi roofv_x_lo| / 16
+ LSR A                  \           = |roofv_x| / 16
  ROR P
  LSR A
  ROR P
@@ -6663,9 +6663,9 @@ LOAD_A% = LOAD%
  ROR P
 
  ORA T                  \ Set the sign of A to the opposite sign to T (i.e. the
- EOR #%10000000         \ sign of the original -roof_v_x), so now:
+ EOR #%10000000         \ sign of the original -roofv_x), so now:
                         \
-                        \ (A P) = -roof_v_x / 16
+                        \ (A P) = -roofv_x / 16
 
  EOR RAT2               \ Give it the sign as if we multiplied by the direction
                         \ by the pitch or roll direction
@@ -6674,15 +6674,15 @@ LOAD_A% = LOAD%
                         \ call to ADD
 
  JSR ADD                \ (A X) = (A P) + (S R)
-                        \       = -/+roof_v_x / 16 + (1 - 1/512) * nose_v_x
+                        \       = -/+roofv_x / 16 + (1 - 1/512) * nosev_x
 
- STA INWK+1,Y           \ Set nose_v_x = (1-1/512) * nose_v_x -/+ roof_v_x / 16
+ STA INWK+1,Y           \ Set nosev_x = (1-1/512) * nosev_x -/+ roofv_x / 16
  STX INWK,Y
 
  LDX Q                  \ Restore the value of X from before the call to ADD
 
- LDA K                  \ Set roof_v_x = K(1 0)
- STA INWK,X             \              = (1-1/512) * roof_v_x +/- nose_v_x / 16
+ LDA K                  \ Set roofv_x = K(1 0)
+ STA INWK,X             \              = (1-1/512) * roofv_x +/- nosev_x / 16
  LDA K+1
  STA INWK+1,X
 
@@ -11149,7 +11149,7 @@ NEXT
  LDA #8                 \ Set the Cobra's INWK+27 (speed) to 8
  STA INWK+27
 
- LDA #194               \ Set the Cobra's INWK+30 (rotz counter) to 194, so it
+ LDA #194               \ Set the Cobra's INWK+30 (pitch counter) to 194, so it
  STA INWK+30            \ pitches as we pull away
 
  LSR A                  \ Set the Cobra's INWK+32 (AI flag) to %01100001, so it
@@ -11441,7 +11441,7 @@ LOAD_C% = LOAD% +P% - CODE%
  BCC TA7                \ Vrol
  JSR DORND              \ Set A and X to random numbers
  ORA #&68               \ large roll
- STA INWK+29            \ rotx counter
+ STA INWK+29            \ roll counter
 
 .TA7                    \ VRol  \ their comment \ likely
 
@@ -11556,19 +11556,19 @@ LOAD_C% = LOAD% +P% - CODE%
  EOR #128
  AND #128
  ORA #3
- STA INWK+30            \ new rotz counter pitch
+ STA INWK+30            \ new pitch counter pitch
 
- LDA INWK+29            \ rotx counter roll
+ LDA INWK+29            \ roll counter
  AND #127
  CMP #16                \ #16 magnitude
  BCS TA6                \ big pitch leave roll, onto Far away.
 
  LDY #22                \ XX15.inwk,22 dot product
  JSR TAS3
- EOR INWK+30            \ rotz counter, affects roll.
+ EOR INWK+30            \ pitch counter, affects roll.
  AND #128
  EOR #&85
- STA INWK+29            \ new rotx counter roll
+ STA INWK+29            \ new roll counter
 
 .TA6                    \ default, Far away.
 
@@ -11706,10 +11706,10 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .fq1                    \ type Xreg cargo/alloys in explosion arrives here
 {
- LDA #&60               \ Set INWK+14 (nose_v_z_hi) to 1 (&60), so ship is
+ LDA #&60               \ Set INWK+14 (nosev_z_hi) to 1 (&60), so ship is
  STA INWK+14            \ pointing away from us
 
- ORA #128               \ Set INWK+22 (side_v_x_hi) to -1 (&D0), so ship is
+ ORA #128               \ Set INWK+22 (sidev_x_hi) to -1 (&D0), so ship is
  STA INWK+22            \ upside down?
 
  LDA DELTA              \ Set INWK+27 (speed) to 2 * DELTA
@@ -11773,7 +11773,7 @@ LOAD_C% = LOAD% +P% - CODE%
  LDA #2                 \ speed up
  STA (INF),Y
  ASL A                  \ #4 pitch
- LDY #30                \ rotz counter
+ LDY #30                \ pitch counter
  STA (INF),Y
  RTS
 
@@ -11902,9 +11902,9 @@ LOAD_C% = LOAD% +P% - CODE%
 
                         \ The parent is a space station, so the child needs to
                         \ launch out of the space station's slot. The space
-                        \ station's nose_v vector points out of the station's
+                        \ station's nosev vector points out of the station's
                         \ slot, so we want to move the ship along this vector.
-                        \ We do this by taking the unit vector in nose_v and
+                        \ We do this by taking the unit vector in nosev and
                         \ doubling it, so we spawn our ship 2 units along the
                         \ vector from the space station's centre.
 
@@ -11914,15 +11914,15 @@ LOAD_C% = LOAD% +P% - CODE%
  LDA #32                \ Set the child's INWK+27 (speed) to 32
  STA INWK+27
 
- LDX #0                 \ Add 2 * nose_v_x_hi to (x_lo, x_hi, x_sign) to get the
+ LDX #0                 \ Add 2 * nosev_x_hi to (x_lo, x_hi, x_sign) to get the
  LDA INWK+10            \ child's x-coordinate
  JSR SFS2
 
- LDX #3                 \ Add 2 * nose_v_y_hi to (y_lo, y_hi, y_sign) to get the
+ LDX #3                 \ Add 2 * nosev_y_hi to (y_lo, y_hi, y_sign) to get the
  LDA INWK+12            \ child's y-coordinate
  JSR SFS2
 
- LDX #6                 \ Add 2 * nose_v_z_hi to (z_lo, z_hi, z_sign) to get the
+ LDX #6                 \ Add 2 * nosev_z_hi to (z_lo, z_hi, z_sign) to get the
  LDA INWK+14            \ child's z-coordinate
  JSR SFS2
 
@@ -11934,7 +11934,7 @@ LOAD_C% = LOAD% +P% - CODE%
  LDA T1                 \ Restore the child ship's AI flag from T1 and store it
  STA INWK+32            \ in the child's INWK+32 (AI)
 
- LSR INWK+29            \ Clear bit 0 of the child's INWK+29 (rotx counter) so
+ LSR INWK+29            \ Clear bit 0 of the child's INWK+29 (roll counter) so
  ASL INWK+29            \ that its roll dampens (so if we are spawning from a
                         \ space station, for example, the spawned ship won't
                         \ keep rolling forever)
@@ -11945,14 +11945,14 @@ LOAD_C% = LOAD% +P% - CODE%
 
  JSR DORND              \ Set A and X to random numbers
 
- ASL A                  \ Set the child's INWK+30 (rotz counter) to a random
+ ASL A                  \ Set the child's INWK+30 (pitch counter) to a random
  STA INWK+30            \ value, and at the same time set the C flag randomly
 
  TXA                    \ Set the child's INWK+27 (speed) to a random value
  AND #%00001111         \ between 0 and 15
  STA INWK+27
 
- LDA #&FF               \ Set the child's INWK+29 (rotx counter) to a full roll,
+ LDA #&FF               \ Set the child's INWK+29 (roll counter) to a full roll,
  ROR A                  \ so the canister tumbles through space, with damping
  STA INWK+29            \ randomly enabled or disabled, depending on the C flag
                         \ from above
@@ -13241,7 +13241,7 @@ NEXT
 
 .MAD
 {
- JSR MULT1              \ Call MULT1 to set (A P) = Q * A, protects Y
+ JSR MULT1              \ Call MULT1 to set (A P) = Q * A
 
                         \ Fall through into ADD to do:
                         \
@@ -14252,7 +14252,7 @@ NEXT
 \ if we are looking out of the right view).
 \
 \ For the front view, then we change nothing as the default universe is set up
-\ for this view (so the coordinates and matrices in K%, UNIV, INWK etc. are
+\ for this view (so the coordinates and vectors in K%, UNIV, INWK etc. are
 \ already correct for this view). Let's look at the other views in more detail.
 \
 \ Rear view
@@ -14284,12 +14284,12 @@ NEXT
 \
 \ So to change the INWK workspace from the original axes on the right to the
 \ new set on the left, we need to change the signs of the x and z coordinates
-\ and matrices in INWK, which we can do by flipping the signs of the following:
+\ and vectors in INWK, which we can do by flipping the signs of the following:
 \
 \   * x_sign, z_sign
-\   * nose_v_x_hi, nose_v_z_hi
-\   * roof_v_x_hi, roof_v_z_hi
-\   * side_v_x_hi, side_v_z_hi
+\   * nosev_x_hi, nosev_z_hi
+\   * roofv_x_hi, roofv_z_hi
+\   * sidev_x_hi, sidev_z_hi
 \
 \ so that's what we do below.
 \
@@ -14330,17 +14330,17 @@ NEXT
 \   * x_lo and z_lo
 \   * x_hi and z_hi
 \   * x_sign and z_sign
-\   * nose_v_x_lo and nose_v_z_lo
-\   * roof_v_x_lo and roof_v_z_lo
-\   * side_v_x_lo and side_v_z_lo
+\   * nosev_x_lo and nosev_z_lo
+\   * roofv_x_lo and roofv_z_lo
+\   * sidev_x_lo and sidev_z_lo
 \
 \ and then change the sign of the axis going in and out of the screen by
 \ flipping the signs of the following:
 \
 \   * z_sign
-\   * nose_v_z_hi
-\   * roof_v_z_hi
-\   * side_v_z_hi
+\   * nosev_z_hi
+\   * roofv_z_hi
+\   * sidev_z_hi
 \
 \ So this is what we do below.
 \
@@ -14377,17 +14377,17 @@ NEXT
 \   * x_lo and z_lo
 \   * x_hi and z_hi
 \   * x_sign and z_sign
-\   * nose_v_x_lo and nose_v_z_lo
-\   * roof_v_x_lo and roof_v_z_lo
-\   * side_v_x_lo and side_v_z_lo
+\   * nosev_x_lo and nosev_z_lo
+\   * roofv_x_lo and roofv_z_lo
+\   * sidev_x_lo and sidev_z_lo
 \
 \ and then change the sign of the axis going to the right by flipping the signs
 \ of the following:
 \
 \   * x_sign
-\   * nose_v_x_hi
-\   * roof_v_x_hi
-\   * side_v_x_hi
+\   * nosev_x_hi
+\   * roofv_x_hi
+\   * sidev_x_hi
 \
 \ So this is what we do below.
 \
@@ -14426,27 +14426,27 @@ NEXT
  EOR #%10000000
  STA INWK+8
 
- LDA INWK+10            \ Flip the sign of nose_v_x_hi
+ LDA INWK+10            \ Flip the sign of nosev_x_hi
  EOR #%10000000
  STA INWK+10
 
- LDA INWK+14            \ Flip the sign of nose_v_z_hi
+ LDA INWK+14            \ Flip the sign of nosev_z_hi
  EOR #%10000000
  STA INWK+14
 
- LDA INWK+16            \ Flip the sign of roof_v_x_hi
+ LDA INWK+16            \ Flip the sign of roofv_x_hi
  EOR #%10000000
  STA INWK+16
 
- LDA INWK+20            \ Flip the sign of roof_v_z_hi
+ LDA INWK+20            \ Flip the sign of roofv_z_hi
  EOR #%10000000
  STA INWK+20
 
- LDA INWK+22            \ Flip the sign of side_v_x_hi
+ LDA INWK+22            \ Flip the sign of sidev_x_hi
  EOR #%10000000
  STA INWK+22
 
- LDA INWK+26            \ Flip the sign of roof_v_z_hi
+ LDA INWK+26            \ Flip the sign of roofv_z_hi
  EOR #%10000000
  STA INWK+26
 
@@ -14483,28 +14483,28 @@ NEXT
  STA INWK+2
  STX INWK+8
 
- LDY #9                 \ Swap nose_v_x_lo and nose_v_z_lo
- JSR PUS1               \ Swap nose_v_x_hi and nose_v_z_hi
-                        \ If left view, flip sign of new nose_v_z_hi
-                        \ If right view, flip sign of new nose_v_x_hi
+ LDY #9                 \ Swap nosev_x_lo and nosev_z_lo
+ JSR PUS1               \ Swap nosev_x_hi and nosev_z_hi
+                        \ If left view, flip sign of new nosev_z_hi
+                        \ If right view, flip sign of new nosev_x_hi
 
- LDY #15                \ Swap roof_v_x_lo and roof_v_z_lo
- JSR PUS1               \ Swap roof_v_x_hi and roof_v_z_hi
-                        \ If left view, flip sign of new roof_v_z_hi
-                        \ If right view, flip sign of new roof_v_x_hi
+ LDY #15                \ Swap roofv_x_lo and roofv_z_lo
+ JSR PUS1               \ Swap roofv_x_hi and roofv_z_hi
+                        \ If left view, flip sign of new roofv_z_hi
+                        \ If right view, flip sign of new roofv_x_hi
 
- LDY #21                \ Swap side_v_x_lo and side_v_z_lo
-                        \ Swap side_v_x_hi and side_v_z_hi
-                        \ If left view, flip sign of new side_v_z_hi
-                        \ If right view, flip sign of new side_v_x_hi
+ LDY #21                \ Swap sidev_x_lo and sidev_z_lo
+                        \ Swap sidev_x_hi and sidev_z_hi
+                        \ If left view, flip sign of new sidev_z_hi
+                        \ If right view, flip sign of new sidev_x_hi
 
 .PUS1
 
  LDA INWK,Y             \ Swap the low x and z bytes for the vector in Y:
  LDX INWK+4,Y           \
- STA INWK+4,Y           \   * For Y =  9 swap nose_v_x_lo and nose_v_z_lo
- STX INWK,Y             \   * For Y = 15 swap roof_v_x_lo and roof_v_z_lo
-                        \   * For Y = 21 swap side_v_x_lo and side_v_z_lo
+ STA INWK+4,Y           \   * For Y =  9 swap nosev_x_lo and nosev_z_lo
+ STX INWK,Y             \   * For Y = 15 swap roofv_x_lo and roofv_z_lo
+                        \   * For Y = 21 swap sidev_x_lo and sidev_z_lo
 
  LDA INWK+1,Y           \ Swap the high x and z bytes for the offset in Y:
  EOR RAT                \
@@ -21371,7 +21371,7 @@ MAPCHAR '4', '4'
 \ Subroutine: SOS1
 \
 \ Update the missile indicators, and set up a data block for the planet, but
-\ only setting the rotx and rotz counters to 127 (no damping).
+\ only setting the roll and pitch counters to 127 (no damping).
 \
 \ ******************************************************************************
 
@@ -21380,7 +21380,7 @@ MAPCHAR '4', '4'
  JSR msblob             \ Update the dashboard's missile indicators to all be
                         \ green/cyan
 
- LDA #127               \ Set the rotx and rotz counters to 127 (no damping
+ LDA #127               \ Set the roll and pitch counters to 127 (no damping
  STA INWK+29            \ so the planet's rotation doesn't slow down)
  STA INWK+30
 
@@ -21438,7 +21438,7 @@ MAPCHAR '4', '4'
  STA INWK+2             \ crosshairs, or off to the top left by a distance of 1
  STA INWK+1             \ or 2 when we look out the back
 
- LDA #0                 \ Set the rotx and rotz counters to 0 (no rotation)
+ LDA #0                 \ Set the roll and pitch counters to 0 (no rotation)
  STA INWK+29
  STA INWK+30
 
@@ -22356,7 +22356,7 @@ MAPCHAR '4', '4'
  LDX #1                 \ Set the AI flag in INWK+32 to 1 (friendly, no AI, has
  STX INWK+32            \ E.C.M.)
 
- DEX                    \ Set rotz counter to 0 (no pitch, roll only)
+ DEX                    \ Set pitch counter to 0 (no pitch, roll only)
  STX INWK+30
 
 \STX INWK+31            \ This instruction is commented out in the original
@@ -22367,15 +22367,15 @@ MAPCHAR '4', '4'
                         \ indicate we should show the space station rather than
                         \ the sun
 
- DEX                    \ Set rotx counter to 255 (maximum roll with no
+ DEX                    \ Set roll counter to 255 (maximum roll with no
  STX INWK+29            \ damping)
 
- LDX #10                \ Call NwS1 to flip the sign of nose_v_x_hi (INWK+10)
+ LDX #10                \ Call NwS1 to flip the sign of nosev_x_hi (INWK+10)
  JSR NwS1
 
- JSR NwS1               \ And again to flip the sign of nose_v_y_hi (INWK+12)
+ JSR NwS1               \ And again to flip the sign of nosev_y_hi (INWK+12)
 
- JSR NwS1               \ And again to flip the sign of nose_v_z_hi (INWK+14)
+ JSR NwS1               \ And again to flip the sign of nosev_z_hi (INWK+14)
 
  LDA #LO(LSO)           \ Set INWK+33 and INWK+34 to point to LSO for the ship
  STA INWK+33            \ lines heap space for the space station
@@ -23053,38 +23053,38 @@ MAPCHAR '4', '4'
  LDA K
  CMP #6                 \ very small radius ?
  BCC PL20               \ rts
- LDA INWK+14            \ nose_v_z hi. Start first  meridian
- EOR #128               \ flipped nose_v_z hi
+ LDA INWK+14            \ nosev_z hi. Start first  meridian
+ EOR #128               \ flipped nosev_z hi
  STA P                  \ meridian width
- LDA INWK+20            \ roof_v_z hi, for meridian1
+ LDA INWK+20            \ roofv_z hi, for meridian1
  JSR PLS4               \ CNT2 = angle of P_opp/A_adj for Lave
- LDX #9                 \ nose_v.x for both meridians
+ LDX #9                 \ nosev.x for both meridians
  JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
  STA K2                 \ mag  0.x   used in final x of arc
  STY XX16               \ sign 0.x
  JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
  STA K2+1               \ mag  0.y   used in final y of arc
  STY XX16+1             \ sign 0.y
- LDX #15                \ roof_v.x for first meridian
+ LDX #15                \ roofv.x for first meridian
  JSR PLS5               \ mag K2+2,3 sign XX16+2,3 = NWK(X+=2)/INWK_z
 
  JSR PLS2               \ Lave half ring, phase offset CNT2.
- LDA INWK+14            \ nose_v_z hi. Start second meridian
- EOR #128               \ flipped nose_v_z hi
+ LDA INWK+14            \ nosev_z hi. Start second meridian
+ EOR #128               \ flipped nosev_z hi
  STA P                  \ meridian width again
- LDA INWK+26            \ side_v_z hi, for meridian2 at 90 degrees.
+ LDA INWK+26            \ sidev_z hi, for meridian2 at 90 degrees.
  JSR PLS4               \ CNT2 = angle of P_opp/A_adj for Lave
 
- LDX #21                \ side_v.x for second meridian
+ LDX #21                \ sidev.x for second meridian
  JSR PLS5               \ mag K2+2,3 sign XX16+2,3 = NWK(X+=2)/INWK_z
  JMP PLS2               \ Lave half ring, phase offset CNT2.
 
 .PL26                   \ crtr \ their comment \ Other planet e.g. #&82 has One crater.
 
- LDA INWK+20            \ roof_v_z hi
+ LDA INWK+20            \ roofv_z hi
  BMI PL20               \ rts, crater on far side
 
- LDX #15                \ roof_v.x (same as meridian1)
+ LDX #15                \ roofv.x (same as meridian1)
  JSR PLS3               \ A.Y = 222* INWK(X+=2)/INWK_z. 222 is xoffset of crater
  CLC                    \ add xorg lo
  ADC K3
@@ -23103,7 +23103,7 @@ MAPCHAR '4', '4'
  SBC P                  \ yoffset hi temp
  STA K4+1               \ y of crater center updated
 
- LDX #9                 \ nose_v.x  (same as both meridians)
+ LDX #9                 \ nosev.x  (same as both meridians)
  JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
  LSR A                  \ /2 used in final x of ring
  STA K2                 \ mag 0.x/2
@@ -23113,7 +23113,7 @@ MAPCHAR '4', '4'
  STA K2+1               \ mag 0.y/2
  STY XX16+1             \ sign 0.y
 
- LDX #21                \ side_v.x (same as second meridian)
+ LDX #21                \ sidev.x (same as second meridian)
  JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
  LSR A                  \ /2 used in final x of ring
  STA K2+2               \ mag 2.x/2
@@ -23911,8 +23911,8 @@ MAPCHAR '4', '4'
 {
  STA Q
  JSR ARCTAN             \ A=arctan (P/Q)
- LDX INWK+14            \ nose_v_z hi
- BMI P%+4               \ -ve nose_v_z hi keeps arctan +ve
+ LDX INWK+14            \ nosev_z hi
+ BMI P%+4               \ -ve nosev_z hi keeps arctan +ve
  EOR #128               \ else arctan -ve
  LSR A
  LSR A                  \ /4
@@ -24863,9 +24863,9 @@ LOAD_F% = LOAD% + P% - CODE%
 
                         \ Finally, we reset the orientation vectors as follows:
                         \
-                        \   nose_v = (0,  0, -1)
-                        \   roof_v = (0,  1,  0)
-                        \   side_v = (1,  0,  0)
+                        \   nosev = (0,  0, -1)
+                        \   roofv = (0,  1,  0)
+                        \   sidev = (1,  0,  0)
                         \
                         \ &6000 represents 1 in the orientation vectors, while
                         \ &E000 represents -1. We already set the vectors to
@@ -24874,12 +24874,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
  LDA #&60               \ Set A to represent a 1
 
- STA INWK+18            \ Set INWK+18 = roof_v_y_hi = &60 = 1
- STA INWK+22            \ Set INWK+22 = side_v_x_hi = &60 = 1
+ STA INWK+18            \ Set INWK+18 = roofv_y_hi = &60 = 1
+ STA INWK+22            \ Set INWK+22 = sidev_x_hi = &60 = 1
 
  ORA #128               \ Flip the sign of A to represent a -1
 
- STA INWK+14            \ Set INWK+14 = nose_v_z_hi = &E0 = -1
+ STA INWK+14            \ Set INWK+14 = nosev_z_hi = &E0 = -1
 
  RTS                    \ Return from the subroutine
 }
@@ -25112,7 +25112,7 @@ LOAD_F% = LOAD% + P% - CODE%
  STA INWK+32            \ Store this in the ship's AI flag, so this ship does
                         \ not have AI
 
- STA INWK+29            \ Store A in the ship's rotx counter, giving it a
+ STA INWK+29            \ Store A in the ship's roll counter, giving it a
                         \ clockwise roll (as bit 7 is clear), and a 1 in 127
                         \ chance of it having no damping
 
@@ -25234,7 +25234,7 @@ LOAD_F% = LOAD% + P% - CODE%
  ORA #%01101111         \ Take the random number in A and set bits 0-3 and 5-6,
  STA INWK+29            \ so the result has a 50% chance of being positive or
                         \ negative, and a 50% chance of bits 0-6 being 127.
-                        \ Storing this number in the rotx counter therefore
+                        \ Storing this number in the roll counter therefore
                         \ gives our new ship a fast roll speed with a 50%
                         \ chance of having no damping, plus a 50% chance of
                         \ rolling clockwise or anti-clockwise
@@ -25258,7 +25258,7 @@ LOAD_F% = LOAD% + P% - CODE%
 .MTT2
 
  ORA #%01111111         \ Set bits 0-6 of A to 127, leaving bit 7 as random, so
- STA INWK+30            \ storing this number in the rotz counter means we have
+ STA INWK+30            \ storing this number in the pitch counter means we have
                         \ full pitch with no damping, with a 50% chance of
                         \ pitching up or down
 
@@ -25940,12 +25940,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
  TXA                    \ Set A to the random number in X and keep bits 0-3 and
  AND #%10001111         \ the bit 7 to get a number between -15 and +15, and
- STA INWK+29            \ store in INWK+29 (rotx counter) to give our ship a
+ STA INWK+29            \ store in INWK+29 (roll counter) to give our ship a
                         \ gentle roll with damping
 
  ROR A                  \ C is random from above call to Ze, so this sets A to a
  AND #%10000111         \ number between -7 and +7, which we store in INWK+30
- STA INWK+30            \ (rotz counter) to give our ship a very gentle pitch
+ STA INWK+30            \ (pitch counter) to give our ship a very gentle pitch
                         \ with damping
 
  PHP                    \ Store the processor flags
@@ -26237,7 +26237,7 @@ ENDIF
  DEC QQ11               \ Decrement QQ11 to 0, so from here on we are using a
                         \ space view
 
- LDA #96                \ Set nose_v_z hi = 96 (96 is the value of unity in the
+ LDA #96                \ Set nosev_z hi = 96 (96 is the value of unity in the
  STA INWK+14            \ rotation vector)
 
 \LSR A                  \ This instruction is commented out in the original
@@ -26249,8 +26249,8 @@ ENDIF
                         \ ship starts out before coming towards us
 
  LDX #127
- STX INWK+29            \ Set rotx counter = 127, so don't dampen the roll
- STX INWK+30            \ Set rotz counter = 127, so don't dampen the pitch
+ STX INWK+29            \ Set roll counter = 127, so don't dampen the roll
+ STX INWK+30            \ Set pitch counter = 127, so don't dampen the pitch
 
  INX                    \ Set QQ17 = 128, which sets Sentence Case, with the
  STX QQ17               \ next letter printing in upper case
@@ -28338,45 +28338,45 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 {
 .TI2                    \ Called from below with A = 0, X = 0, Y = 4 when
-                        \ nose_v_x and nose_v_y are small, so we assume that
-                        \ nose_v_z is big
+                        \ nosev_x and nosev_y are small, so we assume that
+                        \ nosev_z is big
 
  TYA                    \ A = Y = 4
  LDY #2
- JSR TIS3               \ Call TIS3 with X = 0, Y = 2, A = 4, to set roof_v_z =
- STA INWK+20            \ (nose_v_x * roof_v_x + nose_v_y * roof_v_y) / nose_v_z
+ JSR TIS3               \ Call TIS3 with X = 0, Y = 2, A = 4, to set roofv_z =
+ STA INWK+20            \ (nosev_x * roofv_x + nosev_y * roofv_y) / nosev_z
 
  JMP TI3                \ Jump to TI3 to keep tidying
 
-.TI1                    \ Called from below with A = 0, Y = 4 when nose_v_x is
+.TI1                    \ Called from below with A = 0, Y = 4 when nosev_x is
                         \ small
 
  TAX                    \ Set X = A = 0
 
- LDA XX15+1             \ Set A = nose_v_y, and if the top two magnitude bits
+ LDA XX15+1             \ Set A = nosev_y, and if the top two magnitude bits
  AND #%01100000         \ are both clear, jump to TI2 with A = 0, X = 0, Y = 4
  BEQ TI2
 
- LDA #2                 \ Otherwise nose_v_y is big, so set up the index values
+ LDA #2                 \ Otherwise nosev_y is big, so set up the index values
                         \ to pass to TIS3
 
- JSR TIS3               \ Call TIS3 with X = 0, Y = 4, A = 2, to set roof_v_y =
- STA INWK+18            \ (nose_v_x * roof_v_x + nose_v_z * roof_v_z) / nose_v_y
+ JSR TIS3               \ Call TIS3 with X = 0, Y = 4, A = 2, to set roofv_y =
+ STA INWK+18            \ (nosev_x * roofv_x + nosev_z * roofv_z) / nosev_y
 
  JMP TI3                \ Jump to TI3 to keep tidying
 
 .^TIDY
 
- LDA INWK+10            \ Set (XX15, XX15+1, XX15+2) = nose_v
+ LDA INWK+10            \ Set (XX15, XX15+1, XX15+2) = nosev
  STA XX15
  LDA INWK+12
  STA XX15+1
  LDA INWK+14
  STA XX15+2
 
- JSR NORM               \ Call NORM to normalise the vector in XX15, i.e. nose_v
+ JSR NORM               \ Call NORM to normalise the vector in XX15, i.e. nosev
 
- LDA XX15               \ Set nose_v = (XX15, XX15+1, XX15+2)
+ LDA XX15               \ Set nosev = (XX15, XX15+1, XX15+2)
  STA INWK+10
  LDA XX15+1
  STA INWK+12
@@ -28385,81 +28385,81 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
  LDY #4                 \ Set Y = 4
 
- LDA XX15               \ Set A = nose_v_x, and if the top two magnitude bits
+ LDA XX15               \ Set A = nosev_x, and if the top two magnitude bits
  AND #%01100000         \ are both clear, jump to TI1 with A = 0, Y = 4
  BEQ TI1
 
- LDX #2                 \ Otherwise nose_v_x is big, so set up the index values
+ LDX #2                 \ Otherwise nosev_x is big, so set up the index values
  LDA #0                 \ to pass to TIS3
 
- JSR TIS3               \ Call TIS3 with X = 2, Y = 4, A = 0, to set roof_v_x =
- STA INWK+16            \ (nose_v_y * roof_v_y + nose_v_z * roof_v_z) / nose_v_x
+ JSR TIS3               \ Call TIS3 with X = 2, Y = 4, A = 0, to set roofv_x =
+ STA INWK+16            \ (nosev_y * roofv_y + nosev_z * roofv_z) / nosev_x
 
 .TI3
 
- LDA INWK+16            \ Set (XX15, XX15+1, XX15+2) = roof_v
+ LDA INWK+16            \ Set (XX15, XX15+1, XX15+2) = roofv
  STA XX15
  LDA INWK+18
  STA XX15+1
  LDA INWK+20
  STA XX15+2
 
- JSR NORM               \ Call NORM to normalise the vector in XX15, i.e. roof_v
+ JSR NORM               \ Call NORM to normalise the vector in XX15, i.e. roofv
 
- LDA XX15               \ Set roof_v = (XX15, XX15+1, XX15+2)
+ LDA XX15               \ Set roofv = (XX15, XX15+1, XX15+2)
  STA INWK+16
  LDA XX15+1
  STA INWK+18
  LDA XX15+2
  STA INWK+20
 
- LDA INWK+12            \ Set Q = nose_v_y
+ LDA INWK+12            \ Set Q = nosev_y
  STA Q
 
- LDA INWK+20            \ Set A = roof_v_z
+ LDA INWK+20            \ Set A = roofv_z
 
- JSR MULT12             \ Set (S R) = Q * A = nose_v_y * roof_v_z
+ JSR MULT12             \ Set (S R) = Q * A = nosev_y * roofv_z
 
- LDX INWK+14            \ Set X = nose_v_z
+ LDX INWK+14            \ Set X = nosev_z
 
- LDA INWK+18            \ Set A = roof_v_y
+ LDA INWK+18            \ Set A = roofv_y
 
  JSR TIS1               \ 
 
- EOR #%10000000         \ Set side_v_x = -A
+ EOR #%10000000         \ Set sidev_x = -A
  STA INWK+22
 
- LDA INWK+16            \ Set A = roof_v_x
+ LDA INWK+16            \ Set A = roofv_x
 
- JSR MULT12             \ Set (S R) = Q * A = nose_v_y * roof_v_x
+ JSR MULT12             \ Set (S R) = Q * A = nosev_y * roofv_x
 
- LDX INWK+10            \ Set X = nose_v_x
+ LDX INWK+10            \ Set X = nosev_x
 
- LDA INWK+20            \ Set A = roof_v_z
+ LDA INWK+20            \ Set A = roofv_z
 
  JSR TIS1               \ 
 
- EOR #%10000000         \ Set side_v_y = -A
+ EOR #%10000000         \ Set sidev_y = -A
  STA INWK+24
 
- LDA INWK+18            \ Set A = roof_v_y
+ LDA INWK+18            \ Set A = roofv_y
 
- JSR MULT12             \ Set (S R) = Q * A = nose_v_y * roof_v_y
+ JSR MULT12             \ Set (S R) = Q * A = nosev_y * roofv_y
 
- LDX INWK+12            \ Set X = nose_v_y
+ LDX INWK+12            \ Set X = nosev_y
 
- LDA INWK+16            \ Set A = roof_v_x
+ LDA INWK+16            \ Set A = roofv_x
 
  JSR TIS1               \ 
 
- EOR #%10000000         \ Set side_v_z = -A
+ EOR #%10000000         \ Set sidev_z = -A
  STA INWK+26
 
  LDA #0                 \ Set A = 0 so we can clear the low bytes of the
                         \ orientation vectors
 
- LDX #14                \ We want to clear the low bytes, so start from side_v_y
-                        \ at INWK+9+14 (we clear all except side_v_z_lo, though
+ LDX #14                \ We want to clear the low bytes, so start from sidev_y
+                        \ at INWK+9+14 (we clear all except sidev_z_lo, though
                         \ I suspect this is in error and that X should be 16)
 
 .TIL1
@@ -28587,24 +28587,24 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \
 \ Calculate a dot product, determinant?
 \
-\   A = (nose_v_1 * roof_v_1 + nose_v_2 * roof_v_2) / nose_v_3
+\   A = (nosev_1 * roofv_1 + nosev_2 * roofv_2) / nosev_3
 \
 \ A = INWK(12*18+14*20, 10*16+14*20, 10*16+12*18) / INWK(10,12,14)
 \ Ux,Uy,Uz = -(FyUy+FzUz, FxUx+FzUz, FxUx+FyUy)/ Fx,Fy,Fz
 \
 \ Arguments:
 \
-\   X                   Index 1 (0 = nose_v_x, 2 = nose_v_y)
+\   X                   Index 1 (0 = nosev_x, 2 = nosev_y)
 \
-\   Y                   Index 2 (2 = nose_v_y, 4 = nose_v_z)
+\   Y                   Index 2 (2 = nosev_y, 4 = nosev_z)
 \
-\   A                   Index 3 (0 = nose_v_x, 2 = nose_v_y, 4 = nose_v_z)
+\   A                   Index 3 (0 = nosev_x, 2 = nosev_y, 4 = nosev_z)
 \
-\ X = 0, Y = 2, A = 4 -> (nose_v_x * roof_v_x + nose_v_y * roof_v_y) / nose_v_z
+\ X = 0, Y = 2, A = 4 -> (nosev_x * roofv_x + nosev_y * roofv_y) / nosev_z
 \
-\ X = 0, Y = 4, A = 2 -> (nose_v_x * roof_v_x + nose_v_z * roof_v_z) / nose_v_y
+\ X = 0, Y = 4, A = 2 -> (nosev_x * roofv_x + nosev_z * roofv_z) / nosev_y
 \
-\ X = 2, Y = 4, A = 0 -> (nose_v_y * roof_v_y + nose_v_z * roof_v_z) / nose_v_x
+\ X = 2, Y = 4, A = 0 -> (nosev_y * roofv_y + nosev_z * roofv_z) / nosev_x
 \
 \ ******************************************************************************
 
@@ -28612,27 +28612,27 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 {
  STA P+2                \ Store P+2 in A for later
 
- LDA INWK+10,X          \ Set Q = nose_v_x_hi (plus X)
+ LDA INWK+10,X          \ Set Q = nosev_x_hi (plus X)
  STA Q
 
- LDA INWK+16,X          \ Set A = roof_v_x_hi (plus X)
+ LDA INWK+16,X          \ Set A = roofv_x_hi (plus X)
 
  JSR MULT12             \ Set (S R) = Q * A
-                        \           = nose_v_x_hi * roof_v_x_hi
+                        \           = nosev_x_hi * roofv_x_hi
 
- LDX INWK+10,Y          \ Set Q = nose_v_x_hi (plus Y)
+ LDX INWK+10,Y          \ Set Q = nosev_x_hi (plus Y)
  STX Q
 
- LDA INWK+16,Y          \ Set A = roof_v_x_hi (plus Y)
+ LDA INWK+16,Y          \ Set A = roofv_x_hi (plus Y)
 
  JSR MAD                \ Set (A X) = Q * A + (S R)
-                        \           = (nose_v_x,X * roof_v_x,X) +
-                        \             (nose_v_x,Y * roof_v_x,Y)
+                        \           = (nosev_x,X * roofv_x,X) +
+                        \             (nosev_x,Y * roofv_x,Y)
 
  STX P                  \ Store low byte of result in P, so result is now in
                         \ (A P)
 
- LDY P+2                \ Set Q = roof_v_x_hi (plus argument A)
+ LDY P+2                \ Set Q = roofv_x_hi (plus argument A)
  LDX INWK+10,Y
  STX Q
 
@@ -28642,9 +28642,9 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
                         \
                         \   (P+1 A) = (A P) / Q
                         \
-                        \     = (nose_v_x,X * roof_v_x,X) +
-                        \       (nose_v_x,Y * roof_v_x,Y)
-                        \     / nose_v_x,A
+                        \     = (nosev_x,X * roofv_x,X) +
+                        \       (nosev_x,Y * roofv_x,Y)
+                        \     / nosev_x,A
 }
 
 \ ******************************************************************************
@@ -29050,7 +29050,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA #0                 \ acceleration & pitch zeroed.
  LDY #28                \ byte #28 accel
  STA (INF),Y
- LDY #30                \ byte #30 rotz counter
+ LDY #30                \ byte #30 pitch counter
  STA (INF),Y
  JSR EE51               \ if bit3 set erase old lines in XX19 heap
  LDY #1                 \ edge heap byte1
