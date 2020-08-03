@@ -13420,12 +13420,17 @@ NEXT
 \
 \ Subroutine: TIS1
 \
-\ Tidy subroutine 1  X.A =  (-X*A  + (R.S))/96
-\ Their comment A=A/96: answer is A*255/96 ????
+\ Calculate the following expression between sign-magnitude numbers, ignoring
+\ the low byte of the result:
 \
-\ Calculate:
+\   (A ?) = (-X * A + (S R)) / 96
 \
-\   -(X * A + (S R)) / 256 / 96
+\ This uses the same "shift and subtract" algorithm as TIS2, just with the
+\ quotient A hard-coded to 96.
+\
+\ Returns:
+\
+\   Q                   Gets set to the value of argument X
 \
 \ ******************************************************************************
 
@@ -13445,12 +13450,12 @@ NEXT
  STA T
 
  TXA                    \ Set A to the high byte of the result with the sign bit
- AND #%01111111         \ cleared, so A = |X * A + (S R)| / 256
+ AND #%01111111         \ cleared, so (A ?) = |X * A + (S R)|
  
                         \ The following is identical to TIS2, except Q is
                         \ hard-coded to 96, so this does A = A / 96
 
- LDX #254               \ Set T to have bits 1-7 set, so we can rotate through 7
+ LDX #254               \ Set T1 to have bits 1-7 set, so we can rotate through 7
  STX T1                 \ loop iterations, getting a 1 each time, and then
                         \ getting a 0 on the 8th iteration... and we can also
                         \ use T1 to catch our result bits into bit 0 each time
@@ -13489,36 +13494,68 @@ NEXT
 \
 \ Subroutine: DV42
 \
-\ Travel step of dust particle front/rear
+\ Calculate the following division and remainder:
+\
+\   P = DELTA / (the Y-th stardust particle's z-coordinate)
+\
+\   R = remainder as a fraction of A, where 1.0 = 255
+\
+\ This uses the same "shift and subtract" algorithm as TIS2, but this time we
+\ keep the remainder.
+\
+\ Arguments:
+\
+\   Y                   The number of the stardust particle to process
+\
+\ Returns:
+\
+\   C flag              The C flag is cleared
 \
 \ ******************************************************************************
 
-.DV42                   \ travel step of dust particle front/rear
+.DV42
 {
- LDA SZ,Y               \ dustz
+ LDA SZ,Y               \ Fetch the Y-th dust particle's z-coordinate into A
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: DV41
 \
-\ P.R = speed/ (ZZ/8) Called by STARS2 left/right
+\ Calculate the following division and remainder:
+\
+\   P = DELTA / A
+\
+\   R = remainder as a fraction of A, where 1.0 = 255
+\
+\ This uses the same "shift and subtract" algorithm as TIS2, but this time we
+\ keep the remainder.
+\
+\ Returns:
+\
+\   C flag              The C flag is cleared
 \
 \ ******************************************************************************
 
-.DV41                   \ P.R = speed/ (ZZ/8) Called by STARS2 left/right
+.DV41
 {
- STA Q
- LDA DELTA              \ speed, how far has dust moved based on its z-coord
+ STA Q                  \ Store A in Q
+
+ LDA DELTA              \ Fetch the speed from DELTA into A
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: DVID4
 \
-\ P-R=A/Qunsg \ P.R = A/Q unsigned  called by compass in Block E
+\ Calculate the following division and remainder:
 \
-\ (R P) = A / Q
+\   P = A / Q
+\
+\   R = remainder as a fraction of Q, where 1.0 = 255
+\
+\ This uses the same "shift and subtract" algorithm as TIS2, but this time we
+\ keep the remainder.
 \
 \ Returns:
 \
@@ -13528,34 +13565,43 @@ NEXT
 
 .DVID4
 {
- LDX #8                 \ Set up a counter in X for 8 bits
+ LDX #8                 \ Set a counter in X to count the 8 bits in A
 
- ASL A                  \ Set P = A << 1
- STA P
+ ASL A                  \ Shift A left and store in P (we will build the result
+ STA P                  \ in P)
 
- LDA #0
+ LDA #0                 \ Set A = 0 for us to build a remainder
 
-.DVL4                   \ counter X
+.DVL4
 
- ROL A
- BCS DV8                \ Acc carried
- CMP Q
- BCC DV5                \ skip subtraction
+ ROL A                  \ Shift A to the left
 
-.DV8                    \ Acc carried
+ BCS DV8                \ If the C flag is set (i.e. bit 7 of A was set) then
+                        \ skip straight to the subtraction
 
- SBC Q
- SEC                    \ carry gets set
+ CMP Q                  \ If A < Q skip the following subtraction
+ BCC DV5
 
-.DV5                    \ skip subtraction
+.DV8
 
- ROL P                  \ hi
+ SBC Q                  \ A >= Q, so set A = A - Q
 
- DEX                    \ Decrement the counter
+ SEC                    \ Set the C flag, so that P gets a 1 shifted into bit 0
 
- BNE DVL4               \ loop X, hi left in P.
+.DV5
 
- JMP LL28+4             \ Block G remainder R for A*256/Q
+ ROL P                  \ Shift P to the left, pulling the C flag into bit 0
+
+ DEX                    \ Decrement the loop counter
+
+ BNE DVL4               \ Loop back for the next bit until we have done all 8
+                        \ bits of P
+
+ JMP LL28+4             \ Jump to LL28+4 to convert the remainder in A into an
+                        \ integer representation of the fractional value A / Q,
+                        \ where 1.0 = 255. LL28+4 always returns with the C flag
+                        \ cleared, and we return from the subroutine using a
+                        \ tail call
 }
 
 \ ******************************************************************************
@@ -28548,36 +28594,43 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
  LDA INWK+18            \ Set A = roofv_y
 
- JSR TIS1               \ 
+ JSR TIS1               \ Set (A ?) = (-X * A + (S R)) / 96
+                        \        = (-nosev_z * roofv_y + nosev_y * roofv_z) / 96
+                        \
+                        \ This also sets Q = nosev_z
 
  EOR #%10000000         \ Set sidev_x = -A
- STA INWK+22
+ STA INWK+22            \        = (nosev_z * roofv_y - nosev_y * roofv_z) / 96
 
  LDA INWK+16            \ Set A = roofv_x
 
- JSR MULT12             \ Set (S R) = Q * A = nosev_y * roofv_x
+ JSR MULT12             \ Set (S R) = Q * A = nosev_z * roofv_x
 
  LDX INWK+10            \ Set X = nosev_x
 
  LDA INWK+20            \ Set A = roofv_z
 
- JSR TIS1               \ 
+ JSR TIS1               \ Set (A ?) = (-X * A + (S R)) / 96
+                        \        = (-nosev_x * roofv_z + nosev_z * roofv_x) / 96
+                        \
+                        \ This also sets Q = nosev_x
 
  EOR #%10000000         \ Set sidev_y = -A
- STA INWK+24
+ STA INWK+24            \        = (nosev_x * roofv_z - nosev_z * roofv_x) / 96
 
  LDA INWK+18            \ Set A = roofv_y
 
- JSR MULT12             \ Set (S R) = Q * A = nosev_y * roofv_y
+ JSR MULT12             \ Set (S R) = Q * A = nosev_x * roofv_y
 
  LDX INWK+12            \ Set X = nosev_y
 
  LDA INWK+16            \ Set A = roofv_x
 
- JSR TIS1               \ 
+ JSR TIS1               \ Set (A ?) = (-X * A + (S R)) / 96
+                        \        = (-nosev_y * roofv_x + nosev_x * roofv_y) / 96
 
  EOR #%10000000         \ Set sidev_z = -A
- STA INWK+26
+ STA INWK+26            \        = (nosev_y * roofv_x - nosev_x * roofv_y) / 96
 
  LDA #0                 \ Set A = 0 so we can clear the low bytes of the
                         \ orientation vectors
@@ -28614,28 +28667,35 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \
 \ ******************************************************************************
 \
-\ A / Q = (a7 * 2^8 + a6 * 2^7 + ... + a0 * 2^0) / Q
-\       = a7 * 2^8/Q + a6 * 2^8/Q + ... a0 * 2^1/Q
+\ This routine implements integer division using the "shift and subtract"
+\ algorithm. This is similar in concept to the "shift and add" algorithm used to
+\ implement multiplication in routines like MULT1, but it's essentially the
+\ reverse of that algorithm.
 \
-\ 2^n/Q = 
+\ In the same way that "shift and add" implements a binary version of the manual
+\ long multiplication process, "shift and subtract" implements long division. We
+\ shift bits out of the left end of the number being divided (A), subtracting the
+\ largest possible multiple of the divisor (Q) after each shift; each bit of A
+\ where we can subtract Q gives a 1 the answer to the division, otherwise it
+\ gives a 0.
 \
-\ so we can calculate our division by adding
+\ In pseudo-code, the algorithm to calculate T = P / Q (with remainder A) looks
+\ like this:
 \
-\ http://retro64.altervista.org/blog/6502-assembly-math-division-simple-algorithm-using-powers-of-two/
+\   T = 0
+\   A = 0
+\   for x = 7 to 0
+\     A = A << 1
+\     A(bit 0) = P(bit x)
+\     if A >= Q then
+\       A = A − Q
+\       T(bit x) = 1
 \
-\ (A / Q) => [quotient, remainder]
-\
-\    T = 0
-\loop:
-\    T = (T << 1)
-\    A = (A << 1)
-\    if A >= Q  {
-\        A = A - Q
-\        T = T + 1
-\    }
-\    do loop 8 times
-\
-\ T is integer result of division, A contains remainder
+\ This is the algorithm implemented below, except we save space (and make things
+\ much more confusing) by using A for both the number being divided and the
+\ remainder, building the answer in T instead of P, and using set bits in T to
+\ implement the loop counter. The basic idea of shifting and subtracting is the
+\ same, though.
 \
 \ ******************************************************************************
 
@@ -28660,7 +28720,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  CMP Q                  \ If A < Q skip the following subtraction
  BCC P%+4
 
- SBC Q                  \ Set A = A - Q
+ SBC Q                  \ A >= Q, so set A = A - Q
                         \
                         \ Going into this subtraction we we know the C flag is
                         \ set as we passed through the BCC above, and we also
@@ -28709,26 +28769,29 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \
 \ Subroutine: TIS3
 \
-\ Calculate a dot product, determinant?
+\ Calculate the following expression:
 \
-\   A = (nosev_1 * roofv_1 + nosev_2 * roofv_2) / nosev_3
+\   A = -(nosev_1 * roofv_1 + nosev_2 * roofv_2) / nosev_3
 \
-\ A = INWK(12*18+14*20, 10*16+14*20, 10*16+12*18) / INWK(10,12,14)
-\ Ux,Uy,Uz = -(FyUy+FzUz, FxUx+FzUz, FxUx+FyUy)/ Fx,Fy,Fz
+\ where 1, 2 and 3 are x, y, or z, depending on the values of X, Y and A. This
+\ routine is called with the following values:
+\
+\   X = 0, Y = 2, A = 4 ->
+\         A = -(nosev_x * roofv_x + nosev_y * roofv_y) / nosev_z
+\
+\   X = 0, Y = 4, A = 2 ->
+\         A = -(nosev_x * roofv_x + nosev_z * roofv_z) / nosev_y
+\
+\   X = 2, Y = 4, A = 0 ->
+\         A = -(nosev_y * roofv_y + nosev_z * roofv_z) / nosev_x
 \
 \ Arguments:
 \
-\   X                   Index 1 (0 = nosev_x, 2 = nosev_y)
+\   X                   Index 1 (0 = x, 2 = ny, 4 = z)
 \
-\   Y                   Index 2 (2 = nosev_y, 4 = nosev_z)
+\   Y                   Index 2 (0 = x, 2 = ny, 4 = z)
 \
-\   A                   Index 3 (0 = nosev_x, 2 = nosev_y, 4 = nosev_z)
-\
-\ X = 0, Y = 2, A = 4 -> (nosev_x * roofv_x + nosev_y * roofv_y) / nosev_z
-\
-\ X = 0, Y = 4, A = 2 -> (nosev_x * roofv_x + nosev_z * roofv_z) / nosev_y
-\
-\ X = 2, Y = 4, A = 0 -> (nosev_y * roofv_y + nosev_z * roofv_z) / nosev_x
+\   A                   Index 3 (0 = x, 2 = ny, 4 = z)
 \
 \ ******************************************************************************
 
@@ -28766,18 +28829,20 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
                         \
                         \   (P+1 A) = (A P) / Q
                         \
-                        \     = (nosev_x,X * roofv_x,X) +
-                        \       (nosev_x,Y * roofv_x,Y)
-                        \     / nosev_x,A
+                        \     = -((nosev_x,X * roofv_x,X) +
+                        \         (nosev_x,Y * roofv_x,Y))
+                        \       / nosev_x,A
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: DVIDT
 \
-\ Calculate:
+\ Calculate the following integer division between sign-magnitude numbers:
 \
 \   (P+1 A) = (A P) / Q
+\
+\ This uses the same "shift and subtract" algorithm as TIS2.
 \
 \ ******************************************************************************
 
@@ -28801,7 +28866,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 .DVL2
 
- ROL A
+ ROL A                  \ Shift A to the left
 
  CMP Q                  \ If A < Q skip the following subtraction
  BCC P%+4
@@ -28995,14 +29060,15 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ BFRDIV R=A*256/Q \ byte from remainder of division
 \
-\
 \ Returns:
 \
 \   C flag              Set if answer is too big for one byte, clear otherwise
 \
 \ Other entry points:
 \
-\   LL28+4              Skips A >= Q check
+\   LL28+4              Skips A >= Q check, always returns with C flag cleared
+\
+\   LL31                Skips A >= Q check and does not set R to 254
 \ ******************************************************************************
 
 .LL28                   \ BFRDIV R=A*256/Q \ byte from remainder of division
@@ -29012,10 +29078,9 @@ LOAD_G% = LOAD% + P% - CODE%
 
  LDX #254               \ remainder R for AofQ *256/Q
  STX R                  \ div roll counter
-}
 
-.LL31                   \ roll R
-{
+.^LL31                   \ roll R
+
  ASL A
  BCS LL29               \ hop to Reduce
  CMP Q
@@ -29032,10 +29097,9 @@ LOAD_G% = LOAD% + P% - CODE%
  ROL R
  BCS LL31               \ loop R
  RTS                    \ R left with remainder of division
-}
 
 .LL2                    \ answer too big for 1 byte, R=#&FF
-{
+
  LDA #&FF
  STA R
  RTS
