@@ -5201,14 +5201,15 @@ LOAD_A% = LOAD%
 
  JMP MV40               \ This item is the planet or sun, so jump to MV40 to
                         \ move it, which ends by jumping back into this routine
-                        \ at MV45 (after all the rotation code, which we don't
-                        \ need to apply to planets or suns)
+                        \ at MV45 (after all the rotation, tactics and scanner
+                        \ code, which we don't need to apply to planets or suns)
 
  LDA INWK+32            \ Fetch the ship's INWK+32 byte (AI flag) into A
 
- BPL MV30               \ If bit 7 of the AI flag is clear, then the ship is
-                        \ dumb and has no AI, so skip the following as it has
-                        \ no tactics
+ BPL MV30               \ If bit 7 of the AI flag is clear, then if this is a
+                        \ ship or missile it is dumb and has no AI, and if this
+                        \ is the space station it is not angry with us, so in
+                        \ both cases skip the following as it has no tactics
 
  CPX #MSL               \ If the ship is a missile, skip straight to MV26 to
  BEQ MV26               \ call the TACTICS routine, as we do this every
@@ -11238,14 +11239,15 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine: TA34
+\ Subroutine: TA18
 \
-\ Tactics, missile attacking player, from TA18
+\ Missile tactics
 \
 \ ******************************************************************************
 
-.TA34                   \ Tactics, missile attacking player, from TA18
 {
+.TA34                   \ Tactics, missile attacking player, from TA18
+
  LDA #0                 \ all hi or'd
  JSR MAS4
  BEQ P%+5               \ this ship is nearby
@@ -11254,18 +11256,9 @@ LOAD_C% = LOAD% +P% - CODE%
  JSR EXNO3              \ ominous noises
  LDA #250               \ Huge dent in player's shield.
  JMP OOPS               \ Lose some shield strength, cargo, could die.
-}
 
-\ ******************************************************************************
-\
-\ Subroutine: TA18
-\
-\ Missile tactics
-\
-\ ******************************************************************************
+.^TA18                   \ msl \ their comment \ Missile tactics
 
-.TA18                   \ msl \ their comment \ Missile tactics
-{
  LDA ECMA               \ any ECM on ?
  BNE TA35               \ kill this missile
  LDA INWK+32            \ ai_attack_univ_ecm
@@ -11312,10 +11305,9 @@ LOAD_C% = LOAD% +P% - CODE%
  BNE TA87               \ far away, down, set bit7 of INWK+31, kill this missile with debris
  LDA #80                \ else near player so large dent
  JSR OOPS               \ Lose some shield strength, cargo, could die.
-}
 
 .TA87                   \ kill inwk with noise
-{
+
  JSR EXNO2              \ faint death noise, player killed inwk.
  ASL INWK+31            \ display explosion state|missiles
  SEC                    \ set bit7 to kill inwk with debris
@@ -11324,25 +11316,15 @@ LOAD_C% = LOAD% +P% - CODE%
 .TA1
 
  RTS
-}
-
-\ ******************************************************************************
-\
-\ Subroutine: TA64
-\
-\ Missile far away, maybe ecm, then K3 heading.
-\
-\ ******************************************************************************
 
 .TA64                   \ missile far away, maybe ecm, then K3 heading.
-{
+
  JSR DORND              \ Set A and X to random numbers
  CMP #16                \ rnd >= #16 most likely
  BCS TA19               \ down, Attack K3.
-}
 
 .M32                    \ else ship V activates its ecm
-{
+
  LDY #32                \ #&20 used as mask in bit5 test of TA18
  LDA (V),Y              \ ai_attack_univ_ecm for ship V
  LSR A                  \ does ship V has ecm in bit0 of ai?
@@ -11354,173 +11336,285 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ Subroutine: TACTICS
 \
-\ Main tactic routine, Xreg is ship type, called by mveit if ai inwk+32 has
-\ bit7 set, slot in XSAV.
+\ Apply tactics to the current ship. This is called for ships that have the AI
+\ flag set (i.e. bit 7 of INWK+32).
+\
+\ Arguments:
+\
+\   X                   The ship type
+\
+\ Other entry points:
+\
+\   TA19                Re-entry point after missile tactics in TA64, M32
+\
+\   TA21                Re-entry point after missile tactics in TA34
 \
 \ ******************************************************************************
 
-.TACTICS                \ Xreg is ship type, called by mveit if ai inwk+32 has bit7 set, slot in XSAV.
+.TACTICS
 {
- CPX #MSL               \ is missile?
- BEQ TA18               \ up, Missile tactics
+ CPX #MSL               \ If this is a missile, jump up to TA18 to implement
+ BEQ TA18               \ missile tactics
 
- CPX #ESC               \ is sscape pod?
- BNE P%+8               \ not sscape pod, down to space station
- JSR SPS1               \ XX15 vector to planet
- JMP TA15               \ fly towards XX15
+ CPX #ESC               \ If this is not an escape pod, skip the following two
+ BNE P%+8               \ instructions
 
- CPX #SST               \ is space station?
- BNE TA13               \ not space station, Other craft.
+ JSR SPS1               \ This is an escape pod, so call SPS1 to calculate the
+                        \ vector to the planet and store it in XX15
 
- JSR DORND              \ Set A and X to random numbers
- CMP #140               \ medium chance to launch
- BCC TA14-1             \ rts
- LDA MANY+COPS          \ MANY+COPS any so far?
- CMP #4                 \ no more than 4 cops max
- BCS TA14-1             \ rts
- LDX #COPS
- LDA #&F1               \ ai_attack_univ_ecm, has ai, fairly aggressive, has ecm.
- JMP SFS1               \ spawn ship from parent ship, Acc is ai, Xreg is type created.
+ JMP TA15               \ Jump down to TA15 to fly towards XX15
 
-.TA13                   \ not space station, Other craft.
+ CPX #SST               \ If this is not the space station, jump down to TA13
+ BNE TA13
 
- CPX #TGL
- BNE TA14               \ not thargon
- LDA MANY+THG           \ number of thargoids #THG so far?
- BNE TA14               \ mother ship(s) still present, skip to not thargon
- LSR INWK+32            \ thargon ai
- ASL INWK+32            \ cleared bit0, thargon now have no ecm system.
- LSR INWK+27            \ speed halved
- RTS
+ JSR DORND              \ This is the space station, so set A and X to random
+ CMP #140               \ numbers and if A < 140 (55% chance) return from the
+ BCC TA14-1             \ subroutine (as TA14-1 contains an RTS)
 
-.TA14                   \ not thargon
+ LDA MANY+COPS          \ We only call the tactics routine for the space station
+ CMP #4                 \ when it is angry with us, so first check the number of
+ BCS TA14-1             \ cops in the vicinity, and if we already have 4 or
+                        \ more, we don't need to spawn any more, so return from
+                        \ the subroutine (as TA14-1 contains an RTS)
 
- CPX #CYL               \ is Cobra Mk III?
- BCS TA62
- CPX #COPS              \ is cop?
+ LDX #COPS              \ Call SFS1 to spawn a cop from the space station that
+ LDA #%11110001         \ is hostile, has AI and has E.C.M., and return from the
+ JMP SFS1               \ subroutine using a tail call
+
+.TA13
+
+ CPX #TGL               \ If this is not a Thargon, jump down to TA14
+ BNE TA14
+
+ LDA MANY+THG           \ If there is at least one Thargoid in the vicinity,
+ BNE TA14               \ jump down to TA14
+
+ LSR INWK+32            \ This is a Thargon but there is no Thargoid mothership,
+ ASL INWK+32            \ so clear bit 0 of the AI flag to disable its E.C.M.
+
+ LSR INWK+27            \ And halve the Thargon's speed
+
+ RTS                    \ Return from the subroutine
+
+.TA14
+
+ CPX #CYL               \ If A >= #CYL, i.e. this is a Cobra Mk III trader (as
+ BCS TA62               \ asteroids and cargo canisters never have AI), jump
+                        \ down to TA62
+
+ CPX #COPS              \ If this is a cop, jump down to TA62
  BEQ TA62
- LDA SSPR               \ in space station range?
- BEQ TA62               \ no, pirate attacks player
- LDA INWK+32            \ ai_attack_univ_ecm
- AND #129               \ only keep bit0 and bit7, else pirate ai set to no attack, fly away,
- STA INWK+32            \ because pirate in space station range.
+
+ LDA SSPR               \ If we aren't within range of the space station, jump 
+ BEQ TA62               \ down to TA62
+
+ LDA INWK+32            \ This is a pirate or bounty hunter, but we are inside
+ AND #%10000001         \ the space station's safe zone, so clear bits 1-6 of
+ STA INWK+32            \ the AI flag to stop it being hostile, because even
+                        \ pirates aren't crazy enough to breach the station's
+                        \ no-fire zone
 
 .TA62
 
- LDY #14                \ Hull byte#14 energy
- LDA INWK+35            \ ship energy
- CMP (XX0),Y
+ LDY #14                \ If the ship's energy is greater or equal to the
+ LDA INWK+35            \ maximum value from the ship's blueprint pointed to by
+ CMP (XX0),Y            \ XX0, then skip the next instruction
  BCS TA21
- INC INWK+35            \ ship energy
-}
 
-.TA21                   \ also not Pirate attacking player
-{
- LDX #8                 \ Build local XX15
+ INC INWK+35            \ The ship's energy is not at maximum, so recharge the
+                        \ energy banks by 1
 
-.TAL1                   \ counter X
+.^TA21
 
- LDA INWK,X
- STA K3,X               \ K3(0to8) loaded with INWK(0to8) coords
- DEX
- BPL TAL1               \ loop X
-}
+ LDX #8                 \ We now want to copy the ship's x, y and z coordinates
+                        \ from INWK to K3, so set up a counter for 9 bytes
 
-.TA19                   \ Attack K3, spawn worms, others arrive.
-{
- JSR TAS2               \ XX15=r~96  \ their comment \ build XX15 max 0x60 from K3
- LDY #10
- JSR TAS3               \ Y = 10, for TAS3 XX15.inwk,y dot product. max Acc 0x24 = 36.
- STA CNT                \ dot product. max Acc 0x24 = 36.
- LDA TYPE               \ ship type
- CMP #MSL               \ missile
- BNE P%+5               \ not missile
- JMP TA20               \ missile heading XX15 and CNT has dot product
+.TAL1
+
+ LDA INWK,X             \ Copy the X-th byte from INWK to the X-th byte of K3
+ STA K3,X
+
+ DEX                    \ Decrement the counter
+
+ BPL TAL1               \ Loop back until we have copied all 9 bytes
+
+.^TA19
+
+ JSR TAS2               \ Normalise the vector in K3 and store the normalised
+                        \ version in XX15, so XX15 contains the normalised
+                        \ vector from our ship to the ship we are applying AI
+                        \ tactics to. Let's call this vector shipv
+
+ LDY #10                \ Set (A X) = nosev . XX15
+ JSR TAS3               \           = nosev . shipv
+
+ STA CNT                \ Store the high byte of the dot product in CNT. The
+                        \ bigger the value, the more aligned the two ships are,
+                        \ with a maximum magnitude of 36 (96 * 96 >> 8). If CNT
+                        \ is positive, the ships are facing in a similar
+                        \ direction, if it's negative they are facing in
+                        \ opposite directions
+
+ LDA TYPE               \ If this is not a missile, skip the following
+ CMP #MSL               \ instruction
+ BNE P%+5
+
+ JMP TA20               \ This is a missile, so jump down to TA20
+
  JSR DORND              \ Set A and X to random numbers
- CMP #250               \ very likely
- BCC TA7                \ Vrol
+
+ CMP #250               \ If A < 250 (97.5% chance), jump down to TA7 to skip
+ BCC TA7                \ the following
+
  JSR DORND              \ Set A and X to random numbers
- ORA #&68               \ large roll
- STA INWK+29            \ roll counter
+ 
+ ORA #104               \ Bump A up to at least 104 and store in the roll
+ STA INWK+29            \ counter, to gives the ship a noticeable roll
 
-.TA7                    \ VRol  \ their comment \ likely
+.TA7
 
- LDY #14                \ Hull byte#14 energy
+ LDY #14                \ Set A = the ship's maximum energy / 2
  LDA (XX0),Y
- LSR A                  \ Acc = max_energy/2
- CMP INWK+35            \ ship energy
- BCC TA3                \ Good energy
  LSR A
- LSR A                  \ Acc = max_energy/8
- CMP INWK+35
- BCC ta3                \ not Low energy, else ship in trouble ..
+
+ CMP INWK+35            \ If the ship's current energy in INWK+35 > A, i.e. the
+ BCC TA3                \ ship has at least half of its energy banks charged,
+                        \ jump down to TA3
+
+ LSR A                  \ If the ship's current energy in INWK+35 > A / 4, i.e.
+ LSR A                  \ the ship is not into the last 1/8th of its energy,
+ CMP INWK+35            \ jump down to ta3 to consider firing a missile
+ BCC ta3
+
  JSR DORND              \ Set A and X to random numbers
- CMP #230               \ likely
- BCC ta3                \ not Low energy, else respond to crisis ..
- LDA TYPE               \ restore ship type
- CMP #THG               \ Thargoid?
- BEQ ta3                \ is Thargoid, skip following
- LDA #0                 \ ship ai goes dumb.
- STA INWK+32
- JMP SESCP              \ ships launch Escape pod.
 
-.ta3                    \ not Low energy, try to fire missiles.
+ CMP #230               \ If A < 230 (90% chance), jump down to ta3 to consider
+ BCC ta3                \ firing a missile
 
- LDA INWK+31            \ display explosion state|missiles
- AND #7                 \ number of missiles
- BEQ TA3                \ none, continue to Good energy
- STA T                  \ number of missiles
+ LDA TYPE               \ If this is a Thargoid, jump down to ta3 to consider
+ CMP #THG               \ launching a Thargon
+ BEQ ta3
+
+                        \ By this point, the ship has run out of both energy and
+                        \ luck, so it's time to bail
+
+ LDA #0                 \ Set the AI flag to 0 to disable AI, hostility and
+ STA INWK+32            \ E.C.M., so the ship's a sitting duck
+
+ JMP SESCP              \ Jump to SESCP to spawn an escape pod from the ship,
+                        \ returning from the subroutine using a tail call
+
+.ta3                    \ If we get here then the ship has less than half energy
+                        \ so there may not be enough juice for lasers, but let's
+                        \ see if we can fire a missile
+
+ LDA INWK+31            \ Set A = bits 0-2 of INWK+31, the number of missiles
+ AND #%111              \ the ship has left
+
+ BEQ TA3                \ If it doesn't have any missiles, jump to TA3
+
+ STA T                  \ Store the number of missiles in T
+
  JSR DORND              \ Set A and X to random numbers
- AND #31                \ likely exceed
- CMP T                  \ number of missiles
- BCS TA3                \ continue to Good energy
- LDA ECMA               \ any ECM on?
- BNE TA3                \ continue to Good energy
- DEC INWK+31            \ reduce by 1 missile
- LDA TYPE               \ ship type
- CMP #THG               \ Thargoid?
- BNE TA16               \ not Thargoid, launch missile.
- LDX #TGL               \ thargon launch
- LDA INWK+32            \ Acc = Thargoid mother ai
- JMP SFS1               \ spawn ship from parent ship, Acc is ai, Xreg is type created.
 
-.TA16                   \ not Thargoid, launch missile.
+ AND #31                \ Restrict A to a random number in the range 0-31
+ 
+ CMP T                  \ If A >= T, which is quite likely, though less likely
+ BCS TA3                \ with higher numbers of missiles, jump to TA3
 
- JMP SFRMIS             \ Sound fire missile
+ LDA ECMA               \ If an E.C.M. is currently active (either our's or an
+ BNE TA3                \ opponent's), jump to TA3
 
-.TA3                    \ Good energy > max/2
+ DEC INWK+31            \ We're done with the checks, so it's time to fire off
+                        \ a missile, so reduce the missile count in INWK+31 by 1
 
- LDA #0
- JSR MAS4               \ all hi or'd
- AND #&E0               \ keep big distance bits
- BNE TA4                \ just Manoeuvre
- LDX CNT                \ has a dot product to player
- CPX #160               \ -ve &20 vs max &24
- BCC TA4                \ not lined up, Manoeuvre
- LDA INWK+31            \ display explosion state|missiles
- ORA #64                \ set bit6, laser Firing at player.
+ LDA TYPE               \ If this is not a Thargoid, jump down to TA16 to launch
+ CMP #THG               \ a missile
+ BNE TA16
+
+ LDX #TGL               \ This is a Thargoid, so instead of launching a missile,
+ LDA INWK+32            \ the mothership launches a Thargon, so call SFS1 to
+ JMP SFS1               \ spawn a Thargon from the parent ship, and return from
+                        \ the subroutine using a tail call
+
+.TA16
+
+ JMP SFRMIS             \ Jump to SFRMIS to spawn a missile as a child of the
+                        \ current ship, make a noise and print a message warning
+                        \ of incoming missiles, and return from the subroutine
+                        \ using a tail call
+
+.TA3                    \ If we get here then the ship either has plenty of
+                        \ energy, or levels are low but it couldn't manage to
+                        \ launch a missile, so maybe we can fire the laser?
+
+ LDA #0                 \ Set A to x_hi OR y_hi OR z_hi
+ JSR MAS4
+
+ AND #%11100000         \ If any of the hi bytes have any of bits 5-7 set, then
+ BNE TA4                \ jump to TA4 to skip the laser, as the ship is too far
+                        \ away from us to hit us with a laser
+
+ LDX CNT                \ Set X = the dot product set above in CNT. If this is
+                        \ positive, this ship and our ship are facing in similar
+                        \ directions, but if it's negative then we are facing
+                        \ each other, so for us to be in the enemy ship's line
+                        \ of fire, X needs to be negative. The value in X can
+                        \ have a maximum magnitude of 36, which would mean we
+                        \ were facing each other square on, so in the following
+                        \ code we check X like this:
+                        \
+                        \   X = 0 to -31, we are not in the enemy ship's line
+                        \       of fire, so they can't shoot at us
+                        \
+                        \   X = -32 to -34, we are in the enemy ship's line
+                        \       of fire, so they can shoot at us, but they can't
+                        \       hit us as we're not dead in their crosshairs
+                        \
+                        \   X = -35 to -36, we are bang in the middle of the
+                        \       enemy ship's crosshairs, so they can not only
+                        \       shoot us, they can hit us
+
+ CPX #160               \ If X < 160, i.e. X > -32, then we are not in the enemy
+ BCC TA4                \ ship's line of fire, so jump to TA4
+
+ LDA INWK+31            \ Set bit 6 on INWK+31 to denote that the ship is firing
+ ORA #64                \ its laser at us
  STA INWK+31
- CPX #163               \ dot product -ve &23 vs max &24
- BCC TA4                \ missed, onto Manoeuvre.
 
-.HIT                    \ laser Hitting player
+ CPX #163               \ If X < 163, i.e. X > -35, then we are not in the enemy
+ BCC TA4                \ ship's crosshairs, so jump to TA4
 
- LDY #19
- LDA (XX0),Y
- LSR A                  \ laser power/2 = size of dent on player
- JSR OOPS               \ Lose some shield strength, cargo, could die.
- DEC INWK+28            \ accel, attacking ship slows down.
- LDA ECMA               \ ECM on
- BNE TA10               \ rts, sound of ECM already.
+.HIT
+
+ LDY #19                \ We are being hit by enemy laser fire, so fetch the
+ LDA (XX0),Y            \ enemy ship's laser power from their ship's blueprint
+                        \ into A
+
+ LSR A                  \ Halve their laser power to get the amount of damage we
+                        \ should take
+
+ JSR OOPS               \ Call OOPS to take some damage, which could do anything
+                        \ from reducing the shields and energy, all the way to
+                        \ losing cargo or dying (if the latter, we don't come
+                        \ back from this subroutine)
+
+ DEC INWK+28            \ Halve the attacking ship's acceleration in INWK+28,
+
+ LDA ECMA               \ If an E.C.M. is currently active (either our's or an
+ BNE TA10               \ opponent's), return from the subroutine without making
+                        \ the laser-strike sound (as TA10 contains an RTS)
 
  LDA #8                 \ Call the NOISE routine with A = 8 to make the sound
- JMP NOISE              \ of us being hit by lasers
+ JMP NOISE              \ of us being hit by lasers, returning from the
+                        \ subroutine using a tail call
 
 .TA4                    \ Manoeuvre
 
  LDA INWK+7             \ zhi
  CMP #3
  BCS TA5                \ Far z
+ 
  LDA INWK+1             \ xhi
  ORA INWK+4             \ yhi
  AND #&FE               \ > hi1
@@ -11547,12 +11641,12 @@ LOAD_C% = LOAD% +P% - CODE%
  LDA CNT
  EOR #128
  STA CNT
-}
 
 .TA15                   \ Near \^XX15, both towards and away from player
-{
- LDY #16                \ XX15.inwk,16 dot product
+
+ LDY #16                \ Set (A X) = roofv . XX15
  JSR TAS3
+
  EOR #128
  AND #128
  ORA #3
@@ -11563,8 +11657,9 @@ LOAD_C% = LOAD% +P% - CODE%
  CMP #16                \ #16 magnitude
  BCS TA6                \ big pitch leave roll, onto Far away.
 
- LDY #22                \ XX15.inwk,22 dot product
+ LDY #22                \ Set (A X) = sidev . XX15
  JSR TAS3
+
  EOR INWK+30            \ pitch counter, affects roll.
  AND #128
  EOR #&85
@@ -11591,11 +11686,10 @@ LOAD_C% = LOAD% +P% - CODE%
  BNE P%+3               \ skip asl if not missile
  ASL A                  \ #&FE = -2 for missile
  STA INWK+28            \ accel, #&FF=-1 if not missile.
-}
 
 .TA10
-{
- RTS
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -13207,26 +13301,59 @@ NEXT
 \
 \ Subroutine: TAS3
 \
-\ Returns XX15.inwk,y  Dot product
+\ Calculate the dot product of the vector in XX15 and one of the orientation
+\ vectors, as determined by the value of Y. If vect is the orientation vector,
+\ we calculate this:
+\
+\   (A X) = vect . XX15
+\         = vect_x * XX15 + vect_y * XX15+1 + vect_z * XX15+2
+\
+\ Arguments:
+\
+\   Y                   The orientation vector:
+\
+\                         * If Y = 10, calculate nosev . XX15
+\
+\                         * If Y = 16, calculate roofv . XX15
+\
+\                         * If Y = 22, calculate sidev . XX15
+\
+\ Returns:
+\
+\   (A X)               The result of the dot product
 \
 \ ******************************************************************************
 
-.TAS3                   \ returns XX15.inwk,y  Dot product
+.TAS3
 {
- LDX INWK,Y
+ LDX INWK,Y             \ Set Q = the Y-th byte of INWK, i.e. vect_x
  STX Q
- LDA XX15               \ xunit
- JSR MULT12             \ R.S = inwk*xx15
- LDX INWK+2,Y
+
+ LDA XX15               \ Set A = XX15
+
+ JSR MULT12             \ Set (S R) = Q * A = 
+
+ LDX INWK+2,Y           \ Set Q = the Y+2-th byte of INWK, i.e. vect_y
  STX Q
- LDA XX15+1             \ yunit
- JSR MAD                \ X.A = inwk*xx15 + R.S
- STA S
+
+ LDA XX15+1             \ Set A = XX15+1
+
+ JSR MAD                \ Set (A X) = Q * A + (S R)
+                        \           = vect_y * XX15+1 + vect_x * XX15
+
+ STA S                  \ Set (S R) = (A X)
  STX R
 
- LDX INWK+4,Y
+ LDX INWK+4,Y           \ Set Q = the Y+2-th byte of INWK, i.e. vect_z
  STX Q
- LDA XX15+2             \ zunit
+
+ LDA XX15+2             \ Set A = XX15+2
+
+                        \ Fall through into MAD to set:
+                        \
+                        \   (A X) = Q * A + (S R)
+                        \           = vect_z * XX15+2 + vect_y * XX15+1 +
+                        \             vect_x * XX15
 }
 
 \ ******************************************************************************
@@ -27204,15 +27331,16 @@ ENDIF
 \
 \ Subroutine: SFRMIS
 \
-\ Enemy fires a missile, so add the missile to our universe if there is room,
-\ and if there is, make the appropriate warnings and noises.
+\ An enemy has fired a missile, so add the missile to our universe if there is
+\ room, and if there is, make the appropriate warnings and noises.
 \
 \ ******************************************************************************
 
 .SFRMIS
 {
  LDX #MSL               \ Set X to the ship type of a missile, and call SFS1-2
- JSR SFS1-2             \ to add the missile to our universe with an AI of &FE
+ JSR SFS1-2             \ to add the missile to our universe with an AI flag
+                        \ of %11111110 (AI enabled, hostile, no E.C.M.)
 
  BCC NO1                \ The carry flag will be set if the call to SFS1-2 was
                         \ a success, so if it's clear, jump to NO1 to return
