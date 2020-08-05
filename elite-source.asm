@@ -5941,6 +5941,12 @@ LOAD_A% = LOAD%
 \
 \                         * If X = 6, add (z_sign z_hi z_lo)
 \
+\ Returns:
+\
+\   A                   Contains a copy of the high byte of the result, K+3
+\
+\   X                   X is preserved
+\
 \ ******************************************************************************
 
 .MVT3
@@ -11239,120 +11245,200 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine: TA18
+\ Subroutine: TACTICS (Part 1 of 7)
 \
-\ Missile tactics
+\ Apply tactics to the current ship. This section implements missile tactics
+\ and is entered at TA18 from the main entry point below, of the current ship is
+\ a missile. Specifically:
+\
+\   * If E.C.M. is active, destroy the missile
+\
+\   * If the missile is hostile towards us, then check how close it is. If it
+\     hasn't reached us, jump to part 3 so it can streak towards us, otherwise
+\     we've been hit, so process a large amount of damage to our ship
+\
+\   * Otherwise see how close the missile is to its target. If it has not yet
+\     reached its target, give the target a chance to activate its E.C.M. if it
+\     has one, otherwise jump to TA19 with K3 set to the vector from the target
+\     to the missile
+\
+\   * If it has reached its target and the target is the space station, destroy
+\     the missile, potentially damaging us if we are nearby
+\
+\   * If it has reached its target and the target is a ship, destroy the missile
+\     and the ship, potentially damaging us if we are nearby
 \
 \ ******************************************************************************
 
 {
-.TA34                   \ Tactics, missile attacking player, from TA18
+.TA34                   \ If we get here, the missile is hostile
 
- LDA #0                 \ all hi or'd
+ LDA #0                 \ Set A to x_hi OR y_hi OR z_hi
  JSR MAS4
- BEQ P%+5               \ this ship is nearby
- JMP TA21               \ else rest of tactics, thargons can die.
- JSR TA87+3             \ set bit7 of INWK+31, kill missile with debris
- JSR EXNO3              \ ominous noises
- LDA #250               \ Huge dent in player's shield.
- JMP OOPS               \ Lose some shield strength, cargo, could die.
 
-.^TA18                   \ msl \ their comment \ Missile tactics
+ BEQ P%+5               \ If A = 0 then the missile is very close to our ship,
+                        \ so skip the following instruction
 
- LDA ECMA               \ any ECM on ?
- BNE TA35               \ kill this missile
- LDA INWK+32            \ ai_attack_univ_ecm
- ASL A                  \ is bit6 set, player under attack?
- BMI TA34               \ yes, missile attacking player, up.
- LSR A                  \ else bits 7 and 6 are now clear, can use as an index.
+ JMP TA21               \ Jump down to part 3 to set up the vectors and skip
+                        \ straight to aggressive manoeuvring
 
- TAX                    \ missile's target in univ.
- LDA UNIV,X
- STA V                  \ is pointer to target info.
+ JSR TA87+3             \ The missile has hit our ship, so call TA87+3 to set
+                        \ bit 7 of the missile's INWK+31 byte, which marks the
+                        \ missile as being killed
+
+ JSR EXNO3              \ Make the sound of the missile exploding
+
+ LDA #250               \ Call OOPS to damage the ship by 250, which is a pretty
+ JMP OOPS               \ big hit, and return from the subroutine using a tail
+                        \ call
+
+.TA18                   \ This is the entry point for missile tactics and is
+                        \ called from the main TACTICS routine below
+
+ LDA ECMA               \ If an E.C.M. is currently active (either our's or an
+ BNE TA35               \ opponent's), jump to TA35 to destroy this missile
+
+ LDA INWK+32            \ Fetch the AI flag from INWK+32 and if bit 6 is set
+ ASL A                  \ (i.e. missile is hostile), jump up to TA34 to check
+ BMI TA34               \ whether the missile has hit us
+
+ LSR A                  \ Otherwise shift A right again. We know bits 6 and 7
+                        \ are now clear, so this leaves bits 0-5. Bits 1-5
+                        \ contain the target's slot number, and bit 0 is cleared
+                        \ in FRMIS when a missile is launched, so A contains
+                        \ the slot number shifted left by 1 (i.e. doubled) so we
+                        \ can use it as an index for the two-byte address table
+                        \ at UNIV
+
+ TAX                    \ Copy the address of the target ship's data block from
+ LDA UNIV,X             \ UNIV(X+1 X) to V(1 0)
+ STA V
  LDA UNIV+1,X
- STA V+1                \ pointer hi
- LDY #2                 \ xsg
- JSR TAS1               \ below, K3(0to8) = inwk(0to8)-V_coords(0to8)
- LDY #5                 \ ysg
- JSR TAS1               \ K3(0to8) = inwk(0to8) -V_coords(0to8)
- LDY #8                 \ zsg
- JSR TAS1               \ K3(0to8) = inwk(0to8) -V_coords(0to8)
+ STA V+1
 
- LDA K3+2               \ xsubhi
- ORA K3+5               \ ysubhi
- ORA K3+8               \ zsubhi
- AND #127               \ ignore signs
- ORA K3+1               \ xsublo
- ORA K3+4               \ ysublo
- ORA K3+7               \ zsublo
- BNE TA64               \ missile far away, maybe ecm, then K3 heading.
+ LDY #2                 \ K3(2 1 0) = (x_sign x_hi x_lo) - x-coordinate of
+ JSR TAS1               \ target ship
 
- LDA INWK+32            \ ai_attack_univ_ecm, else missile close to hitting target
- CMP #&82               \ are only ai bit 7 and bit 1 set
- BEQ TA35               \ if attacking target 1 = #SST, kill missile.
- LDY #31                \ display state|missiles state of target ship V.
- LDA (V),Y
- BIT M32+1              \ used as mask #&20 = bit5 of V, target already exploding?
- BNE TA35               \ kill this missile
- ORA #128               \ else set bit7 display state of V, kill target ship V with debris.
- STA (V),Y
+ LDY #5                 \ K3(5 4 3) = (y_sign y_hi z_lo) - y-coordinate of
+ JSR TAS1               \ target ship
 
-.TA35                   \ kill this missile
+ LDY #8                 \ K3(8 7 6) = (z_sign z_hi z_lo) - z-coordinate of
+ JSR TAS1               \ target ship
 
- LDA INWK               \ xlo
- ORA INWK+3             \ ylo
- ORA INWK+6             \ zlo
- BNE TA87               \ far away, down, set bit7 of INWK+31, kill this missile with debris
- LDA #80                \ else near player so large dent
- JSR OOPS               \ Lose some shield strength, cargo, could die.
+                        \ So K3 now contains the vector from the target ship to
+                        \ the missile
 
-.TA87                   \ kill inwk with noise
+ LDA K3+2               \ Set A = OR of all the sign and high bytes of the
+ ORA K3+5               \ above, clearing bit 7 (i.e. ignore the signs)
+ ORA K3+8
+ AND #%01111111
+ ORA K3+1
+ ORA K3+4
+ ORA K3+7
 
- JSR EXNO2              \ faint death noise, player killed inwk.
- ASL INWK+31            \ display explosion state|missiles
- SEC                    \ set bit7 to kill inwk with debris
+ BNE TA64               \ If the result is non-zero, then the missile is some
+                        \ distance from the target, so jump down to TA64 see if
+                        \ the target activates its E.C.M.
+
+ LDA INWK+32            \ Fetch the AI flag from INWK+32 and if only bits 7 and
+ CMP #%10000010         \ 1 are set (AI is enabled and the target is slot 1, the
+ BEQ TA35               \ space station), jump to TA35 to destroy this missile,
+                        \ as the space station ain't kidding around
+ 
+ LDY #31                \ Fetch byte #31 (the exploding flag) of the target ship
+ LDA (V),Y              \ into A
+
+ BIT M32+1              \ M32 contains an LDY #32 instruction, so M32+1 contains
+                        \ 32, so this instruction tests A with %00100000, which
+                        \ checks bit 5 of A (the "already exploding?" bit)
+
+ BNE TA35               \ If the target ship is already exploding, jump to TA35
+                        \ to destroy this missile
+
+ ORA #%10000000         \ Otherwise set bit 7 of the target's byte #31 to mark
+ STA (V),Y              \ the ship as having been killed, so it explodes
+
+.TA35
+
+ LDA INWK               \ Set A = x_lo OR y_lo OR z_lo of the missile
+ ORA INWK+3
+ ORA INWK+6
+
+ BNE TA87               \ If A is non-zero then the missile is not near our
+                        \ ship, so jump to TA87 to skip damaging our ship
+
+ LDA #80                \ Otherwise the missile just got desttoyed near us, so
+ JSR OOPS               \ call OOPS to damage the ship by 80, which is nowhere
+                        \ near as bad as the 250 damage from a missile slamming
+                        \ straight into us, but it's still pretty nasty
+
+.TA87
+
+ JSR EXNO2              \ Call EXNO2 to process the fact that we have killed a
+                        \ missile (so increase the kill tally, make an explosion
+                        \ sound and so on)
+
+ ASL INWK+31            \ Set bit 7 of the missile's INWK+31 flag to mark it as
+ SEC                    \ having been killed, so it explodes
  ROR INWK+31
 
 .TA1
 
- RTS
+ RTS                    \ Return from the subroutine
 
-.TA64                   \ missile far away, maybe ecm, then K3 heading.
+.TA64                   \ If we get here then the missile has not reached the
+                        \ target
 
  JSR DORND              \ Set A and X to random numbers
- CMP #16                \ rnd >= #16 most likely
- BCS TA19               \ down, Attack K3.
 
-.M32                    \ else ship V activates its ecm
+ CMP #16                \ If A >= 16 (94% chance), jump down to TA19 with the
+ BCS TA19               \ vector from the target to the missile in K3
 
- LDY #32                \ #&20 used as mask in bit5 test of TA18
- LDA (V),Y              \ ai_attack_univ_ecm for ship V
- LSR A                  \ does ship V has ecm in bit0 of ai?
- BCC TA19               \ down, Attack K3.
- JMP ECBLB2             \ ecm on, bulb2.
-}
+.M32
+
+ LDY #32                \ Fetch byte 32 for the target and shift bit 0 (E.C.M.)
+ LDA (V),Y              \ into the C flag
+ LSR A
+
+ BCC TA19               \ If the C flag is clear then the target does not have
+                        \ E.C.M. fitted, so jump down to TA19 with the vector
+                        \ from the target to the missile in K3
+
+ JMP ECBLB2             \ The target has E.C.M., so jump to ECBLB2 to set it
+                        \ off, returning from the subroutine using a tail call
 
 \ ******************************************************************************
 \
-\ Subroutine: TACTICS
+\ Subroutine: TACTICS (Part 2 of 7)
 \
-\ Apply tactics to the current ship. This is called for ships that have the AI
-\ flag set (i.e. bit 7 of INWK+32).
+\ Apply tactics to the current ship. This section contains the main entry point
+\ at TACTICS, which is called from MVEIT (part 2) for ships that have the AI
+\ flag set (i.e. bit 7 of INWK+32). This part does the following:
+\
+\   * If this is a missile, jump up to the missile code in part 1
+\
+\   * If this is an escape pod, point it at the planet and jump to the
+\     manoeuvring code in part 7
+\
+\   * If this is the space station and it is angry with us, spawn a cop and
+\     we're done
+\
+\   * If this is a lone Thargon without a mothership, set it adrift aimlessly
+\     and we're done
+\
+\   * If this is a pirate and we are within the space staion safe zone, stop
+\     the pirate from attacking
+\
+\   * Recharge the ship's energy banks by 1
 \
 \ Arguments:
 \
 \   X                   The ship type
 \
-\ Other entry points:
-\
-\   TA19                Re-entry point after missile tactics in TA64, M32
-\
-\   TA21                Re-entry point after missile tactics in TA34
-\
 \ ******************************************************************************
 
-.TACTICS
-{
+.^TACTICS
+
  CPX #MSL               \ If this is a missile, jump up to TA18 to implement
  BEQ TA18               \ missile tactics
 
@@ -11362,7 +11448,7 @@ LOAD_C% = LOAD% +P% - CODE%
  JSR SPS1               \ This is an escape pod, so call SPS1 to calculate the
                         \ vector to the planet and store it in XX15
 
- JMP TA15               \ Jump down to TA15 to fly towards XX15
+ JMP TA15               \ Jump down to TA15
 
  CPX #SST               \ If this is not the space station, jump down to TA13
  BNE TA13
@@ -11424,7 +11510,21 @@ LOAD_C% = LOAD% +P% - CODE%
  INC INWK+35            \ The ship's energy is not at maximum, so recharge the
                         \ energy banks by 1
 
-.^TA21
+\ ******************************************************************************
+\
+\ Subroutine: TACTICS (Part 3 of 7)
+\
+\ Apply tactics to the current ship. This section sets up some vectors and
+\ calculates dot products. Specifically:
+\
+\   * Calculate the dot product of the ship's nose vector (i.e. the direction it
+\     is pointing) with the vector between us and the ship. This value will help
+\     us work out later on whether the enemy ship is pointing towards us, and
+\     therefore whether it can hit us with it lasers.
+\
+\ ******************************************************************************
+
+.TA21
 
  LDX #8                 \ We now want to copy the ship's x, y and z coordinates
                         \ from INWK to K3, so set up a counter for 9 bytes
@@ -11438,12 +11538,18 @@ LOAD_C% = LOAD% +P% - CODE%
 
  BPL TAL1               \ Loop back until we have copied all 9 bytes
 
-.^TA19
+.TA19                   \ If this is a missile that's heading for its target
+                        \ (not us, one of the other ships), then the missile
+                        \ routine at TA18 above jumps here after setting K3 to
+                        \ the vector from the target to the missile
 
  JSR TAS2               \ Normalise the vector in K3 and store the normalised
                         \ version in XX15, so XX15 contains the normalised
                         \ vector from our ship to the ship we are applying AI
-                        \ tactics to. Let's call this vector shipv
+                        \ tactics to (or the normalised vector from the target
+                        \ to the missile - in both cases it's the vector from
+                        \ the potential victim to the attacker). Let's call this
+                        \ vector shipv
 
  LDY #10                \ Set (A X) = nosev . XX15
  JSR TAS3               \           = nosev . shipv
@@ -11455,11 +11561,32 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ direction, if it's negative they are facing in
                         \ opposite directions
 
+\ ******************************************************************************
+\
+\ Subroutine: TACTICS (Part 4 of 7)
+\
+\ Apply tactics to the current ship. This section works out what kind of
+\ condition the ship is in. Specifically:
+\
+\   * Rarely (2.5% chance) roll the ship by a noticeable amount
+\
+\   * If the ship has at least half its energy banks full, jump to part 6 to
+\     consider firing the lasers
+\
+\   * If the ship isn't really low on energy, jump to part 5 to consider firing
+\     a missile
+\
+\   * Rarely (10% chance) the ship runs out of both energy and luck, and bails,
+\     launching an escape pod and drifting in space
+\
+\ ******************************************************************************
+
  LDA TYPE               \ If this is not a missile, skip the following
  CMP #MSL               \ instruction
  BNE P%+5
 
- JMP TA20               \ This is a missile, so jump down to TA20
+ JMP TA20               \ This is a missile, so jump down to TA20 to get
+                        \ straight into some aggressive manoeuvring
 
  JSR DORND              \ Set A and X to random numbers
 
@@ -11504,6 +11631,22 @@ LOAD_C% = LOAD% +P% - CODE%
  JMP SESCP              \ Jump to SESCP to spawn an escape pod from the ship,
                         \ returning from the subroutine using a tail call
 
+\ ******************************************************************************
+\
+\ Subroutine: TACTICS (Part 5 of 7)
+\
+\ Apply tactics to the current ship. This section considers whether to launch a
+\ missile. Specifically:
+\
+\   * If the ship doesn't have any missiles, skip to the next part
+\
+\   * If an E.C.M. is firing, skip to the next part
+\
+\   * Randomly decide whether to fire a missile (or, in the case of Thargoids,
+\     release a Thargon), and if we do, we're done
+\
+\ ******************************************************************************
+
 .ta3                    \ If we get here then the ship has less than half energy
                         \ so there may not be enough juice for lasers, but let's
                         \ see if we can fire a missile
@@ -11543,6 +11686,24 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ current ship, make a noise and print a message warning
                         \ of incoming missiles, and return from the subroutine
                         \ using a tail call
+
+\ ******************************************************************************
+\
+\ Subroutine: TACTICS (Part 6 of 7)
+\
+\ Apply tactics to the current ship. This section looks at potentialy firing
+\ the ship's laser at us. Specifically:
+\
+\   * If the ship is not pointing at us, skip to the next part
+\
+\   * If the ship is pointing at us but not accurately, fire its laser at us and
+\     skip to the next part
+\
+\   * If we are in the ship's crosshairs, register some damage to our ship, slow
+\     down the attacking ship, make the noise of us being hit by laser fire, and
+\     we're done
+\
+\ ******************************************************************************
 
 .TA3                    \ If we get here then the ship either has plenty of
                         \ energy, or levels are low but it couldn't manage to
@@ -11609,83 +11770,167 @@ LOAD_C% = LOAD% +P% - CODE%
  JMP NOISE              \ of us being hit by lasers, returning from the
                         \ subroutine using a tail call
 
-.TA4                    \ Manoeuvre
+\ ******************************************************************************
+\
+\ Subroutine: TACTICS (Part 7 of 7)
+\
+\ Apply tactics to the current ship. This section looks at manoeuvring the
+\ ship. Specifically:
+\
+\   * Work out which direction the ship should be moving, depending on whether
+\     it's an escape pod, where it is, which direction it is pointing, and how
+\     aggressive it is
+\
+\   * Set the roll and pitch counters to head in that direction
+\
+\   * Speed up or slow down, depending on where the ship is in relation to us
+\
+\ ******************************************************************************
 
- LDA INWK+7             \ zhi
- CMP #3
- BCS TA5                \ Far z
+.TA4
+
+ LDA INWK+7             \ If z_hi >= 3 then the ship is quite far away, so jump
+ CMP #3                 \ down to TA5
+ BCS TA5
  
- LDA INWK+1             \ xhi
- ORA INWK+4             \ yhi
- AND #&FE               \ > hi1
- BEQ TA15               \ Near
+ LDA INWK+1             \ Otherwise set A = x_hi OR y_hi and extract bits 1-7
+ ORA INWK+4
+ AND #%11111110
 
-.TA5                    \ Far z
+ BEQ TA15               \ If A = 0 then the ship is pretty close to us, so jump
+                        \ to TA15 so it heads away from us
+
+.TA5
+
+                        \ If we get here then the ship is quite far away
 
  JSR DORND              \ Set A and X to random numbers
- ORA #128               \ set bit 7 as ai active.
- CMP INWK+32            \ compare to actual ai_attack_univ_ecm
- BCS TA15               \ weak (non-missile) ai head away, Near.
 
-.TA20                   \ Also arrive here if missile, heading XX15 and CNT has dot product
+ ORA #%10000000         \ Set bit 7 of A
 
- LDA XX15
- EOR #128
+ CMP INWK+32            \ If A >= INWK+32 (the ship's AI flag) then jump down
+ BCS TA15               \ to TA15 so it heads away from us
+ 
+                        \ We get here if A < INWK+32, and the chances of this
+                        \ being true are greater with high values of INWK+32. In
+                        \ other words, higher INWK+32 values increase the
+                        \ chances of a ship changing direction to head towards
+                        \ us - or, to put it another way, ships with higher
+                        \ INWK+32 values are spoiling for a fight. Thargoids
+                        \ have INWK+32 set to 255, which explains an awful lot
+
+.TA20
+
+                        \ If this is a missile we will have jumped straight
+                        \ here, but we also get here if the ship is either far
+                        \ away and aggressive, or not too close
+
+ LDA XX15               \ Reverse the signs of XX15 and the dot product in CNT,
+ EOR #%10000000         \ starting with the x-coordinate
  STA XX15
- LDA XX15+1
- EOR #128
- STA XX15+1
- LDA XX15+2
- EOR #128
- STA XX15+2
- LDA CNT
- EOR #128
- STA CNT
 
-.TA15                   \ Near \^XX15, both towards and away from player
+ LDA XX15+1             \ Then reverse the sign of the y-coordinate
+ EOR #%10000000
+ STA XX15+1
+
+ LDA XX15+2             \ And then the z-coordinate, so now the XX15 vector goes
+ EOR #%10000000         \ from the enemy ship to our ship (it was previously the
+ STA XX15+2             \ other way round)
+
+ LDA CNT                \ And finally change the sign of the dot product in CNT,
+ EOR #%10000000         \ so now it's positive if the ships are facing each
+ STA CNT                \ other, and negative if they are facing the same way
+
+.TA15
+
+                        \ If we get here, then one of the following is true:
+                        \
+                        \   * This is an escape pod and XX15 is pointing towards
+                        \     the planet
+                        \
+                        \   * The ship is pretty close to us, or it's just not
+                        \     very aggressive (though there is a random factor
+                        \     at play here too). XX15 is still pointing from our
+                        \     ship towards the enemy ship
+                        \
+                        \   * The ship is aggressive (though again, there's an
+                        \     element of randomness here). XX15 is pointing from
+                        \     the enemy ship towards our ship
+                        \
+                        \   * This is a missile heading for a target. XX15 is
+                        \     pointing from the missile towards the target
+                        \
+                        \ We now want to move the ship in the direction of XX15,
+                        \ which will make aggressive ships head towards us, and
+                        \ ships that are too close turn away. Escape pods,
+                        \ meanwhile, head off towards the planet in search of a
+                        \ space station, and missiles home in on their targets
 
  LDY #16                \ Set (A X) = roofv . XX15
- JSR TAS3
+ JSR TAS3               \
+                        \ This will be positive if XX15 is pointing in the same
+                        \ direction as an arrow out of the top of the ship, in
+                        \ other words if the ship should pull up to head in the
+                        \ direction of XX15
 
- EOR #128
- AND #128
- ORA #3
- STA INWK+30            \ new pitch counter pitch
+ EOR #%10000000         \ Set the ship's pitch counter to 3, with the opposite
+ AND #%10000000         \ sign to the dot product result, which gently pitches
+ ORA #%00000011         \ the ship towards the direction of the XX15 vector
+ STA INWK+30
 
- LDA INWK+29            \ roll counter
- AND #127
- CMP #16                \ #16 magnitude
- BCS TA6                \ big pitch leave roll, onto Far away.
+ LDA INWK+29            \ Fetch the roll counter from INWK+29 into A and clear
+ AND #%01111111         \ the sign bit
+
+ CMP #16                \ If A >= 16 then jump to TA6, as the ship is already
+ BCS TA6                \ in the process of rolling
 
  LDY #22                \ Set (A X) = sidev . XX15
- JSR TAS3
+ JSR TAS3               \
+                        \ This will be positive if XX15 is pointing in the same
+                        \ direction as an arrow out of the right side of the
+                        \ ship, in other words if the ship should roll right to
+                        \ head in the direction of XX15
 
- EOR INWK+30            \ pitch counter, affects roll.
- AND #128
- EOR #&85
- STA INWK+29            \ new roll counter
+ EOR INWK+30            \ Set the ship's roll counter to 5, with the sign set to
+ AND #%10000000         \ positive if the pitch counter and dot product have
+ EOR #%10000101         \ different signs, negative if they have the same sign
+ STA INWK+29
 
-.TA6                    \ default, Far away.
+.TA6
 
- LDA CNT                \ dot product
- BMI TA9                \ target is far behind, maybe Slow down.
- CMP #22                \ angle in front not too large
- BCC TA9                \ maybe Slow down
- LDA #3                 \ speed up a lot
- STA INWK+28            \ accel
- RTS                    \ TA9-1
+ LDA CNT                \ Fetch the dot product, and if it's negative jump to
+ BMI TA9                \ TA9, as the ships are facing away from each other and
+                        \ the ship might want to slow down to take another shot
 
-.TA9                    \ maybe Slow down
+ CMP #22                \ The dot product is positive, so the ships are facing
+ BCC TA9                \ each other. If A < 22 then the ships are not heading
+                        \ directly towards each other, so jump to TA9 to slow
+                        \ down
 
- AND #127               \ drop dot product sign
- CMP #18                \ angle to axis not too large
- BCC TA10               \ slow enough, rts
- LDA #&FF               \ slow
- LDX TYPE               \ ship type
- CPX #MSL               \ missile
- BNE P%+3               \ skip asl if not missile
- ASL A                  \ #&FE = -2 for missile
- STA INWK+28            \ accel, #&FF=-1 if not missile.
+ LDA #3                 \ Otherwise set the acceleration in INWK+28 to 3
+ STA INWK+28
+
+ RTS                    \ Return from the subroutine
+
+.TA9
+
+ AND #%01111111         \ Clear the sign bit of the dot product in A
+
+ CMP #18                \ If A < 18 then the ship is way off the XX15 vector, so
+ BCC TA10               \ return from the subroutine (TA10 contains an RTS)
+                        \ without slowing down, as it still has quite a bit of
+                        \ turning to do to get on course
+
+ LDA #&FF               \ Otherwise set A = -1
+
+ LDX TYPE               \ If this is not a missile then skip the ASL instruction
+ CPX #MSL
+ BNE P%+3
+
+ ASL A                  \ This is a missile, so set A = -2, as missiles are more
+                        \ nimble and can brake more quickly
+
+ STA INWK+28            \ Ser the ship's acceleration to A
 
 .TA10
 
@@ -19395,8 +19640,8 @@ LOAD_D% = LOAD% + P% - CODE%
 {
  JSR Ze                 \ Call Ze to initialise INWK
 
- LDA #&FF               \ Set the AI flag in INWK+32 so that the ship has AI, is
- STA INWK+32            \ hostile and has E.C.M.
+ LDA #%11111111         \ Set the AI flag in INWK+32 so that the ship has AI, is
+ STA INWK+32            \ extremely and aggressively hostile, and has E.C.M.
 
  LDA #THG               \ Call NWSHP to add a new Thargoid ship to our local
  JSR NWSHP              \ bubble of universe
@@ -24489,8 +24734,9 @@ LOAD_F% = LOAD% + P% - CODE%
  LSR A                  \ shift right to set the C flag to the missile's "is
                         \ locked" flag, and A to the target's slot number
 
- CMP XX4                \ If this missile was not locked on a target, jump to
- BCC KSL4               \ KSL4 to move on to the next slot
+ CMP XX4                \ If this missile's target is less than XX4, then the
+ BCC KSL4               \ target's slot isn't being shuffled down, so jump to
+                        \ KSL4 to move on to the next slot
 
  BEQ KS6                \ If this missile was locked onto the ship that we just
                         \ removed in KILLSHP, jump to KS6 to stop the missile
