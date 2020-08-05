@@ -12736,19 +12736,46 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ Variable: SNE
 \
-\ Sine table.
+\ Sine table. To calculate the following:
+\
+\   sin(theta) * 256
+\
+\ where theta is in radians, look up the value in:
+\
+\   SNE + (theta * 10)
+\
+\ Theta must be between 0 and 3.1 radians, so theta * 10 is between 0 and 31.
+\
+\ ******************************************************************************
+\
+\ Here's how this works. The value at byte number (theta * 10) is:
+\
+\   256 * ABS(SIN((theta * 10 / 64) * 2 * PI))
+\
+\ rounded to the nearest integer. If we expand the part that we pass to SIN():
+\
+\   (theta * 10 / 64) * 2 * PI =  (theta / 6.4) * 2 * PI
+\                              =~ (theta / 6.4) * 6.28
+\                              =~ theta
+\
+\ then substitutig this into the above, we can see that the value at byte
+\ (theta * 10) is approximately:
+\
+\   256 * ABS(SIN(theta))
+\
+\ It's not 100% accurate, but it's easily good enough for our needs.
 \
 \ ******************************************************************************
 
 .SNE
 {
-FOR I%,0,31
-N=ABS(SIN(I%/64*2*PI))
-IF N>=1
+FOR I%, 0, 31
+  N = ABS(SIN((I% / 64) * 2 * PI))
+  IF N >= 1
     EQUB &FF
-ELSE
-    EQUB INT(256*N+.5)
-ENDIF
+  ELSE
+    EQUB INT(256 * N + 0.5)
+  ENDIF
 NEXT
 }
 
@@ -13021,28 +13048,45 @@ NEXT
 \
 \ Subroutine: MLU1
 \
-\ Y1 = SY,Y and P.A = Y1 7bit * Q
+\ Do the following multiplication of a sign-magnitude 8-bit number P with an
+\ unsigned number Q:
+\
+\   (A P) = |P| * Q
+\
+\ and set Y1 to the Y-th byte of SY.
 \
 \ ******************************************************************************
 
-.MLU1                   \ Y1 = SY,Y and P.A = Y1 7bit * Q
+.MLU1
 {
- LDA SY,Y
- STA Y1                 \ dusty
+ LDA SY,Y               \ Set Y1 the Y-th byte of SY
+ STA Y1
+
+                        \ Fall through into MLU2 to calculate:
+                        \
+                        \   (A P) = |P| * Q
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: MLU2
 \
-\ P.A = A7*Q
+\ Do the following multiplication of a sign-magnitude 8-bit number P with an
+\ unsigned number Q:
+\
+\   (A P) = |P| * Q
 \
 \ ******************************************************************************
 
-.MLU2                   \ P.A = A7*Q
+.MLU2
 {
- AND #127
+ AND #%01111111         \ Clear the sign bit in P, so P = |P|
  STA P
+
+                        \ Fall through into MULTU to calculate:
+                        \
+                        \   (A P) = P * Q
+                        \         = |P| * Q
 }
 
 \ ******************************************************************************
@@ -13129,32 +13173,45 @@ NEXT
 \
 \ Subroutine: MU6
 \
-\ Set Plo.Phi = Acc
+\ Set P(1 0) = (A A). In practice this is only called via a BEQ following an AND
+\ instruction, in which case A = 0, so this routine effectively does this:
+\
+\   P(1 0) = 0
 \
 \ ******************************************************************************
 
-.MU6                    \ set Plo.Phi = Acc
+.MU6
 {
- STA P+1
+ STA P+1                \ Set P(1 0) = (A A)
  STA P
- RTS
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: FMLTU2
 \
-\ For CIRCLE2,  A=K*sin(X)/256unsg
+\ Calculate the following:
+\
+\   (A ?) = K * sin(A) * 256
 \
 \ ******************************************************************************
 
-.FMLTU2                 \ for CIRCLE2,  A=K*sin(X)/256unsg
+.FMLTU2
 {
- AND #31                \ table max #31
- TAX                    \ sine table index
+ AND #%00011111         \ Restrict A to bits 0-5 (so it's in the range 0-31)
+
+ TAX                    \ Set Q = sin(A) * 256
  LDA SNE,X
- STA Q                  \ 0to255 for sine(0to pi)
- LDA K                  \ the radius
+ STA Q
+
+ LDA K                  \ Set A to the radius in K
+
+                        \ Fall through into FMLTU to do the following:
+                        \
+                        \   (A ?) = A * Q
+                        \         = K * sin(A) * 256
 }
 
 \ ******************************************************************************
