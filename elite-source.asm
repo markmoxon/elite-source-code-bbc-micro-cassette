@@ -25,7 +25,7 @@ NOSH = 12               \ Maximum number of ships at any one time (counting
 COPS = 2                \ Viper
 MAM = 3                 \ Mamba
 THG = 6                 \ Thargoid
-CYL = 7                 \ Cobra Mk III
+CYL = 7                 \ Cobra Mk III (trader)
 SST = 8                 \ Space station
 MSL = 9                 \ Missile
 AST = 10                \ Asteroid
@@ -697,7 +697,8 @@ ORG &0000
 .TYPE
 
  SKIP 1                 \ Temporary storage, used to store the current ship type
-                        \ in places like the main flight loop
+                        \ in places like the main flight loop (see FRIN for
+                        \ information about ship types)
 
 .JSTX
 
@@ -892,7 +893,9 @@ ORG &0300               \ Start of the commander block
                         \
                         \ (byte 0 = front, 1 = rear, 2 = left, 3 = right)
                         \
-                        \ 0 means no laser, non-zero denotes the following:
+                        \   0 means no laser
+                        \
+                        \   non-zero denotes the following:
                         \
                         \ Bits 0-6 contain the laser's power
                         \
@@ -906,9 +909,9 @@ ORG &0300               \ Start of the commander block
 
  SKIP 1                 \ Cargo capacity
                         \
-                        \ 22 = standard cargo bay of 20 tonnes
+                        \   22 = standard cargo bay of 20 tonnes
                         \
-                        \ 37 = large cargo bay of 35 tonnes
+                        \   37 = large cargo bay of 35 tonnes
 
 .QQ20
 
@@ -923,43 +926,50 @@ ORG &0300               \ Start of the commander block
 
  SKIP 1                 \ E.C.M. system
                         \
-                        \ 0 = not fitted, &FF = fitted
+                        \   0 = not fitted
+                        \   &FF = fitted
 
 .BST
 
  SKIP 1                 \ Fuel scoops ("barrel status")
                         \
-                        \ 0 = not fitted, &FF = fitted
+                        \   0 = not fitted
+                        \   &FF = fitted
 
 .BOMB
 
  SKIP 1                 \ Energy bomb
                         \
-                        \ 0 = not fitted, &7F = fitted
+                        \   0 = not fitted
+                        \   &7F = fitted
 
 .ENGY
 
  SKIP 1                 \ Energy unit
                         \
-                        \ 0 = not fitted, 1 = fitted
+                        \   0 = not fitted
+                        \   1 = fitted
 
 .DKCMP
 
  SKIP 1                 \ Docking computer
                         \
-                        \ 0 = not fitted, &FF = fitted
+                        \   0 = not fitted
+                        \   &FF = fitted
 
 .GHYP
 
  SKIP 1                 \ Galactic hyperdrive
                         \
-                        \ 0 = not fitted, &FF = fitted
+                        \   0 = not fitted
+                        \   &FF = fitted
 
 .ESCP
 
  SKIP 1                 \ Escape pod
                         \
-                        \ 0 = not fitted, &FF = fitted
+                        \   0 = not fitted
+                        \   &FF = fitted
 
  SKIP 4                 \ Not used
 
@@ -971,9 +981,9 @@ ORG &0300               \ Start of the commander block
 
  SKIP 1                 \ Legal status ("fugitive/innocent status")
                         \
-                        \ 0    = Clean
-                        \ 1-49 = Offender
-                        \ 50+  = Fugitive
+                        \   0    = Clean
+                        \   1-49 = Offender
+                        \   50+  = Fugitive
                         \
                         \ You get 64 points if you kill a cop, so that's
                         \ straight to fugitive
@@ -2845,12 +2855,12 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \
 \   * For the space station:
 \
-\     * Bit 7:    0 = friendly           1 = angry
+\     * Bit 7:    0 = friendly           1 = hostile
 \
 \   * For missiles:
 \
 \     * Bit 0:    0 = no lock/launched   1 = target locked
-\     * Bits 1-5: n = target's slot number
+\     * Bits 1-4: n = target's slot number
 \     * Bit 6:    0 = friendly           1 = hostile
 \     * Bit 7:    0 = dumb               1 = AI enabled (tactics get applied)
 \
@@ -3652,9 +3662,9 @@ LOAD_A% = LOAD%
  BMI MA68               \ in the ship data workspace at K%, which is reserved
                         \ for the sun or the space station (in this case it's
                         \ the latter), and if it's negative, meaning the
-                        \ station is angry with us, jump down to MA68 to skip
-                        \ the following (so we can't use the docking computer
-                        \ to dock at a station that we have annoyed)
+                        \ station is hostile, jump down to MA68 to skip the
+                        \ following (so we can't use the docking computer to
+                        \ dock at a station that has turned against us)
 
  JMP GOIN               \ The "docking computer" button has been pressed and
                         \ we are allowed to dock at the station, so jump to
@@ -4160,9 +4170,9 @@ LOAD_A% = LOAD%
  BMI MA62               \ in the ship data workspace at K%, which is reserved
                         \ for the sun or the space station (in this case it's
                         \ the latter), and if it's negative, meaning the
-                        \ station is angry with us, jump down to MA62 to fail
-                        \ docking (so trying to dock at a station that we have
-                        \ annoyed does not end well)
+                        \ station is hostile, jump down to MA62 to fail docking
+                        \ (so trying to dock at a station that we have annoyed
+                        \ does not end well)
 
  LDA INWK+14            \ 2. If nosev_z_hi < &D6, jump down to MA62 to fail
  CMP #&D6               \ docking, as the angle of approach is greater than 26
@@ -5211,8 +5221,8 @@ LOAD_A% = LOAD%
 
  BPL MV30               \ If bit 7 of the AI flag is clear, then if this is a
                         \ ship or missile it is dumb and has no AI, and if this
-                        \ is the space station it is not angry with us, so in
-                        \ both cases skip the following as it has no tactics
+                        \ is the space station it is not hostile, so in both
+                        \ cases skip the following as it has no tactics
 
  CPX #MSL               \ If the ship is a missile, skip straight to MV26 to
  BEQ MV26               \ call the TACTICS routine, as we do this every
@@ -11423,8 +11433,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \   * If this is an escape pod, point it at the planet and jump to the
 \     manoeuvring code in part 7
 \
-\   * If this is the space station and it is angry with us, spawn a cop and
-\     we're done
+\   * If this is the space station and it is hostile, spawn a cop and we're done
 \
 \   * If this is a lone Thargon without a mothership, set it adrift aimlessly
 \     and we're done
@@ -11461,10 +11470,10 @@ LOAD_C% = LOAD% +P% - CODE%
  BCC TA14-1             \ subroutine (as TA14-1 contains an RTS)
 
  LDA MANY+COPS          \ We only call the tactics routine for the space station
- CMP #4                 \ when it is angry with us, so first check the number of
- BCS TA14-1             \ cops in the vicinity, and if we already have 4 or
-                        \ more, we don't need to spawn any more, so return from
-                        \ the subroutine (as TA14-1 contains an RTS)
+ CMP #4                 \ when it is hostile, so first check the number of cops
+ BCS TA14-1             \ in the vicinity, and if we already have 4 or more, we
+                        \ don't need to spawn any more, so return from the
+                        \ subroutine (as TA14-1 contains an RTS)
 
  LDX #COPS              \ Call SFS1 to spawn a cop from the space station that
  LDA #%11110001         \ is hostile, has AI and has E.C.M., and return from the
@@ -12017,170 +12026,347 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ Subroutine: HITCH
 \
-\ Carry set if ship collides or missile locks.
+\ Work out if the ship in INWK is in our crosshairs.
+\
+\ Returns:
+\
+\   C flag              Set if the ship is in our crosshairs, clear if it isn't
+\
+\ Other entry points:
+\
+\   HI1                 Contains an RTS
+\
+\ ******************************************************************************
+\
+\ There are a number of steps we have to take to work out whether a ship is in
+\ our crosshairs. They are as follows.
+\ 
+\   * Make sure the ship is in front of us (z_sign is positive)
+\ 
+\   * Make sure this isn't the planet or sun (bit 7 of the ship type is clear)
+\ 
+\   * Make sure the ship isn't exploding (bit 5 of INWK+31 is clear)
+\ 
+\   * Make sure the ship is close enough to be targeted or hit (both x_hi and
+\     y_hi are 0)
+\ 
+\   * Test whether our crosshairs are within the "hit area" for this ship 
+\ 
+\ This last one needs further explanation. Each ship type has, as part of its
+\ blueprint, a 16-bit value that defines the area of the ship that can be locked
+\ onto by a missle or hit by laser fire. The bigger this value, the easier the
+\ ship is to hit.
+\ 
+\ The key to the calculation is the observation that the ship's x- and
+\ y-coordinates give the horizontal and vertical distances between our line of
+\ fire and the ship. This is because the z-axis points out of the nose of our
+\ ship, and is therefore the same as our line of fire, so the other two axes
+\ give the deviation of the other ship's position from this line.
+\ 
+\ We've already confirmed in the checks above that x_hi and y_hi are both zero,
+\ so we calculate this:
+\ 
+\   (S R) = x_lo^2 + y_lo^2
+\ 
+\ which, using Pythagoras, is the same as the square of the distance from our
+\ crosshairs to the ship.
+\ 
+\ If this calculation doesn't fit into the 16 bits of (S R) then we know we
+\ can't be aiming at the ship, but if it does, we compare (S R) with the 16-bit
+\ "hit area" byte from the ship's blueprint, and if (S R) is less than the "hit
+\ area" value, the ship is determined to be in our crosshairs and can be hit or
+\ targeted.
+\ 
+\ So the "hit area" byte is the square of the distance that the ship can be from
+\ the centre of our crosshairs but still be locked onto by our missiles or hit
+\ by our lasers.
 \
 \ ******************************************************************************
 
-.HITCH                  \ Carry set if ship collides or missile locks.
+.HITCH
 {
- CLC
- LDA INWK+8             \ zsg
- BNE HI1                \ rts with C clear as -ve or big zg
- LDA TYPE               \ ship type
- BMI HI1                \ rts with C clear as planet or sun
- LDA INWK+31            \ display explosion state|missiles
- AND #32                \ keep bit5, is target exploding?
- ORA INWK+1             \ xhi
- ORA INWK+4             \ yhi
- BNE HI1                \ rts with C clear as too far away
+ CLC                    \ Clear the C flag so we can return with it cleared if
+                        \ our checks fail
 
- LDA INWK               \ xlo
- JSR SQUA2              \ P.A = xlo^2
- STA S                  \ x2 hi
- LDA P                  \ x2 lo
+ LDA INWK+8             \ Set A = z_sign
+
+ BNE HI1                \ If A is non-zero then the ship is behind us and can't
+                        \ be in our crosshairs, so return from the subroutine
+                        \ with the C flag clear (as HI1 contains an RTS)
+
+ LDA TYPE               \ If the ship type has bit 7 set then it is the planet
+ BMI HI1                \ or sun, which we can't target or hit with lasers, so
+                        \ return from the subroutine with the C flag clear (as
+                        \ HI1 contains an RTS)
+
+ LDA INWK+31            \ Fetch bit 5 of INWK+31 (the exploding flag) and OR
+ AND #%00100000         \ with x_hi and y_hi
+ ORA INWK+1
+ ORA INWK+4
+
+ BNE HI1                \ If this value is non-zero then either the ship is
+                        \ exploding (so we can't target it), or the ship is too
+                        \ far away from our line of fire to be targeted, so
+                        \ return from the subroutine with the C flag clear (as
+                        \ HI1 contains an RTS)
+
+ LDA INWK               \ Set A = x_lo
+
+ JSR SQUA2              \ Set (A P) = A * A = x_lo^2
+
+ STA S                  \ Set (S R) = (A P) = x_lo^2
+ LDA P
  STA R
 
- LDA INWK+3             \ ylo
- JSR SQUA2              \ P.A = ylo^2
- TAX                    \ y^2 hi
- LDA P                  \ y^2 lo
- ADC R                  \ x^2 lo
- STA R                  \ = x^2 +y^2 lo
- TXA                    \ y^2 hi
- ADC S                  \ x^2 hi
- BCS FR1-2              \ too far off, clc rts
- STA S                  \ x^2 + y^2 hi
- LDY #2                 \ Hull byte#2 area hi of ship type
- LDA (XX0),Y
- CMP S                  \ area hi
- BNE HI1                \ carry set if Hull hi > area
- DEY                    \ else hi equal, look at area lo, Hull byte#1
- LDA (XX0),Y
- CMP R                  \ carry set if Hull lo > area
-}
+ LDA INWK+3             \ Set A = y_lo
 
-.HI1                    \ rts
-{
- RTS
+ JSR SQUA2              \ Set (A P) = A * A = y_lo^2
+
+ TAX                    \ Store the high byte in X
+
+ LDA P                  \ Add the two low bytes, so:
+ ADC R                  \
+ STA R                  \   R = P + R
+
+ TXA                    \ Restore the high byte into A and add S to give the
+ ADC S                  \ following:
+                        \
+                        \   (A R) = (S R) + (A P) = x_lo^2 + y_lo^2
+
+ BCS FR1-2              \ If the addition just overflowed then there is no way
+                        \ our crosshairs are within the ship's "hit area", so
+                        \ return from the subroutine with the C flag clear (as
+                        \ FR1-2 contains a CLC then an RTS)
+
+ STA S                  \ Set (S R) = (A P) = x_lo^2 + y_lo^2
+
+ LDY #2                 \ Fetch the ship's blueprint and set A to the high byte
+ LDA (XX0),Y            \ of the "hit area" of the ship
+
+ CMP S                  \ We now compare the high bytes of the "hit area" and
+                        \ the calculation in (S R):
+                        \
+                        \   * If A >= S then then the C flag will be set
+                        \
+                        \   * If A < S then the C flag will be C clear
+
+ BNE HI1                \ If A <> S we have just set the C flag correctly, so
+                        \ return from the subroutine (as HI1 contains an RTS)
+
+ DEY                    \ The high bytes were identical, so now we fetch the
+ LDA (XX0),Y            \ low byte of the "hit area" into A
+
+ CMP R                  \ We now compare the low bytes of the "hit area" and
+                        \ the calculation in (S R):
+                        \
+                        \   * If A >= R then the C flag will be set
+                        \
+                        \   * If A < R then the C flag will be C clear
+
+.^HI1
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: FRS1
 \
-\ Escape pod Launched, see Cobra Mk3 ahead, or player missile launch.
+\ Launch a ship straight ahead of us, just below our line of sight.
+\
+\ This is used in two places:
+\
+\   * When we launch a missile, in which case the missile is the ship that is
+\     launched ahead of us
+\
+\   * When we launch our escape pod, in which case it's our abandoned Cobra Mk
+\     III that is launched ahead of us
+\
+\   * The fq1 entry point is used to launch a bunch of cargo canisters ahead of
+\     us as part of the death screen
+\
+\ Arguments:
+\
+\   X                   The type of ship to launch ahead of us
+\
+\ Returns:
+\
+\   C flag              Set if the ship was successfully launched, clear if it
+\                       wasn't (as there wasn't enough free memory)
+\
+\ Other entry points:
+\
+\   fq1                 Used to add a cargo canister to the universe
 \
 \ ******************************************************************************
 
-.FRS1                   \ escape pod Launched, see Cobra Mk3 ahead, or player missile launch.
+.FRS1
 {
  JSR ZINF               \ Call ZINF to reset the INWK ship workspace
- LDA #28                \ ylo distance
+
+ LDA #28                \ Set y_lo = 28
  STA INWK+3
- LSR A                  \ #14 = zlo
- STA INWK+6
- LDA #128               \ ysg -ve is below
- STA INWK+5
- LDA MSTG               \ = #&FF if missile NOT targeted
- ASL A                  \ convert to univ index, no ecm.
- ORA #128               \ set bit7, ai_active
- STA INWK+32
-}
 
-.fq1                    \ type Xreg cargo/alloys in explosion arrives here
-{
- LDA #&60               \ Set INWK+14 (nosev_z_hi) to 1 (&60), so ship is
- STA INWK+14            \ pointing away from us
+ LSR A                  \ Set z_lo = 14, so the launched ship starts out
+ STA INWK+6             \ ahead of us
 
- ORA #128               \ Set INWK+22 (sidev_x_hi) to -1 (&D0), so ship is
- STA INWK+22            \ upside down?
+ LDA #%10000000         \ Set y_sign to be negative, so the launched ship is
+ STA INWK+5             \ launched just below our line of sight
 
- LDA DELTA              \ Set INWK+27 (speed) to 2 * DELTA
- ROL A
+ LDA MSTG               \ Set A to the missile lock target, shifted left so the
+ ASL A                  \ slot number is in bits 1-4
+
+ ORA #%10000000         \ Set bit 7 and store the result in INWK+32, the AI
+ STA INWK+32            \ flag launched ship for the launched ship. For missiles
+                        \ this enables AI (bit 7), makes it friendly towards us
+                        \ (bit 6), sets the target to the value of MSTG (bits
+                        \ 1-4), and sets its lock status as launched (bit 0).
+                        \ It doesn't matter what it does for our abandoned
+                        \ Cobra, as the AI flag gets overwritten once we return
+                        \ from the subroutine back to the ESCAPE routine that
+                        \ called FRS1 in the first place
+
+.^fq1
+
+ LDA #&60               \ Set INWK+14 (nosev_z_hi) to 1 (&60), so the launched
+ STA INWK+14            \ ship is pointing away from us
+
+ ORA #128               \ Set INWK+22 (sidev_x_hi) to -1 (&D0), so the launched
+ STA INWK+22            \ ship has the same orientation as spawned ships, just
+                        \ pointing away from us (if we set side_v to +1 instead,
+                        \ this ship would be a mirror image of all the other
+                        \ ships, which are spawned with -1 in nosev and +1 in
+                        \ sidev)
+
+ LDA DELTA              \ Set INWK+27 (speed) to 2 * DELTA, so the launched ship
+ ROL A                  \ flies off at twice our speed
  STA INWK+27
 
  TXA                    \ Add a new ship of type X to our local bubble of
- JMP NWSHP              \ universe
+ JMP NWSHP              \ universe and return from the subroutine using a tail
+                        \ call
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: FRMIS
 \
-\ Player fires missile
+\ We fired a missile, so send it streaking away from us to unleash mayhem and
+\ destruction on our sworn enemies.
 \
 \ ******************************************************************************
 
-.FRMIS                  \ Player fires missile
+.FRMIS
 {
- LDX #MSL               \ Missile
- JSR FRS1               \ player missile launch attempt, up.
- BCC FR1                \ no room, missile jammed message, down.
- LDX MSTG               \ nearby id for missile target
- JSR GINF               \ get address, INF, for ship X nearby from UNIV.
- LDA FRIN,X             \ get nearby ship type
- JSR ANGRY              \ for ship type Acc., visit down.
+ LDX #MSL               \ Call FRS1 to launch a missile straight ahead of us
+ JSR FRS1
+
+ BCC FR1                \ If FRS1 returns with the C flag clear, then there
+                        \ isn't room in the universe for our missile, so jump
+                        \ down to FR1 to display a "missile jammed" message
+
+ LDX MSTG               \ Fetch the slot number of the missile's target
+
+ JSR GINF               \ Get the address of the data block for the target ship
+                        \ and store it in INF
+
+ LDA FRIN,X             \ Fetch the ship type of the missile's target into A
+
+ JSR ANGRY              \ Call ANGRY to make the target ship hostile
 
  LDY #0                 \ We have just launched a missile, so we need to remove
  JSR ABORT              \ missile lock and hide the leftmost indicator on the
                         \ dashboard by setting it to black (Y = 0)
 
- DEC NOMSL              \ reduce number of player's missles
+ DEC NOMSL              \ Reduce the number of missiles we have by 1
 
  LDA #48                \ Call the NOISE routine with A = 48 to make the sound
- JMP NOISE              \ of a missile launch
+ JMP NOISE              \ of a missile launch, returning from the subroutine
+                        \ using a tail call
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: ANGRY
 \
-\ Space station (or pirate?) angry
+\ Make a ship hostile. All this actually does is set the ship's hostile flag,
+\ start it turning and give it a kick of acceleration - later calls to TACTICS
+\ will make the ship attack.
+\
+\ Arguments:
+\
+\   A                   The type of ship to irritate
+\
+\   INF                 The address of the data block for the ship to infuriate
 \
 \ ******************************************************************************
 
-.ANGRY                  \ Acc already loaded with ship type
+.ANGRY
 {
- CMP #SST               \ #SST, space station.
- BEQ AN2                \ space station Angry
- BCS HI1
- CMP #CYL               \ #CYL cobra
- BNE P%+5               \ transport or below rts, else trader ship or higher.
- JSR AN2                \ space station Angry in support of police only
- LDY #32                \ Byte#32 = ai_attack_univ_ecm from info
+ CMP #SST               \ If this is the space station, jump to AN2 to make the
+ BEQ AN2                \ space station hostile
+
+ BCS HI1                \ If A >= #SST then this is a missile, asteroid, cargo
+                        \ canister, Thargon or escape pod, and they can't get
+                        \ hostile, so return from the subroutine (as HI1
+                        \ contains an RTS)
+
+ CMP #CYL               \ If this is not a Cobra Mk III trader, skip the
+ BNE P%+5               \ following instruction
+
+ JSR AN2                \ Call AN2 to make the space station hostile
+
+ LDY #32                \ Fetch the ship's byte 32 (AI flag)
  LDA (INF),Y
- BEQ HI1                \ rts if dumb
- ORA #128               \ else some ai bits exist. So set bit7, enable ai for tactics.
- STA (INF),Y
- LDY #28                \ accel
- LDA #2                 \ speed up
- STA (INF),Y
- ASL A                  \ #4 pitch
- LDY #30                \ pitch counter
- STA (INF),Y
- RTS
 
-.AN2                    \ space station Angry
+ BEQ HI1                \ If the AI flag is zero then this ship has no AI and
+                        \ it can't get hostile, so return from the subroutine
+                        \ (as HI1 contains an RTS)
 
- ASL K%+NI%+32
- SEC
- ROR K%+NI%+32
- CLC
- RTS
+ ORA #%10000000         \ Otherwise set bit 7 to ensure AI is definitely enabled
+ STA (INF),Y
+
+ LDY #28                \ Set the ship's byte 28 (acceleration) to 2, so it
+ LDA #2                 \ speeds up
+ STA (INF),Y
+
+ ASL A                  \ Set the ship's byte 30 (pitch counter) to 4, so it
+ LDY #30                \ starts pitching
+ STA (INF),Y
+
+ RTS                    \ Return from the subroutine
+
+.AN2
+
+ ASL K%+NI%+32          \ Fetch the AI counter (byte 32) of the second ship
+ SEC                    \ in the ship data workspace at K%, which is reserved
+ ROR K%+NI%+32          \ for the sun or the space station (in this case it's
+                        \ the latter), and set bit 7 to make it hostile
+
+ CLC                    \ Clear the C flag, which isn't used by calls to this
+                        \ routine, but it does set up the entry point FR1-2
+                        \ so that it clears the C flag and does an RTS
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: FR1
 \
-\ Missile jammed message
+\ Display the "missile jammed" message.
+\
+\ Other entry points:
+\
+\   FR1-2               Clear the C flag and RTS
 \
 \ ******************************************************************************
 
-.FR1                    \ missile jammed message.
+.FR1
 {
- LDA #201               \ token = missile jammed
- JMP MESS               \ message
+ LDA #201               \ Print recursive token 41 ("MISSILE JAMMED") as an
+ JMP MESS               \ in-flight message and return from the subroutine using
+                        \ a tail call
 }
 
 \ ******************************************************************************
@@ -26390,7 +26576,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Subroutine: DEATH
 \
-\ We have been killed, so clean up the mess.
+\ We have been killed, so display the chaos of our destruction above a "GAME
+\ OVER" sign, and clean up the mess ready for the next attempt.
 \
 \ ******************************************************************************
 
@@ -31258,7 +31445,10 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ For each ship blueprint below, the first 20 bytes define the following:
 \
 \ Byte #0       Maximum number of bits of debris shown when destroyed
-\ Byte #1-2     Area of ship that can be locked onto by a missle (lo, hi)
+\ Byte #1-2     The ship's "hit area", which represents how far the ship can be
+\               from the centre of our crosshairs and still be locked onto by
+\               our missles or hit by our lasers, as described in the HITCH
+\               routine (16-bit value, 1 = low byte, 2 = high byte)
 \ Byte #3       Edges data offset lo (offset is from byte #0)
 \ Byte #4       Faces data offset lo (offset is from byte #0)
 \ Byte #5       Maximum heap size for plotting ship = 1 + 4 * max. no of
@@ -31267,7 +31457,8 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \ Byte #7       Explosion count = 4 * n + 6, where n = number of vertices used
 \               as origins for explosion dust
 \ Byte #8       Number of vertices * 6
-\ Byte #10-11   Bounty awarded in Cr * 10 (lo, hi)
+\ Byte #10-11   The bounty awarded for the destruction of this ship in Cr * 10
+\               (16-bit value, 10 = low byte, 11 = high byte)
 \ Byte #12      Number of faces * 4
 \ Byte #13      Beyond this distance, show this ship as a dot
 \ Byte #14      Maximum energy/shields
