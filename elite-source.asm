@@ -2827,33 +2827,36 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ ------------------------
 \ INWK+31 = exploding/killed state, scanner flag, or missile count
 \
-\   * Bits 0-2 = number of missiles
-\   * Bit 3 = keep updating explosion cloud?
-\   * Bit 4 = 0 (hide on scanner) or 1 (show)
-\   * Bit 5 = 0 (not exploding) or 1 (exploding)
-\   * Bit 6 = laser firing at ship?
-\   * Bit 7 = 1 (ship has been killed)
+\   * Bits 0-2: n = number of missiles or Thargons
+\   * Bit 3:    0 = no explosion cloud   1 = keep updating explosion cloud
+\   * Bit 4:    0 = hide on scanner      1 = show on scanner
+\   * Bit 5:    0 = not exploding        1 = exploding
+\   * Bit 6:    0 = no laser fire        1 = this ship's laser is firing at us
+\   * Bit 7:    0 = ship is alive        1 = ship has been killed
 \
 \ INWK+32 = AI, hostility and E.C.M. flags
 \
 \   * For ships:
-\     * Bit 0 = 0 (no E.C.M.) or 1 (has E.C.M.)
-\     * Bit 6 = 0 (friendly) or 1 (hostile)
-\     * Bit 7 = 0 (dumb) or 1 (has AI)
 \
-\   * For space station:
-\     * Bit 7 = 0 (friendly) or 1 (angry)
+\     * Bit 0:    0 = no E.C.M.          1 = has E.C.M.
+\     * Bits 1-5: n = aggression level, high = aggressive (see TACTICS part 7)
+\     * Bit 6:    0 = friendly           1 = hostile
+\     * Bit 7:    0 = dumb               1 = AI enabled (tactics get applied)
+\
+\   * For the space station:
+\
+\     * Bit 7:    0 = friendly           1 = angry
 \
 \   * For missiles:
-\     * Bit 0 = 0 (no lock) or 1 (target locked)
-\     * Bits 1-6 = target's slot number
-\     * Bit 7 = 0 (dumb) or 1 (has AI)
+\
+\     * Bit 0:    0 = no lock/launched   1 = target locked
+\     * Bits 1-5: n = target's slot number
+\     * Bit 6:    0 = friendly           1 = hostile
+\     * Bit 7:    0 = dumb               1 = AI enabled (tactics get applied)
 \
 \ Heap pointer and energy (bytes 33-34)
 \ -------------------------------------
-\ INWK+33 = ship lines heap space pointer low byte
-\
-\ INWK+34 = ship lines heap space pointer high byte
+\ INWK(34 33) = ship lines heap space address pointer
 \
 \ INWK+35 = ship energy
 \
@@ -10979,7 +10982,7 @@ NEXT
 \ dashboard, so that's a total of 28.5 rows. So given that we have 512 ticks
 \ per row, we get:
 \
-\   28.5 * 513 = 14592
+\   28.5 * 512 = 14592
 \
 \ So if we started our timer from 14592 at the vertical sync and let it tick
 \ down to zero, then it should get there just as we reach the dashboard.
@@ -10990,7 +10993,7 @@ NEXT
 \
 \ (Interestingly, in the loading screen in elite-loader.asm, the T1 timer for
 \ the split screen has 57 in the high byte, but 0 in the low byte, and as a
-\ result the screen does flicker a bit more at the top of the dashboard.
+\ result the screen does flicker quite a bit more at the top of the dashboard.
 \ Perhaps the authors didn't think it worth spending time perfecting the
 \ loader's split screen? Who knows...)
 \
