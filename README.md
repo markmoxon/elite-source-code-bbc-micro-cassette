@@ -63,17 +63,19 @@ This is the main source for the Elite game. It is made up of 9 original BASIC so
 - `GENTOK` outputting `WORDS9` binary
 - `SHPPRTE` outputting `SHIPS` binary
 
+It also outputs the `PYTHON` binary, which in the original source takes up the last 256 bytes of the `DIALSHP` binary.
+
 It totals ~10,000 lines of 6502 assembler.
 
 ### elite-bcfs.asm
 
-This is the BeebAsm version of the BASIC source file `S.BCFS`, which is responsible for creating the Big Code File - i.e. concatenating the `ELTA`...`ELTG` binaries plus the `SHIPS` data into a single executable for the Elite main game called `ELTcode`.
+This is the BeebAsm version of the BASIC source file `S.BCFS`, which is responsible for creating the Big Code File - i.e. concatenating the `ELTA`...`ELTG` binaries plus the `WORDS9`, `SHIPS` and `PYTHON` data into a single executable for the Elite main game called `ELTcode`.
 
 There is a simple checksum test added to the start of the code. The checksum function cannot be performed in the BeebAsm source so has been reproduced in the `elite-checksum.py` Python script described below.
 
 ### elite-loader.asm
 
-This is the BeebAsm version of the BASIC source file `ELITES`, which creates the executable Elite loader `ELITE`. This is responsible for displaying the title screen and planet, drawing the initial (static) HUD, setting up interrupt routines (for the MODE 4/5 split in the HUD), relocating many routines to lower memory (below `PAGE`) and loading the main executable. It loads four image binaries from the `data` folder for the loading screen, and it also loads the `WORDS9` data file that contains the game's text.
+This is the BeebAsm version of the BASIC source file `ELITES`, which creates the executable Elite loader `ELITE`. This is responsible for displaying the title screen and planet, drawing the initial (static) HUD, setting up interrupt routines (for the MODE 4/5 split in the HUD), relocating many routines to lower memory (below `PAGE`) and loading the main executable. It loads four image binaries from the `data` folder for the loading screen, and it also loads the `WORDS9` data file that contains the game's text, plus the `PYTHON` data file that contains the ship blueprint for the Python, and which lives in the last page of user memory, just after the screen.
 
 There are a number of checksum and protection routines that XOR the code and data with other parts of memory in an attempt to obfuscate and protect the game from tampering. This cannot be done in the BeebAsm source so has been reproduced in the `elite-checksum.py` Python script below.
 

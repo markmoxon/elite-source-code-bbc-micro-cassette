@@ -9,7 +9,8 @@ INCLUDE "elite-header.h.asm"
 _REMOVE_COMMANDER_CHECK = TRUE AND _REMOVE_CHECKSUMS
 _ENABLE_MAX_COMMANDER   = TRUE AND _REMOVE_CHECKSUMS
 
-GUARD &6000             \ Screen buffer starts here
+GUARD &6000             \ Screen memory starts here
+GUARD &8000             \ Paged ROMS start here
 
 \ ******************************************************************************
 \
@@ -39,12 +40,6 @@ POW  = 15               \ Pulse laser power
 NI%  = 36               \ Number of bytes in each ship's data block (as stored
                         \ in INWK and K% and pointed to by the UNIV table)
 
-\ ******************************************************************************
-\
-\ MOS definitions
-\
-\ ******************************************************************************
-
 OSBYTE = &FFF4          \ The OS routines used in Elite. OSBYTE is used three
 OSWORD = &FFF1          \ times, OSWORD is used twice, and OSFILE is used just
 OSFILE = &FFDD          \ once
@@ -54,18 +49,8 @@ SHEILA = &FE00          \ Memory-mapped space for accessing internal hardware,
 
 VSCAN  = 57             \ Defines the split position in the split screen mode
 
-VEC    = &7FFE          \ Set to the original IRQ1 vector by elite-loader.asm
-
-SVN    = &7FFD          \ Set to 1 while we are saving a commander, 0 otherwise
-
-X      = 128            \ The centre coordinates of the 256 x 192 mode 4 space
-Y      = 96             \ view
-
-\ ******************************************************************************
-\
-\ Function key numbers
-\
-\ ******************************************************************************
+X = 128                 \ The centre coordinates of the 256 x 192 mode 4 space
+Y = 96                  \ view
 
 f0 = &20                \ The internal key numbers of the function keys (see
 f1 = &71                \ the Advanced User Guide for a list of internal key
@@ -240,11 +225,15 @@ ENDMACRO
 \     |                                   |
 \     +-----------------------------------+   &8000
 \     |                                   |
+\     | Python blueprint (PYTHON.bin)     |
+\     |                                   |
+\     +-----------------------------------+   &7F00
+\     |                                   |
 \     | Screen memory                     |
 \     |                                   |
 \     +-----------------------------------+   &6000
 \     |                                   |
-\     | Ship definitions (SHIPS.bin)      |
+\     | Ship blueprints (SHIPS.bin)       |
 \     |                                   |
 \     +-----------------------------------+   &563A = XX21
 \     |                                   |
@@ -319,7 +308,7 @@ ENDMACRO
 \   Operating system workspace in page 2                   256
 \   Sound and printer buffers                              256
 \
-\   Elite's split screen memory                           8192
+\   Elite's split screen memory (31 rows of 256 bytes)    7936
 \
 \   Game code                                            18170
 \   Ship blueprints (11 different designs)                2502
@@ -328,6 +317,7 @@ ENDMACRO
 \   WP workspace (ship slots, variables)                   512
 \   Zero page workspace (INWK workspace, variables)        256
 \   T% workspace (current commander data, stardust data)   256
+\   Python ship definition, 14 bytes (3 for variables)     256
 \
 \   Total                                                65536
 \
@@ -492,7 +482,12 @@ ORG &0000
 .YC
 
  SKIP 1                 \ Contains the y-coordinate of the text cursor (i.e.
-                        \ the text row), from 0 to 23
+                        \ the text row), from 0 to 23. The screen actually has
+                        \ 31 character rows if you include the mode 5 dashboard,
+                        \ but the text printing routines only work on the mode 4
+                        \ part (the space view), so the text cursor only goes up
+                        \ to a maximum of 23, the row just before the screen
+                        \ split
                         \
                         \ A value of 0 denotes the top row, but because the
                         \ top part of the screen has a white border that clashes
@@ -8239,7 +8234,7 @@ NEXT
 \ character, so the screen memory is effectively split up into character rows
 \ and columns (and it's no coincidence that these match the character layout
 \ used in Elite, where XC and YC hold the location of the text cursor, with XC
-\ in the range 0 to 23 and YC in the range 0 to 32).
+\ in the range 0 to 32 and YC in the range 0 to 23).
 \
 \ The mode 4 screen starts in memory at &6000, and each character row takes up
 \ 8 rows of 256 bits, or 256 bytes, so that means each character row takes up
@@ -32491,6 +32486,130 @@ PRINT "Reload at ", ~LOAD_SHIPS%
 
 PRINT "S.SHIPS ", ~CODE_B%, " ", ~P%, " ", ~LOAD%, " ", ~LOAD_SHIPS%
 SAVE "output/SHIPS.bin", CODE_SHIPS%, P%, LOAD%
+
+\ ******************************************************************************
+\
+\ PYTHON SHIP BLUEPRINT
+\
+\ Produces the binary file PYTHON.bin that gets loaded by elite-bcfs.asm.
+\
+\ ******************************************************************************
+
+CLEAR 0, &7F00
+
+CODE_PYTHON% = &7F00
+LOAD_PYTHON% = &1B00
+
+ORG CODE_PYTHON%
+
+.SHIP4                              \ Python ship blueprint
+
+ EQUB &03                           \ debris shown = 3
+ EQUB &40, &38                      \ area for missile lock = &3840
+ EQUB &56                           \ edges data offset = &0056
+ EQUB &BE                           \ faces data offset = &00BE
+ EQUB &55                           \ max. edge count = (&55 - 1) / 4 = 21
+ EQUB &00                           \ gun vertex = 0
+ EQUB &2E                           \ explosion count = 10, (4 * n) + 6 = &2E
+ EQUB &42                           \ number of vertices = &42 / 6 = 11
+ EQUB &1A                           \ number of edges = &1A = 26
+ EQUW &C8                           \ bounty = &C8 = 200
+ EQUB &34                           \ number of faces = &34 / 4 = 13
+ EQUB &28                           \ show as a dot past a distance of 40
+ EQUB &FA                           \ maximum energy/shields = 250
+ EQUB &14                           \ maximum speed = 20
+ EQUB &00                           \ edges data offset = &0056
+ EQUB &00                           \ faces data offset = &00BE
+ EQUB &00                           \ normals are scaled by 2^0 = 1
+ EQUB %00011011                     \ laser power = 3, missiles = 3
+
+ EQUB &00, &00, &E0, &1F, &10, &32  \ vertices data (11*6)
+ EQUB &00, &30, &30, &1E, &10, &54
+ EQUB &60, &00, &10, &3F, &FF, &FF
+ EQUB &60, &00, &10, &BF, &FF, &FF
+ EQUB &00, &30, &20, &3E, &54, &98
+
+ EQUB &00, &18, &70, &3F, &89, &CC
+ EQUB &30, &00, &70, &BF, &B8, &CC
+ EQUB &30, &00, &70, &3F, &A9, &CC
+ EQUB &00, &30, &30, &5E, &32, &76
+ EQUB &00, &30, &20, &7E, &76, &BA
+
+ EQUB &00, &18, &70, &7E, &BA, &CC
+
+ EQUB &1E, &32, &00, &20            \ edges data (26*4)
+ EQUB &1F, &20, &00, &0C
+ EQUB &1F, &31, &00, &08
+ EQUB &1E, &10, &00, &04
+ EQUB &1D, &59, &08, &10
+
+ EQUB &1D, &51, &04, &08
+ EQUB &1D, &37, &08, &20
+ EQUB &1D, &40, &04, &0C
+ EQUB &1D, &62, &0C, &20
+ EQUB &1D, &A7, &08, &24
+
+ EQUB &1D, &84, &0C, &10
+ EQUB &1D, &B6, &0C, &24
+ EQUB &05, &88, &0C, &14
+ EQUB &05, &BB, &0C, &28
+ EQUB &05, &99, &08, &14
+
+ EQUB &05, &AA, &08, &28
+ EQUB &1F, &A9, &08, &1C
+ EQUB &1F, &B8, &0C, &18
+ EQUB &1F, &C8, &14, &18
+ EQUB &1F, &C9, &14, &1C
+
+ EQUB &1D, &AC, &1C, &28
+ EQUB &1D, &CB, &18, &28
+ EQUB &1D, &98, &10, &14
+ EQUB &1D, &BA, &24, &28
+ EQUB &1D, &54, &04, &10
+
+ EQUB &1D, &76, &20, &24
+
+ EQUB &9E, &1B, &28, &0B            \ faces data (13*4)
+ EQUB &1E, &1B, &28, &0B
+ EQUB &DE, &1B, &28, &0B
+ EQUB &5E, &1B, &28, &0B
+ EQUB &9E, &13, &26, &00
+
+ EQUB &1E, &13, &26, &00
+ EQUB &DE, &13, &26, &00
+ EQUB &5E, &13, &26, &00
+ EQUB &BE, &19, &25, &0B
+ EQUB &3E, &19, &25, &0B
+
+ EQUB &7E, &19, &25, &0B
+ EQUB &FE, &19, &25, &0B
+ EQUB &3E, &00, &00, &70
+
+ SKIP 11
+
+.SVN                    \ SVN = &7FFD
+
+ EQUB 0                 \ Set to 1 while we are saving a commander, 0 otherwise
+
+.VEC                    \ VEC = &7FFE
+
+ EQUW 0                 \ Set to the original IRQ1 vector by elite-loader.asm
+
+\ ******************************************************************************
+\
+\ Save output/PYTHON.bin
+\
+\ ******************************************************************************
+
+PRINT "PYTHON"
+PRINT "Assembled at ", ~CODE_PYTHON%
+PRINT "Ends at ", ~P%
+PRINT "Code size is ", ~(P% - CODE_PYTHON%)
+PRINT "Execute at ", ~LOAD%
+PRINT "Reload at ", ~LOAD_PYTHON%
+
+PRINT "S.PYTHON ", ~CODE_B%, " ", ~P%, " ", ~LOAD%, " ", ~LOAD_PYTHON%
+SAVE "output/PYTHON.bin", CODE_PYTHON%, P%, LOAD%
 
 \ ******************************************************************************
 \

@@ -101,23 +101,27 @@ INCBIN "output/WORDS9.bin"
 
 ;OSCLI("L.:0.DIALSHP "+STR$~(CODE+&400))
 ORG CODE+&400
-PRINT "DIALSHP=",~P%
-INCBIN "data/DIALSHP.bin"
+PRINT "DIALS=",~P%
+INCBIN "images/DIALS.bin"
+
+ORG CODE+&B00
+PRINT "PYTHON=",~P%
+INCBIN "output/PYTHON.bin"
 
 ;OSCLI("L.:2.P.ELITE "+STR$~(CODE+&C00))
 ORG CODE+&C00
 PRINT "P.ELITE=",~P%
-INCBIN "data/P.ELITE.bin"
+INCBIN "images/P.ELITE.bin"
 
 ;OSCLI("L.:2.P.A-SOFT "+STR$~(CODE+&D00))
 ORG CODE+&D00
 PRINT "P.A-SOFT=",~P%
-INCBIN "data/P.A-SOFT.bin"
+INCBIN "images/P.A-SOFT.bin"
 
 ;OSCLI("L.:2.P.(C)ASFT "+STR$~(CODE+&E00))
 ORG CODE+&E00
 PRINT "P.(C)ASFT=",~P%
-INCBIN "data/P.(C)ASFT.bin"
+INCBIN "images/P.(C)ASFT.bin"
 
 ;REMOSCLI("L.:2.P.NAME$ "+STR$~(CODE+&E00))
 
