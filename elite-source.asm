@@ -10973,6 +10973,18 @@ NEXT
 \ these mappings requires six calls to SHEILA+&21 - see p.379 of the Advanced
 \ User Guide for an explanation.
 \
+\ The mode 5 palette table has two blocks which overlap. The block used depends
+\ on whether or not we have an escape pod fitted. The block at TVT1 is used for
+\ the standard dashboard colours, while TVT1+8 is used for the dashboard when an
+\ escape pod is fitted. The colours are as follows:
+\
+\                 Normal (TVT1)     Escape pod (TVT1+8)
+\
+\   Colour 0      Black             Black
+\   Colour 1      Red               Red
+\   Colour 2      Yellow            White
+\   Colour 3      Green             Cyan
+\
 \ ******************************************************************************
 
 .TVT1
