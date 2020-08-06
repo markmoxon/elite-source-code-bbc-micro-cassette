@@ -11001,31 +11001,32 @@ NEXT
 
 .TVT1
 
- EQUB &D4,&C4,&94,&84   \ This block of palette data is used to create two
- EQUB &F5,&E5,&B5,&A5   \ palettes used in three different places, all of them
- EQUB &76,&66,&36,&26   \ redefining four colours in mode 5:
- EQUB &E1,&F1,&B1,&A1   \
-                        \ 12 bytes from TVT1 (i.e. the first 3 EQUDs): applied
-                        \ when the T1 timer runs down at the switch from the
-                        \ space view to the dashboard, so this is the standard
+ EQUB &D4, &C4          \ This block of palette data is used to create two
+ EQUB &94, &84          \ palettes used in three different places, all of them
+ EQUB &F5, &E5          \ redefining four colours in mode 5:
+ EQUB &B5, &A5          \
+                        \ 12 bytes from TVT1 (i.e. the first 6 rows): applied
+ EQUB &76, &66          \ when the T1 timer runs down at the switch from the
+ EQUB &36, &26          \ space view to the dashboard, so this is the standard
                         \ dashboard palette
-                        \
-                        \ 8 bytes from TVT1+8 (i.e. the last 2 EQUDs): applied
+ EQUB &E1, &F1          \
+ EQUB &B1, &A1          \ 8 bytes from TVT1+8 (i.e. the last 4 rows): applied
                         \ when the T1 timer runs down at the switch from the
                         \ space view to the dashboard, and we have an escape
                         \ pod fitted, so this is the escape pod dashboard
                         \ palette
                         \
-                        \ 8 bytes from TVT1+8 (i.e. the last 2 EQUDs): applied
+                        \ 8 bytes from TVT1+8 (i.e. the last 4 rows): applied
                         \ at vertical sync in LINSCN when HFX is non-zero, to
                         \ create the hyperspace effect in LINSCN (where the
                         \ whole screen is switched to mode 5 at vertical sync)
 
- EQUB &F0,&E0,&B0,&A0   \ 12 bytes of palette data at TVT1+16, used to set the
- EQUB &D0,&C0,&90,&80   \ mode 4 palette in LINSCN when we hit vertical sync,
- EQUB &77,&67,&37,&27   \ so the palette is set to monochrome when we start to
-                        \ draw the first row of the screen
-
+ EQUB &F0, &E0          \ 12 bytes of palette data at TVT1+16, used to set the
+ EQUB &B0, &A0          \ mode 4 palette in LINSCN when we hit vertical sync,
+ EQUB &D0, &C0          \ so the palette is set to monochrome when we start to
+ EQUB &90, &80          \ draw the first row of the screen
+ EQUB &77, &67
+ EQUB &37, &27
 
 \ ******************************************************************************
 \
