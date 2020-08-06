@@ -19,24 +19,25 @@ GUARD &6000             \ Screen buffer starts here
 
 NOST = 18               \ Maximum number of stardust particles
 
-NOSH = 12               \ Maximum number of ships at any one time (counting
-                        \ from 0, so there are actually 13 ship slots)
+NOSH = 12               \ Maximum number of ships in our local bubble of the
+                        \ universe (counting from 0, so there are actually 13
+                        \ ship slots)
 
-COPS = 2                \ Viper
-MAM = 3                 \ Mamba
-THG = 6                 \ Thargoid
-CYL = 7                 \ Cobra Mk III (trader)
-SST = 8                 \ Space station
-MSL = 9                 \ Missile
-AST = 10                \ Asteroid
-OIL = 11                \ Cargo canister
-TGL = 12                \ Thargon
-ESC = 13                \ Escape Pod
+COPS = 2                \ Ship type for a Viper
+MAM  = 3                \ Ship type for a Mamba
+THG  = 6                \ Ship type for a Thargoid
+CYL  = 7                \ Ship type for a Cobra Mk III (trader)
+SST  = 8                \ Ship type for the space station
+MSL  = 9                \ Ship type for a missile
+AST  = 10               \ Ship type for an asteroid
+OIL  = 11               \ Ship type for a cargo canister
+TGL  = 12               \ Ship type for a Thargon
+ESC  = 13               \ Ship type for an escape pod
 
-POW = 15                \ Pulse laser power
+POW  = 15               \ Pulse laser power
 
-NI% = 36                \ Number of bytes for each object in our universe (as
-                        \ stored in INWK and pointed to by UNIV)
+NI%  = 36               \ Number of bytes in each ship's data block (as stored
+                        \ in INWK and K% and pointed to by the UNIV table)
 
 \ ******************************************************************************
 \
@@ -44,11 +45,12 @@ NI% = 36                \ Number of bytes for each object in our universe (as
 \
 \ ******************************************************************************
 
-OSBYTE = &FFF4
-OSWORD = &FFF1
-OSFILE = &FFDD
+OSBYTE = &FFF4          \ The OS routines used in Elite. OSBYTE is used three
+OSWORD = &FFF1          \ times, OSWORD is used twice, and OSFILE is used just
+OSFILE = &FFDD          \ once
 
-SHEILA = &FE00
+SHEILA = &FE00          \ Memory-mapped space for accessing internal hardware,
+                        \ particularly the video ULA, 6845 CRTC and 6522 VIAs
 
 VSCAN  = 57             \ Defines the split position in the split screen mode
 
@@ -56,8 +58,8 @@ VEC    = &7FFE          \ Set to the original IRQ1 vector by elite-loader.asm
 
 SVN    = &7FFD          \ Set to 1 while we are saving a commander, 0 otherwise
 
-X = 128                 \ Centre coordinates of the 256 x 192 mode 4 space view
-Y = 96
+X      = 128            \ The centre coordinates of the 256 x 192 mode 4 space
+Y      = 96             \ view
 
 \ ******************************************************************************
 \
@@ -65,9 +67,9 @@ Y = 96
 \
 \ ******************************************************************************
 
-f0 = &20
-f1 = &71
-f2 = &72
+f0 = &20                \ The internal key numbers of the function keys (see
+f1 = &71                \ the Advanced User Guide for a list of internal key
+f2 = &72                \ numbers)
 f3 = &73
 f4 = &14
 f5 = &74
@@ -124,6 +126,98 @@ MACRO ITEM price, factor, units, quantity, mask
   EQUB quantity
   EQUB mask
 ENDMACRO
+
+\ ******************************************************************************
+\
+\ A note on multi-byte number terminology
+\
+\ Not surprisingly, Elite deals with some pretty big numbers. For example, the
+\ cash reserves are stored as big-endian 32-bit numbers, space coordinates are
+\ stored as 24-bit sign-magnitude little-endian numbers, and the joystick gives
+\ us two's complement signed 16-bit numbers. When you only have the 8-bit bytes
+\ of 6502 assembly language to play with, things can get confusing, and quickly.
+\
+\ First, let's recap some basic definitions, so we're all on the same page.
+\
+\   * Big-endian numbers store their most significant bytes first, then the
+\     least significant bytes. This is how humans tend to write numbers.
+\
+\   * Little-endian numbers store the least significance bytes first then the
+\     most significant ones. The 6502 stores its addresses in little-endian
+\     format, as do the EQUD and EQUW directives, for example.
+\
+\   * Sign-magnitude numbers store their sign in their highest bit, and the
+\     rest of the number contains the magnitude of the number (i.e. the number
+\     without the sign). You can change the sign of a sign magnitude number by
+\     simply flipping the highest bit (bit 7 in an 8-bit sign-magnitude number,
+\     bit 15 in a 16-bit sign-magnitude number, and so on).
+\
+\   * Two's complement numbers, meanwhile, are the mainstay of 6502 assembly
+\     language, and instructions like ADC and SBC are designed to work with both
+\     negative and positive two's complement numbers without us having to worry
+\     about a thing. They also have a sign bit in the highest bit, but negative
+\     numbers have their bits flipped compared to positive numbers. To flip the
+\     sign of a number in two's complement, you flip all the bits and add 1.
+\
+\ Elite uses a smorgasbord of all these types, and it can get pretty confusing.
+\ Given this, let's invent some terminology to make it easier to talk about
+\ multi-byte numbers and how they are stored in memory.
+\
+\ If we have three bytes called x_sign, x_hi and x_lo, then we can refer to
+\ their 32-bit number like this:
+\
+\   (x_sign x_hi x_lo)
+\
+\ In this terminology, the most significant byte is always written first,
+\ irrespective of how the bytes ar stored in memory. Similarly, we can talk
+\ about 16-bit numbers made up of registers:
+\
+\   (X Y)
+\
+\ or numbers made up of a mix of registers and memory locations:
+\
+\  (A S S+1)
+\
+\ In the latter case, the most significant byte is in the accumulator A, then
+\ the next most significant is in memory location S, and the least significant
+\ byte is in S+1.
+\
+\ When talking about numbers in sequential memory locations, we can use another
+\ shorthand. Consider this little-endian number:
+\
+\   (K+3 K+2 K+1 K)
+\
+\ where a 32-bit little-endian number is stored in memory locations K (low byte)\ through to K+3 (high byte). We can also refer to this number like this:
+\
+\   K(3 2 1 0)
+\
+\ Or a big-endian number stored in XX15 through XX15+3 would be:
+\
+\   XX15(0 1 2 3)
+\
+\ where XX15 is the most significant byte and XX15+3 the least significant.
+\
+\ To take this even further, if we want to add
+\ another significant byte to make this a five-byte number - an overflow byte
+\ in a memory location called S, say - then we might talk about:
+\
+\   K(S 3 2 1 0)
+\
+\ or even something like this:
+\
+\   XX15(4 0 1 2 3)
+\
+\ which is a five-byte number stored with the highest byte in XX15+4, then the
+\ next most significant in XX15, then XX15+1 and XX15+2, through to the lowest
+\ byte in XX15+3. And yes, Elite does store one of its numbers like this - see
+\ the BPRNT routine for the gory details.
+\
+\ With this terminology, it might help to think of the digits listed in the
+\ brackets as being written down in the same order that we would write them
+\ down as humans. The point of this terminology is to make it easier for people
+\ to read, after all.
+\
+\ ******************************************************************************
 
 \ ******************************************************************************
 \
@@ -249,7 +343,61 @@ ENDMACRO
 \
 \ ******************************************************************************
 
-
+\ ******************************************************************************
+\
+\ Galaxy and system seeds
+\
+\ Famously, Elite's galaxy and system data is generated procedurally, using a
+\ set of three 16-bit seed numbers and the Tribonnaci series. You can read all
+\ about this process in the individual documentation for the routines mentioned
+\ in the table below, as well as the system twisting routine at TT54 and galaxy
+\ twisting process in Ghy.
+\
+\ The three seeds are stored as little-endian 16-bit numbers, so the low (least
+\ significant) byte is first followed by the high (most significant) byte. That
+\ means if the seeds are w0, w1 and w2, they are stored like this:
+\
+\       low byte  high byte
+\   w0  QQ15      QQ15+1
+\   w1  QQ15+2    QQ15+3
+\   w2  QQ15+4    QQ15+5
+\
+\ In this documentation, we denote the low byte of w0 as w0_lo and the high byte
+\ as w0_hi, and so on for w1_lo, w1_hi, w2_lo and w2_hi.
+\
+\ The seeds for the selected system are stored at QQ15, while the seeds for the
+\ current galaxy are in QQ21.
+\
+\ Here's a summary of which bits in which seeds are used to generate the various
+\ bits of data in the universe. The routine names where these data are generated
+\ are shown at the end (TT25 etc.).
+\
+\    w0_hi    w0_lo    w1_hi    w1_lo    w2_hi    w2_lo
+\ 76543210 76543210 76543210 76543210 76543210 76543210
+\
+\                                        ^^^----------- Species adjective 1 TT25
+\                                     ^^^-------------- Species adjective 2 TT25
+\       ^^----------------^^--------------------------- Species adjective 3 TT25
+\                                           ^^--------- Species type        TT25
+\                   ^^^^^^^^--------------^^^^--------- Average radius      TT25
+\                              ^^^--------------------- Government type     TT24
+\       ^^--------------------------------------------- Prosperity level    TT24
+\       ^---------------------------------------------- Economy type        TT24
+\                         ^^--------------------------- Tech level          TT24
+\                   ^^^^^^^^--------------------------- Galactic x-coord    TT24
+\ ^^^^^^^^--------------------------------------------- Galactic y-coord    TT24
+\                                               ^-^---- Long-range dot size TT22
+\                                                     ^ Short-range size    TT23
+\           ^------------------------------------------ Name length          cpl
+\                                        ^^^^^--------- Name token (x4)      cpl
+\      ^^^--------------------------------------------- Planet distance    SOLAR
+\                        ^^^--------------------------- Sun distance       SOLAR
+\                                           ^^--------- Sun x-y offset     SOLAR
+\
+\ 76543210 76543210 76543210 76543210 76543210 76543210
+\    w0_hi    w0_lo    w1_hi    w1_lo    w2_hi    w2_lo
+\
+\ ******************************************************************************
 
 \ ******************************************************************************
 \
@@ -524,22 +672,7 @@ ORG &0000
 
  SKIP 6                 \ Contains the three 16-bit seeds (6 bytes) for the
                         \ selected system, i.e. the one in the crosshairs in
-                        \ the short range chart.
-                        \
-                        \ The seeds are stored as little-endian 16-bit numbers,
-                        \ so the low (least significant) byte is first followed
-                        \ by the high (most significant) byte. That means if
-                        \ the seeds are w0, w1 and w2, they are stored like
-                        \ this:
-                        \
-                        \       low byte  high byte
-                        \   w0  QQ15      QQ15+1
-                        \   w1  QQ15+2    QQ15+3
-                        \   w2  QQ15+4    QQ15+5
-                        \
-                        \ In this documentation, we denote the low byte of w0
-                        \ as w0_lo and the high byte as w0_hi, and so on for
-                        \ w1_lo, w1_hi, w2_lo and w2_hi.
+                        \ the short range chart
 
 .K5
 
@@ -9391,28 +9524,7 @@ NEXT
 \ digits), using 32-bit arithmetic and an overflow byte, and that's where
 \ the complexity comes in.
 \
-\ Given this, let's use some terminology to make it easier to talk about
-\ multi-byte numbers, and specifically the big-endian numbers that Elite uses
-\ to store large numbers like the current cash amount (big-endian numbers store
-\ their most significant byte first, then the lowest significant bytes, which
-\ is different to how 6502 assembly stores it's 16-bit numbers; Elite's large
-\ numbers are stored in the same way that we write numbers, with the largest
-\ digits first, while 6502 does it the other way round, where &30 &FE
-\ represents &FE30, for example).
-\
-\ If K is made up of four bytes, then we may talk about K(0 1 2 3) as the
-\ 32-bit number that is stored in memory at K thorough K+3, with the most
-\ significant byte in K and the least significant in K+3. If we want to add
-\ another significant byte to make this a five-byte number - an overflow byte
-\ in a memory location called S, say - then we might talk about K(S 0 1 2 3).
-\ Similarly, XX15(4 0 1 2 3) is a five-byte number stored with the highest byte
-\ in XX15+4, then the next most significant in XX15, then XX15+1 and XX15+2,
-\ through to the lowest byte in XX15+3 (yes, the following code does store one
-\ of its numbers like this). It might help to think of the digits listed in
-\ the brackets as being written down in the same order that we would write them
-\ down as humans.
-\
-\ Now that we have some terminology, let's look at the above algorithm. We need
+\ Let's look at the above algorithm in more detail. We need to implement it with
 \ multi-byte subtraction, which we can do byte-by-byte using the carry flag,
 \ but we also need to be able to multiply a multi-byte number by 10, which is
 \ slightly trickier. Multiplying by 10 isn't directly supported the 6502, but
@@ -13614,43 +13726,63 @@ NEXT
 \
 \ Subroutine: MUT3
 \
-\ R.S = XX(2), A.P=A*Q
-\ Not called?
+\ This routine is never actually called, but it is identical to MUT2, as the
+\ extra instructions have no effect.
 \
 \ ******************************************************************************
 
-.MUT3                   \ R.S = XX(2), A.P=A*Q
+.MUT3
 {
- LDX ALP1               \ roll magnitude
- STX P                  \ over-written
+ LDX ALP1               \ Set P = ALP1, though this gets overwritten by the
+ STX P                  \ following, so this has no effect
+
+                        \ Fall through into MUT2 to do the following:
+                        \
+                        \   (S R) = XX(1 0)
+                        \   (A P) = Q * A
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: MUT2
 \
-\ R.S = XX(2), A.P=A*Q
+\ Do the following assignment, and multiplication of two signed 8-bit numbers:
+\
+\   (S R) = XX(1 0)
+\   (A P) = Q * A
 \
 \ ******************************************************************************
 
-.MUT2                   \ R.S = XX(2), A.P=A*Q
+.MUT2
 {
- LDX XX+1
- STX S                  \ hi
+ LDX XX+1               \ Set S = XX+1
+ STX S
+
+                        \ Fall through into MUT1 to do the following:
+                        \
+                        \   R = XX
+                        \   (A P) = Q * A
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: MUT1
 \
-\ Rlo = XX(1), A.P=A*Q
+\ Do the following assignment, and multiplication of two signed 8-bit numbers:
+\
+\   R = XX
+\   (A P) = Q * A
 \
 \ ******************************************************************************
 
-.MUT1                   \ Rlo = XX(1), A.P=A*Q
+.MUT1
 {
- LDX XX
- STX R                  \ lo
+ LDX XX                 \ Set R = XX
+ STX R
+
+                        \ Fall through into MULT1 to do the following:
+                        \
+                        \   (A P) = Q * A
 }
 
 \ ******************************************************************************
@@ -17332,7 +17464,7 @@ LOAD_D% = LOAD% + P% - CODE%
  TYA                    \ from bits 4 and 6, storing the result in ZZ to give a
  ORA #%01010000         \ random number out of 0, &10, &40 or &50 (but which
  STA ZZ                 \ will always be the same for this system). We use this
-                        \ valueto determine the size of the point for this
+                        \ value to determine the size of the point for this
                         \ system on the chart by passing it as the distance
                         \ argument to the PIXEL routine below
 
@@ -26171,7 +26303,7 @@ LOAD_F% = LOAD% + P% - CODE%
  TXS
 
  LDX GNTMP              \ If the laser temperature in GNTMP is non-zero,
- BEQ EE20               \ decrement it (i.e. cool it down a bit))
+ BEQ EE20               \ decrement it (i.e. cool it down a bit)
  DEC GNTMP
 
 .EE20
@@ -26264,7 +26396,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \   A                   The internal key number of the key pressed (see p.142 of
 \                       the Advanced User Guide for a list of internal key
-\                       values)
+\                       numbers)
 \
 \   X                   The amount to move the crosshairs in the x-axis
 \
@@ -27440,7 +27572,8 @@ ENDIF
 \
 \ Arguments:
 \
-\   A                   File operation to be performed. Can be one of the following:
+\   A                   File operation to be performed. Can be one of the
+\                       following:
 \
 \                         * 0 (save file)
 \
@@ -27768,7 +27901,7 @@ ENDIF
 \
 \ Scan the keyboard, starting with internal key number 16 (Q) and working
 \ through the set of internal key numbers (see p.142 of the Advanced User Guide
-\ for a list of internal key values).
+\ for a list of internal key numbers).
 \
 \ This routine is effectively the same as OSBYTE &7A, though the OSBYTE call
 \ preserves A, unlike this routine.
@@ -28103,7 +28236,7 @@ ENDIF
 \
 \ Keyboard table for in-flight controls. This table contains the internal key
 \ codes for the flight keys (see p.142 of the Advanced User Guide for a list of
-\ internal key values).
+\ internal key numbers).
 \
 \ The pitch, roll, speed and laser keys (i.e. the seven primary flight
 \ control keys) have bit 7 set, so they have 128 added to their internal
@@ -28206,7 +28339,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \
 \   X                   The internal number of the key to check (see p.142 of
 \                       the Advanced User Guide for a list of internal key
-\                       values)
+\                       numbers)
 \
 \ Returns:
 \
@@ -28285,7 +28418,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 .DKS2
 {
- LDA #&80               \ Call OSBYTE &80 to fetch the 16-bit value from ADC
+ LDA #128               \ Call OSBYTE 128 to fetch the 16-bit value from ADC
  JSR OSBYTE             \ channel X, returning (Y X), i.e. the high byte in Y
                         \ and the low byte in X
 
@@ -28318,7 +28451,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \   * K toggles keyboard and joystick (&46)
 \
 \ The numbers in brackets are the internal key numbers (see p.142 of the
-\ Advanced User Guide for a list of internal key values). We pass the key that
+\ Advanced User Guide for a list of internal key numbers). We pass the key that
 \ has been pressed in X, and the configuration option to check it against in Y,
 \ so this routine is typically called in a loop that loops through the various
 \ configuration options.
