@@ -25,19 +25,19 @@ NOSH = 12               \ Maximum number of ships in our local bubble of the
                         \ ship slots)
 
 COPS = 2                \ Ship type for a Viper
-MAM  = 3                \ Ship type for a Mamba
-THG  = 6                \ Ship type for a Thargoid
-CYL  = 7                \ Ship type for a Cobra Mk III (trader)
-SST  = 8                \ Ship type for the space station
-MSL  = 9                \ Ship type for a missile
-AST  = 10               \ Ship type for an asteroid
-OIL  = 11               \ Ship type for a cargo canister
-TGL  = 12               \ Ship type for a Thargon
-ESC  = 13               \ Ship type for an escape pod
+MAM = 3                 \ Ship type for a Mamba
+THG = 6                 \ Ship type for a Thargoid
+CYL = 7                 \ Ship type for a Cobra Mk III (trader)
+SST = 8                 \ Ship type for the space station
+MSL = 9                 \ Ship type for a missile
+AST = 10                \ Ship type for an asteroid
+OIL = 11                \ Ship type for a cargo canister
+TGL = 12                \ Ship type for a Thargon
+ESC = 13                \ Ship type for an escape pod
 
-POW  = 15               \ Pulse laser power
+POW = 15                \ Pulse laser power
 
-NI%  = 36               \ Number of bytes in each ship's data block (as stored
+NI% = 36                \ Number of bytes in each ship's data block (as stored
                         \ in INWK and K% and pointed to by the UNIV table)
 
 OSBYTE = &FFF4          \ The OS routines used in Elite. OSBYTE is used three
@@ -47,7 +47,7 @@ OSFILE = &FFDD          \ once
 SHEILA = &FE00          \ Memory-mapped space for accessing internal hardware,
                         \ particularly the video ULA, 6845 CRTC and 6522 VIAs
 
-VSCAN  = 57             \ Defines the split position in the split screen mode
+VSCAN = 57              \ Defines the split position in the split screen mode
 
 X = 128                 \ The centre coordinates of the 256 x 192 mode 4 space
 Y = 96                  \ view
@@ -110,6 +110,59 @@ MACRO ITEM price, factor, units, quantity, mask
   EQUB s + u + e
   EQUB quantity
   EQUB mask
+ENDMACRO
+
+MACRO VERTEX x, y, z, face1, face2, face3, face4, visibility
+  IF x < 0
+    s_x = 1 << 7
+  ELSE
+    s_x = 0
+  ENDIF
+  IF y < 0
+    s_y = 1 << 6
+  ELSE
+    s_y = 0
+  ENDIF
+  IF z < 0
+    s_z = 1 << 5
+  ELSE
+    s_z = 0
+  ENDIF
+  s = s_x + s_y + s_z + visibility
+  f1 = face1 + (face2 << 4)
+  f2 = face3 + (face4 << 4)
+  ax = ABS(x)
+  ay = ABS(y)
+  az = ABS(z)
+  EQUB ax, ay, az, s, f1, f2
+ENDMACRO
+
+MACRO EDGE vertex1, vertex2, face1, face2, visibility
+  f = face1 + (face2 << 4)
+  EQUB visibility, f, vertex1 << 2, vertex2 << 2
+ENDMACRO
+
+MACRO FACE normal_x, normal_y, normal_z, visibility
+  IF normal_x < 0
+    s_x = 1 << 7
+  ELSE
+    s_x = 0
+  ENDIF
+  IF normal_y < 0
+    s_y = 1 << 6
+  ELSE
+    s_y = 0
+  ENDIF
+  IF normal_z < 0
+    s_z = 1 << 5
+  ELSE
+    s_z = 0
+  ENDIF
+  s = s_x + s_y + s_z + visibility
+  ax = ABS(normal_x)
+  ay = ABS(normal_y)
+  az = ABS(normal_z)
+  EQUB s, ax, ay, az
 ENDMACRO
 
 \ ******************************************************************************
@@ -873,7 +926,9 @@ ORG &0000
 
 .CNT
 
- SKIP 1                 \
+ SKIP 1                 \ Used as temporary storage (e.g. stores the number of
+                        \ bits of debris shown on destruction when a ship is
+                        \ blown up)
 
 .CNT2
 
@@ -12186,7 +12241,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \   * Make sure the ship is close enough to be targeted or hit (both x_hi and
 \     y_hi are 0)
 \ 
-\   * Test whether our crosshairs are within the "hit area" for this ship 
+\   * Test whether our crosshairs are within the targetable area for this ship 
 \ 
 \ This last one needs further explanation. Each ship type has, as part of its
 \ blueprint, a 16-bit value that defines the area of the ship that can be locked
@@ -12209,11 +12264,11 @@ LOAD_C% = LOAD% +P% - CODE%
 \ 
 \ If this calculation doesn't fit into the 16 bits of (S R) then we know we
 \ can't be aiming at the ship, but if it does, we compare (S R) with the 16-bit
-\ "hit area" byte from the ship's blueprint, and if (S R) is less than the "hit
-\ area" value, the ship is determined to be in our crosshairs and can be hit or
-\ targeted.
+\ targetable area from the ship's blueprint, and if (S R) is less than the
+\ targetable area, the ship is determined to be in our crosshairs and can
+\ be hit or targeted.
 \ 
-\ So the "hit area" byte is the square of the distance that the ship can be from
+\ So the targetable area is the square of the distance that the ship can be from
 \ the centre of our crosshairs but still be locked onto by our missiles or hit
 \ by our lasers.
 \
@@ -12270,16 +12325,16 @@ LOAD_C% = LOAD% +P% - CODE%
                         \   (A R) = (S R) + (A P) = x_lo^2 + y_lo^2
 
  BCS FR1-2              \ If the addition just overflowed then there is no way
-                        \ our crosshairs are within the ship's "hit area", so
-                        \ return from the subroutine with the C flag clear (as
-                        \ FR1-2 contains a CLC then an RTS)
+                        \ our crosshairs are within the ship's targetable area,
+                        \ so return from the subroutine with the C flag clear
+                        \ (as FR1-2 contains a CLC then an RTS)
 
  STA S                  \ Set (S R) = (A P) = x_lo^2 + y_lo^2
 
  LDY #2                 \ Fetch the ship's blueprint and set A to the high byte
- LDA (XX0),Y            \ of the "hit area" of the ship
+ LDA (XX0),Y            \ of the targetable area of the ship
 
- CMP S                  \ We now compare the high bytes of the "hit area" and
+ CMP S                  \ We now compare the high bytes of the targetable area and
                         \ the calculation in (S R):
                         \
                         \   * If A >= S then then the C flag will be set
@@ -12290,10 +12345,10 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ return from the subroutine (as HI1 contains an RTS)
 
  DEY                    \ The high bytes were identical, so now we fetch the
- LDA (XX0),Y            \ low byte of the "hit area" into A
+ LDA (XX0),Y            \ low byte of the targetable area into A
 
- CMP R                  \ We now compare the low bytes of the "hit area" and
-                        \ the calculation in (S R):
+ CMP R                  \ We now compare the low bytes of the targetable area
+                        \ and the calculation in (S R):
                         \
                         \   * If A >= R then the C flag will be set
                         \
@@ -30257,7 +30312,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA (XX0),Y
  BEQ LL41               \ if no normals, visibilities now set in XX2,X Transpose matrix
  STA XX20               \ normals*4
- LDY #18                \ Hull byte #18  normals scaled by 2^Q%
+ LDY #18                \ Hull byte #18  normals scaled by 2 ^ this value
                         \ DtProd^XX2 \ their comment \ Dot product gives  normals' visibility in XX2
  LDA (XX0),Y
  TAX                    \ normals scaled by 2^X plus
@@ -31607,7 +31662,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
  EQUW SHIP1             \         1 = Sidewinder
  EQUW SHIP2             \ COPS =  2 = Viper
  EQUW SHIP3             \ MAM  =  3 = Mamba
- EQUW &7F00             \         4 = Python
+ EQUW SHIP4             \         4 = Python
  EQUW SHIP5             \         5 = Cobra Mk III (bounty hunter)
  EQUW SHIP6             \ THG  =  6 = Thargoid
  EQUW SHIP5             \ CYL  =  7 = Cobra Mk III (trader)
@@ -31622,854 +31677,988 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \
 \ Ship blueprints
 \
-\ For each ship blueprint below, the first 20 bytes define the following:
+\ For each ship blueprint below, the first 20 bytes define this ship type's
+\ characteristics, as follows:
 \
-\ Byte #0       Maximum number of bits of debris shown when destroyed
-\ Byte #1-2     The ship's "hit area", which represents how far the ship can be
-\               from the centre of our crosshairs and still be locked onto by
-\               our missles or hit by our lasers, as described in the HITCH
-\               routine (16-bit value, 1 = low byte, 2 = high byte)
-\ Byte #3       Edges data offset lo (offset is from byte #0)
-\ Byte #4       Faces data offset lo (offset is from byte #0)
-\ Byte #5       Maximum heap size for plotting ship = 1 + 4 * max. no of
-\               visible edges
-\ Byte #6       Number * 4 of the vertex used for gun spike, if applicable
-\ Byte #7       Explosion count = 4 * n + 6, where n = number of vertices used
-\               as origins for explosion dust
-\ Byte #8       Number of vertices * 6
-\ Byte #10-11   The bounty awarded for the destruction of this ship in Cr * 10
-\               (16-bit value, 10 = low byte, 11 = high byte)
-\ Byte #12      Number of faces * 4
-\ Byte #13      Beyond this distance, show this ship as a dot
-\ Byte #14      Maximum energy/shields
-\ Byte #15      Maximum speed
-\ Byte #16      Edges data offset hi (if this is negative (&FF) it points to
-\               another ship's edge net)
-\ Byte #17      Faces data offset hi
-\ Byte #18      Q%: Normals are scaled by 2^Q% to make large objects' normals
-\               flare out further away (see EE29)
-\ Byte #19      %00 lll mmm, where bits 0-2 = number of missiles,
-\               bits 3-5 = laser power
+\   * Byte #0           Maximum number of cargo canisters released when
+\                       destroyed
+\
+\   * Byte #1-2         The ship's targetable area, which represents how far the
+\                       ship can be from the centre of our crosshairs and still
+\                       be locked onto by our missles or hit by our lasers, as
+\                       described in the HITCH routine (16-bit value, 1 = low
+\                       byte, 2 = high byte)
+\
+\   * Byte #3           Edges data offset low byte (offset is from byte #0)
+\
+\   * Byte #4           Faces data offset low byte(offset is from byte #0)
+\
+\   * Byte #5           Maximum heap size for plotting ship = 1 + 4 * max. no of
+\                       visible edges
+\
+\   * Byte #6           Number * 4 of the vertex used for the gun spike, if
+\                       applicable
+\
+\   * Byte #7           Explosion count = 4 * n + 6, where n = number of
+\                       vertices used as origins for explosion dust
+\
+\   * Byte #8           Number of vertices * 6
+\
+\   * Byte #10-11       The bounty awarded for the destruction of this ship in
+\                       Cr * 10 (16-bit little-endian value, 10 = low byte,
+\                       11 = high byte)
+\
+\   * Byte #12          Number of faces * 4
+\
+\   * Byte #13          Visibility distance, beyond which we show the ship as a
+\                       dot
+\
+\   * Byte #14          Maximum energy/shields
+\
+\   * Byte #15          Maximum speed
+\
+\   * Byte #16          Edges data offset high byte (can be negative and point
+\                       to another ship's edge net)
+\
+\   * Byte #17          Faces data offset high byte
+\
+\   * Byte #18          Normals are scaled by 2 ^ this value to make large
+\                       ships' normals flare out further away (see EE29)
+\
+\   * Byte #19          %00 lll mmm, where:
+\
+\                         * Bits 0-2 = number of missiles
+\
+\                         * Bits 3-5 = laser power
+\
+\ Then come the vertex definitions. Each vertex is made up of eight values
+\ stored in four bytes, as follows:
+\
+\   * Byte 0            Magnitude of the vertex's x-coordinate, with the origin
+\                       in the middle of the ship
+\
+\   * Byte 1            Magnitude of the vertex's y-coordinate
+\
+\   * Byte 2            Magnitude of the vertex's z-coordinate
+\
+\   * Byte 3            %xyz vvvvv, where:
+\
+\                         * Bits 0-4 = visibility distance, beyond which the
+\                           vertex is not shown
+\
+\                         * Bits 7-5 = the sign bits of x, y and z
+\
+\   * Byte 4            %ffff ffff, where:
+\
+\                          * Bits 0-3 = the number of face 1
+\
+\                          * Bits 4-7 = the number of face 2
+\
+\   * Byte 5            %ffff ffff, where:
+\
+\                          * Bits 0-3 = the number of face 3
+\
+\                          * Bits 4-7 = the number of face 4
+\
+\ Next are the edge definitions. Each edge is made up of five values stored in
+\ four bytes, as follows:
+\
+\   * Byte 0            Visibility distance, beyond which the edge is not shown
+\
+\   * Byte 1            %ffff ffff, where:
+\
+\                         * Bits 0-3 = the number of face 1
+\
+\                         * Bits 4-7 = the number of face 2
+\
+\   * Byte 2            The number of the vertex at one end of the edge
+\
+\   * Byte 3            The number of the vertex at the other end of the edge
+\
+\ Finally we have the face definitions. Each face is made up of four values
+\ stored in four bytes, as follows:
+\
+\   * Byte 0            %xyz vvvvv, where:
+\
+\                         * Bits 0-4 = visibility distance, beyond which the
+\                           face is not shown
+\
+\                         * Bits 7-5 = the sign bits of normal_x, normal_y and
+\                           normal_z
+\
+\   * Byte 1            Magnitude of the face normal's x-coordinate
+\
+\   * Byte 2            Magnitude of the face normal's y-coordinate
+\
+\   * Byte 3            Magnitude of the face normal's z-coordinate
+\
+\ To make the source code easier to follow, we use three macros (for vertices,
+\ edges and faces) that let us separate out the different values, and which
+\ squash the data into the above bytes at compile time.
+\
 \ ******************************************************************************
 
-.SHIP1                              \ Sidewinder ship blueprint
-
- EQUB &00
- EQUB &81, &10
- EQUB &50
- EQUB &8C
- EQUB &3D
- EQUB &00                           \ gun vertex = 0
- EQUB &1E
- EQUB &3C                           \ number of vertices = &3C / 6 = 10
- EQUB &0F                           \ number of edges = &0F = 15
- EQUW 50                            \ bounty = 50
- EQUB &1C                           \ number of faces = &1C / 4 = 7
- EQUB &14
- EQUB &46
- EQUB &25
- EQUB &00
- EQUB &00
- EQUB &02
- EQUB %00010000                     \ laser power = 2, missiles = 0
-
- EQUB &20, &00, &24, &9F, &10, &54  \ vertices data (10*6)
- EQUB &20, &00, &24, &1F, &20, &65
- EQUB &40, &00, &1C, &3F, &32, &66
- EQUB &40, &00, &1C, &BF, &31, &44
- EQUB &00, &10, &1C, &3F, &10, &32
-
- EQUB &00, &10, &1C, &7F, &43, &65
- EQUB &0C, &06, &1C, &AF, &33, &33
- EQUB &0C, &06, &1C, &2F, &33, &33
- EQUB &0C, &06, &1C, &6C, &33, &33
- EQUB &0C, &06, &1C, &EC, &33, &33
-
- EQUB &1F, &50, &00, &04            \ edges data (15*4)
- EQUB &1F, &62, &04, &08
- EQUB &1F, &20, &04, &10
- EQUB &1F, &10, &00, &10
- EQUB &1F, &41, &00, &0C
-
- EQUB &1F, &31, &0C, &10
- EQUB &1F, &32, &08, &10
- EQUB &1F, &43, &0C, &14
- EQUB &1F, &63, &08, &14
- EQUB &1F, &65, &04, &14
-
- EQUB &1F, &54, &00, &14
- EQUB &0F, &33, &18, &1C
- EQUB &0C, &33, &1C, &20
- EQUB &0C, &33, &18, &24
- EQUB &0C, &33, &20, &24
-
- EQUB &1F, &00, &20, &08            \ faces data (7*4)
- EQUB &9F, &0C, &2F, &06
- EQUB &1F, &0C, &2F, &06
- EQUB &3F, &00, &00, &70
- EQUB &DF, &0C, &2F, &06
-
- EQUB &5F, &00, &20, &08
- EQUB &5F, &0C, &2F, &06
-
-.SHIP2                              \ Viper ship blueprint
-
- EQUB &00
- EQUB &F9, &15
- EQUB &6E
- EQUB &BE
- EQUB &4D
- EQUB &00                           \ gun vertex = 0
- EQUB &2A
- EQUB &5A                           \ number of vertices = &5A / 6 = 15
- EQUB &14                           \ number of edges = &14 = 20
- EQUW 0                             \ bounty = 0
- EQUB &1C                           \ number of faces = &1C / 4 = 7
- EQUB &17
- EQUB &78
- EQUB &20
- EQUB &00
- EQUB &00
- EQUB &01
- EQUB %00010001                     \ laser power = 2, missiles = 1
-
- EQUB &00, &00, &48, &1F, &21, &43  \ vertices data (15*6)
- EQUB &00, &10, &18, &1E, &10, &22
- EQUB &00, &10, &18, &5E, &43, &55
- EQUB &30, &00, &18, &3F, &42, &66
- EQUB &30, &00, &18, &BF, &31, &66
-
- EQUB &18, &10, &18, &7E, &54, &66
- EQUB &18, &10, &18, &FE, &35, &66
- EQUB &18, &10, &18, &3F, &20, &66
- EQUB &18, &10, &18, &BF, &10, &66
- EQUB &20, &00, &18, &B3, &66, &66
-
- EQUB &20, &00, &18, &33, &66, &66
- EQUB &08, &08, &18, &33, &66, &66
- EQUB &08, &08, &18, &B3, &66, &66
- EQUB &08, &08, &18, &F2, &66, &66
- EQUB &08, &08, &18, &72, &66, &66
-
- EQUB &1F, &42, &00, &0C            \ edges data (20*4)
- EQUB &1E, &21, &00, &04
- EQUB &1E, &43, &00, &08
- EQUB &1F, &31, &00, &10
- EQUB &1E, &20, &04, &1C
-
- EQUB &1E, &10, &04, &20
- EQUB &1E, &54, &08, &14
- EQUB &1E, &53, &08, &18
- EQUB &1F, &60, &1C, &20
- EQUB &1E, &65, &14, &18
-
- EQUB &1F, &61, &10, &20
- EQUB &1E, &63, &10, &18
- EQUB &1F, &62, &0C, &1C
- EQUB &1E, &46, &0C, &14
- EQUB &13, &66, &24, &30
-
- EQUB &12, &66, &24, &34
- EQUB &13, &66, &28, &2C
- EQUB &12, &66, &28, &38
- EQUB &10, &66, &2C, &38
- EQUB &10, &66, &30, &34
-
- EQUB &1F, &00, &20, &00            \ faces data (7*4)
- EQUB &9F, &16, &21, &0B
- EQUB &1F, &16, &21, &0B
- EQUB &DF, &16, &21, &0B
- EQUB &5F, &16, &21, &0B
-
- EQUB &5F, &00, &20, &00
- EQUB &3F, &00, &00, &30
-
-.SHIP3                              \ Mamba ship blueprint
-
- EQUB &01                           \ debris shown = 1
- EQUB &24, &13
- EQUB &AA
- EQUB &1A
- EQUB &5D
- EQUB &00                           \ gun vertex = 0
- EQUB &22
- EQUB &96                           \ number of vertices = &96 / 6 = 25
- EQUB &1C                           \ number of edges = &1C = 28
- EQUW 150                           \ bounty = 150
- EQUB &14                           \ number of faces = &14 / 4 = 5
- EQUB &19
- EQUB &5A
- EQUB &1E
- EQUB &00
- EQUB &01
- EQUB &02
- EQUB %000010010                    \ laser power = 2, missiles = 2
-
- EQUB &00, &00, &40, &1F, &10, &32  \ vertices data (25*6)
- EQUB &40, &08, &20, &FF, &20, &44
- EQUB &20, &08, &20, &BE, &21, &44
- EQUB &20, &08, &20, &3E, &31, &44
- EQUB &40, &08, &20, &7F, &30, &44
-
- EQUB &04, &04, &10, &8E, &11, &11
- EQUB &04, &04, &10, &0E, &11, &11
- EQUB &08, &03, &1C, &0D, &11, &11
- EQUB &08, &03, &1C, &8D, &11, &11
- EQUB &14, &04, &10, &D4, &00, &00
-
- EQUB &14, &04, &10, &54, &00, &00
- EQUB &18, &07, &14, &F4, &00, &00
- EQUB &10, &07, &14, &F0, &00, &00
- EQUB &10, &07, &14, &70, &00, &00
- EQUB &18, &07, &14, &74, &00, &00
-
- EQUB &08, &04, &20, &AD, &44, &44
- EQUB &08, &04, &20, &2D, &44, &44
- EQUB &08, &04, &20, &6E, &44, &44
- EQUB &08, &04, &20, &EE, &44, &44
- EQUB &20, &04, &20, &A7, &44, &44
-
- EQUB &20, &04, &20, &27, &44, &44
- EQUB &24, &04, &20, &67, &44, &44
- EQUB &24, &04, &20, &E7, &44, &44
- EQUB &26, &00, &20, &A5, &44, &44
- EQUB &26, &00, &20, &25, &44, &44
-
- EQUB &1F, &20, &00, &04            \ edges data (28*4)
- EQUB &1F, &30, &00, &10
- EQUB &1F, &40, &04, &10
- EQUB &1E, &42, &04, &08
- EQUB &1E, &41, &08, &0C
-
- EQUB &1E, &43, &0C, &10
- EQUB &0E, &11, &14, &18
- EQUB &0C, &11, &18, &1C
- EQUB &0D, &11, &1C, &20
- EQUB &0C, &11, &14, &20
-
- EQUB &14, &00, &24, &2C
- EQUB &10, &00, &24, &30
- EQUB &10, &00, &28, &34
- EQUB &14, &00, &28, &38
- EQUB &0E, &00, &34, &38
-
- EQUB &0E, &00, &2C, &30
- EQUB &0D, &44, &3C, &40
- EQUB &0E, &44, &44, &48
- EQUB &0C, &44, &3C, &48
- EQUB &0C, &44, &40, &44
-
- EQUB &07, &44, &50, &54
- EQUB &05, &44, &50, &60
- EQUB &05, &44, &54, &60
- EQUB &07, &44, &4C, &58
- EQUB &05, &44, &4C, &5C
-
- EQUB &05, &44, &58, &5C
- EQUB &1E, &21, &00, &08
- EQUB &1E, &31, &00, &0C
-
- EQUB &5E, &00, &18, &02            \ faces data (5*4)
- EQUB &1E, &00, &18, &02
- EQUB &9E, &20, &40, &10
- EQUB &1E, &20, &40, &10
- EQUB &3E, &00, &00, &7F
-
-.SHIP5                              \ Variable: SHIP5
-
- EQUB &03                           \ debris shown = 3
- EQUB &41, &23                      \ area for missile lock = &2331
- EQUB &BC                           \ edges data offset = &00BC
- EQUB &54                           \ faces data offset = &0154
- EQUB &99                           \ max. edge count = (&99 - 1) / 4 = 38
- EQUB &54                           \ gun vertex = &54 / 4 = 21
- EQUB &2A                           \ explosion count = 9, (4 * n) + 6 = &2A
- EQUB &A8                           \ number of vertices = &A8 / 6 = 28
- EQUB &26                           \ number of edges = &26 = 38
- EQUW 0                             \ bounty = 0
- EQUB &34                           \ number of faces = &34 / 4 = 13
- EQUB &32                           \ show as a dot past a distance of 50
- EQUB &96                           \ maximum energy/shields = 150
- EQUB &1C                           \ maximum speed = 28
- EQUB &00                           \ edges data offset = &00BC
- EQUB &01                           \ faces data offset = &0154
- EQUB &01                           \ normals are scaled by 2^1 = 2
- EQUB %00010011                     \ laser power = 2, missiles = 3
-
- EQUB &20, &00, &4C, &1F, &FF, &FF  \ vertices data (28*6)
- EQUB &20, &00, &4C, &9F, &FF, &FF
- EQUB &00, &1A, &18, &1F, &FF, &FF
- EQUB &78, &03, &08, &FF, &73, &AA
- EQUB &78, &03, &08, &7F, &84, &CC
-
- EQUB &58, &10, &28, &BF, &FF, &FF
- EQUB &58, &10, &28, &3F, &FF, &FF
- EQUB &80, &08, &28, &7F, &98, &CC
- EQUB &80, &08, &28, &FF, &97, &AA
- EQUB &00, &1A, &28, &3F, &65, &99
-
- EQUB &20, &18, &28, &FF, &A9, &BB
- EQUB &20, &18, &28, &7F, &B9, &CC
- EQUB &24, &08, &28, &B4, &99, &99
- EQUB &08, &0C, &28, &B4, &99, &99
- EQUB &08, &0C, &28, &34, &99, &99
-
- EQUB &24, &08, &28, &34, &99, &99
- EQUB &24, &0C, &28, &74, &99, &99
- EQUB &08, &10, &28, &74, &99, &99
- EQUB &08, &10, &28, &F4, &99, &99
- EQUB &24, &0C, &28, &F4, &99, &99
-
- EQUB &00, &00, &4C, &06, &B0, &BB
- EQUB &00, &00, &5A, &1F, &B0, &BB
- EQUB &50, &06, &28, &E8, &99, &99
- EQUB &50, &06, &28, &A8, &99, &99
- EQUB &58, &00, &28, &A6, &99, &99
-
- EQUB &50, &06, &28, &28, &99, &99
- EQUB &58, &00, &28, &26, &99, &99
- EQUB &50, &06, &28, &68, &99, &99
-
- EQUB &1F, &B0, &00, &04            \ edges data (38*4)
- EQUB &1F, &C4, &00, &10
- EQUB &1F, &A3, &04, &0C
- EQUB &1F, &A7, &0C, &20
- EQUB &1F, &C8, &10, &1C
-
- EQUB &1F, &98, &18, &1C
- EQUB &1F, &96, &18, &24
- EQUB &1F, &95, &14, &24
- EQUB &1F, &97, &14, &20
- EQUB &1F, &51, &08, &14
-
- EQUB &1F, &62, &08, &18
- EQUB &1F, &73, &0C, &14
- EQUB &1F, &84, &10, &18
- EQUB &1F, &10, &04, &08
- EQUB &1F, &20, &00, &08
-
- EQUB &1F, &A9, &20, &28
- EQUB &1F, &B9, &28, &2C
- EQUB &1F, &C9, &1C, &2C
- EQUB &1F, &BA, &04, &28
- EQUB &1F, &CB, &00, &2C
-
- EQUB &1D, &31, &04, &14
- EQUB &1D, &42, &00, &18
- EQUB &06, &B0, &50, &54
- EQUB &14, &99, &30, &34
- EQUB &14, &99, &48, &4C
-
- EQUB &14, &99, &38, &3C
- EQUB &14, &99, &40, &44
- EQUB &13, &99, &3C, &40
- EQUB &11, &99, &38, &44
- EQUB &13, &99, &34, &48
-
- EQUB &13, &99, &30, &4C
- EQUB &1E, &65, &08, &24
- EQUB &06, &99, &58, &60
- EQUB &06, &99, &5C, &60
- EQUB &08, &99, &58, &5C
-
- EQUB &06, &99, &64, &68
- EQUB &06, &99, &68, &6C
- EQUB &08, &99, &64, &6C
-
- EQUB &1F, &00, &3E, &1F            \ faces data (13*4)
- EQUB &9F, &12, &37, &10            \ start normals #0 = top front plate of
- EQUB &1F, &12, &37, &10            \ Cobra
- EQUB &9F, &10, &34, &0E
- EQUB &1F, &10, &34, &0E
-
- EQUB &9F, &0E, &2F, &00
- EQUB &1F, &0E, &2F, &00
- EQUB &9F, &3D, &66, &00
- EQUB &1F, &3D, &66, &00
- EQUB &3F, &00, &00, &50
-
- EQUB &DF, &07, &2A, &09
- EQUB &5F, &00, &1E, &06
- EQUB &5F, &07, &2A, &09
-
-.SHIP6                              \ Thargoid ship blueprint
-
- EQUB &00
- EQUB &49, &26
- EQUB &8C
- EQUB &F4
- EQUB &65
- EQUB &3C                           \ gun vertex = &3C / 4 = 15
- EQUB &26
- EQUB &78                           \ number of vertices = &78 / 6 = 20
- EQUB &1A                           \ number of edges = &1A = 26
- EQUW 500                           \ bounty = 500
- EQUB &28                           \ number of faces = &28 / 4 = 10
- EQUB &37
- EQUB &F0
- EQUB &27
- EQUB &00
- EQUB &00
- EQUB &02
- EQUB %00010110                     \ laser power = 2, missiles = 6
-
- EQUB &20, &30, &30, &5F, &40, &88  \ vertices data (20)
- EQUB &20, &44, &00, &5F, &10, &44
- EQUB &20, &30, &30, &7F, &21, &44
- EQUB &20, &00, &44, &3F, &32, &44
- EQUB &20, &30, &30, &3F, &43, &55
-
- EQUB &20, &44, &00, &1F, &54, &66
- EQUB &20, &30, &30, &1F, &64, &77
- EQUB &20, &00, &44, &1F, &74, &88
- EQUB &18, &74, &74, &DF, &80, &99
- EQUB &18, &A4, &00, &DF, &10, &99
-
- EQUB &18, &74, &74, &FF, &21, &99
- EQUB &18, &00, &A4, &BF, &32, &99
- EQUB &18, &74, &74, &BF, &53, &99
- EQUB &18, &A4, &00, &9F, &65, &99
- EQUB &18, &74, &74, &9F, &76, &99
-
- EQUB &18, &00, &A4, &9F, &87, &99
- EQUB &18, &40, &50, &9E, &99, &99
- EQUB &18, &40, &50, &BE, &99, &99
- EQUB &18, &40, &50, &FE, &99, &99
- EQUB &18, &40, &50, &DE, &99, &99
-
- EQUB &1F, &84, &00, &1C            \ edges data (26*4)
- EQUB &1F, &40, &00, &04
- EQUB &1F, &41, &04, &08
- EQUB &1F, &42, &08, &0C
- EQUB &1F, &43, &0C, &10
-
- EQUB &1F, &54, &10, &14
- EQUB &1F, &64, &14, &18
- EQUB &1F, &74, &18, &1C
- EQUB &1F, &80, &00, &20
- EQUB &1F, &10, &04, &24
-
- EQUB &1F, &21, &08, &28
- EQUB &1F, &32, &0C, &2C
- EQUB &1F, &53, &10, &30
- EQUB &1F, &65, &14, &34
- EQUB &1F, &76, &18, &38
-
- EQUB &1F, &87, &1C, &3C
- EQUB &1F, &98, &20, &3C
- EQUB &1F, &90, &20, &24
- EQUB &1F, &91, &24, &28
- EQUB &1F, &92, &28, &2C
-
- EQUB &1F, &93, &2C, &30
- EQUB &1F, &95, &30, &34
- EQUB &1F, &96, &34, &38
- EQUB &1F, &97, &38, &3C
- EQUB &1E, &99, &40, &44
-
- EQUB &1E, &99, &48, &4C
-
- EQUB &5F, &67, &3C, &19            \ faces data (10*4)
- EQUB &7F, &67, &3C, &19
- EQUB &7F, &67, &19, &3C
- EQUB &3F, &67, &19, &3C
- EQUB &1F, &40, &00, &00
-
- EQUB &3F, &67, &3C, &19
- EQUB &1F, &67, &3C, &19
- EQUB &1F, &67, &19, &3C
- EQUB &5F, &67, &19, &3C
- EQUB &9F, &30, &00, &00
-
-.SHIP8                              \ Coriolis space station blueprint
-
- EQUB &00
- EQUB &00, &64
- EQUB &74
- EQUB &E4
- EQUB &55
- EQUB &00                           \ gun vertex = 0
- EQUB &36
- EQUB &60                           \ number of vertices = &60 / 6 = 16
- EQUB &1C                           \ number of edges = &1C = 28
- EQUW 0                             \ bounty = 0
- EQUB &38                           \ number of faces = &38 / 4 = 14
- EQUB &78
- EQUB &F0
- EQUB &00
- EQUB &00
- EQUB &00
- EQUB &00
- EQUB &06
-
- EQUB &A0, &00, &A0, &1F, &10, &62  \ vertices data (16*6)
- EQUB &00, &A0, &A0, &1F, &20, &83
- EQUB &A0, &00, &A0, &9F, &30, &74
- EQUB &00, &A0, &A0, &5F, &10, &54
- EQUB &A0, &A0, &00, &5F, &51, &A6
-
- EQUB &A0, &A0, &00, &1F, &62, &B8
- EQUB &A0, &A0, &00, &9F, &73, &C8
- EQUB &A0, &A0, &00, &DF, &54, &97
- EQUB &A0, &00, &A0, &3F, &A6, &DB
- EQUB &00, &A0, &A0, &3F, &B8, &DC
-
- EQUB &A0, &00, &A0, &BF, &97, &DC
- EQUB &00, &A0, &A0, &7F, &95, &DA
- EQUB &0A, &1E, &A0, &5E, &00, &00
- EQUB &0A, &1E, &A0, &1E, &00, &00
- EQUB &0A, &1E, &A0, &9E, &00, &00
-
- EQUB &0A, &1E, &A0, &DE, &00, &00
-
- EQUB &1F, &10, &00, &0C            \ edges data (28*4)
- EQUB &1F, &20, &00, &04
- EQUB &1F, &30, &04, &08
- EQUB &1F, &40, &08, &0C
- EQUB &1F, &51, &0C, &10
-
- EQUB &1F, &61, &00, &10
- EQUB &1F, &62, &00, &14
- EQUB &1F, &82, &14, &04
- EQUB &1F, &83, &04, &18
- EQUB &1F, &73, &08, &18
-
- EQUB &1F, &74, &08, &1C
- EQUB &1F, &54, &0C, &1C
- EQUB &1F, &DA, &20, &2C
- EQUB &1F, &DB, &20, &24
- EQUB &1F, &DC, &24, &28
-
- EQUB &1F, &D9, &28, &2C
- EQUB &1F, &A5, &10, &2C
- EQUB &1F, &A6, &10, &20
- EQUB &1F, &B6, &14, &20
- EQUB &1F, &B8, &14, &24
-
- EQUB &1F, &C8, &18, &24
- EQUB &1F, &C7, &18, &28
- EQUB &1F, &97, &1C, &28
- EQUB &1F, &95, &1C, &2C
- EQUB &1E, &00, &30, &34
-
- EQUB &1E, &00, &34, &38
- EQUB &1E, &00, &38, &3C
- EQUB &1E, &00, &3C, &30
-
- EQUB &1F, &00, &00, &A0            \ faces data (14*4)
- EQUB &5F, &6B, &6B, &6B
- EQUB &1F, &6B, &6B, &6B
- EQUB &9F, &6B, &6B, &6B
- EQUB &DF, &6B, &6B, &6B
-
- EQUB &5F, &00, &A0, &00
- EQUB &1F, &A0, &00, &00
- EQUB &9F, &A0, &00, &00
- EQUB &1F, &00, &A0, &00
- EQUB &FF, &6B, &6B, &6B
-
- EQUB &7F, &6B, &6B, &6B
- EQUB &3F, &6B, &6B, &6B
- EQUB &BF, &6B, &6B, &6B
- EQUB &3F, &00, &00, &A0
-
-.SHIP9                              \ Missile blueprint
-
- EQUB &00
- EQUB &40, &06
- EQUB &7A
- EQUB &DA
- EQUB &51
- EQUB &00                           \ gun vertex = 0
- EQUB &0A
- EQUB &66                           \ number of vertices = &66 / 6 = 17
- EQUB &18                           \ number of edges = &18 = 24
- EQUW 0                             \ bounty = 0
- EQUB &24                           \ number of faces = &24 / 4 = 9
- EQUB &0E
- EQUB &02
- EQUB &2C
- EQUB &00
- EQUB &00
- EQUB &02
- EQUB %00000000                     \ laser power = 0, missiles = 0
-
- EQUB &00, &00, &44, &1F, &10, &32  \ vertices data (17*6)
- EQUB &08, &08, &24, &5F, &21, &54
- EQUB &08, &08, &24, &1F, &32, &74
- EQUB &08, &08, &24, &9F, &30, &76
- EQUB &08, &08, &24, &DF, &10, &65
-
- EQUB &08, &08, &2C, &3F, &74, &88
- EQUB &08, &08, &2C, &7F, &54, &88
- EQUB &08, &08, &2C, &FF, &65, &88
- EQUB &08, &08, &2C, &BF, &76, &88
- EQUB &0C, &0C, &2C, &28, &74, &88
-
- EQUB &0C, &0C, &2C, &68, &54, &88
- EQUB &0C, &0C, &2C, &E8, &65, &88
- EQUB &0C, &0C, &2C, &A8, &76, &88
- EQUB &08, &08, &0C, &A8, &76, &77
- EQUB &08, &08, &0C, &E8, &65, &66
-
- EQUB &08, &08, &0C, &28, &74, &77
- EQUB &08, &08, &0C, &68, &54, &55
-
- EQUB &1F, &21, &00, &04            \ edges data (24*4)
- EQUB &1F, &32, &00, &08
- EQUB &1F, &30, &00, &0C
- EQUB &1F, &10, &00, &10
- EQUB &1F, &24, &04, &08
-
- EQUB &1F, &51, &04, &10
- EQUB &1F, &60, &0C, &10
- EQUB &1F, &73, &08, &0C
- EQUB &1F, &74, &08, &14
- EQUB &1F, &54, &04, &18
-
- EQUB &1F, &65, &10, &1C
- EQUB &1F, &76, &0C, &20
- EQUB &1F, &86, &1C, &20
- EQUB &1F, &87, &14, &20
- EQUB &1F, &84, &14, &18
-
- EQUB &1F, &85, &18, &1C
- EQUB &08, &85, &18, &28
- EQUB &08, &87, &14, &24
- EQUB &08, &87, &20, &30
- EQUB &08, &85, &1C, &2C
-
- EQUB &08, &74, &24, &3C
- EQUB &08, &54, &28, &40
- EQUB &08, &76, &30, &34
- EQUB &08, &65, &2C, &38
-
- EQUB &9F, &40, &00, &10            \ faces data (9*4)
- EQUB &5F, &00, &40, &10
- EQUB &1F, &40, &00, &10
- EQUB &1F, &00, &40, &10
- EQUB &1F, &20, &00, &00
-
- EQUB &5F, &00, &20, &00
- EQUB &9F, &20, &00, &00
- EQUB &1F, &00, &20, &00
- EQUB &3F, &00, &00, &B0
-
-.SHIP10                             \ Asteroid blueprint
-
- EQUB &00
- EQUB &00, &19
- EQUB &4A
- EQUB &9E
- EQUB &41
- EQUB &00                           \ gun vertex = 0
- EQUB &22
- EQUB &36                           \ number of vertices = &36 / 6 = 9
- EQUB &15                           \ number of edges = &15 = 21
- EQUW 5                             \ bounty = 5
- EQUB &38                           \ number of faces = &38 / 4 = 14
- EQUB &32
- EQUB &3C
- EQUB &1E
- EQUB &00
- EQUB &00
- EQUB &01
- EQUB %00000000                     \ laser power = 0, missiles = 0
-
- EQUB &00, &50, &00, &1F, &FF, &FF  \ vertices data (25*9)
- EQUB &50, &0A, &00, &DF, &FF, &FF
- EQUB &00, &50, &00, &5F, &FF, &FF
- EQUB &46, &28, &00, &5F, &FF, &FF
- EQUB &3C, &32, &00, &1F, &65, &DC
-
- EQUB &32, &00, &3C, &1F, &FF, &FF
- EQUB &28, &00, &46, &9F, &10, &32
- EQUB &00, &1E, &4B, &3F, &FF, &FF
- EQUB &00, &32, &3C, &7F, &98, &BA
-
- EQUB &1F, &72, &00, &04            \ edges data (21*4)
- EQUB &1F, &D6, &00, &10
- EQUB &1F, &C5, &0C, &10
- EQUB &1F, &B4, &08, &0C
- EQUB &1F, &A3, &04, &08
-
- EQUB &1F, &32, &04, &18
- EQUB &1F, &31, &08, &18
- EQUB &1F, &41, &08, &14
- EQUB &1F, &10, &14, &18
- EQUB &1F, &60, &00, &14
-
- EQUB &1F, &54, &0C, &14
- EQUB &1F, &20, &00, &18
- EQUB &1F, &65, &10, &14
- EQUB &1F, &A8, &04, &20
- EQUB &1F, &87, &04, &1C
-
- EQUB &1F, &D7, &00, &1C
- EQUB &1F, &DC, &10, &1C
- EQUB &1F, &C9, &0C, &1C
- EQUB &1F, &B9, &0C, &20
- EQUB &1F, &BA, &08, &20
-
- EQUB &1F, &98, &1C, &20
-
- EQUB &1F, &09, &42, &51            \ faces data (14*4)
- EQUB &5F, &09, &42, &51
- EQUB &9F, &48, &40, &1F
- EQUB &DF, &40, &49, &2F
- EQUB &5F, &2D, &4F, &41
-
- EQUB &1F, &87, &0F, &23
- EQUB &1F, &26, &4C, &46
- EQUB &BF, &42, &3B, &27
- EQUB &FF, &43, &0F, &50
- EQUB &7F, &42, &0E, &4B
-
- EQUB &FF, &46, &50, &28
- EQUB &7F, &3A, &66, &33
- EQUB &3F, &51, &09, &43
- EQUB &3F, &2F, &5E, &3F
-
-.SHIP11                             \ Cargo canister blueprint
-
- EQUB &00
- EQUB &90, &01
- EQUB &50
- EQUB &8C
- EQUB &31
- EQUB &00                           \ gun vertex = 0
- EQUB &12
- EQUB &3C                           \ number of vertices = &3C / 6 = 10
- EQUB &0F                           \ number of edges = &0F = 15
- EQUW 0                             \ bounty = 0
- EQUB &1C                           \ number of faces = &1C / 4 = 7
- EQUB &0C
- EQUB &11
- EQUB &0F
- EQUB &00
- EQUB &00
- EQUB &02
- EQUB %00000000                     \ laser power = 0, missiles = 0
-
- EQUB &18, &10, &00, &1F, &10, &55  \ vertices data (10*6)
- EQUB &18, &05, &0F, &1F, &10, &22
- EQUB &18, &0D, &09, &5F, &20, &33
- EQUB &18, &0D, &09, &7F, &30, &44
- EQUB &18, &05, &0F, &3F, &40, &55
-
- EQUB &18, &10, &00, &9F, &51, &66
- EQUB &18, &05, &0F, &9F, &21, &66
- EQUB &18, &0D, &09, &DF, &32, &66
- EQUB &18, &0D, &09, &FF, &43, &66
- EQUB &18, &05, &0F, &BF, &54, &66
-
- EQUB &1F, &10, &00, &04            \ edges data (15*4)
- EQUB &1F, &20, &04, &08
- EQUB &1F, &30, &08, &0C
- EQUB &1F, &40, &0C, &10
- EQUB &1F, &50, &00, &10
-
- EQUB &1F, &51, &00, &14
- EQUB &1F, &21, &04, &18
- EQUB &1F, &32, &08, &1C
- EQUB &1F, &43, &0C, &20
- EQUB &1F, &54, &10, &24
-
- EQUB &1F, &61, &14, &18
- EQUB &1F, &62, &18, &1C
- EQUB &1F, &63, &1C, &20
- EQUB &1F, &64, &20, &24
- EQUB &1F, &65, &24, &14
-
- EQUB &1F, &60, &00, &00            \ faces data (7*4)
- EQUB &1F, &00, &29, &1E
- EQUB &5F, &00, &12, &30
- EQUB &5F, &00, &33, &00
- EQUB &7F, &00, &12, &30
-
- EQUB &3F, &00, &29, &1E
- EQUB &9F, &60, &00, &00
-
-.SHIP12                             \ Thargon ship blueprint
-
- EQUB &00
- EQUB &40, &06
- EQUB &A8                           \ use canister edge data at &FFA8 = -88
- EQUB &50
- EQUB &41
- EQUB &00                           \ gun vertex = 0
- EQUB &12
- EQUB &3C                           \ number of vertices = &3C / 6 = 10
- EQUB &0F                           \ number of edges = &0F = 15
- EQUW 50                            \ bounty = 50
- EQUB &1C                           \ number of faces = &1C / 4 = 7
- EQUB &14
- EQUB &14
- EQUB &1E
- EQUB &FF                           \ use canister edge data at &FFA8 = -88
- EQUB &00
- EQUB &02
- EQUB %00010000                     \ laser power = 2, missiles = 0
-
- EQUB &09, &00, &28, &9F, &01, &55  \ vertices data (10*6)
- EQUB &09, &26, &0C, &DF, &01, &22
- EQUB &09, &18, &20, &FF, &02, &33
- EQUB &09, &18, &20, &BF, &03, &44
- EQUB &09, &26, &0C, &9F, &04, &55
-
- EQUB &09, &00, &08, &3F, &15, &66
- EQUB &09, &0A, &0F, &7F, &12, &66
- EQUB &09, &06, &1A, &7F, &23, &66
- EQUB &09, &06, &1A, &3F, &34, &66
- EQUB &09, &0A, &0F, &3F, &45, &66
-
- EQUB &9F, &24, &00, &00            \ faces data (7*4)
- EQUB &5F, &14, &05, &07
- EQUB &7F, &2E, &2A, &0E
- EQUB &3F, &24, &00, &68
- EQUB &3F, &2E, &2A, &0E
-
- EQUB &1F, &14, &05, &07
- EQUB &1F, &24, &00, &00
-
-.SHIP13                             \ Escape pod blueprint
-
- EQUB &00
- EQUB &00, &01
- EQUB &2C
- EQUB &44
- EQUB &19
- EQUB &00                           \ gun vertex = 0
- EQUB &16
- EQUB &18                           \ number of vertices = &18 / 6 = 4
- EQUB &06                           \ number of edges = &06 = 6
- EQUW 0                             \ bounty = 0
- EQUB &10                           \ number of faces = &10 / 4 = 4
- EQUB &08
- EQUB &11
- EQUB &08
- EQUB &00
- EQUB &00
- EQUB &03
- EQUB %00000000                     \ laser power = 0, missiles = 0
-
- EQUB &07, &00, &24, &9F, &12, &33  \ vertices data (4*6)
- EQUB &07, &0E, &0C, &FF, &02, &33
- EQUB &07, &0E, &0C, &BF, &01, &33
- EQUB &15, &00, &00, &1F, &01, &22
-
- EQUB &1F, &23, &00, &04            \ edges data (6*4)
- EQUB &1F, &03, &04, &08
- EQUB &1F, &01, &08, &0C
- EQUB &1F, &12, &0C, &00
- EQUB &1F, &13, &00, &08
-
- EQUB &1F, &02, &0C, &04
-
- EQUB &3F, &1A, &00, &3D            \ faces data (4*4)
- EQUB &1F, &13, &33, &0F
- EQUB &5F, &13, &33, &0F
- EQUB &9F, &38, &00, &00
+.SHIP1                  \ Sidewinder blueprint
+
+ EQUB 0                 \ Max. canisters on demise = 0
+ EQUW 65 * 65           \ Targetable area          = 65 * 65
+ EQUB &50               \ Edges data offset        = &0050
+ EQUB &8C               \ Faces data offset        = &008C
+ EQUB 61                \ Max. edge count          = (61 - 1) / 4 = 15
+ EQUB 0                 \ Gun vertex               = 0
+ EQUB 30                \ Explosion count          = 6, (4 * n) + 6 = 30
+ EQUB 60                \ Number of vertices       = 60 / 6 = 10
+ EQUB 15                \ Number of edges          = 15
+ EQUW 50                \ Bounty                   = 50
+ EQUB 28                \ Number of faces          = 28 / 4 = 7
+ EQUB 20                \ Visibility distance      = 20
+ EQUB 70                \ Max. energy              = 70
+ EQUB 37                \ Max. speed               = 37
+ EQUB &00               \ Edges data offset        = &0050
+ EQUB &00               \ Faces data offset        = &008C
+ EQUB 2                 \ Normals are scaled by    = 2^2 = 4
+ EQUB %00010000         \ Laser power              = 2
+                        \ Missiles                 = 0
+
+\          x,    y,    z, face1, face2, face3, face4, visibility
+ VERTEX  -32,    0,   36,     0,      1,    4,     5,         31    \ Vertex 0
+ VERTEX   32,    0,   36,     0,      2,    5,     6,         31    \ Vertex 1
+ VERTEX   64,    0,  -28,     2,      3,    6,     6,         31    \ Vertex 2 
+ VERTEX  -64,    0,  -28,     1,      3,    4,     4,         31    \ Vertex 3
+ VERTEX    0,   16,  -28,     0,      1,    2,     3,         31    \ Vertex 4
+
+ VERTEX    0,  -16,  -28,     3,      4,    5,     6,         31    \ Vertex 5
+ VERTEX  -12,    6,  -28,     3,      3,    3,     3,         15    \ Vertex 6
+ VERTEX   12,    6,  -28,     3,      3,    3,     3,         15    \ Vertex 7
+ VERTEX   12,   -6,  -28,     3,      3,    3,     3,         12    \ Vertex 8
+ VERTEX  -12,   -6,  -28,     3,      3,    3,     3,         12    \ Vertex 9
+
+\     vertex1, vertex2, face1, face2, visibility
+ EDGE       0,       1,     0,     5,         31    \ Edge 0
+ EDGE       1,       2,     2,     6,         31    \ Edge 1
+ EDGE       1,       4,     0,     2,         31    \ Edge 2
+ EDGE       0,       4,     0,     1,         31    \ Edge 3
+ EDGE       0,       3,     1,     4,         31    \ Edge 4
+
+ EDGE       3,       4,     1,     3,         31    \ Edge 5
+ EDGE       2,       4,     2,     3,         31    \ Edge 6
+ EDGE       3,       5,     3,     4,         31    \ Edge 7
+ EDGE       2,       5,     3,     6,         31    \ Edge 8
+ EDGE       1,       5,     5,     6,         31    \ Edge 9
+
+ EDGE       0,       5,     4,     5,         31    \ Edge 10
+ EDGE       6,       7,     3,     3,         15    \ Edge 11
+ EDGE       7,       8,     3,     3,         12    \ Edge 12
+ EDGE       6,       9,     3,     3,         12    \ Edge 13
+ EDGE       8,       9,     3,     3,         12    \ Edge 14
+
+\     normal_x, normal_y, normal_z, visibility
+ FACE        0,       32,        8,         31    \ Face 0
+ FACE      -12,       47,        6,         31    \ Face 1
+ FACE       12,       47,        6,         31    \ Face 2
+ FACE        0,        0,     -112,         31    \ Face 3
+ FACE      -12,      -47,        6,         31    \ Face 4
+
+ FACE        0,      -32,        8,         31    \ Face 5
+ FACE       12,      -47,        6,         31    \ Face 6
+
+.SHIP2                  \ Viper blueprint
+
+ EQUB 0                 \ Max. canisters on demise = 0
+ EQUW 75 * 75           \ Targetable area          = 75 * 75
+ EQUB &6E               \ Edges data offset        = &006E
+ EQUB &BE               \ Faces data offset        = &00BE
+ EQUB 77                \ Max. edge count          = (77 - 1) / 4 = 19
+ EQUB 0                 \ Gun vertex               = 0
+ EQUB 42                \ Explosion count          = 9, (4 * n) + 6 = 42
+ EQUB 90                \ Number of vertices       = 90 / 6 = 15
+ EQUB 20                \ Number of edges          = 20
+ EQUW 0                 \ Bounty                   = 0
+ EQUB 28                \ Number of faces          = 28 / 4 = 7
+ EQUB 23                \ Visibility distance      = 23
+ EQUB 120               \ Max. energy              = 120
+ EQUB 32                \ Max. speed               = 32
+ EQUB &00               \ Edges data offset        = &006E
+ EQUB &00               \ Faces data offset        = &00BE
+ EQUB 1                 \ Normals are scaled by    = 2^1 = 2
+ EQUB %00010001         \ Laser power              = 2
+                        \ Missiles                 = 1
+
+\          x,    y,    z, face1, face2, face3, face4, visibility
+ VERTEX    0,    0,   72,     1,      2,    3,     4,         31    \ Vertex 0
+ VERTEX    0,   16,   24,     0,      1,    2,     2,         30    \ Vertex 1
+ VERTEX    0,  -16,   24,     3,      4,    5,     5,         30    \ Vertex 2
+ VERTEX   48,    0,  -24,     2,      4,    6,     6,         31    \ Vertex 3
+ VERTEX  -48,    0,  -24,     1,      3,    6,     6,         31    \ Vertex 4
+
+ VERTEX   24,  -16,  -24,     4,      5,    6,     6,         30    \ Vertex 5
+ VERTEX  -24,  -16,  -24,     5,      3,    6,     6,         30    \ Vertex 6
+ VERTEX   24,   16,  -24,     0,      2,    6,     6,         31    \ Vertex 7
+ VERTEX  -24,   16,  -24,     0,      1,    6,     6,         31    \ Vertex 8
+ VERTEX  -32,    0,  -24,     6,      6,    6,     6,         19    \ Vertex 9
+
+ VERTEX   32,    0,  -24,     6,      6,    6,     6,         19    \ Vertex 10
+ VERTEX    8,    8,  -24,     6,      6,    6,     6,         19    \ Vertex 11
+ VERTEX   -8,    8,  -24,     6,      6,    6,     6,         19    \ Vertex 12
+ VERTEX   -8,   -8,  -24,     6,      6,    6,     6,         18    \ Vertex 13
+ VERTEX    8,   -8,  -24,     6,      6,    6,     6,         18    \ Vertex 14
+
+\     vertex1, vertex2, face1, face2, visibility
+ EDGE       0,       3,     2,     4,         31    \ Edge 0
+ EDGE       0,       1,     1,     2,         30    \ Edge 1
+ EDGE       0,       2,     3,     4,         30    \ Edge 2
+ EDGE       0,       4,     1,     3,         31    \ Edge 3
+ EDGE       1,       7,     0,     2,         30    \ Edge 4
+
+ EDGE       1,       8,     0,     1,         30    \ Edge 5
+ EDGE       2,       5,     4,     5,         30    \ Edge 6
+ EDGE       2,       6,     3,     5,         30    \ Edge 7
+ EDGE       7,       8,     0,     6,         31    \ Edge 8
+ EDGE       5,       6,     5,     6,         30    \ Edge 9
+
+ EDGE       4,       8,     1,     6,         31    \ Edge 10
+ EDGE       4,       6,     3,     6,         30    \ Edge 11
+ EDGE       3,       7,     2,     6,         31    \ Edge 12
+ EDGE       3,       5,     6,     4,         30    \ Edge 13
+ EDGE       9,      12,     6,     6,         19    \ Edge 14
+
+ EDGE       9,      13,     6,     6,         18    \ Edge 15
+ EDGE      10,      11,     6,     6,         19    \ Edge 16
+ EDGE      10,      14,     6,     6,         18    \ Edge 17
+ EDGE      11,      14,     6,     6,         16    \ Edge 18
+ EDGE      12,      13,     6,     6,         16    \ Edge 19
+
+\     normal_x, normal_y, normal_z, visibility
+ FACE        0,       32,        0,         31    \ Face 0
+ FACE      -22,       33,       11,         31    \ Face 1
+ FACE       22,       33,       11,         31    \ Face 2
+ FACE      -22,      -33,       11,         31    \ Face 3
+ FACE       22,      -33,       11,         31    \ Face 4
+
+ FACE        0,      -32,        0,         31    \ Face 5
+ FACE        0,        0,      -48,         31    \ Face 6
+
+.SHIP3                  \ Mamba blueprint
+
+ EQUB 1                 \ Max. canisters on demise = 1
+ EQUW 70 * 70           \ Targetable area          = 70 * 70
+ EQUB &AA               \ Edges data offset        = &00AA
+ EQUB &1A               \ Faces data offset        = &001A
+ EQUB 93                \ Max. edge count          = (93 - 1) / 4 = 23
+ EQUB 0                 \ Gun vertex               = 0
+ EQUB 34                \ Explosion count          = 7, (4 * n) + 6 = 34
+ EQUB 150               \ Number of vertices       = 150 / 6 = 25
+ EQUB 28                \ Number of edges          = 28
+ EQUW 150               \ Bounty                   = 150
+ EQUB 20                \ Number of faces          = 20 / 4 = 5
+ EQUB 25                \ Visibility distance      = 25
+ EQUB 90                \ Max. energy              = 90
+ EQUB 30                \ Max. speed               = 30
+ EQUB &00               \ Edges data offset        = &00AA
+ EQUB &01               \ Faces data offset        = &001A
+ EQUB 2                 \ Normals are scaled by    = 2^2 = 4
+ EQUB %000010010        \ Laser power              = 2
+                        \ Missiles                 = 2
+
+\          x,    y,    z, face1, face2, face3, face4, visibility
+ VERTEX    0,    0,   64,     0,      1,    2,     3,         31    \ Vertex 0
+ VERTEX  -64,   -8,  -32,     0,      2,    4,     4,         31    \ Vertex 1
+ VERTEX  -32,    8,  -32,     1,      2,    4,     4,         30    \ Vertex 2
+ VERTEX   32,    8,  -32,     1,      3,    4,     4,         30    \ Vertex 3
+ VERTEX   64,   -8,  -32,     0,      3,    4,     4,         31    \ Vertex 4
+
+ VERTEX   -4,    4,   16,     1,      1,    1,     1,         14    \ Vertex 5
+ VERTEX    4,    4,   16,     1,      1,    1,     1,         14    \ Vertex 6
+ VERTEX    8,    3,   28,     1,      1,    1,     1,         13    \ Vertex 7
+ VERTEX   -8,    3,   28,     1,      1,    1,     1,         13    \ Vertex 8
+ VERTEX  -20,   -4,   16,     0,      0,    0,     0,         20    \ Vertex 9
+
+ VERTEX   20,   -4,   16,     0,      0,    0,     0,         20    \ Vertex 10
+ VERTEX  -24,   -7,  -20,     0,      0,    0,     0,         20    \ Vertex 11
+ VERTEX  -16,   -7,  -20,     0,      0,    0,     0,         16    \ Vertex 12
+ VERTEX   16,   -7,  -20,     0,      0,    0,     0,         16    \ Vertex 13
+ VERTEX   24,   -7,  -20,     0,      0,    0,     0,         20    \ Vertex 14
+
+ VERTEX   -8,    4,  -32,     4,      4,    4,     4,         13    \ Vertex 15
+ VERTEX    8,    4,  -32,     4,      4,    4,     4,         13    \ Vertex 16
+ VERTEX    8,   -4,  -32,     4,      4,    4,     4,         14    \ Vertex 17
+ VERTEX   -8,   -4,  -32,     4,      4,    4,     4,         14    \ Vertex 18
+ VERTEX  -32,    4,  -32,     4,      4,    4,     4,          7    \ Vertex 19
+
+ VERTEX   32,    4,  -32,     4,      4,    4,     4,          7    \ Vertex 20
+ VERTEX   36,   -4,  -32,     4,      4,    4,     4,          7    \ Vertex 21
+ VERTEX  -36,   -4,  -32,     4,      4,    4,     4,          7    \ Vertex 22
+ VERTEX  -38,    0,  -32,     4,      4,    4,     4,          5    \ Vertex 23
+ VERTEX   38,    0,  -32,     4,      4,    4,     4,          5    \ Vertex 24
+
+\     vertex1, vertex2, face1, face2, visibility
+ EDGE       0,       1,     0,     2,         31    \ Edge 0
+ EDGE       0,       4,     0,     3,         31    \ Edge 1
+ EDGE       1,       4,     0,     4,         31    \ Edge 2
+ EDGE       1,       2,     2,     4,         30    \ Edge 3
+ EDGE       2,       3,     1,     4,         30    \ Edge 4
+
+ EDGE       3,       4,     3,     4,         30    \ Edge 5
+ EDGE       5,       6,     1,     1,         14    \ Edge 6
+ EDGE       6,       7,     1,     1,         12    \ Edge 7
+ EDGE       7,       8,     1,     1,         13    \ Edge 8
+ EDGE       5,       8,     1,     1,         12    \ Edge 9
+
+ EDGE       9,      11,     0,     0,         20    \ Edge 10
+ EDGE       9,      12,     0,     0,         16    \ Edge 11
+ EDGE      10,      13,     0,     0,         16    \ Edge 12
+ EDGE      10,      14,     0,     0,         20    \ Edge 13
+ EDGE      13,      14,     0,     0,         14    \ Edge 14
+
+ EDGE      11,      12,     0,     0,         14    \ Edge 15
+ EDGE      15,      16,     4,     4,         13    \ Edge 16
+ EDGE      17,      18,     4,     4,         14    \ Edge 17
+ EDGE      15,      18,     4,     4,         12    \ Edge 18
+ EDGE      16,      17,     4,     4,         12    \ Edge 19
+
+ EDGE      20,      21,     4,     4,          7    \ Edge 20
+ EDGE      20,      24,     4,     4,          5    \ Edge 21
+ EDGE      21,      24,     4,     4,          5    \ Edge 22
+ EDGE      19,      22,     4,     4,          7    \ Edge 23
+ EDGE      19,      23,     4,     4,          5    \ Edge 24
+
+ EDGE      22,      23,     4,     4,          5    \ Edge 25
+ EDGE       0,       2,     1,     2,         30    \ Edge 26
+ EDGE       0,       3,     1,     3,         30    \ Edge 27
+
+\     normal_x, normal_y, normal_z, visibility
+ FACE        0,      -24,        2,         30    \ Face 0
+ FACE        0,       24,        2,         30    \ Face 1
+ FACE      -32,       64,       16,         30    \ Face 2
+ FACE       32,       64,       16,         30    \ Face 3
+ FACE        0,        0,     -127,         30    \ Face 4
+
+.SHIP5                  \ Cobra Mk III blueprint
+
+ EQUB 3                 \ Max. canisters on demise = 3
+ EQUW 95 * 95           \ Targetable area          = 95 * 95
+ EQUB &BC               \ Edges data offset        = &00BC
+ EQUB &54               \ Faces data offset        = &0154
+ EQUB 153               \ Max. edge count          = (153 - 1) / 4 = 38
+ EQUB 84                \ Gun vertex               = 84 / 4 = 21
+ EQUB 42                \ Explosion count          = 9, (4 * n) + 6 = 42
+ EQUB 168               \ Number of vertices       = 168 / 6 = 28
+ EQUB 38                \ Number of edges          = 38
+ EQUW 0                 \ Bounty                   = 0
+ EQUB 52                \ Number of faces          = 52 / 4 = 13
+ EQUB 50                \ Visibility distance      = 50
+ EQUB 150               \ Max. energy              = 150
+ EQUB 28                \ Max. speed               = 28
+ EQUB &00               \ Edges data offset        = &00BC
+ EQUB &01               \ Faces data offset        = &0154
+ EQUB 1                 \ Normals are scaled by    = 2^1 = 2
+ EQUB %00010011         \ Laser power              = 2
+                        \ Missiles                 = 3
+
+\          x,    y,    z, face1, face2, face3, face4, visibility
+ VERTEX   32,    0,   76,    15,     15,   15,    15,         31    \ Vertex 0
+ VERTEX  -32,    0,   76,    15,     15,   15,    15,         31    \ Vertex 1
+ VERTEX    0,   26,   24,    15,     15,   15,    15,         31    \ Vertex 2
+ VERTEX -120,   -3,   -8,     3,      7,   10,    10,         31    \ Vertex 3
+ VERTEX  120,   -3,   -8,     4,      8,   12,    12,         31    \ Vertex 4
+
+ VERTEX  -88,   16,  -40,    15,     15,   15,    15,         31    \ Vertex 5
+ VERTEX   88,   16,  -40,    15,     15,   15,    15,         31    \ Vertex 6
+ VERTEX  128,   -8,  -40,     8,      9,   12,    12,         31    \ Vertex 7
+ VERTEX -128,   -8,  -40,     7,      9,   10,    10,         31    \ Vertex 8
+ VERTEX    0,   26,  -40,     5,      6,    9,     9,         31    \ Vertex 9
+
+ VERTEX  -32,  -24,  -40,     9,     10,   11,    11,         31    \ Vertex 10
+ VERTEX   32,  -24,  -40,     9,     11,   12,    12,         31    \ Vertex 11
+ VERTEX  -36,    8,  -40,     9,      9,    9,     9,         20    \ Vertex 12
+ VERTEX   -8,   12,  -40,     9,      9,    9,     9,         20    \ Vertex 13
+ VERTEX    8,   12,  -40,     9,      9,    9,     9,         20    \ Vertex 14
+
+ VERTEX   36,    8,  -40,     9,      9,    9,     9,         20    \ Vertex 15
+ VERTEX   36,  -12,  -40,     9,      9,    9,     9,         20    \ Vertex 16
+ VERTEX    8,  -16,  -40,     9,      9,    9,     9,         20    \ Vertex 17
+ VERTEX   -8,  -16,  -40,     9,      9,    9,     9,         20    \ Vertex 18
+ VERTEX  -36,  -12,  -40,     9,      9,    9,     9,         20    \ Vertex 19
+
+ VERTEX    0,    0,   76,     0,     11,   11,    11,          6    \ Vertex 20
+ VERTEX    0,    0,   90,     0,     11,   11,    11,         31    \ Vertex 21
+ VERTEX  -80,   -6,  -40,     9,      9,    9,     9,          8    \ Vertex 22
+ VERTEX  -80,    6,  -40,     9,      9,    9,     9,          8    \ Vertex 23
+ VERTEX  -88,    0,  -40,     9,      9,    9,     9,          6    \ Vertex 24
+
+ VERTEX   80,    6,  -40,     9,      9,    9,     9,          8    \ Vertex 25
+ VERTEX   88,    0,  -40,     9,      9,    9,     9,          6    \ Vertex 26
+ VERTEX   80,   -6,  -40,     9,      9,    9,     9,          8    \ Vertex 27
+
+\     vertex1, vertex2, face1, face2, visibility
+ EDGE       0,       1,     0,    11,         31    \ Edge 0
+ EDGE       0,       4,     4,    12,         31    \ Edge 1
+ EDGE       1,       3,     3,    10,         31    \ Edge 2
+ EDGE       3,       8,     7,    10,         31    \ Edge 3
+ EDGE       4,       7,     8,    12,         31    \ Edge 4
+
+ EDGE       6,       7,     8,     9,         31    \ Edge 5
+ EDGE       6,       9,     6,     9,         31    \ Edge 6
+ EDGE       5,       9,     5,     9,         31    \ Edge 7
+ EDGE       5,       8,     7,     9,         31    \ Edge 8
+ EDGE       2,       5,     1,     5,         31    \ Edge 9
+
+ EDGE       2,       6,     2,     6,         31    \ Edge 10
+ EDGE       3,       5,     3,     7,         31    \ Edge 11
+ EDGE       4,       6,     4,     8,         31    \ Edge 12
+ EDGE       1,       2,     0,     1,         31    \ Edge 13
+ EDGE       0,       2,     0,     2,         31    \ Edge 14
+
+ EDGE       8,      10,     9,    10,         31    \ Edge 15
+ EDGE      10,      11,     9,    11,         31    \ Edge 16
+ EDGE       7,      11,     9,    12,         31    \ Edge 17
+ EDGE       1,      10,    10,    11,         31    \ Edge 18
+ EDGE       0,      11,    11,    12,         31    \ Edge 19
+
+ EDGE       1,       5,     1,     3,         29    \ Edge 20
+ EDGE       0,       6,     2,     4,         29    \ Edge 21
+ EDGE      20,      21,     0,    11,          6    \ Edge 22
+ EDGE      12,      13,     9,     9,         20    \ Edge 23
+ EDGE      18,      19,     9,     9,         20    \ Edge 24
+
+ EDGE      14,      15,     9,     9,         20    \ Edge 25
+ EDGE      16,      17,     9,     9,         20    \ Edge 26
+ EDGE      15,      16,     9,     9,         19    \ Edge 27
+ EDGE      14,      17,     9,     9,         17    \ Edge 28
+ EDGE      13,      18,     9,     9,         19    \ Edge 29
+
+ EDGE      12,      19,     9,     9,         19    \ Edge 30
+ EDGE       2,       9,     5,     6,         30    \ Edge 31
+ EDGE      22,      24,     9,     9,          6    \ Edge 32
+ EDGE      23,      24,     9,     9,          6    \ Edge 33
+ EDGE      22,      23,     9,     9,          8    \ Edge 34
+
+ EDGE      25,      26,     9,     9,          6    \ Edge 35
+ EDGE      26,      27,     9,     9,          6    \ Edge 36
+ EDGE      25,      27,     9,     9,          8    \ Edge 37
+
+\     normal_x, normal_y, normal_z, visibility
+ FACE        0,       62,       31,         31    \ Face 0
+ FACE      -18,       55,       16,         31    \ Face 1
+ FACE       18,       55,       16,         31    \ Face 2
+ FACE      -16,       52,       14,         31    \ Face 3
+ FACE       16,       52,       14,         31    \ Face 4
+
+ FACE      -14,       47,        0,         31    \ Face 5
+ FACE       14,       47,        0,         31    \ Face 6
+ FACE      -61,      102,        0,         31    \ Face 7
+ FACE       61,      102,        0,         31    \ Face 8
+ FACE        0,        0,      -80,         31    \ Face 9
+
+ FACE       -7,      -42,        9,         31    \ Face 10
+ FACE        0,      -30,        6,         31    \ Face 11
+ FACE        7,      -42,        9,         31    \ Face 12
+
+.SHIP6                  \ Thargoid blueprint
+
+ EQUB 0                 \ Max. canisters on demise = 0
+ EQUW 99 * 99           \ Targetable area          = 99 * 99
+ EQUB &8C               \ Edges data offset        = &008C
+ EQUB &F4               \ Faces data offset        = &00F4
+ EQUB 101               \ Max. edge count          = (101 - 1) / 4 = 25
+ EQUB 60                \ Gun vertex               = 60 / 4 = 15
+ EQUB 38                \ Explosion count          = 8, (4 * n) + 6 = 38
+ EQUB 120               \ Number of vertices       = 120 / 6 = 20
+ EQUB 26                \ Number of edges          = 26
+ EQUW 500               \ Bounty                   = 500
+ EQUB 40                \ Number of faces          = 40 / 4 = 10
+ EQUB 55                \ Visibility distance      = 55
+ EQUB 240               \ Max. energy              = 240
+ EQUB 39                \ Max. speed               = 39
+ EQUB &00               \ Edges data offset        = &008C
+ EQUB &00               \ Faces data offset        = &00F4
+ EQUB 2                 \ Normals are scaled by    = 2^2 = 4
+ EQUB %00010110         \ Laser power              = 2
+                        \ Missiles                 = 6
+
+\          x,    y,    z, face1, face2, face3, face4, visibility
+ VERTEX   32,  -48,   48,     0,      4,    8,     8,         31    \ Vertex 0
+ VERTEX   32,  -68,    0,     0,      1,    4,     4,         31    \ Vertex 1
+ VERTEX   32,  -48,  -48,     1,      2,    4,     4,         31    \ Vertex 2
+ VERTEX   32,    0,  -68,     2,      3,    4,     4,         31    \ Vertex 3
+ VERTEX   32,   48,  -48,     3,      4,    5,     5,         31    \ Vertex 4
+
+ VERTEX   32,   68,    0,     4,      5,    6,     6,         31    \ Vertex 5
+ VERTEX   32,   48,   48,     4,      6,    7,     7,         31    \ Vertex 6
+ VERTEX   32,    0,   68,     4,      7,    8,     8,         31    \ Vertex 7
+ VERTEX  -24, -116,  116,     0,      8,    9,     9,         31    \ Vertex 8
+ VERTEX  -24, -164,    0,     0,      1,    9,     9,         31    \ Vertex 9
+
+ VERTEX  -24, -116, -116,     1,      2,    9,     9,         31    \ Vertex 10
+ VERTEX  -24,    0, -164,     2,      3,    9,     9,         31    \ Vertex 11
+ VERTEX  -24,  116, -116,     3,      5,    9,     9,         31    \ Vertex 12
+ VERTEX  -24,  164,    0,     5,      6,    9,     9,         31    \ Vertex 13
+ VERTEX  -24,  116,  116,     6,      7,    9,     9,         31    \ Vertex 14
+
+ VERTEX  -24,    0,  164,     7,      8,    9,     9,         31    \ Vertex 15
+ VERTEX  -24,   64,   80,     9,      9,    9,     9,         30    \ Vertex 16
+ VERTEX  -24,   64,  -80,     9,      9,    9,     9,         30    \ Vertex 17
+ VERTEX  -24,  -64,  -80,     9,      9,    9,     9,         30    \ Vertex 18
+ VERTEX  -24,  -64,   80,     9,      9,    9,     9,         30    \ Vertex 19
+
+\     vertex1, vertex2, face1, face2, visibility
+ EDGE       0,       7,     4,     8,         31    \ Edge 0
+ EDGE       0,       1,     0,     4,         31    \ Edge 1
+ EDGE       1,       2,     1,     4,         31    \ Edge 2
+ EDGE       2,       3,     2,     4,         31    \ Edge 3
+ EDGE       3,       4,     3,     4,         31    \ Edge 4
+
+ EDGE       4,       5,     4,     5,         31    \ Edge 5
+ EDGE       5,       6,     4,     6,         31    \ Edge 6
+ EDGE       6,       7,     4,     7,         31    \ Edge 7
+ EDGE       0,       8,     0,     8,         31    \ Edge 8
+ EDGE       1,       9,     0,     1,         31    \ Edge 9
+
+ EDGE       2,      10,     1,     2,         31    \ Edge 10
+ EDGE       3,      11,     2,     3,         31    \ Edge 11
+ EDGE       4,      12,     3,     5,         31    \ Edge 12
+ EDGE       5,      13,     5,     6,         31    \ Edge 13
+ EDGE       6,      14,     6,     7,         31    \ Edge 14
+
+ EDGE       7,      15,     7,     8,         31    \ Edge 15
+ EDGE       8,      15,     8,     9,         31    \ Edge 16
+ EDGE       8,       9,     0,     9,         31    \ Edge 17
+ EDGE       9,      10,     1,     9,         31    \ Edge 18
+ EDGE      10,      11,     2,     9,         31    \ Edge 19
+
+ EDGE      11,      12,     3,     9,         31    \ Edge 20
+ EDGE      12,      13,     5,     9,         31    \ Edge 21
+ EDGE      13,      14,     6,     9,         31    \ Edge 22
+ EDGE      14,      15,     7,     9,         31    \ Edge 23
+ EDGE      16,      17,     9,     9,         30    \ Edge 24
+
+ EDGE      18,      19,     9,     9,         30    \ Edge 25
+
+\     normal_x, normal_y, normal_z, visibility
+ FACE      103,      -60,       25,         31    \ Face 0
+ FACE      103,      -60,      -25,         31    \ Face 1
+ FACE      103,      -25,      -60,         31    \ Face 2
+ FACE      103,       25,      -60,         31    \ Face 3
+ FACE       64,        0,        0,         31    \ Face 4
+
+ FACE      103,       60,      -25,         31    \ Face 5
+ FACE      103,       60,       25,         31    \ Face 6
+ FACE      103,       25,       60,         31    \ Face 7
+ FACE      103,      -25,       60,         31    \ Face 8
+ FACE      -48,        0,        0,         31    \ Face 9
+
+.SHIP8                  \ Coriolis space station blueprint
+
+ EQUB 0                 \ Max. canisters on demise = 0
+ EQUW 160 * 160         \ Targetable area          = 160 * 160
+ EQUB &74               \ Edges data offset        = &0074
+ EQUB &E4               \ Faces data offset        = &00E4
+ EQUB 85                \ Max. edge count          = (85 - 1) / 4 = 21
+ EQUB 0                 \ Gun vertex               = 0
+ EQUB 54                \ Explosion count          = 12, (4 * n) + 6 = 54
+ EQUB 96                \ Number of vertices       = 96 / 6 = 16
+ EQUB 28                \ Number of edges          = 28
+ EQUW 0                 \ Bounty                   = 0
+ EQUB 56                \ Number of faces          = 56 / 4 = 14
+ EQUB 120               \ Visibility distance      = 120
+ EQUB 240               \ Max. energy              = 240
+ EQUB 0                 \ Max. speed               = 0
+ EQUB &00               \ Edges data offset        = &0074
+ EQUB &00               \ Faces data offset        = &00E4
+ EQUB 0                 \ Normals are scaled by    = 2^0 = 1
+ EQUB %00000110         \ Laser power              = 0
+                        \ Missiles                 = 6
+
+\          x,    y,    z, face1, face2, face3, face4, visibility
+ VERTEX  160,    0,  160,     0,      1,    2,     6,         31    \ Vertex 0
+ VERTEX    0,  160,  160,     0,      2,    3,     8,         31    \ Vertex 1
+ VERTEX -160,    0,  160,     0,      3,    4,     7,         31    \ Vertex 2
+ VERTEX    0, -160,  160,     0,      1,    4,     5,         31    \ Vertex 3
+ VERTEX  160, -160,    0,     1,      5,    6,    10,         31    \ Vertex 4
+
+ VERTEX  160,  160,    0,     2,      6,    8,    11,         31    \ Vertex 5
+ VERTEX -160,  160,    0,     3,      7,    8,    12,         31    \ Vertex 6
+ VERTEX -160, -160,    0,     4,      5,    7,     9,         31    \ Vertex 7
+ VERTEX  160,    0, -160,     6,     10,   11,    13,         31    \ Vertex 8
+ VERTEX    0,  160, -160,     8,     11,   12,    13,         31    \ Vertex 9
+
+ VERTEX -160,    0, -160,     7,      9,   12,    13,         31    \ Vertex 10
+ VERTEX    0, -160, -160,     5,      9,   10,    13,         31    \ Vertex 11
+ VERTEX   10,  -30,  160,     0,      0,    0,     0,         30    \ Vertex 12
+ VERTEX   10,   30,  160,     0,      0,    0,     0,         30    \ Vertex 13
+ VERTEX  -10,   30,  160,     0,      0,    0,     0,         30    \ Vertex 14
+
+ VERTEX  -10,  -30,  160,     0,      0,    0,     0,         30    \ Vertex 15
+
+\     vertex1, vertex2, face1, face2, visibility
+ EDGE       0,       3,     0,     1,         31    \ Edge 0
+ EDGE       0,       1,     0,     2,         31    \ Edge 1
+ EDGE       1,       2,     0,     3,         31    \ Edge 2
+ EDGE       2,       3,     0,     4,         31    \ Edge 3
+ EDGE       3,       4,     1,     5,         31    \ Edge 4
+
+ EDGE       0,       4,     1,     6,         31    \ Edge 5
+ EDGE       0,       5,     2,     6,         31    \ Edge 6
+ EDGE       5,       1,     2,     8,         31    \ Edge 7
+ EDGE       1,       6,     3,     8,         31    \ Edge 8
+ EDGE       2,       6,     3,     7,         31    \ Edge 9
+
+ EDGE       2,       7,     4,     7,         31    \ Edge 10
+ EDGE       3,       7,     4,     5,         31    \ Edge 11
+ EDGE       8,      11,    10,    13,         31    \ Edge 12
+ EDGE       8,       9,    11,    13,         31    \ Edge 13
+ EDGE       9,      10,    12,    13,         31    \ Edge 14
+
+ EDGE      10,      11,     9,    13,         31    \ Edge 15
+ EDGE       4,      11,     5,    10,         31    \ Edge 16
+ EDGE       4,       8,     6,    10,         31    \ Edge 17
+ EDGE       5,       8,     6,    11,         31    \ Edge 18
+ EDGE       5,       9,     8,    11,         31    \ Edge 19
+
+ EDGE       6,       9,     8,    12,         31    \ Edge 20
+ EDGE       6,      10,     7,    12,         31    \ Edge 21
+ EDGE       7,      10,     7,     9,         31    \ Edge 22
+ EDGE       7,      11,     5,     9,         31    \ Edge 23
+ EDGE      12,      13,     0,     0,         30    \ Edge 24
+
+ EDGE      13,      14,     0,     0,         30    \ Edge 25
+ EDGE      14,      15,     0,     0,         30    \ Edge 26
+ EDGE      15,      12,     0,     0,         30    \ Edge 27
+
+\     normal_x, normal_y, normal_z, visibility
+ FACE        0,        0,      160,         31    \ Face 0
+ FACE      107,     -107,      107,         31    \ Face 1
+ FACE      107,      107,      107,         31    \ Face 2
+ FACE     -107,      107,      107,         31    \ Face 3
+ FACE     -107,     -107,      107,         31    \ Face 4
+
+ FACE        0,     -160,        0,         31    \ Face 5
+ FACE      160,        0,        0,         31    \ Face 6
+ FACE     -160,        0,        0,         31    \ Face 7
+ FACE        0,      160,        0,         31    \ Face 8
+ FACE     -107,     -107,     -107,         31    \ Face 9
+
+ FACE      107,     -107,     -107,         31    \ Face 10
+ FACE      107,      107,     -107,         31    \ Face 11
+ FACE     -107,      107,     -107,         31    \ Face 12
+ FACE        0,        0,     -160,         31    \ Face 13
+
+.SHIP9                  \ Missile blueprint
+
+ EQUB 0                 \ Max. canisters on demise = 0
+ EQUW 40 * 40           \ Targetable area          = 40 * 40
+ EQUB &7A               \ Edges data offset        = &007A
+ EQUB &DA               \ Faces data offset        = &00DA
+ EQUB 81                \ Max. edge count          = (81 - 1) / 4 = 20
+ EQUB 0                 \ Gun vertex               = 0
+ EQUB 10                \ Explosion count          = 1, (4 * n) + 6 = 10
+ EQUB 102               \ Number of vertices       = 102 / 6 = 17
+ EQUB 24                \ Number of edges          = 24
+ EQUW 0                 \ Bounty                   = 0
+ EQUB 36                \ Number of faces          = 36 / 4 = 9
+ EQUB 14                \ Visibility distance      = 14
+ EQUB 2                 \ Max. energy              = 2
+ EQUB 44                \ Max. speed               = 44
+ EQUB &00               \ Edges data offset        = &007A
+ EQUB &00               \ Faces data offset        = &00DA
+ EQUB 2                 \ Normals are scaled by    = 2^2 = 4
+ EQUB %00000000         \ Laser power              = 0
+                        \ Missiles                 = 0
+
+\          x,    y,    z, face1, face2, face3, face4, visibility
+ VERTEX    0,    0,   68,     0,      1,    2,     3,         31    \ Vertex 0
+ VERTEX    8,   -8,   36,     1,      2,    4,     5,         31    \ Vertex 1
+ VERTEX    8,    8,   36,     2,      3,    4,     7,         31    \ Vertex 2
+ VERTEX   -8,    8,   36,     0,      3,    6,     7,         31    \ Vertex 3
+ VERTEX   -8,   -8,   36,     0,      1,    5,     6,         31    \ Vertex 4
+
+ VERTEX    8,    8,  -44,     4,      7,    8,     8,         31    \ Vertex 5
+ VERTEX    8,   -8,  -44,     4,      5,    8,     8,         31    \ Vertex 6
+ VERTEX   -8,   -8,  -44,     5,      6,    8,     8,         31    \ Vertex 7
+ VERTEX   -8,    8,  -44,     6,      7,    8,     8,         31    \ Vertex 8
+ VERTEX   12,   12,  -44,     4,      7,    8,     8,          8    \ Vertex 9
+
+ VERTEX   12,  -12,  -44,     4,      5,    8,     8,          8    \ Vertex 10
+ VERTEX  -12,  -12,  -44,     5,      6,    8,     8,          8    \ Vertex 11
+ VERTEX  -12,   12,  -44,     6,      7,    8,     8,          8    \ Vertex 12
+ VERTEX   -8,    8,  -12,     6,      7,    7,     7,          8    \ Vertex 13
+ VERTEX   -8,   -8,  -12,     5,      6,    6,     6,          8    \ Vertex 14
+
+ VERTEX    8,    8,  -12,     4,      7,    7,     7,          8    \ Vertex 15
+ VERTEX    8,   -8,  -12,     4,      5,    5,     5,          8    \ Vertex 16
+
+\     vertex1, vertex2, face1, face2, visibility
+ EDGE       0,       1,     1,     2,         31    \ Edge 0
+ EDGE       0,       2,     2,     3,         31    \ Edge 1
+ EDGE       0,       3,     0,     3,         31    \ Edge 2
+ EDGE       0,       4,     0,     1,         31    \ Edge 3
+ EDGE       1,       2,     4,     2,         31    \ Edge 4
+
+ EDGE       1,       4,     1,     5,         31    \ Edge 5
+ EDGE       3,       4,     0,     6,         31    \ Edge 6
+ EDGE       2,       3,     3,     7,         31    \ Edge 7
+ EDGE       2,       5,     4,     7,         31    \ Edge 8
+ EDGE       1,       6,     4,     5,         31    \ Edge 9
+
+ EDGE       4,       7,     5,     6,         31    \ Edge 10
+ EDGE       3,       8,     6,     7,         31    \ Edge 11
+ EDGE       7,       8,     6,     8,         31    \ Edge 12
+ EDGE       5,       8,     7,     8,         31    \ Edge 13
+ EDGE       5,       6,     4,     8,         31    \ Edge 14
+
+ EDGE       6,       7,     5,     8,         31    \ Edge 15
+ EDGE       6,      10,     5,     8,          8    \ Edge 16
+ EDGE       5,       9,     7,     8,          8    \ Edge 17
+ EDGE       8,      12,     7,     8,          8    \ Edge 18
+ EDGE       7,      11,     5,     8,          8    \ Edge 19
+
+ EDGE       9,      15,     4,     7,          8    \ Edge 20
+ EDGE      10,      16,     4,     5,          8    \ Edge 21
+ EDGE      12,      13,     6,     7,          8    \ Edge 22
+ EDGE      11,      14,     5,     6,          8    \ Edge 23
+
+\     normal_x, normal_y, normal_z, visibility
+ FACE      -64,        0,       16,         31    \ Face 0
+ FACE        0,      -64,       16,         31    \ Face 1
+ FACE       64,        0,       16,         31    \ Face 2
+ FACE        0,       64,       16,         31    \ Face 3
+ FACE       32,        0,        0,         31    \ Face 4
+
+ FACE        0,      -32,        0,         31    \ Face 5
+ FACE      -32,        0,        0,         31    \ Face 6
+ FACE        0,       32,        0,         31    \ Face 7
+ FACE        0,        0,     -176,         31    \ Face 8
+
+.SHIP10                 \ Asteroid blueprint
+
+ EQUB 0                 \ Max. canisters on demise = 0
+ EQUW 80 * 80           \ Targetable area          = 80 * 80
+ EQUB &4A               \ Edges data offset        = &004A
+ EQUB &9E               \ Faces data offset        = &009E
+ EQUB 65                \ Max. edge count          = (65 - 1) / 4 = 16
+ EQUB 0                 \ Gun vertex               = 0
+ EQUB 34                \ Explosion count          = 7, (4 * n) + 6 = 34
+ EQUB 54                \ Number of vertices       = 54 / 6 = 9
+ EQUB 21                \ Number of edges          = 21
+ EQUW 5                 \ Bounty                   = 5
+ EQUB 56                \ Number of faces          = 56 / 4 = 14
+ EQUB 50                \ Visibility distance      = 50
+ EQUB 60                \ Max. energy              = 60
+ EQUB 30                \ Max. speed               = 30
+ EQUB &00               \ Edges data offset        = &004A
+ EQUB &00               \ Faces data offset        = &009E
+ EQUB 1                 \ Normals are scaled by    = 2^1 = 2
+ EQUB %00000000         \ Laser power              = 0
+                        \ Missiles                 = 0
+
+\          x,    y,    z, face1, face2, face3, face4, visibility
+ VERTEX    0,   80,    0,    15,     15,   15,    15,         31    \ Vertex 0
+ VERTEX  -80,  -10,    0,    15,     15,   15,    15,         31    \ Vertex 1
+ VERTEX    0,  -80,    0,    15,     15,   15,    15,         31    \ Vertex 2
+ VERTEX   70,  -40,    0,    15,     15,   15,    15,         31    \ Vertex 3
+ VERTEX   60,   50,    0,     5,      6,   12,    13,         31    \ Vertex 4
+
+ VERTEX   50,    0,   60,    15,     15,   15,    15,         31    \ Vertex 5
+ VERTEX  -40,    0,   70,     0,      1,    2,     3,         31    \ Vertex 6
+ VERTEX    0,   30,  -75,    15,     15,   15,    15,         31    \ Vertex 7
+ VERTEX    0,  -50,  -60,     8,      9,   10,    11,         31    \ Vertex 8
+
+\     vertex1, vertex2, face1, face2, visibility
+ EDGE       0,       1,     2,     7,         31    \ Edge 0
+ EDGE       0,       4,     6,    13,         31    \ Edge 1
+ EDGE       3,       4,     5,    12,         31    \ Edge 2
+ EDGE       2,       3,     4,    11,         31    \ Edge 3
+ EDGE       1,       2,     3,    10,         31    \ Edge 4
+
+ EDGE       1,       6,     2,     3,         31    \ Edge 5
+ EDGE       2,       6,     1,     3,         31    \ Edge 6
+ EDGE       2,       5,     1,     4,         31    \ Edge 7
+ EDGE       5,       6,     0,     1,         31    \ Edge 8
+ EDGE       0,       5,     0,     6,         31    \ Edge 9
+
+ EDGE       3,       5,     4,     5,         31    \ Edge 10
+ EDGE       0,       6,     0,     2,         31    \ Edge 11
+ EDGE       4,       5,     5,     6,         31    \ Edge 12
+ EDGE       1,       8,     8,    10,         31    \ Edge 13
+ EDGE       1,       7,     7,     8,         31    \ Edge 14
+
+ EDGE       0,       7,     7,    13,         31    \ Edge 15
+ EDGE       4,       7,    12,    13,         31    \ Edge 16
+ EDGE       3,       7,     9,    12,         31    \ Edge 17
+ EDGE       3,       8,     9,    11,         31    \ Edge 18
+ EDGE       2,       8,    10,    11,         31    \ Edge 19
+
+ EDGE       7,       8,     8,     9,         31    \ Edge 20
+
+\     normal_x, normal_y, normal_z, visibility
+ FACE        9,       66,       81,         31    \ Face 0
+ FACE        9,      -66,       81,         31    \ Face 1
+ FACE      -72,       64,       31,         31    \ Face 2
+ FACE      -64,      -73,       47,         31    \ Face 3
+ FACE       45,      -79,       65,         31    \ Face 4
+
+ FACE      135,       15,       35,         31    \ Face 5
+ FACE       38,       76,       70,         31    \ Face 6
+ FACE      -66,       59,      -39,         31    \ Face 7
+ FACE      -67,      -15,      -80,         31    \ Face 8
+ FACE       66,      -14,      -75,         31    \ Face 9
+
+ FACE      -70,      -80,      -40,         31    \ Face 10
+ FACE       58,     -102,      -51,         31    \ Face 11
+ FACE       81,        9,      -67,         31    \ Face 12
+ FACE       47,       94,      -63,         31    \ Face 13
+
+.SHIP11                 \ Cargo canister blueprint
+
+ EQUB 0                 \ Max. canisters on demise = 0
+ EQUW 20 * 20           \ Targetable area          = 20 * 20
+ EQUB &50               \ Edges data offset        = &0050
+ EQUB &8C               \ Faces data offset        = &008C
+ EQUB 49                \ Max. edge count          = (49 - 1) / 4 = 12
+ EQUB 0                 \ Gun vertex               = 0
+ EQUB 18                \ Explosion count          = 3, (4 * n) + 6 = 18
+ EQUB 60                \ Number of vertices       = 60 / 6 = 10
+ EQUB 15                \ Number of edges          = 15
+ EQUW 0                 \ Bounty                   = 0
+ EQUB 28                \ Number of faces          = 28 / 4 = 7
+ EQUB 12                \ Visibility distance      = 12
+ EQUB 17                \ Max. energy              = 17
+ EQUB 15                \ Max. speed               = 15
+ EQUB &00               \ Edges data offset        = &0050
+ EQUB &00               \ Faces data offset        = &008C
+ EQUB 2                 \ Normals are scaled by    = 2^2 = 4
+ EQUB %00000000         \ Laser power              = 0
+                        \ Missiles                 = 0
+
+\          x,    y,    z, face1, face2, face3, face4, visibility
+ VERTEX   24,   16,    0,     0,      1,    5,     5,         31    \ Vertex 0
+ VERTEX   24,    5,   15,     0,      1,    2,     2,         31    \ Vertex 1
+ VERTEX   24,  -13,    9,     0,      2,    3,     3,         31    \ Vertex 2
+ VERTEX   24,  -13,   -9,     0,      3,    4,     4,         31    \ Vertex 3
+ VERTEX   24,    5,  -15,     0,      4,    5,     5,         31    \ Vertex 4
+
+ VERTEX  -24,   16,    0,     1,      5,    6,     6,         31    \ Vertex 5
+ VERTEX  -24,    5,   15,     1,      2,    6,     6,         31    \ Vertex 6
+ VERTEX  -24,  -13,    9,     2,      3,    6,     6,         31    \ Vertex 7
+ VERTEX  -24,  -13,   -9,     3,      4,    6,     6,         31    \ Vertex 8
+ VERTEX  -24,    5,  -15,     4,      5,    6,     6,         31    \ Vertex 9
+
+\     vertex1, vertex2, face1, face2, visibility
+ EDGE       0,       1,     0,     1,         31    \ Edge 0
+ EDGE       1,       2,     0,     2,         31    \ Edge 1
+ EDGE       2,       3,     0,     3,         31    \ Edge 2
+ EDGE       3,       4,     0,     4,         31    \ Edge 3
+ EDGE       0,       4,     0,     5,         31    \ Edge 4
+
+ EDGE       0,       5,     1,     5,         31    \ Edge 5
+ EDGE       1,       6,     1,     2,         31    \ Edge 6
+ EDGE       2,       7,     2,     3,         31    \ Edge 7
+ EDGE       3,       8,     3,     4,         31    \ Edge 8
+ EDGE       4,       9,     4,     5,         31    \ Edge 9
+
+ EDGE       5,       6,     1,     6,         31    \ Edge 10
+ EDGE       6,       7,     2,     6,         31    \ Edge 11
+ EDGE       7,       8,     3,     6,         31    \ Edge 12
+ EDGE       8,       9,     4,     6,         31    \ Edge 13
+ EDGE       9,       5,     5,     6,         31    \ Edge 14
+
+\     normal_x, normal_y, normal_z, visibility
+ FACE       96,        0,        0,         31    \ Face 0
+ FACE        0,       41,       30,         31    \ Face 1
+ FACE        0,      -18,       48,         31    \ Face 2
+ FACE        0,      -51,        0,         31    \ Face 3
+ FACE        0,      -18,      -48,         31    \ Face 4
+
+ FACE        0,       41,      -30,         31    \ Face 5
+ FACE      -96,        0,        0,         31    \ Face 6
+
+.SHIP12                 \ Thargon blueprint
+
+ EQUB 0                 \ Max. canisters on demise = 0
+ EQUW 40 * 40           \ Targetable area          = 40 * 40
+ EQUB &A8               \ Edges data offset        = &FFA8 = -88 (canister data)
+ EQUB &50               \ Faces data offset        = &0050
+ EQUB 65                \ Max. edge count          = (65 - 1) / 4 = 16
+ EQUB 0                 \ Gun vertex               = 0
+ EQUB 18                \ Explosion count          = 3, (4 * n) + 6 = 18
+ EQUB 60                \ Number of vertices       = 60 / 6 = 10
+ EQUB 15                \ Number of edges          = 15
+ EQUW 50                \ Bounty                   = 50
+ EQUB 28                \ Number of faces          = 28 / 4 = 7
+ EQUB 20                \ Visibility distance      = 20
+ EQUB 20                \ Max. energy              = 20
+ EQUB 30                \ Max. speed               = 30
+ EQUB &FF               \ Edges data offset        = &FFA8 = -88 (canister data)
+ EQUB &00               \ Faces data offset        = &0050
+ EQUB 2                 \ Normals are scaled by    = 2^2 = 4
+ EQUB %00010000         \ Laser power              = 2
+                        \ Missiles                 = 0
+
+\          x,    y,    z, face1, face2, face3, face4, visibility
+ VERTEX   -9,    0,   40,     1,      0,    5,     5,         31    \ Vertex 0
+ VERTEX   -9,  -38,   12,     1,      0,    2,     2,         31    \ Vertex 1
+ VERTEX   -9,  -24,  -32,     2,      0,    3,     3,         31    \ Vertex 2
+ VERTEX   -9,   24,  -32,     3,      0,    4,     4,         31    \ Vertex 3
+ VERTEX   -9,   38,   12,     4,      0,    5,     5,         31    \ Vertex 4
+
+ VERTEX    9,    0,   -8,     5,      1,    6,     6,         31    \ Vertex 5
+ VERTEX    9,  -10,  -15,     2,      1,    6,     6,         31    \ Vertex 6
+ VERTEX    9,   -6,  -26,     3,      2,    6,     6,         31    \ Vertex 7
+ VERTEX    9,    6,  -26,     4,      3,    6,     6,         31    \ Vertex 8
+ VERTEX    9,   10,  -15,     5,      4,    6,     6,         31    \ Vertex 9
+
+\     normal_x, normal_y, normal_z, visibility
+ FACE      -36,        0,        0,         31    \ Face 0
+ FACE       20,       -5,        7,         31    \ Face 1
+ FACE       46,      -42,      -14,         31    \ Face 2
+ FACE       36,        0,     -104,         31    \ Face 3
+ FACE       46,       42,      -14,         31    \ Face 4
+
+ FACE       20,        5,        7,         31    \ Face 5
+ FACE       36,        0,        0,         31    \ Face 6
+
+.SHIP13                 \ Escape pod blueprint
+
+ EQUB 0                 \ Max. canisters on demise = 0
+ EQUW 16 * 16           \ Targetable area          = 16 * 16
+ EQUB &2C               \ Edges data offset        = &002C
+ EQUB &44               \ Faces data offset        = &0044
+ EQUB 25                \ Max. edge count          = (25 - 1) / 4 = 6
+ EQUB 0                 \ Gun vertex               = 0
+ EQUB 22                \ Explosion count          = 4, (4 * n) + 6 = 22
+ EQUB 24                \ Number of vertices       = 24 / 6 = 4
+ EQUB 6                 \ Number of edges          = 6
+ EQUW 0                 \ Bounty                   = 0
+ EQUB 16                \ Number of faces          = 16 / 4 = 4
+ EQUB 8                 \ Visibility distance      = 8
+ EQUB 17                \ Max. energy              = 17
+ EQUB 8                 \ Max. speed               = 8
+ EQUB &00               \ Edges data offset        = &002C
+ EQUB &00               \ Faces data offset        = &0044
+ EQUB 3                 \ Normals are scaled by    =  2^3 = 8
+ EQUB %00000000         \ Laser power              = 0
+                        \ Missiles                 = 0
+
+\          x,    y,    z, face1, face2, face3, face4, visibility
+ VERTEX   -7,    0,   36,     2,      1,    3,     3,         31    \ Vertex 0
+ VERTEX   -7,  -14,  -12,     2,      0,    3,     3,         31    \ Vertex 1
+ VERTEX   -7,   14,  -12,     1,      0,    3,     3,         31    \ Vertex 2
+ VERTEX   21,    0,    0,     1,      0,    2,     2,         31    \ Vertex 3
+
+\     vertex1, vertex2, face1, face2, visibility
+ EDGE       0,       1,     3,     2,         31    \ Edge 0
+ EDGE       1,       2,     3,     0,         31    \ Edge 1
+ EDGE       2,       3,     1,     0,         31    \ Edge 2
+ EDGE       3,       0,     2,     1,         31    \ Edge 3
+ EDGE       0,       2,     3,     1,         31    \ Edge 4
+
+ EDGE       3,       1,     2,     0,         31    \ Edge 5
+
+\     normal_x, normal_y, normal_z, visibility
+ FACE       26,        0,      -61,         31    \ Face 0
+ FACE       19,       51,       15,         31    \ Face 1
+ FACE       19,      -51,       15,         31    \ Face 2
+ FACE      -56,        0,        0,         31    \ Face 3
 
 \ ******************************************************************************
 \
@@ -32502,88 +32691,92 @@ LOAD_PYTHON% = &1B00
 
 ORG CODE_PYTHON%
 
-.SHIP4                              \ Python ship blueprint
+.SHIP4                  \ Python blueprint
 
- EQUB &03                           \ debris shown = 3
- EQUB &40, &38                      \ area for missile lock = &3840
- EQUB &56                           \ edges data offset = &0056
- EQUB &BE                           \ faces data offset = &00BE
- EQUB &55                           \ max. edge count = (&55 - 1) / 4 = 21
- EQUB &00                           \ gun vertex = 0
- EQUB &2E                           \ explosion count = 10, (4 * n) + 6 = &2E
- EQUB &42                           \ number of vertices = &42 / 6 = 11
- EQUB &1A                           \ number of edges = &1A = 26
- EQUW &C8                           \ bounty = &C8 = 200
- EQUB &34                           \ number of faces = &34 / 4 = 13
- EQUB &28                           \ show as a dot past a distance of 40
- EQUB &FA                           \ maximum energy/shields = 250
- EQUB &14                           \ maximum speed = 20
- EQUB &00                           \ edges data offset = &0056
- EQUB &00                           \ faces data offset = &00BE
- EQUB &00                           \ normals are scaled by 2^0 = 1
- EQUB %00011011                     \ laser power = 3, missiles = 3
+ EQUB 3                 \ Max. canisters on demise = 3
+ EQUW 120 * 120         \ Targetable area          = 120 * 120
+ EQUB &56               \ Edges data offset        = &0056
+ EQUB &BE               \ Faces data offset        = &00BE
+ EQUB 85                \ Max. edge count          = (85 - 1) / 4 = 21
+ EQUB 0                 \ Gun vertex               = 0
+ EQUB 46                \ Explosion count          = 10, (4 * n) + 6 = 46
+ EQUB 66                \ Number of vertices       = 66 / 6 = 11
+ EQUB 26                \ Number of edges          = 26
+ EQUW 200               \ Bounty                   = 200
+ EQUB 52                \ Number of faces          = 52 / 4 = 13
+ EQUB 40                \ Visibility distance      = 40
+ EQUB 250               \ Max. energy              = 250
+ EQUB 20                \ Max. speed               = 20
+ EQUB &00               \ Edges data offset        = &0056
+ EQUB &00               \ Faces data offset        = &00BE
+ EQUB 0                 \ Normals are scaled by    = 2^0 = 1
+ EQUB %00011011         \ Laser power              = 3
+                        \ Missiles                 = 3
 
- EQUB &00, &00, &E0, &1F, &10, &32  \ vertices data (11*6)
- EQUB &00, &30, &30, &1E, &10, &54
- EQUB &60, &00, &10, &3F, &FF, &FF
- EQUB &60, &00, &10, &BF, &FF, &FF
- EQUB &00, &30, &20, &3E, &54, &98
+\          x,    y,    z, face1, face2, face3, face4, visibility
+ VERTEX    0,    0,  224,     0,      1,    2,     3,         31    \ Vertex 0
+ VERTEX    0,   48,   48,     0,      1,    4,     5,         30    \ Vertex 1
+ VERTEX   96,    0,  -16,    15,     15,   15,    15,         31    \ Vertex 2
+ VERTEX  -96,    0,  -16,    15,     15,   15,    15,         31    \ Vertex 3
+ VERTEX    0,   48,  -32,     4,      5,    8,     9,         30    \ Vertex 4
 
- EQUB &00, &18, &70, &3F, &89, &CC
- EQUB &30, &00, &70, &BF, &B8, &CC
- EQUB &30, &00, &70, &3F, &A9, &CC
- EQUB &00, &30, &30, &5E, &32, &76
- EQUB &00, &30, &20, &7E, &76, &BA
+ VERTEX    0,   24, -112,     9,      8,   12,    12,         31    \ Vertex 5
+ VERTEX  -48,    0, -112,     8,     11,   12,    12,         31    \ Vertex 6
+ VERTEX   48,    0, -112,     9,     10,   12,    12,         31    \ Vertex 7
+ VERTEX    0,  -48,   48,     2,      3,    6,     7,         30    \ Vertex 8
+ VERTEX    0,  -48,  -32,     6,      7,   10,    11,         30    \ Vertex 9
 
- EQUB &00, &18, &70, &7E, &BA, &CC
+ VERTEX    0,  -24, -112,    10,     11,   12,    12,         30    \ Vertex 10
 
- EQUB &1E, &32, &00, &20            \ edges data (26*4)
- EQUB &1F, &20, &00, &0C
- EQUB &1F, &31, &00, &08
- EQUB &1E, &10, &00, &04
- EQUB &1D, &59, &08, &10
+\     vertex1, vertex2, face1, face2, visibility
+ EDGE       0,       8,     2,     3,         30    \ Edge 0
+ EDGE       0,       3,     0,     2,         31    \ Edge 1
+ EDGE       0,       2,     1,     3,         31    \ Edge 2
+ EDGE       0,       1,     0,     1,         30    \ Edge 3
+ EDGE       2,       4,     9,     5,         29    \ Edge 4
 
- EQUB &1D, &51, &04, &08
- EQUB &1D, &37, &08, &20
- EQUB &1D, &40, &04, &0C
- EQUB &1D, &62, &0C, &20
- EQUB &1D, &A7, &08, &24
+ EDGE       1,       2,     1,     5,         29    \ Edge 5
+ EDGE       2,       8,     7,     3,         29    \ Edge 6
+ EDGE       1,       3,     0,     4,         29    \ Edge 7
+ EDGE       3,       8,     2,     6,         29    \ Edge 8
+ EDGE       2,       9,     7,    10,         29    \ Edge 9
 
- EQUB &1D, &84, &0C, &10
- EQUB &1D, &B6, &0C, &24
- EQUB &05, &88, &0C, &14
- EQUB &05, &BB, &0C, &28
- EQUB &05, &99, &08, &14
+ EDGE       3,       4,     4,     8,         29    \ Edge 10
+ EDGE       3,       9,     6,    11,         29    \ Edge 11
+ EDGE       3,       5,     8,     8,          5    \ Edge 12
+ EDGE       3,      10,    11,    11,          5    \ Edge 13
+ EDGE       2,       5,     9,     9,          5    \ Edge 14
 
- EQUB &05, &AA, &08, &28
- EQUB &1F, &A9, &08, &1C
- EQUB &1F, &B8, &0C, &18
- EQUB &1F, &C8, &14, &18
- EQUB &1F, &C9, &14, &1C
+ EDGE       2,      10,    10,    10,          5    \ Edge 15
+ EDGE       2,       7,     9,    10,         31    \ Edge 16
+ EDGE       3,       6,     8,    11,         31    \ Edge 17
+ EDGE       5,       6,     8,    12,         31    \ Edge 18
+ EDGE       5,       7,     9,    12,         31    \ Edge 19
 
- EQUB &1D, &AC, &1C, &28
- EQUB &1D, &CB, &18, &28
- EQUB &1D, &98, &10, &14
- EQUB &1D, &BA, &24, &28
- EQUB &1D, &54, &04, &10
+ EDGE       7,      10,    12,    10,         29    \ Edge 20
+ EDGE       6,      10,    11,    12,         29    \ Edge 21
+ EDGE       4,       5,     8,     9,         29    \ Edge 22
+ EDGE       9,      10,    10,    11,         29    \ Edge 23
+ EDGE       1,       4,     4,     5,         29    \ Edge 24
 
- EQUB &1D, &76, &20, &24
+ EDGE       8,       9,     6,     7,         29    \ Edge 25
 
- EQUB &9E, &1B, &28, &0B            \ faces data (13*4)
- EQUB &1E, &1B, &28, &0B
- EQUB &DE, &1B, &28, &0B
- EQUB &5E, &1B, &28, &0B
- EQUB &9E, &13, &26, &00
+\     normal_x, normal_y, normal_z, visibility
+ FACE      -27,       40,       11,         30    \ Face 0
+ FACE       27,       40,       11,         30    \ Face 1
+ FACE      -27,      -40,       11,         30    \ Face 2
+ FACE       27,      -40,       11,         30    \ Face 3
+ FACE      -19,       38,        0,         30    \ Face 4
 
- EQUB &1E, &13, &26, &00
- EQUB &DE, &13, &26, &00
- EQUB &5E, &13, &26, &00
- EQUB &BE, &19, &25, &0B
- EQUB &3E, &19, &25, &0B
+ FACE       19,       38,        0,         30    \ Face 5
+ FACE      -19,      -38,        0,         30    \ Face 6
+ FACE       19,      -38,        0,         30    \ Face 7
+ FACE      -25,       37,      -11,         30    \ Face 8
+ FACE       25,       37,      -11,         30    \ Face 9
 
- EQUB &7E, &19, &25, &0B
- EQUB &FE, &19, &25, &0B
- EQUB &3E, &00, &00, &70
+ FACE       25,      -37,      -11,         30    \ Face 10
+ FACE      -25,      -37,      -11,         30    \ Face 11
+ FACE        0,        0,     -112,         30    \ Face 12
 
  SKIP 11
 
