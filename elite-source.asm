@@ -65,108 +65,6 @@ f9 = &77
 
 \ ******************************************************************************
 \
-\ Macro definitions
-\
-\ ******************************************************************************
-
-MACRO CHAR x
-  EQUB x EOR 35         \ Insert ASCII character "x"
-ENDMACRO
-
-MACRO TWOK n
-  EQUB n EOR 35         \ Insert two-letter token <n>
-ENDMACRO
-
-MACRO CTRL n
-  EQUB n EOR 35         \ Insert control code token {n}
-ENDMACRO
-
-MACRO RTOK n
-  IF n >= 0 AND n <= 95
-    t = n + 160         \ Insert recursive token [n]
-  ELIF n >= 128         \
-    t = n - 114         \ Tokens 0-95 get stored as n + 160
-  ELSE                  \ Tokens 128-145 get stored as n - 114
-    t = n               \ Tokens 96-127 get stored as n
-  ENDIF
-  EQUB t EOR 35
-ENDMACRO
-
-MACRO ITEM price, factor, units, quantity, mask
-  IF factor < 0
-    s = 1 << 7          \ Insert an item into the market prices table at QQ23
-  ELSE                  \
-    s = 0               \ Arguments:
-  ENDIF                 \
-  IF units == 't'       \   * price = Base price
-    u = 0               \   * factor = Economic factor
-  ELIF units == 'k'     \   * units = "t", "g" or "k"
-    u = 1 << 5          \   * quantity = Base quantity
-  ELSE                  \   * mask = Fluctutaions mask
-    u = 1 << 6          \
-  ENDIF                 \ See location QQ23 for details of how the above data
-  e = ABS(factor)       \ is stored in the table
-  EQUB price
-  EQUB s + u + e
-  EQUB quantity
-  EQUB mask
-ENDMACRO
-
-MACRO VERTEX x, y, z, face1, face2, face3, face4, visibility
-  IF x < 0
-    s_x = 1 << 7
-  ELSE
-    s_x = 0
-  ENDIF
-  IF y < 0
-    s_y = 1 << 6
-  ELSE
-    s_y = 0
-  ENDIF
-  IF z < 0
-    s_z = 1 << 5
-  ELSE
-    s_z = 0
-  ENDIF
-  s = s_x + s_y + s_z + visibility
-  f1 = face1 + (face2 << 4)
-  f2 = face3 + (face4 << 4)
-  ax = ABS(x)
-  ay = ABS(y)
-  az = ABS(z)
-  EQUB ax, ay, az, s, f1, f2
-ENDMACRO
-
-MACRO EDGE vertex1, vertex2, face1, face2, visibility
-  f = face1 + (face2 << 4)
-  EQUB visibility, f, vertex1 << 2, vertex2 << 2
-ENDMACRO
-
-MACRO FACE normal_x, normal_y, normal_z, visibility
-  IF normal_x < 0
-    s_x = 1 << 7
-  ELSE
-    s_x = 0
-  ENDIF
-  IF normal_y < 0
-    s_y = 1 << 6
-  ELSE
-    s_y = 0
-  ENDIF
-  IF normal_z < 0
-    s_z = 1 << 5
-  ELSE
-    s_z = 0
-  ENDIF
-  s = s_x + s_y + s_z + visibility
-  ax = ABS(normal_x)
-  ay = ABS(normal_y)
-  az = ABS(normal_z)
-  EQUB s, ax, ay, az
-ENDMACRO
-
-\ ******************************************************************************
-\
 \ Deep dive: Multi-byte number terminology
 \ ----------------------------------------
 \ Not surprisingly, Elite deals with some pretty big numbers. For example, the
@@ -1247,6 +1145,48 @@ CODE_WORDS% = &0400
 LOAD_WORDS% = &1100
 
 ORG CODE_WORDS%
+
+\ ******************************************************************************
+\
+\ Macro definitions for recursive tokens
+\
+\   CHAR x              Insert ASCII character "x"
+\
+\   TWOK n              Insert two-letter token <n>
+\
+\   CTRL n              Insert control code token {n}
+\
+\   RTOK n              Insert recursive token [n]
+\
+\                         * Tokens 0-95 get stored as n + 160
+\
+\                         * Tokens 128-145 get stored as n - 114
+\
+\                         * Tokens 96-127 get stored as n
+\ ******************************************************************************
+
+MACRO CHAR x
+  EQUB x EOR 35
+ENDMACRO
+
+MACRO TWOK n
+  EQUB n EOR 35
+ENDMACRO
+
+MACRO CTRL n
+  EQUB n EOR 35
+ENDMACRO
+
+MACRO RTOK n
+  IF n >= 0 AND n <= 95
+    t = n + 160
+  ELIF n >= 128
+    t = n - 114
+  ELSE
+    t = n
+  ENDIF
+  EQUB t EOR 35
+ENDMACRO
 
 \ ******************************************************************************
 \
@@ -29200,6 +29140,48 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
+\ Macro definition for market prices table
+\
+\   ITEM price, factor, units, quantity, mask
+\
+\ Inserts an item into the market prices table at QQ23.
+\
+\ Arguments:
+\
+\   price               Base price
+\
+\   factor              Economic factor
+\
+\   units               Units: "t", "g" or "k"
+\
+\   quantity            Base quantity
+\
+\   mask                Fluctuations mask
+\
+\ ******************************************************************************
+
+MACRO ITEM price, factor, units, quantity, mask
+  IF factor < 0
+    s = 1 << 7
+  ELSE
+    s = 0
+  ENDIF
+  IF units == 't'
+    u = 0
+  ELIF units == 'k'
+    u = 1 << 5
+  ELSE
+    u = 1 << 6 
+  ENDIF
+  e = ABS(factor)
+  EQUB price
+  EQUB s + u + e
+  EQUB quantity
+  EQUB mask
+ENDMACRO
+
+\ ******************************************************************************
+\
 \ Variable: QQ23
 \
 \ Market prices table. Each item has four bytes of data, like this:
@@ -31646,6 +31628,71 @@ SKIP 1
 
 CODE_SHIPS% = P%
 LOAD_SHIPS% = LOAD% + P% - CODE%
+
+\ ******************************************************************************
+\
+\ Macro definitions for ship blueprints
+\
+\   VERTEX x, y, z, face1, face2, face3, face4, visibility
+\
+\   EDGE vertex1, vertex2, face1, face2, visibility
+\
+\   FACE normal_x, normal_y, normal_z, visibility
+\
+\ ******************************************************************************
+
+MACRO VERTEX x, y, z, face1, face2, face3, face4, visibility
+  IF x < 0
+    s_x = 1 << 7
+  ELSE
+    s_x = 0
+  ENDIF
+  IF y < 0
+    s_y = 1 << 6
+  ELSE
+    s_y = 0
+  ENDIF
+  IF z < 0
+    s_z = 1 << 5
+  ELSE
+    s_z = 0
+  ENDIF
+  s = s_x + s_y + s_z + visibility
+  f1 = face1 + (face2 << 4)
+  f2 = face3 + (face4 << 4)
+  ax = ABS(x)
+  ay = ABS(y)
+  az = ABS(z)
+  EQUB ax, ay, az, s, f1, f2
+ENDMACRO
+
+MACRO EDGE vertex1, vertex2, face1, face2, visibility
+  f = face1 + (face2 << 4)
+  EQUB visibility, f, vertex1 << 2, vertex2 << 2
+ENDMACRO
+
+MACRO FACE normal_x, normal_y, normal_z, visibility
+  IF normal_x < 0
+    s_x = 1 << 7
+  ELSE
+    s_x = 0
+  ENDIF
+  IF normal_y < 0
+    s_y = 1 << 6
+  ELSE
+    s_y = 0
+  ENDIF
+  IF normal_z < 0
+    s_z = 1 << 5
+  ELSE
+    s_z = 0
+  ENDIF
+  s = s_x + s_y + s_z + visibility
+  ax = ABS(normal_x)
+  ay = ABS(normal_y)
+  az = ABS(normal_z)
+  EQUB s, ax, ay, az
+ENDMACRO
 
 \ ******************************************************************************
 \
