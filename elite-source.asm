@@ -8094,8 +8094,11 @@ NEXT
 \
 \ Subroutine: PIX1
 \
-\ Draw a stardust pixel.
-\ X1 has xscreen yscreen = R.S+P.A
+\ Calculate the following:
+\
+\   (YY+1 SYL+Y) = (A P) + (S R)
+\
+\ and draw a stardust particle at (X1,Y1) with distance ZZ.
 \
 \ Arguments:
 \
@@ -8103,7 +8106,7 @@ NEXT
 \
 \   (S R)               YY(1 0) or YY(1 0) + Q * A
 \
-\   Y                   Stardust number
+\   Y                   Stardust particle number
 \
 \   X1                  The x-coordinate offset
 \
@@ -8121,13 +8124,17 @@ NEXT
 
  TXA                    \ Set SYL+Y to X, the low byte of the result
  STA SYL,Y
+
+                        \ Fall through into PIX1 to draw the stardust particle
+                        \ at (X1,Y1)
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: PIXEL2
 \
-\ Draw a point (X1,Y1) from the middle of the screen.
+\ Draw a point (X1,Y1) from the middle of the screen with a size determined by
+\ a distance value. Used to draw stardust particles.
 \
 \ Arguments:
 \
@@ -8179,6 +8186,9 @@ NEXT
  SBC T                  \
                         \ so if Y is positive we display the point up from the
                         \ centre, while a negative Y means down from the centre
+
+                        \ Fall through into PIXEL to draw the stardust at the
+                        \ screen coordinates in (X, A)
 }
 
 \ ******************************************************************************
@@ -8400,7 +8410,7 @@ NEXT
 \   (191, 255)   is at pixel   (191 mod 8, 255 mod 8)   =   (7, 7)
 \
 \ We can do a mod 8 operation really easily in assembly language by simply
-\ ANDing with %111, so in assembly, we get this:
+\ AND'ing with %111, so in assembly, we get this:
 \
 \   Pixel (x, y) is at position (x AND %111, y AND %111) within the character
 \
@@ -8522,16 +8532,16 @@ NEXT
  AND #%00000111
  TAX
 
- LDA ZZ                 \ If distance in ZZ >= &90, then this point is a very
- CMP #&90               \ long way away, so jump to PX3 to fetch a 1-pixel point
+ LDA ZZ                 \ If distance in ZZ >= 144, then this point is a very
+ CMP #144               \ long way away, so jump to PX3 to fetch a 1-pixel point
  BCS PX3                \ from TWOS and EOR it into SC+Y
 
  LDA TWOS2,X            \ Otherwise fetch a 2-pixel dash from TWOS2 and EOR it
  EOR (SC),Y             \ into SC+Y
  STA (SC),Y
 
- LDA ZZ                 \ If distance in ZZ >= &50, then this point is a medium
- CMP #&50               \ distance away, so jump to PX13 to stop drawing, as a
+ LDA ZZ                 \ If distance in ZZ >= 80, then this point is a medium
+ CMP #80                \ distance away, so jump to PX13 to stop drawing, as a
  BCS PX13               \ 2-pixel dash is enough
 
                         \ Otherwise we keep going to draw another 2 pixel point
@@ -8673,31 +8683,53 @@ NEXT
 \
 \ Subroutine: FLIP
 \
-\ Switch dusty and dustx
+\ Swap the x- and y-coordinates of all the stardust particles and draw the new
+\ set of particles. Called by LOOK1 when we switch views.
+\
+\ This is a quick way of making the stardust field in the new view feel
+\ different without having to generate a whole new field. If you look carefully
+\ at the stardust field when you switch views, you can just about see that new
+\ field is a reflection of the previous field in the screen diagonal, i.e. in
+\ the line from bottom left to top right. This is the line where x = y when the
+\ origin is in the middle of the screen, and positive x and y are right and up,
+\ which is the coordinate system we use for stardust).
 \
 \ ******************************************************************************
 
-.FLIP                   \ switch dusty and dustx
+.FLIP
 {
-\LDA MJ
-\BNE FLIP-1
- LDY NOSTM              \ number of dust particles
+\LDA MJ                 \ These instructions are commented out in the original
+\BNE FLIP-1             \ source. They would have the effect of not swapping the
+                        \ stardust if we had misjumped into witchspace
 
-.FLL1                   \ counter Y
+ LDY NOSTM              \ Set Y to the current number of stardust particles, so
+                        \ we can use it as a counter through all the stardust
 
- LDX SY,Y               \ dusty
- LDA SX,Y               \ dustx
- STA Y1
- STA SY,Y               \ dusty
- TXA                    \ old dusty
- STA X1
- STA SX,Y
- LDA SZ,Y
- STA ZZ                 \ dust distance
- JSR PIXEL2             \ dust (X1,Y1) from middle
- DEY                    \ next buffer entry
- BNE FLL1               \ loop Y
- RTS
+.FLL1
+
+ LDX SY,Y               \ Copy the Y-th particle's y-coordinate from SY+Y into X
+
+ LDA SX,Y               \ Copy the Y-th particle's x-coordinate from SX+Y into
+ STA Y1                 \ both Y1 and the particle's y-coordinate
+ STA SY,Y
+
+ TXA                    \ Copy the Y-th particle's original y-coordinate into
+ STA X1                 \ both X1 and the particle's x-coordinate, so the x- and
+ STA SX,Y               \ y-coordinates are now swapped and (X1, Y1) contains
+                        \ the particle's new coordinates
+
+ LDA SZ,Y               \ Fetch the Y-th particle's distance from SZ+Y into ZZ
+ STA ZZ
+
+ JSR PIXEL2             \ Draw a stardust particle at (X1,Y1) with distance ZZ
+
+ DEY                    \ Decrement the counter to point to the next particle of
+                        \ stardust
+
+ BNE FLL1               \ Loop back to FLL1 until we have moved all the stardust
+                        \ particles
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -15438,7 +15470,8 @@ NEXT
                         \ and set the current view type in QQ11 to 0 (space
                         \ view)
 
- JSR FLIP               \ Swap the stardust X and Y blocks
+ JSR FLIP               \ Swap the x- and y-coordinates of all the stardust
+                        \ particles
 
  JSR WPSHPS             \ Wipe all the ships from the scanner
 
@@ -22041,30 +22074,22 @@ EQUB '4' EOR 164
 
 \ ******************************************************************************
 \
-\ Subroutine: EX2
-\
-\ ready to remove - Explosion Code
-\
-\ ******************************************************************************
-
-.EX2                    \ ready to remove - Explosion Code
-{
- LDA INWK+31            \ exploding/display state|missiles
- ORA #&A0               \ bit7 to kill it, bit5 finished exploding
- STA INWK+31
- RTS
-}
-
-\ ******************************************************************************
-\
 \ Subroutine: DOEXP
 \
 \ Do Explosion as bit5 set by LL9
 \
 \ ******************************************************************************
 
-.DOEXP                  \ Do Explosion as bit5 set by LL9
 {
+.EX2
+
+ LDA INWK+31            \ exploding/display state|missiles
+ ORA #&A0               \ bit7 to kill it, bit5 finished exploding
+ STA INWK+31
+ RTS                    \ Return from the subroutine
+
+.^DOEXP                 \ Do Explosion as bit5 set by LL9
+
  LDA INWK+31
  AND #64                \ display state keep bit6
  BEQ P%+5               \ exploding not started, skip ptcls
@@ -22329,45 +22354,72 @@ EQUB '4' EOR 164
 \
 \ Subroutine: NWSTARS
 \
-\ New dust field
+\ Initialise the stardust field. Called when the space view is intialised in
+\ routine LOOK1.
 \
 \ ******************************************************************************
 
-.NWSTARS                \ New dust field
+.NWSTARS
 {
- LDA QQ11               \ menu i.d. QQ11 == 0 is space view
-\ORA MJ
- BNE WPSHPS             \ if not space view skip over to Wipe Ships
+ LDA QQ11               \ If this is not a space view, jump to WPSHPS to skip
+\ORA MJ                 \ the initialisation of the SX, SY and SZ tables. The OR
+ BNE WPSHPS             \ instruction is commented out in the original source,
+                        \ but it would have the effect of also skipping the
+                        \ initialisation if we had misjumped into witchspace
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: nWq
 \
-\ Create a cloud of stardust containing the maximum number of dust particles
-\ (i.e. NOSTM of them).
+\ Create a random cloud of stardust containing the maximum number of dust
+\ particles, i.e. NOSTM of them, which is 3 in witchspace and #NOST (18) in
+\ normal space. Also clears the scanner and initialises the LSO block.
+\
+\ This is called by the DEATH routine when it displays our untimely demise.
 \
 \ ******************************************************************************
 
 .nWq
 {
- LDY NOSTM              \ number of dust particles
+ LDY NOSTM              \ Set Y to the current number of stardust particles, so
+                        \ we can use it as a counter through all the stardust
 
-.SAL4                   \ counter Y
+.SAL4
 
  JSR DORND              \ Set A and X to random numbers
- ORA #8                 \ flick out in z
- STA SZ,Y               \ dustz
- STA ZZ                 \ distance
+
+ ORA #8                 \ Set A so that it's at least 8
+
+ STA SZ,Y               \ Store A in the Y-th particle's z-coordinate at SZ+Y,
+                        \ so the particle appears in front of us
+
+ STA ZZ                 \ Set ZZ to the particle's z-coordinate
+
  JSR DORND              \ Set A and X to random numbers
- STA SX,Y               \ dustx
- STA X1
+
+ STA SX,Y               \ Store A in the Y-th particle's x-coordinate at SZ+Y,
+                        \ so the particle appears in front of us
+
+ STA X1                 \ Set X1 to the particle's x-coordinate
+
  JSR DORND              \ Set A and X to random numbers
- STA SY,Y               \ dusty
- STA Y1
- JSR PIXEL2             \ dust (X1,Y1) from middle
- DEY                    \ next dust
- BNE SAL4               \ loop Y
+
+ STA SY,Y               \ Store A in the Y-th particle's y-coordinate at SZ+Y,
+                        \ so the particle appears in front of us
+
+ STA Y1                 \ Set Y1 to the particle's y-coordinate
+
+ JSR PIXEL2             \ Draw a stardust particle at (X1,Y1) with distance ZZ
+
+ DEY                    \ Decrement the counter to point to the next particle of
+                        \ stardust
+
+ BNE SAL4               \ Loop back to SAL4 until we have randomised all the
+                        \ stardust particles
+
+                        \ Fall through into WPSHPS to clear the scanner and
+                        \ reset the LSO block
 }
 
 \ ******************************************************************************
