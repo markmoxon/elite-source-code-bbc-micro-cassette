@@ -21127,40 +21127,41 @@ SAVE "output/ELTD.bin", CODE_D%, P%, LOAD%
 CODE_E% = P%
 LOAD_E% = LOAD% + P% - CODE%
 
-MAPCHAR '(', '('EOR&A4
-MAPCHAR 'C', 'C'EOR&A4
-MAPCHAR ')', ')'EOR&A4
-MAPCHAR 'B', 'B'EOR&A4
-MAPCHAR 'e', 'e'EOR&A4
-MAPCHAR 'l', 'l'EOR&A4
-MAPCHAR '/', '/'EOR&A4
-MAPCHAR 'r', 'r'EOR&A4
-MAPCHAR 'a', 'a'EOR&A4
-MAPCHAR 'b', 'b'EOR&A4
-MAPCHAR 'n', 'n'EOR&A4
-MAPCHAR '1', '1'EOR&A4
-MAPCHAR '9', '9'EOR&A4
-MAPCHAR '8', '8'EOR&A4
-MAPCHAR '4', '4'EOR&A4
+\ ******************************************************************************
+\
+\ Variable: BDOLLAR
+\
+\ This copyright notice is not used anywhere and it is obfuscated by EOR'ing
+\ each character with 164, but presumably the authors wanted their names buried
+\ in the code somewhere. Though they do also have recursive token 94, which
+\ reads "BY D.BRABEN & I.BELL" and can be displayed on the title screen using
+\ the "X" configuration option, so this isn't the only author name easter egg
+\ in the game. It contains the following text:
+\
+\   (C)Bell/Braben1984
+\
+\ ******************************************************************************
 
 .BDOLLAR
- EQUS  "(C)Bell/Braben1984"
 
-MAPCHAR '(', '('
-MAPCHAR 'C', 'C'
-MAPCHAR ')', ')'
-MAPCHAR 'B', 'B'
-MAPCHAR 'e', 'e'
-MAPCHAR 'l', 'l'
-MAPCHAR '/', '/'
-MAPCHAR 'r', 'r'
-MAPCHAR 'a', 'a'
-MAPCHAR 'b', 'b'
-MAPCHAR 'n', 'n'
-MAPCHAR '1', '1'
-MAPCHAR '9', '9'
-MAPCHAR '8', '8'
-MAPCHAR '4', '4'
+EQUB '(' EOR 164
+EQUB 'C' EOR 164
+EQUB ')' EOR 164
+EQUB 'B' EOR 164
+EQUB 'e' EOR 164
+EQUB 'l' EOR 164
+EQUB 'l' EOR 164
+EQUB '/' EOR 164
+EQUB 'B' EOR 164
+EQUB 'r' EOR 164
+EQUB 'a' EOR 164
+EQUB 'b' EOR 164
+EQUB 'e' EOR 164
+EQUB 'n' EOR 164
+EQUB '1' EOR 164
+EQUB '9' EOR 164
+EQUB '8' EOR 164
+EQUB '4' EOR 164
 
 \ ******************************************************************************
 \
