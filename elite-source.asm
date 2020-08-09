@@ -192,7 +192,7 @@ f9 = &77
 \     |                                   |
 \     +-----------------------------------+   &0F40
 \     |                                   |
-\     | &0F34-&0F40 not used              |
+\     | &0F34-&0F40 unused?               |
 \     |                                   |
 \     +-----------------------------------+   &0F34
 \     |                                   |
@@ -224,9 +224,9 @@ f9 = &77
 \     |                                   |
 \     +-----------------------------------+   &0400 = QQ18
 \     |                                   |
-\     | &035F - &03FF used for stardust?  |
+\     | &0372 - &03FF unused?             |
 \     |                                   |
-\     +-----------------------------------+   &035F = SXL
+\     +-----------------------------------+   &0372
 \     |                                   |
 \     | Workspace at T%                   |
 \     |                                   |
@@ -688,8 +688,8 @@ ORG &0000
 
  SKIP 2                 \ The current speed * 64
                         \
-                        \ The high byte therefore contains the current speed
-                        \ divided by 4
+                        \ This is stored as DELT4(1 0), so the high byte in
+                        \ DELT4+1 therefore contains the current speed / 4
 
 .U
 
@@ -1123,12 +1123,15 @@ ORG &0300               \ Start of the commander block
 NT% = SVC + 2 - TP      \ Set to the size of the commander block, which starts
                         \ at T% (&300) and goes to SVC+3
 
-SX = P%                 \ SX points to the stardust data block, which is NOST
-                        \ bytes (NOST = "number of stars")
+.SX
 
-SXL = SX + NOST + 1     \ SXL points to the end of the stardust data block
+ SKIP NOST + 1          \ x_hi = x-coordinate for stardust particles (high byte)
 
-PRINT "T% workspace from  ", ~T%, " to ", ~SXL
+.SXL
+
+ SKIP NOST + 1          \ x_lo = x-coordinate for stardust particles (low byte)
+
+PRINT "T% workspace from  ", ~T%, " to ", ~P%
 
 \ ******************************************************************************
 \
@@ -3204,19 +3207,19 @@ ORG &0D40
 
 .SY
 
- SKIP NOST + 1          \
+ SKIP NOST + 1          \ y_hi = y-coordinate for stardust particles (high byte)
 
 .SYL
 
- SKIP NOST + 1          \
+ SKIP NOST + 1          \ y_lo = y-coordinate for stardust particles (low byte)
 
 .SZ
 
- SKIP NOST + 1          \
+ SKIP NOST + 1          \ z_hi = z-coordinate for stardust particles (high byte)
 
 .SZL
 
- SKIP NOST + 1          \
+ SKIP NOST + 1          \ z_lo = y-coordinate for stardust particles (low byte)
 
 .XSAV2
 
@@ -3803,8 +3806,8 @@ LOAD_A% = LOAD%
  STA DELT4              \ Take the 16-bit value (DELTA 0) - i.e. a two-byte
  LDA DELTA              \ number with DELTA as the high byte and 0 as the low
  LSR A                  \ byte - and divide it by 4, storing the 16-bit result
- ROR DELT4              \ in (DELT4 DELT4+1). This is the same as storing the
- LSR A                  \ current speed * 64 in the 16-bit location DELT4
+ ROR DELT4              \ in DELT4(1 0). This is the same as storing the
+ LSR A                  \ current speed * 64 in the 16-bit location DELT4(1 0)
  ROR DELT4
  STA DELT4+1
 
@@ -8736,164 +8739,466 @@ NEXT
 \
 \ Subroutine: STARS
 \
-\ Dust Field Enter
+\ Process the stardust. Called at the very end of the main flight loop.
 \
 \ ******************************************************************************
 
-.STARS                  \ Dust Field Enter
+.STARS
 {
-\LDA #&FF
-\STA COL
- LDX VIEW               \ laser mount
- BEQ STARS1             \ Forward Dust
- DEX
- BNE ST11               \ Left or Right dust
- JMP STARS6             \ Rear dust
+\LDA #&FF               \ These instructions are commented out in the original
+\STA COL                \ source, but they would set the stardust colour to
+                        \ white. That said, COL is only used when updating the
+                        \ dashboard, so this would have no effect - perhaps it's
+                        \ left over from experiments with a colour top part of
+                        \ the screen? Who knows...
 
-.ST11                   \ Left or Right dust
+ LDX VIEW               \ Load the current view into X:
+                        \
+                        \   0 = forward
+                        \   1 = rear
+                        \   2 = left
+                        \   3 = right
 
- JMP STARS2             \ Left or Right dust
+ BEQ STARS1             \ If this 0, jump to STARS1 to process the stardust for
+                        \ the forward view
 
-.STARS1                 \ Forward Dust
+ DEX                    \ If this is view 2 or 3, jump to STARS2 (via ST11) to
+ BNE ST11               \ process the stardust for the left or right views
 
- LDY NOSTM              \ number of dust particles
+ JMP STARS6             \ Otherwise this is the rear view, so jump to STARS6 to
+                        \ process the stardust for the rear view
+
+.ST11
+
+ JMP STARS2             \ Jump to STARS2 for the left or right views, as it's
+                        \ too far for the branch instruction above
 }
 
-.STL1                   \ counter Y
+\ ******************************************************************************
+\
+\ Subroutine: STARS1
+\
+\ Process the stardust for the forward view.
+\
+\ This moves the stardust towards us according to our speed (so the dust rushes
+\ past us), and applies our current pitch and roll to each particle of dust, so
+\ the stardust moves correctly when we steer our ship.
+\
+\ ******************************************************************************
+\
+\ Deep dive: Stardust in the forward view
+\ ---------------------------------------
+\ Let's look at this process in more detail. It breaks down into three stages:
+\
+\  * Moving the stardust towards us
+\
+\  * Applying roll to the stardust
+\
+\  * Applying pitch to the stardust
+\
+\ Let's look at these three stages in more detail. Throughout the calculations
+\ below, we disregard the low bytes from the angle calculations, just like in
+\ MVEIT part 5.
+\
+\ Note that each particle of stardust has its own (x, y, z) coordinate. Stardust
+\ coordinates are not true 3D space coordinates - when stardust is drawn, the z
+\ value is purely used to determine the size of the stardust dot that is
+\ displayed, and that's it. The dot is drawn at screen coordinate (x, y), so
+\ when thinking about stardust, we're really thinking about a 2D plane, with the
+\ z-coordinate only being used when moving the stardust towards us, and when
+\ determining how it should look.
+
+\ Each of the coordinates is stored as 16-bit sign-magnitude value, as in
+\ (x_hi x_lo) and (y_hi y_lo). The coordinates for the Y-th particle of stardust
+\ are stored in (SX+Y SXL+Y), (SY+Y SYL+Y) and (SZ+Y SZL+Y) respectively. The
+\ origin for stardust particles is the centre of the screen, at the crosshairs.
+\
+\ Moving the stardust towards us
+\ ------------------------------ 
+\ The following calculations move the stardust away from the centre of the
+\ screen by a distance proportionate to our speed, so dust that is further away
+\ from us (i.e. with a high value of z) moves by a smaller amount to create a
+\ sense of perspective.
+\
+\ These are the calculations:
+\
+\   1. q = 64 * speed / z_hi
+\   2. z = z - speed * 64
+\   3. y = y + |y_hi| * q
+\   4. x = x + |x_hi| * q
+\
+\ We move the particle towards us by reducing the z-coordinate by the current
+\ speed - that's the easy part. We then calculate a factor q that determines how
+\ far we should move the stardust particle away from the centre point, and apply
+\ that factor by multiplying the x and y screen coordinates by (1 + q), which
+\ has the effect of making particles near the centre (small x and y) move less
+\ than particles near the edges (high x and y).
+\
+\ Essentially, this is using the fact that when we project 3D (x, y, z)
+\ coordinates onto a 2D screen, the calculation is essentially:
+\
+\   x_screen = x / z
+\   y_screen = y / z
+\
+\ so if we reduce z (i.e. move the particle near to us) then the x and y screen
+\ coordinates should increase by an inverse but proportional amount.
+\
+\ Applying roll to the stardust
+\ -----------------------------
+\ The following calculations apply the current roll rate to the stardust:
+\
+\   5. y = y + alpha * x / 256
+\   6. x = x - alpha * y / 256
+\
+\ These are essentially the same as the roll equations from MVS4, which work
+\ in the same way when projected onto the 2D screen, as we can ignore the z axis
+\ when rolling.
+\
+\ Applying pitch to the stardust
+\ ------------------------------
+\ The following calculations apply the current pitch rate to the stardust:
+\
+\   7. x = x + 2 * (beta * y / 256) ^ 2
+\   8. y = y - beta * 256
+\
+\ The second one is essentially the same as the pitch equation from MVS4,
+\ just applied to the y-coordinate projected into 2D (i.e. divided by z).
+\ 
+\ The first one, though, is a mystery. Removing this part of the calculation
+\ doesn't seem to affect the look of the stardust field, and with the maximum
+\ magnitude of beta being 8, and y always being less than 120, the maximum delta
+\ applied to x is:
+\
+\   2 * (beta * y / 256) ^ 2 = 2 * (8 * y / 256) ^ 2
+\                            = 2 * 64 * y^2 / 65536
+\                            = y^2 / 512
+\                            = 28
+\
+\ and that's at the extremeties of the screen and with full pitch. Perhaps this
+\ is a fisheye effect that makes space feel more curved when pitching is high?
+\ For now, I don't have an answer...
+\ ******************************************************************************
+
+.STARS1
 {
- JSR DV42               \ P.R = speed/SZ(Y) \ travel step of dust particle front/rear
- LDA R                  \ remainder
- LSR P                  \ hi
- ROR A
- LSR P                  \ hi is now emptied out
- ROR A                  \ remainder
- ORA #1
- STA Q                  \ upper 2 bits above remainder
 
- LDA SZL,Y              \ dust zlo
- SBC DELT4              \ upper 2 bits are lowest 2 of speed
- STA SZL,Y              \ dust zlo
- LDA SZ,Y               \ dustz
- STA ZZ                 \ old distance
- SBC DELT4+1            \ hi, speed/4, 10 max
- STA SZ,Y               \ dustz
+ LDY NOSTM              \ Set Y to the current number of stardust particles, so
+                        \ we can use it as a counter through all the stardust
 
- JSR MLU1               \ Y1 = SY,Y and P.A = Y1 7bit * Q
- STA YY+1
- LDA P                  \ lo
- ADC SYL,Y              \ dust ylo
- STA YY
- STA R                  \ offsetY lo
- LDA Y1                 \ old SY,Y
- ADC YY+1
- STA YY+1
- STA S
+                        \ In the following, we're going to refer to the 16-bit
+                        \ space coordinates of the current particle of stardust
+                        \ (i.e. the Y-th particle) like this:
+                        \
+                        \   x = (x_hi x_lo)
+                        \   y = (y_hi y_lo)
+                        \   z = (z_hi z_lo)
+                        \
+                        \ These values are stored in (SX+Y SXL+Y), (SY+Y SYL+Y)
+                        \ and (SZ+Y SZL+Y) respectively
 
- LDA SX,Y               \ dustx
- STA X1
- JSR MLU2               \ P.A = A7bit*Q
- STA XX+1
- LDA P
- ADC SXL,Y              \ dust xlo
+.^STL1
+
+ JSR DV42               \ Call DV42 to set the following:
+                        \
+                        \   (P R) = 256 * DELTA / z_hi
+                        \         = 256 * speed / z_hi
+                        \
+                        \ The maximum value returned is P = 2 and R = 128 (see
+                        \ DV42 for an explanation)
+
+ LDA R                  \ Set A = R, so now:
+                        \
+                        \   (P A) = 256 * speed / z_hi
+
+ LSR P                  \ Rotate (P A) right by 2 places, which sets P = 0 (as P
+ ROR A                  \ has a maximum value of 2) and leaves:
+ LSR P                  \
+ ROR A                  \   A = 64 * speed / z_hi
+
+ ORA #1                 \ Make sure A is at least 1, and store it in Q, so we
+ STA Q                  \ now have result 1 above:
+                        \
+                        \   Q = 64 * speed / z_hi
+
+ LDA SZL,Y              \ We now calculate the following:
+ SBC DELT4              \                 
+ STA SZL,Y              \  (z_hi z_lo) = (z_hi z_lo) - DELT4(1 0)
+                        \
+                        \ starting with the low bytes
+
+ LDA SZ,Y               \ And then we do the high bytes
+ STA ZZ                 \ 
+ SBC DELT4+1            \ We also set ZZ to the original value of z_hi, which we
+ STA SZ,Y               \ use below to remove the existing particle
+                        \
+                        \ So now we have result 2 above:
+                        \
+                        \   z = z - DELT4(1 0)
+                        \     = z - speed * 64
+
+ JSR MLU1               \ Call MLU1 to set:
+                        \
+                        \   Y1 = y_hi
+                        \
+                        \   (A P) = |y_hi| * Q
+                        \
+                        \ So Y1 contains the original value of y_hi, which we
+                        \ use below to remove the existing particle
+
+                        \ We now calculate:
+                        \
+                        \   (S R) = YY(1 0) = (A P) + y
+
+ STA YY+1               \ First we do the low bytes with:
+ LDA P                  \
+ ADC SYL,Y              \   YY+1 = A
+ STA YY                 \   R = YY = P + y_lo
+ STA R                  \
+                        \ so we get this:
+                        \
+                        \   (? R) = YY(1 0) = (A P) + y_lo
+
+ LDA Y1                 \ And then we do the high bytes with:
+ ADC YY+1               \ 
+ STA YY+1               \   S = YY+1 = y_hi + YY+1
+ STA S                  \
+                        \ so we get our result:
+                        \
+                        \   (S R) = YY(1 0) = (A P) + (y_hi y_lo)
+                        \                   = |y_hi| * Q + y
+                        \
+                        \ which is result 3 above, and (S R) is set to the new
+                        \ value of y
+
+ LDA SX,Y               \ Set X1 = A = x_hi
+ STA X1                 \
+                        \ So X1 contains the original value of x_hi, which we
+                        \ use below to remove the existing particle
+
+ JSR MLU2               \ Set (A P) = |x_hi| * Q
+
+                        \ We now calculate:
+                        \
+                        \   XX(1 0) = (A P) + x
+
+ STA XX+1               \ First we do the low bytes:
+ LDA P                  \
+ ADC SXL,Y              \   XX(1 0) = (A P) + x_lo
  STA XX
- LDA X1
- ADC XX+1
- STA XX+1
 
- EOR ALP2+1             \ roll sign
- JSR MLS1               \ P.A = A*alp1 (alp1+<32)
- JSR ADD                \ (A X) = (A P) + (S R)
- STA YY+1
- STX YY
+ LDA X1                 \ And then we do the high bytes:
+ ADC XX+1               \
+ STA XX+1               \   XX(1 0) = XX(1 0) + (x_hi 0)
+                        \
+                        \ so we get our result:
+                        \
+                        \   XX(1 0) = (A P) + x
+                        \           = |x_hi| * Q + x
+                        \
+                        \ which is result 4 above, and we also have:
+                        \
+                        \   A = XX+1 = (|x_hi| * Q + x) / 256
+                        \
+                        \ i.e. A is the new value of x, divided by 256
 
- EOR ALP2               \ roll sign
- JSR MLS2               \ R.S = XX(0to1) and P.A = A*alp1 (alp1+<32)
- JSR ADD                \ (A X) = (A P) + (S R)
- STA XX+1
- STX XX
+ EOR ALP2+1             \ EOR with the flipped sign of the roll rate, so A has
+                        \ the opposite sign to the flipped roll angle alpha,
+                        \ i.e. it gets the same sign as alpha
 
- LDX BET1               \ pitch lower7 bits
- LDA YY+1
- EOR BET2+1             \ flipped pitch sign
- JSR MULTS-2            \ AP=A*bet1 (bet1+<32)
- STA Q
- JSR MUT2               \ S = XX+1, R = XX, A.P=Q*A
- ASL P
- ROL A
- STA T
- LDA #0
- ROR A
- ORA T
- JSR ADD                \ (A X) = (A P) + (S R)
- STA XX+1
+ JSR MLS1               \ Call MLS1 to calculate:
+                        \
+                        \   (A P) = A * ALP1
+                        \         = (x / 256) * alpha
+
+ JSR ADD                \ Call ADD to calculate:
+                        \
+                        \   (A X) = (A P) + (S R)
+                        \         = (x / 256) * alpha + y
+                        \         = y + alpha * x / 256
+
+ STA YY+1               \ Set YY(1 0) = (A X) to give:
+ STX YY                 \
+                        \   YY(1 0) = y + alpha * x / 256
+                        \
+                        \ which is result 5 above, and we also have:
+                        \
+                        \   A = YY+1 = y + alpha * x / 256
+                        \
+                        \ i.e. A is the new value of y, divided by 256
+                        
+ EOR ALP2               \ EOR A with the correct sign of the roll rate, so A has
+                        \ the opposite sign to the roll angle alpha
+
+ JSR MLS2               \ Call MLS2 to calculate:
+                        \
+                        \   (S R) = XX(1 0)
+                        \         = x
+                        \
+                        \   (A P) = A * ALP1
+                        \         = -y / 256 * alpha
+
+ JSR ADD                \ Call ADD to calculate:
+                        \
+                        \   (A X) = (A P) + (S R)
+                        \         = -y / 256 * alpha + x
+
+ STA XX+1               \ Set XX(1 0) = (A X), which gives us result 6 above:
+ STX XX                 \
+                        \   x = x - alpha * y / 256
+
+ LDX BET1               \ Fetch the pitch magnitude into X
+
+ LDA YY+1               \ Set A to y_hi and set it to the flipped sign of beta
+ EOR BET2+1
+ 
+ JSR MULTS-2            \ Call MULTS-2 to calculate:
+                        \
+                        \   (A P) = X * A
+                        \         = -beta * y_hi
+ 
+ STA Q                  \ Store the high byte of the result in Q, so:
+                        \
+                        \   Q = -beta * y_hi / 256
+
+ JSR MUT2               \ Call MUT2 to calculate:
+                        \
+                        \
+                        \   (S R) = XX(1 0) = x
+                        \
+                        \   (A P) = Q * A
+                        \         = (-beta * y_hi / 256) * (-beta * y_hi / 256)
+                        \         = (beta * y / 256) ^ 2
+
+ ASL P                  \ Double (A P), store the top byte in A and set the C
+ ROL A                  \ flag to bit 7 of the original A, so this does:
+ STA T                  \
+                        \   (T P) = (A P) << 1
+                        \         = 2 * (beta * y / 256) ^ 2
+
+ LDA #0                 \ Set bit 7 in A to the sign bit from the A in the
+ ROR A                  \ calculation above and apply it to T, so we now have:
+ ORA T                  \
+                        \   (A P) = (A P) * 2
+                        \         = 2 * (beta * y / 256) ^ 2
+                        \
+                        \ with the doubling retaining the sign of (A P)
+
+ JSR ADD                \ Call ADD to calculate:
+                        \
+                        \   (A X) = (A P) + (S R)
+                        \         = 2 * (beta * y / 256) ^ 2 + x
+
+ STA XX+1               \ Store the high byte A in XX+1
+
  TXA
- STA SXL,Y              \ dust xlo
+ STA SXL,Y              \ Store the low byte X in x_lo
+ 
+                        \ So (XX+1 x_lo) now contains:
+                        \
+                        \   x = x + 2 * (beta * y / 256) ^ 2
+                        \
+                        \ which is result 7 above 
 
- LDA YY
+ LDA YY                 \ Set (S R) = YY(1 0) = y
  STA R
  LDA YY+1
-\JSR MAD
-\STA S
+\JSR MAD                \ These instructions are commented out in the original
+\STA S                  \ source
 \STX R
- STA S                  \ offset for pix1
- LDA #0
+ STA S
+
+ LDA #0                 \ Set P = 0
  STA P
- LDA BETA
- EOR #128
+ 
+ LDA BETA               \ Set A = -beta, so (A P) = (-beta 0) = -beta * 256
+ EOR #%10000000
 
- JSR PIX1               \ dust, X1 has xscreen. yscreen = R.S+P.A
- LDA XX+1
- STA X1
- STA SX,Y               \ dustx
- AND #127               \ drop sign
- CMP #120
- BCS KILL1              \ kill the forward dust
- LDA YY+1
- STA SY,Y               \ dusty
- STA Y1
- AND #127               \ drop sign
- CMP #120
- BCS KILL1              \ kill the forward dust
+ JSR PIX1               \ Call PIX1 to calculate the following:
+                        \
+                        \   (YY+1 y_lo) = (A P) + (S R)
+                        \               = -beta * 256 + y
+                        \
+                        \ i.e. y = y - beta * 256, which is result 8 above
+                        \
+                        \ PIX1 also draws a particle at (X1, Y1) with distance
+                        \ ZZ, which will remove the old stardust particle, as we
+                        \ set X1, Y1 and ZZ to the original values for this
+                        \ particle during the calculations above
 
- LDA SZ,Y               \ dustz
- CMP #16
- BCC KILL1              \ kill the forward dust
- STA ZZ                 \ old distance
-}
+                        \ We now have our newly moved stardust particle at
+                        \ x-coordinate (XX+1 x_lo) and y-coordinate (YY+1 y_lo)
+                        \ and distance z_hi, so we draw it if it's still on
+                        \ screen, otherwise we recycle it as a new bit of
+                        \ stardust and draw that
 
-.STC1                   \ Re-enter after kill
-{
- JSR PIXEL2             \ dust (X1,Y1) from middle
- DEY                    \ next dust particle
- BEQ P%+5               \ rts
- JMP STL1               \ loop Y forward dust
- RTS
-}
+ LDA XX+1               \ Set X1 and x_hi to the high byte of XX in XX+1, so
+ STA X1                 \ the new x-coordinate is in (x_hi x_lo) and the high
+ STA SX,Y               \ byte is in X1
 
-\ ******************************************************************************
-\
-\ Subroutine: KILL1
-\
-\ Kill the forward dust
-\
-\ ******************************************************************************
+ AND #%01111111         \ If |x_hi| >= 120 then jump to KILL1 to recycle this
+ CMP #120               \ particle, as it's gone off the side of the screen,
+ BCS KILL1              \ and rejoin at STC1 with the new particle
 
-.KILL1                  \ kill the forward dust
-{
+ LDA YY+1               \ Set Y1 and y_hi to the high byte of YY in YY+1, so
+ STA SY,Y               \ the new x-coordinate is in (y_hi y_lo) and the high
+ STA Y1                 \ byte is in Y1
+
+ AND #%01111111         \ If |y_hi| >= 120 then jump to KILL1 to recycle this
+ CMP #120               \ particle, as it's gone off the top or bottom of the
+ BCS KILL1              \ screen, and rejoin at STC1 with the new particle
+
+ LDA SZ,Y               \ If z_hi < 16 then jump to KILL1 to recycle this
+ CMP #16                \ particle, as it's so close that it's effectively gone
+ BCC KILL1              \ past us, and rejoin at STC1 with the new particle
+
+ STA ZZ                 \ Set ZZ to the z-coordinate in z_hi
+
+.STC1
+
+ JSR PIXEL2             \ Draw a stardust particle at (X1,Y1) with distance ZZ,
+                        \ i.e. draw the newly moved particle at (x_hi, y_hi)
+                        \ with distance z_hi
+
+ DEY                    \ Decrement the loop counter to point to the next
+                        \ stardust particle
+
+ BEQ P%+5               \ If we have just done the last particle, skip the next
+                        \ instruction to return from the subroutine
+
+ JMP STL1               \ We have more stardust to process, so jump back up to
+                        \ STL1 for the next particle
+
+ RTS                    \ Return from the subroutine
+
+.KILL1
+
+                        \ Our particle of stardust just flew past us, so let's
+                        \ recycle that particle, starting it at a random
+                        \ position that isn't too close to the centre point
+
  JSR DORND              \ Set A and X to random numbers
- ORA #4                 \ flick up/down
- STA Y1                 \ ydistance from middle
- STA SY,Y               \ dusty
+
+ ORA #4                 \ Make sure A is at least 4 and store it in Y1 and y_hi,
+ STA Y1                 \ so the new particle starts at least 4 pixels to the
+ STA SY,Y               \ side of the centre of the screen
+
  JSR DORND              \ Set A and X to random numbers
- ORA #8                 \ flick left/right
- STA X1
- STA SX,Y               \ dustx
+
+ ORA #8                 \ Make sure A is at least 8 and store it in X1 and x_hi,
+ STA X1                 \ so the new particle starts at least 8 pixels above or
+ STA SX,Y               \ below the centr of the screen
+
  JSR DORND              \ Set A and X to random numbers
- ORA #&90               \ flick distance
- STA SZ,Y               \ dustz
- STA ZZ                 \ old distance
- LDA Y1                 \ ydistance from middle
- JMP STC1               \ guaranteed, Re-enter forward dust loop
+
+ ORA #144               \ Make sure A is at least 144 and store it in ZZ and
+ STA SZ,Y               \ z_hi so the new particle starts in the far distance
+ STA ZZ
+
+ LDA Y1                 \ Set A to the new value of y_hi. This has no effect as
+                        \ STC1 starts with a jump to PIXEL2, which starts with a
+                        \ LDA instruction
+
+ JMP STC1               \ Jump up to STC1 to draw this new particle
 }
 
 \ ******************************************************************************
@@ -9010,11 +9315,10 @@ NEXT
  CMP #160
  BCS KILL6              \ rear dust kill
  STA ZZ                 \ old distance
-}
 
 .STC6                   \ Re-enter after kill
-{
- JSR PIXEL2             \ dust (X1,Y1) from middle
+
+ JSR PIXEL2             \ Draw a stardust particle at (X1,Y1) with distance ZZ
  DEY
  BEQ ST3                \ rts
  JMP STL6               \ loop Y rear dust
@@ -9022,18 +9326,9 @@ NEXT
 .ST3                    \ rts
 
  RTS
-}
-
-\ ******************************************************************************
-\
-\ Subroutine: KILL6
-\
-\ Rear dust kill
-\
-\ ******************************************************************************
 
 .KILL6                  \ rear dust kill
-{
+
  JSR DORND              \ Set A and X to random numbers
  AND #127
  ADC #10
@@ -12933,10 +13228,9 @@ LOAD_C% = LOAD% +P% - CODE%
  JSR ST2                \ flip alpha, bet2
 
  LDY NOSTM              \ number of stars
-}
 
 .STL2                   \ counter Y
-{
+
  LDA SZ,Y               \ dustz
  STA ZZ                 \ distance away of dust particles
  LSR A
@@ -13013,18 +13307,16 @@ LOAD_C% = LOAD% +P% - CODE%
  AND #127               \ Acc left with bottom 7 bits of Y hi
  CMP #116               \ approaching top or bottom of screen
  BCS ST5                \ ydust kill
-}
 
 .STC2                   \ Back in
-{
- JSR PIXEL2             \ dust (X1,Y1) from middle
+
+ JSR PIXEL2             \ Draw a stardust particle at (X1,Y1) with distance ZZ
  DEY                    \ next dust
  BEQ ST2                \ all dust done, exit loop
  JMP STL2               \ loop Y
-}
 
 .ST2                    \ exited dust loop, flip alpha, bet2
-{
+
  LDA ALPHA
  EOR RAT                \ view sign
  STA ALPHA
@@ -13039,18 +13331,9 @@ LOAD_C% = LOAD% +P% - CODE%
  EOR #128               \ flip
  STA BET2+1             \ flipped pitch sign
  RTS
-}
-
-\ ******************************************************************************
-\
-\ Subroutine: KILL2
-\
-\ Kill dust, left or right edge.
-\
-\ ******************************************************************************
 
 .KILL2                  \ kill dust, left or right edge
-{
+
  JSR DORND              \ Set A and X to random numbers
  STA Y1
  STA SY,Y               \ dusty rnd
@@ -13059,10 +13342,9 @@ LOAD_C% = LOAD% +P% - CODE%
  STA X1
  STA SX,Y               \ dustx
  BNE STF1               \ guaranteed, Set new distance
-}
 
 .ST5                    \ ydust kill
-{
+
  JSR DORND              \ Set A and X to random numbers
  STA X1
  STA SX,Y               \ dustx rnd
@@ -13070,10 +13352,9 @@ LOAD_C% = LOAD% +P% - CODE%
  ORA ALP2+1             \ flipped roll sign
  STA Y1
  STA SY,Y               \ dusty
-}
 
 .STF1                   \ Set new distance
-{
+
  JSR DORND              \ Set A and X to random numbers
  ORA #8                 \ not too close
  STA ZZ
@@ -13270,75 +13551,134 @@ NEXT
 \
 \ Subroutine: MLS2
 \
-\ Assign from stars R.S = XX(0to1), and P.A = A*alp1 (alp1+<32)
+\ Calculate the following:
+\
+\   (S R) = XX(1 0)
+\
+\   (A P) = A * ALP1
+\
+\ where ALP1 is the magnitude of the current roll rate, in the range 0-31.
 \
 \ ******************************************************************************
 
-.MLS2                   \ assign from stars R.S = XX(0to1), and P.A = A*alp1 (alp1+<32)
+.MLS2
 {
- LDX XX
- STX R                  \ lo
- LDX XX+1
- STX S                  \ hi
+ LDX XX                 \ Set (S R) = XX(1 0), starting with the low bytes
+ STX R
+
+ LDX XX+1               \ And then doing the high bytes
+ STX S
+
+                        \ Fall through into MLS1 to calculate (A P) = A * ALP1
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: MLS1
 \
-\ P.A = A*alp1 (alp1+<32)
+\ Calculate the following:
+\
+\   (A P) = ALP1 * A
+\
+\ where ALP1 is the magnitude of the current roll rate, in the range 0-31.
+\
+\ This routine uses an unrolled version of MU11. MU11 calculates P * X, so we
+\ use the same algorithm but with P set to ALP1 and X set to A. The unrolled
+\ version here can skip the bit tests for bits 5-7 of P as we know P < 32, so
+\ only 5 shifts with bit tests are needed (for bits 0-4), while the other 3
+\ shifts can be done without a test (for bits 5-7).
+\
+\ Other entry points:
+\
+\   MULTS-2             Calculate (A P) = X * A
 \
 \ ******************************************************************************
 
-.MLS1                   \ P.A = A*alp1 (alp1+<32)
+.MLS1
 {
- LDX ALP1               \ roll magnitude
- STX P
-}
+ LDX ALP1               \ Set P to the roll rate magnitude in ALP1 (0-31), so
+ STX P                  \ now we calculate P * A
 
-.MULTS                  \ P.A =A*P(P+<32)
-{
- TAX                    \ Acc in
- AND #128
- STA T                  \ sign
- TXA
+.^MULTS
+
+ TAX                    \ Set X = A, so now we can calculate P * X instead of
+                        \ P * A to get our result, and we can use the algorithm
+                        \ from MU11 to do that, just unrolled (as MU11 returns
+                        \ P * X)
+
+ AND #%10000000         \ Set T to the sign bit of A
+ STA T
+
+ TXA                    \ Set A = |A|
  AND #127
- BEQ MU6                \ set Plo.Phi = Acc = 0
- TAX                    \ Acc in
- DEX
- STX T1                 \ A7-1 as carry will be set
- LDA #0
 
- LSR P
- BCC P%+4
- ADC T1
- ROR A
- ROR P
- BCC P%+4
- ADC T1
- ROR A
- ROR P
- BCC P%+4
- ADC T1
- ROR A
- ROR P
- BCC P%+4
- ADC T1
- ROR A
- ROR P
- BCC P%+4
+ BEQ MU6                \ If A = 0, jump to MU6 to set P(1 0) = 0 and return
+                        \ from the subroutine using a tail call
+
+ TAX                    \ Set T1 = X - 1
+ DEX                    \
+ STX T1                 \ We subtract 1 as carry will be set when we want to do
+                        \ an addition in the loop below
+
+ LDA #0                 \ Set A = 0 so we can start building the answer in A
+
+ LSR P                  \ Set P = P >> 1
+                        \ and carry = bit 0 of P
+
+                        \ We are now going to work our way through the bits of
+                        \ P, and do a shift-add for any bits that are set,
+                        \ keeping the running total in A, but instead of using a
+                        \ loop like MU11, we just unroll it, starting with bit 0
+
+ BCC P%+4               \ If C (i.e. the next bit from P) is set, do the
+ ADC T1                 \ addition for this bit of P:
+                        \
+                        \   A = A + T1 + C
+                        \     = A + X - 1 + 1
+                        \     = A + X
+
+
+ ROR A                  \ Shift A right to catch the next digit of our result,
+                        \ which the next ROR sticks into the left end of P while
+                        \ also extracting the next bit of P
+
+ ROR P                  \ Add the overspill from shifting A to the right onto
+                        \ the start of P, and shift P right to fetch the next
+                        \ bit for the calculation into the C flag
+
+ BCC P%+4               \ Repeat the "shift and add" loop for bit 1
  ADC T1
  ROR A
  ROR P
 
- LSR A
+ BCC P%+4               \ Repeat the "shift and add" loop for bit 2
+ ADC T1
+ ROR A
  ROR P
- LSR A
+
+ BCC P%+4               \ Repeat the "shift and add" loop for bit 3
+ ADC T1
+ ROR A
  ROR P
- LSR A
+
+ BCC P%+4               \ Repeat the "shift and add" loop for bit 4
+ ADC T1
+ ROR A
  ROR P
- ORA T
- RTS
+
+ LSR A                  \ Just do the "shift" part for bit 5
+ ROR P
+
+ LSR A                  \ Just do the "shift" part for bit 6
+ ROR P
+
+ LSR A                  \ Just do the "shift" part for bit 7
+ ROR P
+
+ ORA T                  \ Give A the sign bit of the original argument A that
+                        \ we put into T above
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -13399,12 +13739,12 @@ NEXT
 \
 \ Subroutine: MLU1
 \
-\ Do the following multiplication of a sign-magnitude 8-bit number P with an
-\ unsigned number Q:
+\ Do the following assignment, and multiply the Y-th stardust particle's
+\ y-coordinate with an unsigned number Q:
 \
-\   (A P) = |P| * Q
+\   Y1 = y_hi
 \
-\ and set Y1 to the Y-th byte of SY.
+\   (A P) = |y_hi| * Q
 \
 \ ******************************************************************************
 
@@ -13415,7 +13755,7 @@ NEXT
 
                         \ Fall through into MLU2 to calculate:
                         \
-                        \   (A P) = |P| * Q
+                        \   (A P) = |A| * Q
 }
 
 \ ******************************************************************************
@@ -13425,19 +13765,19 @@ NEXT
 \ Do the following multiplication of a sign-magnitude 8-bit number P with an
 \ unsigned number Q:
 \
-\   (A P) = |P| * Q
+\   (A P) = |A| * Q
 \
 \ ******************************************************************************
 
 .MLU2
 {
- AND #%01111111         \ Clear the sign bit in P, so P = |P|
+ AND #%01111111         \ Clear the sign bit in P, so P = |A|
  STA P
 
                         \ Fall through into MULTU to calculate:
                         \
                         \   (A P) = P * Q
-                        \         = |P| * Q
+                        \         = |A| * Q
 }
 
 \ ******************************************************************************
@@ -14344,9 +14684,17 @@ NEXT
 \
 \ Calculate the following division and remainder:
 \
-\   P = DELTA / (the Y-th stardust particle's z-coordinate)
+\   P = DELTA / (the Y-th stardust particle's z_hi coordinate)
 \
 \   R = remainder as a fraction of A, where 1.0 = 255
+\
+\ Another way of saying the above is this:
+\
+\   (P R) = 256 * DELTA / z_hi
+\
+\ DELTA is a value between 1 and 40, and the minimum z_hi is 16 (dust particles
+\ are removed at lower values than this), so this means P is between 0 and 2
+\ (as 40 / 16 = 2.5, so the maximum result is P = 2 and R = 128.
 \
 \ This uses the same "shift and subtract" algorithm as TIS2, but this time we
 \ keep the remainder.
@@ -14363,7 +14711,7 @@ NEXT
 
 .DV42
 {
- LDA SZ,Y               \ Fetch the Y-th dust particle's z-coordinate into A
+ LDA SZ,Y               \ Fetch the Y-th dust particle's z_hi coordinate into A
 }
 
 \ ******************************************************************************
@@ -15297,7 +15645,6 @@ NEXT
                         \   1 = rear
                         \   2 = left
                         \   3 = right
-
 
  BNE PU1                \ If the current view is forward, return from the
  RTS                    \ subroutine, as the geometry in INWK is already
@@ -16285,9 +16632,10 @@ NEXT
 
 \BCS SC48               \ These instructions are commented out in the original
 \EOR #&FF               \ source. They would negate A if the C flag were set,
-\ADC #1                 \ which would reverse the direction of all the sticks.
-                        \ Goodness knows why you would want to do that, but
-                        \ there you go
+\ADC #1                 \ which would reverse the direction of all the sticks,
+                        \ so you could turn your joystick around. Perhaps one of
+                        \ the authors' test sticks was easier to use upside
+                        \ down? Who knows...
 
 .SC48
 
@@ -21177,24 +21525,24 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .BDOLLAR
 
-EQUB '(' EOR 164
-EQUB 'C' EOR 164
-EQUB ')' EOR 164
-EQUB 'B' EOR 164
-EQUB 'e' EOR 164
-EQUB 'l' EOR 164
-EQUB 'l' EOR 164
-EQUB '/' EOR 164
-EQUB 'B' EOR 164
-EQUB 'r' EOR 164
-EQUB 'a' EOR 164
-EQUB 'b' EOR 164
-EQUB 'e' EOR 164
-EQUB 'n' EOR 164
-EQUB '1' EOR 164
-EQUB '9' EOR 164
-EQUB '8' EOR 164
-EQUB '4' EOR 164
+ EQUB '(' EOR 164
+ EQUB 'C' EOR 164
+ EQUB ')' EOR 164
+ EQUB 'B' EOR 164
+ EQUB 'e' EOR 164
+ EQUB 'l' EOR 164
+ EQUB 'l' EOR 164
+ EQUB '/' EOR 164
+ EQUB 'B' EOR 164
+ EQUB 'r' EOR 164
+ EQUB 'a' EOR 164
+ EQUB 'b' EOR 164
+ EQUB 'e' EOR 164
+ EQUB 'n' EOR 164
+ EQUB '1' EOR 164
+ EQUB '9' EOR 164
+ EQUB '8' EOR 164
+ EQUB '4' EOR 164
 
 \ ******************************************************************************
 \
@@ -22391,24 +22739,24 @@ EQUB '4' EOR 164
 
  ORA #8                 \ Set A so that it's at least 8
 
- STA SZ,Y               \ Store A in the Y-th particle's z-coordinate at SZ+Y,
-                        \ so the particle appears in front of us
+ STA SZ,Y               \ Store A in the Y-th particle's z_hi coordinate at
+                        \ SZ+Y, so the particle appears in front of us
 
- STA ZZ                 \ Set ZZ to the particle's z-coordinate
-
- JSR DORND              \ Set A and X to random numbers
-
- STA SX,Y               \ Store A in the Y-th particle's x-coordinate at SZ+Y,
-                        \ so the particle appears in front of us
-
- STA X1                 \ Set X1 to the particle's x-coordinate
+ STA ZZ                 \ Set ZZ to the particle's z_hi coordinate
 
  JSR DORND              \ Set A and X to random numbers
 
- STA SY,Y               \ Store A in the Y-th particle's y-coordinate at SZ+Y,
-                        \ so the particle appears in front of us
+ STA SX,Y               \ Store A in the Y-th particle's x_hi coordinate at
+                        \ SX+Y, so the particle appears in front of us
 
- STA Y1                 \ Set Y1 to the particle's y-coordinate
+ STA X1                 \ Set X1 to the particle's x_hi coordinate
+
+ JSR DORND              \ Set A and X to random numbers
+
+ STA SY,Y               \ Store A in the Y-th particle's y_hi coordinate at
+                        \ SY+Y, so the particle appears in front of us
+
+ STA Y1                 \ Set Y1 to the particle's y_hi coordinate
 
  JSR PIXEL2             \ Draw a stardust particle at (X1,Y1) with distance ZZ
 
