@@ -418,13 +418,13 @@ ORG &0000
 
 .BETA
 
- SKIP 1                 \ Pitch rate, reduced from JSTY to a value between -8
-                        \ and +8, with same sign as BET2 (the correct sign)
+ SKIP 1                 \ Pitch angle beta, reduced from JSTY to a value between
+                        \ -8 and +8, with same sign as BET2 (the correct sign)
 
 .BET1
 
- SKIP 1                 \ Pitch rate magnitude, reduced from JSTY to a positive
-                        \ value between 0 and 8, i.e. |pitch rate|
+ SKIP 1                 \ Magnitude of the pitch angle beta, i.e. |beta|,
+                        \ reduced from JSTY to a positive value between 0 and 8
 
 .XC
 
@@ -675,18 +675,18 @@ ORG &0000
 
 .ALP1
 
- SKIP 1                 \ Roll rate magnitude, reduced from JSTX to a positive
-                        \ value between 0 and 31, i.e. |roll rate|
+ SKIP 1                 \ Magnitude of the roll angle alpha, i.e. |alpha|,
+                        \ reduced from JSTX to a positive value between 0 and 31
 
 .ALP2
 
- SKIP 2                 \ ALP2   = correct sign of the alpha angle (roll rate)
-                        \ ALP2+1 = flipped sign of the alpha angle (roll rate)
+ SKIP 2                 \ ALP2   = correct sign of the roll angle alpha
+                        \ ALP2+1 = flipped sign of the roll alpha angle
 
 .BET2
 
- SKIP 2                 \ BET2   = correct sign of the beta angle (pitch rate)
-                        \ BET2+1 = flipped sign of the beta angle (pitch rate)
+ SKIP 2                 \ BET2   = correct sign of the pitch angle beta
+                        \ BET2+1 = flipped sign of the pitch angle beta
 
 .DELTA
 
@@ -805,8 +805,8 @@ ORG &0000
 
 .ALPHA
 
- SKIP 1                 \ Roll rate, reduced from JSTX to a value between -31
-                        \ and +31, with same sign as ALP2 (the correct sign)
+ SKIP 1                 \ Roll angle alpha, reduced from JSTX to a value between
+                        \ -31 and +31, with same sign as ALP2 (the correct sign)
 
 .QQ12
 
@@ -3539,25 +3539,26 @@ LOAD_A% = LOAD%
  JSR cntr               \ apply keyboard damping twice (if enabled) so the roll
  JSR cntr               \ rate in X creeps towards the centre by 2
 
-                        \ The roll rate increases if we press ">" (and the RL
-                        \ indicator on the dashboard goes to the right). This
-                        \ rolls our ship to the right (clockwise), but we
+                        \ The roll rate in JSTX increases if we press ">" (and
+                        \ the RL indicator on the dashboard goes to the right).
+                        \ This rolls our ship to the right (clockwise), but we
                         \ actually implement this by rolling everything else
                         \ to the left (anticlockwise), so a positive roll rate
-                        \ in JSTX translates to a negative alpha angle
+                        \ in JSTX translates to a negative roll angle alpha
 
  TXA                    \ Set A and Y to the roll rate but with the sign
  EOR #%10000000         \ bit flipped (i.e. the sign of alpha)
  TAY
 
  AND #%10000000         \ Extract the flipped sign of the roll rate and store
- STA ALP2               \ in ALP2 (so ALP2 contains the sign of the alpha angle)
+ STA ALP2               \ in ALP2 (so ALP2 contains the sign of the roll angle
+                        \ alpha)
 
  STX JSTX               \ Update JSTX with the damped value that's still in X
 
  EOR #%10000000         \ Extract the correct sign of the roll rate and store
  STA ALP2+1             \ in ALP2+1 (so ALP2+1 contains the flipped sign of the
-                        \ angle alpha)
+                        \ roll angle alpha)
 
  TYA                    \ If the roll rate but with the sign bit flipped is
  BPL P%+7               \ positive (i.e. if the current roll rate is negative),
@@ -6980,7 +6981,7 @@ LOAD_A% = LOAD%
 {
  LDA ALPHA              \ Set Q = -ALPHA, so Q contains the angle we want to
  EOR #%10000000         \ roll the planet through (i.e. in the opposite
- STA Q                  \ direction to our ship's roll)
+ STA Q                  \ direction to our ship's roll angle alpha)
 
  LDA INWK               \ Set P(1 0) = (x_hi x_lo)
  STA P
@@ -9521,7 +9522,7 @@ NEXT
 \
 \ Applying roll to the stardust
 \ -----------------------------
-\ The following calculations apply the current roll rate to the stardust:
+\ The following calculations apply the current roll angle alpha to the stardust:
 \
 \   5. y = y + alpha * x / 256
 \   6. x = x - alpha * y / 256
@@ -9532,7 +9533,7 @@ NEXT
 \
 \ Applying pitch to the stardust
 \ ------------------------------
-\ The following calculations apply the current pitch rate to the stardust:
+\ The following calculations apply the current pitch angle beta to the stardust:
 \
 \   7. x = x + 2 * (beta * y / 256) ^ 2
 \   8. y = y - beta * 256
@@ -9677,9 +9678,9 @@ NEXT
                         \
                         \ i.e. A is the new value of x, divided by 256
 
- EOR ALP2+1             \ EOR with the flipped sign of the roll rate, so A has
-                        \ the opposite sign to the flipped roll angle alpha,
-                        \ i.e. it gets the same sign as alpha
+ EOR ALP2+1             \ EOR with the flipped sign of the roll angle alpha, so
+                        \ A has the opposite sign to the flipped roll angle
+                        \ alpha, i.e. it gets the same sign as alpha
 
  JSR MLS1               \ Call MLS1 to calculate:
                         \
@@ -9702,8 +9703,8 @@ NEXT
                         \
                         \ i.e. A is the new value of y, divided by 256
                         
- EOR ALP2               \ EOR A with the correct sign of the roll rate, so A has
-                        \ the opposite sign to the roll angle alpha
+ EOR ALP2               \ EOR A with the correct sign of the roll angle alpha,
+                        \ so A has the opposite sign to the roll angle alpha
 
  JSR MLS2               \ Call MLS2 to calculate:
                         \
@@ -10015,8 +10016,8 @@ NEXT
                         \   z = z + DELT4(1 0)
                         \     = z + speed * 64
 
- LDA XX+1               \ EOR x with the correct sign of the roll rate, so A has
- EOR ALP2               \ the opposite sign to the roll angle alpha
+ LDA XX+1               \ EOR x with the correct sign of the roll angle alpha,
+ EOR ALP2               \ so A has the opposite sign to the roll angle alpha
 
  JSR MLS1               \ Call MLS1 to calculate:
                         \
@@ -10039,9 +10040,9 @@ NEXT
                         \
                         \ i.e. A is the new value of y, divided by 256
 
- EOR ALP2+1             \ EOR with the flipped sign of the roll rate, so A has
-                        \ the opposite sign to the flipped roll angle alpha,
-                        \ i.e. it gets the same sign as alpha
+ EOR ALP2+1             \ EOR with the flipped sign of the roll angle alpha, so
+                        \ A has the opposite sign to the flipped roll angle
+                        \ alpha, i.e. it gets the same sign as alpha
 
  JSR MLS2               \ Call MLS2 to calculate:
                         \
@@ -11497,13 +11498,13 @@ NEXT
  LDA #8                 \ Set S = 8, which is the value of the centre of the
  STA S                  \ roll indicator
 
- LDA ALP1               \ Fetch the roll rate as a value between 0 and 31, and
- LSR A                  \ divide by 4 to get a value of 0 to 7
+ LDA ALP1               \ Fetch the roll angle alpha as a value between 0 and
+ LSR A                  \ 31, and divide by 4 to get a value of 0 to 7
  LSR A
 
  ORA ALP2               \ Apply the roll sign to the value, and flip the sign,
  EOR #%10000000         \ so it's now in the range -7 to +7, with a positive
-                        \ roll rate giving a negative value in A
+                        \ roll angle alpha giving a negative value in A
 
  JSR ADD                \ We now add A to S to give us a value in the range 1 to
                         \ 15, which we can pass to DIL2 to draw the vertical
@@ -11522,16 +11523,19 @@ NEXT
                         \ and increment SC to point to the next indicator (the
                         \ pitch indicator)
 
- LDA BETA               \ Fetch the pitch rate as a value between -8 and +8
+ LDA BETA               \ Fetch the pitch angle beta as a value between -8 and
+                        \ +8
 
- LDX BET1               \ Fetch the magnitude of the pitch rate, and if it is 0
- BEQ P%+4               \ (i.e. we are not pitching), skip the next instruction
+ LDX BET1               \ Fetch the magnitude of the pitch angle beta, and if it
+ BEQ P%+4               \ is 0 (i.e. we are not pitching), skip the next
+                        \ instruction
 
- SBC #1                 \ The pitch angle is non-zero, so set A = A - 1 (the C
-                        \ flag is set by the call to DIL2 above, so we don't
-                        \ need to do a SEC). This gives us a value of A from
-                        \ -7 to +7 because these are magnitude-based numbers
-                        \ with sign bits, rather than two's complement numbers
+ SBC #1                 \ The pitch angle beta is non-zero, so set A = A - 1
+                        \ (the C flag is set by the call to DIL2 above, so we
+                        \ don't need to do a SEC). This gives us a value of A
+                        \ from -7 to +7 because these are magnitude-based
+                        \ numbers with sign bits, rather than two's complement
+                        \ numbers
 
  JSR ADD                \ We now add A to S to give us a value in the range 1 to
                         \ 15, which we can pass to DIL2 to draw the vertical
@@ -14134,7 +14138,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ Applying pitch to the stardust (rotating)
 \ -----------------------------------------
-\ The following calculations apply the current pitch rate to the stardust:
+\ The following calculations apply the current pitch angle beta to the stardust:
 \
 \   3. x = x + beta * y
 \   4. y = y - beta * x
@@ -14146,14 +14150,17 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ Applying roll to the stardust (up/down)
 \ ---------------------------------------
-\ The following calculations apply the current roll rate to the stardust:
+\ The following calculations apply the current roll angle alpha to the stardust:
 \
-\   5. x = x - (alpha * y) ^ 2
-\   6. y = y + alpha * 256 + alpha * y^2
+\   5. x = x - alpha * x * y
+\   6. y = y + alpha * y * y + alpha
 \
-\ These are currently a bit of a mystery, along with the pitch calculations in
-\ STARS1, though they clearly move the stardust up and down the screen by the
-\ roll angle alpha. The exact maths behind this is not yet clear.
+\ The significant part here is adding alpha to y (or, more specifically, ALPHA *
+\ 256). This means that as we roll the ship and alpha increases, the stardust
+\ out of the side view goes up and down, which is pretty intuitive.
+\
+\ The other part is currently a bit of a mystery, along with the pitch
+\ calculations in STARS1. More analysis needed here...
 \
 \ ******************************************************************************
 
@@ -14285,7 +14292,7 @@ LOAD_C% = LOAD% +P% - CODE%
  STA YY+1               \
                         \   y = y - beta * x
 
- LDX ALP1               \ Fetch |alpha| from ALP2, the roll angle
+ LDX ALP1               \ Set X = |alpha| from ALP2, the roll angle
 
  EOR ALP2               \ Give A the correct sign of A * alpha, i.e. y_hi *
                         \ alpha
@@ -14299,15 +14306,15 @@ LOAD_C% = LOAD% +P% - CODE%
  
  LDA XX                 \ Set (S R) = XX(1 0)
  STA R                  \           = x
- LDA XX+1
- STA S
+ LDA XX+1               \
+ STA S                  \ and set A = y_hi at the same time
 
- EOR #%10000000         \ Flip the sign of A = -alpha * y
+ EOR #%10000000         \ Flip the sign of A = -x_hi
 
  JSR MAD                \ Call MAD to calclate:
                         \
                         \   (A X) = Q * A + (S R)
-                        \         = alpha * y * -alpha * y + x
+                        \         = alpha * y * -x + x
 
  STA XX+1               \ Store the high byte A in XX+1
 
@@ -14316,12 +14323,12 @@ LOAD_C% = LOAD% +P% - CODE%
  
                         \ So (XX+1 x_lo) now contains result 5 above:
                         \
-                        \   x = x - (alpha * y) ^ 2
+                        \   x = x - alpha * x * y
 
  LDA YY                 \ Set (S R) = YY(1 0)
  STA R                  \           = y
- LDA YY+1
- STA S
+ LDA YY+1               \
+ STA S                  \ and set A = y_hi at the same time
 
  JSR MAD                \ Call MAD to calclate:
                         \
@@ -14337,14 +14344,14 @@ LOAD_C% = LOAD% +P% - CODE%
  LDA ALPHA              \ Set A = alpha, so:
                         \
                         \   (A P) = (alpha 0)
-                        \         = alpha * 256
+                        \         = alpha / 256
 
  JSR PIX1               \ Call PIX1 to calculate the following:
                         \
                         \   (YY+1 y_lo) = (A P) + (S R)
                         \               = alpha * 256 + y + alpha * y * y
                         \
-                        \ i.e. y = y + alpha * 256 + alpha * y^2, which is
+                        \ i.e. y = y + alpha / 256 + alpha * y^2, which is
                         \ result 6 above
                         \
                         \ PIX1 also draws a particle at (X1, Y1) with distance
@@ -14442,7 +14449,8 @@ LOAD_C% = LOAD% +P% - CODE%
  ORA ALP2+1             \ the flipped sign of the roll angle alpha
 
  STA Y1                 \ Set y_hi and Y1 to A, so the particle starts at the
- STA SY,Y               \ top or bottom edge, depending on the current roll rate
+ STA SY,Y               \ top or bottom edge, depending on the current roll
+                        \ angle alpha
 
 .STF1
 
@@ -14651,7 +14659,8 @@ NEXT
 \
 \   (A P) = A * ALP1
 \
-\ where ALP1 is the magnitude of the current roll rate, in the range 0-31.
+\ where ALP1 is the magnitude of the current roll angle alpha, in the range
+\ 0-31.
 \
 \ ******************************************************************************
 
@@ -14674,7 +14683,8 @@ NEXT
 \
 \   (A P) = ALP1 * A
 \
-\ where ALP1 is the magnitude of the current roll rate, in the range 0-31.
+\ where ALP1 is the magnitude of the current roll angle alpha, in the range
+\ 0-31.
 \
 \ This routine uses an unrolled version of MU11. MU11 calculates P * X, so we
 \ use the same algorithm but with P set to ALP1 and X set to A. The unrolled
@@ -14690,8 +14700,8 @@ NEXT
 
 .MLS1
 {
- LDX ALP1               \ Set P to the roll rate magnitude in ALP1 (0-31), so
- STX P                  \ now we calculate P * A
+ LDX ALP1               \ Set P to the roll angle alpha magnitude in ALP1
+ STX P                  \ (0-31), so now we calculate P * A
 
 .^MULTS
 
@@ -27226,22 +27236,22 @@ LOAD_F% = LOAD% + P% - CODE%
  LDA #128               \ Set the current pitch rate to the mid-point, 128
  STA JSTY
 
- STA ALP2               \ Reset ALP2 (flipped roll sign) and BET2 (pitch sign)
- STA BET2               \ to negative, i.e. roll positive, pitch negative
+ STA ALP2               \ Reset ALP2 (roll sign) and BET2 (pitch sign)
+ STA BET2               \ to negative, i.e. roll and pitch negative
 
  ASL A                  \ This sets A to 0
 
- STA ALP2+1             \ Reset ALP2+1 (roll sign) and BET2+1 (flipped pitch
- STA BET2+1             \ sign) to positive, i.e. roll positive, pitch negative
+ STA ALP2+1             \ Reset ALP2+1 (flipped roll sign) and BET2+1 (flipped
+ STA BET2+1             \ pitch sign) to positive, i.e. roll and pitch negative
 
  STA MCNT               \ Reset MCNT (move count) to 0
 
  LDA #3                 \ Reset DELTA (speed) to 3
  STA DELTA
 
- STA ALPHA              \ Reset ALPHA (flipped reduced roll rate) to 3
+ STA ALPHA              \ Reset ALPHA (roll angle alpha) to 3
 
- STA ALP1               \ Reset ALP1 (reduced roll rate) to 3
+ STA ALP1               \ Reset ALP1 (magnitude of roll angle alpha) to 3
 
  LDA SSPR               \ Fetch the "space station present" flag, and if we are
  BEQ P%+5               \ not inside the safe zone, skip the next instruction
