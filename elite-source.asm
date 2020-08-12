@@ -382,7 +382,9 @@ ORG &0000
 
 .XX16
 
- SKIP 18                \
+ SKIP 18                \ Temporary storage for a block of values (e.g. used in
+                        \ the sound routines for sound blocks, and in the
+                        \ plotting routines for sets of coordinates)
 
 .P
 
@@ -406,11 +408,13 @@ ORG &0000
 
 .XX
 
- SKIP 2                 \
+ SKIP 2                 \ Temporary storage, typically used for storing a 16-bit
+                        \ x-coordinate
 
 .YY
 
- SKIP 2                 \
+ SKIP 2                 \ Temporary storage, typically used for storing a 16-bit
+                        \ y-coordinate
 
 .SUNX
 
@@ -505,7 +509,9 @@ ORG &0000
 
 .XX12
 
- SKIP 6                 \
+ SKIP 6                 \ Temporary storage for a block of values (e.g. used to
+                        \ store the energy bank values when updating the
+                        \ dsashboard)
 
 .K
 
@@ -533,65 +539,111 @@ ORG &0000
 
 .KY1
 
- SKIP 1                 \ ? key pressed (0 = no, non-zero = yes)
+ SKIP 1                 \ "?" key has been pressed
+                        \
+                        \   0 = no
+                        \   non-zero = yes
 
 .KY2
 
- SKIP 1                 \ Space key pressed (0 = no, non-zero = yes)
+ SKIP 1                 \ Space key has been pressed
+                        \
+                        \   0 = no
+                        \   non-zero = yes
 
 .KY3
 
- SKIP 1                 \ < key pressed (0 = no, non-zero = yes)
+ SKIP 1                 \ "<" key has been pressed
+                        \
+                        \   0 = no
+                        \   non-zero = yes
 
 .KY4
 
- SKIP 1                 \ > key pressed (0 = no, non-zero = yes)
+ SKIP 1                 \ ">" key has been pressed
+                        \
+                        \   0 = no
+                        \   non-zero = yes
 
 .KY5
 
- SKIP 1                 \ X key pressed (0 = no, non-zero = yes)
+ SKIP 1                 \ "X" key has been pressed
+                        \
+                        \   0 = no
+                        \   non-zero = yes
 
 .KY6
 
- SKIP 1                 \ S key pressed (0 = no, non-zero = yes)
+ SKIP 1                 \ "S" key has been pressed
+                        \
+                        \   0 = no
+                        \   non-zero = yes
 
 .KY7
 
- SKIP 1                 \ A key pressed (0 = no, non-zero = yes)
+ SKIP 1                 \ "A" key has been pressed
                         \
-                        \ Also, joystick fire button pressed
+                        \   0 = no
+                        \   non-zero = yes
+                        \
+                        \ Also set when the joystick fire button has been
+                        \ pressed
 
 .KY12
 
- SKIP 1                 \ Tab key pressed (0 = no, non-zero = yes)
+ SKIP 1                 \ Tab key has been pressed
+                        \
+                        \   0 = no
+                        \   non-zero = yes
 
 .KY13
 
- SKIP 1                 \ Escape key pressed (0 = no, non-zero = yes)
+ SKIP 1                 \ Escape key has been pressed
+                        \
+                        \   0 = no
+                        \   non-zero = yes
 
 .KY14
 
- SKIP 1                 \ T key pressed (0 = no, non-zero = yes)
+ SKIP 1                 \ T key has been pressed
+                        \
+                        \   0 = no
+                        \   non-zero = yes
 
 .KY15
 
- SKIP 1                 \ U key pressed (0 = no, non-zero = yes)
+ SKIP 1                 \ U key has been pressed
+                        \
+                        \   0 = no
+                        \   non-zero = yes
 
 .KY16
 
- SKIP 1                 \ M key pressed (0 = no, non-zero = yes)
+ SKIP 1                 \ M key has been pressed
+                        \
+                        \   0 = no
+                        \   non-zero = yes
 
 .KY17
 
- SKIP 1                 \ E key pressed (0 = no, non-zero = yes)
+ SKIP 1                 \ E key has been pressed
+                        \
+                        \   0 = no
+                        \   non-zero = yes
 
 .KY18
 
- SKIP 1                 \ J key pressed (0 = no, non-zero = yes)
+ SKIP 1                 \ J key has been pressed
+                        \
+                        \   0 = no
+                        \   non-zero = yes
 
 .KY19
 
- SKIP 1                 \ C key pressed (0 = no, non-zero = yes)
+ SKIP 1                 \ C key has been pressed
+                        \
+                        \   0 = no
+                        \   non-zero = yes
 
 .LAS
 
@@ -650,10 +702,10 @@ ORG &0000
                         \
                         \ So:
                         \
-                        \ QQ17 = 0   (%0000 0000) means case is set to ALL CAPS
-                        \ QQ17 = 128 (%1000 0000) means Sentence Case,
+                        \ QQ17 = 0   (%00000000) means case is set to ALL CAPS
+                        \ QQ17 = 128 (%10000000) means Sentence Case,
                         \                         currently printing upper case
-                        \ QQ17 = 192 (%1100 0000) means Sentence Case,
+                        \ QQ17 = 192 (%11000000) means Sentence Case,
                         \                         currently printing lower case
                         \
                         \ If any of bits 0-5 are set and QQ17 is not &FF, we
@@ -1103,11 +1155,11 @@ ORG &0300               \ Start of the commander block
                         \ Mostly Harmless, Poor, Average or Above Average,
                         \ according to the value of the low byte in TALLY:
                         \
-                        \ Harmless        = 0000 0000 to 0000 0011 = 0 to 3
-                        \ Mostly Harmless = 0000 0100 to 0000 0111 = 4 to 7
-                        \ Poor            = 0000 1000 to 0000 1111 = 8 to 15
-                        \ Average         = 0001 0000 to 0001 1111 = 16 to 31
-                        \ Above Average   = 0010 0000 to 1111 1111 = 32 to 255
+                        \ Harmless        = %00000000 to %00000011 = 0 to 3
+                        \ Mostly Harmless = %00000100 to %00000111 = 4 to 7
+                        \ Poor            = %00001000 to %00001111 = 8 to 15
+                        \ Average         = %00010000 to %00011111 = 16 to 31
+                        \ Above Average   = %00100000 to %11111111 = 32 to 255
                         \
                         \ If the high byte in TALLY+1 is non-zero then we are
                         \ Competent, Dangerous, Deadly or Elite, according to
@@ -10423,11 +10475,11 @@ NEXT
                         \ process, X contains the position of the leftmost 1 in
                         \ A. Looking at the rank values in TALLY:
                         \
-                        \   Harmless        = %0000 0000 to %0000 0011
-                        \   Mostly Harmless = %0000 0100 to %0000 0111
-                        \   Poor            = %0000 1000 to %0000 1111
-                        \   Average         = %0001 0000 to %0001 1111
-                        \   Above Average   = %0010 0000 to %1111 1111
+                        \   Harmless        = %00000000 to %00000011
+                        \   Mostly Harmless = %00000100 to %00000111
+                        \   Poor            = %00001000 to %00001111
+                        \   Average         = %00010000 to %00011111
+                        \   Above Average   = %00100000 to %11111111
                         \
                         \ we can see that the values returned by this process
                         \ are:
@@ -11228,16 +11280,16 @@ NEXT
                         \ The following logic is easier to follow if we look
                         \ at the three character number ranges in binary:
                         \
-                        \   Bit # 7654 3210
+                        \   Bit #  76543210
                         \
-                        \   32  = 0010 0000     Page &C0
-                        \   63  = 0011 1111
+                        \   32  = %00100000     Page &C0
+                        \   63  = %00111111
                         \
-                        \   64  = 0100 0000     Page &C1
-                        \   95  = 0101 1111
+                        \   64  = %01000000     Page &C1
+                        \   95  = %01011111
                         \
-                        \   96  = 0110 0000     Page &C2
-                        \   125 = 0111 1101
+                        \   96  = %01100000     Page &C2
+                        \   125 = %01111101
                         \
                         \ We'll refer to this below
 
@@ -11383,9 +11435,9 @@ NEXT
                         \ To see this in action, consider that our two values
                         \ are, in binary:
                         \
-                        \   YC is between:  %0000 0000
-                        \             and:  %0001 0111
-                        \          &60 is:  %0110 0000
+                        \   YC is between:  %00000000
+                        \             and:  %00010111
+                        \          &60 is:  %01100000
                         \
                         \ so YC OR &60 effectively adds &60 to YV, giving us
                         \ the page number that we want
@@ -15557,7 +15609,7 @@ NEXT
 \ arithmetic is 127 + 1, which doesn't give the expected 128, but instead gives
 \ -128. In binary the sum looks like this:
 \
-\   0111 1111 + 0000 0001 = 1000 0000
+\   01111111 + 00000001 = 10000000
 \
 \ The result has bit 7 set, so it is a negative number, 127 + 1 gives -128.
 \ This is where the overflow flag V comes in - V would be set by the above sum
@@ -25299,7 +25351,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  TYA                    \ Set A to the correct colour, which is a 3-pixel wide
                         \ mode 5 character row in the correct colour (for
-                        \ example, a green block has Y = &EE, or %1110 1110, so
+                        \ example, a green block has Y = &EE, or %11101110, so
                         \ the missile blocks are 3 pixels wide, with the
                         \ fourth pixel on the character row being empty)
 
@@ -29107,8 +29159,8 @@ ENDIF
  EOR CASH+2             \ Set K+1 = K+2 EOR'd with the third cash byte
  STA K+1
 
- EOR #%01011010         \ Set K+3 = K+1 EOR 01011010 EOR high byte of kill tally
- EOR TALLY+1
+ EOR #%01011010         \ Set K+3 = K+1 EOR %01011010 EOR to get the high byte of
+ EOR TALLY+1            \ kill tally
  STA K+3
 
  JSR BPRNT              \ Print the competition number stored in K to K+3. The
@@ -29975,7 +30027,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
                         \ to %0011 to stop auto scan of keyboard
 
  LDA #%01111111         \ Set 6522 System VIA data direction register DDRA
- STA SHEILA+&43         \ (SHEILA &43) to %0111 1111. This sets the A registers
+ STA SHEILA+&43         \ (SHEILA &43) to %01111111. This sets the A registers
                         \ (IRA and ORA) so that
                         \
                         \ Bits 0-6 of ORA will sent to the keyboard
@@ -33596,7 +33648,7 @@ ENDMACRO
  EQUB &00               \ Edges data offset (high) = &00AA
  EQUB &01               \ Faces data offset (high) = &001A
  EQUB 2                 \ Normals are scaled by    = 2^2 = 4
- EQUB %000010010        \ Laser power              = 2
+ EQUB %00010010         \ Laser power              = 2
                         \ Missiles                 = 2
 
 \VERTEX    x,    y,    z, face1, face2, face3, face4, visibility
