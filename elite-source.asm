@@ -25469,49 +25469,113 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: PROJ
 \
-\ Project K+INWK(x,y)/z to K3,K4 for center to screen
+\ Project the current ship's location onto the screen, either returning the
+\ screen coordinates of the projection (if it's on screen), or returning an
+\ error via the C flag.
+\
+\ In this context, "on screen" means that the point is projected into the
+\ following range:
+\ 
+\   centre of screen - 1024 < x < centre of screen + 1024
+\   centre of screen - 1024 < y < centre of screen + 1024
+\
+\ This is to cater for ships (and, more likely, planets and suns) whose centres
+\ are off-screen but whose edges may still be visible.
+\
+\ The projection calculation is:
+\
+\   K3(1 0) = #X + x / z
+\   K4(1 0) = #Y + y / z
+\
+\ where #X and #Y are the pixel x-coordinate and y-coordinate of the centre of
+\ the screen.
+\
+\ Arguments:
+\
+\   INWK                The ship data block for the ship to project on screen
+\
+\ Returns:
+\
+\   K3(1 0)             The x-coordinate of the ship's projection on screen
+\
+\   K4(1 0)             The y-coordinate of the ship's projection on screen
+\
+\   C flag              Set if the ship's projection doesn't fit on the screen,
+\                       clear if it does project onto the screen
 \
 \ ******************************************************************************
 
-.PROJ                   \ Project K+INWK(x,y)/z to K3,K4 for center to screen
+.PROJ
 {
- LDA INWK               \ xlo
- STA P
- LDA INWK+1             \ xhi
+ LDA INWK               \ Set P(1 0) = (x_hi x_lo)
+ STA P                  \            = x
+ LDA INWK+1
  STA P+1
- LDA INWK+2             \ xsg
- JSR PLS6               \ Klo.Xhi = P.A/INWK_z, C set if big
- BCS PL2-1              \ rts as x big
- LDA K
- ADC #X                 \ add xcenter
- STA K3
- TXA                    \ xhi
- ADC #0                 \ K3 is xcenter of planet
- STA K3+1
 
- LDA INWK+3             \ ylo
+ LDA INWK+2             \ Set A = x_sign
+
+ JSR PLS6               \ Call PLS6 to calculate:
+                        \
+                        \   (X K) = (A P) / (z_sign z_hi z_lo)
+                        \         = (x_sign x_hi x_lo) / (z_sign z_hi z_lo)
+                        \         = x / z
+
+ BCS PL2-1              \ If the C flag is set then the result overflowed and
+                        \ the coordinate doesn't fit on the screen, so return
+                        \ from the subroutine with the C flag set (as PL2-1
+                        \ contains an RTS)
+
+ LDA K                  \ Set K3(1 0) = (X K) + #X
+ ADC #X                 \             = #X + x / z
+ STA K3                 \
+                        \ first doing the low bytes
+
+ TXA                    \ And then the high bytes. #X is the x-coordinate of
+ ADC #0                 \ the centre of the mode 4 screen, so this converts the
+ STA K3+1               \ space x-coordinate into a screen x-coordinate
+
+ LDA INWK+3             \ Set P(1 0) = (y_hi y_lo)
  STA P
- LDA INWK+4             \ yhi
+ LDA INWK+4
  STA P+1
- LDA INWK+5             \ ysg
- EOR #128               \ flip yscreen
- JSR PLS6               \ Klo.Xhi = P.A/INWK_z, C set if big
- BCS PL2-1              \ rts as y big
- LDA K
- ADC #Y                 \ #Y for add ycenter
- STA K4
- TXA                    \ y hi
- ADC #0                 \ K4 is ycenter of planet
- STA K4+1
- CLC                    \ carry clear is center is on screen
- RTS                    \ PL2-1
+
+ LDA INWK+5             \ Set A = -y_sign
+ EOR #%10000000
+
+ JSR PLS6               \ Call PLS6 to calculate:
+                        \
+                        \   (X K) = (A P) / (z_sign z_hi z_lo)
+                        \         = -(y_sign y_hi y_lo) / (z_sign z_hi z_lo)
+                        \         = -y / z
+
+ BCS PL2-1              \ If the C flag is set then the result overflowed and
+                        \ the coordinate doesn't fit on the screen, so return
+                        \ from the subroutine with the C flag set (as PL2-1
+                        \ contains an RTS)
+
+ LDA K                  \ Set K4(1 0) = (X K) + #Y
+ ADC #Y                 \             = #Y - y / z
+ STA K4                 \
+                        \ first doing the low bytes
+
+ TXA                    \ And then the high bytes. #Y is the y-coordinate of
+ ADC #0                 \ the centre of the mode 4 screen, so this converts the
+ STA K4+1               \ space x-coordinate into a screen y-coordinate
+
+ CLC                    \ Clear the C flag to indicate success
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: PL2
 \
-\ Wipe planet/sun
+\ Remove the sun or planet from screen.
+\
+\ Other entry points:
+\
+\   PL2-1               Contains an RTS
 \
 \ ******************************************************************************
 
@@ -25528,85 +25592,170 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: PLANET
 \
-\ Planet or Sun type to screen
+\ Draw the planet or sun.
+\
+\ Arguments:
+\
+\   INWK                The planet or sun's ship data block
 \
 \ ******************************************************************************
 
-.PLANET                 \ Planet or Sun type to screen
+.PLANET
 {
- LDA INWK+8             \ zsg if behind
- BMI PL2                \ wipe planet/sun
- CMP #48                \ very far away?
- BCS PL2                \ wipe planet/sun
- ORA INWK+7             \ zhi
- BEQ PL2                \ else too close, wipe planet/sun
- JSR PROJ               \ Project K+INWK(x,y)/z to K3,K4 for center to screen
- BCS PL2                \ if center large offset wipe planet/sun
+ LDA INWK+8             \ Set A = z_sign (the highest byte in the planet/sun's
+                        \ coordinates)
 
- LDA #96                \ default radius hi
- STA P+1
- LDA #0                 \ radius lo
- STA P
- JSR DVID3B2            \ divide 3bytes by 2, K = P(2).A/INWK_z
- LDA K+1                \ radius hi
- BEQ PL82               \ radius hi fits
- LDA #&F8               \ else too big
- STA K                  \ radius
+ BMI PL2                \ If A is negative then the planet/sun is behind us, so
+                        \ jump to PL2 to remove it from the screen, returning
+                        \ from the subroutine using a tail call
 
-.PL82                   \ radius fits
+ CMP #48                \ If A >= 48 then the planet/sun is too far away to be
+ BCS PL2                \ seen, so jump to PL2 to remove it from the screen,
+                        \ returning from the subroutine using a tail call
 
- LDA TYPE               \ ship type
- LSR A                  \ sun has bit0 set
- BCC PL9                \ planet radius K
- JMP SUN                \ else Sun #&81 #&83 .. with radius Ks
+ ORA INWK+7             \ Set A to z_sign OR z_hi to get the maximum of the two
 
-.PL9                    \ Planet radius K
+ BEQ PL2                \ If the maximum is 0, then the planet/sun is too close
+                        \ to be shown, so jump to PL2 to remove it from the
+                        \ screen, returning from the subroutine using a tail
+                        \ call
 
- JSR WPLS2              \ wipe planet
- JSR CIRCLE             \ for planet
- BCS PL20               \ rts, else circle done
- LDA K+1
- BEQ PL25               \ planet on screen
+ JSR PROJ               \ Project the planet/sun onto the screen, returning the
+                        \ centre's coordinates in K3(1 0) and K4(1 0)
+
+ BCS PL2                \ If the C flag is set by PROJ then the planet/sun is
+                        \ not visible on screen, so jump to PL2 to remove it
+                        \ from the screen, returning from the subroutine using
+                        \ a tail call
+
+ LDA #96                \ Set (A P+1 P) = (0 96 0) = 24576
+ STA P+1                \
+ LDA #0                 \ This represents the planet/sun's radius at a distance
+ STA P                  \ of z = 1
+
+ JSR DVID3B2            \ Call DVID3B2 to calculate:
+                        \
+                        \   K(3 2 1 0) = (A P+1 P) / (z_sign z_hi z_lo)
+                        \              = (0 96 0) / z
+                        \              = 24576 / z
+                        \
+                        \ so K now contains the planet/sun's radius, reduced by
+                        \ the actual distance to the planet/sun. We know that
+                        \ K+3 and K+2 will be 0, as the number we are dividing,
+                        \ (0 96 0), fits into the two bottom bytes, so the
+                        \ result is actually in K(1 0)
+
+ LDA K+1                \ If the high byte of the reduced radius is zero, jump
+ BEQ PL82               \ to PL82, as K contains the radius on its own
+
+ LDA #248               \ Otherwise set K = 248, to use as our one-byte radius
+ STA K
+
+.PL82
+
+ LDA TYPE               \ If the planet/sun's type has bit 0 clear, then it's
+ LSR A                  \ either 128 or 130, which is a planet (the sun has type
+ BCC PL9                \ 129, which has bit 0 set). So jump to PL9 to draw the
+                        \ planet with radius K, returning from the subroutine
+                        \ using a tail call
+
+ JMP SUN                \ Otherwise jump to SUN to draw the sun with radius K,
+                        \ returning from the subroutine using a tail call
+}
+
+\ ******************************************************************************
+\
+\ Subroutine: PL9
+\
+\ Draw a planet with radius K at pixel coordinate (K3, K4).
+\
+\ Arguments:
+\
+\   K(1 0)              The planet's radius
+\
+\   K3(1 0)             Pixel x-coordinate of the centre of the planet
+\
+\   K4(1 0)             Pixel y-coordinate of the centre of the planet
+\
+\   INWK                The planet's ship data block
+\
+\ ******************************************************************************
+
+.PL9
+{
+ JSR WPLS2              \ Call WPLS2 to remove the planet from the screen
+
+ JSR CIRCLE             \ Call CIRCLE to draw the planet's new circle
+
+ BCS PL20               \ If the call to CIRCLE returned with the C flag set,
+                        \ then the circle does not fit on screen, so jump to
+                        \ PL20 to return from the subroutine
+
+ LDA K+1                \ If K+1 is zero, jump to PL25 as K(1 0) < 256, so the
+ BEQ PL25               \ planet fits on the screen
 
 .PL20
 
- RTS
+ RTS                    \ The planet doesn't fit on screen, so return from the
+                        \ subroutine
 
-.PL25                   \ Planet on screen
+.PL25
 
- LDA TYPE               \ ship type
- CMP #&80               \ Lave 2-rings is #&80
- BNE PL26               \ Other planet #&82 is crater
- LDA K
- CMP #6                 \ very small radius ?
- BCC PL20               \ rts
- LDA INWK+14            \ nosev_z hi. Start first  meridian
- EOR #128               \ flipped nosev_z hi
- STA P                  \ meridian width
- LDA INWK+20            \ roofv_z hi, for meridian1
+ LDA TYPE               \ If the planet type is 128 then it has an equator and
+ CMP #128               \ a meridian, so jump to PL26 to draw them
+ BNE PL26
+
+                        \ This is a crater planet, so we now need to draw the
+                        \ crater
+
+ LDA K                  \ If the planet's radius is less than 6, the planet is
+ CMP #6                 \ too small to show a crater, so jump to PL20 to return
+ BCC PL20               \ from the subroutine
+ 
+ LDA INWK+14            \ Set P = -nosev_z_hi, meridian width?
+ EOR #%10000000
+ STA P
+
+ LDA INWK+20            \ Set A = roofv_z_hi
+
  JSR PLS4               \ CNT2 = angle of P_opp/A_adj for Lave
+
  LDX #9                 \ nosev.x for both meridians
+
  JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
+
  STA K2                 \ mag  0.x   used in final x of arc
  STY XX16               \ sign 0.x
+
  JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
+
  STA K2+1               \ mag  0.y   used in final y of arc
  STY XX16+1             \ sign 0.y
+
  LDX #15                \ roofv.x for first meridian
+
  JSR PLS5               \ mag K2+2,3 sign XX16+2,3 = NWK(X+=2)/INWK_z
 
  JSR PLS2               \ Lave half ring, phase offset CNT2
- LDA INWK+14            \ nosev_z hi. Start second meridian
- EOR #128               \ flipped nosev_z hi
- STA P                  \ meridian width again
- LDA INWK+26            \ sidev_z hi, for meridian2 at 90 degrees
+
+ LDA INWK+14            \ Set A = -nosev_z_hi
+ EOR #%10000000
+ STA P
+
+ LDA INWK+26            \ Set A % sidev_z hi, for meridian2 at 90 degrees?
+
  JSR PLS4               \ CNT2 = angle of P_opp/A_adj for Lave
 
  LDX #21                \ sidev.x for second meridian
+
  JSR PLS5               \ mag K2+2,3 sign XX16+2,3 = NWK(X+=2)/INWK_z
+
  JMP PLS2               \ Lave half ring, phase offset CNT2
 
-.PL26                   \ crtr \ their comment \ Other planet e.g. #&82 has One crater
+.PL26
+
+                        \ This is a planet with an equator and meridian, so we
+                        \ now need to draw them
 
  LDA INWK+20            \ roofv_z hi
  BMI PL20               \ rts, crater on far side
@@ -26105,30 +26254,51 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: CIRCLE
 \
-\ Circle for planet
+\ Draw a circle with the centre at (K3, K4) and radius K. Used to draw the
+\ planet's main outline.
+\
+\ Arguments:
+\
+\   K                   The planet's radius
+\
+\   K3(1 0)             Pixel x-coordinate of the centre of the planet
+\
+\   K4(1 0)             Pixel y-coordinate of the centre of the planet
 \
 \ ******************************************************************************
 
-.CIRCLE                 \ Circle for planet
+.CIRCLE
 {
- JSR CHKON              \ P+1 set to maxY
- BCS RTS2               \ rts
+ JSR CHKON              \ Call CHKON to check whether the circle fits on screen
 
- LDA #0
+ BCS RTS2               \ If CHKON set the C flag then the circle does not fit
+                        \ on screen, so return from the subroutine (as RTS2
+                        \ contains an RTS)
+
+ LDA #0                 \ Set LSX2 = 0
  STA LSX2
 
- LDX K                  \ radius
- LDA #8                 \ set up STP size based on radius
- CPX #8                 \ is radius X < 8 ?
- BCC PL89               \ small
- LSR A                  \ STP #4
- CPX #60
- BCC PL89               \ small
- LSR A                  \ bigger circles get smaller step
+ LDX K                  \ Set X = K = radius
 
-.PL89                   \ small
+ LDA #8                 \ Set A = 8
 
- STA STP                \ step for ring
+ CPX #8                 \ If the radius < 8, skip to PL89
+ BCC PL89
+
+ LSR A                  \ Halve A so A = 4
+
+ CPX #60                \ If the radius < 60, skip to PL89
+ BCC PL89
+
+ LSR A                  \ Halve A so A = 4
+
+.PL89
+
+ STA STP                \ Set STP = A. STP is the step size for the circle, so
+                        \ the above sets a smaller step size for bigger circles
+
+                        \ Fall through into CIRCLE2 to draw the circle with the
+                        \ correct step size
 }
 
 \ ******************************************************************************
@@ -26136,82 +26306,192 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: CIRCLE2
 \
 \ Draw a circle with the centre at (K3, K4) and radius K. Used to draw the
-\ planet, as well as the chart circles.
+\ planet and the chart circles.
 \
 \ Arguments:
 \
-\   K                   The sun's radius
+\   STP                 The step size for the circle
 \
-\   K3(1 0)             Pixel x-coordinate of the centre of the sun as a 16-bit
-\                       integer
+\   K                   The circle's radius
 \
-\   K4(1 0)             Pixel y-coordinate of the centre of the sun as a 16-bit
-\                       integer
+\   K3(1 0)             Pixel x-coordinate of the centre of the circle
+\
+\   K4(1 0)             Pixel y-coordinate of the centre of the circle
+\
+\ Returns:
+\
+\   C flag              The C flag is clear
+\
+\ ******************************************************************************
+\
+\ Deep dive: Drawing circles
+\ --------------------------
+\ This routine draws a circle by starting at the bottom of the circle - or at
+\ 6 o'clock if you think of it as a clock face - and moving anti-clockwise in
+\ steps defined by the size of the step size in STP. The whole circle is divided
+\ into 64 steps and the step number is stored in CNT, so if STP were 2, CNT
+\ would be 0, 2, 4 and so on up to and including 64. So we work our way around
+\ the circle like this:
+\
+\   CNT = 0-16  is the bottom-right quadrant (6 o'clock to 3 o'clock)
+\   CNT = 16-32 is the top-right quadrant    (3 o'clock to 12 o'clock)
+\   CNT = 32-48 is the top-left quadrant     (12 o'clock to 9 o'clock)
+\   CNT = 48-64 is the bottom-left quadrant  (9 o'clock to 6 o'clock)
+\
+\ If we can work out the coordinates of the point on the circle at step CNT,
+\ then we can draw the circle by simply drawing lines between each point.
+\
+\ So let's consider the step where CNT is around 5, say, so that's around 5
+\ o'clock. The sine table at SNE contains 32 values that cover half a circle, so
+\ we can think of CNT as the angle that we have travelled through as we work our
+\ way round the circle, with 64 covering the whole thing. So 5 o'clock looks
+\ like this (I've put a "c" for the angle CNT as it's a bit of a tight squeeze):
+\
+\       _ = = _                  +                          +
+\      =       =                 |c\                        |c\
+\     =         =                |  \ K          K * cos(c) |  \ K
+\     =    |\   =        __-->   |   \   ---->              |   \
+\      =   | \ =   __.--´        |  _-`                     +----`
+\         = =   --´              +-´                      K * sin(c)
+\
+\ So if the centre of the circle (the top of the triangle above) is at the
+\ origin (0, 0), then using basic trigonometry, we can see that at step number
+\ CNT, the point on the circle is at these coordinates:
+\
+\   x = K * sin(CNT)
+\   y = K * cos(CNT)
+\
+\ The SNE table only gives us positive resuls, so for other quadrants of the
+\ circle, we'll need to set the signs of x and y according to the particular
+\ quadrant we're in, but the magnitude of the coordinates will be as above.
+\ Specifically, we need to do the following (as screen y-coordinates are
+\ positive down the screen and sceen x-coordinates are positive to the right):
+\
+\   CNT = 0-16  is the bottom-right quadrant so x is +ve and y is +ve
+\   CNT = 16-32 is the top-right quadrant    so x is +ve and y is -ve
+\   CNT = 32-48 is the top-left quadrant     so x is -ve and y is -ve
+\   CNT = 48-64 is the bottom-left quadrant  so x is -ve and y is +ve
+\
+\ To get the final screen coordinates of the point at count CNT, we have to add
+\ the results from above to the coordinates of the centre of the circle, as the
+\ origin of the screen is at the top-left, not in the centre of the circle. We
+\ do this with the following:
+\
+\   x = K * sin(CNT) + K3(1 0)
+\   y = K * cos(CNT) + K4(1 0)
+\
+\ And that's how we draw the planet and chart circles in a step-wise fashion
+\ using the sine table.
 \
 \ ******************************************************************************
 
-.CIRCLE2                \ also on chart at origin (K3,K4) STP already set
+.CIRCLE2
 {
- LDX #&FF
+ LDX #&FF               \ Set FLAG = -1 for use in the BLINE routine
  STX FLAG
- INX                    \ X = 0
- STX CNT
 
-.PLL3                   \ counter CNT  until = 64
+ INX                    \ Set CNT = 0, our counter that goes up to 64, counting
+ STX CNT                \ segments in our circle
 
- LDA CNT
- JSR FMLTU2             \ Get K*sin(CNT) in Acc
- LDX #0                 \ hi
- STX T
- LDX CNT                \ the count around the circle
- CPX #33                \ <= #32 ?
- BCC PL37               \ right-half of circle
- EOR #&FF               \ else Xreg = A lo flipped
+.PLL3
+
+ LDA CNT                \ Set A = CNT
+
+ JSR FMLTU2             \ Call FMLTU2 to calculate:
+                        \
+                        \   A = K * sin(A)
+                        \     = K * sin(CNT)
+
+ LDX #0                 \ Set T = 0, so we have the following:
+ STX T                  \
+                        \   (T A) = K * sin(CNT)
+                        \
+                        \ which is the x-coordinate of the circle for this count
+
+ LDX CNT                \ If CNT < 33 then jump to PL37, as this is the right
+ CPX #33                \ half of the circle and the sign of the x-coordinate is
+ BCC PL37               \ correct
+
+ EOR #%11111111         \ This is the left half of the circle, so we want to
+ ADC #0                 \ flip the sign of the x-coordinate in (T A) using two's
+ TAX                    \ complement, so we start with the low byte and store it
+                        \ in X (the ADC adds 1 as we know the C flag is set)
+
+ LDA #&FF               \ And then we flip the high byte in T
  ADC #0
- TAX                    \ lo
- LDA #&FF               \ hi flipped
- ADC #0                 \ any carry
  STA T
- TXA                    \ lo flipped, later moved into K6(0,1) for BLINE x offset
+
+ TXA                    \ Finally, we restore the low byte from X, so we have
+                        \ now negated the x-coordinate in (T A)
+
+ CLC                    \ Clear the C flag so we can do some more addition below
+
+.PL37
+
+ ADC K3                 \ We now calculate the following:
+ STA K6                 \
+                        \   K6(1 0) = (T A) + K3(1 0)
+                        \
+                        \ to add the coordinates of the centre to our circle
+                        \ point, starting with the low bytes
+
+ LDA K3+1               \ And then doing the high bytes, so we now have:
+ ADC T                  \
+ STA K6+1               \   K6(1 0) = K * sin(CNT) + K3(1 0)
+                        \
+                        \ which is the result we want for the x-coordinate
+
+ LDA CNT                \ Set A = CNT + 16
  CLC
+ ADC #16
 
-.PL37                   \ right-half of circle, Acc = xlo
+ JSR FMLTU2             \ Call FMLTU2 to calculate:
+                        \
+                        \   A = K * sin(A)
+                        \     = K * sin(CNT + 16)
+                        \     = K * cos(CNT)
 
- ADC K3                 \ Xorg
- STA K6                 \ K3(0) + Acc  = lsb of X for bline
- LDA K3+1               \ hi
- ADC T                  \ hi
- STA K6+1               \ K3(1) + T + C = hsb of X for bline
+ TAX                    \ Set X = A
+                        \       = K * cos(CNT)
 
- LDA CNT
- CLC                    \ onto Y
- ADC #16                \ Go ahead a quarter of a quadrant for cosine index
- JSR FMLTU2             \ Get K*sin(CNT) into A
- TAX                    \ y lo =  K*sin(CNT)
- LDA #0                 \ y hi = 0
+ LDA #0                 \ Set T = 0, so we have the following:
+ STA T                  \
+                        \   (T X) = K * cos(CNT)
+                        \
+                        \ which is the y-coordinate of the circle for this count
+
+ LDA CNT                \ Set A = (CNT + 15) mod 64
+ ADC #15
+ AND #63
+
+ CMP #33                \ If A < 33 (i.e. CNT is 0-16 or 48-64) then jump to
+ BCC PL38               \ PL38, as this is the bottom half of the circle and the
+                        \ sign of the y-coordinate is correct
+
+ TXA                    \ This is the top half of the circle, so we want to
+ EOR #%11111111         \ flip the sign of the y-coordinate in (T X) using two's
+ ADC #0                 \ complement, so we start with the low byte in X (the
+ TAX                    \ ADC adds 1 as we know the C flag is set)
+
+ LDA #&FF               \ And then we flip the high byte in T, so we have
+ ADC #0                 \ now negated the y-coordinate in (T X)
  STA T
- LDA CNT
- ADC #15                \ count +=15
- AND #63                \ round within 64
- CMP #33                \ <= 32 ?
- BCC PL38               \ if true skip y flip
- TXA                    \ Ylo
- EOR #&FF               \ flip
- ADC #0
- TAX                    \ Ylo flipped
- LDA #&FF               \ hi flipped
- ADC #0                 \ any carry
- STA T
- CLC
 
-.PL38                   \ skipped Y flip
+ CLC                    \ Clear the C flag so we can do some more addition below
 
- JSR BLINE              \ ball line uses (X.T) as next y
- CMP #65                \ > #64?
- BCS P%+5               \ hop to exit
- JMP PLL3               \ loop CNT back
- CLC
- RTS                    \ End Circle
+.PL38
+
+ JSR BLINE              \ Call BLINE to draw the ball line, which also increases
+                        \ CNT by STP, the step size
+
+ CMP #65                \ If CNT >=65 then skip the next instruction
+ BCS P%+5
+
+ JMP PLL3               \ Jump back for the next segment
+
+ CLC                    \ Clear the C flag to indicate success
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -26404,60 +26684,122 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: CHKON
 \
-\ Check extent of circles, P+1 set to maxY, Y protected.
+\ Check whether a circle will fit on screen.
+\
+\ Arguments:
+\
+\   K                   The circle's radius
+\
+\   K3(1 0)             Pixel x-coordinate of the centre of the circle
+\
+\   K4(1 0)             Pixel y-coordinate of the centre of the circle
+\
+\ Returns:
+\
+\   C flag              Clear if the circle fits on screen, set if it doesn't
+\
+\   P(2 1)              Maximum y-coordinate of circle on screen
+\
+\   (A X)               Minimum y-coordinate of circle on screen
 \
 \ ******************************************************************************
 
-.CHKON                  \ check extent of circles, P+1 set to maxY, Y protected
+.CHKON
 {
- LDA K3                 \ Xorg
+ LDA K3                 \ Set A = K3 + K
  CLC
- ADC K                  \ radius
- LDA K3+1               \ hi
- ADC #0
- BMI PL21               \ overflow to right, sec rts
- LDA K3                 \ Xorg
+ ADC K
+
+ LDA K3+1               \ Set A = K3+1 + 0 + any carry from above, so this
+ ADC #0                 \ effectively sets A to the high byte of K3(1 0) + K:
+                        \
+                        \   (A ?) = K3(1 0) + K
+
+ BMI PL21               \ If A has bit 7 set then we overflowed, so jump to
+                        \ PL21 to set the C flag and return from the subroutine
+
+ LDA K3                 \ Set A = K3 - K
  SEC
- SBC K                  \ radius
- LDA K3+1               \ hi
- SBC #0
- BMI PL31               \ Xrange ok
- BNE PL21               \ underflow to left, sec rts
+ SBC K
 
-.PL31                   \ Xrange ok
+ LDA K3+1               \ Set A = K3+1 - 0 - any carry from above, so this
+ SBC #0                 \ effectively sets A to the high byte of K3(1 0) - K:
+                        \
+                        \   (A ?) = K3(1 0) - K
 
- LDA K4                 \ Yorg
+ BMI PL31               \ If the result is negative then the result is good,
+                        \ so skip to PL31 to continue on
+
+ BNE PL21               \ The result underflowed, so jump to PL21 to set the C
+                        \ flag and return from the subroutine
+
+.PL31
+
+ LDA K4                 \ Set P+1 = K4 + K
  CLC
- ADC K                  \ radius
- STA P+1                \ maxY = Yorg+radius
- LDA K4+1               \ hi
- ADC #0
- BMI PL21               \ overflow top, sec rts
- STA P+2                \ maxY hi
- LDA K4                 \ Yorg
+ ADC K
+ STA P+1
+
+ LDA K4+1               \ Set A = K4+1 + 0 + any carry from above, so this
+ ADC #0                 \ does the following:
+                        \
+                        \   (A P+1) = K4(1 0) + K
+
+
+ BMI PL21               \ If A has bit 7 set then we overflowed, so jump to
+                        \ PL21 to set the C flag and return from the subroutine
+
+ STA P+2                \ Store the high byte in P+2, so now we have:
+                        \
+                        \   P(2 1) = K4(1 0) + K
+
+ LDA K4                 \ Set X = K4 - K
  SEC
- SBC K                  \ radius
- TAX                    \ bottom lo
- LDA K4+1               \ hi
- SBC #0
- BMI PL44               \ ok to draw, clc
- BNE PL21               \ bottom underflowed, sec rts
- CPX #2*Y-1             \ #2*Y-1, bottom Ylo >= screen Ytop?
- RTS
+ SBC K
+ TAX
+
+ LDA K4+1               \ Set A = K4+1 - 0 - any carry from above, so this
+ SBC #0                 \ does the following:
+                        \
+                        \   (A X) = K4(1 0) - K
+
+ BMI PL44               \ If the result is negative then the result is good, so
+                        \ jump to PL44 to clear the C flag and return from the
+                        \ subroutine using a tail call
+
+ BNE PL21               \ The result underflowed, so jump to PL21 to set the C
+                        \ flag and return from the subroutine
+
+ CPX #2*Y-1             \ The high byte of the result is zero, so check the low
+                        \ byte against 2 * #Y - 1 and return the C flag
+                        \ acccordingly. The constant #Y is the y-coordinate of
+                        \ the mid-point of the space view, so 2 * #Y - 1 is 191,
+                        \ the y-coordinate of the bottom pixel row of the space
+                        \ view. So this returns:
+                        \
+                        \   * C flag is set if coordinate (A X) is past the
+                        \     bottom of the screen
+                        \
+                        \   * C flag is clear if coordinate (A X) is on screen
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: PL21
 \
-\ dont draw
+\ Set the C flag and return from the subroutine. This is used to return from a
+\ planet or sun drawing routine with the C flag indicating an overflow in the
+\ calculation.
 \
 \ ******************************************************************************
 
-.PL21                   \ dont draw
+.PL21
 {
- SEC
- RTS
+ SEC                    \ Set the C flag to indicate an overflow
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -26521,72 +26863,99 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-.PLS5                   \ mag K2+2,3 sign XX16+2,3  = NWK(X+=2)/INWK_z for Lave
+.PLS5
 {
  JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
+
  STA K2+2               \ mag
  STY XX16+2             \ sign
+
  JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
+
  STA K2+3               \ mag
  STY XX16+3             \ sign
- RTS
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: PLS6
 \
-\ Visited from PROJ \ Klo.Xhi = P.A/INWK_z, C set if big
+\ Calculate the following:
+\
+\   (X K) = (A P) / (z_sign z_hi z_lo)
+\
+\ returning an overflow in the C flag if the result is >= 1024.
+\
+\ Arguments:
+\
+\   INWK                The planet or sun's ship data block
+\
+\ Returns:
+\
+\   C flag              Set if the result >= 1024, clear otherwise
+\
+\ Other entry points:
+\
+\   PL44                Clear the C flag and return from the subroutine
 \
 \ ******************************************************************************
 
-.PLS6                   \ visited from PROJ \ Klo.Xhi = P.A/INWK_z, C set if big
+.PLS6
 {
- JSR DVID3B2            \ divide 3bytes by 2, K = P(2).A/INWK_z
- LDA K+3
- AND #127               \ sg 7bits
+ JSR DVID3B2            \ Call DVID3B2 to calculate:
+                        \
+                        \   K(3 2 1 0) = (A P+1 P) / (z_sign z_hi z_lo)
+
+ LDA K+3                \ Set A = |K+3| OR K+2
+ AND #%01111111
  ORA K+2
- BNE PL21               \ sec rts as too far off
- LDX K+1
- CPX #4                 \ hi >= 4 ? ie >= 1024
- BCS PL6                \ rts as too far off
- LDA K+3                \ sign
-\CLC
- BPL PL6                \ rts C clear ok
- LDA K                  \ else flip K lo
- EOR #&FF
- ADC #1                 \ flipped lo
- STA K
- TXA                    \ K+1
- EOR #&FF               \ flip hi
- ADC #0
- TAX                    \ X = K+1 hi flipped
-}
 
-\ ******************************************************************************
-\
-\ Subroutine: PL44
-\
-\ ok to draw
-\
-\ ******************************************************************************
+ BNE PL21               \ If A is non-zero then the two high bytes of K(3 2 1 0)
+                        \ are non-zero, so jump to PL21 to set the C flag and
+                        \ return from the subroutine
 
-.PL44                   \ ok to draw
-{
- CLC
-}
+                        \ We can now just consider K(1 0), as we know the top
+                        \ two bytes of K(3 2 1 0) are both 0
 
-\ ******************************************************************************
-\
-\ Subroutine: PL6
-\
-\ End of Planet, onto keyboard block E ---
-\
-\ ******************************************************************************
+ LDX K+1                \ Set X = K+1, so now (X K) contains the result in
+                        \ K(1 0), which is the format we want to return the
+                        \ result in
+
+ CPX #4                 \ If the high byte of K(1 0) >= 4 then the result is
+ BCS PL6                \ >= 1024, so return from the subroutine with the C flag
+                        \ set to indicate an overflow (as PL6 contains an RTS)
+
+ LDA K+3                \ Fetch the sign of the result from K+3 (which we know
+                        \ has zeroes in bits 0-6, so this just fetches the sign)
+
+\CLC                    \ This instruction is commented out in the original
+                        \ source. It would have no effect as we know the C flag
+                        \ is already clear, as we skipped past the BCS above
+
+ BPL PL6                \ If the sign bit is clear and the result is positive,
+                        \ then the result is already correct, so return from
+                        \ the subroutine with the C flag clear to indicate
+                        \ success (as PL6 contains an RTS)
+
+ LDA K                  \ Otherwise we need to negate the result, which we do
+ EOR #%11111111         \ using two's complement, starting with the low byte:
+ ADC #1                 \
+ STA K                  \   K = ~K + 1
+
+ TXA                    \ And then the high byte:
+ EOR #%11111111         \
+ ADC #0                 \   X = ~X
+ TAX
+
+.^PL44
+
+ CLC                    \ Clear the C flag to indicate success
 
 .PL6
-{
- RTS                    \ end of Planet, onto keyboard block E ---
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
