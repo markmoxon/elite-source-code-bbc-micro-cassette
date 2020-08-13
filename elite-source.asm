@@ -894,7 +894,7 @@ ORG &0000
 
 .STP
 
- SKIP 1                 \
+ SKIP 1                 \ The step size for drawing circles
 
 .XX4
 
@@ -3078,25 +3078,33 @@ ORG &0D40
 
  SKIP NOSH + 1          \ Slots for the 13 ships in the local bubble of universe
                         \
-                        \ Each slot contains a ship type from 1-13 (see the list
-                        \ of ship types in location XX21), 0 if the slot is
-                        \ empty, 128 or 130 for the planet, or 129 if this is
-                        \ the sun
+                        \ Each slot contains one of the following:
+                        \
+                        \   * 0 if the slot is empty
+                        \
+                        \   * A ship type from 1-13 (see the list of ship types
+                        \     in location XX21)
+                        \
+                        \   * 129 if this is the sun
+                        \
+                        \   * 128 if this is the planet, with an equator and
+                        \     meridian
+                        \
+                        \   * 130 if this is the planet, with a crater=
                         \
                         \ The corresponding address in the lookup table at UNIV
                         \ points to the ship's data block, which in turn points
                         \ to that ship's line heap space
                         \
-                        \ The first ship slot at location FRIN is reserved for
-                        \ the planet, which will have 128 or 130 in the slot
-                        \ (128 is a planet with an equator and meridian, 130 is
-                        \ a planet with a crater)
+                        \ The first ship slot at location FRIN is always
+                        \ reserved for the planet, so it will always be 128 or
+                        \ 130, depending on the type of planet
                         \
                         \ The second ship slot at FRIN+1 is reserved for the
                         \ sun or space station (we only ever have one of these
-                        \ in our local bubble of space). If FRIN+1 is #SST (8)
-                        \ then we show the space station, otherwise it is 129
-                        \ and we show the sun
+                        \ in our local bubble of space). So it will always be
+                        \ either #SST (8) for the space station, or 129 for the
+                        \ sun
                         \
                         \ Ships in our local bubble start at FRIN+2 onwards
 
@@ -6988,7 +6996,7 @@ LOAD_A% = LOAD%
 .MV51
 
  LDA #1                 \ Our subtraction underflowed, so we negate the result
- SBC P+1                \ using two's complement, first with the high byte:
+ SBC P+1                \ using two's complement, first with the low byte:
  STA P+1                \
                         \   P+1 = 1 - P+1
 
@@ -7916,7 +7924,7 @@ NEXT
                         \   Q = A / P
                         \     = |delta_y| / |delta_x|
                         \
-                        \ using the same "shift and subtract" algorithm
+                        \ using the same "shift and subtract" algorithm that's
                         \ documented in TIS2
 
  LDX #%11111110         \ Set Q to have bits 1-7 set, so we can rotate through 7
@@ -9305,6 +9313,10 @@ NEXT
 \ Subroutine: BLINE
 \
 \ Ball line for Circle2 uses (X.T) as next y offset for arc
+\
+\ Returns:
+\
+\   A                   The new value of CNT (which is CNT + STP)
 \
 \ ******************************************************************************
 
@@ -13749,7 +13761,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ Other entry points:
 \
-\   FR1-2               Clear the C flag and RTS
+\   FR1-2               Clear the C flag and return from the subroutine
 \
 \ ******************************************************************************
 
@@ -14520,7 +14532,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ Variable: SNE
 \
-\ Sine table. To calculate the following:
+\ Sine/cosine table. To calculate the following:
 \
 \   sin(theta) * 256
 \
@@ -14528,12 +14540,20 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \   SNE + (theta * 10)
 \
+\ To calculate the following:
+\
+\   cos(theta) * 256
+\
+\ where theta is in radians, look up the value in:
+\
+\   SNE + ((theta * 10) + 16) mod 32
+\
 \ Theta must be between 0 and 3.1 radians, so theta * 10 is between 0 and 31.
 \
 \ ******************************************************************************
 \
-\ Deep dive: Sine table
-\ ---------------------
+\ Deep dive: Sine/cosine table
+\ ----------------------------
 \ Here's how this works. The value at byte number (theta * 10) is:
 \
 \   256 * ABS(SIN((theta * 10 / 64) * 2 * PI))
@@ -14544,10 +14564,27 @@ LOAD_C% = LOAD% +P% - CODE%
 \                              =~ (theta / 6.4) * 6.28
 \                              =~ theta
 \
-\ then substitutig this into the above, we can see that the value at byte
+\ then substituting this into the above, we can see that the value at byte
 \ (theta * 10) is approximately:
 \
 \   256 * ABS(SIN(theta))
+\
+\ So that's the sine lookup, but what about the cosine? Well, because of the way
+\ sine and cosine work in terms of right-angled triangles, the following holds
+\ true (using degrees for a second as it's easier to picture):
+\
+\   cos(theta) = sin(90 − theta) = sin(90 + theta)
+\
+\ So to get the cosine value, we just need to look up the sine of 90 + theta.
+\
+\ The 32 entries in the sine table cover half a circle, as they go from sin(0)
+\ to sin(31/64 * 2 * PI) and there are 2 * PI radians in a circle, so if 32
+\ entries covers half a circle, 90 degrees is a half of that, or 16.
+\
+\ So to get the cosine, we look up the following value, applying mod 32 so the
+\ table lookup wraps around correctly if the index falls over the end:
+\
+\  SNE + ((theta * 10) + 16) mod 32
 \
 \ It's not 100% accurate, but it's easily good enough for our needs.
 \
@@ -15041,7 +15078,14 @@ NEXT
 \
 \ Calculate the following:
 \
-\   (A ?) = K * sin(A) * 256
+\   A = K * sin(A)
+\
+\ Because this routine uses the sine lookup table SNE, we can also call this
+\ routine to calculate cosine multiplication. To calculate the following:
+\
+\   A = K * cos(B)
+\
+\ call this routine with B + 16 in the accumulator, as sin(B + 16) = cos(B).
 \
 \ ******************************************************************************
 
@@ -15059,6 +15103,9 @@ NEXT
                         \
                         \   (A ?) = A * Q
                         \         = K * sin(A) * 256
+                        \ which is equivalent to:
+                        \
+                        \   A = K * sin(A)
 }
 
 \ ******************************************************************************
@@ -15960,7 +16007,15 @@ NEXT
 \
 \ Subroutine: DVID3B2
 \
-\ Divide 3 bytes by 2 bytes, K = P.A/INWK_z for planet, Xreg protected.
+\ Calculate the following:
+\
+\   K(3 2 1 0) = (A P+1 P) / (z_sign z_hi z_lo)
+\
+\ Returns:
+\
+\   K(3 2 1 0)          The result of the division
+\
+\   X                   X is preserved
 \
 \ ******************************************************************************
 
@@ -19405,7 +19460,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA QQ19               \ Set K3 = the x-coordinate of the centre
  STA K3
 
- LDA QQ19+1             \ Set K4 = the x-coordinate of the centre
+ LDA QQ19+1             \ Set K4 = the y-coordinate of the centre
  STA K4
 
  LDX #0                 \ Set the high bytes of K3(1 0) and K4(1 0) to 0
@@ -25859,9 +25914,10 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .PLS22                  \ also crater with TGT = #64
 {
- LDX #0
- STX CNT                \ count
- DEX                    \ X = #&FF
+ LDX #0                 \ Set CNT = 0
+ STX CNT
+
+ DEX                    \ Set FLAG = -1
  STX FLAG
 
 .PLL4                   \ counter CNT+= STP > TGT planet ring
@@ -25974,26 +26030,21 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine: PLF3-3
-\
-\ Wipe Sun
-\
-\ ******************************************************************************
-
-{
- JMP WPLS               \ Wipe Sun
-}
-
-\ ******************************************************************************
-\
 \ Subroutine: PLF3
 \
 \ Flip height for planet/sun fill
 \
+\ Other entry points:
+\
+\   PLF3-3              Jump to WPLS to remove the sun from the screen
+
 \ ******************************************************************************
 
-.PLF3                   \ flip height for planet/sun fill
 {
+ JMP WPLS               \ Wipe Sun
+
+.^PLF3                   \ flip height for planet/sun fill
+
  TXA                    \ Yscreen height lo
  EOR #&FF               \ flip
  CLC
@@ -26026,11 +26077,11 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \   K                   The sun's radius
 \
-\   K3(1 0)             Pixel x-coordinate of the centre of the sun as a 16-bit
-\                       integer
+\   K3(1 0)             Pixel x-coordinate of the centre of the sun
 \
-\   K4(1 0)             Pixel y-coordinate of the centre of the sun as a 16-bit
-\                       integer
+\   K4(1 0)             Pixel y-coordinate of the centre of the sun
+\
+\   INWK                The sun's ship data block
 \
 \ ******************************************************************************
 
@@ -26842,16 +26893,19 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-.PLS4                   \ CNT2 = angle of P_opp/A_adj for Lave
+.PLS4
 {
  STA Q
- JSR ARCTAN             \ A=arctan (P/Q)
+
+ JSR ARCTAN             \ Call ARCTAN to set A = arctan(P / Q)
+
  LDX INWK+14            \ nosev_z hi
  BMI P%+4               \ -ve nosev_z hi keeps arctan +ve
  EOR #128               \ else arctan -ve
  LSR A
  LSR A                  \ /4
  STA CNT2               \ phase offset
+
  RTS
 }
 
@@ -29802,7 +29856,9 @@ ENDIF
 \
 \ Subroutine: SPS1
 \
-\ Calculate the vector to the planet and store it in XX15. ******************************************************************************
+\ Calculate the vector to the planet and store it in XX15.
+\
+\ ******************************************************************************
 
 .SPS1
 {
@@ -31664,19 +31720,6 @@ ENDMACRO
 \ implement the loop counter. The basic idea of shifting and subtracting is the
 \ same, though.
 \
-\   STPX - If |delta_y| < |delta_x|
-\          Line is closer to being horizontal than vertical
-\          Step along the x-axis
-\          Swap coordinates, if required, so that X1 < X2, so we are stepping along the line from left to right
-\          If Y1 > Y2 draw with LIL2, line is going right and up
-\          If Y1 < Y2 draw with DOWN, line is going right and down
-\
-\   STPY - If |delta_y| >= |delta_x|
-\          Line is closer to being vertical than horizontal
-\          Step along the y-axis
-\          Swap coordinates, if required, so that Y1 >= Y2, so we are stepping along the line from top to bottom
-\          If Y1 > Y2 draw with LIL2, line is going right and up
-\          If Y1 < Y2 draw with DOWN, line is going right and down
 \ ******************************************************************************
 
 .TIS2
@@ -32224,13 +32267,15 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL25
 \
-\ Planet
+\ Draw the planet. This jumps straight to the PLANET routine, and enables us to
+\ use a branch call to draw the planet (as the PLANET routine is too far away).
 \
 \ ******************************************************************************
 
-.LL25                   \ planet
+.LL25
 {
- JMP PLANET
+ JMP PLANET             \ Jump to the PLANET routine, returning from the
+                        \ subroutine using a tail call
 }
 
 \ ******************************************************************************
