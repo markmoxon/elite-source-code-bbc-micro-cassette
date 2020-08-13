@@ -16242,67 +16242,128 @@ NEXT
 \
 \ Subroutine: ARCTAN
 \
-\ A=TAN-1(P/Q) \ A=arctan (P/Q)  called from block E
+\ Calculate the following:
+\
+\   A = arctan(P / Q)
+\
+\ In other words, this finds the angle in the right-angled triangle where the
+\ opposite side to angle A is length P and the adjacent side to angle A has
+\ length Q, so:
+\
+\   tan(A) = P / Q
 \
 \ ******************************************************************************
 
-.ARCTAN                 \ A=TAN-1(P/Q) \ A=arctan (P/Q)  called from block E
+.ARCTAN
 {
- LDA P
+ LDA P                  \ Set T1 = P EOR Q, which will have the sign of P * Q
  EOR Q
- STA T1                 \ quadrant info
- LDA Q
- BEQ AR2                \ Q=0 so set angle to 63, pi/2
- ASL A                  \ drop sign
- STA Q
- LDA P
- ASL A                  \ drop sign
- CMP Q
- BCS AR1                \ swop A and Q as A >= Q
- JSR ARS1               \ get Angle for A*32/Q from table
- SEC
+ STA T1
 
-.AR4                    \ sub o.k
+ LDA Q                  \ If Q = 0, jump to AR2 to return a right angle
+ BEQ AR2
 
- LDX T1
- BMI AR3                \ -ve quadrant
- RTS
+ ASL A                  \ Set Q = |Q| * 2 (this is a quick way of clearing the
+ STA Q                  \ sign bit, and we don't need to shift right again as we
+                        \ only ever use this value in the division with |P| * 2,
+                        \ which we set next)
 
-.AR1                    \ swop A and Q
+ LDA P                  \ Set A = |P| * 2
+ ASL A
 
- LDX Q
- STA Q
- STX P
- TXA
- JSR ARS1               \ get Angle for A*32/Q from table
- STA T                  \ angle
- LDA #64                \ next range of angle, pi/4 to pi/2
+ CMP Q                  \ If A >= Q, i.e. |P| > |Q|, jump to AR1 to swap P
+ BCS AR1                \ and Q around, so we can use the lookup table
+
+ JSR ARS1               \ Call ARS1 to set the following from the lookup table:
+                        \
+                        \   A = arctan(A / Q)
+                        \     = arctan(|P / Q|)
+
+ SEC                    \ Set the C flag
+
+.AR4
+
+ LDX T1                 \ If T1 is negative, i.e. P and Q have different signs,
+ BMI AR3                \ jump down to AR3 to change 
+                        
+ RTS                    \ Otherwise P and Q have the same sign, so our result is
+                        \ correct and we can return from the subroutine
+
+.AR1
+
+                        \ We want to calculate arctan(t) where |t| > 1, so we
+                        \ can use the calculation described in the ACT
+                        \ documentation below, i.e. 64 - arctan(1 / t)
+
+ LDX Q                  \ Swap the values in Q and P, using the fact that we
+ STA Q                  \ called AR1 with A = P
+ STX P                  \
+ TXA                    \ This also sets A = P (which now contains the original
+                        \ argument |Q|)
+ 
+
+ JSR ARS1               \ Call ARS1 to set the following from the lookup table:
+                        \
+                        \   A = arctan(A / Q)
+                        \     = arctan(|Q / P|)
+                        \     = arctan(1 / |P / Q|)
+
+ STA T                  \ Set T = 64 - T
+ LDA #64
  SBC T
- BCS AR4                \ sub o.k
 
-.AR2                    \ set angle to 90 degrees
+ BCS AR4                \ Jump to AR4 to continue the calculation (this BCS is
+                        \ effectively a JMP as the subtraction will never
+                        \ underflow, as ARS1 returns values in the range 0-31)
+ 
 
- LDA #63
- RTS
+.AR2
 
-.AR3                    \ -ve quadrant
+                        \ If we get here then Q = 0, so tan(A) = infinity and
+                        \ A is a right angle, or 0.25 of a circle. We allocate
+                        \ 255 to a full circle, so we should return 63 for a
+                        \ right angle
 
- STA T                  \ angle
- LDA #128               \ pi
-\SEC
- SBC T                  \ A = 128-T, so now covering range pi/2 to pi correctly
- RTS
+ LDA #63                \ Set A to 63, to represent a right angle
 
-.ARS1                   \ get Angle for A*32/Q from table
+ RTS                    \ Return from the subroutine
 
- JSR LL28               \ BFRDIV R=A*256/Q
- LDA R
- LSR A
- LSR A
- LSR A                  \ 31 max
- TAX                    \ index into table at end of words data
- LDA ACT,X
- RTS
+.AR3
+
+                        \ A contains arctan(|P / Q|) but P and Q have different
+                        \ signs, so we need to return arctan(-|P / Q|), using
+                        \ the calculation described in the ACT documentation
+                        \ below, i.e. 128 - A
+
+ STA T                  \ Set A = 128 - A
+ LDA #128               \
+\SEC                    \ The SEC instruction is commented out in the original
+ SBC T                  \ source, and isn't required as we did a SEC before
+                        \ calling AR3
+
+ RTS                    \ Return from the subroutine
+
+.ARS1
+
+                        \ This routine fetches arctan(A / Q) from the ACT table
+
+ JSR LL28               \ Call LL28 to calculate:
+                        \
+                        \   R = 256 * A / Q
+
+ LDA R                  \ Set X = R / 8
+ LSR A                  \       = 32 * A / Q
+ LSR A                  \
+ LSR A                  \ so X has the value t * 32 where t = A / Q, which is
+ TAX                    \ what we need to look up values in the ACT table
+
+ LDA ACT,X              \ Fetch ACT+X from the ACT table into A, so now:
+                        \
+                        \   A = value in ACT + X
+                        \     = value in ACT + (32 * A / Q)
+                        \     = arctan(A / Q)
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -16311,12 +16372,45 @@ NEXT
 \
 \ Arctan table.
 \
+\ To calculate the following:
+\
+\   theta = arctan(t)
+\
+\ where 0 <= t < 1, look up the value in:
+\
+\   ACT + (t * 32)
+\
+\ The result will be an integer representing the angle in radians, with 256
+\ representing a full circle of 2 * PI radians.
+\
+\ This table contains arctan values for arguments less than one - in other
+\ words, it contains values for arctan(0) through arctan(31/32), or angles
+\ in triangles where the length of the opposite is less than the length of the
+\ adjacent, so the angle is less than 45 degrees. This means the table contains
+\ values in the range 0 to 31.
+\
+\ The table does not support values of t >= 1 or t < 0 directly, but we can use
+\ the following calculations instead:
+\
+\   * For t > 1, arctan(t) = 64 - arctan(1 / t)
+\
+\   * For t < 0, arctan(-t) = 128 - arctan(t)
+\
+\ If t < -1, we can do the first one to get arctan(|t|), then the second to get
+\ arctan(-|t|).
+\
+\ The first one follows from the fact that arctan(t) + arctan(1 / t) = PI / 2,
+\ and we represent PI / 2 by 64 in our model.
+\
+\ The second one follows from the fact that arctan(-t) = PI - arctan(t) for the
+\ range 0 < arctan(t) < PI, and we represent PI by 128 in our model.
+\
 \ ******************************************************************************
 
 .ACT
 {
-FOR I%,0,31
- EQUB INT(128/PI*ATN(I%/32)+.5)
+FOR I%, 0, 31
+  EQUB INT((128 / PI) * ATN(I% / 32) + 0.5)
 NEXT
 }
 
@@ -31575,51 +31669,90 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL28
 \
-\ BFRDIV R=A*256/Q \ byte from remainder of division
+\ Calculate the following, where A < Q:
+\
+\   R = 256 * A / Q
+\
+\ If A >= Q then 255 is returned and the C flag is set to indicate an overflow
+\ (the C flag is clear if the division was a success).
+\
+\ The result is returned in one byte as the result of the division multiplied
+\ by 256, so we can return fractional results using integers.
+\
+\ This routine uses the same "shift and subtract" algorithm that's documented in
+\ TIS2, but it leaves the fractional result in the integer range 0-255.
 \
 \ Returns:
 \
-\   C flag              Set if answer is too big for one byte, clear otherwise
+\   C flag              Set if the answer is too big for one byte, clear if the
+\                       division was a success
 \
 \ Other entry points:
 \
-\   LL28+4              Skips A >= Q check, always returns with C flag cleared
+\   LL28+4              Skips the A >= Q check and always returns with C flag
+\                       cleared, so this can be called if we know the division
+\                       will work
 \
-\   LL31                Skips A >= Q check and does not set R to 254
+\   LL31                Skips the A >= Q check and does not set the R counter,
+\                       so this can be used for jumping straight into the
+\                       division loop if R is already set to 254 and we know the
+\                       division will work
+\
 \ ******************************************************************************
 
-.LL28                   \ BFRDIV R=A*256/Q \ byte from remainder of division
+.LL28
 {
- CMP Q                  \ is A >= Q ?
- BCS LL2                \ if yes, answer too big for 1 byte, R=#&FF
+ CMP Q                  \ If A >= Q, then the answer will not fit in one byte,
+ BCS LL2                \ so jump to LL2 to return 255
 
- LDX #254               \ remainder R for AofQ *256/Q
- STX R                  \ div roll counter
+ LDX #%11111110         \ Set R to have bits 1-7 set, so we can rotate through 7
+ STX R                  \ loop iterations, getting a 1 each time, and then
+                        \ getting a 0 on the 8th iteration... and we can also
+                        \ use R to catch our result bits into bit 0 each time
 
-.^LL31                   \ roll R
+.^LL31
 
- ASL A
- BCS LL29               \ hop to Reduce
- CMP Q
- BCC P%+4               \ skip sbc
- SBC Q
- ROL R
- BCS LL31               \ loop R
+ ASL A                  \ Shift A to the left
+
+ BCS LL29               \ If bit 7 of A was set, then jump straight to the
+                        \ subtraction
+
+ CMP Q                  \ If A < Q, skip the following subtraction
+ BCC P%+4
+
+ SBC Q                  \ A >= Q, so set A = A - Q
+
+ ROL R                  \ Rotate the counter in R to the left, and catch the
+                        \ result bit into bit 0 (which will be a 0 if we didn't
+                        \ do the subtraction, or 1 if we did)
+
+ BCS LL31               \ If we still have set bits in R, loop back to LL31 to
+                        \ do the next iteration of 7
+
  RTS                    \ R left with remainder of division
 
 .LL29                   \ Reduce
 
- SBC Q
- SEC
- ROL R
- BCS LL31               \ loop R
- RTS                    \ R left with remainder of division
+ SBC Q                  \ A >= Q, so set A = A - Q
 
-.LL2                    \ answer too big for 1 byte, R=#&FF
+ SEC                    \ Set the C flag to rotate into the result in R
 
- LDA #&FF
- STA R
- RTS
+ ROL R                  \ Rotate the counter in R to the left, and catch the
+                        \ result bit into bit 0 (which will be a 0 if we didn't
+                        \ do the subtraction, or 1 if we did)
+
+ BCS LL31               \ If we still have set bits in R, loop back to LL31 to
+                        \ do the next iteration of 7
+
+ RTS                    \ Return from the subroutine with R containing the
+                        \ remainder of the division
+
+.LL2
+
+ LDA #255               \ The answer is too big for one byte, so return the
+ STA R                  \ largest possible answer, R = 255
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
