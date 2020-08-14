@@ -681,7 +681,7 @@ ORG &0000
 
 .LSP
 
- SKIP 1                 \
+ SKIP 1                 \ The line buffer pointer (see BLINE for details)
 
 .QQ15
 
@@ -3287,11 +3287,11 @@ ORG &0D40
                         \ station, but not both
 .LSX2
 
- SKIP 78                \ Line buffer for circle segments' x-coordinates
+ SKIP 78                \ Line buffer for x-coordinates (see BLINE for details)
 
 .LSY2
 
- SKIP 78                \ Line buffer for circle segments' y-coordinates
+ SKIP 78                \ Line buffer for y-coordinates (see BLINE for details)
 
 .SY
 
@@ -9329,22 +9329,7 @@ NEXT
 \
 \ Subroutine: BLINE
 \
-\ Draw a single segment of a circle, adding the point to the line buffers. We
-\ draw a circle by repeated calls to BLINE, passing the next point around the
-\ circle with each subsequent call, until the circle (or half-circle) is drawn.
-\
-\ Calling the routine with a value of &FF in FLAG initialises the buffer and
-\ sets up a marker to indicate the last value in the buffer.
-\
-\ The routine keeps a tally of the points passed to it on each call, storing
-\ them in the line buffers at LSX2 and LSY2, and using the line buffer pointer
-\ in LSP. It also keeps the point from the previous call to BLINE in
-\ K5(3 2 1 0), so it can draw a segment between the last point and this one.
-\
-\ Keeping the points in the line buffer lets us quickly redraw the circle
-\ without needing to regenerate all the points, so it is easy to remove the
-\ circle from the screen by simply redrawing all the segments stored in the line
-\ buffers. This is done in WPLS2.
+\ Draw a single segment of a circle, adding the point to the line buffers.
 \
 \ Arguments:
 \
@@ -9380,6 +9365,74 @@ NEXT
 \   FLAG                Set to 0
 \
 \ ******************************************************************************
+\
+\ Deep dive: The line buffers
+\ ---------------------------
+\ The planet and sun are complex shapes that require a lot of maths to calculate
+\ their shapes, and that takes up time. We remove shapes from the screen by
+\ redrawing them (which erases them because it's all done with EOR logic), so
+\ instead of doing the calculations all over again for the second drawing, Elite
+\ has a set of line buffers where all the information is stored, ready for the
+\ second redrawing.
+\
+\ Let's look at how those buffers work.
+\
+\ Drawing buffered lines with BLINE
+\ ---------------------------------
+\ We draw a circle by repeated calls to BLINE, passing the next point around the
+\ circle with each subsequent call, until the circle (or half-circle) is drawn.
+\
+\ Calling the routine with a value of &FF in FLAG initialises the buffer and
+\ stores the first point in memory rather than in the buffer, so it's ready for
+\ the second call to BLINE, which is when we actually have a segment to draw
+\ and store in the line buffer.
+\
+\ The routine keeps a tally of the points passed to it on each call, storing
+\ them in the line buffers at LSX2 and LSY2, and using the line buffer pointer
+\ in LSP (which points to the end of the buffer). It also keeps the point from
+\ the previous call to BLINE in K5(3 2 1 0), so it can draw a segment between
+\ the last point and this one.
+\
+\ If a line doesn't fit on screen, then it isn't drawn or stored in the buffer.
+\ Instead a &FF marker is inserted into the LSY2 entry at the current position,
+\ which indicates to the next call to BLINE that it should start a new segment.
+\ In this way broken, non-continuous lines can still be stored in the line
+\ buffer.
+\
+\ Keeping the points in the line buffer lets us quickly redraw the circle
+\ without needing to regenerate all the points, so it is easy to remove the
+\ circle from the screen by simply redrawing all the segments stored in the line
+\ buffers. This is done in WPLS2.
+\
+\ How the buffers are structured
+\ ------------------------------
+\ The planet's line buffers are stored in 78 bytes at LSX2 and another 78 bytes
+\ at LSY2. The LSP variable points to the number of the first free entry at the
+\ end of the buffer, so LSP = 1 indicates that the buffer is empty.
+\
+\ The first location at LSX2 has a special meaning:
+\
+\   * LSX = 0 indicates the line buffer contains data
+\   * LSX = &FF indicates the line buffer is empty
+\
+\ Meanwhile, if a y-coordinate in LSY2 is &FF, then this means the next point in
+\ the buffer represents the start of a new segment, rather than a continuation of
+\ the previous one. Specifically, this is the layout in the buffer:
+\
+\   LSX2  ...      X1  X2 ...
+\   LSY2  ... &FF  Y1  Y2 ...
+\
+\ The first entry in the table at LSY2 is always &FF, as the first point is
+\ always the start of a segment, so the start of a non-empty line buffer looks
+\ like this:
+\
+\   LSX2  0    X1  X2  X3 ...
+\   LSY2  &FF  Y1  Y2  Y3 ...
+\
+\ When a planet is plotted for the second time to remove it from screen, the
+\ buffers are reset by setting LSX to &FF and LSP to 1. See WPLS2 for details.
+\
+\ ******************************************************************************
 
 .BLINE
 {
@@ -9400,20 +9453,31 @@ NEXT
 
 .BL5
 
-                        \ We do the following at the start and end of the first
-                        \ call to BLINE, but only at the end of subsequent calls
+                        \ The following inserts a &FF marker into the LSY2
+                        \ buffer to indicate that the next call to BLINE should
+                        \ store both the (X1, Y1) and (X2, Y2) points. We do
+                        \ this on the very first call to BLINE (when FLAG is
+                        \ &FF), and on subsequent calls if the segment does not
+                        \ fit on screen, in which case we don't draw or store
+                        \ that segment, and we start a new segment with the next
+                        \ call to BLINE that does fit on screen
 
- LDY LSP                \ If the LSP-th byte of LSY2-1 = &FF, jump to BL7 to
- LDA #&FF               \ tidy up and return from the subroutine
- CMP LSY2-1,Y
- BEQ BL7
+ LDY LSP                \ If byte LSP-1 of LSY2 = &FF, jump to BL7 to tidy up
+ LDA #&FF               \ and return from the subroutine, as the point that has
+ CMP LSY2-1,Y           \ been passed to BLINE is the start of a segment, so all
+ BEQ BL7                \ we need to do is save the coordinate in K5, without
+                        \ moving the pointer in LSP
 
- STA LSY2,Y             \ Otherwise store #FF in the LSP-th byte of LSY2
+ STA LSY2,Y             \ Otherwise we just tried to plot a segment but it
+                        \ didn't fit on screen, so put the &FF marker into the
+                        \ buffer for this point, so the next call to BLINE
+                        \ starts a new segment
 
- INC LSP                \ Increment LSP
+ INC LSP                \ Increment LSP to point to the next point in the buffer
 
- BNE BL7                \ If LSP is non-zero, jump to BL7 to tidy up and return
-                        \ from the subroutine
+ BNE BL7                \ Jump to BL7 to tidy up and return from the subroutine
+                        \ (this BNE is effectively a JMP, as LSP will never be
+                        \ zero)
 
 .BL1
 
@@ -9441,9 +9505,12 @@ NEXT
  LDA K6+3               \ Set XX12+1 = y_hi of step point
  STA XX12+1
 
- JSR LL145              \ Clip XX15 XX12 vector
+ JSR LL145              \ Call LL145 to see if the line can be clipped to fit
+                        \ on screen
 
- BCS BL5                \ 
+ BCS BL5                \ If the C flag is set then the clipped line is not
+                        \ visible, so jump to BL5, to avoid drawing and storing
+                        \ this line
 
  LDA SWAP               \ If SWAP = 0, jump to BL9 to skip the following swap
  BEQ BL9                \ code
@@ -9461,9 +9528,12 @@ NEXT
 
  LDY LSP                \ Set Y = LSP
 
- LDA LSY2-1,Y           \ If the LSP-th byte of LSY2-1 <> &FF, jump down to BL8
- CMP #&FF               \ to skip the following
+ LDA LSY2-1,Y           \ If byte LSP-1 of LSY2 is not &FF, jump down to BL8
+ CMP #&FF               \ to skip the following (X1, Y1) code
  BNE BL8
+
+                        \ Byte LSP-1 of LSY2 is &FF, which indicates that we
+                        \ need to store (X1, Y1) in the buffer
 
  LDA X1                 \ Store X1 in the LSP-th byte of LSX2
  STA LSX2,Y
@@ -14221,7 +14291,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .HFL2
 
- LDA #1                 \ Set LSP = 1 (the arc step for the circle)
+ LDA #1                 \ Set LSP = 1 to reset the line buffers
  STA LSP
 
  JSR CIRCLE2            \ Call CIRCLE2 to draw a circle with the centre at
@@ -19559,7 +19629,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \STX LSX                \ This instruction is commented out in the original
                         \ source
 
- INX                    \ Set LSP = 1, the arc step for the circle
+ INX                    \ Set LSP = 1 to reset the line buffers
  STX LSP
 
  LDX #2                 \ Set STP = 2, the step size for the circle
@@ -25876,6 +25946,11 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 \
+\ Deep dive: Drawing meridians and equators
+\ -----------------------------------------
+\ This routine calculates the following and, for each meridian, calls PLS2 to do
+\ the actual plotting.
+\
 \ Meridian 1:
 \
 \   CNT2 = arctan(-nosev_z_hi / roofv_z_hi) / 4
@@ -26143,7 +26218,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \   XX16+2 = sign of roofv_x / z
 \   XX16+3 = sign of roofv_y / z
 \
-\ Then does this:
+\ Then PLS22 does this:
 \
 \   K6(1 0) = K3(1 0) + (nosev_x / z) * cos(CNT2) + (roofv_x / z) * sin(CNT2)
 \
@@ -26184,7 +26259,15 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 \
+\ This routine does this:
 \
+\   K6(1 0) = K3(1 0) + (nosev_x / z) * cos(CNT2) + (roofv_x / z) * sin(CNT2)
+\
+\   (T X) = - |nosev_y / z| * cos(CNT2) - |roofv_y / z| * sin(CNT2)
+\
+\ and calls BLINE.
+\
+\ For meridian 2, it's the same except it's sidev instead of roofv.
 \
 \ ******************************************************************************
 
@@ -26193,8 +26276,8 @@ LOAD_E% = LOAD% + P% - CODE%
  LDX #0                 \ Set CNT = 0
  STX CNT
 
- DEX                    \ Set FLAG = -1 for use in the BLINE routine
- STX FLAG
+ DEX                    \ Set FLAG = &FF to reset the buffers in the call to
+ STX FLAG               \ the BLINE routine below
 
 .PLL4
 
@@ -26771,8 +26854,8 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .CIRCLE2
 {
- LDX #&FF               \ Set FLAG = -1 for use in the BLINE routine
- STX FLAG
+ LDX #&FF               \ Set FLAG = &FF to reset the buffers in the call to
+ STX FLAG               \ the BLINE routine below
 
  INX                    \ Set CNT = 0, our counter that goes up to 64, counting
  STX CNT                \ segments in our circle
@@ -26882,53 +26965,77 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: WPLS2
 \
-\ Wipe Planet
+\ Remove the planet from the screen. We do this by redrawing it using the lines
+\ stored in the line buffer when the planet was originally drawn by the BLINE
+\ routine.
 \
 \ ******************************************************************************
 
-.WPLS2                  \ Wipe Planet
+.WPLS2
 {
- LDY LSX2               \ 78 bytes used by bline Xcoords
- BNE WP1                \ Avoid lines down
+ LDY LSX2               \ If LSX2 is non-zero (which indicates the line buffer
+ BNE WP1                \ is empty), jump to WP1 to reset the line buffer
+                        \ without redrawing the planet
 
-.WPL1                   \ counter Y starts at 0
+                        \ Otherwise Y is now 0, so we can use it as a counter to
+                        \ loop through the lines in the line buffer, redrawing
+                        \ each one to remove the planet from the screen, before
+                        \ resetting the line buffer once we are done
 
- CPY LSP
- BCS WP1                \ arc step reached, exit to Avoid lines
- LDA LSY2,Y             \ buffer Ycoords
- CMP #&FF               \ flag
- BEQ WP2                \ move into X1,Y1
- STA Y2                 \ else move into X2,Y2
- LDA LSX2,Y             \ buffer Xcoords
+.WPL1
+
+ CPY LSP                \ If Y >= LSP then we have reached the end of the line
+ BCS WP1                \ buffer and have finished redrawing the planet (as LSP
+                        \ points to the end of the buffer), so jump to WP1 to
+                        \ reset the line buffer
+
+ LDA LSY2,Y             \ Set A to the y-coordinate of the current buffer entry
+
+ CMP #&FF               \ If the y-coordinate is &FF, this indicates that the
+ BEQ WP2                \ next point in the buffer denotes the start of a line
+                        \ segment, so jump to WP2 to put it into (X1, Y1)
+
+ STA Y2                 \ Set (X2, Y2) to the x- and y-coordinates from the
+ LDA LSX2,Y             \ buffer
  STA X2
- JSR LOIN               \ draw line using (X1,Y1), (X2,Y2)
- INY                    \ next vertex
- LDA SWAP
- BNE WPL1               \ loop Y through buffer
 
- LDA X2                 \ else swap (X2,Y2) -> (X1,Y1)
- STA X1
- LDA Y2
+ JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2)
+
+ INY                    \ Increment the loop counter to point to the next point
+
+ LDA SWAP               \ If SWAP is non-zero then we swapped the coordinates
+ BNE WPL1               \ when filling the buffer in BLINE, so loop back WPL1
+                        \ for the next point in the buffer
+
+ LDA X2                 \ Swap (X1, Y1) and (X2, Y2), so the next segment will
+ STA X1                 \ be drawn from the the current (X2, Y2) to the next
+ LDA Y2                 \ point in the buffer
  STA Y1
- JMP WPL1               \ loop Y through buffer
 
-.WP2                    \ flagged move into X1,Y1
+ JMP WPL1               \ Loop back to WPL1 for the next point in the buffer
 
- INY                    \ next vertex
- LDA LSX2,Y
- STA X1
+.WP2
+
+ INY                    \ Increment the loop counter to point to the next point
+
+ LDA LSX2,Y             \ Set (X1, Y1) to the x- and y-coordinates from the
+ STA X1                 \ buffer
  LDA LSY2,Y
  STA Y1
- INY                    \ next vertex
- JMP WPL1               \ loop Y through buffer
 
-.WP1                    \ Avoid lines, used by wipe planet code
+ INY                    \ Increment the loop counter to point to the next point
 
- LDA #1
- STA LSP                \ arc step
- LDA #&FF
+ JMP WPL1               \ Loop back to WPL1 for the next point in the buffer
+
+.WP1
+
+ LDA #1                 \ Set LSP = 1 to reset the line buffer pointer
+ STA LSP
+
+ LDA #&FF               \ Set LSX2 = &FF to indicate the line buffers are empty
  STA LSX2
- RTS                    \ WPLS-1
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
