@@ -484,6 +484,15 @@ ORG &0000
                         \ 0 is off, non-zero is on and counting down
 
 .XX15                   \ 6-byte storage from XX15 TO XX15+5
+                        \
+                        \ Shares the first four bytes with X1, X2, Y1 and Y2:
+                        \
+                        \   X1 = XX15
+                        \   Y1 = XX15+1
+                        \   X2 = XX15+2
+                        \   Y2 = XX15+3
+                        \
+                        \ The last two bytes of XX15 do not have aliases
 
 .X1
 
@@ -894,7 +903,18 @@ ORG &0000
 
 .STP
 
- SKIP 1                 \ The step size for drawing circles
+ SKIP 1                 \ The step size for drawing circles. Circles are made up
+                        \ of 64 points, and the step size determines how many
+                        \ points to skip with each straight-line segment, so the
+                        \ smaller the step size, the smoother the circle. Values
+                        \ used are:
+                        \
+                        \   * 2 for big planets and the circles on the charts
+                        \   * 4 for medium planets and the launch tunnel
+                        \   * 8 for small planets and the hyperspace tunnel
+                        \
+                        \ from smoother circles at the top to more polygonal at
+                        \ the bottom
 
 .XX4
 
@@ -919,7 +939,7 @@ ORG &0000
 
 .K2
 
- SKIP 4
+ SKIP 4                 \ Used as temporary storage
 
 ORG &D1
 
@@ -931,7 +951,7 @@ ORG &D1
 .K3                     \ Used as temporary storage (e.g. used in TT27 for the
                         \ character to print)
 
-.XX2
+.XX2                    \ 
 
  SKIP 14
 
@@ -3087,10 +3107,10 @@ ORG &0D40
                         \
                         \   * 129 if this is the sun
                         \
-                        \   * 128 if this is the planet, with an equator and
+                        \   * 128 if this is the planet with an equator and
                         \     meridian
                         \
-                        \   * 130 if this is the planet, with a crater=
+                        \   * 130 if this is the planet with a crater
                         \
                         \ The corresponding address in the lookup table at UNIV
                         \ points to the ship's data block, which in turn points
@@ -3267,11 +3287,11 @@ ORG &0D40
                         \ station, but not both
 .LSX2
 
- SKIP 78                \
+ SKIP 78                \ Line buffer for circle segments' x-coordinates
 
 .LSY2
 
- SKIP 78                \
+ SKIP 78                \ Line buffer for circle segments' y-coordinates
 
 .SY
 
@@ -6260,22 +6280,19 @@ LOAD_A% = LOAD%
 \
 \ Arguments:
 \
-\   Y                   Determines which row of the INWK orientation vectors to
+\   Y                   Determines which of the INWK orientation vectors to
 \                       transform:
 \
-\                         * Y = 9 rotates nosev:
-\                               (nosev_x, nosev_y, nosev_z)
+\                         * Y = 9 rotates nosev: (nosev_x, nosev_y, nosev_z)
 \
-\                         * Y = 15 rotates roofv:
-\                               (roofv_x, roofv_y, roofv_z)
+\                         * Y = 15 rotates roofv: (roofv_x, roofv_y, roofv_z)
 \
-\                         * Y = 21 rotates sidev:
-\                               (sidev_x, sidev_y, sidev_z)
+\                         * Y = 21 rotates sidev: (sidev_x, sidev_y, sidev_z)
 \
 \ ******************************************************************************
 \
-\ Deep dive: Rolling ansd pitching
-\ --------------------------------
+\ Deep dive: Rolling and pitching
+\ -------------------------------
 \ In order to understand this routine, we need first to understand what it's
 \ for, so consider our Cobra Mk III sitting in deep space, minding its own
 \ business, when an enemy ship appears in the distance. Inside the little
@@ -9312,64 +9329,126 @@ NEXT
 \
 \ Subroutine: BLINE
 \
-\ Ball line for Circle2 uses (X.T) as next y offset for arc
+\ Draw a single segment of a circle, adding the point to the line buffers. We
+\ draw a circle by repeated calls to BLINE, passing the next point around the
+\ circle with each subsequent call, until the circle (or half-circle) is drawn.
+\
+\ Calling the routine with a value of &FF in FLAG initialises the buffer and
+\ sets up a marker to indicate the last value in the buffer.
+\
+\ The routine keeps a tally of the points passed to it on each call, storing
+\ them in the line buffers at LSX2 and LSY2, and using the line buffer pointer
+\ in LSP. It also keeps the point from the previous call to BLINE in
+\ K5(3 2 1 0), so it can draw a segment between the last point and this one.
+\
+\ Keeping the points in the line buffer lets us quickly redraw the circle
+\ without needing to regenerate all the points, so it is easy to remove the
+\ circle from the screen by simply redrawing all the segments stored in the line
+\ buffers. This is done in WPLS2.
+\
+\ Arguments:
+\
+\   CNT                 The number of this segment
+\
+\   STP                 The step size for the circle
+\
+\   K6(1 0)             The x-coordinate of this step point on the circle, as
+\                       a screen coordinate
+\
+\   (T X)               The y-coordinate of this step point on the circle, as
+\                       an offset from the centre of the circle
+\
+\   FLAG                Set to &FF for the first call, so it sets up the first
+\                       point in the buffer but waits until the second call
+\                       before drawing anything (as we need two points, i.e.
+\                       two calls, before we can draw a line)
+\
+\   K                   The circle's radius
+\
+\   K3(1 0)             Pixel x-coordinate of the centre of the circle
+\
+\   K4(1 0)             Pixel y-coordinate of the centre of the circle
+\
+\   SWAP                If non-zero, we swap (X1, Y1) and (X2, Y2)
 \
 \ Returns:
 \
-\   A                   The new value of CNT (which is CNT + STP)
+\   CNT                 CNT is updated to CNT + STP
+\
+\   A                   The new value of CNT
+\
+\   FLAG                Set to 0
 \
 \ ******************************************************************************
 
-.BLINE                  \ Ball line for Circle2 uses (X.T) as next y offset for arc
+.BLINE
 {
- TXA
- ADC K4                 \ y0 offset from circle2 is (X,T)
- STA K6+2               \ y2 lo = X + K4 lo
- LDA K4+1
- ADC T
- STA K6+3               \ y2 hi = T + K4 hi
+ TXA                    \ Set K6(3 2) = (T X) + K4(1 0)
+ ADC K4                 \             = y-coord of centre + y-coord of point
+ STA K6+2               \
+ LDA K4+1               \ so K6(3 2) now contains the y-coordinate of this point
+ ADC T                  \ on the circle, as a screen coordinate, to go along
+ STA K6+3               \ with the screen y-coordinate in K6(1 0)
 
- LDA FLAG               \ set to #&FF at beginning of CIRCLE2
- BEQ BL1                \ flag 0
- INC FLAG
+ LDA FLAG               \ If FLAG = 0, jump down to BL1
+ BEQ BL1
 
-.BL5                    \ counter LSP supplied and updated
+ INC FLAG               \ Flag is &FF so this is the first call to BLINE, so
+                        \ increment FLAG to set it to 0, as then the next time
+                        \ we call BLINE it can draw the first line, from this
+                        \ point to the next
 
- LDY LSP
- LDA #&FF
+.BL5
+
+                        \ We do the following at the start and end of the first
+                        \ call to BLINE, but only at the end of subsequent calls
+
+ LDY LSP                \ If the LSP-th byte of LSY2-1 = &FF, jump to BL7 to
+ LDA #&FF               \ tidy up and return from the subroutine
  CMP LSY2-1,Y
- BEQ BL7                \ end, move K6 to K5
- STA LSY2,Y
- INC LSP
- BNE BL7                \ end, move K6 to K5
+ BEQ BL7
 
-.BL1                    \ flag 0 \ Prepare to clip
+ STA LSY2,Y             \ Otherwise store #FF in the LSP-th byte of LSY2
 
- LDA K5
- STA XX15               \ x1 lo
- LDA K5+1
- STA XX15+1             \ x1 hi
+ INC LSP                \ Increment LSP
 
- LDA K5+2
- STA XX15+2             \ y1 lo
- LDA K5+3
- STA XX15+3             \ y1 hi
+ BNE BL7                \ If LSP is non-zero, jump to BL7 to tidy up and return
+                        \ from the subroutine
 
- LDA K6
- STA XX15+4             \ x2 lo
- LDA K6+1
- STA XX15+5             \ x2 hi
+.BL1
 
- LDA K6+2
- STA XX12               \ y2 lo
- LDA K6+3
- STA XX12+1             \ y2 hi
+ LDA K5                 \ Set XX15 aka X1 = K5
+ STA XX15
+
+ LDA K5+1               \ Set XX15+1 aka Y1 = K5+1
+ STA XX15+1
+
+ LDA K5+2               \ Set XX15+2 aka X2 = K5+2
+ STA XX15+2
+
+ LDA K5+3               \ Set XX15+3 aka Y2 = K5+3
+ STA XX15+3
+
+ LDA K6                 \ Set XX15+4 = x_lo of step point
+ STA XX15+4
+
+ LDA K6+1               \ Set XX15+5 = x_hi of step point
+ STA XX15+5
+
+ LDA K6+2               \ Set XX12 = y_lo of step point
+ STA XX12
+
+ LDA K6+3               \ Set XX12+1 = y_hi of step point
+ STA XX12+1
 
  JSR LL145              \ Clip XX15 XX12 vector
- BCS BL5                \ no line visible, loop LSP
- LDA SWAP
- BEQ BL9                \ skip swap
- LDA X1
+
+ BCS BL5                \ 
+
+ LDA SWAP               \ If SWAP = 0, jump to BL9 to skip the following swap
+ BEQ BL9                \ code
+
+ LDA X1                 \ Swap (X1, Y1) and (X2, Y2)
  LDY X2
  STA X2
  STY X1
@@ -9378,46 +9457,56 @@ NEXT
  STA Y2
  STY Y1
 
-.BL9                    \ swap done
+.BL9
 
- LDY LSP
- LDA LSY2-1,Y
- CMP #&FF
- BNE BL8                \ skip stores to line buffers
- LDA X1
+ LDY LSP                \ Set Y = LSP
+
+ LDA LSY2-1,Y           \ If the LSP-th byte of LSY2-1 <> &FF, jump down to BL8
+ CMP #&FF               \ to skip the following
+ BNE BL8
+
+ LDA X1                 \ Store X1 in the LSP-th byte of LSX2
  STA LSX2,Y
- LDA Y1
+
+ LDA Y1                 \ Store Y1 in the LSP-th byte of LSY2
  STA LSY2,Y
- INY                    \ LSP+1 other end of line segment
 
-.BL8                    \ skipped stores
+ INY                    \ Increment Y to point to the next byte in LSX2/LSY2
 
- LDA X2
+.BL8
+
+ LDA X2                 \ Store X2 in the LSP-th byte of LSX2
  STA LSX2,Y
- LDA Y2
+
+ LDA Y2                 \ Store Y2 in the LSP-th byte of LSX2
  STA LSY2,Y
- INY                    \ next LSP
- STY LSP
- JSR LOIN               \ draw line using (X1,Y1), (X2,Y2)
 
- LDA XX13               \ flag from clip
- BNE BL5                \ loop LSP as XX13 clip
+ INY                    \ Increment Y to point to the next byte in LSX2/LSY2
 
-.BL7                    \ end, move K6 to K5, cnt+=stp
+ STY LSP                \ Update LSP to point to the same as Y
 
- LDA K6
- STA K5
- LDA K6+1
- STA K5+1
- LDA K6+2
+ JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2)
+
+ LDA XX13               \ If XX13 is non-zero, jump up to BL5 to add a &FF
+ BNE BL5                \ marker to the end of the line buffer
+
+.BL7
+
+ LDA K6                 \ Copy the data for this step point from K6(3 2 1 0)
+ STA K5                 \ into K5(3 2 1 0):
+ LDA K6+1               \
+ STA K5+1               \   * K5(1 0) = screen x-coordinate of step point
+ LDA K6+2               \   * K5(3 2) = screen y-coordinate of step point
  STA K5+2
  LDA K6+3
  STA K5+3
- LDA CNT                \ count
- CLC                    \ cnt += step
- ADC STP                \ step for ring
+
+ LDA CNT                \ Set CNT = CNT + STP
+ CLC
+ ADC STP
  STA CNT
- RTS                    \ ball line done
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -25634,13 +25723,20 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-.PL2                    \ planet/sun behind
+.PL2
 {
- LDA TYPE               \ ship type
- LSR A                  \ bit0
- BCS P%+5               \ sun has bit0 set
- JMP WPLS2              \ bit0 clear Wipe Planet
- JMP WPLS               \ Wipe Sun
+ LDA TYPE               \ If the planet/sun's type has bit 0 clear, then it's
+ LSR A                  \ either 128 or 130, which is a planet; meanwhile, the
+ BCS P%+5               \ sun has type 129, which has bit 0 set. So if this is
+                        \ the sun planet, skip the following instruction
+
+ JMP WPLS2              \ This is the planet, so jump to WPLS2 to remove it from
+                        \ screen, returning from the subroutine using a tail
+                        \ call
+
+ JMP WPLS               \ This is the sun, so jump to WPLS to remove it from
+                        \ screen, returning from the subroutine using a tail
+                        \ call
 }
 
 \ ******************************************************************************
@@ -25720,9 +25816,10 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine: PL9
+\ Subroutine: PL9 (Part 1 of 3)
 \
-\ Draw a planet with radius K at pixel coordinate (K3, K4).
+\ Draw a planet with radius K at pixel coordinate (K3, K4), and with either an
+\ equator and meridian, or a crater.
 \
 \ Arguments:
 \
@@ -25757,60 +25854,143 @@ LOAD_E% = LOAD% + P% - CODE%
 .PL25
 
  LDA TYPE               \ If the planet type is 128 then it has an equator and
- CMP #128               \ a meridian, so jump to PL26 to draw them
- BNE PL26
+ CMP #128               \ a meridian, so this jumps to PL26 if this is not a
+ BNE PL26               \ planet with an equator - in other words, if it is a
+                        \ planet with a crater
 
-                        \ This is a crater planet, so we now need to draw the
-                        \ crater
+                        \ Otherwise this is a planet with an equator and
+                        \ meridian, so fall through into the following to draw
+                        \ them
+
+\ ******************************************************************************
+\
+\ Subroutine: PL9 (Part 2 of 3)
+\
+\ Draw the planet's equator and meridian.
+\
+\ Arguments:
+\
+\   K(1 0)              The planet's radius
+\
+\   INWK                The planet's ship data block
+\
+\ ******************************************************************************
+\
+\ Meridian 1:
+\
+\   CNT2 = arctan(-nosev_z_hi / roofv_z_hi) / 4
+\          with opposite sign to nosev_z_hi
+\
+\   K2   = |nosev_x / z|
+\   K2+1 = |nosev_y / z|
+\   K2+2 = |roofv_x / z|
+\   K2+3 = |roofv_y / z|
+\
+\   XX16   = sign of nosev_x / z
+\   XX16+1 = sign of nosev_y / z
+\   XX16+2 = sign of roofv_x / z
+\   XX16+3 = sign of roofv_y / z
+\
+\ Meridian 2:
+\
+\   CNT2 = arctan(-nosev_z_hi / sidev_z_hi) / 4
+\          with opposite sign to nosev_z_hi
+\
+\   K2   = |nosev_x / z|
+\   K2+1 = |nosev_y / z|
+\   K2+2 = |sidev_x / z|
+\   K2+3 = |sidev_y / z|
+\
+\   XX16   = sign of nosev_x / z
+\   XX16+1 = sign of nosev_y / z
+\   XX16+2 = sign of sidev_x / z
+\   XX16+3 = sign of sidev_y / z
+\
+\ ******************************************************************************
 
  LDA K                  \ If the planet's radius is less than 6, the planet is
  CMP #6                 \ too small to show a crater, so jump to PL20 to return
  BCC PL20               \ from the subroutine
  
- LDA INWK+14            \ Set P = -nosev_z_hi, meridian width?
+ LDA INWK+14            \ Set P = -nosev_z_hi
  EOR #%10000000
  STA P
 
  LDA INWK+20            \ Set A = roofv_z_hi
 
- JSR PLS4               \ CNT2 = angle of P_opp/A_adj for Lave
+ JSR PLS4               \ Call PLS4 to calculate the following:
+                        \
+                        \   CNT2 = arctan(P / A) / 4
+                        \        = arctan(-nosev_z_hi / roofv_z_hi) / 4
+                        \
+                        \ and give the result the opposite sign to nosev_z_hi
 
- LDX #9                 \ nosev.x for both meridians
+ LDX #9                 \ Set X to 9 so the call to PLS1 divides nosev_x
 
- JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
+ JSR PLS1               \ Call PLS1 to calculate the following:
+ STA K2                 \
+ STY XX16               \   K2   = |nosev_x / z|
+                        \   XX16 = sign of nosev_x / z
+                        \
+                        \ and increment X to point to nosev_y for the next call
 
- STA K2                 \ mag  0.x   used in final x of arc
- STY XX16               \ sign 0.x
+ JSR PLS1               \ Call PLS1 to calculate the following:
+ STA K2+1               \
+ STY XX16+1             \   K2+1   = |nosev_y / z|
+                        \   XX16+1 = sign of nosev_y / z
 
- JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
+ LDX #15                \ Set X to 15 so the call to PLS5 divides roofv_x
 
- STA K2+1               \ mag  0.y   used in final y of arc
- STY XX16+1             \ sign 0.y
+ JSR PLS5               \ Call PLS5 to calculate the following:
+                        \
+                        \   K2+2 = |roofv_x / z|
+                        \   XX16+2 = sign of roofv_x / z
+                        \   K2+3 = |roofv_y / z|
+                        \   XX16+3 = sign of roofv_y / z
 
- LDX #15                \ roofv.x for first meridian
+ JSR PLS2               \ Call PLS2 to draw the first meridian
 
- JSR PLS5               \ mag K2+2,3 sign XX16+2,3 = NWK(X+=2)/INWK_z
-
- JSR PLS2               \ Lave half ring, phase offset CNT2
-
- LDA INWK+14            \ Set A = -nosev_z_hi
+ LDA INWK+14            \ Set P = -nosev_z_hi
  EOR #%10000000
  STA P
 
- LDA INWK+26            \ Set A % sidev_z hi, for meridian2 at 90 degrees?
+ LDA INWK+26            \ Set A = sidev_z_hi, so the second meridian will be at
+                        \ 90 degrees to the first
 
- JSR PLS4               \ CNT2 = angle of P_opp/A_adj for Lave
+ JSR PLS4               \ Call PLS4 to calculate the following:
+                        \
+                        \   CNT2 = arctan(P / A) / 4
+                        \        = arctan(-nosev_z_hi / sidev_z_hi) / 4
+                        \
+                        \ and give the result the opposite sign to nosev_z_hi
 
- LDX #21                \ sidev.x for second meridian
+ LDX #21                \ Set X to 21 so the call to PLS5 divides sidev_x
 
- JSR PLS5               \ mag K2+2,3 sign XX16+2,3 = NWK(X+=2)/INWK_z
+ JSR PLS5               \ Call PLS5 to calculate the following:
+                        \
+                        \   K2+2 = |sidev_x / z|
+                        \   XX16+2 = sign of sidev_x / z
+                        \   K2+3 = |sidev_y / z|
+                        \   XX16+3 = sign of sidev_y / z
 
- JMP PLS2               \ Lave half ring, phase offset CNT2
+ JMP PLS2               \ Jump to PLS2 to draw the second meridian, returning
+                        \ from the subroutine with a tail call
+
+\ ******************************************************************************
+\
+\ Subroutine: PL9 (Part 3 of 3)
+\
+\ Draw the planet's crater.
+\
+\ Arguments:
+\
+\   K(1 0)              The planet's radius
+\
+\   INWK                The planet's ship data block
+\
+\ ******************************************************************************
 
 .PL26
-
-                        \ This is a planet with an equator and meridian, so we
-                        \ now need to draw them
 
  LDA INWK+20            \ roofv_z hi
  BMI PL20               \ rts, crater on far side
@@ -25854,10 +26034,12 @@ LOAD_E% = LOAD% + P% - CODE%
  STA K2+3               \ mag 2.y/2
  STY XX16+3             \ sign 2.y
 
- LDA #64                \ full circle
- STA TGT                \ count target
- LDA #0                 \ no phase offset for crater ring
- STA CNT2
+ LDA #64                \ Set TGT = 64, so we only draw a full circle in the
+ STA TGT                \ call to PLS22 below
+
+ LDA #0                 \ Set CNT2 = 0 as we are drawing a full circle, not an
+ STA CNT2               \ offset section
+
  JMP PLS22              \ guaranteed crater with TGT = #64
 }
 
@@ -25865,167 +26047,311 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: PLS1
 \
-\ X = 9 etc. A.Y = INWK(X+=2)/INWK_z
+\ Calculate the following division of a specified value from one of the
+\ orientation vectors (in this example, nosev_x):
+\
+\   A = |nosev_x / z|
+\
+\   Y = sign of nosev_x / z
+\
+\ where z is the z-coordinate of the planet from INWK. The result is an 8-bit
+\ magnitude in A, with maximum value 254, and just a sign bit (bit 7) in Y.
+\
+\ Arguments:
+\
+\   X                   Determines which of the INWK orientation vectors to
+\                       divide:
+\
+\                         * X = 9, 11, 13: divides nosev_x, nosev_y, nosev_z
+\
+\                         * X = 15, 17, 19: divides roofv_x, roofv_y, roofv_z
+\
+\                         * X = 21, 23, 25: divides sidev_x, sidev_y, sidev_z
+\
+\   INWK                The planet's ship data block
+\
+\ Returns:
+\
+\   A                   The result as an 8-bit magnitude with maximum value 254
+\
+\   Y                   The sign of the result in bit 7
+\
+\   X                   X gets incremented by 2 so it points to the next
+\                       coordinate in this orientation vector (so consecutive
+\                       calls to the routine will start with x, then move onto y
+\                       and then z)
 \
 \ ******************************************************************************
 
-.PLS1                   \ X = 9 etc. A.Y = INWK(X+=2)/INWK_z
+.PLS1
 {
- LDA INWK,X
+ LDA INWK,X             \ Set P = nosev_x_lo
  STA P
- LDA INWK+1,X
- AND #127               \ 7bits of hi
- STA P+1
- LDA INWK+1,X           \ again, get sign for 3rd byte
- AND #128               \ sign only
 
- JSR DVID3B2            \ divide 3bytes by 2, K = P(2).A/INWK_z
- LDA K                  \ lo
- LDY K+1                \ hi
- BEQ P%+4
- LDA #&FE               \ else sat Acc and keep Y = K+1 non-zero
- LDY K+3                \ sign
- INX                    \ X+=2
- INX
- RTS
+ LDA INWK+1,X           \ Set P+1 = |nosev_x_hi|
+ AND #%01111111
+ STA P+1
+
+ LDA INWK+1,X           \ Set A = sign bit of nosev_x_lo
+ AND #%10000000
+
+ JSR DVID3B2            \ Call DVID3B2 to calculate:
+                        \
+                        \   K(3 2 1 0) = (A P+1 P) / (z_sign z_hi z_lo)
+
+ LDA K                  \ Fetch the lowest byte of the result into A
+
+ LDY K+1                \ Fetch the second byte of the result into Y
+
+ BEQ P%+4               \ If the second byte is 0, skip the next instruction
+
+ LDA #254               \ The second byte is non-zero, so the result won't fit
+                        \ into one byte, so set A = 254 as our maximum one-byte
+                        \ value to return
+
+ LDY K+3                \ Fetch the sign of the result from K+3 into Y
+
+ INX                    \ Add 2 to X so the index points to the next coordinate
+ INX                    \ in this orientation vector (so consecutive calls to
+                        \ the routine will start with x, then move onto y and z)
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: PLS2
 \
+\ Draw a half-circle, used for the planet's equator and meridian.
+\
 \ Lave half ring, mags K2+0to3, signs XX16+0to3, xy(0)xy(1), phase offset CNT2
 \
 \ ******************************************************************************
+\
+\ For meridian 1, it gets called with this:
+\
+\   CNT2 = arctan(-nosev_z_hi / roofv_z_hi) / 4
+\          with opposite sign to nosev_z_hi
+\
+\   K2   = |nosev_x / z|
+\   K2+1 = |nosev_y / z|
+\   K2+2 = |roofv_x / z|
+\   K2+3 = |roofv_y / z|
+\
+\   XX16   = sign of nosev_x / z
+\   XX16+1 = sign of nosev_y / z
+\   XX16+2 = sign of roofv_x / z
+\   XX16+3 = sign of roofv_y / z
+\
+\ Then does this:
+\
+\   K6(1 0) = K3(1 0) + (nosev_x / z) * cos(CNT2) + (roofv_x / z) * sin(CNT2)
+\
+\   (T X) = - |nosev_y / z| * cos(CNT2) - |roofv_y / z| * sin(CNT2)
+\
+\ and calls BLINE.
+\
+\ For meridian 2, it's the same except it's sidev instead of roofv.
+\
+\ ******************************************************************************
 
-.PLS2                   \ Lave half ring, mags K2+0to3, signs XX16+0to3, xy(0)xy(1), phase offset CNT2
+.PLS2
 {
- LDA #31                \ half-circle
- STA TGT                \ count target
+ LDA #31                \ Set TGT = 31, so we only draw half a circle
+ STA TGT
+
+                        \ Fall through into PLS22 to draw the half circle
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: PLS22
 \
-\ Also crater with TGT = #64
+\ Draw a circle or half-circle, used for the planet's equator and meridian, or
+\ crater.
+\
+\ Arguments:
+\
+\   K(1 0)              The planet's radius
+\
+\   INWK                The planet's ship data block
+\
+\   TGT                 The number of segments to draw:
+\
+\                         * 32 for a half circle (a meridian)
+\
+\                         * 64 for a half circle (a crater)
+\
+\ ******************************************************************************
+\
+\
 \
 \ ******************************************************************************
 
-.PLS22                  \ also crater with TGT = #64
+.PLS22
 {
  LDX #0                 \ Set CNT = 0
  STX CNT
 
- DEX                    \ Set FLAG = -1
+ DEX                    \ Set FLAG = -1 for use in the BLINE routine
  STX FLAG
 
-.PLL4                   \ counter CNT+= STP > TGT planet ring
+.PLL4
 
- LDA CNT2               \ for arc
- AND #31                \ angle index
- TAX                    \ sine table
- LDA SNE,X
- STA Q                  \ sine
- LDA K2+2               \ mag x1
- JSR FMLTU              \ A=A*Q/256unsg
- STA R                  \ part2 lo x = mag x1 * sin
- LDA K2+3               \ mag y1
- JSR FMLTU              \ A=A*Q/256unsg
- STA K                  \ part2 lo y =  mag y1 * sin
- LDX CNT2
- CPX #33                \ for arc
- LDA #0                 \ any sign
- ROR A                  \ into 7th bit
- STA XX16+5             \ ysign
+ LDA CNT2               \ Set A = CNT2 mod 32
+ AND #31
+ TAX
 
- LDA CNT2
- CLC                    \ for arc
- ADC #16                \ cosine
- AND #31                \ index
- TAX                    \ sinetable
- LDA SNE,X
- STA Q                  \ cosine
- LDA K2+1               \ mag y0
- JSR FMLTU              \ A=A*Q/256unsg
- STA K+2                \ part1 lo y = mag y0 * cos
- LDA K2                 \ mag x0
- JSR FMLTU              \ A=A*Q/256unsg
- STA P                  \ part1 lo x  = mag x0 * cos
- LDA CNT2
- ADC #15                \ for arc
- AND #63                \ 63 max
- CMP #33                \ > 32 ?
- LDA #0                 \ any carry is sign
- ROR A                  \ into 7th bit
- STA XX16+4             \ xsign
+ LDA SNE,X              \ Set Q = sin(CNT2)
+ STA Q
 
- LDA XX16+5             \ ysign
- EOR XX16+2             \ x1 sign
- STA S                  \ S = part2 hi x
- LDA XX16+4             \ xsign
- EOR XX16               \ A = part1 hi x
- JSR ADD                \ lo x = mag x0 * cos + mag x1 * sin
- STA T                  \ sum hi
- BPL PL42               \ hop xplus
- TXA                    \ else minus, sum lo
- EOR #&FF
+ LDA K2+2               \ Set A = K2+2
+                        \       = |roofv_x / z|
+
+ JSR FMLTU              \ Set R = A * Q / 256
+ STA R                  \       = |roofv_x / z| * sin(CNT2) / 256
+
+ LDA K2+3               \ Set A = K2+2
+                        \       = |roofv_y / z|
+
+ JSR FMLTU              \ Set K = A * Q / 256
+ STA K                  \       = |roofv_y / z| * sin(CNT2) / 256
+
+ LDX CNT2               \ If CNT2 >= 33 then this sets the C flag, otherwise
+ CPX #33                \ it's clear
+
+ LDA #0                 \ Shift the C flag into the sign bit of XX16+5, so:
+ ROR A                  \
+ STA XX16+5             \   XX16+5 = +ve if CNT2 < 33
+                        \            -ve if CNT2 >= 33
+
+ LDA CNT2               \ Set A = (CNT2 + 16) mod 32
  CLC
+ ADC #16
+ AND #31
+ TAX
+
+ LDA SNE,X              \ Set Q = sin(CNT2 + 16)
+ STA Q                  \       = cos(CNT2)
+
+ LDA K2+1               \ Set A = K2+1
+                        \       = |nosev_y / z|
+
+ JSR FMLTU              \ Set K+2 = A * Q / 256
+ STA K+2                \         = |nosev_y / z| * cos(CNT2) / 256
+
+ LDA K2                 \ Set A = K2
+                        \       = |nosev_x / z|
+
+ JSR FMLTU              \ Set P = A * Q / 256
+ STA P                  \       = |nosev_x / z| * cos(CNT2) / 256
+
+ LDA CNT2               \ If (CNT2 + 15) mod 64 >= 33 then this sets the C flag,
+ ADC #15                \ otherwise it's clear
+ AND #63
+ CMP #33
+
+ LDA #0                 \ Shift the C flag into the sign bit of XX16+4, so:
+ ROR A                  \
+ STA XX16+4             \   XX16+4 = +ve if (CNT2 + 15) mod 64 < 33,
+                        \            -ve if (CNT2 + 15) mod 64 >= 33
+
+ LDA XX16+5             \ Set S = the sign of (roofv_x / z * CNT2 < 33 sign)
+ EOR XX16+2
+ STA S
+
+ LDA XX16+4             \ Set A = the sign of (nosev_x / z * CNT2 + 15 < 33
+ EOR XX16               \ sign)
+
+ JSR ADD                \ Set (A X) = (A P) + (S R)
+                        \           =   (nosev_x / z) * cos(CNT2)
+                        \             + (roofv_x / z) * sin(CNT2)
+
+ STA T                  \ Store the high byte in T, so the result is now:
+                        \
+                        \   (T X) =  (nosev_x / z) * cos(CNT2)
+                        \           + (roofv_x / z) * sin(CNT2)
+
+ BPL PL42               \ If the result is positive, jump down to PL42
+
+ TXA                    \ The result is negative, so we need to negate the
+ EOR #%11111111         \ magnitude using two's complement, first doing the low
+ CLC                    \ byte in X
  ADC #1
- TAX                    \ flipped lo
- LDA T                  \ sum hi
- EOR #&7F
+ TAX
+
+ LDA T                  \ And then the high byte in T, making sure to leave the
+ EOR #%01111111         \ sign bit alone
  ADC #0
- STA T                  \ flip sum hi and continue
+ STA T
 
-.PL42                   \ hop xplus
+.PL42
 
- TXA                    \ sum x lo
- ADC K3                 \ xcenter lo
- STA K6                 \ xfinal lo
- LDA T                  \ sum x hi
- ADC K3+1               \ xcenter hi
- STA K6+1               \ xfinal hi
+ TXA                    \ Set K6(1 0) = K3(1 0) + (T X)
+ ADC K3                 \
+ STA K6                 \ starting with the low bytes
 
- LDA K                  \ part2 lo y
- STA R                  \ part2 lo y
- LDA XX16+5             \ ysign
- EOR XX16+3             \ y1 sign
- STA S                  \ part2 hi y
- LDA K+2                \ part1 lo y
- STA P                  \ part1 lo y
- LDA XX16+4             \ xsign
- EOR XX16+1             \ A = part1 hi y
- JSR ADD                \ lo y = mag y0 * cos +  mag y1 * sin
- EOR #128               \ flip
- STA T                  \ yfinal hi
- BPL PL43               \ hop yplus
- TXA                    \ else minus, sum lo
- EOR #&FF
+ LDA T                  \ And then doing the high bytes, so we now get:
+ ADC K3+1               \
+ STA K6+1               \  K6(1 0) = K3(1 0) + (nosev_x / z) * cos(CNT2)
+                        \           + (roofv_x / z) * sin(CNT2)
+
+ LDA K                  \ Set R = K = |roofv_y / z| * sin(CNT2) / 256
+ STA R
+
+ LDA XX16+5             \ Set S = the sign of (roofv_y / z * CNT2 < 33 sign)
+ EOR XX16+3
+ STA S
+
+ LDA K+2                \ Set P = K+2 = |nosev_y / z| * cos(CNT2) / 256
+ STA P
+
+ LDA XX16+4             \ Set A = the sign of (nosev_y / z * CNT2 + 15 < 33
+ EOR XX16+1             \ sign)
+
+ JSR ADD                \ Set (A X) = (A P) + (S R)
+                        \           =   |nosev_y / z| * cos(CNT2)
+                        \             + |roofv_y / z| * sin(CNT2)
+
+ EOR #%10000000         \ Store the negated high byte in T, so the result is
+ STA T                  \ now:
+                        \
+                        \   (T X) = - |nosev_y / z| * cos(CNT2)
+                        \           - |roofv_y / z| * sin(CNT2)
+
+ BPL PL43               \ If the result is positive, jump down to PL43
+
+ TXA                    \ The result is negative, so we need to negate the
+ EOR #%11111111         \ magnitude using two's complement, first doing the low
+ CLC                    \ byte in X
+ ADC #1
+ TAX
+
+ LDA T                  \ And then the high byte in T, making sure to leave the
+ EOR #%01111111         \ sign bit alone
+ ADC #0
+ STA T
+
+.PL43
+
+ JSR BLINE              \ Call BLINE to draw this segment, which also returns
+                        \ the updated value of CNT in A
+
+ CMP TGT                \ If CNT > TGT then jump to PL40 to stop drawing the
+ BEQ P%+4               \ circle (which is how we draw half-circles)
+ BCS PL40
+
+ LDA CNT2               \ Set CNT2 = (CNT2 + STP) mod 64
  CLC
- ADC #1
- TAX                    \ flipped lo, yfinal lo
- LDA T                  \ yfinal hi
- EOR #&7F
- ADC #0
- STA T                  \ flipped sum hi and continue, yfinal hi
-
-.PL43                   \ hop yplus
-
- JSR BLINE              \ ball line uses (X.T) as next y offset for arc
- CMP TGT                \ CNT+= STP > TGT
- BEQ P%+4               \ = TGT, next
- BCS PL40               \ > TGT exit arc rts
- LDA CNT2               \ next, CNT2
- CLC                    \ +step for ring
  ADC STP
- AND #63                \ round
+ AND #63
  STA CNT2
- JMP PLL4               \ loop planet ring
+
+ JMP PLL4               \ Jump back to PLL4 to draw the next segment
 
 .PL40
 
- RTS                    \ end Crater ring
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -26041,15 +26367,15 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ******************************************************************************
 
 {
- JMP WPLS               \ Wipe Sun
+ JMP WPLS               \ Jump to WPLS to remove the sun from the screen
 
-.^PLF3                   \ flip height for planet/sun fill
+.^PLF3
 
- TXA                    \ Yscreen height lo
- EOR #&FF               \ flip
+ TXA                    \ Negate X using two's complement, so X = ~X + 1
+ EOR #&FF
  CLC
  ADC #1
- TAX                    \ height flipped
+ TAX
 }
 
 \ ******************************************************************************
@@ -26063,7 +26389,8 @@ LOAD_E% = LOAD% + P% - CODE%
 .PLF17                  \ up A = #&FF as Xlo =0
 {
  LDA #&FF               \ fringe flag will run up
- JMP PLF5               \ guaranteed, Xreg = height ready
+
+ JMP PLF5               \ Jump to PLF5
 }
 
 \ ******************************************************************************
@@ -26341,7 +26668,7 @@ LOAD_E% = LOAD% + P% - CODE%
  CPX #60                \ If the radius < 60, skip to PL89
  BCC PL89
 
- LSR A                  \ Halve A so A = 4
+ LSR A                  \ Halve A so A = 2
 
 .PL89
 
@@ -26390,7 +26717,13 @@ LOAD_E% = LOAD% + P% - CODE%
 \   CNT = 48-64 is the bottom-left quadrant  (9 o'clock to 6 o'clock)
 \
 \ If we can work out the coordinates of the point on the circle at step CNT,
-\ then we can draw the circle by simply drawing lines between each point.
+\ then we can draw the circle by simply drawing lines between each point, with
+\ each line being a segment of the circle. We can draw smooth circles by having
+\ smaller segments, as with the circles on the charts, or we can draw more
+\ polygonal circles by having large segments, as with the launch tunnel. The
+\ circle's "step size" determines how many of the 64 points make up each
+\ segment, so smaller step sizes give smoother circles (the step size is
+\ typically 2, 4 or 8 points).
 \
 \ So let's consider the step where CNT is around 5, say, so that's around 5
 \ o'clock. The sine table at SNE contains 32 values that cover half a circle, so
@@ -26412,7 +26745,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \   x = K * sin(CNT)
 \   y = K * cos(CNT)
 \
-\ The SNE table only gives us positive resuls, so for other quadrants of the
+\ The SNE table only gives us positive results, so for other quadrants of the
 \ circle, we'll need to set the signs of x and y according to the particular
 \ quadrant we're in, but the magnitude of the coordinates will be as above.
 \ Specifically, we need to do the following (as screen y-coordinates are
@@ -26532,7 +26865,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .PL38
 
- JSR BLINE              \ Call BLINE to draw the ball line, which also increases
+ JSR BLINE              \ Call BLINE to draw this segment, which also increases
                         \ CNT by STP, the step size
 
  CMP #65                \ If CNT >=65 then skip the next instruction
@@ -26889,45 +27222,86 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: PLS4
 \
-\ CNT2 = angle of P_opp/A_adj for Lave
+\ Calculate the following:
+\
+\   CNT2 = arctan(P / A) / 4
+\
+\ giving the result the opposite sign to nosev_z_hi. This is called with the
+\ following arguments when calculating the equator and meridian for planets:
+\
+\   * A = roofv_z_hi, P = -nosev_z_h
+\
+\   * A = sidev_z_hi, P = -nosev_z_hi
+\
+\ So it calculates the angle between the planet's orientation vectors, in the
+\ z-axis.
 \
 \ ******************************************************************************
 
 .PLS4
 {
- STA Q
+ STA Q                  \ Set Q = A
 
- JSR ARCTAN             \ Call ARCTAN to set A = arctan(P / Q)
+ JSR ARCTAN             \ Call ARCTAN to calculate:
+                        \
+                        \   A = arctan(P / Q)
+                        \       arctan(P / A)
 
- LDX INWK+14            \ nosev_z hi
- BMI P%+4               \ -ve nosev_z hi keeps arctan +ve
- EOR #128               \ else arctan -ve
+ LDX INWK+14            \ If nosev_z_hi is negative, skip the following
+ BMI P%+4               \ instruction
+
+ EOR #%10000000         \ nosev_z_hi is positive, so make the arctan negative
+
+ LSR A                  \ Set CNT2 = A / 4
  LSR A
- LSR A                  \ /4
- STA CNT2               \ phase offset
+ STA CNT2
 
- RTS
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: PLS5
 \
-\ Mag K2+2,3 sign XX16+2,3  = NWK(X+=2)/INWK_z for Lave
+\ Calculate the following divisions of a specified value from one of the
+\ orientation vectors (in this example, roofv):
+\
+\   K2+2 = |roofv_x / z|
+\
+\   XX16+2 = sign of roofv_x / z
+\
+\   K2+3 = |roofv_y / z|
+\
+\   XX16+3 = sign of roofv_y / z
+\
+\ Arguments:
+\
+\   X                   Determines which of the INWK orientation vectors to
+\                       divide:
+\
+\                         * X = 15: divides roofv_x and roofv_y
+\
+\                         * X = 21: divides sidev_x and sidev_y
+\
+\   INWK                The planet's ship data block
 \
 \ ******************************************************************************
 
 .PLS5
 {
- JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
+ JSR PLS1               \ Call PLS1 to calculate the following:
+ STA K2+2               \
+ STY XX16+2             \   K+2    = |roofv_x / z|
+                        \   XX16+2 = sign of roofv_x / z
+                        \
+                        \ and increment X to point to roofv_y for the next call
 
- STA K2+2               \ mag
- STY XX16+2             \ sign
-
- JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
-
- STA K2+3               \ mag
- STY XX16+3             \ sign
+ JSR PLS1               \ Call PLS1 to calculate the following:
+ STA K2+3               \
+ STY XX16+3             \   K+3    = |roofv_y / z|
+                        \   XX16+3 = sign of roofv_y / z
+                        \
+                        \ and increment X to point to roofv_z for the next call
 
  RTS                    \ Return from the subroutine
 }
