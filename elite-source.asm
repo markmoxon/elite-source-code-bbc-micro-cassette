@@ -34023,232 +34023,535 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine: LL145
+\ Subroutine: LL145 (Part 1 of 4)
 \
-\ CLIP  XX15 XX12 line
+\ Clip the line from (x1, y1) to (x2, y2) so it fits on screen, or return an
+\ error if it can't be clipped to fit. The arguments are 16-bit coordinates,
+\ and the clipped line is returned as 8-bit screen coordinates.
+\
+\ Arguments:
+\
+\   XX15(1 0)           x1 as a 16-bit coordinate (x1_hi x1_lo)
+\
+\   XX15(3 2)           y1 as a 16-bit coordinate (y1_hi y1_lo)
+\
+\   XX15(5 4)           x2 as a 16-bit coordinate (x2_hi x2_lo)
+\
+\   XX12(1 0)           y2 as a 16-bit coordinate (y2_hi y2_lo)
+\
+\ Returns:
+\
+\   (X1, Y1)            Screen coordinate of the start of the clipped line
+\
+\   (X2, Y2)            Screen coordinate of the end of the clipped line
+\
+\   C flag              Clear if the clipped line fits on screen, set if it
+\                       doesn't
+\
+\   XX13                The state of the original coordinates on screen:
+\
+\                         * 0   = (x2, y2) on screen
+\
+\                         * 95  = (x1, y1) on screen,  (x2, y2) off screen
+\
+\                         * 191 = (x1, y1) off screen, (x2, y2) off screen
+\
+\                       So XX13 is non-zero if the end of the line was clipped,
+\                       meaning the next line sent to BLINE can't join onto the
+\                       end but has to start a new segment
+\
+\   SWAP                The swap status of the returned coordinates:
+\
+\                         * &FF if we swapped the values of (x1, y1) and
+\                           (x2, y2) as part of the clipping process
+\
+\                         * 0 if the coordinates are still in the same order
+\
+\   Y                   Y is preserved
+\
+\ Other entry points:
+\
+\   LL147               Don't set the values in SWAP or A
+\
+\ ******************************************************************************
+\
+\ This routine checks whether the line is worth clipping in other words, whether
+\ the line passes through the screen at any point. The actual clipping is done
+\ in part 4 by calling the LL118 routine, which is quite an involved process, so
+\ it's worth spending time checking whether we need to call it at all.
+\
+\ That's where this routine comes in, and here's what each part of it does.
+\
+\ Part 1
+\
+\   * If both coordinates are on screen, then return with success as the line
+\     doesn't need clipping and already fits on screen
+\
+\   * Otherwise, set XX13 to reflect which point(s) are on and off screen
+\
+\ Part 2
+\
+\   * If both points are off screen and both points are past the same screen
+\     edge, then return with failure
+\
+\   * If moving both points left by one screen doesn't move at least one of them
+\     past the left edge of the screen (i.e. if neither of them is in the
+\     vertical screen-wide strip to the right of the screen), return with
+\     failure
+\
+\   * If moving both points up by one screen doesn't move at least one of them
+\     past the top edge of the screen (i.e. if neither of them is in the
+\     horizontal screen-high strip below the bottom of the screen), return with
+\     failure (this test needs to be done only using the space view portion of
+\     the screen)
+\
+\ Part 3
+\
+\   * Calculate the line gradient from the 16-bit coordinates, calculating it
+\     the right way round to make it a fractional gradient:
+\
+\       * Calculate (delta_x / delta_y) if delta_x < delta_y
+\
+\       * Calculate (delta_y / delta_x) if delta_x >= delta_y
+\
+\ Part 4
+\
+\   * Do the actual clipping by calling LL118 to move one end of the line at a
+\     time (so if both points need moving on screen, we call LL118 twice)
+\
+\   * If both the original coordinates were off-screen, double-check that the
+\     clipped line is indeed on screen, and if not return with failure
+\
+\   * Return the clipped line with success, and with XX13 and SWAP set to
+\     describe the kind of clipping we had to do
 \
 \ ******************************************************************************
 
-.LL145                  \ -> &4E19  CLIP  XX15 XX12 line
+.LL145
 {
-                        \ also called by BLINE, waiting for (X1,Y1), (X2,Y2) to draw a line
-                        \ Before clipping,  XX15(0,1) was x1.  XX15(2,3) was y1. XX15(4,5) was x2. XX12(0,1) was y2
-
- LDA #0
+    
+ LDA #0                 \ Set SWAP = 0
  STA SWAP
- LDA XX15+5             \ x2 hi
-}
 
-.LL147                  \ CLIP2 arrives from LL79 to do swop and clip
-{
- LDX #Y*2-1             \ #Y*2-1 yClip = screen height
- ORA XX12+1             \ y2 hi
- BNE LL107              \ skip yClip
- CPX XX12               \ is screen hight < y2 lo ?
- BCC LL107              \ if yes, skip yClip
- LDX #0                 \ else yClip = 0
+ LDA XX15+5             \ Set A = x2_hi
 
-.LL107                  \ skipped yClip
+.^LL147
 
- STX XX13               \ yClip
- LDA XX15+1             \ x1 hi
- ORA XX15+3             \ y1 hi
- BNE LL83               \ no hi bits in coord 1 present
- LDA #Y*2-1             \ #Y*2-1  screen height
- CMP XX15+2             \ y1 lo
- BCC LL83               \ if screen height < y1 lo skip A top
- LDA XX13               \ yClip
- BNE LL108              \ hop down, yClip not zero
+ LDX #Y*2-1             \ Set Y2 = #Y * 2 - 1. The constant #Y is 96, the
+                        \ y-coordinate of the mid-point of the space view, so
+                        \ this sets Y2 to 191, the y-coordinate of the bottom
+                        \ pixel row of the space view
 
-.LL146                  \ Finished clipping, Shuffle XX15 down to (X1,Y1) (X2,Y2)
+ ORA XX12+1             \ If one or both of x2_hi and y2_hi are non-zero, jump
+ BNE LL107              \ to LL107 to skip the following
 
- LDA XX15+2             \ y1 lo
- STA XX15+1             \ new Y1
- LDA XX15+4             \ x2 lo
- STA XX15+2             \ new X2
- LDA XX12               \ y2 lo
- STA XX15+3             \ new Y2
- CLC                    \ valid to plot is in XX15(0to3)
- RTS                    \ 2nd pro different, it swops based on swop flag around here
+ CPX XX12               \ If y2_lo > the y-coordinate of the bottom of screen
+ BCC LL107              \ then (x2, y2) is off the bottom of the screen, so skip
+                        \ the following instruction, leaving X at 191
 
-.LL109                  \ clipped line Not visible
+ LDX #0                 \ Set X = 0 
 
- SEC
- RTS
+.LL107
 
-.LL108                  \ arrived as yClip not zero in LL107 clipping
+ STX XX13               \ Set XX13 = X, so we have:
+                        \
+                        \   * XX13 = 0 if x2_hi = y2_hi = 0, y2_lo is on screen
+                        \
+                        \   * XX13 = 191 if x2_hi or y2_hi are non-zero or y2_lo
+                        \            is off the bottom of the screen
+                        \
+                        \ In other words, XX13 is 191 if (x2, y2) is off screen,
+                        \ otherwise it is 0
 
- LSR XX13               \ yClip = Ymid
+ LDA XX15+1             \ If one or both of x1_hi and y1_hi are non-zero, jump
+ ORA XX15+3             \ jump to LL83
+ BNE LL83
 
-.LL83                   \ also arrive from LL107 if bits in hi present or y1_lo > screen height, A top
+ LDA #Y*2-1             \ If y1_lo > the y-coordinate of the bottom of screen
+ CMP XX15+2             \ then (x1, y1) is off the bottom of the screen, so jump
+ BCC LL83               \ to LL83
 
- LDA XX13               \ yClip
- BPL LL115              \ yClip < 128
- LDA XX15+1             \ x1 hi
- AND XX15+5             \ x2 hi
- BMI LL109              \ clipped line Not visible
- LDA XX15+3             \ y1 hi
- AND XX12+1             \ y2 hi
- BMI LL109              \ clipped line Not visible
- LDX XX15+1             \ x1 hi
+                        \ If we get here, (x1, y1) is on screen
+
+ LDA XX13               \ If XX13 is non-zero, i.e. (x2, y2) is off screen, jump
+ BNE LL108              \ to LL108 to halve it before continuing at LL83
+
+                        \ If we get here, the high bytes are all zero, which
+                        \ means the x-coordinates are < 256 and therefore fit on
+                        \ screen, and neither coordinate is off the bottom of
+                        \ the screen. That means both coordinates are already on
+                        \ screen, so we don't need to do any clipping, all we
+                        \ need to do is move the low bytes into (X1, Y1) and
+                        \ X2, Y2) and return
+
+.LL146
+
+                        \ If we get here then we have clipped our line to the
+                        \ (if we had to clip it at all), so we move the low
+                        \ bytes from (x1, y1) and (x2, y2) into (X1, Y1) and
+                        \ (X2, Y2), remembering that they share locations with
+                        \ XX15:
+                        \
+                        \   X1 = XX15
+                        \   Y1 = XX15+1
+                        \   X2 = XX15+2
+                        \   Y2 = XX15+3
+                        \
+                        \ X1 already contains x1_lo, so now we do the rest
+
+ LDA XX15+2             \ Set Y1 (aka XX15+1) = y1_lo
+ STA XX15+1
+
+ LDA XX15+4             \ Set X2 (aka XX15+2) = x2_lo
+ STA XX15+2
+
+ LDA XX12               \ Set Y2 (aka XX15+3) = y2_lo
+ STA XX15+3
+
+ CLC                    \ Clear the C flag as the clipped line fits on screen
+
+ RTS                    \ Return from the subroutine
+
+.LL109
+
+ SEC                    \ Set the C flag to indicate the clipped line does not
+                        \ fit on screen
+
+ RTS                    \ Return from the subroutine
+
+.LL108
+
+ LSR XX13               \ If we get here then (x2, y2) is off screen and XX13 is
+                        \ 191, so shift XX13 right to halve it to 95
+
+\ ******************************************************************************
+\
+\ Subroutine: LL145 (Part 2 of 4)
+\
+\ Clip the line from (x1, y1) to (x2, y2) so it fits on screen. This part does
+\ a number of tests to see if the line is on or off the screen.
+\
+\ If we get here then at least one of (x1, y1) and (x2, y2) is off screen, with
+\ XX13 set as follows:
+\
+\   * 0   = (x1, y1) off screen, (x2, y2) on screen
+\
+\   * 95  = (x1, y1) on screen,  (x2, y2) off screen
+\
+\   * 191 = (x1, y1) off screen, (x2, y2) off screen
+\
+\ where "off screen" is defined as having a non-zero high byte in one of the
+\ coordinates, or in the case of y-coordinates, having a low byte > 191, the
+\ y-coordinate of the bottom of the space view.
+\
+\ ******************************************************************************
+
+.LL83
+               
+ LDA XX13               \ If XX13 < 128 then only one of the points is on screen
+ BPL LL115              \ so jump down to LL115 to skip the checks of whether
+                        \ both points are in the strips to the right or bottom
+                        \ of the screen
+
+                        \ If we get here, both points are off screen
+
+ LDA XX15+1             \ If both x1_hi and x2_hi have bit 7 set, jump to LL109
+ AND XX15+5             \ to return from the subroutine with the C flag set, as
+ BMI LL109              \ the entire line is above the top of the screen
+
+ LDA XX15+3             \ If both y1_hi and y2_hi have bit 7 set, jump to LL109
+ AND XX12+1             \ to return from the subroutine with the C flag set, as
+ BMI LL109              \ the entire line is to the left of the screen
+
+ LDX XX15+1             \ Set A = X = x1_hi - 1
  DEX
- TXA                    \ Acc = x1 hi -1
- LDX XX15+5             \ x2 hi
+ TXA
+
+ LDX XX15+5             \ Set XX12+2 = x2_hi - 1
  DEX
- STX XX12+2             \ x2 hi --
- ORA XX12+2             \ (x1 hi -1) or (x2 hi -1)
- BPL LL109              \ clipped line not visible
- LDA XX15+2             \ y1 lo
- CMP #Y*2               \ #Y*2  screen height, maybe carry set
- LDA XX15+3             \ y1 hi
- SBC #0                 \ any carry
- STA XX12+2             \ y1 hi--
- LDA XX12               \ y2 lo
- CMP #Y*2               \ #Y*2 screen height, maybe carry set
- LDA XX12+1             \ y2 hi
- SBC #0                 \ any carry
- ORA XX12+2             \ (y1 hi -1) or (y2 hi -1)
- BPL LL109              \ clipped line Not visible
+ STX XX12+2
 
-.LL115                  \ also arrive from LL83 with yClip < 128 need to trim
+ ORA XX12+2             \ If neither (x1_hi - 1) or (x2_hi - 1) have bit 7 set,
+ BPL LL109              \ jump to LL109 to return from the subroutine with the C
+                        \ flag set, as the line doesn't fit on screen
 
- TYA                    \ index for edge data
- PHA                    \ protect offset
- LDA XX15+4             \ x2 lo
+ LDA XX15+2             \ If y1_lo < y-coordinate of screen bottom, clear the C
+ CMP #Y*2               \ flag, otherwise set it
+
+ LDA XX15+3             \ Set XX12+2 = y1_hi - (1 - C), so:
+ SBC #0                 \
+ STA XX12+2             \  * Set XX12+2 = y1_hi - 1 if y1_lo is on screen
+                        \  * Set XX12+2 = y1_hi     otherwise
+                        \
+                        \ We do this subtraction because we are only interested
+                        \ in trying to move the points up by a screen if that
+                        \ might move the point into the space view portion of
+                        \ the screen, i.e. if y1_lo is on screen
+
+ LDA XX12               \ If y2_lo < y-coordinate of screen bottom, clear the C
+ CMP #Y*2               \ flag, otherwise set it
+
+ LDA XX12+1             \ Set XX12+2 = y2_hi - (1 - C), so:
+ SBC #0                 \
+                        \  * Set XX12+1 = y2_hi - 1 if y2_lo is on screen
+                        \  * Set XX12+1 = y2_hi     otherwise
+                        \
+                        \ We do this subtraction because we are only interested
+                        \ in trying to move the points up by a screen if that
+                        \ might move the point into the space view portion of
+                        \ the screen, i.e. if y1_lo is on screen
+
+ ORA XX12+2             \ If neither XX12+1 or XX12+2 have bit 7 set, jump to
+ BPL LL109              \ LL109 to return from the subroutine with the C flag
+                        \ set, as the line doesn't fit on screen
+
+\ ******************************************************************************
+\
+\ Subroutine: LL145 (Part 3 of 4)
+\
+\ Clip the line from (x1, y1) to (x2, y2) so it fits on screen. This part
+\ calculates the line's gradient.
+\
+\ ******************************************************************************
+
+.LL115
+
+ TYA                    \ Store Y on the stack so we can preserve it through the
+ PHA                    \ call to this subroutine
+
+ LDA XX15+4             \ Set XX12+2 = x2_lo - x1_lo
  SEC
- SBC XX15               \ x1 lo
- STA XX12+2             \ delta_x lo
- LDA XX15+5             \ x2 hi
- SBC XX15+1             \ x1 hi
- STA XX12+3             \ delta_x hi
- LDA XX12               \ y2 lo
+ SBC XX15
+ STA XX12+2
+
+ LDA XX15+5             \ Set XX12+3 = x2_hi - x1_hi
+ SBC XX15+1
+ STA XX12+3
+
+ LDA XX12               \ Set XX12+4 = y2_lo - y1_lo
  SEC
- SBC XX15+2             \ y1 lo
- STA XX12+4             \ delta_y lo
- LDA XX12+1             \ y2 hi
- SBC XX15+3             \ y1 hi
- STA XX12+5             \ delta_y hi
- EOR XX12+3             \ delta_x hi
- STA S                  \ quadrant relationship for gradient
- LDA XX12+5             \ delta_y hi
- BPL LL110              \ hop down if delta_y positive
- LDA #0                 \ else flip sign of delta_y
- SEC                    \ delta_y lo
- SBC XX12+4
+ SBC XX15+2
  STA XX12+4
- LDA #0                 \ delta_y hi
- SBC XX12+5
+
+ LDA XX12+1             \ Set XX12+5 = y2_hi - y1_hi
+ SBC XX15+3
  STA XX12+5
 
-.LL110                  \ delta_y positive
+                        \ So we now have:
+                        \
+                        \   delta_x in XX12(3 2)
+                        \   delta_y in XX12(5 4)
+                        \
+                        \ where the delta is (x1, y1) - (x2, y2))
 
- LDA XX12+3             \ delta_x hi
- BPL LL111              \ hop down if positive to GETgrad
- SEC                    \ else flip sign of delta_x
- LDA #0                 \ delta_x lo
+ EOR XX12+3             \ Set S = the sign of delta_x * the sign of delta_y, so
+ STA S                  \ if bit 7 of S is set, the deltas have different signs
+
+ LDA XX12+5             \ If delta_y_hi is positive, jump down to LL110 to skip
+ BPL LL110              \ the following
+
+ LDA #0                 \ Otherwise flip the sign of delta_y to make it
+ SEC                    \ positive, starting with the low bytes
+ SBC XX12+4
+ STA XX12+4
+
+ LDA #0                 \ And then doing the high bytes, so now:
+ SBC XX12+5             \
+ STA XX12+5             \   XX12(5 4) = |delta_y|
+
+.LL110
+
+ LDA XX12+3             \ If delta_x_hi is positive, jump down to LL111 to skip
+ BPL LL111              \ the following
+
+ SEC                    \ Otherwise flip the sign of delta_x to make it
+ LDA #0                 \ positive, starting with the low bytes
  SBC XX12+2
  STA XX12+2
- LDA #0                 \ Acc will have delta_x hi +ve
- SBC XX12+3
 
-                        \ GETgrad get Gradient for trimming
-.LL111                  \ roll Acc  delta_x hi
+ LDA #0                 \ And then doing the high bytes, so now:
+ SBC XX12+3             \
+                        \   (A XX12+2) = |delta_x|
 
- TAX                    \ delta_x hi
- BNE LL112              \ skip if delta_x hi not zero
- LDX XX12+5             \ delta_y hi
- BEQ LL113              \ Exit when both delta hi zero
+.LL111
 
-.LL112                  \ skipped as delta_x hi not zero
+                        \ We now keep halving |delta_x| and |delta_y| until
+                        \ both of them have zero in their high bytes
 
- LSR A                  \ delta_x hi/=2
- ROR XX12+2             \ delta_x lo/=2
+ TAX                    \ IF |delta_x_hi| is non-zero, skip the following
+ BNE LL112
 
- LSR XX12+5             \ delta_y hi/=2
- ROR XX12+4             \ delta_y lo/=2
- JMP LL111              \ loop GETgrad
+ LDX XX12+5             \ If |delta_y_hi| = 0, jump down to LL113 (as both
+ BEQ LL113              \ |delta_x_hi| and |delta_y_hi| are 0)
 
-.LL113                  \ Exited as both delta hi zero for trimming
+.LL112
 
- STX T                  \ delta_y hi = 0
- LDA XX12+2             \ delta_x lo
- CMP XX12+4             \ delta_y lo
- BCC LL114              \ hop to STEEP as x < y
- STA Q                  \ else shallow, Q = delta_x lo
- LDA XX12+4             \ delta_y lo
- JSR LL28               \ BFRDIV R=A*256/Q = delta_y / delta_x
+ LSR A                  \ Halve the value of delta_x in (A XX12+2)
+ ROR XX12+2
 
-                        \ Use Y/X grad. \ as not steep
- JMP LL116              \ gradient now known, go a few lines down
+ LSR XX12+5             \ Halve the value of delta_y XX12(5 4)
+ ROR XX12+4
 
-.LL114                  \ else STEEP
+ JMP LL111              \ Loop back to LL111
 
- LDA XX12+4             \ delta_y lo
+.LL113
+
+                        \ By now, the high bytes of both |delta_x| and |delta_y|
+                        \ are zero
+
+ STX T                  \ We know that X = 0 as that's what we tested with a BEQ
+                        \ above, so this sets T = 0
+
+ LDA XX12+2             \ If delta_x_lo < delta_y_lo, so our line is more
+ CMP XX12+4             \ vertical than horizontal, jump to LL114
+ BCC LL114
+
+ STA Q                  \ Set Q = delta_x_lo
+
+ LDA XX12+4             \ Set A = delta_y_lo
+
+ JSR LL28               \ Call LL28 to calculate:
+                        \
+                        \   R = 256 * A / Q
+                        \     = 256 * delta_y_lo / delta_x_lo
+
+ JMP LL116              \ Jump to LL116, as we now have the line's gradient in R
+
+.LL114
+
+ LDA XX12+4             \ Set Q = delta_y_lo
  STA Q
- LDA XX12+2             \ delta_x lo
- JSR LL28               \ BFRDIV R=A*256/Q = delta_x / delta_y
+ LDA XX12+2             \ Set A = delta_x_lo
 
-                        \ Use X/Y grad
- DEC T                  \ steep toggle updated T = #&FF
+ JSR LL28               \ Call LL28 to calculate:
+                        \
+                        \   R = 256 * A / Q
+                        \     = 256 * delta_x_lo / delta_y_lo
 
-.LL116                  \ arrive here for both options with known gradient
+ DEC T                  \ T was set to 0 above, so this sets T = &FF
 
- LDA R                  \ gradient
+\ ******************************************************************************
+\
+\ Subroutine: LL145 (Part 4 of 4)
+\
+\ Clip the line from (x1, y1) to (x2, y2) so it fits on screen. This part sets
+\ things up to call the routine in LL188, which does the actual clipping.
+\
+\ If we get here, then R has been set to the gradient of the line (x1, y1) to
+\ (x2, y2), with T indicating the type of slope:
+\
+\   * 0   = it's more vertical than horizontal
+\
+\   * &FF = it's more horizontal than vertical
+\
+\ and XX13 has been set as follows:
+\
+\   * 0   = (x1, y1) off screen, (x2, y2) on screen
+\
+\   * 95  = (x1, y1) on screen,  (x2, y2) off screen
+\
+\   * 191 = (x1, y1) off screen, (x2, y2) off screen
+\
+\ ******************************************************************************
+
+.LL116
+
+ LDA R                  \ Store the gradient in XX12+2
  STA XX12+2
- LDA S                  \ quadrant info
- STA XX12+3
- LDA XX13
- BEQ LL138              \ yClip = 0 or 191?, skip bpl
- BPL LLX117             \ yClip+ve, swop nodes
 
-.LL138                  \ yClip = 0 or or >127   need to fit x1,y1 into bounding box
+ LDA S                  \ Store the type of slope in XX12+3, bit 7 clear means
+ STA XX12+3             \ top left to bottom right, bit 7 set means top right to
+                        \ bottom left
 
- JSR LL118              \ Trim XX15,XX15+2 to screen grad=XX12+2
- LDA XX13
- BPL LL124              \ yClip+ve, finish clip
+ LDA XX13               \ If XX13 = 0, skip the following instruction
+ BEQ LL138
 
-.LL117                  \ yClip > 127
+ BPL LLX117             \ If XX13 is positive, it must be 95. This means
+                        \ (x1, y1) is on screen but (x2, y2) isn't, so we jump
+                        \ to LLX117 to swap the (x1, y1) and (x2, y2)
+                        \ coordinates around before doing the actual clipping,
+                        \ because we need to clip (x2, y2) but the clipping
+                        \ routine at LL118 only clips (x1, y1)
 
- LDA XX15+1             \ x1 hi
- ORA XX15+3             \ y1 hi
- BNE LL137              \ some hi bits present, no line
- LDA XX15+2             \ y1 lo
- CMP #Y*2               \ #Y*2  Yscreen full height
- BCS LL137              \ if y1 lo >= Yscreen,  no line
+.LL138
 
-.LLX117                 \ yClip+ve from LL116, swop nodes then trim nodes, XX12+2 = gradient, XX12+3 = quadrant info
+                        \ If we get here, XX13 = 0 or 191, so (x1, y1) is
+                        \ off screen and needs clipping
 
- LDX XX15               \ x1 lo
- LDA XX15+4             \ x2 lo
+ JSR LL118              \ Call LL118 to move (x1, y1) along the line onto the
+                        \ screen, i.e. clip the line at the (x1, y1) end
+
+ LDA XX13               \ If XX13 = 0, i.e. (x2, y2) is on screen, jump down to
+ BPL LL124              \ LL124 to return with a successfully clipped line
+
+.LL117
+
+                        \ If we get here, XX13 = 191 (both coordinates are
+                        \ off screen)
+
+ LDA XX15+1             \ If either of x1_hi or y1_hi are non-zero, jump to
+ ORA XX15+3             \ LL137 to return from the subroutine with the C flag
+ BNE LL137              \ set, as the line doesn't fit on screen
+
+
+ LDA XX15+2             \ If y1_lo > y-coordinate of the bottom of the screen
+ CMP #Y*2               \ jump to LL137 to return from the subroutine with the
+ BCS LL137              \ C flag set, as the line doesn't fit on screen
+
+.LLX117
+
+                        \ If we get here, XX13 = 95 or 191, and in both cases
+                        \ (x2, y2) is off screen, so we now need to swap the
+                        \ (x1, y1) and (x2, y2) coordinates around before doing
+                        \ the actual clipping, because we need to clip (x2, y2)
+                        \ but the clipping routine at LL118 only clips (x1, y1)
+
+ LDX XX15               \ Swap x1_lo = x2_lo
+ LDA XX15+4
  STA XX15
  STX XX15+4
- LDA XX15+5             \ x2 hi
- LDX XX15+1             \ x1 hi
+
+ LDA XX15+5             \ Swap x2_lo = x1_lo
+ LDX XX15+1
  STX XX15+5
  STA XX15+1
- LDX XX15+2             \ Onto swopping y
- LDA XX12               \ y2 lo
+
+ LDX XX15+2             \ Swap y1_lo = y2_lo
+ LDA XX12
  STA XX15+2
  STX XX12
- LDA XX12+1             \ y2 hi
- LDX XX15+3             \ y1 hi
+
+ LDA XX12+1             \ Swap y2_lo = y1_lo
+ LDX XX15+3
  STX XX12+1
- STA XX15+3             \ finished swop of (x1 y1) and (x2 y2)
- JSR LL118              \ Trim XX15,XX15+2 to screen grad=XX12+2
- DEC SWAP
+ STA XX15+3
 
-.LL124                  \ also yClip+ve from LL138, finish clip
+ JSR LL118              \ Call LL118 to move (x1, y1) along the line onto the
+                        \ screen, i.e. clip the line at the (x1, y1) end
 
- PLA                    \ restore ship edge index
- TAY
- JMP LL146              \ up, Finished clipping, Shuffle XX15 down to (x1,y1) (x2,y2)
+ DEC SWAP               \ Set SWAP = &FF to indicate that we just clipped the
+                        \ line at the (x2, y2) end by swapping the coordinates
+                        \ (the DEC does this as we set SWAP to 0 at the start of
+                        \ this subroutine)
 
-.LL137                  \ no line
+.LL124
 
- PLA                    \ restore ship edge index
- TAY
- SEC                    \ not visible
- RTS                    \ -- Finished clipping
+ PLA                    \ Restore Y from the stack so it gets preserved through
+ TAY                    \ the call to this subroutine
+
+ JMP LL146              \ Jump up to LL146 to move the low bytes of (x1, y1) and
+                        \ (x2, y2) into (X1, Y1) and (X2, Y2), and return from
+                        \ the subroutine with a successfully clipped line
+
+.LL137
+
+ PLA                    \ Restore Y from the stack so it gets preserved through
+ TAY                    \ the call to this subroutine
+
+ SEC                    \ Set the C flag to indicate the clipped line does not
+                        \ fit on screen
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
