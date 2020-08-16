@@ -161,6 +161,13 @@ f9 = &77
 \ down as humans. The point of this terminology is to make it easier for people
 \ to read, after all.
 \
+\ Finally, we might also refer to the following:
+\
+\   * Given a multi-byte number, (S R) say, the absolute of that number - the
+\     magnitude with no sign - would be written |S R|
+\
+\   * Given a number X, ~X is the number with all the bits inverted
+\
 \ ******************************************************************************
 
 \ ******************************************************************************
@@ -472,7 +479,7 @@ ORG &0000
                         \ takes 15 iterations to happen, but subsequent ticks
                         \ take 5 iterations each)
                         \
-                        \ QQ22+1 contains the number that's shown on-screen
+                        \ QQ22+1 contains the number that's shown on screen
                         \ during countdown. It counts down from 15 to 1, and
                         \ when it hits 0, the hyperspace engines kick in
 
@@ -881,7 +888,8 @@ ORG &0000
 
 .SWAP
 
- SKIP 1                 \
+ SKIP 1                 \ Determines whether we had to swap a point's
+                        \ coordinates when drawing a buffered line using BLINE
 
 .COL
 
@@ -889,13 +897,15 @@ ORG &0000
 
 .FLAG
 
- SKIP 1                 \
+ SKIP 1                 \ Used to define the first call to the buffered line
+                        \ routine in BLINE, so it knows to wait for the second
+                        \ call before storing segment data in the line buffer
 
 .CNT
 
  SKIP 1                 \ Used as temporary storage (e.g. stores the number of
                         \ bits of debris shown on destruction when a ship is
-                        \ blown up)
+                        \ blown up, and the point count when drawing circles)
 
 .CNT2
 
@@ -964,7 +974,7 @@ PRINT "Zero page variables from ", ~ZP, " to ", ~P%
 \
 \ Workspace XX3 at &0100
 \
-\ Used as heap space for storing temporary data during calculations shared with
+\ Used as heap space for storing temporary data during calculations. Shared with
 \ the descending 6502 stack, which works down from &01FF.
 \
 \ ******************************************************************************
@@ -9337,10 +9347,10 @@ NEXT
 \
 \   STP                 The step size for the circle
 \
-\   K6(1 0)             The x-coordinate of this step point on the circle, as
+\   K6(1 0)             The x-coordinate of the new point on the circle, as
 \                       a screen coordinate
 \
-\   (T X)               The y-coordinate of this step point on the circle, as
+\   (T X)               The y-coordinate of the new point on the circle, as
 \                       an offset from the centre of the circle
 \
 \   FLAG                Set to &FF for the first call, so it sets up the first
@@ -9416,8 +9426,8 @@ NEXT
 \   * LSX = &FF indicates the line buffer is empty
 \
 \ Meanwhile, if a y-coordinate in LSY2 is &FF, then this means the next point in
-\ the buffer represents the start of a new segment, rather than a continuation of
-\ the previous one. Specifically, this is the layout in the buffer:
+\ the buffer represents the start of a new segment, rather than a continuation
+\ of the previous one. Specifically, this is the layout in the buffer:
 \
 \   LSX2  ...      X1  X2 ...
 \   LSY2  ... &FF  Y1  Y2 ...
@@ -9437,11 +9447,11 @@ NEXT
 .BLINE
 {
  TXA                    \ Set K6(3 2) = (T X) + K4(1 0)
- ADC K4                 \             = y-coord of centre + y-coord of point
+ ADC K4                 \             = y-coord of centre + y-coord of new point
  STA K6+2               \
- LDA K4+1               \ so K6(3 2) now contains the y-coordinate of this point
- ADC T                  \ on the circle, as a screen coordinate, to go along
- STA K6+3               \ with the screen y-coordinate in K6(1 0)
+ LDA K4+1               \ so K6(3 2) now contains the y-coordinate of the new
+ ADC T                  \ point on the circle but as a screen coordinate, to go
+ STA K6+3               \ along with the screen y-coordinate in K6(1 0)
 
  LDA FLAG               \ If FLAG = 0, jump down to BL1
  BEQ BL1
@@ -9481,43 +9491,45 @@ NEXT
 
 .BL1
 
- LDA K5                 \ Set XX15 aka X1 = K5
+ LDA K5                 \ Set XX15 = K5 = x_lo of previous point
  STA XX15
 
- LDA K5+1               \ Set XX15+1 aka Y1 = K5+1
+ LDA K5+1               \ Set XX15+1 = K5+1 = x_hi of previous point
  STA XX15+1
 
- LDA K5+2               \ Set XX15+2 aka X2 = K5+2
+ LDA K5+2               \ Set XX15+2 = K5+2 = y_lo of previous point
  STA XX15+2
 
- LDA K5+3               \ Set XX15+3 aka Y2 = K5+3
+ LDA K5+3               \ Set XX15+3 = K5+3 = y_hi of previous point
  STA XX15+3
 
- LDA K6                 \ Set XX15+4 = x_lo of step point
+ LDA K6                 \ Set XX15+4 = x_lo of new point
  STA XX15+4
 
- LDA K6+1               \ Set XX15+5 = x_hi of step point
+ LDA K6+1               \ Set XX15+5 = x_hi of new point
  STA XX15+5
 
- LDA K6+2               \ Set XX12 = y_lo of step point
+ LDA K6+2               \ Set XX12 = y_lo of new point
  STA XX12
 
- LDA K6+3               \ Set XX12+1 = y_hi of step point
+ LDA K6+3               \ Set XX12+1 = y_hi of new point
  STA XX12+1
 
- JSR LL145              \ Call LL145 to see if the line can be clipped to fit
-                        \ on screen
+ JSR LL145              \ Call LL145 to see if the new line segment needs to be
+                        \ clipped to fit on screen, returning the clipped line's
+                        \ end-points in (X1, Y1) and (X2, Y2)
 
- BCS BL5                \ If the C flag is set then the clipped line is not
-                        \ visible, so jump to BL5, to avoid drawing and storing
-                        \ this line
+ BCS BL5                \ If the C flag is set then the line is not visible on
+                        \ screen anyway, so jump to BL5, to avoid drawing and
+                        \ storing this line
 
- LDA SWAP               \ If SWAP = 0, jump to BL9 to skip the following swap
- BEQ BL9                \ code
-
- LDA X1                 \ Swap (X1, Y1) and (X2, Y2)
- LDY X2
- STA X2
+ LDA SWAP               \ If SWAP = 0, then we didn't have to swap the line
+ BEQ BL9                \ coordinates around during the clipping process, so 
+                        \ jump to BL9 to skip the following swap
+ 
+ LDA X1                 \ Otherwise the coordinates were swapped by the call to,
+ LDY X2                 \ LL145 above, so we swap (X1, Y1) and (X2, Y2) back
+ STA X2                 \ again
  STY X1
  LDA Y1
  LDY Y2
@@ -9558,18 +9570,24 @@ NEXT
  JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2)
 
  LDA XX13               \ If XX13 is non-zero, jump up to BL5 to add a &FF
- BNE BL5                \ marker to the end of the line buffer
+ BNE BL5                \ marker to the end of the line buffer. XX13 is non-zero
+                        \ after the call to the clipping routine LL145 above if
+                        \ the end of the line was clipped, meaning the next line
+                        \ sent to BLINE can't join onto the end but has to start
+                        \ a new segment, and that's what inserting the &FF
+                        \ marker does
 
 .BL7
 
  LDA K6                 \ Copy the data for this step point from K6(3 2 1 0)
- STA K5                 \ into K5(3 2 1 0):
+ STA K5                 \ into K5(3 2 1 0), for use in the next call to BLINE:
  LDA K6+1               \
- STA K5+1               \   * K5(1 0) = screen x-coordinate of step point
- LDA K6+2               \   * K5(3 2) = screen y-coordinate of step point
- STA K5+2
- LDA K6+3
- STA K5+3
+ STA K5+1               \   * K5(1 0) = screen x-coordinate of this point
+ LDA K6+2               \
+ STA K5+2               \   * K5(3 2) = screen y-coordinate of this point
+ LDA K6+3               \
+ STA K5+3               \ They now become the "previous point" in the next call
+            
 
  LDA CNT                \ Set CNT = CNT + STP
  CLC
@@ -14790,7 +14808,7 @@ NEXT
 \
 \   K(3 2 1 0) = (A P+1 P) * Q
 \
-\ The algorithm is the same "shift and add" algorithm as in routine MU11, but
+\ The algorithm is the same "shift and add" algorithm as in routine MULT1, but
 \ extended to cope with more bits.
 \
 \ Returns:
@@ -14816,7 +14834,7 @@ NEXT
  SBC #1
  STA T
 
-                        \ We now use the same "shift and add" algorithm as MU11
+                        \ We now use the same "shift and add" algorithm as MULT1
                         \ to calculate the following:
                         \
                         \ K(2 1 0) = K(2 1 0) * |Q|
@@ -14839,7 +14857,7 @@ NEXT
  ROR A                  \ K, so K(2 1 0) now contains (|A| P+1 P) shifted right
  STA K
 
-                        \ We now use the same "shift and add" algorithm as MU11
+                        \ We now use the same "shift and add" algorithm as MULT1
                         \ to calculate the following:
                         \
                         \ K(2 1 0) = K(2 1 0) * |Q|
@@ -16178,7 +16196,7 @@ NEXT
 \
 \ ******************************************************************************
 
-.DVID3B2                \ Divide 3 bytes by 2 bytes, K = P.A/INWK_z for planet, Xreg protected
+.DVID3B2
 {
  STA P+2                \ num sg
  LDA INWK+6             \ z coord lo
@@ -17392,7 +17410,7 @@ NEXT
  BNE BOL1               \ the last character row in the space view part of the
                         \ screen (the mode 4 part)
 
- LDX QQ22+1             \ Fetch into X the number that's shown on-screen during
+ LDX QQ22+1             \ Fetch into X the number that's shown on screen during
                         \ the hyperspace countdown
 
  BEQ BOX                \ If the counter is zero then we are not counting down
@@ -21012,7 +21030,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ using a tail call (as we can't hyperspace when docked)
 
  LDA QQ22+1             \ Fetch QQ22+1, which contains the number that's shown
-                        \ on-screen during hyperspace countdown
+                        \ on screen during hyperspace countdown
 
  BNE zZ+1               \ If it is non-zero, return from the subroutine (as zZ+1
                         \ contains an RTS), as there is already a countdown in
@@ -25694,7 +25712,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \   centre of screen - 1024 < y < centre of screen + 1024
 \
 \ This is to cater for ships (and, more likely, planets and suns) whose centres
-\ are off-screen but whose edges may still be visible.
+\ are off screen but whose edges may still be visible.
 \
 \ The projection calculation is:
 \
@@ -26259,7 +26277,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 \
-\ This routine does this:
+\ For meridian 1, this routine does this:
 \
 \   K6(1 0) = K3(1 0) + (nosev_x / z) * cos(CNT2) + (roofv_x / z) * sin(CNT2)
 \
@@ -29210,7 +29228,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
  LDX QQ22+1             \ Set X = the on-screen hyperspace counter (i.e. the
                         \ current number in the sequence, which is already
-                        \ shown on-screen)
+                        \ shown on screen)
 
  JSR ee3                \ Print the 8-bit number in X at text location (0, 1),
                         \ i.e. print the hyperspace countdown in the top-left
