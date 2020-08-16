@@ -33775,250 +33775,501 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL118
 \
-\ Trim XX15,XX15+2 to screen grad=XX12+2 for CLIP
+\ Given a point (x1, y1), a gradient and a direction of slope, move the point
+\ along the line until it is on screen, so this effectively clips the (x1, y1)
+\ end of a line to be on the screen.
+\
+\ For example, if x1 is negative, i.e. off the left edge of the screen, we move
+\ the point right along the line until x1 = 0. We calculate the new y1 by
+\ multiplying the distance travelled in the x-direction by the gradient.
+\
+\ Similar logic is applied when the point is off screen to the right, top or
+\ bottom. Also, because the gradient is always stored as a fractional value
+\ (it's less than 1.0, just expressed as a byte), then when the line is more
+\ vertical than horizontal, the value stored is actually 1 / gradient, as that
+\ way it fits into the byte. Because of this, if T = 0, we have to divide by the
+\ gradient rather than multiply to get the same result.
+\
+\ Arguments:
+\
+\   XX15(1 0)           x1 as a 16-bit coordinate (x1_hi x1_lo)
+\
+\   XX15(3 2)           y1 as a 16-bit coordinate (y1_hi y1_lo)
+\
+\   XX12+2              The line's gradient * 256 (so 1.0 = 256)
+\
+\   XX12+3              The direction of slope:
+\
+\                         * Positive (bit 7 clear) = top left to bottom right
+\
+\                         * Negative (bit 7 set) = top right to bottom left
+\
+\   T                   The type of slope:
+\
+\                           * 0 if it's more vertical than horizontal
+\
+\                           * &FF if it's more horizontal than vertical
+\
+\ Returns:
+\
+\   XX15                x1 as an 8-bit coordinate
+\
+\   XX15+2              y1 as an 8-bit coordinate
+\
+\ Other entry points:
+\
+\   LL118-1             Contains an RTS
 \
 \ ******************************************************************************
 
-.LL118                  \ Trim XX15,XX15+2 to screen grad=XX12+2 for CLIP
+.LL118
 {
- LDA XX15+1             \ x1 hi
- BPL LL119              \ x1 hi+ve skip down
- STA S                  \ else x1 hi -ve
- JSR LL120              \ X1<0 \ their comment \ X.Y = x1_lo.S *  M/256
- TXA                    \ step Y1 lo
- CLC
- ADC XX15+2             \ Y1 lo
+ LDA XX15+1             \ If x1_hi is positive, jump down to LL119 to skip
+ BPL LL119              \ the following
+
+ STA S                  \ Otherwise x1_hi is negative, i.e. off the left of the
+                        \ screen, so set S = x1_hi
+
+ JSR LL120              \ Call LL120 to calculate:
+                        \
+                        \   (Y X) = (S x1_lo) * XX12+2      if T = 0
+                        \         = x1 * gradient
+                        \
+                        \   (Y X) = (S x1_lo) / XX12+2      if T <> 0
+                        \         = x1 / gradient
+                        \
+                        \ with the sign of (Y X) set to the opposite of the
+                        \ line's direction of slope
+
+ TXA                    \ Set y1 = y1 + (Y X)
+ CLC                    \
+ ADC XX15+2             \ starting with the low bytes
  STA XX15+2
- TYA                    \ step Y1 hi
- ADC XX15+3             \ Y1 hi
+
+ TYA                    \ And then adding the high bytes
+ ADC XX15+3
  STA XX15+3
- LDA #0                 \ xleft min
- STA XX15               \ X1 lo
- STA XX15+1             \ X1 = 0
- TAX                    \ Xreg = 0, will skip to Ytrim
 
-.LL119                  \ x1 hi +ve from LL118
-
- BEQ LL134              \ if x1 hi = 0 skip to Ytrim
- STA S                  \ else x1 hi > 0
- DEC S                  \ x1 hi-1
- JSR LL120              \ X1>255 \ their comment \ X.Y = x1lo.S *  M/256
- TXA                    \ step Y1 lo
- CLC
- ADC XX15+2             \ Y1 lo
- STA XX15+2
- TYA                    \ step Y1 hi
- ADC XX15+3             \ Y1 hi
- STA XX15+3
- LDX #&FF               \ xright max
- STX XX15               \ X1 lo = 255
- INX                    \ = 0
- STX XX15+1             \ X1 hi
-
-.LL134                  \ Ytrim
-
- LDA XX15+3             \ y1 hi
- BPL LL135              \ y1 hi +ve
- STA S                  \ else y1 hi -ve
- LDA XX15+2             \ y1 lo
- STA R                  \ Y1<0 their comment
- JSR LL123              \ X.Y=R.S*256/M (M=grad.)   \where 256/M is gradient
- TXA                    \ step X1 lo
- CLC
- ADC XX15               \ X1 lo
+ LDA #0                 \ Set x1 = 0
  STA XX15
- TYA                    \ step X1 hi
- ADC XX15+1             \ X1 hi
  STA XX15+1
- LDA #0                 \ Y bottom min
- STA XX15+2             \ Y1 lo
- STA XX15+3             \ Y1 hi = 0
 
-.LL135                  \ y1 hi +ve from LL134
-\BNE LL139
- LDA XX15+2             \ Y1 lo
- SEC
- SBC #Y*2               \ #Y*2  screen y height
- STA R                  \ Y1>191 their comment
- LDA XX15+3             \ Y1 hi
+ TAX                    \ Set X = 0 so the next instruction becomes a JMP
+
+.LL119
+
+ BEQ LL134              \ If x1_hi = 0 then jump down to LL134 to skip the
+                        \ following, as the x-coordinate is already on screen
+                        \ (as 0 <= (x_hi x_lo) <= 255)
+
+ STA S                  \ Otherwise x1_hi is positive, i.e. x1 >= 256 and off
+ DEC S                  \ the right side of the screen, so set S = x1_hi - 1
+
+ JSR LL120              \ Call LL120 to calculate:
+                        \
+                        \   (Y X) = (S x1_lo) * XX12+2      if T = 0
+                        \         = (x1 - 256) * gradient
+                        \
+                        \   (Y X) = (S x1_lo) / XX12+2      if T <> 0
+                        \         = (x1 - 256) / gradient
+                        \
+                        \ with the sign of (Y X) set to the opposite of the
+                        \ line's direction of slope
+
+ TXA                    \ Set y1 = y1 + (Y X)
+ CLC                    \
+ ADC XX15+2             \ starting with the low bytes
+ STA XX15+2
+
+ TYA                    \ And then adding the high bytes
+ ADC XX15+3
+ STA XX15+3
+
+ LDX #255               \ Set x1 = 255
+ STX XX15
+ INX
+ STX XX15+1
+
+.LL134
+
+                        \ We have moved the point so the x-coordinate is on
+                        \ screen (i.e. in the range 0-255), so now for the
+                        \ y-coordinate
+
+ LDA XX15+3             \ If y1_hi is positive, jump down to LL119 to skip
+ BPL LL135              \ the following
+
+ STA S                  \ Otherwise y1_hi is negative, i.e. off the top of the
+                        \ screen, so set S = y1_hi
+
+ LDA XX15+2             \ Set R = y1_lo
+ STA R
+
+ JSR LL123              \ Call LL123 to calculate:
+                        \
+                        \   (Y X) = (S R) / XX12+2      if T = 0
+                        \         = y1 * gradient
+                        \
+                        \   (Y X) = (S R) * XX12+2      if T <> 0
+                        \         = y1 * gradient
+                        \
+                        \ with the sign of (Y X) set to the opposite of the
+                        \ line's direction of slope
+
+ TXA                    \ Set x1 = x1 + (Y X)
+ CLC                    \
+ ADC XX15               \ starting with the low bytes
+ STA XX15
+
+ TYA                    \ And then adding the high bytes
+ ADC XX15+1
+ STA XX15+1
+
+ LDA #0                 \ Set y1 = 0
+ STA XX15+2
+ STA XX15+3
+
+.LL135
+
+\BNE LL139              \ This instruction is commented out in the original
+                        \ source
+
+ LDA XX15+2             \ Set (S R) = (y1_hi y1_lo) - 192
+ SEC                    \
+ SBC #Y*2               \ starting with the low bytes
+ STA R
+
+ LDA XX15+3             \ And then subtracting the high bytes
  SBC #0
  STA S
- BCC LL136              \ failed, rts
+
+ BCC LL136              \ If the subtraction underflowed, i.e. if y1 < 192, then
+                        \ y1 is already on screen, so jump to LL136 to return
+                        \ from the subroutine, as we are done
 
 .LL139
 
- JSR LL123              \ X.Y=R.S*256/M (M=grad.)   \where 256/M is gradient
- TXA                    \ step X1 lo
- CLC
- ADC XX15               \ X1 lo
+                        \ If we get here then y1 >= 192, i.e. off the bottom of
+                        \ the screen
+
+ JSR LL123              \ Call LL123 to calculate:
+                        \
+                        \   (Y X) = (S R) / XX12+2      if T = 0
+                        \         = (y1 - 192) / gradient
+                        \
+                        \   (Y X) = (S R) * XX12+2      if T <> 0
+                        \         = (y1 - 192) * gradient
+                        \
+                        \ with the sign of (Y X) set to the opposite of the
+                        \ line's direction of slope
+
+ TXA                    \ Set x1 = x1 + (Y X)
+ CLC                    \
+ ADC XX15               \ starting with the low bytes
  STA XX15
- TYA                    \ step X1 hi
- ADC XX15+1             \ X1 hi
+
+ TYA                    \ And then adding the high bytes
+ ADC XX15+1
  STA XX15+1
- LDA #Y*2-1             \ #Y*2-1 = y top max
- STA XX15+2             \ Y1 lo
- LDA #0                 \ Y1 hi = 0
- STA XX15+3             \ Y1 = 191
 
-.LL136                  \ rts
+ LDA #Y*2-1             \ Set y1 = 2 * #Y - 1. The constant #Y is 96, the
+ STA XX15+2             \ y-coordinate of the mid-point of the space view, so
+ LDA #0                 \ this sets Y2 to 191, the y-coordinate of the bottom
+ STA XX15+3             \ pixel row of the space view
 
- RTS                    \ -- trim for CLIP done
+.LL136
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: LL120
 \
-\ X.Y=x1lo.S*M/256  	\ where M/256 is gradient
+\ Calculate the following:
+\
+\   * If T = 0  (more vertical than horizontal), (Y X) = (S x1_lo) * XX12+2
+\
+\   * If T <> 0 (more horizontal than vertical), (Y X) = (S x1_lo) / XX12+2
+\
+\ giving (Y X) the opposite sign to the slope direction in XX12+3.
+\
+\ Other entry points:
+\
+\   LL122               Calculate (Y X) = (S R) * Q and set the sign to the
+\                       opposite of the top byte on the stack
 \
 \ ******************************************************************************
 
-.LL120                  \ X.Y=x1lo.S*M/256  	\ where M/256 is gradient
+.LL120
 {
- LDA XX15               \ x1 lo
+ LDA XX15               \ Set R = x1_lo
  STA R
 
-\.LL120
+\.LL120                 \ This label is commented out in the original source
 
- JSR LL129              \ RS = abs(x1=RS) and return with
- PHA                    \ store Acc = hsb x1 EOR quadrant_info, Q = (1/)gradient
- LDX T                  \ steep toggle = 0 or FF for steep/shallow down
- BNE LL121              \ down Steep
-}
+ JSR LL129              \ Call LL129 to do the following:
+                        \
+                        \   Q = XX12+2
+                        \     = line gradient
+                        \
+                        \   A = S EOR XX12+3
+                        \     = S EOR slope direction
+                        \
+                        \   (S R) = |S R|
+                        \
+                        \ So A contains the sign of S * slope direction
 
-.LL122                  \ else Shallow return step, also arrive from LL123 for steep stepX
-{
- LDA #0
+ PHA                    \ Store A on the stack so we can use it later
+
+ LDX T                  \ If T is non-zero, so it's more horizontal than
+ BNE LL121              \ vertical, jump down to LL121 to calculate this
+                        \ instead:
+                        \
+                        \   (Y X) = (S R) / Q
+
+.^LL122
+
+                        \ The following calculates:
+                        \
+                        \   (Y X) = (S R) * Q
+                        \
+                        \ using the same "shift and add" algorithm that's
+                        \ documented in MULT1
+
+ LDA #0                 \ Set A = 0
+
+ TAX                    \ Set (Y X) = 0 so we can start building the answer here
+ TAY
+
+ LSR S                  \ Shift (S R) to the right, so we extract bit 0 of (S R)
+ ROR R                  \ into the C flag
+
+ ASL Q                  \ Shift Q to the left, catching bit 7 in the C flag
+
+ BCC LL126              \ If C (i.e. the next bit from Q) is clear, do not do
+                        \ the addition for this bit of Q, and instead skip to
+                        \ LL126 to just do the shifts
+
+.LL125
+
+ TXA                    \ Set (Y X) = (Y X) + (S R)
+ CLC                    \
+ ADC R                  \ starting with the low bytes
  TAX
- TAY                    \ all = 0 at start
- LSR S                  \ hi /=2
- ROR R                  \ lo /=2
- ASL Q                  \ double 1/gradient
- BCC LL126              \ hop first half of loop
 
-.LL125                  \ roll Q up
-
- TXA                    \ increase step
- CLC
- ADC R
- TAX                    \ lo
- TYA                    \ hi
+ TYA                    \ And then doing the high bytes
  ADC S
- TAY                    \ hi
+ TAY
 
-.LL126                  \ first half of loop done
+.LL126
 
- LSR S                  \ hi /=2
- ROR R                  \ lo /=2
- ASL Q                  \ double 1/gradient
- BCS LL125              \ if gradient not too small, loop Q
- BNE LL126              \ half loop as Q not emptied yet
- PLA                    \ restore quadrant info
- BPL LL133              \ flip XY sign
- RTS
+ LSR S                  \ Shift (S R) to the right
+ ROR R
+
+ ASL Q                  \ Shift Q to the left, catching bit 7 in the C flag
+
+ BCS LL125              \ If C (i.e. the next bit from Q) is set, loop back to
+                        \ LL125 to do the addition for this bit of Q
+
+ BNE LL126              \ If Q has not yet run out of set bits, loop back to
+                        \ LL126 to do the "shift" part of "shift and add" until
+                        \ we have done additions for all the set bits in Q, to
+                        \ give us our multiplication result
+
+ PLA                    \ Restore A, which we calculated above, from the stack
+
+ BPL LL133              \ If A is positive jump to LL133 to negate (Y X) and
+                        \ return from the subroutine using a tail call
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: LL123
 \
-\ X.Y=R.S*256/M (M=grad.)	\ where 256/M is gradient
+\ Calculate the following:
+\
+\   * If T = 0,  calculate (Y X) = (S R) / XX12+2
+\
+\   * If T <> 0, calculate (Y X) = (S R) * XX12+2
+\
+\ giving (Y X) the opposite sign to the slope direction in XX12+3.
+\
+\ Arguments:
+\
+\   XX12+2              The line's gradient * 256 (so 1.0 = 256)
+\
+\   XX12+3              The direction of slope:
+\
+\                         * Bit 7 clear means top left to bottom right
+\
+\                         * Bit 7 set means top right to bottom left
+\
+\ Other entry points:
+\
+\   LL121               Calculate (Y X) = (S R) / Q and set the sign to the
+\                       opposite of the top byte on the stack
+\
+\   LL133               Negate (Y X) and return from the subroutine
+\
+\   LL128               Contains an RTS
 \
 \ ******************************************************************************
 
-.LL123                  \ X.Y=R.S*256/M (M=grad.)	\ where 256/M is gradient
+.LL123
 {
- JSR LL129              \ RS = abs(y1=RS) and return with
- PHA                    \ store  Acc = hsb x1 EOR hi, Q = (1/)gradient
- LDX T                  \ steep toggle = 0 or FF for steep/shallow up
- BNE LL122              \ up Shallow
-}
+ JSR LL129              \ Call LL129 to do the following:
+                        \
+                        \   Q = XX12+2
+                        \     = line gradient
+                        \
+                        \   A = S EOR XX12+3
+                        \     = S EOR slope direction
+                        \
+                        \   (S R) = |S R|
+                        \
+                        \ So A contains the sign of S * slope direction
 
-.LL121                  \ T = #&FF for Steep return stepY, shallow stepX
-{
- LDA #255
+ PHA                    \ Store A on the stack so we can use it later
+
+ LDX T                  \ If T is non-zero, so it's more horizontal than
+ BNE LL122              \ vertical, jump up to LL122 to calculate this instead:
+                        \
+                        \   (Y X) = (S R) * Q
+
+.^LL121
+
+                        \ The following calculates:
+                        \
+                        \   (Y X) = (S R) / Q
+                        \
+                        \ using the same "shift and subtract" algorithm that's
+                        \ documented in TIS2
+                        
+ LDA #%11111111         \ Set Y = %11111111
  TAY
- ASL A                  \ #&FE
- TAX                    \ Step X.Y= &FFFE at start
 
-.LL130                  \ roll Y
+ ASL A                  \ Set X = %11111110
+ TAX
 
- ASL R                  \ lo *=2
- ROL S                  \ hi *=2
- LDA S
- BCS LL131              \ if S overflowed skip Q test and do subtractions
- CMP Q
- BCC LL132              \ if S <  Q = 256/gradient skip subtractions
+                        \ This sets (Y X) = %1111111111111110, so we can rotate
+                        \ through 15 loop iterations, getting a 1 each time, and
+                        \ then getting a 0 on the 16th iteration... and we can
+                        \ also use it to catch our result bits into bit 0 each
+                        \ time
 
-.LL131                  \ skipped Q test
+.LL130
 
- SBC Q
- STA S                  \ lo
- LDA R
- SBC #0                 \ hi
+ ASL R                  \ Shift (S R) to the left
+ ROL S
+
+ LDA S                  \ Set A = S
+
+ BCS LL131              \ If bit 7 of S was set, then jump straight to the
+                        \ subtraction
+
+ CMP Q                  \ If A < Q (i.e. S < Q), skip the following subtractions
+ BCC LL132
+
+.LL131
+
+ SBC Q                  \ A >= Q (i.e. S >= Q) so set:
+ STA S                  \
+                        \   S = (A R) - Q
+                        \     = (S R) - Q
+                        \
+                        \ starting with the low bytes (we know the C flag is
+                        \ set so the subtraction will be correct)
+
+ LDA R                  \ And then doing the high bytes
+ SBC #0
  STA R
- SEC
 
-.LL132                  \ skipped subtractions
+ SEC                    \ Set the C flag to rotate into the result in (Y X)
 
- TXA                    \ increase step
- ROL A
- TAX                    \ stepX lo
+.LL132
+
+ TXA                    \ Rotate the counter in (Y X) to the left, and catch the
+ ROL A                  \ result bit into bit 0 (which will be a 0 if we didn't
+ TAX                    \ do the subtraction, or 1 if we did)
  TYA
  ROL A
- TAY                    \ stepX hi
- BCS LL130              \ loop Y if bit fell out of Y
- PLA                    \ restore quadrant info
- BMI LL128              \ down rts
-}
+ TAY
 
-.LL133                  \ flip XY sign, quadrant info +ve in LL120 arrives here too
-{
- TXA
- EOR #&FF
-\CLC
- ADC #1
- TAX                    \ flip sign of x
- TYA
- EOR #&FF
+ BCS LL130              \ If we still have set bits in (Y X), loop back to LL130
+                        \ to do the next iteration of 15, until we have done the
+                        \ whole division
+
+ PLA                    \ Restore A, which we calculated above, from the stack
+
+ BMI LL128              \ If A is negative jump to LL128 to return from the
+                        \ subroutine with (Y X) as is
+
+.^LL133
+
+ TXA                    \ Otherwise negate (Y X) using two's complement by first
+ EOR #%11111111         \ setting the low byte to ~X + 1
+\CLC                    \
+ ADC #1                 \ The CLC instruction is commented out in the original
+ TAX                    \ source. It would have no effect as we know the C flag
+                        \ is clear from when we passed through the BCS above
+
+ TYA                    \ Then set the high byte to ~Y + C
+ EOR #%11111111
  ADC #0
- TAY                    \ flip sign of y
-}
+ TAY
 
 .LL128
-{
- RTS
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: LL129
 \
-\ RS = abs(RS) and return Acc = hsb x1 EOR hi, Q = (1/)gradient
+\ Do the following, in this order:
+\
+\   Q = XX12+2
+\
+\   A = S EOR XX12+3
+\
+\   (S R) = |S R|
+\
+\ This sets up the variables required above to calculate (S R) / XX12+2 and give
+\ the result the opposite sign to XX13+3.
 \
 \ ******************************************************************************
 
-.LL129                  \ RS = abs(RS) and return Acc = hsb x1 EOR hi, Q = (1/)gradient
+.LL129
 {
- LDX XX12+2             \ gradient
+ LDX XX12+2             \ Set Q = XX12+2
  STX Q
- LDA S                  \ hi
- BPL LL127              \ hop to eor
- LDA #0                 \ else flip sign of R
+
+ LDA S                  \ If S is positive, jump to LL127
+ BPL LL127
+
+ LDA #0                 \ Otherwise set R = -R
  SEC
  SBC R
  STA R
- LDA S
- PHA                    \ push old S
- EOR #255               \ flip S
+
+ LDA S                  \ Push S onto the stack
+ PHA
+
+ EOR #%11111111         \ Set S = ~S + 1 + C
  ADC #0
  STA S
- PLA                    \ pull old S for eor
+
+ PLA                    \ Pull the original, negative S from the stack into A
 
 .LL127
 
- EOR XX12+3             \ Acc ^= quadrant info
- RTS                    \ -- CLIP, bounding box is now done,
+ EOR XX12+3             \ Set A = original argument S EOR'd with XX12+3
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
