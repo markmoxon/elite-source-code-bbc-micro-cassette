@@ -16188,6 +16188,19 @@ NEXT
 \
 \   K(3 2 1 0) = (A P+1 P) / (z_sign z_hi z_lo)
 \
+\ The actual division here is done as an 8-bit calculation using LL31, but this
+\ routine shifts both the numerator (the top part of the division) and the
+\ denominator (the bottom part of the division) around to get the multi-byte
+\ result we want.
+
+\ Specifically, it shifts both of them to the left as far as possible, keeping a
+\ tally of how many shifts get done in each one - and specifically, the
+\ difference in the number of shifts between the top and bottom (as shifting both
+\ of them once in the same direction won't change the result). It then divides
+\ the two highest bytes with the simple 8-bit routine in LL31, and shifts the
+\ result by the difference in the number of shifts, which acts as a scale factor
+\ to get the correct result.
+\
 \ Returns:
 \
 \   K(3 2 1 0)          The result of the division
@@ -16198,104 +16211,199 @@ NEXT
 
 .DVID3B2
 {
- STA P+2                \ num sg
- LDA INWK+6             \ z coord lo
+ STA P+2                \ Set P+2 = A
+
+ LDA INWK+6             \ Set Q = z_lo
  STA Q
- LDA INWK+7             \ z coord hi
+
+ LDA INWK+7             \ Set R = z_hi
  STA R
- LDA INWK+8             \ z coord sg
+
+ LDA INWK+8             \ Set S = z_sign
  STA S
 
-.DVID3B                 \ K (3bytes)=P(3bytes)/S.R.Q. aprx  Acc equiv K(0)
+.DVID3B                 \ Given the above assignments, we now want to calculate
+                        \ the following to get the result we want:
+                        \
+                        \   K(3 2 1 0) = P(2 1 0) / (S R Q)
 
- LDA P                  \ num lo
- ORA #1                 \ avoid 0
+ LDA P                  \ Make sure P(2 1 0) is at least 1
+ ORA #1
  STA P
- LDA P+2                \ num sg
- EOR S                  \ zsg
- AND #128               \ extract sign
+
+ LDA P+2                \ Set T to the sign of P+2 * S (i.e. the sign of the
+ EOR S                  \ result) and store it in T
+ AND #%10000000
  STA T
- LDY #0                 \ counter
- LDA P+2                \ num sg
- AND #127               \ will look at lower 7 bits of Acc in
 
-.DVL9                   \ counter Y up
+ LDY #0                 \ Set Y = 0 to store the scale factor
 
- CMP #&40               \ object very far away?
- BCS DV14               \ scaled, exit Ycount
- ASL P
+ LDA P+2                \ Clear the sign bit of P+2, so the division can be done
+ AND #%01111111         \ with positive numbers and we'll set the correct sign
+                        \ below, once all the maths is done
+                        \
+                        \ This also leaves A = P+2, which we use below
+
+.DVL9
+
+                        \ We now shift (A P+1 P) left until A >= 64, counting
+                        \ the number of shifts in Y. This makes the top part of
+                        \ the division as large as possible, thus retaining as
+                        \ much accuracy as we can.  When we come to return the
+                        \ final result, we shift the result by the number of
+                        \ places in Y, and in the correct direction
+
+ CMP #64                \ If A >= 64, jump down to DV14
+ BCS DV14
+
+ ASL P                  \ Shift (A P+1 P) to the left
  ROL P+1
- ROL A                  \ 3 bytes
- INY
- BNE DVL9               \ loop Y
+ ROL A
 
-.DV14                   \ scaled, exited Ycount
+ INY                    \ Increment the scale factor in Y
 
- STA P+2                \ big numerator
- LDA S                  \ zsg
- AND #127               \ denom sg7
- BMI DV9                \ can't happen
+ BNE DVL9               \ Loop up to DVL9 (this BNE is effectively a JMP, as Y
+                        \ will never be zero)
 
-.DVL6                   \ counter Y back down, roll S
+.DV14
 
- DEY                    \ scale Y back
- ASL Q                  \ denom lo
+                        \ If we get here, A >= 64 and contains the highest byte
+                        \ of the numerator, scaled up by the number of left
+                        \ shifts in Y
+
+ STA P+2                \ Store A in P+2, so we now have the scaled value of
+                        \ the numerator in P(2 1 0)
+
+ LDA S                  \ Set A = |S|
+ AND #%01111111
+
+ BMI DV9                \ If bit 7 of A is set, jump down to DV9 to skip the
+                        \ left-shifting of the denominator (though this has no
+                        \ effect as bit 7 of the above AND can never be set)
+
+.DVL6
+
+                        \ We now shift (S R Q) left until bit 7 of S is set,
+                        \ reducing Y by the number of shifts. This makes the
+                        \ bottom part of the division as large as possible, thus
+                        \ retaining as much accuracy as we can. When we come to
+                        \ return the final result, we shift the result by the
+                        \ total number of places in Y, and in the correct
+                        \ direction, to give us the correct result
+                        \
+                        \ We set A to |S| above, so the following actually shifts
+                        \ (A R Q)
+
+ DEY                    \ Decrement the scale factor in Y
+
+ ASL Q                  \ Shift (A R Q) to the left
  ROL R
- ROL A                  \ hi S
- BPL DVL6               \ loop roll S until Abit7 set
+ ROL A
 
-.DV9                    \ bmi cant happen?
+ BPL DVL6               \ Loop up to DVL6 to do another shift, until bit 7 of A
+                        \ is set and we can't shift left any further
 
- STA Q                  \ mostly empty so now reuse as hi denom
- LDA #254               \ Xreg protected so can't LL28+4
- STA R
- LDA P+2                \ big numerator
- JSR LL31               \ R now =A*256/Q
+.DV9
 
- LDA #0                 \ K1to3 = 0
- STA K+1
+                        \ We have now shifted both the numerator and denominator
+                        \ left as far as they will go, keeping a tally of the
+                        \ overall scale factor of the various shifts in Y. We
+                        \ can now divide just the two highest bytes to get our
+                        \ result
+
+ STA Q                  \ Set Q = A, the highest byte of the denominator
+
+ LDA #254               \ Set R to have bits 1-7 set, so we can pass this to
+ STA R                  \ LL31 to act as the bit counter in the division
+
+ LDA P+2                \ Set A to the highest byte of the numerator
+
+ JSR LL31               \ Call LL31 to calculate:
+                        \
+                        \   R = 256 * A / Q
+                        \     = 256 * numerator / denominator
+
+                        \ The result of our division is now in R, so we just
+                        \ need to shift it back by the scale factor in Y
+
+ LDA #0                 \ Set K(3 2 1) = 0 to hold the result (we populate K
+ STA K+1                \ next)
  STA K+2
  STA K+3
- TYA                    \ Y counter for scale
- BPL DV12               \ Ycount +ve
- LDA R                  \ else Y count is -ve, Acc = remainder
 
-.DVL8                   \ counter Y up
+ TYA                    \ If Y is positive, jump to DV12
+ BPL DV12
 
- ASL A                  \ boost up
+                        \ If we get here then Y is negative, so we need to shift
+                        \ the result R to the left by Y places, and then set the
+                        \ correct sign for the result
+
+ LDA R                  \ Set A = R
+
+.DVL8
+
+ ASL A                  \ Shift (K+3 K+2 K+1 A) left
  ROL K+1
  ROL K+2
  ROL K+3
- INY
- BNE DVL8               \ loop Y up
- STA K                  \ lo
- LDA K+3                \ sign
- ORA T
+
+ INY                    \ Increment the scale factor in Y
+
+ BNE DVL8               \ Loop back to DVL8 until we have shifted left by Y
+                        \ places
+
+ STA K                  \ Store A in K so the result is now in K(3 2 1 0)
+
+ LDA K+3                \ Set K+3 to the sign in T, which we set above to the
+ ORA T                  \ correct sign for the result
  STA K+3
- RTS
 
-.DV13                   \ Ycount zero \ K(1to2) already = 0
+ RTS                    \ Return from the subroutine
 
- LDA R                  \ already correct
- STA K                  \ lo
- LDA T                  \ sign
- STA K+3
- RTS
+.DV13
 
-.DV12                   \ Ycount +ve
+                        \ If we get here then Y is zero, so we don't need to
+                        \ shift the result R, we just need to set the correct
+                        \ sign for the result
 
- BEQ DV13               \ Ycount zero, up
- LDA R                  \ else reduce remainder
+ LDA R                  \ Store R in K so the result is now in K(3 2 1 0)
+ STA K
 
-.DVL10                  \ counter Y reduce
+ LDA T                  \ Set K+3 to the sign in T, which we set above to the
+ STA K+3                \ correct sign for the result
 
- LSR A
- DEY
- BNE DVL10              \ loop Y reduce
- STA K                  \ lo
- LDA T                  \ sign
- STA K+3
- RTS
+ RTS                    \ Return from the subroutine
+
+.DV12
+
+ BEQ DV13               \ We jumped here having set A to the scale factor in Y,
+                        \ so this jumps up to DV13 if Y = 0
+
+                        \ If we get here then Y is positive and non-zero, so we
+                        \ need to shift the result R to the right by Y places
+                        \ and then set the correct sign for the result. We also
+                        \ know that K(3 2 1) will stay 0, as we are shifting the
+                        \ lowest byte to the right, so no set bits will make
+                        \ their way into the top three bytes
+
+ LDA R                  \ Set A = R
+
+.DVL10
+
+ LSR A                  \ Shift A right
+
+ DEY                    \ Decrement the scale factor in Y
+
+ BNE DVL10              \ Loop back to DVL10 until we have shifted right by Y
+                        \ places
+
+ STA K                  \ Store the shifted A in K so the result is now in
+                        \ K(3 2 1 0)
+
+ LDA T                  \ Set K+3 to the sign in T, which we set above to the
+ STA K+3                \ correct sign for the result
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
