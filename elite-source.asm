@@ -16023,8 +16023,8 @@ NEXT
                         \ The following is identical to TIS2, except Q is
                         \ hard-coded to 96, so this does A = A / 96
 
- LDX #254               \ Set T1 to have bits 1-7 set, so we can rotate through 7
- STX T1                 \ loop iterations, getting a 1 each time, and then
+ LDX #254               \ Set T1 to have bits 1-7 set, so we can rotate through
+ STX T1                 \ 7 loop iterations, getting a 1 each time, and then
                         \ getting a 0 on the 8th iteration... and we can also
                         \ use T1 to catch our result bits into bit 0 each time
 
@@ -16195,11 +16195,11 @@ NEXT
 
 \ Specifically, it shifts both of them to the left as far as possible, keeping a
 \ tally of how many shifts get done in each one - and specifically, the
-\ difference in the number of shifts between the top and bottom (as shifting both
-\ of them once in the same direction won't change the result). It then divides
-\ the two highest bytes with the simple 8-bit routine in LL31, and shifts the
-\ result by the difference in the number of shifts, which acts as a scale factor
-\ to get the correct result.
+\ difference in the number of shifts between the top and bottom (as shifting
+\ both of them once in the same direction won't change the result). It then
+\ divides the two highest bytes with the simple 8-bit routine in LL31, and
+\ shifts the result by the difference in the number of shifts, which acts as a
+\ scale factor to get the correct result.
 \
 \ Returns:
 \
@@ -16291,8 +16291,8 @@ NEXT
                         \ total number of places in Y, and in the correct
                         \ direction, to give us the correct result
                         \
-                        \ We set A to |S| above, so the following actually shifts
-                        \ (A R Q)
+                        \ We set A to |S| above, so the following actually
+                        \ shifts (A R Q)
 
  DEY                    \ Decrement the scale factor in Y
 
@@ -26068,6 +26068,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \   K(1 0)              The planet's radius
 \
+\   K3(1 0)             Pixel x-coordinate of the centre of the planet
+\
+\   K4(1 0)             Pixel y-coordinate of the centre of the planet
+\
 \   INWK                The planet's ship data block
 \
 \ ******************************************************************************
@@ -26077,35 +26081,55 @@ LOAD_E% = LOAD% + P% - CODE%
 \ This routine calculates the following and, for each meridian, calls PLS2 to do
 \ the actual plotting.
 \
-\ Meridian 1:
+\ For meridian 1, we calculate the following
 \
 \   CNT2 = arctan(-nosev_z_hi / roofv_z_hi) / 4
 \          with opposite sign to nosev_z_hi
 \
-\   K2   = |nosev_x / z|
-\   K2+1 = |nosev_y / z|
-\   K2+2 = |roofv_x / z|
-\   K2+3 = |roofv_y / z|
+\   (XX16   K2  ) = nosev_x / z
+\   (XX16+1 K2+1) = nosev_y / z
+\   (XX16+2 K2+2) = roofv_x / z
+\   (XX16+3 K2+3) = roofv_y / z
 \
-\   XX16   = sign of nosev_x / z
-\   XX16+1 = sign of nosev_y / z
-\   XX16+2 = sign of roofv_x / z
-\   XX16+3 = sign of roofv_y / z
+\ Then PLS22 does this, with CNT2 stepping through a half circle from the
+\ starting point set above:
 \
-\ Meridian 2:
+\   K6(1 0) = K3(1 0) + (XX16 K2) * cos(CNT2) + (XX16+2 K2+2) * sin(CNT2)
+\           = K3(1 0) + (nosev_x / z) * cos(CNT2) + (roofv_x / z) * sin(CNT2)
+\
+\   (T X) = - |XX16+1 K2+1| * cos(CNT2) - |XX16+3 K2+3| * sin(CNT2)
+\         = - |nosev_y / z| * cos(CNT2) - |roofv_y / z| * sin(CNT2)
+\
+\ calling BLINE each iteration to plot segments to:
+\
+\   x = K6(1 0), y = K4(1 0) + (T X)
+\
+\ and counting CNT2 through half a circle from its starting point.
+\
+\ For meridian 2, we calculate the following
 \
 \   CNT2 = arctan(-nosev_z_hi / sidev_z_hi) / 4
 \          with opposite sign to nosev_z_hi
 \
-\   K2   = |nosev_x / z|
-\   K2+1 = |nosev_y / z|
-\   K2+2 = |sidev_x / z|
-\   K2+3 = |sidev_y / z|
+\   (XX16   K2  ) = nosev_x / z
+\   (XX16+1 K2+1) = nosev_y / z
+\   (XX16+2 K2+2) = sidev_x / z
+\   (XX16+3 K2+3) = sidev_y / z
 \
-\   XX16   = sign of nosev_x / z
-\   XX16+1 = sign of nosev_y / z
-\   XX16+2 = sign of sidev_x / z
-\   XX16+3 = sign of sidev_y / z
+\ Then PLS22 does this, with CNT2 stepping through a half circle from the
+\ starting point set above:
+\
+\   K6(1 0) = K3(1 0) + (XX16 K2) * cos(CNT2) + (XX16+2 K2+2) * sin(CNT2)
+\           = K3(1 0) + (nosev_x / z) * cos(CNT2) + (sidev_x / z) * sin(CNT2)
+\
+\   (T X) = - |XX16+1 K2+1| * cos(CNT2) - |XX16+3 K2+3| * sin(CNT2)
+\         = - |nosev_y / z| * cos(CNT2) - |sidev_y / z| * sin(CNT2)
+\
+\ calling BLINE each iteration to plot segments to:
+\
+\   x = K6(1 0), y = K4(1 0) + (T X)
+\
+\ and counting CNT2 through half a circle from its starting point.
 \
 \ ******************************************************************************
 
@@ -26130,24 +26154,21 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JSR PLS1               \ Call PLS1 to calculate the following:
  STA K2                 \
- STY XX16               \   K2   = |nosev_x / z|
-                        \   XX16 = sign of nosev_x / z
+ STY XX16               \   (XX16 K2) = nosev_x / z
                         \
                         \ and increment X to point to nosev_y for the next call
 
  JSR PLS1               \ Call PLS1 to calculate the following:
  STA K2+1               \
- STY XX16+1             \   K2+1   = |nosev_y / z|
-                        \   XX16+1 = sign of nosev_y / z
+ STY XX16+1             \   (XX16+1 K2+1) = nosev_y / z
 
  LDX #15                \ Set X to 15 so the call to PLS5 divides roofv_x
 
  JSR PLS5               \ Call PLS5 to calculate the following:
                         \
-                        \   K2+2 = |roofv_x / z|
-                        \   XX16+2 = sign of roofv_x / z
-                        \   K2+3 = |roofv_y / z|
-                        \   XX16+3 = sign of roofv_y / z
+                        \   (XX16+2 K2+2) = roofv_x / z
+                        \
+                        \   (XX16+3 K2+3) = roofv_y / z
 
  JSR PLS2               \ Call PLS2 to draw the first meridian
 
@@ -26169,10 +26190,9 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JSR PLS5               \ Call PLS5 to calculate the following:
                         \
-                        \   K2+2 = |sidev_x / z|
-                        \   XX16+2 = sign of sidev_x / z
-                        \   K2+3 = |sidev_y / z|
-                        \   XX16+3 = sign of sidev_y / z
+                        \   (XX16+2 K2+2) = sidev_x / z
+                        \
+                        \   (XX16+3 K2+3) = sidev_y / z
 
  JMP PLS2               \ Jump to PLS2 to draw the second meridian, returning
                         \ from the subroutine with a tail call
@@ -26187,61 +26207,148 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \   K(1 0)              The planet's radius
 \
+\   K3(1 0)             Pixel x-coordinate of the centre of the planet
+\
+\   K4(1 0)             Pixel y-coordinate of the centre of the planet
+\
 \   INWK                The planet's ship data block
+\
+\ ******************************************************************************
+\
+\ Deep dive: Drawing craters
+\ --------------------------
+\ This routine calculates the following and calls PLS22 to do the actual
+\ plotting.
+\
+\ First, the calculations:
+\
+\   K3(1 0) = 222 * roofv_x / z + x-coordinate of planet centre
+\   K4(1 0) = 222 * roofv_x / z - y-coordinate of planet centre
+\
+\   (XX16   K2  ) = nosev_x / 2z
+\   (XX16+1 K2+1) = nosev_y / 2z
+\   (XX16+2 K2+2) = sidev_x / 2z
+\   (XX16+3 K2+3) = sidev_y / 2z
+\
+\ Then PLS22 does this with CNT2 stepping through a whole circle:
+\
+\   K6(1 0) = K3(1 0) + (XX16 K2) * cos(CNT2) + (XX16+2 K2+2) * sin(CNT2)
+\           = K3(1 0) + (nosev_x / z) * cos(CNT2) + (sidev_x / z) * sin(CNT2)
+\
+\   (T X) = - |XX16+1 K2+1| * cos(CNT2) - |XX16+3 K2+3| * sin(CNT2)
+\         = - |nosev_y / z| * cos(CNT2) - |sidev_y / z| * sin(CNT2)
+\
+\ calling BLINE each iteration to plot segments to:
+\
+\   x = K6(1 0), y = K4(1 0) + (T X)
+\
+\ and counting CNT2 through a whole circle from 0.
 \
 \ ******************************************************************************
 
 .PL26
 
- LDA INWK+20            \ roofv_z hi
- BMI PL20               \ rts, crater on far side
+ LDA INWK+20            \ Set A = roofv_z_hi
 
- LDX #15                \ roofv.x (same as meridian1)
- JSR PLS3               \ A.Y = 222* INWK(X+=2)/INWK_z. 222 is xoffset of crater
- CLC                    \ add xorg lo
- ADC K3
- STA K3
- TYA                    \ xoffset hi of crater center updated
- ADC K3+1
- STA K3+1
- JSR PLS3               \ A.Y = 222* INWK(X+=2)/INWK_z. 222 is yoffset of crater
- STA P
- LDA K4
- SEC                    \ sub Plo from yorg lo
- SBC P
- STA K4
- STY P                  \ yoffset hi temp
- LDA K4+1               \ yorg hi
- SBC P                  \ yoffset hi temp
- STA K4+1               \ y of crater center updated
+ BMI PL20               \ If A is negative, the crater is on the far side of the
+                        \ planet, so return from the subroutine (as PL2
+                        \ contains an RTS)
 
- LDX #9                 \ nosev.x  (same as both meridians)
- JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
- LSR A                  \ /2 used in final x of ring
- STA K2                 \ mag 0.x/2
- STY XX16               \ sign 0.x
- JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
- LSR A                  \ /2 used in final y of ring
- STA K2+1               \ mag 0.y/2
- STY XX16+1             \ sign 0.y
+ LDX #15                \ Set X = 15, so the following call to PLS3 operates on
+                        \ roofv
 
- LDX #21                \ sidev.x (same as second meridian)
- JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
- LSR A                  \ /2 used in final x of ring
- STA K2+2               \ mag 2.x/2
- STY XX16+2             \ sign 2.x
- JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
- LSR A                  \ /2 used in final y of ring
- STA K2+3               \ mag 2.y/2
- STY XX16+3             \ sign 2.y
+ JSR PLS3               \ Call PLS3 to calculate:
+                        \
+                        \   (Y A P) = 222 * roofv_x / z
+                        \
+                        \ to give the x-coordinate of the crater offset and
+                        \ increment X to point to roofv_y for the next call
 
- LDA #64                \ Set TGT = 64, so we only draw a full circle in the
- STA TGT                \ call to PLS22 below
+ CLC                    \ Calculate:
+ ADC K3                 \
+ STA K3                 \   K3(1 0) = (Y A) + K3(1 0)
+                        \           = 222 * roofv_x / z + x-coordinate of planet
+                        \             centre
+                        \
+                        \ starting with the high bytes
 
- LDA #0                 \ Set CNT2 = 0 as we are drawing a full circle, not an
- STA CNT2               \ offset section
+ TYA                    \ And then doing the low bytes, so now K3(1 0) contains
+ ADC K3+1               \ the x-coordinate of the crater offset plus the planet
+ STA K3+1               \ centre to give the x-coordinate of the crater's centre
 
- JMP PLS22              \ guaranteed crater with TGT = #64
+ JSR PLS3               \ Call PLS3 to calculate:
+                        \
+                        \   (Y A P) = 222 * roofv_y / z
+                        \
+                        \ to give the y-coordinate of the crater offset
+                        
+ STA P                  \ Calculate:
+ LDA K4                 \
+ SEC                    \   K4(1 0) = K4(1 0) - (Y A)
+ SBC P                  \           = 222 * roofv_x / z - y-coordinate of planet
+ STA K4                 \             centre
+                        \
+                        \ starting with the low bytes
+
+ STY P                  \ And then doing the low bytes, so now K4(1 0) contains
+ LDA K4+1               \ the y-coordinate of the crater offset plus the planet
+ SBC P                  \ centre to give the y-coordinate of the crater's centre
+ STA K4+1
+
+ LDX #9                 \ Set X = 9, so the following call to PLS1 operates on
+                        \ nosev
+ 
+ JSR PLS1               \ Call PLS1 to calculate the following:
+                        \
+                        \   (Y A) = nosev_x / z
+                        \
+                        \ and increment X to point to nosev_y for the next call
+
+ LSR A                  \ Set (XX16 K2) = (Y A) / 2
+ STA K2
+ STY XX16
+
+ JSR PLS1               \ Call PLS1 to calculate the following:
+                        \
+                        \   (Y A) = nosev_y / z
+                        \
+                        \ and increment X to point to nosev_z for the next call
+
+ LSR A                  \ Set (XX16+1 K2+1) = (Y A) / 2
+ STA K2+1
+ STY XX16+1
+
+ LDX #21                \ Set X = 21, so the following call to PLS1 operates on
+                        \ sidev
+
+ JSR PLS1               \ Call PLS1 to calculate the following:
+                        \
+                        \   (Y A) = sidev_x / z
+                        \
+                        \ and increment X to point to sidev_y for the next call
+
+ LSR A                  \ Set (XX16+2 K2+2) = (Y A) / 2
+ STA K2+2
+ STY XX16+2
+
+ JSR PLS1               \ Call PLS1 to calculate the following:
+                        \
+                        \   (Y A) = sidev_y / z
+                        \
+                        \ and increment X to point to sidev_z for the next call
+
+ LSR A                  \ Set (XX16+3 K2+3) = (Y A) / 2
+ STA K2+3
+ STY XX16+3
+
+ LDA #64                \ Set TGT = 64, so we draw a full circle in the call to
+ STA TGT                \ PLS22 below
+
+ LDA #0                 \ Set CNT2 = 0 as we are drawing a full circle, so we
+ STA CNT2               \ don't need to apply an offset
+
+ JMP PLS22              \ Jump to PLS22 to draw the crater, returning from the
+                        \ subroutine with a tail call
 }
 
 \ ******************************************************************************
@@ -26251,9 +26358,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Calculate the following division of a specified value from one of the
 \ orientation vectors (in this example, nosev_x):
 \
-\   A = |nosev_x / z|
-\
-\   Y = sign of nosev_x / z
+\   (Y A) = nosev_x / z
 \
 \ where z is the z-coordinate of the planet from INWK. The result is an 8-bit
 \ magnitude in A, with maximum value 254, and just a sign bit (bit 7) in Y.
@@ -26276,6 +26381,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \   A                   The result as an 8-bit magnitude with maximum value 254
 \
 \   Y                   The sign of the result in bit 7
+\
+\   K+3                 Also the sign of the result in bit 7
 \
 \   X                   X gets incremented by 2 so it points to the next
 \                       coordinate in this orientation vector (so consecutive
@@ -26325,35 +26432,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Draw a half-circle, used for the planet's equator and meridian.
 \
-\ Lave half ring, mags K2+0to3, signs XX16+0to3, xy(0)xy(1), phase offset CNT2
-\
-\ ******************************************************************************
-\
-\ For meridian 1, it gets called with this:
-\
-\   CNT2 = arctan(-nosev_z_hi / roofv_z_hi) / 4
-\          with opposite sign to nosev_z_hi
-\
-\   K2   = |nosev_x / z|
-\   K2+1 = |nosev_y / z|
-\   K2+2 = |roofv_x / z|
-\   K2+3 = |roofv_y / z|
-\
-\   XX16   = sign of nosev_x / z
-\   XX16+1 = sign of nosev_y / z
-\   XX16+2 = sign of roofv_x / z
-\   XX16+3 = sign of roofv_y / z
-\
-\ Then PLS22 does this:
-\
-\   K6(1 0) = K3(1 0) + (nosev_x / z) * cos(CNT2) + (roofv_x / z) * sin(CNT2)
-\
-\   (T X) = - |nosev_y / z| * cos(CNT2) - |roofv_y / z| * sin(CNT2)
-\
-\ and calls BLINE.
-\
-\ For meridian 2, it's the same except it's sidev instead of roofv.
-\
 \ ******************************************************************************
 
 .PLS2
@@ -26383,17 +26461,17 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \                         * 64 for a half circle (a crater)
 \
+\   CNT2                The starting segment for drawing the half-circle
+\
 \ ******************************************************************************
 \
-\ For meridian 1, this routine does this:
+\ This routine does the following:
 \
-\   K6(1 0) = K3(1 0) + (nosev_x / z) * cos(CNT2) + (roofv_x / z) * sin(CNT2)
+\   K6(1 0) = K3(1 0) + (XX16 K2) * cos(CNT2) + (XX16+2 K2+2) * sin(CNT2)
 \
-\   (T X) = - |nosev_y / z| * cos(CNT2) - |roofv_y / z| * sin(CNT2)
+\   (T X) = - |XX16+1 K2+1| * cos(CNT2) - |XX16+3 K2+3| * sin(CNT2)
 \
 \ and calls BLINE.
-\
-\ For meridian 2, it's the same except it's sidev instead of roofv.
 \
 \ ******************************************************************************
 
@@ -27423,36 +27501,79 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: PLS3
 \
-\ Only Crater uses this, A.Y = 222* INWK(X+=2)/INWK_z
+\ Calculate the following, with X determining the vector to use:
+\
+\   (Y A P) = 222 * roofv_x / z
+\
+\ though in reality only (Y A) is used.
+\
+\ Although the code below supports a range of values of X, in practice the
+\ routine is only called with X = 15, and then again after X has been
+\ incremented to 17. So the values calculated by PLS1 use roofv_x first, then
+\ roofv_y. The comments below refer to roofv_x, for the first call.
+\
+\ Arguments:
+\
+\   X                   Determines which of the INWK orientation vectors to
+\                       divide:
+\
+\                         * X = 15: divides roofv_x
+\
+\                         * X = 17: divides roofv_y
+\
+\ Returns:
+\
+\   X                   X gets incremented by 2 so it points to the next
+\                       coordinate in this orientation vector (so consecutive
+\                       calls to the routine will start with x, then move onto y
+\                       and then z)
 \
 \ ******************************************************************************
 
-.PLS3                   \ only Crater uses this, A.Y = 222* INWK(X+=2)/INWK_z
+.PLS3
 {
- JSR PLS1               \ A.Y = INWK(X+=2)/INWK_z
- STA P
- LDA #222               \ offset to crater, divide/256 * unit to offset crater center
+ JSR PLS1               \ Call PLS1 to calculate the following:
+ STA P                  \
+                        \   P = |roofv_x / z|
+                        \   K+3 = sign of roofv_x / z
+                        \
+                        \ and increment X to point to roofv_y for the next call
+
+ LDA #222               \ Set Q = 222, the offset to the crater
  STA Q
- STX U                  \ store index
- JSR MULTU              \ P.A = P*Q = 222* INWK(X+=2)/INWK_z
- LDX U                  \ restore index
- LDY K+3                \ sign
- BPL PL12               \ +ve
- EOR #&FF               \ else flip A hi
- CLC
- ADC #1
- BEQ PL12               \ +ve
- LDY #&FF               \ else A flipped
- RTS
 
-.PL12                   \ +ve
+ STX U                  \ Store the vector index X in U for retrieval after the
+                        \ call to MULTU
 
- LDY #0
- RTS
+ JSR MULTU              \ Call MULTU to calculate
+                        \
+                        \   (A P) = P * Q
+                        \         = 222 * |roofv_x / z|
+
+ LDX U                  \ Restore the vector index from U into X
+
+ LDY K+3                \ If the sign of the result in K+3 is positive, skip to
+ BPL PL12               \ PL12 to return with Y = 0
+
+ EOR #&FF               \ Otherwise the result should be negative, so negate the
+ CLC                    \ high byte of the result using two's complement with
+ ADC #1                 \ A = ~A + 1
+
+ BEQ PL12               \ If A = 0, jump to PL12 to return with (Y A) = 0
+
+ LDY #&FF               \ Set Y = &FF to be a negative high byte
+
+ RTS                    \ Return from the subroutine
+
+.PL12
+
+ LDY #0                 \ Set Y = 0 to be a positive high byte
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
-\
+\ 
 \ Subroutine: PLS4
 \
 \ Calculate the following:
@@ -27499,13 +27620,9 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Calculate the following divisions of a specified value from one of the
 \ orientation vectors (in this example, roofv):
 \
-\   K2+2 = |roofv_x / z|
+\   (XX16+2 K2+2) = roofv_x / z
 \
-\   XX16+2 = sign of roofv_x / z
-\
-\   K2+3 = |roofv_y / z|
-\
-\   XX16+3 = sign of roofv_y / z
+\   (XX16+3 K2+3) = roofv_y / z
 \
 \ Arguments:
 \
@@ -27527,12 +27644,16 @@ LOAD_E% = LOAD% + P% - CODE%
  STY XX16+2             \   K+2    = |roofv_x / z|
                         \   XX16+2 = sign of roofv_x / z
                         \
+                        \ i.e. (XX16+2 K2+2) = roofv_x / z
+                        \
                         \ and increment X to point to roofv_y for the next call
 
  JSR PLS1               \ Call PLS1 to calculate the following:
  STA K2+3               \
  STY XX16+3             \   K+3    = |roofv_y / z|
                         \   XX16+3 = sign of roofv_y / z
+                        \
+                        \ i.e. (XX16+3 K2+3) = roofv_y / z
                         \
                         \ and increment X to point to roofv_z for the next call
 
