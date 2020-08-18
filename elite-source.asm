@@ -26715,12 +26715,14 @@ LOAD_E% = LOAD% + P% - CODE%
 \ radius K, let's say the line that is V lines below the centre. It looks
 \ something like this:
 \
-\                    _ = = _                     |\
-\                   =       =                    | \
-\                  =    |\   =                 V |  \ K
-\   We want        =    | \  =         __-->     |   \
-\   to draw ---->   =___|__\=   ___.--´          +----`
-\   this line          = =                          ^------ SQRT(K^2 - V^2)
+\                          _ - _
+\                       =         =
+\                     =             =                   |`.
+\                    =               =                  |  `.  K
+\   We want          =       |`.     =                V |    `.
+\   to draw           =      |  `.  =         __-->     |      `. 
+\   this line ------>  ._____|____`.   ___.--´          +--------`
+\                          - _ -                     SQRT(K^2 - V^2)
 \
 \ Looking at the triangle from the centre of the sun down to the horizontal
 \ line we want to draw, we can apply Pythagoras to calculate that the half-width
@@ -27406,12 +27408,14 @@ LOAD_E% = LOAD% + P% - CODE%
 \ way round the circle, with 64 covering the whole thing. So 5 o'clock looks
 \ like this (I've put a "c" for the angle CNT as it's a bit of a tight squeeze):
 \
-\       _ = = _                  +                          +
-\      =       =                 |c\                        |c\
-\     =         =                |  \ K          K * cos(c) |  \ K
-\     =    |\   =        __-->   |   \   ---->              |   \
-\      =   | \ =   __.--´        |  _-`                     +----`
-\         = =   --´              +-´                      K * sin(c)
+\           _ - _
+\        =         =                     |`.                          |`.
+\      =             =                   |c `.                        |c `.  K
+\     =               =                  |    `. K         K * cos(c) |    `.
+\     =       |`.     =        __-->     |      `.                    |      `. 
+\      =      |  `.  =  ___.--´          |        `.                  +--------`
+\       =     |    `.                    |     __--´    ----->        K * sin(c)
+\        `--__+__--´                     +__--´
 \
 \ So if the centre of the circle (the top of the triangle above) is at the
 \ origin (0, 0), then using basic trigonometry, we can see that at step number
