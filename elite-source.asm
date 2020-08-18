@@ -425,7 +425,8 @@ ORG &0000
 
 .SUNX
 
- SKIP 2                 \
+ SKIP 2                 \ The x-coordinate of the vertical central axis of the
+                        \ sun
 
 .BETA
 
@@ -3288,7 +3289,8 @@ ORG &0D40
 
  SKIP 192               \ This block is shared by LSX and LSO:
                         \
-                        \ LSX is the the line buffer for the sun
+                        \ LSX is the the line buffer for the sun (see SUN for
+                        \ details)
                         \
                         \ LSO is the ship lines heap space for the space station
                         \
@@ -8544,14 +8546,27 @@ NEXT
 \
 \ Subroutine: HLOIN2
 \
-\ Do the following:
+\ Draw a line from the LSO line buffer and then remove it from the buffer.
+\
+\ Specifically, this does the following:
 \
 \   * Set X1 and X2 to the x-coordinates of the ends of the horizontal line with
 \     centre YY(1 0) and length A to the left and right
 \
-\   * Set the Y-th byte of the LSO block to 0
+\   * Set the Y-th byte of the LSO block to 0 (i.e. remove this line from the
+\     LSO line buffer)
 \
 \   * Draw a horizontal line from (X1, Y) to (X2, Y)
+\
+\ Arguments:
+\
+\   YY(1 0)             The x-coordinate of the centre point of the line
+\
+\   A                   The half-width of the line, i.e. the contents of the
+\                       Y-th byte of the LSO
+\
+\   Y                   The number of the entry in the line buffer (which is
+\                       also the y-coordinate of the line)
 \
 \ Returns:
 \
@@ -8562,7 +8577,7 @@ NEXT
 .HLOIN2
 {
  JSR EDGES              \ Call EDGES to calculate X1 and X2 for the horizontal
-                        \ line centred on YY(1 0) and half-width A
+                        \ line centred on YY(1 0) and with half-width A
 
  STY Y1                 \ Set Y1 = Y
 
@@ -9376,19 +9391,22 @@ NEXT
 \
 \ ******************************************************************************
 \
-\ Deep dive: The line buffers
-\ ---------------------------
-\ The planet and sun are complex shapes that require a lot of maths to calculate
-\ their shapes, and that takes up time. We remove shapes from the screen by
-\ redrawing them (which erases them because it's all done with EOR logic), so
-\ instead of doing the calculations all over again for the second drawing, Elite
-\ has a set of line buffers where all the information is stored, ready for the
-\ second redrawing.
-\
-\ Let's look at how those buffers work.
-\
-\ Drawing buffered lines with BLINE
+\ Deep dive: The BLINE line buffers
 \ ---------------------------------
+\ The planet and sun are complex shapes that use plenty of maths to calculate
+\ their shapes, and that takes up time. We remove shapes from the screen by
+\ drawing the same shape again in exactly the same place (which erases them
+\ because it's all done with EOR logic), so instead of doing the calculations
+\ all over again for the second drawing, Elite has a set of line buffers where
+\ all the information is stored, ready for the second redrawing.
+\
+\ There is one line buffer for the planet, which is used by the BLINE routine,
+\ and a separate line buffer for the sun, which is used by the SUN routine.
+\ Here we take a look at the planet's buffers at LSX2 and LSY2; for details of
+\ the sun's buffer at LSO, see the documentation for the SUN routine.
+\
+\ Drawing buffered planet lines with BLINE
+\ ----------------------------------------
 \ We draw a circle by repeated calls to BLINE, passing the next point around the
 \ circle with each subsequent call, until the circle (or half-circle) is drawn.
 \
@@ -9414,16 +9432,16 @@ NEXT
 \ circle from the screen by simply redrawing all the segments stored in the line
 \ buffers. This is done in WPLS2.
 \
-\ How the buffers are structured
-\ ------------------------------
+\ How the LSX2 and LSY2 buffers are structured
+\ --------------------------------------------
 \ The planet's line buffers are stored in 78 bytes at LSX2 and another 78 bytes
 \ at LSY2. The LSP variable points to the number of the first free entry at the
 \ end of the buffer, so LSP = 1 indicates that the buffer is empty.
 \
 \ The first location at LSX2 has a special meaning:
 \
-\   * LSX = 0 indicates the line buffer contains data
-\   * LSX = &FF indicates the line buffer is empty
+\   * LSX2 = 0 indicates the line buffer contains data
+\   * LSX2 = &FF indicates the line buffer is empty
 \
 \ Meanwhile, if a y-coordinate in LSY2 is &FF, then this means the next point in
 \ the buffer represents the start of a new segment, rather than a continuation
@@ -26643,276 +26661,646 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine: PLF3
+\ Subroutine: SUN (Part 1 of 4)
 \
-\ Flip height for planet/sun fill
+\ Draw a new sun with radius K at pixel coordinate (K3, K4), removing the old
+\ sun if there is one. This routine is used to draw the sun, as well as the
+\ star systems on the Short-range Chart.
 \
-\ Other entry points:
-\
-\   PLF3-3              Jump to WPLS to remove the sun from the screen
-
-\ ******************************************************************************
-
-{
- JMP WPLS               \ Jump to WPLS to remove the sun from the screen
-
-.^PLF3
-
- TXA                    \ Negate X using two's complement, so X = ~X + 1
- EOR #&FF
- CLC
- ADC #1
- TAX
-}
-
-\ ******************************************************************************
-\
-\ Subroutine: PLF17
-\
-\ up A = #&FF as Xlo =0
-\
-\ ******************************************************************************
-
-.PLF17                  \ up A = #&FF as Xlo =0
-{
- LDA #&FF               \ fringe flag will run up
-
- JMP PLF5               \ Jump to PLF5
-}
-
-\ ******************************************************************************
-\
-\ Subroutine: SUN
-\
-\ Draw a sun with radius K at pixel coordinate (K3, K4). Used to draw the sun,
-\ as well as systems on the Short-range Chart.
+\ The first part sets up all the variables needed to draw the new sun.
 \
 \ Arguments:
 \
-\   K                   The sun's radius
+\   K                   The new sun's radius
 \
-\   K3(1 0)             Pixel x-coordinate of the centre of the sun
+\   K3(1 0)             Pixel x-coordinate of the centre of the new sun
 \
-\   K4(1 0)             Pixel y-coordinate of the centre of the sun
+\   K4(1 0)             Pixel y-coordinate of the centre of the new sun
 \
-\   INWK                The sun's ship data block
-\
-\ ******************************************************************************
-
-.SUN                    \ Sun with radius K
-{
- LDA #1
- STA LSX                \ overlaps with LSO vector
- JSR CHKON              \ P+1 set to maxY
- BCS PLF3-3             \ jmp wpls Wipe Sun
- LDA #0                 \ fill up Acc bits based on size
- LDX K                  \ radius
- CPX #&60               \ any carry becomes low bit
- ROL A
- CPX #&28               \ 4 if K >= 40
- ROL A
- CPX #&10               \ 2 if K >= 16
- ROL A                  \ extent of fringes set
-
-.PLF18
-
- STA CNT                \ bits are extent of fringes
- LDA #2*Y-1             \ 2*#Y-1 is Yscreen
- LDX P+2
- BNE PLF2               \ big height
- CMP P+1                \ is Y screen < P+1
- BCC PLF2               \ big height
- LDA P+1                \ now Acc loaded
- BNE PLF2               \ big height
- LDA #1                 \ else Acc=1 is bottom end of Yscreen
-
-.PLF2                   \ big height
-
- STA TGT                \ top of screen for Y height
- LDA #2*Y-1             \ #2*Y-1 is Yscreen
- SEC                    \ subtract
- SBC K4                 \ Yorg
- TAX                    \ lo Yscreen lo
- LDA #0                 \ hi
- SBC K4+1
- BMI PLF3               \ flip height then ready to run up
- BNE PLF4               \ if Yscreen hi not zero then height is full radius
- INX
- DEX                    \ ysub lo
- BEQ PLF17              \ if ylo = 0 then ready to run up with A = #&FF
- CPX K                  \ Yscreen lo < radius ?
- BCC PLF5               \ if ylo < radius then ready to run down
-
-.PLF4                   \ height is full radius
-
- LDX K                  \ counter V height is radius
- LDA #0                 \ fringe flag will run down
-}
-
-\ ******************************************************************************
-\
-\ Subroutine: PLF5
-\
-\ Xreg = height ready, Acc is flag for run direction
+\   SUNX(1 0)           The x-coordinate of the vertical central axis of the old
+\                       sun (the one currently on screen)
 \
 \ Other entry points:
 \
 \   RTS2                Contains an RTS
 \
 \ ******************************************************************************
+\
+\ Deep dive: Drawing the sun
+\ --------------------------
+\ The sun in Elite is an absolute sight to behold, with its flickering fringes
+\ and bright, white glare that lights up even the darkest corners of space.
+\ Perhaps surprisingly, it turns out to be quite a lot easier to draw the sun
+\ than the meridians and craters of the planets.
+\
+\ Let's see what it takes to let there be light in the Elite universe.
+\
+\ Line by line
+\ ------------
+\ Unlike the planets, which are drawn as circles, the sun is drawn as a set of
+\ horizontal lines, with one line per pixel line on screen. This is how the
+\ shimmering edges are drawn, by randomly making the lines shorter or longer
+\ (more on that later).
+\
+\ Each line is defined by two parameters: the coordinate of the centre of the
+\ line, and the length of the line from its centre to one end (which we call the
+\ "half-width", as it's half the width of the full horizontal line). For the
+\ sun, all the lines have the same centre x-coordinate, which is the same
+\ x-coordinate as the centre of the sun.
+\
+\ Given this, we can draw the sun line by line, and all we need to calculate is
+\ the half-width of the line for that particular y-coordinate. We can do this
+\ using nothing more complicated than Pythagoras - there's no need for any
+\ trigonometry here. Consider drawing a sun line near the bottom of a sun with
+\ radius K, let's say the line that is V lines below the centre. It looks
+\ something like this:
+\
+\                    _ = = _                     |\
+\                   =       =                    | \
+\                  =    |\   =                 V |  \ K
+\   We want        =    | \  =         __-->     |   \
+\   to draw ---->   =___|__\=   ___.--´          +----`
+\   this line          = =                          ^------ SQRT(K^2 - V^2)
+\
+\ Looking at the triangle from the centre of the sun down to the horizontal
+\ line we want to draw, we can apply Pythagoras to calculate that the half-width
+\ of the line we want to draw is SQRT(K^2 - V^2), so along with the value of V
+\ we have all the data we need to draw that line, and by extension the whole
+\ ball of fire.
+\
+\ Flickering fringes
+\ ------------------
+\ The sun's flickering fringes are easy enough to implement in this model.
+\
+\ We start by calculating a figure between 0 and 7, with bigger numbers for
+\ bigger suns, and call this the "fringe size", which we store in CNT. This
+\ defines the width of the pulsating fringe around the sun (which explains why
+\ the sun stops flickering when it's far away - it has a fringe size of 0).
+\
+\ Then, when calculating the half-width of each line using the method above, we
+\ simply pick a random number between 0 and the fringe size, and add it to the
+\ half-width. This makes the sun symmetrical around its vertical meridian, and
+\ as the random number changes for each line and for each redraw of the sun, the
+\ sun's fringes shimmer and flicker. It's simple but very effective, and it adds
+\ very little effort, even to the erase procedure, as we can see in the next
+\ section.
+\
+\ Drawing buffered sun lines with SUN
+\ -----------------------------------
+\ As with all objects in the sky, we can erase the sun from the screen by
+\ drawing it a second time in the same place as before, so it cancels out the
+\ existing sun using EOR logic. Although the maths above isn't complex, it is
+\ still pretty time-consuming, especially with a large sun on the screen, so
+\ as with the planets, the sun has its own line buffer, stored at LSO, which
+\ stores the data for every line in the current sun.
+\
+\ The first location at LSO has a special meaning:
+\
+\   * LSO = 1   indicates the line buffer contains data
+\   * LSO = &FF indicates the line buffer is empty
+\
+\ Because the sun is made up of lines and it can fill the entire space view,
+\ the sun's line buffer contains 192 values, one for each of the lines on the
+\ screen. The value in LSO+Y contains details of the sun's line on pixel row Y,
+\ with a 0 indicating there is no line, and a non-zero value containing the
+\ half-width of the sun line on that y-coordinate. Along with the sun's centre
+\ coordinates in SUNX and SUNY, the line buffer contains everything we need to
+\ know in order to draw the sun, all without having to recalculate anything.
+\
+\ This also applies to the random fringe factor that we add to the half-width to
+\ make the sun shimmer. As we're only storing the half-width and that contains
+\ the random fringe size, we can store and redraw shimmering suns with no more
+\ effort then a clean ball sun. It's remarkably elegant for such a complicated-
+\ looking graphical effect.
+\
+\ The routine below combines the drawing of the new sun and the removal of the
+\ old one into one pass through the line buffer, from the bottom of the screen
+\ to the top (so from the end of the buffer to the start). We do this in part 2
+\ by starting at the bottom and plotting each sun line in turn from the line
+\ buffer as we move up the screen. As each line is plotted, thus erasing the
+\ old sun, it is removed from the line buffer.
+\
+\ We do this until we reach the point where we need to start drawing the new
+\ sun, at which point we move into part 3. This draws two horizontal lines that
+\ between them manage to remove the old sun's line and draw the new sun's line
+\ in the most efficient way. Each time, we replace the value in the line buffer
+\ with the new line's half-width, so the new sun can be erased in the same way.
+\ Once the new sun is drawn, we then keep heading up the screen in part 4, where
+\ we redraw any remaining lines from the old sun, thus removing them from the
+\ screen, and leaving just the new sun on show.
+\
+\ The LSO line buffer block shares its memory with the ship lines heap space for
+\ the space station at LSX (LSO and LSX point to the same memory block). This
+\ space can be shared as our local bubble of universe can support either the sun
+\ or a space station, but not both.
+\
+\ ******************************************************************************
 
-.PLF5                   \ Xreg = height ready, Acc is flag for run direction
 {
- STX V                  \ counter height
- STA V+1                \ flag 0 (up) or FF (down)
+ JMP WPLS               \ Jump to WPLS to remove the old sun from the screen. We
+                        \ only get here via the BCS just after the SUN entry
+                        \ point below, when there is no new sun to draw
 
- LDA K
- JSR SQUA2              \ P.A =A*A unsigned
- STA K2+1               \ squared 16-bit radius hi
- LDA P                  \ lo
- STA K2                 \ squared 16-bit stored in K2
- LDY #2*Y-1             \ 2*#Y-1 is Yscreen is counter start
- LDA SUNX
- STA YY                 \ old mid-point of horizontal line
- LDA SUNX+1
- STA YY+1               \ hi
+.PLF3
 
-.PLFL2                  \ counter Y down erase top Disc
+                        \ This is called from below to negate X and set A to
+                        \ &FF, for when the new sun's centre is off the bottom
+                        \ of the screen (so we don't need to draw its bottom
+                        \ half)
 
- CPY TGT                \ Yheight top reached?
- BEQ PLFL               \ exit to Start, Y height = TGT top
- LDA LSO,Y
- BEQ PLF13              \ if half width zero skip line drawing
- JSR HLOIN2             \ line X1,X2 using YY as mid-point, Acc is half-width
+ TXA                    \ Negate X using two's complement, so X = ~X + 1
+ EOR #%11111111         \
+ CLC                    \ We so this because X is negative at this point, as it
+ ADC #1                 \ is calculated as 191 - the y-coordinate of the sun's
+ TAX                    \ centre, and the centre is off the bottom of the
+                        \ screen, past 191. So we negate it to make it positive
 
-.PLF13                  \ skipped line drawing
+.PLF17
 
- DEY                    \ erase top Disc
- BNE PLFL2              \ loop Y
+                        \ This is called from below to set A to &FF, for when
+                        \ the new sun's centre is right on the bottom of the
+                        \ screen (so we don't need to draw its bottom half)
 
-.PLFL                   \ exited as reached Start. Y = TGT, counter V height. Work out extent
+ LDA #&FF               \ Set A = &FF
 
- LDA V                  \ counter height
- JSR SQUA2              \ P.A =A*A unsigned
- STA T                  \ squared height hi
- LDA K2                 \ squared 16-bit radius lo
- SEC
- SBC P                  \ height squared lo
- STA Q                  \ radius^2-height^2 lo
- LDA K2+1               \ radius^2 hi
- SBC T                  \ height squared hi
- STA R                  \ extent^2 hi
- STY Y1                 \ Y store line height
- JSR LL5                \ SQRT Q = SQR(Q,R) = sqrt(sub)
- LDY Y1                 \ restore line counter
- JSR DORND              \ do random number
- AND CNT                \ trim fringe
- CLC
- ADC Q                  \ new extent
- BCC PLF44              \ not saturated
- LDA #&FF               \ fringe max extent
+ JMP PLF5               \ Jump to PLF5
 
-.PLF44                  \ fringes not saturated
+.^SUN
 
- LDX LSO,Y
- STA LSO,Y
- BEQ PLF11              \ updated extent, if zero No previous old line
- LDA SUNX
- STA YY                 \ Old mid-point of line
- LDA SUNX+1
- STA YY+1               \ hi
- TXA                    \ old lso,y half-width extent
- JSR EDGES              \ horizontal line old extent clip
- LDA X1
- STA XX                 \ old left
+ LDA #1                 \ Set LSX = 1
+ STA LSX
+
+ JSR CHKON              \ Call CHKON to check whether the new sun's circle fits
+                        \ on screen, and set P(2 1) to the maximum y-coordinate
+                        \ of the new sun on screen
+
+ BCS PLF3-3             \ If CHKON set the C flag then the circle does not fit
+                        \ on screen, so jump to WPLS to remove the sun from the
+                        \ screen, returning from the subroutine using a tail
+                        \ call
+
+ LDA #0                 \ Set A = 0
+
+ LDX K                  \ Set X = K = radius of the new sun
+
+ CPX #96                \ If X >= 96, set the C flag and rotate it into bit 0
+ ROL A                  \ of A, otherwise rotate a 0 into bit 0
+
+ CPX #40                \ If X >= 40, set the C flag and rotate it into bit 0
+ ROL A                  \ of A, otherwise rotate a 0 into bit 0
+
+ CPX #16                \ If X >= 16, set the C flag and rotate it into bit 0
+ ROL A                  \ of A, otherwise rotate a 0 into bit 0
+
+                        \ By now, A contains the following:
+                        \
+                        \   * If radius is 96-255 then A = %111 = 7
+                        \
+                        \   * If radius is 40-95  then A = %11  = 3
+                        \
+                        \   * If radius is 16-39  then A = %1   = 1
+                        \
+                        \   * If radius is 0-15   then A = %0   = 0
+                        \
+                        \ The value of A determines the size of the new sun's
+                        \ ragged fringes - the bigger the sun, the bigger the
+                        \ fringes
+
+.PLF18
+
+ STA CNT                \ Store the fringe size in CNT
+
+                        \ We now calculate the highest pixel y-coordinate of the
+                        \ new sun, given that P(2 1) contains the 16-bit maximum
+                        \ y-coordinate of the new sun on screen
+
+ LDA #2*Y-1             \ #Y is the y-coordinate of the centre of the mode 4
+                        \ space view, so this sets Y to the y-coordinate of the
+                        \ bottom of the space view, i.e. 191
+
+ LDX P+2                \ If P+2 is non-zero, the maximum y-coordinate is off
+ BNE PLF2               \ the bottom of the screen, so skip to PLF2 with A = 191
+
+ CMP P+1                \ If A < P+1, the maximum y-coordinate is underneath the
+ BCC PLF2               \ the dashboard, so skip to PLF2 with A = 191
+
+ LDA P+1                \ Set A = P+1, the low byte of the maximum y-coordinate
+                        \ of the sun on screen
+
+ BNE PLF2               \ If A is non-zero, skip to PLF2 as it contains the
+                        \ value we are after
+
+ LDA #1                 \ Otherwise set A = 1, the top line of the screen
+
+.PLF2
+
+ STA TGT                \ Set TGT to A, the maximum y-coordinate of the sun on
+                        \ screen
+
+                        \ We now calculate the number of lines we need to draw
+                        \ and the direction in which we need to draw them, both
+                        \ from the centre of the new sun
+
+ LDA #2*Y-1             \ Set (A X) = y-coordinate of bottom of screen - K4(1 0)
+ SEC                    \
+ SBC K4                 \ Starting with the low bytes
+ TAX
+
+ LDA #0                 \ And then doing the high bytes, so (A X) now contains
+ SBC K4+1               \ the number of lines between the centre of the sun and
+                        \ the bottom of the screen. If it is positive then the
+                        \ centre of the sun is above the bottom of the screen,
+                        \ if it is negative then the centre of the sun is below
+                        \ the bottom of the screen
+
+ BMI PLF3               \ If A < 0, then this means the new sun's centre is off
+                        \ the bottom of the screen, so jump up to PLF3 to negate
+                        \ the height in X (so it becomes positive), set A to &FF
+                        \ and jump down to PLF5
+
+ BNE PLF4               \ If A > 0, then the new sun's centre is at least a full
+                        \ screen above the bottom of the space view, so jump
+                        \ down to PLF4 to set X = radius and A = 0
+
+ INX                    \ Set the flags depending on the value of X
+ DEX
+
+ BEQ PLF17              \ If X = 0 (we already know A = 0 by this point) then
+                        \ jump up to PLF17 to set A to &FF before jumping down
+                        \ to PLF5
+
+ CPX K                  \ If X < the radius in K, jump down to PLF5, so if
+ BCC PLF5               \ X >= the radius in K, we set X = radius and A = 0
+
+.PLF4
+
+ LDX K                  \ Set X to the radius
+
+ LDA #0                 \ Set A = 0
+
+.PLF5
+
+ STX V                  \ Store the height in V
+ 
+ STA V+1                \ Store the direction in V+1
+
+ LDA K                  \ Set (A P) = K * K
+ JSR SQUA2
+
+ STA K2+1               \ Set K2(1 0) = (A P) = K * K
+ LDA P
+ STA K2
+
+                        \ By the time we get here, the variables should be set
+                        \ up as shown in the header for part 3 below
+
+\ ******************************************************************************
+\
+\ Subroutine: SUN (Part 2 of 4)
+\
+\ Draw a sun with radius K at pixel coordinate (K3, K4).
+\
+\ This part erases the old sun, starting at the bottom of the screen and working
+\ upwards until we reach the bottom of the new sun.
+\
+\ ******************************************************************************
+
+ LDY #2*Y-1             \ Set Y = y-coordinate of the bottom of the screen,
+                        \ which we use as a counter in the following routine to
+                        \ redraw the old sun
+
+ LDA SUNX               \ Set YY(1 0) = SUNX(1 0), the x-coordinate of the
+ STA YY                 \ vertical central axis of the old sun that's currently
+ LDA SUNX+1             \ on screen
+ STA YY+1
+
+.PLFL2
+
+ CPY TGT                \ If Y = TGT, we have reached the line where we will
+ BEQ PLFL               \ start drawing the new sun, so there is no need to
+                        \ keep erasing the old one, so jump down to PLFL
+
+ LDA LSO,Y              \ Fetch the Y-th point from the LSO line buffer, which
+                        \ gives us the half-width of the old sun's line on this
+                        \ line of the screen
+
+ BEQ PLF13              \ If A = 0, skip the following call to HLOIN2 as there
+                        \ is no sun line on this line of the screen
+
+ JSR HLOIN2             \ Call HLOIN2 to draw a horizontal line on pixel line Y,
+                        \ with centre point YY(1 0) and half-width A, and remove
+                        \ the line from from the LSO line buffer once done
+
+.PLF13
+
+ DEY                    \ Decrement the loop counter
+
+ BNE PLFL2              \ Loop back for the next line in the line buffer until
+                        \ we have either gone through the entire buffer, or
+                        \ reached the bottom row of the new sun
+
+\ ******************************************************************************
+\
+\ Subroutine: SUN (Part 3 of 4)
+\
+\ Draw a sun with radius K at pixel coordinate (K3, K4).
+\
+\ This part draws the new sun. By the time we get to this point, the following
+\ variables should have been set up by parts 1 and 2:
+\
+\   V                   As we draw lines for the new sun, V contains the
+\                       vertical distance between the line we're drawing and the
+\                       centre of the new sun. As we draw lines and move up the
+\                       screen, we either decrement (bottom half) or increment
+\                       (top half) this value. See the deep dive on drawing the
+\                       sun to see V in a diagram
+\
+\   V+1                 This determines which half of the new sun we are drawing
+\                       as we work our way up the screen, line by line:
+\
+\                         * 0 means we are drawing the bottom half, so the lines
+\                           get wider as we work our way up towards the centre,
+\                           at which point we will move into the top half, and
+\                           V+1 will switch to &FF
+\
+\                         * &FF means we are drawing the top half, so the lines
+\                           get smaller as we work our way up, away from the
+\                           centre
+\
+\   TGT                 The maximum y-coordinate of the new sun on screen (i.e.
+\                       the screen y-coordinate of the bottom row of the new
+\                       sun)
+\
+\   CNT                 The fringe size of the new sun
+\
+\   K2(1 0)             The new sun's radius squared, i.e. K^2
+\
+\   Y                   The y-coordinate of the bottom row of the new sun
+\
+\ ******************************************************************************
+
+.PLFL
+
+ LDA V                  \ Set (T P) = V * V
+ JSR SQUA2              \           = V^2
+ STA T
+
+ LDA K2                 \ Set (R Q) = K^2 - V^2
+ SEC                    \
+ SBC P                  \ First calculating the low bytes
+ STA Q
+
+ LDA K2+1               \ And then doing the high bytes
+ SBC T
+ STA R
+
+ STY Y1                 \ Store Y in Y1, so we can restore it after the call to
+                        \ LL5
+
+ JSR LL5                \ Set Q = SQRT(R Q)
+                        \       = SQRT(K^2 - V^2)
+                        \
+                        \ So Q contains the half-width of the new sun's line at
+                        \ height V from the sun's centre - in other words, it
+                        \ contains the half-width of the sun's line on the
+                        \ current pixel row Y
+
+ LDY Y1                 \ Restore Y from Y1
+
+ JSR DORND              \ Set A and X to random numbers
+
+ AND CNT                \ Reduce A to a random number in the range 0 to CNT,
+                        \ where CNT is the fringe size of the new sun
+
+ CLC                    \ Set A = A + Q
+ ADC Q                  \
+                        \ So A now contains the half-width of the sun on row
+                        \ V, plus a random variation based on the fringe size
+
+ BCC PLF44              \ If the above addition did not overflow, skip the
+                        \ following instruction
+
+ LDA #255               \ The above overflowed, so set the value of A to 255
+
+                        \ So A contains the half-width of the new sun on pixel
+                        \ line Y, changed by a random amount within the size of
+                        \ the sun's fringe
+
+.PLF44
+
+ LDX LSO,Y              \ Set X to the line buffer value for the old sun's line
+                        \ at row Y
+
+ STA LSO,Y              \ Store the half-width of the new row Y line line in the
+                        \ line buffer
+
+ BEQ PLF11              \ If X = 0 then there was no sun line on pixel row Y, so
+                        \ jump to PLF11
+
+ LDA SUNX               \ Set YY(1 0) = SUNX(1 0), the x-coordinate of the
+ STA YY                 \ vertical central axis of the old sun that's currently
+ LDA SUNX+1             \ on screen
+ STA YY+1
+
+ TXA                    \ Transfer the line buffer value for the old sun's line
+                        \ from X into A
+
+ JSR EDGES              \ Call EDGES to calculate X1 and X2 for the horizontal
+                        \ line centred on YY(1 0) and with half-width A, i.e.
+                        \ the line for the old sun
+ 
+ LDA X1                 \ Store X1 and X2, the ends of the line for the old sun,
+ STA XX                 \ in XX and XX+1
  LDA X2
- STA XX+1               \ old right
+ STA XX+1
 
- LDA K3                 \ Xcenter
- STA YY                 \ new mid-point
+ LDA K3                 \ Set YY(1 0) = K3(1 0), the x-coordinate of the centre
+ STA YY                 \ of the new sun
  LDA K3+1
- STA YY+1               \ hi
- LDA LSO,Y
- JSR EDGES              \ horizontal line new extent clip
- BCS PLF23              \ No new line
- LDA X2
- LDX XX                 \ old left
+ STA YY+1
+
+ LDA LSO,Y              \ Fetch the half-width of the new row Y line line from
+                        \ the line buffer (which we stored above)
+
+ JSR EDGES              \ Call EDGES to calculate X1 and X2 for the horizontal
+                        \ line centred on YY(1 0) and with half-width A, i.e.
+                        \ the line for the new sun
+
+ BCS PLF23              \ If the C flag is set, the new line doesn't fit on the
+                        \ screen, so jump to PLF23 to just draw the old line
+                        \ without drawing the new one
+ 
+                        \ At this point the old line is from XX to XX+1 and the
+                        \ new line is from X1 to X2, and both fit on screen. We
+                        \ now want to remove the old line amd draw the new one.
+                        \ We could do this by simply drawing the old one then
+                        \ drawing the new one, but instead Elite does this by
+                        \ drawing first from X1 to XX and then from X2 to XX+1,
+                        \ which you can see in action by looking at all the
+                        \ permutations below of the four points on the line and
+                        \ imagining what happens if you draw from X1 to XX and
+                        \ X2 to XX+1 using EOR logic. The six possible
+                        \ permutations are as follows, along with the result of
+                        \ drawing X1 to XX and then X2 to XX+1:
+                        \
+                        \   X1    X2    XX____XX+1      ->      +__+  +  +
+                        \
+                        \   X1    XX____X2____XX+1      ->      +__+__+  +
+                        \
+                        \   X1    XX____XX+1  X2        ->      +__+__+__+
+                        \
+                        \   XX____X1____XX+1  X2        ->      +  +__+__+
+                        \
+                        \   XX____XX+1  X1    X2        ->      +  +  +__+
+                        \
+                        \   XX____X1____X2____XX+1      ->      +  +__+  +
+                        \
+                        \ They all end up with a line between X1 and Y1, which
+                        \ is what we want. There's probably a mathematical proof
+                        \ of why this works somewhere, but the above is probably
+                        \ easier to follow.
+                        \
+                        \ We can draw from X1 to XX and X2 to XX+1 by swapping
+                        \ XX and X2 and drawing from X1 to X2, and then drawing
+                        \ from XX to XX+1, so let's do this now
+                        
+ LDA X2                 \ Swap XX and X2
+ LDX XX
  STX X2
- STA XX                 \ swopped old left and new X2 right
- JSR HLOIN              \ horizontal line X1,Y1,X2  Left fringe
+ STA XX
 
-.PLF23                  \ also No new line
+ JSR HLOIN              \ Draw a horizontal line from (X1, Y1) to (X2, Y1)
 
- LDA XX                 \ old left or new right
+.PLF23
+
+                        \ If we jump here from the BCS above when there is no
+                        \ new line this will just draw the old line
+
+ LDA XX                 \ Set X1 = XX
  STA X1
- LDA XX+1               \ old right
+
+ LDA XX+1               \ Set X2 = XX+1
  STA X2
 
-.PLF16                  \ Draw New line, also from PLF11
+.PLF16
 
- JSR HLOIN              \ horizontal line X1,Y1,X2  Whole old, or new Right fringe
+ JSR HLOIN              \ Draw a horizontal line from (X1, Y1) to (X2, Y1)
 
-.PLF6                   \ tail Next line
+.PLF6
 
- DEY                    \ next height Y
- BEQ PLF8               \ Exit Sun fill
- LDA V+1                \ if flag already set
- BNE PLF10              \ take height counter V back up to radius K
- DEC V                  \ else counter height down
- BNE PLFL               \ loop V, Work out extent
- DEC V+1                \ finished down, set flag to go other way
+ DEY                    \ Decrement the line number in Y to move to the line
+                        \ above
 
-.PLFLS                  \ loop back to Work out extent
+ BEQ PLF8               \ If we have reached the top of the screen, jump to PLF8
+                        \ as we are done drawing (the top line of the screen is
+                        \ the border, so we don't draw there)
 
- JMP PLFL               \ loop V back, Work out extent
+ LDA V+1                \ If V+1 is non-zero then we are doing the top half of
+ BNE PLF10              \ the new sun, so jump down to PLF10 to increment V and
+                        \ decrease the width of the line we draw
 
-.PLF11                  \ No previous old line at Y1 screen
+ DEC V                  \ Decrement V, the height of the sun that we use to work
+                        \ out the width, so this makes the line get wider, as we
+                        \ move up towards the sun's centre
 
- LDX K3                 \ Xcenter
- STX YY                 \ new mid-point
+ BNE PLFL               \ If V is non-zero, jump back up to PLFL to do the next
+                        \ screen line up
+ 
+ DEC V+1                \ Otherwise V is 0 and we have reached the centre of the
+                        \ sun, so decrement V+1 to -1 so we start incrementing V
+                        \ each time, thus doing the top half of the new sun
+
+.PLFLS
+
+ JMP PLFL               \ Jump back up to PLFL to do the next screen line up
+
+.PLF11
+
+                        \ If we get here then there is no old sun line on this
+                        \ line, so we can just draw the new sun's line. The new
+
+
+ LDX K3                 \ Set YY(1 0) = K3(1 0), the x-coordinate of the centre
+ STX YY                 \ of the new sun's line
  LDX K3+1
- STX YY+1               \ hi
- JSR EDGES              \ horizontal line X1,Y1,X2
- BCC PLF16              \ Draw New line, up
- LDA #0                 \ else no line at height Y
- STA LSO,Y
- BEQ PLF6               \ guaranteed, tail Next line up
+ STX YY+1
+
+ JSR EDGES              \ Call EDGES to calculate X1 and X2 for the horizontal
+                        \ line centred on YY(1 0) and with half-width A, i.e.
+                        \ the line for the new sun
+                        
+ BCC PLF16              \ If the line is on screen, jump up to PLF16 to draw the
+                        \ line and loop round for the next line up
+
+ LDA #0                 \ The line is not on screen, so set the line buffer for
+ STA LSO,Y              \ line Y to 0, which means there is no sun line here
+
+ BEQ PLF6               \ Jump up to PLF6 to loop round for the next line up
+                        \ (this BEQ is effectively a JMP as A is always zero)
 
 .PLF10                  \ V flag set to take height back up to radius K
 
- LDX V                  \ counter height
- INX                    \ next
- STX V
- CPX K                  \ if height < radius
- BCC PLFLS              \ loop V, Work out extent
- BEQ PLFLS              \ if height = radius, loop V, Work out extent
- LDA SUNX
- STA YY                 \ Onto remaining erase. Old mid-point of line
- LDA SUNX+1
- STA YY+1               \ hi
+ LDX V                  \ Increment V, the height of the sun that we use to work
+ INX                    \ out the width, so this makes the line get narrower, as
+ STX V                  \ we move up and away from the sun's centre
 
-.PLFL3                  \ rest of counter Y screen line
+ CPX K                  \ If V <= the radius of the sun, we still have lines to
+ BCC PLFLS              \ draw, so jump up to PLFL (via PLFLS) to do the next
+ BEQ PLFLS              \ screen line up
 
- LDA LSO,Y
- BEQ PLF9               \ no fringe, skip draw line
- JSR HLOIN2             \ line X1,X2 using YY as mid-point, Acc is half-width
+\ ******************************************************************************
+\
+\ Subroutine: SUN (Part 4 of 4)
+\
+\ Draw a sun with radius K at pixel coordinate (K3, K4). This part erases any
+\ remaining traces of the old sun, now that we have drawn all the way to the top
+\ of the new sun.
+\
+\ ******************************************************************************
 
-.PLF9                   \ skipped erase line
+ LDA SUNX               \ Set YY(1 0) = SUNX(1 0), the x-coordinate of the
+ STA YY                 \ vertical central axis of the old sun that's currently
+ LDA SUNX+1             \ on screen
+ STA YY+1
 
- DEY                    \ rest of screen
- BNE PLFL3              \ loop Y erase bottom Disc
+.PLFL3
 
-.PLF8                   \ Exit Planet fill
+ LDA LSO,Y              \ Fetch the Y-th point from the LSO line buffer, which
+                        \ gives us the half-width of the old sun's line on this
+                        \ line of the screen
 
- CLC                    \ update mid-point of line
- LDA K3
+ BEQ PLF9               \ If A = 0, skip the following call to HLOIN2 as there
+                        \ is no sun line on this line of the screen
+
+ JSR HLOIN2             \ Call HLOIN2 to draw a horizontal line on pixel line Y,
+                        \ with centre point YY(1 0) and half-width A, and remove
+                        \ the line from from the LSO line buffer once done
+
+.PLF9
+
+ DEY                    \ Decrement the line number in Y to move to the line
+                        \ above
+
+ BNE PLFL3              \ Jump up to PLFL3 to redraw the next line up, until we
+                        \ have reached the top of the screen
+
+.PLF8
+
+                        \ If we get here, we have successfully made it from the
+                        \ bottom line of the screen to the top, and the old sun
+                        \ has been replaced bu the new one
+
+ CLC                    \ Clear the C flag to indicate success in drawing the
+                        \ sun
+
+ LDA K3                 \ Set SUNX(1 0) = K3(1 0)
  STA SUNX
  LDA K3+1
  STA SUNX+1
 
 .^RTS2
 
- RTS                    \ End of Sun fill
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -27173,6 +27561,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ stored in the line buffer when the planet was originally drawn by the BLINE
 \ routine.
 \
+\ Other entry points:
+\
+\   WPLS-1              \ Contains an RTS
+\
 \ ******************************************************************************
 
 .WPLS2
@@ -27246,30 +27638,54 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: WPLS
 \
-\ Wipe Sun
+\ Remove the sun from the screen. We do this by redrawing it using the lines
+\ stored in the line buffer when the sun was originally drawn by the SUN
+\ routine.
+\
+\ Arguments:
+\
+\   SUNX(1 0)           The x-coordinate of the vertical central axis of the sun
 \
 \ ******************************************************************************
 
-.WPLS                   \ Wipe Sun
+.WPLS
 {
- LDA LSX
- BMI WPLS-1             \ rts
- LDA SUNX
- STA YY                 \ mid-point of line lo
- LDA SUNX+1
- STA YY+1               \ hi
- LDY #2*Y-1             \ #2*Y-1 = Yscreen top
+ LDA LSX                \ If LSX < 0, the line buffer is empty, so return from
+ BMI WPLS-1             \ the subroutine (as WPLS-1 contains an RTS)
 
-.WPL2                   \ counter Y
+ LDA SUNX               \ Set YY(1 0) = SUNX(1 0), the x-coordinate of the
+ STA YY                 \ vertical central axis of the sun that's currently on
+ LDA SUNX+1             \ screen
+ STA YY+1
 
- LDA LSO,Y
- BEQ P%+5               \ skip hline2
- JSR HLOIN2             \ line using YY as mid-point, A is half-width
- DEY
- BNE WPL2               \ loop Y
- DEY                    \ Yreg = #&FF, solar empty
- STY LSX
- RTS
+ LDY #2*Y-1             \ #Y is the y-coordinate of the centre of the mode 4
+                        \ space view, so this sets Y as a counter for the number
+                        \ of lines in the space view (i.e. 191), which is also
+                        \ the number of lines in the LSO block
+
+.WPL2
+
+ LDA LSO,Y              \ Fetch the Y-th point from the LSO line buffer, which
+                        \ gives us the half-width of the sun's line on this line
+                        \ of the screen
+
+ BEQ P%+5               \ If A = 0, skip the following call to HLOIN2 as there
+                        \ is no sun line on this line of the screen
+
+ JSR HLOIN2             \ Call HLOIN2 to draw a horizontal line on pixel line Y,
+                        \ with centre point YY(1 0) and half-width A, and remove
+                        \ the line from from the LSO line buffer once done
+
+ DEY                    \ Decrement the loop counter
+
+ BNE WPL2               \ Loop back for the next line in the line buffer until
+                        \ we have gone through the entire buffer
+
+ DEY                    \ This sets Y to &FF, as we end the loop with Y = 0
+
+ STY LSX                \ Set LSX to &FF to indicate the line buffer is empty
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
