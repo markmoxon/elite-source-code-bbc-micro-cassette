@@ -12782,7 +12782,7 @@ NEXT
 
  JSR MVEIT              \ Call MVEIT to move the Cobra in space
 
- JSR LL9                \ Call LL9 to draw the  Cobra on screen
+ JSR LL9                \ Call LL9 to draw the Cobra on screen
 
  DEC INWK+32            \ Decrement the counter in INWK+32
 
@@ -33114,30 +33114,51 @@ LOAD_G% = LOAD% + P% - CODE%
  JSR EE51               \ Call EE51 to remove the ship's wireframe from the
                         \ screen, if there is one
 
- JSR PROJ               \ Project the ship onto the screen, returning the screen
-                        \ x, y coordinates in K3(1 0) and K4(1 0), and K4+1 in A
+ JSR PROJ               \ Project the ship onto the screen, returning:
+                        \
+                        \   * K3(1 0) = the screen x-coordinate
+                        \   * K4(1 0) = the screen y-coordinate
+                        \   * A = K4+1
 
  ORA K3+1               \ If either of the high bytes of the screen coordinates
- BNE nono               \ are non-zero, the point is off screen, so jump to nono
+ BNE nono               \ are non-zero, jump to nono as the ship is off screen
 
- LDA K4                 \ #Y Ymiddle not K4 when docked
- CMP #Y*2-2             \ #Y*2-2  96*2-2 screen height
- BCS nono               \ off top of screen
- LDY #2                 \ index for edge heap
- JSR Shpt               \ Ship is point, could end if nono-2
- LDY #6                 \ index for edge heap
- LDA K4                 \ #Y
- ADC #1                 \ 1 pixel uo
- JSR Shpt               \ Ship is point, could end if nono-2
- LDA #8                 \ set bit3 (to erase later) and plot as Dot
- ORA XX1+31             \ display/exploding state|missiles
+ LDA K4                 \ Set A = y-coordinate of dot
+
+ CMP #Y*2-2             \ If the y-coordinate is bigger then the y-coordinate of
+ BCS nono               \ the bottom of the screen, jump to nono as the ship's
+                        \ dot is off the bottom of the space view
+
+ LDY #2                 \ Call Shpt with Y = 2 to set up bytes 1-4 in the ship
+ JSR Shpt               \ lines space, aborting the call to LL9 if the dot is
+                        \ off the side of the screen. This call sets up the
+                        \ first row of the dot (i.e. a four-pixel dash)
+
+ LDY #6                 \ Set Y to 6 for the next call to Shpt
+
+ LDA K4                 \ Set A = y-coordinate of dot + 1 (so this is the second
+ ADC #1                 \ row of the two-pixel-high dot)
+
+ JSR Shpt               \ Call Shpt with Y = 6 to set up bytes 5-8 in the ship
+                        \ lines space, aborting the call to LL9 if the dot is
+                        \ off the side of the screen. This call sets up the
+                        \ second row of the dot (i.e. another four-pixel dash,
+                        \ on the row below the first one)
+
+ LDA #%00001000         \ Set bit 3 of the ship's byte #31 to record that we
+ ORA XX1+31             \ have now drawn something on screen for this ship
  STA XX1+31
- LDA #8                 \ Dot uses #8 not U
- JMP LL81+2             \ skip first two edges on XX19 heap
 
- PLA                    \ nono-2 \ Changing return address
- PLA                    \ ending routine early
+ LDA #8                 \ Set A = 8 so when we call LL18+2 next, byte 0 of the
+                        \ heap gets set to 8, for the 8 bytes we just stuck on
+                        \ the heap
 
+ JMP LL81+2             \ Call LL81+2 to draw the ship's dot, returning from the
+                        \ subroutine with a tail call
+
+ PLA                    \ Pull the return address from the stack, so the RTS
+ PLA                    \ below actually returns from the subroutine that called
+                        \ LL9 (as we called SHPPT from LL9 with a JMP)
 .nono
 
  LDA #%11110111         \ Clear bit 3 of the ship's byte #31 to record that
@@ -33146,19 +33167,39 @@ LOAD_G% = LOAD% + P% - CODE%
 
  RTS                    \ Return from the subroutine
  
-.Shpt                   \ ship is point at screen center
+.Shpt
 
- STA (XX19),Y
+                        \ This routine sets up four bytes in the ship lines heap
+                        \ space, from byte Y-1 to byte Y+2. If the ship's screen
+                        \ point turns out to be off screen, then this routine
+                        \ aborts the entire call to LL9, exiting via nono
+
+ STA (XX19),Y           \ Store A in byte Y of the ship lines heap space
+
+ INY                    \ Store A in byte Y+2 of the ship lines heap space
  INY
- INY                    \ next Y coord
  STA (XX19),Y
- LDA K3                 \ Xscreen-mid, not K3 when docked
- DEY                    \ 2nd X coord
+
+ LDA K3                 \ Set A = screen x-coordinate of the ship dot
+
+ DEY                    \ Store A in byte Y+1 of the ship lines heap space
  STA (XX19),Y
- ADC #3                 \ 1st X coord
- BCS nono-2             \ overflowed to right, remove 2 from stack and clear bit 3
+
+ ADC #3                 \ Set A = screen x-coordinate of the ship dot + 3
+
+ BCS nono-2             \ If the addition pushed the dot off the right side of
+                        \ the screen, jump to nono-2 to return from the parent
+                        \ subroutine early (i.e. LL9). This works because we
+                        \ called Shpt from above with a JSR, so nono-2 removes
+                        \ that return address from the stack, leaving the next
+                        \ return address exposed. LL9 called SHPPT with a JMP.
+                        \ so the next return address is the one that was put on
+                        \ the stack by the original call to LL9. So the RTS in
+                        \ nono will actually return us from the original call
+                        \ to LL9, thus aborting the entire drawing process
+
+ DEY                    \ Store A in byte Y-1 of the ship lines heap space
  DEY
- DEY                    \ first entry in group of 4 added to ship line heap
  STA (XX19),Y
 
  RTS                    \ Return from the subroutine
@@ -33438,6 +33479,10 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Other entry points:
 \
 \   EE51                
+\
+\   LL81                
+\
+\   LL155               
 \
 \ ******************************************************************************
 
@@ -34149,17 +34194,7 @@ LOAD_G% = LOAD% + P% - CODE%
  ADC #0                 \ hi
  STA U                  \ z new hi
  JMP LL57               \ Node additions done, z = U.T case
-}
 
-\ ******************************************************************************
-\
-\ Subroutine: LL61
-\
-\ Doing additions and scalings for each visible node around here
-\
-\ ******************************************************************************
-
-                        \ Doing additions and scalings for each visible node around here
 .LL61                   \ Handling division R=A/Q for case further down
 
  LDX Q
@@ -34507,13 +34542,13 @@ LOAD_G% = LOAD% + P% - CODE%
 
  JMP LL75               \ Loop Next Edge
 
-.LL81                   \ Exited edge data loop
+.^LL81                  \ Exited edge data loop
 
  LDA U                  \ clipped ship lines heap index for (XX19),Y
  LDY #0                 \ first entry in ship edges heap is number of bytes
  STA (XX19),Y
 
-.LL155                  \ CLEAR LINEstr visited by EE31 when XX3 heap ready to draw/erase lines in XX19 heap
+.^LL155                 \ CLEAR LINEstr visited by EE31 when XX3 heap ready to draw/erase lines in XX19 heap
 
  LDY #0                 \ number of bytes
  LDA (XX19),Y
@@ -34541,6 +34576,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BCC LL27               \ loop Y
 \LL82
  RTS                    \ --- Wireframe end  \ LL118-1
+}
 
 \ ******************************************************************************
 \
