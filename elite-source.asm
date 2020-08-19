@@ -685,7 +685,8 @@ ORG &0000
 
 .XX19
 
- SKIP NI% - 33          \ XX19 shares location with INWK+33
+ SKIP NI% - 33          \ XX19(1 0) shares location with INWK(34 33), which
+                        \ contains the ship lines heap space address pointer
 
 .LSP
 
@@ -2831,6 +2832,13 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ in K%, and along with the ship slots at FRIN and the ship blueprints at XX21,
 \ we have everything we need to simulate the world of Elite.
 \
+\ (Before going any further, an important note. Throughout this documentation
+\ we're going to refer to "ships" and "ship data blocks" for all the different
+\ types of object in the vicinity, not just ships. The same blocks, pointers and
+\ data structures are used not only for ships, but also for cargo canisters,
+\ missiles, escape pods, asteroids, space stations, planets and suns, but that's
+\ a bit of a mouthful compared to "ships", so "ships" it is.)
+\
 \ When working with a ship's data - such as when we move a ship in MVEIT, or
 \ spawn a child ship in SFS1 - we normally work with the data in the INWK
 \ workspace, as INWK is in zero page and is therefore faster and more memory
@@ -2843,14 +2851,12 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ flag). Every now and then the bytes in the K% block are manipulated directly,
 \ but most of the time it's all about INWK.
 \
-\ There are 36 bytes of data in each ship's block, and the same data structure
-\ is used to describe every type of object in the universe, not just ships
-\ (though we just refer to this as "ship data" for convenience). This means
-\ there is a data block for the planet, another for the sun and another for the
-\ space station, as well as ones for non-ship objects like asteroids and cargo
-\ canisters. They all have the same format, though not all bytes are used for
-\ all ship types (planets don't have AI or missiles, for example, though it
-\ would be fun if they did...).
+\ There are 36 bytes of data in each ship's block, and as mentioned above, the
+\ same data structure is used to describe every type of object in the universe,
+\ not just ships (though we still refer to this as "ship data" for convenience).
+\ They all have the same format, though not all bytes are used for all ship
+\ types; planets, for example, don't have AI or missiles, though it would be fun
+\ if they did...
 \
 \ Summary of .INWK and .K% ship data block format
 \ -----------------------------------------------
@@ -3057,11 +3063,11 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ INWK+31 = exploding/killed state, scanner flag, or missile count
 \
 \   * Bits 0-2: n = number of missiles or Thargons
-\   * Bit 3:    0 = no explosion cloud   1 = keep updating explosion cloud
-\   * Bit 4:    0 = hide on scanner      1 = show on scanner
-\   * Bit 5:    0 = not exploding        1 = exploding
-\   * Bit 6:    0 = no laser fire        1 = this ship's laser is firing at us
-\   * Bit 7:    0 = ship is alive        1 = ship has been killed
+\   * Bit 3:    0 = isn't being drawn on screen  1 = is being drawn on screen
+\   * Bit 4:    0 = don't show on scanner        1 = do show on scanner
+\   * Bit 5:    0 = ship is not exploding        1 = ship is exploding
+\   * Bit 6:    0 = ship is not firing lasers    1 = ship is firing lasers at us
+\   * Bit 7:    0 = ship has not been killed     1 = ship has been killed
 \
 \ INWK+32 = AI, hostility and E.C.M. flags
 \
@@ -3289,10 +3295,10 @@ ORG &0D40
 
  SKIP 192               \ This block is shared by LSX and LSO:
                         \
-                        \ LSX is the the line buffer for the sun (see SUN for
-                        \ details)
+                        \ LSX is the ship lines heap space for the space station
                         \
-                        \ LSO is the ship lines heap space for the space station
+                        \ LSO is the the line buffer for the sun (see SUN for
+                        \ details)
                         \
                         \ This space can be shared as our local bubble of
                         \ universe can support either the sun or a space
@@ -24430,7 +24436,7 @@ LOAD_E% = LOAD% + P% - CODE%
  LDX XSAV               \ Restore the ship slot number from XSAV into X
 
  LDY #31                \ Clear bits 3, 4 and 6 in the ship's byte #31, which
- LDA (INF),Y            \ stops drawing the explosion cloud (bit 3), hides it
+ LDA (INF),Y            \ stops drawing the ship on screen (bit 3), hides it
  AND #%10100111         \ from the scanner (bit 4) and stops any lasers firing
  STA (INF),Y            \ at it (bit 6)
 
@@ -25860,6 +25866,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \   C flag              Set if the ship's projection doesn't fit on the screen,
 \                       clear if it does project onto the screen
+\
+\   A                   Contains K4+1, the high byte of the y-coordinate
 \
 \ ******************************************************************************
 
@@ -27415,7 +27423,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \     =       |`.     =        __-->     |      `.                    |      `. 
 \      =      |  `.  =  ___.--´          |        `.                  +--------`
 \       =     |    `.                    |     __--´    ----->        K * sin(c)
-\        `--__+__--´                     +__--´
+\        `--__|__--´                     |__--´
 \
 \ So if the centre of the circle (the top of the triangle above) is at the
 \ origin (0, 0), then using basic trigonometry, we can see that at step number
@@ -33097,16 +33105,21 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: SHPPT
 \
-\ Ship plot as point from LL10
+\ Draw a distant ship as a point rather than a full wireframe.
 \
 \ ******************************************************************************
 
-.SHPPT                  \ ship plot as point from LL10
+.SHPPT
 {
- JSR EE51               \ if bit3 set draw to erase lines in XX19 heap
- JSR PROJ               \ Project K+INWK(x,y)/z to K3,K4 for craft center
- ORA K3+1
- BNE nono
+ JSR EE51               \ Call EE51 to remove the ship's wireframe from the
+                        \ screen, if there is one
+
+ JSR PROJ               \ Project the ship onto the screen, returning the screen
+                        \ x, y coordinates in K3(1 0) and K4(1 0), and K4+1 in A
+
+ ORA K3+1               \ If either of the high bytes of the screen coordinates
+ BNE nono               \ are non-zero, the point is off screen, so jump to nono
+
  LDA K4                 \ #Y Ymiddle not K4 when docked
  CMP #Y*2-2             \ #Y*2-2  96*2-2 screen height
  BCS nono               \ off top of screen
@@ -33121,36 +33134,20 @@ LOAD_G% = LOAD% + P% - CODE%
  STA XX1+31
  LDA #8                 \ Dot uses #8 not U
  JMP LL81+2             \ skip first two edges on XX19 heap
+
  PLA                    \ nono-2 \ Changing return address
  PLA                    \ ending routine early
-}
 
-\ ******************************************************************************
-\
-\ Subroutine: nono
-\
-\ Clear bit3 nothing to erase in next round, no draw.
-\
-\ ******************************************************************************
+.nono
 
-.nono                   \ clear bit3 nothing to erase in next round, no draw
-{
- LDA #&F7               \ clear bit3
- AND XX1+31             \ display/exploding state|missiles
+ LDA #%11110111         \ Clear bit 3 of the ship's byte #31 to record that
+ AND XX1+31             \ nothing is being drawn on screen for this ship
  STA XX1+31
- RTS
-}
 
-\ ******************************************************************************
-\
-\ Subroutine: Shpt
-\
-\ Ship is point at screen center
-\
-\ ******************************************************************************
-
+ RTS                    \ Return from the subroutine
+ 
 .Shpt                   \ ship is point at screen center
-{
+
  STA (XX19),Y
  INY
  INY                    \ next Y coord
@@ -33163,7 +33160,8 @@ LOAD_G% = LOAD% + P% - CODE%
  DEY
  DEY                    \ first entry in group of 4 added to ship line heap
  STA (XX19),Y
- RTS
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -33413,149 +33411,255 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine: LL25
+\ Subroutine: LL9 (Part 1 of )
 \
-\ Draw the planet. This jumps straight to the PLANET routine, and enables us to
-\ use a branch call to draw the planet (as the PLANET routine is too far away).
+\ Draw the current ship on screen. This part checks to see if the ship is
+\ exploding, or if it should start exploding, and if it does it sets things up
+\ accordingly. It also does some basic checks to see if we can see the ship, and
+\ if not it removes it from the screen.
+\
+\ In this code, XX1 is used to point to the current ship's data block at INWK
+\ (the two labels are interchageable).
+\
+\ Arguments:
+\
+\   XX1                 XX1 shares its location with INWK, which contains the
+\                       zero-page copy of the data block for this ship from the
+\                       workspace at K%
+\
+\   INF                 The address of the data block for this ship in workspace
+\                       K%
+\
+\   XX19(1 0)           XX19(1 0) shares its location with INWK(34 33), which
+\                       contains the ship lines heap space address pointer
+\
+\   XX0                 The address of the blueprint for this ship
+\
+\ Other entry points:
+\
+\   EE51                
 \
 \ ******************************************************************************
 
-.LL25
 {
+.LL25
+
  JMP PLANET             \ Jump to the PLANET routine, returning from the
                         \ subroutine using a tail call
-}
+
+.^LL9
+
+ LDA TYPE               \ If the ship type is negative then this indicates a
+ BMI LL25               \ planet or sun, so jump to PLANET via LL25 above
+
+ LDA #31                \ Set XX4 = 31 to store the ship's distance for later
+ STA XX4                \ comparison with the visibility distance. We will
+                        \ update this value below with the actual ship's
+                        \ distance if it turns out to be visible on screen
+
+ LDA #%00100000         \ If bit 5 of the ship's byte #31 is set, then the ship
+ BIT XX1+31             \ is currently exploding, so jump down to EE28
+ BNE EE28
+
+ BPL EE28               \ If bit 7 of the ship's byte #31 is clear then the ship
+                        \ has not just been killed, so jump down to EE28
+
+                        \ Otherwise bit 5 is clear and bit 7 is set, so the ship
+                        \ is not yet exploding but it has been killed, so we
+                        \ need to start an explosion
+
+ ORA XX1+31             \ Clear bits 6 and 7 of the ship's byte #31, to stop the
+ AND #%00111111         \ ship from firing its laser and to mark it as no longer
+ STA XX1+31             \ having just been killed
+
+ LDA #0                 \ Set the ship's acceleration in byte #31 to 0, updating
+ LDY #28                \ the byte in the workspace K% data block so we don't
+ STA (INF),Y            \ have to copy it back from INWK later
+
+ LDY #30                \ Set the ship's pitch counter in byte #30 to 0, to stop
+ STA (INF),Y            \ the ship from pitching
+
+ JSR EE51               \ Call EE51 to remove the ship from the screen
+
+ LDY #1                 \ Set byte 1 of the ship lines heap space to 18, the
+ LDA #18                \ initial value for the explosion cloud counter (see
+ STA (XX19),Y           \ DOEXP for details)
+
+ LDY #7                 \ Fetch byte #7 from the ship's blueprint, which
+ LDA (XX0),Y            \ determines the explosion count (i.e. the number of
+ LDY #2                 \ vertices used as origins for explosion dust), and
+ STA (XX19),Y           \ store it in byte 2 of the ship lines heap space
+
+\LDA XX1+32             \ These instructions are commented out in the original
+\AND #&7F               \ source
+
+                        \ The following loop sets bytes 3-6 of the of the ship
+                        \ lines heap space to random numbers
+
+.EE55
+
+ INY                    \ Increment Y (so the loop starts at 3)
+
+ JSR DORND              \ Set A and X to random numbers
+
+ STA (XX19),Y           \ Store A in the Y-th byte of the ship lines heap space
+
+ CPY #6                 \ Loop back until we have randomised the 6th byte
+ BNE EE55
+
+.EE28
+
+ LDA XX1+8              \ Set A = z_sign
+
+.EE49
+
+ BPL LL10               \ If A is positive, i.e. the ship is in front of us,
+                        \ jump down to LL10
+
+.LL14
+
+                        \ The following removes the ship from the screen by
+                        \ redrawing it (or, if it is exploding, by redrawing the
+                        \ explosion cloud). We call it when the ship is no
+                        \ longer on screen, is too far away to be fully drawn,
+                        \ and so on
+
+ LDA XX1+31             \ If bit 5 of the ship's byte #31 is clear, then the
+ AND #%00100000         \ ship is not currently exploding, so jump down to EE51
+ BEQ EE51               \ to redraw its wireframe
+
+ LDA XX1+31             \ The ship is exploding, so clear bit 3 of the ship's
+ AND #%11110111         \ byte #31 to denote that the ship is no longer being
+ STA XX1+31             \ drawn on screen
+
+ JMP DOEXP              \ Jump to DOEXP to display the explosion cloud, which
+                        \ will remove it from the screen, returning from the
+                        \ subroutine using a tail call
+
+.^EE51
+
+ LDA #%00001000         \ If bit 3 of the ship's byte #31 is clear, then there
+ BIT XX1+31             \ is already nothing being shown for this ship, so
+ BEQ LL10-1             \ return from the subroutine (as LL10-1 contains an RTS)
+
+ EOR XX1+31             \ Otherwise flip bit 3 of byte #31 and store it (which
+ STA XX1+31             \ clears bit 3 as we know it was set before the EOR), so
+                        \ this sets this ship as no longer being drawn on screen
+
+ JMP LL155              \ Jump to LL155 to draw the ship, which removes it from
+                        \ the screen, returning from the subroutine using a
+                        \ tail call
+
+\LL24                   \ This label is commented out in the original source,
+                        \ and was presumably used to label the RTS which is
+                        \ actually called by LL10-1 above, not LL24
+
+ RTS                    \ Return from the subroutine
 
 \ ******************************************************************************
 \
-\ Subroutine: LL9
+\ Subroutine: LL9 (Part 2 of )
 \
-\ Object ENTRY for displaying, including debris.
+\ Draw the current ship on screen. This part checks whether the ship is in our
+\ field of view, and whether it is close enough to be fully drawn (if not, we
+\ jump to SHPPT to draw it as a dot).
 \
 \ ******************************************************************************
 
-.LL9                    \ object ENTRY for displaying, including debris
-{
- LDA TYPE               \ ship type
- BMI LL25               \ planet as bit7 set
- LDA #31                \ max visibility
- STA XX4
- LDA #32                \ mask for bit 5, exploding
- BIT XX1+31             \ display explosion state|missiles
- BNE EE28               \ bit5 set, explosion ongoing
- BPL EE28               \ bit7 clear, else Start blowing up!
- ORA XX1+31
- AND #&3F               \ clear bit7,6
- STA XX1+31
- LDA #0                 \ acceleration & pitch zeroed
- LDY #28                \ byte #28 accel
- STA (INF),Y
- LDY #30                \ byte #30 pitch counter
- STA (INF),Y
- JSR EE51               \ if bit3 set erase old lines in XX19 heap
- LDY #1                 \ edge heap byte1
- LDA #18                \ counter for explosion radius
- STA (XX19),Y
- LDY #7                 \ Hull byte#7 explosion of ship type e.g. &2A
- LDA (XX0),Y
- LDY #2                 \ edge heap byte2
- STA (XX19),Y
+.LL10
 
-\LDA XX1+32
-\AND #&7F
-\STA XX1+32
+ LDA XX1+7              \ Set A = z_hi
 
-.EE55                   \ counter Y, 4 rnd bytes to edge heap
+ CMP #192               \ If A >= 192 then the ship is a long way away, so jump
+ BCS LL14               \ to LL14 to remove the ship from the screen
 
- INY                    \ #3 start
- JSR DORND
- STA (XX19),Y
- CPY #6                 \ bytes 3to6 = random bytes for seed
- BNE EE55               \ loop Y
+ LDA XX1                \ If x_lo >= z_lo, set the C flag, otherwise clear it
+ CMP XX1+6
 
-.EE28                   \ bit5 set do explosion, or bit7 clear, dont kill
+ LDA XX1+1              \ Set A = x_hi - z_hi using the carry from the low
+ SBC XX1+7              \ bytes, which sets the C flag as if we had done a full
+                        \ two-byte subtraction (x_hi x_lo) - (z_hi z_lo)
 
- LDA XX1+8              \ sign of Z coord
+ BCS LL14               \ If the C flag is set then x >= z, so the ship is
+                        \ further to the side than it is in front of us, so it's
+                        \ outside our viewing angle of 45 degrees, and we jump
+                        \ to LL14 to remove it from the screen
 
-.EE49                   \ In view?
+ LDA XX1+3              \ If y_lo >= z_lo, set the C flag, otherwise clear it
+ CMP XX1+6
 
- BPL LL10               \ hop over as object in front
-}
+ LDA XX1+4              \ Set A = y_hi - z_hi using the carry from the low
+ SBC XX1+7              \ bytes, which sets the C flag as if we had done a full
+                        \ two-byte subtraction (y_hi y_lo) - (z_hi z_lo)
 
-.LL14                   \ Test to remove object
-{
- LDA XX1+31             \ display explosion state|missiles
- AND #32                \ bit5 ongoing explosion?
- BEQ EE51               \ if no then if bit3 set erase old lines in XX19 heap
- LDA XX1+31             \ else exploding
- AND #&F7               \ clear bit3
- STA XX1+31
- JMP DOEXP              \ Explosion
-}
+ BCS LL14               \ If the C flag is set then y >= z, so the ship is
+                        \ further above us than it is in front of us, so it's
+                        \ outside our viewing angle of 45 degrees, and we jump
+                        \ to LL14 to remove it from the screen
+ 
+ LDY #6                 \ Fetch byte #6 from the ship's blueprint into X, which
+ LDA (XX0),Y            \ is the number * 4 of the vertex used for the gun spike
+ TAX
 
-.EE51                   \ if bit3 set draw lines in XX19 heap
-{
- LDA #8                 \ mask for bit 3
- BIT XX1+31             \ exploding/display state|missiles
- BEQ LL10-1             \ if bit3 clear, just rts
- EOR XX1+31             \ else toggle bit3 to allow lines
- STA XX1+31
- JMP LL155              \ clear LINEstr. Draw lines in XX19 heap
-
-\LL24
- RTS                    \ needed by beq \ LL10-1
-}
-
-.LL10                   \ object in front of you
-{
- LDA XX1+7              \ zhi
- CMP #&C0               \ far in front
- BCS LL14               \ test to remove object
- LDA XX1                \ xlo
- CMP XX1+6              \ zlo
- LDA XX1+1              \ xhi
- SBC XX1+7              \ zhi, gives angle to object
- BCS LL14               \ test to remove object
- LDA XX1+3              \ ylo
- CMP XX1+6              \ zlo
- LDA XX1+4              \ yhi
- SBC XX1+7              \ zhi
- BCS LL14               \ test to remove object
- LDY #6                 \ Hull byte6, node gun*4
- LDA (XX0),Y
- TAX                    \ node heap index
- LDA #255               \ flag on node heap at gun
- STA XX3,X
+ LDA #255               \ Set bytes X and X+1 of the XX3 heap space to 255, as
+ STA XX3,X              \ a flag for the gun vertex
  STA XX3+1,X
- LDA XX1+6              \ zlo
+
+ LDA XX1+6              \ Set (A T) = (z_hi z_lo)
  STA T
- LDA XX1+7              \ zhi
- LSR A
- ROR T
- LSR A
- ROR T
- LSR A
- ROR T
- LSR A
- BNE LL13               \ hop as far
- LDA T
- ROR A                  \ bring in hi bit0
- LSR A
- LSR A                  \ small zlo
- LSR A                  \ updated visibility
- STA XX4
- BPL LL17               \ guaranteed hop to Draw wireframe
+ LDA XX1+7
 
-.LL13                   \ hopped to as far
+ LSR A                  \ Set (A T) = (A T) / 8
+ ROR T
+ LSR A
+ ROR T
+ LSR A
+ ROR T
 
- LDY #13                \ Hull byte#13, distance point at which ship becomes a dot
- LDA (XX0),Y
- CMP XX1+7              \ dot_sign >= z_hi will leave carry set
- BCS LL17               \ hop over to draw Wireframe
- LDA #32                \ mask bit5 exploding
- AND XX1+31             \ exploding/display state|missiles
- BNE LL17               \ hop over to Draw wireframe or exploding
- JMP SHPPT              \ else ship plot point, up
+ LSR A                  \ If A >> 4 is non-zero, i.e. z_hi >= 16, jump to LL13
+ BNE LL13               \ as the ship is possibly far away enough to be shown as
+                        \ a dot
+
+ LDA T                  \ Otherwise the C flag contains the previous bit 0 of A,
+ ROR A                  \ which could have been set, so rotate A right four
+ LSR A                  \ times so it's in the form %000xxxxx, i.e. z_hi reduced
+ LSR A                  \ to a maximum value of 31
+ LSR A
+
+ STA XX4                \ Store A in XX4, which is now the distance of the ship
+                        \ we can use for visibility testing
+
+ BPL LL17               \ Jump down to LL17 (this BPL is effectively a JMP as we
+                        \ know bit 7 of A is definitely clear)
+
+.LL13
+
+                        \ If we get here then the ship is possibly far enough
+                        \ away to be shown as a dot
+
+ LDY #13                \ Fetch byte #13 from the ship's blueprint, which gives
+ LDA (XX0),Y            \ the ship's visibility distance, beyond which we show
+                        \ the ship as a dot
+
+ CMP XX1+7              \ If z_hi <= the visibility distance, skip to LL17 to
+ BCS LL17               \ draw the ship fully, rather than as a dot, as it is
+                        \ closer than the visibility distance
+
+ LDA #%00100000         \ If bit 5 of the ship's byte #31 is set, then the
+ AND XX1+31             \ ship is currently exploding, so skip to LL17 to draw
+ BNE LL17               \ the ship's explosion cloud
+
+ JMP SHPPT              \ Otherwise jump to SHPPT to draw the ship as a dot,
+                        \ returning from the subroutine using a tail call
+
+\ ******************************************************************************
+\
+\ Subroutine: LL9 (Part 3 of )
+\
+\ Draw the current ship on screen.
+\
+\ ******************************************************************************
+
 
 .LL17                   \ draw Wireframe (including nodes exploding)
 
