@@ -33213,55 +33213,104 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \   Q = SQRT(R Q)
 \
+\ This algorithm is related to the "shift and subtract" algorithm for division
+\ as described in TIS2, though with a couple of twists. If you think about the
+\ division algorithm, it calculates the quotient and remainder from a given
+\ dividend and divisor, and the following holds:
+\
+\   dividend = (quotient * divisor) + remainder
+\
+\ The problem of calculating the square root is related to this, except we have
+\ the following relationship between the arguments and results, where "number"
+\ is the number we want to find the square root of:
+\
+\   number = (root * root) + remainder
+\
+\ So the number we want to find the root of is equivalent to the dividend in the
+\ "shift and subtract" algorithm, and instead of the divisor being fixed, we
+\ instead build up the root bit by bit and use that in place of the divisor.
+\
+\ When generalised to calculate the n-th root, this approach is called the
+\ "shifting nth-root" algorithm, and it is explained in various places on the
+\ web by minds more devious than mine. The routine below is an application of
+\ the algorithm for n = 2, which is why the number ("dividend") and remainder
+\ get shifted by two places in each iteration.
+\
+\ There is a deeper explanation of this exact routine here, though I have to say
+\ it makes my head spin more than a little:
+\ 
+\    http://6502org.wikidot.com/software-math-sqrt
+\
+\ Definitely one for the "must study later" pile...
+\
 \ ******************************************************************************
 
-.LL5                    \ 2BSQRT Q=SQR(RQ) \ two-byte square root, R is hi, Q is lo
+.LL5
 {
- LDY R                  \ hi
+ LDY R                  \ Set (Y S) = (R Q)
  LDA Q
- STA S                  \ lo
- LDX #0                 \ result
- STX Q
- LDA #8                 \ counter
+ STA S
+
+                        \ So now to calculate Q = SQRT(Y S)
+
+ LDX #0                 \ Set X = 0, to hold the remainder
+ 
+ STX Q                  \ Set Q = 0, to hold the result
+
+ LDA #8                 \ Set T = 8, to use as a loop counter
  STA T
 
-.LL6                    \ counter T
+.LL6
 
- CPX Q
- BCC LL7                \ no carry
- BNE LL8                \ hop ne
- CPY #&40               \ hi
- BCC LL7                \ no carry
+ CPX Q                  \ If X < Q, jump to LL7
+ BCC LL7
 
-.LL8                    \ hop ne
+ BNE LL8                \ If X > Q, jump to LL8
 
- TYA
- SBC #&40
- TAY                    \ new hi
- TXA
+ CPY #64                \ If Y < 64, jump to LL7 with the C flag clear, otherwise
+ BCC LL7                \ fall through into LL8 with the C flag set
+
+.LL8
+
+ TYA                    \ Set Y = Y - 64
+ SBC #64                \
+ TAY                    \ This subtraction will work as we know C is set from
+                        \ the BCC above, and the result will not underflow as we
+                        \ already checked that Y >= 64, so the C flag is also set
+                        \ for the next subtraction
+
+ TXA                    \ Set X = X - Q
  SBC Q
- TAX                    \ maybe carry into
+ TAX
 
-.LL7                    \ no carry
+.LL7
 
- ROL Q                  \ result
- ASL S                  \ maybe carry into Yreg
+ ROL Q                  \ Shift the result in Q to the left, shifting the C flag
+                        \ into bit 0 and bit 7 into the C flag
+
+ ASL S                  \ Shift the dividend in (Y S) to the left, inserting
+ TYA                    \ bit 7 from above into bit 0
+ ROL A
+ TAY
+ 
+ TXA                    \ Shift the remainder in X to the left
+ ROL A
+ TAX
+ 
+ ASL S                  \ Shift the dividend in (Y S) to the left
  TYA
  ROL A
- TAY                    \ Yhi *2
- TXA
+ TAY
+ 
+ TXA                    \ Shift the remainder in X to the left
  ROL A
- TAX                    \ Xlo *2
- ASL S                  \ maybe carry into Yreg
- TYA
- ROL A
- TAY                    \ Yhi *2
- TXA
- ROL A
- TAX                    \ Xlo *2
- DEC T
- BNE LL6                \ loop T
- RTS                    \ Q left with root
+ TAX
+ 
+ DEC T                  \ Decrement the loop counter
+ 
+ BNE LL6                \ Loop back to LL6 until we have done 8 loops
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
