@@ -33358,96 +33358,187 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL38
 \
-\ BADD(S)A=R+Q(SA) \ byte add (subtract)   (Sign S)A = R + Q*(Sign from A^S)
+\ Calculate the following:
+\
+\   A = R + Q
+\
+\ where A is the sign of Q and S is the sign of R. The sign of the result is
+\ returned in S.
 \
 \ ******************************************************************************
 
-.LL38                   \ BADD(S)A=R+Q(SA) \ byte add (subtract)   (Sign S)A = R + Q*(Sign from A^S)
+.LL38
 {
- EOR S                  \ sign of operator is A xor S
- BMI LL39               \ 1 byte subtraction
- LDA Q                  \ else addition, S already correct
- CLC
+ EOR S                  \ If the sign of A * S is negative, skip to LL35, as
+ BMI LL39               \ A and S have different signs so we need to subtract
+
+ LDA Q                  \ Otherwise set A = R + Q, which is the result we need,
+ CLC                    \ as S already contains the correct sign
  ADC R
- RTS
 
-.LL39                   \ 1 byte subtraction (S)A = R-Q
+ RTS                    \ Return from the subroutine
 
- LDA R
+.LL39
+
+ LDA R                  \ Set A = R - Q
  SEC
  SBC Q
- BCC P%+4               \ sign of S needs correcting, hop over rts
- CLC
- RTS
- PHA                    \ store subtraction result
- LDA S
- EOR #128               \ flip
+
+ BCC P%+4               \ If the subtraction underflowed, skip the next two
+                        \ instructions so we can negate the result
+
+ CLC                    \ Otherwise the result is correct, and S contains the
+                        \ correct sign of the result as R is the dominant side
+                        \ of the subtraction, so clear the C flag
+ 
+ RTS                    \ And return from the subroutine
+
+                        \ If we get here we need to negate both the result and
+                        \ the sign in S, as both are the wrong sign
+ 
+ PHA                    \ Store the result of the subtraction on the stack
+
+ LDA S                  \ Flip the sign of S
+ EOR #%10000000
  STA S
- PLA                    \ restore subtraction result
- EOR #255
- ADC #1                 \ negate
- RTS
+
+ PLA                    \ Restore the subtraction result into A
+
+ EOR #%11111111         \ Negate the result in A using two's complement, i.e.
+ ADC #1                 \ set A = ~A + 1
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
 \
 \ Subroutine: LL51
 \
-\ XX12=XX15.XX16  each vector is 16-bit x,y,z
-\ XX16_hsb[   1  3  5    highest XX16 done below is 5, then X taken up by 6, Y taken up by 2.
-\             7  9 11
-\	         13 15 17=0 ?]
+\ Calculate following dot products:
+\
+\   [x]   [sidev_x]         [x]   [roofv_x]         [x]   [nosev_x]
+\   [y] . [sidev_y]         [y] . [roofv_y]         [y] . [nosev_y]
+\   [z]   [sidev_z]         [z]   [roofv_z]         [z]   [nosev_z]
+\
+\ and store the results as sign-magnitude numbers in XX12 through XX12+5.
+\
+\ Arguments:
+\
+\   XX15(1 0)           The ship's x-coordinate as (x_sign x_lo)
+\
+\   XX15(3 2)           The ship's y-coordinate as (y_sign y_lo)
+\
+\   XX15(5 4)           The ship's z-coordinate as (z_sign z_lo)
+\
+\   XX16 to XX16+5      The scaled sidev vector, with:
+\
+\                         * x, y, z magnitudes in XX16, XX16+2, XX16+4
+\
+\                         * x, y, z signs in XX16+1, XX16+3, XX16+5
+\
+\   XX16+6 to XX16+11   The scaled roofv vector, with:
+\
+\                         * x, y, z magnitudes in XX16+6, XX16+8, XX16+10
+\
+\                         * x, y, z signs in XX16+7, XX16+9, XX16+11
+\
+\   XX16+12 to XX16+17  The scaled nosev vector, with:
+\
+\                         * x, y, z magnitudes in XX16+12, XX16+14, XX16+16
+\
+\                         * x, y, z signs in XX16+13, XX16+15, XX16+17
+\
+\ Returns:
+\
+\   XX12(1 0)           The dot product of sidev with the [x y z] vector
+\
+\   XX12(3 2)           The dot product of roofv with the [x y z] vector
+\
+\   XX12(5 4)           The dot product of nosev with the [x y z] vector
 \
 \ ******************************************************************************
 
-.LL51                   \ XX12=XX15.XX16  each vector is 16-bit x,y,z
+.LL51
 {
- LDX #0
- LDY #0
+ LDX #0                 \ Set X = 0, which will contain the offset of the vector
+                        \ to use in the calculation, increasing by 6 for each
+                        \ new vector
 
-.ll51                   \ counter X+=6 < 17  Y+=2
+ LDY #0                 \ Set Y = 0, which will contain the offset of the
+                        \ result bytes in XX12, increasing by 2 for each new
+                        \ result
 
- LDA XX15               \ xmag
+.ll51
+
+ LDA XX15               \ Set Q = x_lo
  STA Q
- LDA XX16,X
- JSR FMLTU              \ Acc= XX15 *XX16 /256 assume unsigned
- STA T
- LDA XX15+1
+
+ LDA XX16,X             \ Set A = |sidev_x|
+
+ JSR FMLTU              \ Set T = A * Q / 256
+ STA T                  \       = |sidev_x| * x_lo / 256
+
+ 
+ LDA XX15+1             \ Set S to the sign of x_sign * sidev_x
  EOR XX16+1,X
- STA S                  \ xsign
- LDA XX15+2             \ ymag
+ STA S
+
+ LDA XX15+2             \ Set Q = y_lo
  STA Q
- LDA XX16+2,X
- JSR FMLTU              \ Acc= XX15 *XX16 /256 assume unsigned
- STA Q
- LDA T
- STA R                  \ move T to R
- LDA XX15+3             \ ysign
+
+ LDA XX16+2,X           \ Set A = |sidev_y|
+
+ JSR FMLTU              \ Set Q = A * Q / 256
+ STA Q                  \       = |sidev_y| * y_lo / 256
+
+ LDA T                  \ Set R = T
+ STA R                  \       = |sidev_x| * x_lo / 256
+
+ LDA XX15+3             \ Set A to the sign of y_sign * sidev_y
  EOR XX16+3,X
- JSR LL38               \ BADD(S)A=R+Q(SA) \ 1byte add (subtract)
- STA T
- LDA XX15+4             \ zmag
+
+ JSR LL38               \ Set T = R + Q
+ STA T                  \       = |sidev_x| * x_lo + |sidev_y| * y_lo
+                        \
+                        \ setting the sign of the result in S
+
+ LDA XX15+4             \ Set Q = z_lo
  STA Q
- LDA XX16+4,X
- JSR FMLTU              \ Acc= XX15 *XX16 /256 assume unsigned
- STA Q
- LDA T
- STA R                  \ move T to R
- LDA XX15+5             \ zsign
+
+ LDA XX16+4,X           \ Set A = |sidev_z|
+
+ JSR FMLTU              \ Set Q = A * Q / 256
+ STA Q                  \       = |sidev_z| * z_lo / 256
+
+ LDA T                  \ Set R = T
+ STA R                  \       = |sidev_x| * x_lo + |sidev_y| * y_lo
+
+ LDA XX15+5             \ Set A to the sign of z_sign * sidev_z
  EOR XX16+5,X
- JSR LL38               \ BADD(S)A=R+Q(SA) \ 1byte add (subtract)
- STA XX12,Y
- LDA S                  \ result sign
+
+ JSR LL38               \ Set A = R + Q
+                        \       = |sidev_x| * x_lo + |sidev_y| * y_lo
+                        \         + |sidev_z| * z_lo
+                        \
+                        \ setting the sign of the result in S
+
+ STA XX12,Y             \ Store the result in XX12+Y
+
+ LDA S                  \ Store the sign of the result in XX12+Y+1
  STA XX12+1,Y
+
+ INY                    \ Set Y = Y + 2
  INY
- INY                    \ Y +=2
- TXA
+
+ TXA                    \ Set X = X + 6
  CLC
  ADC #6
- TAX                    \ X +=6
- CMP #17                \ X finished?
- BCC ll51               \ loop for second half of matrix
- RTS
+ TAX
+
+ CMP #17                \ If X < 17, loop back to ll51 for the next vector
+ BCC ll51
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
