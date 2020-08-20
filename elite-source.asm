@@ -33792,140 +33792,288 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL9 (Part 3 of )
 \
+\ Draw the current ship on screen. This part sets up the following variable
+\ blocks:
+\
+\   * XX16 contains the orientation vectors, divided to normalise them ????
+\
+\   * XX18 contains the ship's x, y and z coordinates in space
+\
+\ ******************************************************************************
+
+.LL17
+
+ LDX #5                 \ First we copy the three orientation vectors into XX16,
+                        \ so set up a counter in X for the 6 bytes in each
+                        \ vector
+
+.LL15
+
+ LDA XX1+21,X           \ Copy the X-th byte of sidev to the X-th byte of XX16
+ STA XX16,X
+
+ LDA XX1+15,X           \ Copy the X-th byte of roofv to XX16+6 to the X-th byte
+ STA XX16+6,X           \ of XX16+6
+
+ LDA XX1+9,X            \ Copy the X-th byte of nosev to XX16+12 to the X-th
+ STA XX16+12,X          \ byte of XX16+12
+
+ DEX                    \ Decrement the counter
+
+ BPL LL15               \ Loop back to copy the next byte of each vector, until
+                        \ we have the following:
+                        \
+                        \   * sidev is in XX16 to XX16+5
+                        \
+                        \   * roofv is in XX16+6 to XX16+11
+                        \
+                        \   * nosev is in XX16+12 to XX16+17
+
+ LDA #197               \ Set Q = 197
+ STA Q
+
+ LDY #16                \ Set Y to be a counter that counts down by 2 each time,
+                        \ starting with 16, then 14, 12 and so on. We use this
+                        \ to work through each of the coordinates in each of the
+                        \ orientation vectors
+
+.LL21
+
+ LDA XX16,Y             \ Set A = the low byte of the vector coordinate, e.g.
+                        \ nosev_z_lo when Y = 16
+
+ ASL A                  \ Shift bit 7 into the C flag
+
+ LDA XX16+1,Y           \ Set A = the high byte of the vector coordinate, e.g.
+                        \ nosev_z_hi when Y = 16
+
+ ROL A                  \ Rotate A left, incorporating the C flag, so A now
+                        \ contains the original high byte, doubled, and without
+                        \ a sign bit, e.g. A = |nosev_z_hi| * 2
+
+ JSR LL28               \ Call LL28 to calculate:
+                        \
+                        \   R = 256 * A / Q
+                        \
+                        \ so, for nosev, this would be:
+                        \
+                        \   R = 256 * |nosev_z_hi| * 2 / 197
+                        \     = 2.6 * |nosev_z_hi|
+
+ LDX R                  \ Store R in the low byte's location, so we can keep the
+ STX XX16,Y             \ old, unscaled high byte intact for the sign
+
+ DEY                    \ Decrement the loop counter twice
+ DEY
+
+ BPL LL21               \ Loop back for the next vector coordinate until we have
+                        \ divided them all
+ 
+                        \ By this point, the vectors have been divided, so we
+                        \ have the following:
+                        \
+                        \   * |sidev| * 2.6 in XX16, XX16+2, XX16+4
+                        \
+                        \   * |roofv| * 2.6 in XX16+6, XX16+8, XX16+10
+                        \
+                        \   * |nosev| * 2.6 in XX16+12, XX16+14, XX16+16
+
+ LDX #8                 \ Next we copy the ship's coordinates into XX18, so set
+                        \ up a counter in X for 9 bytes
+
+.ll91
+
+ LDA XX1,X              \ Copy the X-th byte from XX1 to XX18
+ STA XX18,X
+
+ DEX                    \ Decrement the loop counter
+
+ BPL ll91               \ Loop back for the next byte until we have copied all
+                        \ three coordinates
+ 
+                        \ So we now have the following:
+                        \
+                        \   * XX18(2 1 0) = (x_sign x_hi x_lo)
+                        \
+                        \   * XX18(5 4 3) = (y_sign y_hi y_lo)
+                        \
+                        \   * XX18(8 7 6) = (z_sign z_hi z_lo)
+                        
+
+ LDA #255               \ Set the 15th byte of XX2 to 255, so the last face is
+ STA XX2+15             \ always visible
+
+ LDY #12                \ Set Y = 12 to point to the ship blueprint byte #12,
+
+ LDA XX1+31             \ If bit 5 of the ship's byte #31 is clear, then the
+ AND #%00100000         \ ship is not currently exploding, so jump down to EE29
+ BEQ EE29               \ to skip the following
+
+                        \ Otherwise we fall through to set up the visibility
+                        \ block for an exploding ship
+
+\ ******************************************************************************
+\
+\ Subroutine: LL9 (Part 4 of )
+\
+\ Draw the current ship on screen. This part sets up the visibility block in
+\ XX2 for a ship that is exploding.
+\
+\ The XX2 block consists of one byte for each face in the ship's blueprint,
+\ which holds the visibility of that face. Because the ship is exploding, we
+\ want to set all the faces to be visible. A value of 255 in the visibility
+\ table means the face is visible, so the following code sets each face to 255
+\ and then skips over the face visibility calculations that we would apply to a
+\ non-exploding ship.
+\
+\ ******************************************************************************
+
+ LDA (XX0),Y            \ Fetch byte #12 of the ship's blueprint, which contains
+                        \ the number of faces * 4
+
+ LSR A                  \ Set X = A / 4
+ LSR A                  \       = the number of faces
+ TAX
+
+ LDA #255               \ Set A = 255
+
+.EE30
+
+ STA XX2,X              \ Set the X-th byte of XX2 to 255
+
+ DEX                    \ Decrement the loop counter
+
+ BPL EE30               \ Loop back for the next byte until there is one byte
+                        \ set to 255 for each face
+
+ INX                    \ Set XX4 = 0 for the distance value we use to test
+ STX XX4                \ for visibility, so we alway shows everything
+
+.LL41
+
+ JMP LL42               \ Jump to LL42 to skip the face visibility calculations
+                        \ as we don't need to do them now we've set up the XX2
+                        \ block
+
+\ ******************************************************************************
+\
+\ Subroutine: LL9 (Part 5 of )
+\
 \ Draw the current ship on screen.
 \
 \ ******************************************************************************
 
+.EE29
 
-.LL17                   \ draw Wireframe (including nodes exploding)
+ LDA (XX0),Y            \ We set Y to 12 above before jumping down to EE29, so
+                        \ this fetch byte #12 of the ship's blueprint, which
+                        \ contains the number of faces * 4
 
- LDX #5                 \ load rotmat into XX16
+ BEQ LL41               \ If there are no faces in this ship, jump to LL42 (via
+                        \ LL41) to skip the face visibility calculations
 
-.LL15                   \ counter X
+ STA XX20               \ Set A = the number of faces * 4
 
- LDA XX1+21,X
- STA XX16,X
- LDA XX1+15,X
- STA XX16+6,X
- LDA XX1+9,X
- STA XX16+12,X
- DEX
- BPL LL15               \ loop X
- LDA #197               \ comment here about NORM
- STA Q
- LDY #16
+ LDY #18                \ Fetch byte #18 of the ship's blueprint, which contains
+ LDA (XX0),Y            \ the factor by which we scale the face normals, into X
+ TAX
 
-.LL21                   \ counter Y -=2
+ LDA XX18+7             \ Set A = z_hi
 
- LDA XX16,Y             \ XX16+0,Y
- ASL A                  \ get carry, only once
- LDA XX16+1,Y
- ROL A
- JSR LL28               \ BFRDIV R=A*256/197
- LDX R
- STX XX16,Y
- DEY
- DEY                    \ Y -=2
- BPL LL21               \ loop Y
- LDX #8                 \ load craft coords into XX18
+.LL90
 
-.ll91                   \ counter X
+ TAY                    \ Set Y = z_hi
 
- LDA XX1,X
- STA XX18,X
- DEX
- BPL ll91               \ loop X
+ BEQ LL91               \ If z_hi = 0 then jump to LL91
 
- LDA #255               \ last normal is always visible
- STA XX2+15
- LDY #12                \ Hull byte 12 =  normals*4
- LDA XX1+31
- AND #32                \ mask bit5 exploding
- BEQ EE29               \ no, only Some visible
- LDA (XX0),Y
- LSR A                  \ else do explosion needs all vertices
- LSR A                  \ /=4
- TAX                    \ Xreg = number of normals, faces
- LDA #&FF               \ all faces visible
+                        \ The following is a loop that jumps back to LL90+3,
+                        \ i.e. here. LL90 is only used for this loop, so it's a
+                        \ bit of a strange use of the label here
 
-.EE30                   \ counter X  for each face
+ INX                    \ Increment the scale factor in X
 
- STA XX2,X
- DEX
- BPL EE30               \ loop X
- INX                    \ X = 0
- STX XX4                \ visibility = 0
+ LSR XX18+4             \ Divide (y_hi y_lo) by 2
+ ROR XX18+3
 
-.LL41                   \ visibilities now set in XX2,X Transpose matrix
+ LSR XX18+1             \ Divide (x_hi x_lo) by 2
+ ROR XX18
 
- JMP LL42               \ jump to transpose matrix
+ LSR A                  \ Divide (z_hi z_lo) by 2 (as A contains z_hi)
+ ROR XX18+6
 
-.EE29                   \ only Some visible  Yreg =Hull byte12, normals*4
+ TAY                    \ Set Y = z_hi
 
- LDA (XX0),Y
- BEQ LL41               \ if no normals, visibilities now set in XX2,X Transpose matrix
- STA XX20               \ normals*4
- LDY #18                \ Hull byte #18  normals scaled by 2 ^ this value
-                        \ DtProd^XX2 \ their comment \ Dot product gives  normals' visibility in XX2
- LDA (XX0),Y
- TAX                    \ normals scaled by 2^X plus
- LDA XX18+7             \ z_hi
+ BNE LL90+3             \ If Y is non-zero, loop back to LL90+3 to divide the
+                        \ three coordinates until z_hi is 0
 
-.LL90                   \ scaling object distance
+.LL91
 
- TAY                    \ z_hi
- BEQ LL91               \ object close/small, hop
- INX                    \ repeat INWK z brought closer, take X up
- LSR XX18+4             \ yhi
- ROR XX18+3             \ ylo
- LSR XX18+1             \ xhi
- ROR XX18               \ xlo
- LSR A                  \ zhi /=2
- ROR XX18+6             \ z_lo
- TAY                    \ zhi
- BNE LL90+3             \ again as z_hi too big
+                        \ By this point z_hi is 0 and X contains the number of
+                        \ right shifts we had to do, plus the scale factor from
+                        \ the blueprint
 
-.LL91                   \ object close/small
+ STX XX17               \ Store the updated scale factor in XX17
 
- STX XX17               \ keep Scale required
- LDA XX18+8             \ last member of INWK copied over
- STA XX15+5             \ zsign 6 members
- LDA XX18
- STA XX15               \ xscaled
+ LDA XX18+8             \ Set XX15+5 = z_sign
+ STA XX15+5
+
+ LDA XX18               \ Set XX15(1 0) = (x_sign x_lo)
+ STA XX15
  LDA XX18+2
- STA XX15+1             \ xsign
- LDA XX18+3
- STA XX15+2             \ yscaled
+ STA XX15+1
+
+ LDA XX18+3             \ Set XX15(3 2) = (y_sign y_lo)
+ STA XX15+2
  LDA XX18+5
- STA XX15+3             \ ysign
- LDA XX18+6
- STA XX15+4             \ zscaled
- JSR LL51               \ XX12=XX15.XX16  each vector is 16-bit x,y,z
- LDA XX12
- STA XX18               \ load result back in
+ STA XX15+3
+
+ LDA XX18+6             \ Set XX15+4 = z_lo, so now XX15(5 4) = (z_sign z_lo)
+ STA XX15+4
+
+ JSR LL51               \ Call LL51 to set XX12 to these dot products:
+                        \
+                        \   XX12(1 0) = [x y z] . sidev
+                        \
+                        \   XX12(3 2) = [x y z] . roofv
+                        \
+                        \   XX12(5 4) = [x y z] . nosev
+
+ LDA XX12               \ Set XX18(2 0) = [x y z] . sidev
+ STA XX18
  LDA XX12+1
- STA XX18+2             \ xsg
- LDA XX12+2
+ STA XX18+2
+
+ LDA XX12+2             \ Set XX18(5 3) = [x y z] . roofv
  STA XX18+3
  LDA XX12+3
- STA XX18+5             \ ysg
- LDA XX12+4
+ STA XX18+5
+
+ LDA XX12+4             \ Set XX18(8 6) = [x y z] . nosev
  STA XX18+6
  LDA XX12+5
- STA XX18+8             \ zsg
+ STA XX18+8
 
- LDY #4                 \ Hull byte#4 = lsb of offset to normals
- LDA (XX0),Y
- CLC                    \ lo
+ LDY #4                 \ Fetch byte #4 of the ship's blueprint, which contains
+ LDA (XX0),Y            \ the low byte of the offset to the faces data
+
+ CLC                    \ Set V = low byte faces offset + XX0
  ADC XX0
- STA V                  \ will point to start of normals
- LDY #17                \ Hull byte#17 = hsb of offset to normals
- LDA (XX0),Y
- ADC XX0+1
- STA V+1                \ hi of pointer to normals data
- LDY #0                 \ byte#0 of normal
+ STA V
 
-.LL86                   \ counter Y/4 go through all normals
+ LDY #17                \ Fetch byte #17 of the ship's blueprint, which contains
+ LDA (XX0),Y            \ the high byte of the offset to the faces data
+
+ ADC XX0+1              \ Set V+1 = high byte faces offset + XX0+1
+ STA V+1                \
+                        \ So V(1 0) now points to the start of the faces data
+                        \ for this ship
+
+ LDY #0                 \ We're now going to loop through all the faces for this
+                        \ ship, so set a counter in Y, starting from 0, which we
+                        \ will increment by 4 each loop to step through the
+                        \ four bytes of data for each face
+
+.LL86
 
  LDA (V),Y
  STA XX12+1             \ byte#0
@@ -34140,10 +34288,9 @@ LOAD_G% = LOAD% + P% - CODE%
  STA V+1
  LDY #0                 \ index for XX3 heap
  STY CNT
-}
 
 .LL48                   \ Start loop on Nodes for visibility, each node has 4 faces associated with it
-{
+
  STY XX17               \ vertex*6 counter
  LDA (V),Y
  STA XX15               \ xlo
