@@ -215,7 +215,7 @@ f9 = &77
 \     |                                   |
 \     +-----------------------------------+   &0D40 = WP
 \     |                                   |
-\     | Ship lines heap descends from WP  |
+\     | Ship line heap descends from WP   |
 \     |                                   |
 \     +-----------------------------------+   SLSP
 \     |                                   |
@@ -686,11 +686,11 @@ ORG &0000
 .XX19
 
  SKIP NI% - 33          \ XX19(1 0) shares location with INWK(34 33), which
-                        \ contains the ship lines heap space address pointer
+                        \ contains the ship line heap space address pointer
 
 .LSP
 
- SKIP 1                 \ The line buffer pointer (see BLINE for details)
+ SKIP 1                 \ The ball line heap pointer (see BLINE for details)
 
 .QQ15
 
@@ -704,30 +704,33 @@ ORG &0000
 
 .QQ17
 
- SKIP 1                 \ QQ17 stores flags that affect how text tokens are
-                        \ printed, including the capitalisation setting
+ SKIP 1                 \ Stores flags that affect how text tokens are printed,
+                        \ particularly the capitalisation setting
                         \
-                        \ Setting QQ17 = 255 disables text printing entirely
+                        \   * If all bits are set (255) then text printing is
+                        \     disabled
                         \
-                        \ Otherwise:
+                        \   * Bit 7: 0 = ALL CAPS
+                        \            1 = Sentence Case, and bit 6 determines the
+                        \                case of the next letter to print
                         \
-                        \ Bit 7 = 0 means ALL CAPS
-                        \ Bit 7 = 1 means Sentence Case, bit 6 determines case
-                        \           of next letter to print
+                        \   * Bit 6: 0 = print the next letter in upper case
+                        \            1 = print the next letter in lower case
                         \
-                        \ Bit 6 = 0 means print the next letter in upper case
-                        \ Bit 6 = 1 means print the next letter in lower case
+                        \   * Bits 0-5: If any of bits 0-5 are set, print in
+                        \               lower case
                         \
                         \ So:
                         \
-                        \ QQ17 = 0   (%00000000) means case is set to ALL CAPS
-                        \ QQ17 = 128 (%10000000) means Sentence Case,
-                        \                         currently printing upper case
-                        \ QQ17 = 192 (%11000000) means Sentence Case,
-                        \                         currently printing lower case
+                        \   * QQ17 = 0 means case is set to ALL CAPS
                         \
-                        \ If any of bits 0-5 are set and QQ17 is not &FF, we
-                        \ print in lower case
+                        \   * QQ17 = %10000000 means Sentence Case, currently
+                        \            printing upper case
+                        \
+                        \   * QQ17 = %11000000 means Sentence Case, currently
+                        \            printing lower case
+                        \
+                        \   * QQ17 = %11111111 means printing is disabled
 
 .QQ19
 
@@ -891,7 +894,7 @@ ORG &0000
 .SWAP
 
  SKIP 1                 \ Determines whether we had to swap a point's
-                        \ coordinates when drawing a buffered line using BLINE
+                        \ coordinates when drawing a line using BLINE
 
 .COL
 
@@ -899,9 +902,9 @@ ORG &0000
 
 .FLAG
 
- SKIP 1                 \ Used to define the first call to the buffered line
-                        \ routine in BLINE, so it knows to wait for the second
-                        \ call before storing segment data in the line buffer
+ SKIP 1                 \ Used to define the first call to the ball line routine
+                        \ in BLINE, so it knows to wait for the second call
+                        \ before storing segment data in the ball line heap
 
 .CNT
 
@@ -2814,7 +2817,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ Workspace K% at &0900
 \
 \ Contains ship data for all the ships, planets, suns and space stations in our
-\ local bubble of universe, along with their correspondingship lines heap space.
+\ local bubble of universe, along with their corresponding ship line heap space.
 \
 \ The blocks are pointed to by the lookup table at location UNIV. The first 468
 \ bytes of the K% workspace holds data on up to 13 ships, with 36 (NI%) bytes
@@ -2888,7 +2891,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \
 \   * Heap pointer and energy (bytes 33-35):
 \
-\     * Ship lines heap space pointer = INWK(34 33)
+\     * Ship line heap space pointer = INWK(34 33)
 \     * Ship energy = INWK+35
 \ 
 \ Let's look at these in more detail.
@@ -3091,7 +3094,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \
 \ Heap pointer and energy (bytes 33-34)
 \ -------------------------------------
-\ INWK(34 33) = ship lines heap space address pointer
+\ INWK(34 33) = ship line heap space address pointer
 \
 \ INWK+35 = ship energy
 \
@@ -3099,7 +3102,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 
 ORG &0900
 
-.K%                     \ Ship data blocks and ship lines heap space
+.K%                     \ Ship data blocks and ship line heap space
 
 \ ******************************************************************************
 \
@@ -3295,21 +3298,22 @@ ORG &0D40
 
  SKIP 192               \ This block is shared by LSX and LSO:
                         \
-                        \ LSX is the ship lines heap space for the space station
+                        \ LSX is the ship line heap for the space station
                         \
-                        \ LSO is the the line buffer for the sun (see SUN for
-                        \ details)
+                        \ LSO is the sun line heap (see SUN for details)
                         \
                         \ This space can be shared as our local bubble of
                         \ universe can support either the sun or a space
                         \ station, but not both
 .LSX2
 
- SKIP 78                \ Line buffer for x-coordinates (see BLINE for details)
+ SKIP 78                \ Ball line heap for x-coordinates (see BLINE for
+                        \ details)
 
 .LSY2
 
- SKIP 78                \ Line buffer for y-coordinates (see BLINE for details)
+ SKIP 78                \ Ball line heap for y-coordinates (see BLINE for
+                        \ details)
 
 .SY
 
@@ -3407,7 +3411,7 @@ ORG &0D40
 
 .SLSP
 
- SKIP 2                 \ Points to the bottom of the ship lines heap space,
+ SKIP 2                 \ Points to the bottom of the ship line heap, which
                         \ which is a descending block that starts at WP and
                         \ descends down to SLSP, and which can be extended
                         \ downwards by lowering SLSP if more heap space is
@@ -4841,7 +4845,7 @@ LOAD_A% = LOAD%
                         \ can work on it, but we only need the first 29 bytes,
                         \ as we don't need to worry about INWK+29 to INWK+35
                         \ for planets (as they don't have rotation counters,
-                        \ AI, explosions, missiles, a ship lines heap or energy
+                        \ AI, explosions, missiles, a ship line heap or energy
                         \ levels)
 
  LDX #28                \ So we set a counter in X to copy 29 bytes from K%+0
@@ -8552,7 +8556,7 @@ NEXT
 \
 \ Subroutine: HLOIN2
 \
-\ Draw a line from the LSO line buffer and then remove it from the buffer.
+\ Draw a line from the sun line heap and then remove it from the heap.
 \
 \ Specifically, this does the following:
 \
@@ -8560,7 +8564,7 @@ NEXT
 \     centre YY(1 0) and length A to the left and right
 \
 \   * Set the Y-th byte of the LSO block to 0 (i.e. remove this line from the
-\     LSO line buffer)
+\     sun line heap)
 \
 \   * Draw a horizontal line from (X1, Y) to (X2, Y)
 \
@@ -8569,9 +8573,9 @@ NEXT
 \   YY(1 0)             The x-coordinate of the centre point of the line
 \
 \   A                   The half-width of the line, i.e. the contents of the
-\                       Y-th byte of the LSO
+\                       Y-th byte of the sun line heap
 \
-\   Y                   The number of the entry in the line buffer (which is
+\   Y                   The number of the entry in the sun line heap (which is
 \                       also the y-coordinate of the line)
 \
 \ Returns:
@@ -9360,7 +9364,7 @@ NEXT
 \
 \ Subroutine: BLINE
 \
-\ Draw a single segment of a circle, adding the point to the line buffers.
+\ Draw a single segment of a circle, adding the point to the ball line heap.
 \
 \ Arguments:
 \
@@ -9375,9 +9379,9 @@ NEXT
 \                       an offset from the centre of the circle
 \
 \   FLAG                Set to &FF for the first call, so it sets up the first
-\                       point in the buffer but waits until the second call
-\                       before drawing anything (as we need two points, i.e.
-\                       two calls, before we can draw a line)
+\                       point in the heap but waits until the second call before
+\                       drawing anything (as we need two points, i.e. two calls,
+\                        before we can draw a line)
 \
 \   K                   The circle's radius
 \
@@ -9397,74 +9401,81 @@ NEXT
 \
 \ ******************************************************************************
 \
-\ Deep dive: The BLINE line buffers
-\ ---------------------------------
+\ Deep dive: The ball line heap
+\ -----------------------------
 \ The planet and sun are complex shapes that use plenty of maths to calculate
 \ their shapes, and that takes up time. We remove shapes from the screen by
 \ drawing the same shape again in exactly the same place (which erases them
 \ because it's all done with EOR logic), so instead of doing the calculations
-\ all over again for the second drawing, Elite has a set of line buffers where
+\ all over again for the second drawing, Elite has a set of line heaps where
 \ all the information is stored, ready for the second redrawing.
 \
-\ There is one line buffer for the planet, which is used by the BLINE routine,
-\ and a separate line buffer for the sun, which is used by the SUN routine.
-\ Here we take a look at the planet's buffers at LSX2 and LSY2; for details of
-\ the sun's buffer at LSO, see the documentation for the SUN routine.
+\ There are three types of line heap used in Elite:
 \
-\ Drawing buffered planet lines with BLINE
-\ ----------------------------------------
+\   * The ball line heap, which is used by BLINE when drawing circles (as well
+\     as polygonal rings like the launch and hyperspace tunnel)
+\
+\   * The sun line heap, which is used by SUN when drawing the sun
+\
+\   * The ship line heap, one per ship in the local bubble of universe, which
+\     is used by LL9 when drawing ships
+\
+\ Here we take a look at the ball line heap at LSX2 and LSY2, with pointer LSP.
+\
+\ Drawing and storing circles with BLINE
+\ --------------------------------------
 \ We draw a circle by repeated calls to BLINE, passing the next point around the
 \ circle with each subsequent call, until the circle (or half-circle) is drawn.
 \
-\ Calling the routine with a value of &FF in FLAG initialises the buffer and
-\ stores the first point in memory rather than in the buffer, so it's ready for
+\ Calling the routine with a value of &FF in FLAG initialises the line heap and
+\ stores the first point in memory rather than in the heap, so it's ready for
 \ the second call to BLINE, which is when we actually have a segment to draw
-\ and store in the line buffer.
+\ and store in the line heap.
 \
 \ The routine keeps a tally of the points passed to it on each call, storing
-\ them in the line buffers at LSX2 and LSY2, and using the line buffer pointer
-\ in LSP (which points to the end of the buffer). It also keeps the point from
+\ them in the line heaps at LSX2 and LSY2, and using the line heap pointer
+\ in LSP (which points to the end of the heap). It also keeps the point from
 \ the previous call to BLINE in K5(3 2 1 0), so it can draw a segment between
 \ the last point and this one.
 \
-\ If a line doesn't fit on screen, then it isn't drawn or stored in the buffer.
+\ If a line doesn't fit on screen, then it isn't drawn or stored in the heap.
 \ Instead a &FF marker is inserted into the LSY2 entry at the current position,
 \ which indicates to the next call to BLINE that it should start a new segment.
 \ In this way broken, non-continuous lines can still be stored in the line
-\ buffer.
+\ heap.
 \
-\ Keeping the points in the line buffer lets us quickly redraw the circle
-\ without needing to regenerate all the points, so it is easy to remove the
-\ circle from the screen by simply redrawing all the segments stored in the line
-\ buffers. This is done in WPLS2.
+\ Keeping the points in the line heap lets us quickly redraw the circle without
+\ needing to regenerate all the points, so it is easy to remove the circle from
+\ the screen by simply redrawing all the segments stored in the line heaps. This
+\ is done in WPLS2.
 \
-\ How the LSX2 and LSY2 buffers are structured
-\ --------------------------------------------
-\ The planet's line buffers are stored in 78 bytes at LSX2 and another 78 bytes
-\ at LSY2. The LSP variable points to the number of the first free entry at the
-\ end of the buffer, so LSP = 1 indicates that the buffer is empty.
+\ How the LSX2 and LSY2 heaps are structured
+\ ------------------------------------------
+\ The ball line heap is stored in 78 bytes at LSX2 and another 78 bytes at LSY2.
+\ The LSP variable points to the number of the first free entry at the end of
+\ the heap, so LSP = 1 indicates that the heap is empty.
 \
 \ The first location at LSX2 has a special meaning:
 \
-\   * LSX2 = 0 indicates the line buffer contains data
-\   * LSX2 = &FF indicates the line buffer is empty
+\   * LSX2 = 0 indicates the line heap contains data
+\   * LSX2 = &FF indicates the line heap is empty
 \
 \ Meanwhile, if a y-coordinate in LSY2 is &FF, then this means the next point in
-\ the buffer represents the start of a new segment, rather than a continuation
-\ of the previous one. Specifically, this is the layout in the buffer:
+\ the heap represents the start of a new segment, rather than a continuation
+\ of the previous one. Specifically, this is the layout in the heap:
 \
 \   LSX2  ...      X1  X2 ...
 \   LSY2  ... &FF  Y1  Y2 ...
 \
 \ The first entry in the table at LSY2 is always &FF, as the first point is
-\ always the start of a segment, so the start of a non-empty line buffer looks
+\ always the start of a segment, so the start of a non-empty line heap looks
 \ like this:
 \
 \   LSX2  0    X1  X2  X3 ...
 \   LSY2  &FF  Y1  Y2  Y3 ...
 \
 \ When a planet is plotted for the second time to remove it from screen, the
-\ buffers are reset by setting LSX to &FF and LSP to 1. See WPLS2 for details.
+\ heaps are reset by setting LSX to &FF and LSP to 1. See WPLS2 for details.
 \
 \ ******************************************************************************
 
@@ -9487,8 +9498,8 @@ NEXT
 
 .BL5
 
-                        \ The following inserts a &FF marker into the LSY2
-                        \ buffer to indicate that the next call to BLINE should
+                        \ The following inserts a &FF marker into the LSY2 line
+                        \ heap to indicate that the next call to BLINE should
                         \ store both the (X1, Y1) and (X2, Y2) points. We do
                         \ this on the very first call to BLINE (when FLAG is
                         \ &FF), and on subsequent calls if the segment does not
@@ -9504,10 +9515,10 @@ NEXT
 
  STA LSY2,Y             \ Otherwise we just tried to plot a segment but it
                         \ didn't fit on screen, so put the &FF marker into the
-                        \ buffer for this point, so the next call to BLINE
-                        \ starts a new segment
+                        \ heap for this point, so the next call to BLINE starts
+                        \ a new segment
 
- INC LSP                \ Increment LSP to point to the next point in the buffer
+ INC LSP                \ Increment LSP to point to the next point in the heap
 
  BNE BL7                \ Jump to BL7 to tidy up and return from the subroutine
                         \ (this BNE is effectively a JMP, as LSP will never be
@@ -9569,7 +9580,7 @@ NEXT
  BNE BL8
 
                         \ Byte LSP-1 of LSY2 is &FF, which indicates that we
-                        \ need to store (X1, Y1) in the buffer
+                        \ need to store (X1, Y1) in the heap
 
  LDA X1                 \ Store X1 in the LSP-th byte of LSX2
  STA LSX2,Y
@@ -9594,7 +9605,7 @@ NEXT
  JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2)
 
  LDA XX13               \ If XX13 is non-zero, jump up to BL5 to add a &FF
- BNE BL5                \ marker to the end of the line buffer. XX13 is non-zero
+ BNE BL5                \ marker to the end of the line heap. XX13 is non-zero
                         \ after the call to the clipping routine LL145 above if
                         \ the end of the line was clipped, meaning the next line
                         \ sent to BLINE can't join onto the end but has to start
@@ -11400,9 +11411,9 @@ NEXT
  LDY QQ17               \ Load the QQ17 flag, which contains the text printing
                         \ flags
 
- CPY #&FF               \ If QQ17 = #&FF, then jump to RR4, which doesn't print
- BEQ RR4                \ anything, it just restore of the registers and
-                        \ returns from the subroutine
+ CPY #255               \ If QQ17 = 255 then printing is disabled, so jump to
+ BEQ RR4                \ RR4, which doesn't print anything, it just restores
+                        \ the registers and returns from the subroutine
 
  CMP #7                 \ If this is a beep character (A = 7), jump to R5,
  BEQ R5                 \ which will emit the beep, restore the registers and
@@ -13162,11 +13173,10 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ vector from our ship to the ship we are applying AI
                         \ tactics to (or the normalised vector from the target
                         \ to the missile - in both cases it's the vector from
-                        \ the potential victim to the attacker). Let's call this
-                        \ vector shipv
+                        \ the potential victim to the attacker)
 
  LDY #10                \ Set (A X) = nosev . XX15
- JSR TAS3               \           = nosev . shipv
+ JSR TAS3
 
  STA CNT                \ Store the high byte of the dot product in CNT. The
                         \ bigger the value, the more aligned the two ships are,
@@ -14333,7 +14343,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .HFL2
 
- LDA #1                 \ Set LSP = 1 to reset the line buffers
+ LDA #1                 \ Set LSP = 1 to reset the ball line heap
  STA LSP
 
  JSR CIRCLE2            \ Call CIRCLE2 to draw a circle with the centre at
@@ -17513,7 +17523,7 @@ NEXT
 
 .TTX66
 {
- LDA #128               \ Set QQ17 to 128, which denotes Sentence Case
+ LDA #%10000000         \ Set bit 7 of QQ17 to switch to Sentence Case
  STA QQ17
 
  ASL A                  \ Set LASCT to 0, as 128 << 1 = %10000000 << 1 = 0. This
@@ -17587,7 +17597,7 @@ NEXT
  STX X1
  STX Y1
 
- STX QQ17               \ Set QQ17 = 0 to set ALL CAPS
+ STX QQ17               \ Set QQ17 = 0 to switch to ALL CAPS
 
  DEX                    \ Set X2 = 255
  STX X2
@@ -18771,9 +18781,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TTX69
 {
- INC YC                 \ Move the text cursor down a line and then fall
-                        \ through into TT69 to set Sentence Case and print a
-                        \ newline
+ INC YC                 \ Move the text cursor down a line
+
+                        \ Fall through into TT69 to set Sentence Case and print
+                        \ a newline
 }
 
 \ ******************************************************************************
@@ -18786,8 +18797,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT69
 {
- LDA #128               \ Set QQ17 to 128, which denotes Sentence Case, and
- STA QQ17               \ fall througn into TT67 to print a newline
+ LDA #%10000000         \ Set bit 7 of QQ17 to switch to Sentence Case
+ STA QQ17
+
+                        \ Fall through into TT67 to print a newline
 }
 
 \ ******************************************************************************
@@ -19168,7 +19181,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  JSR TT162              \ Print a space
 
- LDA #0                 \ Set QQ17 = 0 for ALL CAPS
+ LDA #0                 \ Set QQ17 = 0 to switch to ALL CAPS
  STA QQ17
 
  LDA #'M'               \ Print "M"
@@ -19779,7 +19792,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \STX LSX                \ This instruction is commented out in the original
                         \ source
 
- INX                    \ Set LSP = 1 to reset the line buffers
+ INX                    \ Set LSP = 1 to reset the ball line heap
  STX LSP
 
  LDX #2                 \ Set STP = 2, the step size for the circle
@@ -19821,7 +19834,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  JSR TT163              \ Print the column headers for the prices table
 
- LDA #128               \ Set QQ17 = 128 to switch to Sentence Case, with the
+ LDA #%10000000         \ Set bit 7 of QQ17 to switch to Sentence Case, with the
  STA QQ17               \ next letter in capitals
 
 \JSR FLKB               \ This instruction is commented out in the original
@@ -20747,7 +20760,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ so we don't try to print another system's label on
                         \ this row
 
- LDA #128               \ Set QQ17 to 128, which denotes Sentence Case
+ LDA #%10000000         \ Set bit 7 of QQ17 to switch to Sentence Case
  STA QQ17
 
  JSR cpl                \ Call cpl to print out the system name for the seeds
@@ -21186,7 +21199,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #23
  STA YC
 
- LDA #0                 \ Set QQ17 = 0 for ALL CAPS
+ LDA #0                 \ Set QQ17 = 0 to switch to ALL CAPS
  STA QQ17
 
  LDA #189               \ Print recursive token 29 ("HYPERSPACE ")
@@ -21823,7 +21836,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT168
 
- LDX #128               \ Set QQ17 = 128 to switch to Sentence Case, with the
+ LDX #%10000000         \ Set bit 7 of QQ17 to switch to Sentence Case, with the
  STX QQ17               \ next letter in capitals
 
  JSR TT151              \ Call TT151 to print the item name, market price and
@@ -22517,7 +22530,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #185               \ Print recursive token 25 ("SHIP") and draw a
  JSR NLIN3              \ horizontal line at pixel row 19 to box in the title
 
- LDA #128               \ Set QQ17 = 128 to switch to Sentence Case, with the
+ LDA #%10000000         \ Set bit 7 of QQ17 to switch to Sentence Case, with the
  STA QQ17               \ next letter in capitals
 
  INC YC                 \ Move the text cursor down one line
@@ -23538,18 +23551,17 @@ LOAD_E% = LOAD% + P% - CODE%
  DEX                    \ If token > 6, skip the following 3 instructions
  BNE P%+7
 
- LDA #128               \ This token is control code 6 (switch to sentence
- STA QQ17               \ case), so store 128 (bit 7 set, bit 6 clear) in QQ17,
- RTS                    \ which controls letter case, and return from the
-                        \ subroutine as we are done
+ LDA #%10000000         \ This token is control code 6 (switch to Sentence
+ STA QQ17               \ Case), so set bit 7 of QQ17 to switch to Sentence Case
+ RTS                    \ and return from the subroutine as we are done
 
  DEX                    \ If token > 8, skip the following 2 instructions
  DEX
  BNE P%+5
 
- STX QQ17               \ This token is control code 8 (switch to ALL CAPS)
- RTS                    \ so store 0 in QQ17, which controls letter case, and
-                        \ return from the subroutine as we are done
+ STX QQ17               \ This token is control code 8 (switch to ALL CAPS), so
+ RTS                    \ set QQ17 to 0 to switch to ALL CAPS and return from
+                        \ the subroutine as we are done
 
  DEX                    \ If token = 9, this is control code 9 (tab to column
  BEQ crlf               \ 21 and print a colon), so jump to crlf
@@ -23678,8 +23690,9 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-.TT41                   \ If we get here, then QQ17 has bit 7 set, so we are in
+.TT41
 {
+                        \ If we get here, then QQ17 has bit 7 set, so we are in
                         \ Sentence Case
 
  BIT QQ17               \ If QQ17 also has bit 6 set, jump to TT45 to print
@@ -23752,9 +23765,9 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Print a letter in lower case. Specifically:
 \
-\   * If QQ17 = &FF, abort printing this character
+\   * If QQ17 = 255, abort printing this character as printing is disabled
 \
-\   * If a letter then print in lower case
+\   * If this is a letter then print in lower case
 \
 \   * Otherwise this is punctuation, so clear bit 6 in QQ17 and print
 \
@@ -23776,13 +23789,14 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-.TT45                   \ If we get here, then QQ17 has bit 6 and 7 set, so we
+.TT45
 {
+                        \ If we get here, then QQ17 has bit 6 and 7 set, so we
                         \ are in Sentence Case and we need to print the next
                         \ letter in lower case
 
- CPX #&FF               \ If QQ17 = #&FF then return from the subroutine (as
- BEQ TT48               \ TT48 contains an RTS)
+ CPX #255               \ If QQ17 = 255 then printing is disabled, so return
+ BEQ TT48               \ from the subroutine (as TT48 contains an RTS)
 
  CMP #'A'               \ If A >= ASCII "A", then jump to TT42, which will
  BCS TT42               \ print the letter in lowercase
@@ -23822,8 +23836,8 @@ LOAD_E% = LOAD% + P% - CODE%
 {
  PHA                    \ Store the token number
 
- TXA                    \ Clear bit 6 in QQ17 (X contains the current QQ17)
- AND #191               \ so the next letter after this one is printed in upper
+ TXA                    \ Clear bit 6 in QQ17 (X contains the current QQ17) so
+ AND #%10111111         \ the next letter after this one is printed in upper
  STA QQ17               \ case
 
  PLA                    \ Restore the token number into A
@@ -24449,7 +24463,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .WS2
 
- LDX #&FF               \ Set LSX2 = LSY2 = &FF to clear the line buffers
+ LDX #&FF               \ Set LSX2 = LSY2 = &FF to clear the ball line heap
  STX LSX2
  STX LSY2
 
@@ -25283,10 +25297,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: NWSHP
 \
 \ Add a new ship to our local bubble of universe. This creates a new block of
-\ ship data in the workspace at K%, allocates a new block in the ship lines heap
-\ space at WP, adds the new ship's type into the first empty slot in FRIN, and
-\ adds a pointer to the ship data into UNIV. If there isn't enough free memory
-\ for the new ship, it isn't added.
+\ ship data in the workspace at K%, allocates a new block in the ship line heap
+\ at WP, adds the new ship's type into the first empty slot in FRIN, and adds a
+\ pointer to the ship data into UNIV. If there isn't enough free memory for the
+\ new ship, it isn't added.
 \
 \ Arguments:
 \
@@ -25312,7 +25326,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ the slots are shuffled down by the KILLSHP routine, so
                         \ the first empty slot will always come after the last
                         \ filled slot. This allows us to tack the new ship's
-                        \ data block and ship lines heap onto the end of the
+                        \ data block and ship line heap onto the end of the
                         \ existing ship data and heap, as shown in the memory
                         \ map below
 
@@ -25372,12 +25386,13 @@ LOAD_E% = LOAD% + P% - CODE%
  CPY #2*SST             \ If the ship type is a space station (SST), then jump
  BEQ NW6                \ to NW6, skipping the heap space steps below
 
-                        \ We now want to allocate a heap space that we can use
-                        \ while drawing our new ship - the ship lines heap
-                        \ space. SLSP points to the start of the current
-                        \ heap space, and we can extend it downwards with the
-                        \ heap for our new ship (as the heap space always ends
-                        \ just before the workspace at WP)
+                        \ We now want to allocate space for a heap that we can
+                        \ use to store the lines we draw for our new ship (so it
+                        \ can easily be erased from the screen again). SLSP
+                        \ points to the start of the current heap space, and we
+                        \ can extend it downwards with the heap for our new ship
+                        \ (as the heap space always ends just before the
+                        \ workspace at WP)
 
  LDY #5                 \ Fetch ship blueprint byte #5, which contains the
  LDA (XX0),Y            \ maximum heap size required for plotting the new ship,
@@ -25404,7 +25419,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \   |                                   |
                         \   +-----------------------------------+   &0D40 = WP
                         \   |                                   |
-                        \   | Current ship lines heap           |
+                        \   | Current ship line heap            |
                         \   |                                   |
                         \   +-----------------------------------+   SLSP
                         \   |                                   |
@@ -26506,8 +26521,8 @@ LOAD_E% = LOAD% + P% - CODE%
  LDX #0                 \ Set CNT = 0
  STX CNT
 
- DEX                    \ Set FLAG = &FF to reset the buffers in the call to
- STX FLAG               \ the BLINE routine below
+ DEX                    \ Set FLAG = &FF to reset the ball line heap in the call
+ STX FLAG               \ to the BLINE routine below
 
 .PLL4
 
@@ -26755,26 +26770,26 @@ LOAD_E% = LOAD% + P% - CODE%
 \ very little effort, even to the erase procedure, as we can see in the next
 \ section.
 \
-\ Drawing buffered sun lines with SUN
-\ -----------------------------------
+\ Drawing and storing sun lines with SUN
+\ --------------------------------------
 \ As with all objects in the sky, we can erase the sun from the screen by
 \ drawing it a second time in the same place as before, so it cancels out the
 \ existing sun using EOR logic. Although the maths above isn't complex, it is
 \ still pretty time-consuming, especially with a large sun on the screen, so
-\ as with the planets, the sun has its own line buffer, stored at LSO, which
+\ as with the planets, the sun has its own line heap, stored at LSO, which
 \ stores the data for every line in the current sun.
 \
 \ The first location at LSO has a special meaning:
 \
-\   * LSO = 1   indicates the line buffer contains data
-\   * LSO = &FF indicates the line buffer is empty
+\   * LSO = 1   indicates the line heap contains data
+\   * LSO = &FF indicates the line heap is empty
 \
 \ Because the sun is made up of lines and it can fill the entire space view,
-\ the sun's line buffer contains 192 values, one for each of the lines on the
+\ the sun's line heap contains 192 values, one for each of the lines on the
 \ screen. The value in LSO+Y contains details of the sun's line on pixel row Y,
 \ with a 0 indicating there is no line, and a non-zero value containing the
 \ half-width of the sun line on that y-coordinate. Along with the sun's centre
-\ coordinates in SUNX and SUNY, the line buffer contains everything we need to
+\ coordinates in SUNX and SUNY, the line heap contains everything we need to
 \ know in order to draw the sun, all without having to recalculate anything.
 \
 \ This also applies to the random fringe factor that we add to the half-width to
@@ -26784,25 +26799,25 @@ LOAD_E% = LOAD% + P% - CODE%
 \ looking graphical effect.
 \
 \ The routine below combines the drawing of the new sun and the removal of the
-\ old one into one pass through the line buffer, from the bottom of the screen
-\ to the top (so from the end of the buffer to the start). We do this in part 2
+\ old one into one pass through the line heap, from the bottom of the screen
+\ to the top (so from the end of the heap to the start). We do this in part 2
 \ by starting at the bottom and plotting each sun line in turn from the line
-\ buffer as we move up the screen. As each line is plotted, thus erasing the
-\ old sun, it is removed from the line buffer.
+\ heap as we move up the screen. As each line is plotted, thus erasing the
+\ old sun, it is removed from the line heap.
 \
 \ We do this until we reach the point where we need to start drawing the new
 \ sun, at which point we move into part 3. This draws two horizontal lines that
 \ between them manage to remove the old sun's line and draw the new sun's line
-\ in the most efficient way. Each time, we replace the value in the line buffer
+\ in the most efficient way. Each time, we replace the value in the line heap
 \ with the new line's half-width, so the new sun can be erased in the same way.
 \ Once the new sun is drawn, we then keep heading up the screen in part 4, where
 \ we redraw any remaining lines from the old sun, thus removing them from the
 \ screen, and leaving just the new sun on show.
 \
-\ The LSO line buffer block shares its memory with the ship lines heap space for
-\ the space station at LSX (LSO and LSX point to the same memory block). This
-\ space can be shared as our local bubble of universe can support either the sun
-\ or a space station, but not both.
+\ The LSO line heap block shares its memory with the ship line heap for the
+\ space station at LSX (LSO and LSX point to the same memory block). This memory
+\ can be shared as our local bubble of universe can support either the sun or a
+\ space station, but not both.
 \
 \ ******************************************************************************
 
@@ -26990,7 +27005,7 @@ LOAD_E% = LOAD% + P% - CODE%
  BEQ PLFL               \ start drawing the new sun, so there is no need to
                         \ keep erasing the old one, so jump down to PLFL
 
- LDA LSO,Y              \ Fetch the Y-th point from the LSO line buffer, which
+ LDA LSO,Y              \ Fetch the Y-th point from the sun line heap, which
                         \ gives us the half-width of the old sun's line on this
                         \ line of the screen
 
@@ -26999,14 +27014,14 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JSR HLOIN2             \ Call HLOIN2 to draw a horizontal line on pixel line Y,
                         \ with centre point YY(1 0) and half-width A, and remove
-                        \ the line from from the LSO line buffer once done
+                        \ the line from from the sun line heap once done
 
 .PLF13
 
  DEY                    \ Decrement the loop counter
 
- BNE PLFL2              \ Loop back for the next line in the line buffer until
-                        \ we have either gone through the entire buffer, or
+ BNE PLFL2              \ Loop back for the next line in the line heap until
+                        \ we have either gone through the entire heap, or
                         \ reached the bottom row of the new sun
 
 \ ******************************************************************************
@@ -27098,11 +27113,11 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .PLF44
 
- LDX LSO,Y              \ Set X to the line buffer value for the old sun's line
+ LDX LSO,Y              \ Set X to the line heap value for the old sun's line
                         \ at row Y
 
  STA LSO,Y              \ Store the half-width of the new row Y line line in the
-                        \ line buffer
+                        \ line heap
 
  BEQ PLF11              \ If X = 0 then there was no sun line on pixel row Y, so
                         \ jump to PLF11
@@ -27112,7 +27127,7 @@ LOAD_E% = LOAD% + P% - CODE%
  LDA SUNX+1             \ on screen
  STA YY+1
 
- TXA                    \ Transfer the line buffer value for the old sun's line
+ TXA                    \ Transfer the line heap value for the old sun's line
                         \ from X into A
 
  JSR EDGES              \ Call EDGES to calculate X1 and X2 for the horizontal
@@ -27130,7 +27145,7 @@ LOAD_E% = LOAD% + P% - CODE%
  STA YY+1
 
  LDA LSO,Y              \ Fetch the half-width of the new row Y line line from
-                        \ the line buffer (which we stored above)
+                        \ the line heap (which we stored above)
 
  JSR EDGES              \ Call EDGES to calculate X1 and X2 for the horizontal
                         \ line centred on YY(1 0) and with half-width A, i.e.
@@ -27242,7 +27257,7 @@ LOAD_E% = LOAD% + P% - CODE%
  BCC PLF16              \ If the line is on screen, jump up to PLF16 to draw the
                         \ line and loop round for the next line up
 
- LDA #0                 \ The line is not on screen, so set the line buffer for
+ LDA #0                 \ The line is not on screen, so set the line heap for
  STA LSO,Y              \ line Y to 0, which means there is no sun line here
 
  BEQ PLF6               \ Jump up to PLF6 to loop round for the next line up
@@ -27275,7 +27290,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .PLFL3
 
- LDA LSO,Y              \ Fetch the Y-th point from the LSO line buffer, which
+ LDA LSO,Y              \ Fetch the Y-th point from the sun line heap, which
                         \ gives us the half-width of the old sun's line on this
                         \ line of the screen
 
@@ -27284,7 +27299,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JSR HLOIN2             \ Call HLOIN2 to draw a horizontal line on pixel line Y,
                         \ with centre point YY(1 0) and half-width A, and remove
-                        \ the line from from the LSO line buffer once done
+                        \ the line from from the sun line heap once done
 
 .PLF9
 
@@ -27458,8 +27473,8 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .CIRCLE2
 {
- LDX #&FF               \ Set FLAG = &FF to reset the buffers in the call to
- STX FLAG               \ the BLINE routine below
+ LDX #&FF               \ Set FLAG = &FF to reset the ball line heap in the call
+ STX FLAG               \ to the BLINE routine below
 
  INX                    \ Set CNT = 0, our counter that goes up to 64, counting
  STX CNT                \ segments in our circle
@@ -27570,7 +27585,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: WPLS2
 \
 \ Remove the planet from the screen. We do this by redrawing it using the lines
-\ stored in the line buffer when the planet was originally drawn by the BLINE
+\ stored in the ball line heap when the planet was originally drawn by the BLINE
 \ routine.
 \
 \ Other entry points:
@@ -27581,30 +27596,30 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .WPLS2
 {
- LDY LSX2               \ If LSX2 is non-zero (which indicates the line buffer
- BNE WP1                \ is empty), jump to WP1 to reset the line buffer
+ LDY LSX2               \ If LSX2 is non-zero (which indicates the ball line
+ BNE WP1                \ heap is empty), jump to WP1 to reset the line heap
                         \ without redrawing the planet
 
                         \ Otherwise Y is now 0, so we can use it as a counter to
-                        \ loop through the lines in the line buffer, redrawing
+                        \ loop through the lines in the line heap, redrawing
                         \ each one to remove the planet from the screen, before
-                        \ resetting the line buffer once we are done
+                        \ resetting the line heap once we are done
 
 .WPL1
 
  CPY LSP                \ If Y >= LSP then we have reached the end of the line
- BCS WP1                \ buffer and have finished redrawing the planet (as LSP
-                        \ points to the end of the buffer), so jump to WP1 to
-                        \ reset the line buffer
+ BCS WP1                \ heap and have finished redrawing the planet (as LSP
+                        \ points to the end of the heap), so jump to WP1 to
+                        \ reset the line heap
 
- LDA LSY2,Y             \ Set A to the y-coordinate of the current buffer entry
+ LDA LSY2,Y             \ Set A to the y-coordinate of the current heap entry
 
  CMP #&FF               \ If the y-coordinate is &FF, this indicates that the
- BEQ WP2                \ next point in the buffer denotes the start of a line
+ BEQ WP2                \ next point in the heap denotes the start of a line
                         \ segment, so jump to WP2 to put it into (X1, Y1)
 
  STA Y2                 \ Set (X2, Y2) to the x- and y-coordinates from the
- LDA LSX2,Y             \ buffer
+ LDA LSX2,Y             \ heap
  STA X2
 
  JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2)
@@ -27612,35 +27627,35 @@ LOAD_E% = LOAD% + P% - CODE%
  INY                    \ Increment the loop counter to point to the next point
 
  LDA SWAP               \ If SWAP is non-zero then we swapped the coordinates
- BNE WPL1               \ when filling the buffer in BLINE, so loop back WPL1
-                        \ for the next point in the buffer
+ BNE WPL1               \ when filling the heap in BLINE, so loop back WPL1
+                        \ for the next point in the heap
 
  LDA X2                 \ Swap (X1, Y1) and (X2, Y2), so the next segment will
  STA X1                 \ be drawn from the the current (X2, Y2) to the next
- LDA Y2                 \ point in the buffer
+ LDA Y2                 \ point in the heap
  STA Y1
 
- JMP WPL1               \ Loop back to WPL1 for the next point in the buffer
+ JMP WPL1               \ Loop back to WPL1 for the next point in the heap
 
 .WP2
 
  INY                    \ Increment the loop counter to point to the next point
 
  LDA LSX2,Y             \ Set (X1, Y1) to the x- and y-coordinates from the
- STA X1                 \ buffer
+ STA X1                 \ heap
  LDA LSY2,Y
  STA Y1
 
  INY                    \ Increment the loop counter to point to the next point
 
- JMP WPL1               \ Loop back to WPL1 for the next point in the buffer
+ JMP WPL1               \ Loop back to WPL1 for the next point in the heap
 
 .WP1
 
- LDA #1                 \ Set LSP = 1 to reset the line buffer pointer
+ LDA #1                 \ Set LSP = 1 to reset the ball line heap pointer
  STA LSP
 
- LDA #&FF               \ Set LSX2 = &FF to indicate the line buffers are empty
+ LDA #&FF               \ Set LSX2 = &FF to indicate the ball line heap is empty
  STA LSX2
 
  RTS                    \ Return from the subroutine
@@ -27651,7 +27666,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: WPLS
 \
 \ Remove the sun from the screen. We do this by redrawing it using the lines
-\ stored in the line buffer when the sun was originally drawn by the SUN
+\ stored in the sun line heap when the sun was originally drawn by the SUN
 \ routine.
 \
 \ Arguments:
@@ -27662,7 +27677,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .WPLS
 {
- LDA LSX                \ If LSX < 0, the line buffer is empty, so return from
+ LDA LSX                \ If LSX < 0, the line heap is empty, so return from
  BMI WPLS-1             \ the subroutine (as WPLS-1 contains an RTS)
 
  LDA SUNX               \ Set YY(1 0) = SUNX(1 0), the x-coordinate of the
@@ -27677,7 +27692,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .WPL2
 
- LDA LSO,Y              \ Fetch the Y-th point from the LSO line buffer, which
+ LDA LSO,Y              \ Fetch the Y-th point from the sun line heap, which
                         \ gives us the half-width of the sun's line on this line
                         \ of the screen
 
@@ -27686,16 +27701,16 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JSR HLOIN2             \ Call HLOIN2 to draw a horizontal line on pixel line Y,
                         \ with centre point YY(1 0) and half-width A, and remove
-                        \ the line from from the LSO line buffer once done
+                        \ the line from from the sun line heap once done
 
  DEY                    \ Decrement the loop counter
 
- BNE WPL2               \ Loop back for the next line in the line buffer until
-                        \ we have gone through the entire buffer
+ BNE WPL2               \ Loop back for the next line in the line heap until
+                        \ we have gone through the entire heap
 
  DEY                    \ This sets Y to &FF, as we end the loop with Y = 0
 
- STY LSX                \ Set LSX to &FF to indicate the line buffer is empty
+ STY LSX                \ Set LSX to &FF to indicate the sun line heap is empty
 
  RTS                    \ Return from the subroutine
 }
@@ -28535,7 +28550,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ When removing a ship, this creates a gap in the ship slots at FRIN, so we
 \ shuffle all the later slots down to close the gap. We also shuffle the ship
-\ data blocks at K% and ship lines heap at WP, to reclaim all the memory that
+\ data blocks at K% and ship line heap at WP, to reclaim all the memory that
 \ the removed ship used to occupy.
 \
 \ Arguments:
@@ -28598,7 +28613,7 @@ LOAD_F% = LOAD% + P% - CODE%
                         \
                         \   * The ship data blocks in K%
                         \
-                        \   * The descending ship lines heap space at WP down
+                        \   * The descending ship line heap at WP down
                         \
                         \ The rest of this routine closes up these gaps by
                         \ looping through all the occupied ship slots after the
@@ -28952,9 +28967,9 @@ LOAD_F% = LOAD% + P% - CODE%
  LDA #NOST              \ Reset NOSTM, the number of stardust particles, to the
  STA NOSTM              \ maximum allowed (18)
 
- LDX #&FF               \ Reset LSX2 and LSY2, the buffers used by the BLINE
- STX LSX2               \ routine for drawing the planet's ball line, to &FF
- STX LSY2
+ LDX #&FF               \ Reset LSX2 and LSY2, the ball line heaps used by the
+ STX LSX2               \ BLINE routine for drawing circles, to &FF, to set the
+ STX LSY2               \ heap to empty
 
  STX MSTG               \ Reset MSTG, the missile target, to &FF (no target)
 
@@ -29919,7 +29934,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
  JSR cpl                \ Print control code 3 (the selected system name)
 
- LDA #128               \ Set QQ17 = 128 to switch to Sentence Case, with the
+ LDA #%10000000         \ Set bit 7 of QQ17 to switch to Sentence Case, with the
  STA QQ17               \ next letter in capitals
 
  LDA #1                 \ Move the text cursor to column 1 and down one line
@@ -30427,8 +30442,9 @@ ENDIF
  STX INWK+29            \ Set roll counter = 127, so don't dampen the roll
  STX INWK+30            \ Set pitch counter = 127, so don't dampen the pitch
 
- INX                    \ Set QQ17 = 128, which sets Sentence Case, with the
- STX QQ17               \ next letter printing in upper case
+ INX                    \ Set QQ17 to 128 (so bit 7 is set) to switch to
+ STX QQ17               \ Sentence Case, with the next letter printing in upper
+                        \ case
 
  LDA TYPE               \ Set up a new ship, using the ship type in TYPE
  JSR NWSHP
@@ -32283,7 +32299,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 .MESS
 {
- LDX #0                 \ Set QQ17 = 0 to set ALL CAPS
+ LDX #0                 \ Set QQ17 = 0 to switch to ALL CAPS
  STX QQ17
 
  LDY #9                 \ Move the text cursor to column 9, row 22, at the
@@ -33169,20 +33185,20 @@ LOAD_G% = LOAD% + P% - CODE%
  
 .Shpt
 
-                        \ This routine sets up four bytes in the ship lines heap
-                        \ space, from byte Y-1 to byte Y+2. If the ship's screen
-                        \ point turns out to be off screen, then this routine
-                        \ aborts the entire call to LL9, exiting via nono
+                        \ This routine sets up four bytes in the ship line heap,
+                        \ from byte Y-1 to byte Y+2. If the ship's screen point
+                        \ turns out to be off screen, then this routine aborts
+                        \ the entire call to LL9, exiting via nono
 
- STA (XX19),Y           \ Store A in byte Y of the ship lines heap space
+ STA (XX19),Y           \ Store A in byte Y of the ship line heap
 
- INY                    \ Store A in byte Y+2 of the ship lines heap space
+ INY                    \ Store A in byte Y+2 of the ship line heap
  INY
  STA (XX19),Y
 
  LDA K3                 \ Set A = screen x-coordinate of the ship dot
 
- DEY                    \ Store A in byte Y+1 of the ship lines heap space
+ DEY                    \ Store A in byte Y+1 of the ship line heap
  STA (XX19),Y
 
  ADC #3                 \ Set A = screen x-coordinate of the ship dot + 3
@@ -33198,7 +33214,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ nono will actually return us from the original call
                         \ to LL9, thus aborting the entire drawing process
 
- DEY                    \ Store A in byte Y-1 of the ship lines heap space
+ DEY                    \ Store A in byte Y-1 of the ship line heap
  DEY
  STA (XX19),Y
 
@@ -33613,7 +33629,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \                       K%
 \
 \   XX19(1 0)           XX19(1 0) shares its location with INWK(34 33), which
-\                       contains the ship lines heap space address pointer
+\                       contains the ship line heap address pointer
 \
 \   XX0                 The address of the blueprint for this ship
 \
@@ -33667,14 +33683,14 @@ LOAD_G% = LOAD% + P% - CODE%
 
  JSR EE51               \ Call EE51 to remove the ship from the screen
 
- LDY #1                 \ Set byte 1 of the ship lines heap space to 18, the
- LDA #18                \ initial value for the explosion cloud counter (see
- STA (XX19),Y           \ DOEXP for details)
+ LDY #1                 \ Set byte 1 of the ship line heap to 18, the initial
+ LDA #18                \ value for the explosion cloud counter (see DOEXP for
+ STA (XX19),Y           \ details)
 
  LDY #7                 \ Fetch byte #7 from the ship's blueprint, which
  LDA (XX0),Y            \ determines the explosion count (i.e. the number of
  LDY #2                 \ vertices used as origins for explosion dust), and
- STA (XX19),Y           \ store it in byte 2 of the ship lines heap space
+ STA (XX19),Y           \ store it in byte 2 of the ship line heap
 
 \LDA XX1+32             \ These instructions are commented out in the original
 \AND #&7F               \ source
@@ -33688,7 +33704,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  JSR DORND              \ Set A and X to random numbers
 
- STA (XX19),Y           \ Store A in the Y-th byte of the ship lines heap space
+ STA (XX19),Y           \ Store A in the Y-th byte of the ship line heap
 
  CPY #6                 \ Loop back until we have randomised the 6th byte
  BNE EE55
@@ -34688,11 +34704,11 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL9 (Part 6 of )
 \
-\ Draw the current ship on screen.
+\ Draw the current ship on screen. This section calculates the visibility of
+\ each of the ship's vertices.
 \
 \ ******************************************************************************
 
-                        \ -- All normals' visibilities now set in XX2,X
 .LL42                   \ DO nodeX-Ycoords \ their comment  \  TrnspMat
 
  LDY XX16+2             \ Transpose Matrix
@@ -35078,10 +35094,10 @@ LOAD_G% = LOAD% + P% - CODE%
  LDY #9                 \ Hull byte#9, number of edges
  LDA (XX0),Y
  STA XX20               \ number of edges
- LDY #0                 \ ship lines heap offset to 0 for XX19
+ LDY #0                 \ ship line heap offset to 0 for XX19
  STY U
  STY XX17               \ edge counter
- INC U                  \ ship lines heap offset = 1
+ INC U                  \ ship line heap offset = 1
  BIT XX1+31
  BVC LL170              \ bit6 of display state clear (laser not firing) \ Calculate new lines
  LDA XX1+31
@@ -35113,7 +35129,7 @@ LOAD_G% = LOAD% + P% - CODE%
  DEC XX15+4             \ else x2 lo =#255 to right across screen
  JSR LL145              \ clip test on XX15 XX12 vector
  BCS LL170              \ if carry set skip the rest (laser not firing)
- LDY U                  \ ship lines heap offset
+ LDY U                  \ ship line heap offset
  LDA XX15               \ push (now clipped) to clipped lines ship heap
  STA (XX19),Y
  INY
@@ -35126,7 +35142,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA XX15+3             \ Y2
  STA (XX19),Y
  INY
- STY U                  \ ship lines heap offset updated
+ STY U                  \ ship line heap offset updated
 
 .LL170                  \ (laser not firing) \ Calculate new lines	\ their comment
 
@@ -35193,7 +35209,7 @@ LOAD_G% = LOAD% + P% - CODE%
  JSR LL147              \ CLIP2, take care of swop and clips
  BCS LL78               \ jmp LL78 edge not visible
 
-.LL80                   \ Shove visible edge onto XX19 ship lines heap counter U
+.LL80                   \ Shove visible edge onto XX19 ship line heap counter U
 
  LDY U                  \ clipped edges heap index
  LDA XX15               \ X1
@@ -35208,7 +35224,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA XX15+3             \ Y2
  STA (XX19),Y
  INY
- STY U                  \ clipped ship lines heap index
+ STY U                  \ clipped ship line heap index
  CPY T1                 \ >=  4*MAXLI + 1 counter limit
  BCS LL81               \ hop over jmp to Exit edge data loop
 
@@ -35231,7 +35247,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 .^LL81                  \ Exited edge data loop
 
- LDA U                  \ clipped ship lines heap index for (XX19),Y
+ LDA U                  \ clipped ship line heap index for (XX19),Y
  LDY #0                 \ first entry in ship edges heap is number of bytes
  STA (XX19),Y
 
@@ -35244,7 +35260,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BCC LL118-1            \ rts
  INY                    \ #1
 
-.LL27                   \ counter Y, Draw clipped lines in XX19 ship lines heap
+.LL27                   \ counter Y, Draw clipped lines in XX19 ship line heap
 
  LDA (XX19),Y
  STA XX15               \ X1
