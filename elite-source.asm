@@ -33407,12 +33407,15 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL38
 \
-\ Calculate the following:
+\ Calculate the following between sign-magnitude numbers:
 \
-\   A = R + Q
+\   (S A) = (S R) + (A Q)
 \
-\ where A is the sign of Q and S is the sign of R. The sign of the result is
-\ returned in S.
+\ where the sign bytes only contain the sign bits, not magnitudes.
+\
+\ Returns:
+\
+\   C flag              Set if the addition overflowed, clear otherwise
 \
 \ ******************************************************************************
 
@@ -33500,10 +33503,13 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Returns:
 \
 \   XX12(1 0)           The dot product of sidev with the [x y z] vector
+\                       the sign in XX12+1 and the magnitude in XX12
 \
-\   XX12(3 2)           The dot product of roofv with the [x y z] vector
+\   XX12(3 2)           The dot product of roofv with the [x y z] vector, with
+\                       the sign in XX12+3 and the magnitude in XX12+2
 \
-\   XX12(5 4)           The dot product of nosev with the [x y z] vector
+\   XX12(5 4)           The dot product of nosev with the [x y z] vector, with
+\                       the sign in XX12+5 and the magnitude in XX12+4
 \
 \ ******************************************************************************
 
@@ -33546,10 +33552,8 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA XX15+3             \ Set A to the sign of y_sign * sidev_y
  EOR XX16+3,X
 
- JSR LL38               \ Set T = R + Q
- STA T                  \       = |sidev_x| * x_lo + |sidev_y| * y_lo
-                        \
-                        \ setting the sign of the result in S
+ JSR LL38               \ Set (S T) = (S R) + (A Q)
+ STA T                  \           = |sidev_x| * x_lo + |sidev_y| * y_lo
 
  LDA XX15+4             \ Set Q = z_lo
  STA Q
@@ -33565,15 +33569,12 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA XX15+5             \ Set A to the sign of z_sign * sidev_z
  EOR XX16+5,X
 
- JSR LL38               \ Set A = R + Q
-                        \       = |sidev_x| * x_lo + |sidev_y| * y_lo
-                        \         + |sidev_z| * z_lo
-                        \
-                        \ setting the sign of the result in S
+ JSR LL38               \ Set (S A) = (S R) + (A Q)
+                        \           = |sidev_x| * x_lo + |sidev_y| * y_lo
+                        \             + |sidev_z| * z_lo
 
- STA XX12,Y             \ Store the result in XX12+Y
-
- LDA S                  \ Store the sign of the result in XX12+Y+1
+ STA XX12,Y             \ Store the result in XX12+Y(1 0)
+ LDA S
  STA XX12+1,Y
 
  INY                    \ Set Y = Y + 2
@@ -33844,7 +33845,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Draw the current ship on screen. This part sets up the following variable
 \ blocks:
 \
-\   * XX16 contains the orientation vectors, divided to normalise them ????
+\   * XX16 contains the orientation vectors, divided to normalise them
 \
 \   * XX18 contains the ship's x, y and z coordinates in space
 \
@@ -34002,20 +34003,249 @@ LOAD_G% = LOAD% + P% - CODE%
 
  JMP LL42               \ Jump to LL42 to skip the face visibility calculations
                         \ as we don't need to do them now we've set up the XX2
-                        \ block
+                        \ block for the explosion
 
 \ ******************************************************************************
 \
 \ Subroutine: LL9 (Part 5 of )
 \
-\ Draw the current ship on screen.
+\ Draw the current ship on screen. This section calculates the visibility of
+\ each of the ship's faces.
+\
+\ ******************************************************************************
+\
+\ Deep dive: Back-face culling
+\ ----------------------------
+\ One of the reasons that Elite's 3D wireframe ships look so good is because
+\ you can't see through them - they look genuinely solid. This is down to a
+\ process called "back-face culling", a mathematical process that works out
+\ which faces of the ship are visible to the viewer and which ones aren't. It
+\ then discards (or "culls") any faces that aren't visible and only draws those
+\ that we can actually see. This prevents the wireframes from being see-through,
+\ and this gives the ships a real sense of solidity.
+\
+\ The main principle behind back-face culling is the dot product. This simple
+\ mathematical operation takes two vectors and produces a scalar value that is
+\ in essence a kind of mathematical application of one vector to the other, of
+\ taking the "essence" of one vector and applying it to another. For the
+\ purposes of back-face culling in Elite, we use the dot product in two distinct
+\ ways.
+\
+\ Direction of the face normal
+\ ----------------------------
+\ The first use is to calculate whether a face is pointing towards us or away
+\ from us, so we can decide whether to draw it. For this we use a property of
+\ the dot product that's almost tailor-made for solving this problem: if the dot
+\ product of two vectors is negative, then the angle between them is greater
+\ than 90 degrees (and by extension, if it is positive then the angle is less
+\ than 90 degrees, while a dot product of 0 means they are at exactly 90 degrees
+\ to each other).
+\
+\ Now, consider a face of one of our ships, and take the surface normal vector
+\ of that face. This is the vector that sticks out of the surface of the face at
+\ 90 degrees to the surface (so a ship with its face normals attached would look
+\ like a strange, space-faring hedgehog). Now think about rotating that face in
+\ space, and you can see that if that face normal is pointing towards us - in
+\ other words if the spike is pointing in our general direction, more towards us
+\ than away from us - then we can see the front of the face, while if the face
+\ normal (the spike) is pointing away from us, then the face is also pointing
+\ away from us and we can't see it.
+\
+\ The normal is effectively pointing in the direction of the face, so if it is
+\ pointing in our general direction, then the face is pointing towards us and we
+\ can see it; similarly, if the normal is pointing away from us, then the face
+\ is also pointing away from us, and we can't see it. Finally, if the face is
+\ exactly side on to us, it's on the cusp of being visible and invisible to us.
+\
+\ It looks like this (though you'll have to imagine that the normals are at
+\ 90 degrees, as that's pretty difficult to do in ASCII):
+\
+\                                /                        `.   /   normal points
+\                               /      normal points        `./    towards us,
+\   line of sight ----->       /`.     away, face            /     face visible
+\                             /   `.   not visible          /
+\
+\ The solid lines represent the faces, while the dotted lines represent the
+\ normals. On the left the normal is pointing away from us and the face is
+\ turned away from us, so it's not visible, while on the right the normal is
+\ pointing towards us and so is the face, so it's visible.
+\
+\ So, when the face normal is pointing away from us, the face is hidden from us.
+\ To put this another way, when the angle between the face normal and our line
+\ of sight is greater than 90 degrees, then the face normal is pointing away
+\ from us and the face is not visible. Similarly, when the angle is less than 90
+\ degrees, the normal is pointing towards us, so the face is visible.
+\
+\ This means that we can calculate the visibility of a face by calculating the
+\ following dot product:
+\
+\   line of sight vector . face normal vector
+\
+\ If the result of this dot product is negative, then the face is visible; if it's
+\ positive, it isn't visible; and if it's zero it's edge on to us.
+\
+\ Line of sight vector
+\ --------------------
+\ We already have the face normal vector, as that's how faces are stored in the
+\ memory (see the ship blueprints documentation at XX21 for more information on
+\ this). So how can we calculate the line of sight vector?
+\
+\ The first solution that springs to mind is to use the vector from our position
+\ to the ship we are trying to draw. Our ship is always at the origin (0, 0, 0),
+\ so this would mean the line of sight vector would be the vector from the
+\ origin to the ship at (x, y, z), or [x y z]. This is close, but it isn't quite
+\ right as the line of sight we are interested in is towards the face, not the
+\ centre of the ship.
+\
+\ Luckily, any point on the face will do for our calculation, so we just need to
+\ find the vector from our position to any point on the face, and the dot
+\ product will work fine. Indeed, we can extend that to say that any point on
+\ the plane containing the face will suffice; if you think about it, extending
+\ the face in all directions wouldn't change its visibility to us, so it won't
+\ change the calculation if we pick a point that is outside the limits of the
+\ actual face we want to draw. It just has to be in the same plane as the face
+\ for this to work.
+\
+\ Given this, perhaps we can get hold of a vector that goes from the ship's
+\ centre to a point on the extended face plane? As then we could define our line
+\ of sight vector by adding the vector to the ship's centre, and the vector from
+\ the ship's centre to the extended face plane.
+\
+\ Luckily - well, it isn't luck, it's by design, but it feels lucky - this is
+\ exactly how faces are stored in Elite. Each face is stored as a face normal
+\ vector, but that normal is specifically designed to be the vector from the
+\ centre of the ship to the nearest point on the extended face plane. The
+\ direction of the vector stored in the ship's blueprint is parallel to the
+\ face normal (the hedgehog spike), but its magnitude (i.e. the vector's length)
+\ is set to the distance from the ship's centre to the extended face plane. So,
+\ by design, we can add this vector to the ship's position in space to get the
+\ line of sight vector from our ship to a point on the face plane, like so:
+\
+\   line of sight vector = [x y z] + face normal vector
+\
+\ and we can then calculate the dot product of this vector with the face normal
+\ vector to get our positive or negative result, which determines whether this
+\ face is hidden or visible.
+\
+\ (Incidentally, the face normal vector that's stored in the ship's blueprint
+\ goes from the ship's centre to the nearest point on the extended face plane,
+\ as the vector is a normal, though we don't need to use this fact, it's just
+\ an interesting consequence of how this is all set up.)
+\
+\ Projecting onto the orientation vector space
+\ --------------------------------------------
+\ So are we done? Not quite. The maths is all good, but the way the coordinates
+\ and vectors are stored means we have to do a bit more geometry before we can
+\ plug the values into our dot product equation.
+\
+\ The problem is that the vector from our position to the ship we're displaying
+\ uses a different set of axes to the ship's blueprint. As we cavort through
+\ space, rolling and pitching away,the x-axis is always pointing to the right on
+\ screen, the y-axis always points up, and the z-axis always points into the
+\ screen. This is always the case, even if we switch views (this is where the
+\ PLUT routine comes in, as it switches the axes around to maintain this
+\ relationship between the screen and the axes). When we roll, pitch and travel
+\ through space, we don't actually roll or pitch, but instead we rotate the
+\ universe around us (this is done in the MVEIT routine). On top of this, each
+\ ship has its own set of orientation vectors - nosev, roofv and sidev - that
+\ determing the direction that the ship is pointing.
+\
+\ The problem is that the face normal vector in the ship's blueprint is stored
+\ in terms of an unrotated ship. Ship coordinates are stored with the x, y and
+\ z axes along the orientation vectors, so if were were sitting in the ship,
+\ the x-coordinate of the face normal vector would be pointing to our right, the
+\ y-coordinate would be pointing up, and the z-coordinate would be pointing
+\ forward, because that's how the coordinates are stored. This intentionally
+\ coincides with the way the orientation vectors point; from the perspective of
+\ the pilot of the other ship, sidev is the x-axis going off to the right, roofv
+\ is the y-axis going up, and the z-axis is nosev, heading forward. The face
+\ normal vectors are stored with reference to these orientation vectors as axes;
+\ mathematically speaking, the ship's orientation vectors form an orthonormal
+\ basis for the Euclidean space in which the face normals are expressed.
+\
+\ So somehow we need to merge these two coordinate systems - the orientation of
+\ the universe from the perspective of our ship vs the orientation of the
+\ universe from the perspective of the other ship. Luckily there's an easy
+\ solution, and again it involves the dot product.
+\
+\ The feature of the dot product that we use to merge the coordinate systems is
+\ called "scalar projection". This says that given a vector and a unit vector,
+\ we can calculate the projection of the vector onto the unit vector by simply
+\ calculating the dot product. If we do this with a vector and three unit
+\ vectors, then the dot product gives us that vector, expressed in terms of the
+\ three unit vectors - in other words, this is how we convert coordinates from
+\ one set of axes to another.
+\
+\ In our case, we have the following equation to calculate:
+\
+\   line of sight vector . face normal vector
+\
+\ where:
+\
+\   line of sight vector = [x y z] + face normal vector
+\
+\ so if we can convert [x y z] to use the same axes as the face normal vector,
+\ then we can do our calculation. As discussed above, the face normal vector
+\ uses the ship's orientation vectors as its axes, and we know that the
+\ orientation vectors are unit vectors because they are orthonormal (and we
+\ keep calling the TIDY routine to ensure that they stay this way). So we can
+\ project the [x y z] vector onto each of the orientation vectors in turn, like
+\ this:
+\
+\   [x y z] projected onto sidev = [x y z] . sidev
+\   [x y z] projected onto roofv = [x y z] . roofv
+\   [x y z] projected onto nosev = [x y z] . nosev
+\
+\ and because the orientation vectors are effectively the x, y and z axes for
+\ the ship's space, we can combine them into our projected line of sight vector
+\ like this:
+\
+\                              [ [x y z] . sidev ]
+\   projected [x y z] vector = [ [x y z] . roofv ]
+\                              [ [x y z] . nosev ]
+\
+\ The final step is to combine all of the above into our final equation. This is
+\ the value we want to calculate:
+\
+\   line of sight vector . face normal vector
+\
+\ and we know that:
+\
+\   line of sight vector = [x y z] + face normal vector
+\
+\ so if we now project the [x y z] vector into the same space as the face
+\ normals so we can combine them properly, we get:
+\
+\   line of sight vector = projected [x y z] vector + face normal vector
+\
+\                          [ [x y z] . sidev ]   [ normal_x ]
+\                        = [ [x y z] . roofv ] + [ normal_y ]
+\                          [ [x y z] . nosev ]   [ normal_z ]
+\
+\                          [ [x y z] . sidev + normal_x ]
+\                        = [ [x y z] . roofv + normal_y ]
+\                          [ [x y z] . nosev + normal_z ]
+\
+\ and if we substitute this into our final calculation, we can calculate the dot
+\ product as follows:
+\
+\                [ [x y z] . sidev + normal_x ]   [ normal_x ]
+\   visibility = [ [x y z] . roofv + normal_y ] . [ normal_y ]
+\                [ [x y z] . nosev + normal_z ]   [ normal_z ]
+\
+\ If the result is negative the face is visible, otherwise it is not visible.
+\
+\ This is exactly what happens in the following code. We set the block of memory
+\ at XX15 to the left-hand side of the final calculation and the block at XX12
+\ block to the right-hand side, and calculate the dot product XX12 . XX15 to
+\ tell us whether or not this face is visible.
 \
 \ ******************************************************************************
 
 .EE29
 
  LDA (XX0),Y            \ We set Y to 12 above before jumping down to EE29, so
-                        \ this fetch byte #12 of the ship's blueprint, which
+                        \ this fetches byte #12 of the ship's blueprint, which
                         \ contains the number of faces * 4
 
  BEQ LL41               \ If there are no faces in this ship, jump to LL42 (via
@@ -34079,25 +34309,32 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA XX18+6             \ Set XX15+4 = z_lo, so now XX15(5 4) = (z_sign z_lo)
  STA XX15+4
 
- JSR LL51               \ Call LL51 to set XX12 to these dot products:
+ JSR LL51               \ Call LL51 to set XX12 to these dot products,
+                        \ which we'll call dot_sidev, dot_roofv and dot_nose:
                         \
                         \   XX12(1 0) = [x y z] . sidev
+                        \             = (dot_sidev_sign dot_sidev_lo)
+                        \             = dot_sidev
                         \
                         \   XX12(3 2) = [x y z] . roofv
+                        \             = (dot_roofv_sign dot_roofv_lo)
+                        \             = dot_roofv
                         \
                         \   XX12(5 4) = [x y z] . nosev
+                        \             = (dot_nosev_sign dot_nosev_lo)
+                        \             = dot_nosev
 
- LDA XX12               \ Set XX18(2 0) = [x y z] . sidev
+ LDA XX12               \ Set XX18(2 0) = dot_sidev
  STA XX18
  LDA XX12+1
  STA XX18+2
 
- LDA XX12+2             \ Set XX18(5 3) = [x y z] . roofv
+ LDA XX12+2             \ Set XX18(5 3) = dot_roofv
  STA XX18+3
  LDA XX12+3
  STA XX18+5
 
- LDA XX12+4             \ Set XX18(8 6) = [x y z] . nosev
+ LDA XX12+4             \ Set XX18(8 6) = dot_nosev
  STA XX18+6
  LDA XX12+5
  STA XX18+8
@@ -34124,173 +34361,336 @@ LOAD_G% = LOAD% + P% - CODE%
 
 .LL86
 
- LDA (V),Y
- STA XX12+1             \ byte#0
- AND #31                \ lower 5 bits are face visibility
- CMP XX4
- BCS LL87               \ >= XX4 visibility, skip over jump LL88
- TYA                    \ face*4 count
- LSR A                  \ else visible
- LSR A                  \ counter/4
- TAX                    \ Xreg is normal count
- LDA #255               \ visible face
- STA XX2,X
- TYA                    \ next face*4
- ADC #4                 \ +=4
- TAY                    \ Yreg +=4 is next normal
- JMP LL88               \ to near end of normal's visibility loop
+ LDA (V),Y              \ Set A to byte #0 of this face
+                        \
+                        \ Byte 0 = %xyz vvvvv, where:
+                        \
+                        \   * Bits 0-4 = visibility distance, beyond which the
+                        \     face is always shown
+                        \
+                        \   * Bits 7-5 = the sign bits of normal_x, normal_y and
+                        \     normal_z
 
-.LL87                   \ normal visibility>= XX4
+ STA XX12+1             \ Store byte #0 in XX12+1, so XX12+1 now has the sign of
+                        \ normal_x
 
- LDA XX12+1             \ byte#0 of normal
- ASL A                  \ get sign y
- STA XX12+3
- ASL A                  \ get sign z
- STA XX12+5
- INY                    \ byte#1 of normal
- LDA (V),Y
- STA XX12               \ xnormal lo
- INY                    \ byte#2 of normal
- LDA (V),Y
- STA XX12+2             \ ynormal lo
- INY                    \ byte#3 of normal
- LDA (V),Y
- STA XX12+4             \ znormal lo
- LDX XX17               \ kept Scale required
- CPX #4                 \ is XX17 < 4 ?
- BCC LL92               \ scale required is Quite close
+ AND #%00011111         \ Extract bits 0-4 to give the visibility distance
 
-.LL143                  \ Face offset<<PV \ their comment \ far enough away, use XX18
+ CMP XX4                \ If the visibility distance >= XX4, where XX4 contains
+ BCS LL87               \ the ship's z-distance reduced to 0-31, skip to LL87 as
+                        \ this face is close enough that we have to test its
+                        \ visibility using the face normals
 
- LDA XX18               \ xlo
- STA XX15
- LDA XX18+2             \ xsg
+                        \ Otherwise this face is within range and is therefore
+                        \ always shown
+
+ TYA                    \ Set X = Y / 4
+ LSR A                  \       = the number of this face * 4 /4
+ LSR A                  \       = the number of this face
+ TAX
+
+ LDA #255               \ Set the X-th byte of XX2 to 255 to denote that this
+ STA XX2,X              \ face is visible
+
+ TYA                    \ Set Y = Y + 4 to point to the next face
+ ADC #4
+ TAY
+
+ JMP LL88               \ Jump down to LL88 to skip the following, as we don't
+                        \ need to test the face normals
+
+.LL87
+
+ LDA XX12+1             \ Fetch byte #0 for this face into A
+
+ ASL A                  \ Shift A left so bit 7 and store it, so XX12+3 now has
+ STA XX12+3             \ the sign of normal_y
+
+ ASL A                  \ Shift A left so bit 7 and store it, so XX12+5 now has
+ STA XX12+5             \ the sign of normal_z
+
+ INY                    \ Increment Y to point to byte #1
+
+ LDA (V),Y              \ Fetch byte #1 for this face and store in XX12, so
+ STA XX12               \ XX12 = normal_x
+
+ INY                    \ Increment Y to point to byte #2
+
+ LDA (V),Y              \ Fetch byte #2 for this face and store in XX12+2, so
+ STA XX12+2             \ XX12+2 = normal_y
+
+ INY                    \ Increment Y to point to byte #3
+
+ LDA (V),Y              \ Fetch byte #3 for this face and store in XX12+4, so
+ STA XX12+4             \ XX12+4 = normal_z
+
+                        \ So we now have:
+                        \
+                        \   XX12(1 0) = (normal_x_sign normal_x)
+                        \
+                        \   XX12(3 2) = (normal_y_sign normal_y)
+                        \
+                        \   XX12(5 4) = (normal_z_sign normal_z)
+
+ LDX XX17               \ If XX17 < 4 then jump to LL92, otherwise we stored a
+ CPX #4                 \ larger scale factor above
+ BCC LL92
+
+.LL143
+
+ LDA XX18               \ Set XX15(1 0) = XX18(2 0)
+ STA XX15               \               = dot_sidev
+ LDA XX18+2
  STA XX15+1
- LDA XX18+3             \ ylo
- STA XX15+2
- LDA XX18+5             \ ysg
+
+ LDA XX18+3             \ Set XX15(3 2) = XX18(5 3)
+ STA XX15+2             \               = dot_roofv
+ LDA XX18+5
  STA XX15+3
- LDA XX18+6             \ zlo
- STA XX15+4
- LDA XX18+8             \ zsg
+
+ LDA XX18+6             \ Set XX15(5 4) = XX18(8 6)
+ STA XX15+4             \               = dot_nosev
+ LDA XX18+8
  STA XX15+5
- JMP LL89               \ XX15(6) ready, down to START
+
+ JMP LL89               \ Jump down to LL89
 
 .ovflw                  \ overflow from below, reduce xx18+0,3,6
 
- LSR XX18               \ x_lo/2
- LSR XX18+6             \ z_lo/2
- LSR XX18+3             \ y_lo/2
- LDX #1                 \ scale finished
+                        \ If we get here then the addition below overflowed, so
+                        \ we halve the dot products and normal vector
 
-.LL92                   \ arrive if Quite close, with scale in Xreg.  Normals translate
+ LSR XX18               \ Divide dot_sidev_lo by 2, so dot_sidev = dot_sidev / 2
 
- LDA XX12               \ xnormal lo
+ LSR XX18+6             \ Divide dot_nosev_lo by 2, so dot_nosev = dot_nosev / 2
+
+ LSR XX18+3             \ Divide dot_roofv_lo by 2, so dot_roofv = dot_roofv / 2
+
+ LDX #1                 \ Set X = 1 so when we fall through into LL92, we divide
+                        \ the normal vector by 2 as well
+
+.LL92
+
+                        \ We jump here from above with the scale factor in X,
+                        \ and now we apply it by scaling the normal vector down
+                        \ by a factor of 2^X (i.e. divide by 2^X)
+
+ LDA XX12               \ Set XX15 = normal_x
  STA XX15
- LDA XX12+2             \ ynormal lo
+
+ LDA XX12+2             \ Set XX15+2 = normal_y
  STA XX15+2
- LDA XX12+4             \ znormal lo
+
+ LDA XX12+4             \ Set A = normal_z
 
 .LL93
 
- DEX                    \ scale--
- BMI LL94               \ exit, Scale done
- LSR XX15               \ counter X
- LSR XX15+2             \ ynormal lo/2
- LSR A                  \ znormal lo/2
- DEX                    \ reduce scale
- BPL LL93+3             \ loop to lsr xx15
+ DEX                    \ Decrement the scale factor in X
 
-.LL94                   \ Scale done
+ BMI LL94               \ If X was 0 before the decrement, there is no scaling
+                        \ to do, so jump to LL94 to exit the loop
 
- STA R                  \ znormal  XX15+4
- LDA XX12+5             \ zsg
- STA S                  \ z_hi to translate
- LDA XX18+6             \ z_lo
+ LSR XX15               \ Set XX15 = XX15 / 2
+                        \          = normal_x / 2
+ 
+ LSR XX15+2             \ Set XX15+2 = XX15+2 / 2
+                        \            = normal_y / 2
+
+ LSR A                  \ Set A = A / 2
+                        \       = normal_z / 2
+
+ DEX                    \ Decrement the scale factor in X
+
+ BPL LL93+3             \ If we have more scaling to do, loop back up to the
+                        \ first LSR above until the normal vector is scaled down
+
+.LL94
+
+ STA R                  \ Set R = normal_z
+
+ LDA XX12+5             \ Set S = normal_z_sign
+ STA S
+
+ LDA XX18+6             \ Set Q = dot_nosev_lo
  STA Q
- LDA XX18+8             \ zsg
- JSR LL38               \ BADD(S)A=R+Q(SA) \ 1byte add (subtract)
- BCS ovflw              \ up to overflow, reduce xx18+0,3,6
 
- STA XX15+4             \ new z
- LDA S                  \ maybe new sign
- STA XX15+5             \ zsg
+ LDA XX18+8             \ Set A = dot_nosev_sign
 
- LDA XX15
- STA R                  \ xnormal
- LDA XX12+1             \ xsg
- STA S                  \ x_hi to translate
+ JSR LL38               \ Set (S A) = (S R) + (A Q)
+                        \           = normal_z + dot_nosev
+                        \
+                        \ setting the sign of the result in S
 
- LDA XX18               \ x_lo
- STA Q
- LDA XX18+2             \ xsg
- JSR LL38               \ BADD(S)A=R+Q(SA) \ 1byte add (subtract)
- BCS ovflw              \ up to overflow, reduce xx18+0,3,6
- STA XX15               \ new x
- LDA S                  \ maybe new sign
- STA XX15+1             \ xsg
- LDA XX15+2
- STA R                  \ ynormal
- LDA XX12+3             \ ysg
- STA S                  \ y_hi to translate
- LDA XX18+3             \ y_lo
- STA Q
- LDA XX18+5             \ ysg
- JSR LL38               \ BADD(S)A=R+Q(SA) \ 1byte add (subtract)
- BCS ovflw              \ up to overflow, reduce xx18+0,3,6
- STA XX15+2             \ new y
- LDA S                  \ maybe new sign
- STA XX15+3             \ ysg
+ BCS ovflw              \ If the addition overflowed, jump up to ovflw to divide
+                        \ both the normal vector and dot products by 2 and try
+                        \ again
 
-.LL89                   \ START also arrive from LL143  Face offset<<PV  XX15(6) ready
-                        \ Calculate 3D dot product  XX12 . XX15 for (x,y,z)
+ STA XX15+4             \ Set XX15(5 4) = (S A)
+ LDA S                  \               = normal_z + dot_nosev
+ STA XX15+5
 
- LDA XX12               \ xnormal lo
- STA Q
- LDA XX15
- JSR FMLTU              \ A=A*Q/256unsg
- STA T                  \ x-dot
- LDA XX12+1
- EOR XX15+1
- STA S                  \ x-sign
- LDA XX12+2             \ ynormal lo
- STA Q
- LDA XX15+2
- JSR FMLTU              \ A=A*Q/256unsg
- STA Q                  \ y-dot
- LDA T                  \ x-dot
+ LDA XX15               \ Set R = normal_x
  STA R
- LDA XX12+3             \ ysg
- EOR XX15+3
- JSR LL38               \ BADD(S)A=R+Q(SA) \ 1byte add (subtract)
- STA T                  \ xdot+ydot
- LDA XX12+4             \ znormal lo
+
+ LDA XX12+1             \ Set S = normal_x_sign
+ STA S
+
+ LDA XX18               \ Set Q = dot_sidev_lo
  STA Q
- LDA XX15+4
- JSR FMLTU              \ A=A*Q/256unsg
- STA Q                  \ zdot
- LDA T
- STA R                  \ xdot+ydot
- LDA XX15+5
- EOR XX12+5             \ hi sign
- JSR LL38               \ BADD(S)A=R+Q(SA) \ 1byte add (subtract)
- PHA                    \ push xdot+ydot+zdot
- TYA                    \ normal_count *4 so far
- LSR A
- LSR A                  \ /=4
- TAX                    \ normal index
- PLA                    \ xdot+ydot+zdot
- BIT S                  \ maybe new sign
- BMI P%+4               \ if -ve then keep Acc
- LDA #0                 \ else face not visible
- STA XX2,X              \ face visibility
- INY                    \ Y now taken up by a total of 4
 
-.LL88                   \ near end of normals visibility loop
+ LDA XX18+2             \ Set A = dot_sidev_sign
 
- CPY XX20               \ number of normals*4
- BCS LL42               \ If Y >= XX20 all normals' visibilities set, onto Transpose
- JMP LL86               \ loop normals visibility Y
+ JSR LL38               \ Set (S A) = (S R) + (A Q)
+                        \           = normal_x + dot_sidev
+                        \
+                        \ setting the sign of the result in S
+
+ BCS ovflw              \ If the addition overflowed, jump up to ovflw to divide
+                        \ both the normal vector and dot products by 2 and try
+                        \ again
+
+ STA XX15               \ Set XX15(1 0) = (S A)
+ LDA S                  \               = normal_x + dot_sidev
+ STA XX15+1
+
+ LDA XX15+2             \ Set R = normal_y
+ STA R
+
+ LDA XX12+3             \ Set S = normal_y_sign
+ STA S
+
+ LDA XX18+3             \ Set Q = dot_roofv_lo
+ STA Q
+
+ LDA XX18+5             \ Set A = dot_roofv_sign
+
+ JSR LL38               \ Set (S A) = (S R) + (A Q)
+                        \           = normal_y + dot_roofv
+
+ BCS ovflw              \ If the addition overflowed, jump up to ovflw to divide
+                        \ both the normal vector and dot products by 2 and try
+                        \ again
+
+ STA XX15+2             \ Set XX15(3 2) = (S A)
+ LDA S                  \               = normal_y + dot_roofv
+ STA XX15+3
+
+.LL89
+
+                        \ When we get here, we have set up the following:
+                        \
+                        \   XX15(1 0) = normal_x + dot_sidev
+                        \             = normal_x + [x y z] . sidev
+                        \
+                        \   XX15(3 2) = normal_y + dot_roofv
+                        \             = normal_y + [x y z] . roofv
+                        \
+                        \   XX15(5 4) = normal_z + dot_nosev
+                        \             = normal_z + [x y z] . nosev
+                        \
+                        \ and:
+                        \
+                        \   XX12(1 0) = (normal_x_sign normal_x)
+                        \
+                        \   XX12(3 2) = (normal_y_sign normal_y)
+                        \
+                        \   XX12(5 4) = (normal_z_sign normal_z)
+                        \
+                        \ We now calculate the dot product XX12 . XX15 to tell
+                        \ us whether or not this face is visible
+
+ LDA XX12               \ Set Q = XX12
+ STA Q
+
+ LDA XX15               \ Set A = XX15
+
+ JSR FMLTU              \ Set T = A * Q / 256
+ STA T                  \       = XX15 * XX12 / 256
+
+ LDA XX12+1             \ Set S = sign of XX15(1 0) * XX12(1 0), so:
+ EOR XX15+1             \
+ STA S                  \   (S T) = XX15(1 0) * XX12(1 0) / 256
+
+ LDA XX12+2             \ Set Q = XX12+2
+ STA Q
+
+ LDA XX15+2             \ Set A = XX15+2
+
+ JSR FMLTU              \ Set Q = A * Q
+ STA Q                  \       = XX15+2 * XX12+2 / 256
+
+ LDA T                  \ Set T = R, so now:
+ STA R                  \
+                        \   (S R) = XX15(1 0) * XX12(1 0) / 256
+
+ LDA XX12+3             \ Set A = sign of XX15+3 * XX12+3, so:
+ EOR XX15+3             \
+                        \   (A Q) = XX15(3 2) * XX12(3 2) / 256
+
+ JSR LL38               \ Set (S T) = (S R) + (A Q)
+ STA T                  \           =   XX15(1 0) * XX12(1 0) / 256
+                        \             + XX15(3 2) * XX12(3 2) / 256
+
+ LDA XX12+4             \ Set Q = XX12+4
+ STA Q
+
+ LDA XX15+4             \ Set A = XX15+4
+
+ JSR FMLTU              \ Set Q = A * Q
+ STA Q                  \       = XX15+4 * XX12+4 / 256
+
+ LDA T                  \ Set T = R, so now:
+ STA R                  \
+                        \   (S R) =   XX15(1 0) * XX12(1 0) / 256
+                        \           + XX15(3 2) * XX12(3 2) / 256
+
+ LDA XX15+5             \ Set A = sign of XX15+5 * XX12+5, so:
+ EOR XX12+5             \
+                        \   (A Q) = XX15(5 4) * XX12(5 4) / 256
+
+ JSR LL38               \ Set (S A) = (S R) + (A Q)
+                        \           =   XX15(1 0) * XX12(1 0) / 256
+                        \             + XX15(3 2) * XX12(3 2) / 256
+                        \             + XX15(5 4) * XX12(5 4) / 256
+
+ PHA                    \ Push the result A onto the stack, so the stack now
+                        \ contains the dot product XX12 . XX15
+
+ TYA                    \ Set X = Y / 4
+ LSR A                  \       = the number of this face * 4 /4
+ LSR A                  \       = the number of this face
+ TAX
+ 
+ PLA                    \ Pull the dot product off the stack into A
+
+ BIT S                  \ If bit 7 of S is set, i.e. the dot product is
+ BMI P%+4               \ negative, then this face is visible as its normal is
+                        \ pointing towards us, so skip the following instruction
+
+ LDA #0                 \ Otherwise the face is not visible, so set A = 0 so we
+                        \ can store this to mean "not visible"
+
+ STA XX2,X              \ Store the face's visibility in the X-th byte of XX2
+
+ INY                    \ Above we incremented Y to point to byte #3, so this
+                        \ increments Y to point to byte #4, i.e. byte #0 of the
+                        \ next face
+
+.LL88
+
+ CPY XX20               \ If Y >= XX20, the number of faces * 4, jump down to
+ BCS LL42               \ LL42 to move on to the 
+
+ JMP LL86               \ Otherwise loop back to LL86 to work out the visibility
+                        \ of the next face
+
+\ ******************************************************************************
+\
+\ Subroutine: LL9 (Part 6 of )
+\
+\ Draw the current ship on screen.
+\
+\ ******************************************************************************
 
                         \ -- All normals' visibilities now set in XX2,X
 .LL42                   \ DO nodeX-Ycoords \ their comment  \  TrnspMat
@@ -36135,21 +36535,23 @@ ENDMACRO
 \   * Byte 3            The number of the vertex at the other end of the edge
 \
 \ Finally we have the face definitions. Each face is made up of four values
-\ stored in four bytes, as follows:
+\ stored in four bytes, as follows. Note that the visibility distance works in
+\ the opposite way for faces than for the ship, vertices and edges, in that the
+\ face is always shown when it's further away than the visibility distance.
 \
 \   * Byte 0            %xyz vvvvv, where:
 \
 \                         * Bits 0-4 = visibility distance, beyond which the
-\                           face is not shown
+\                           face is always shown
 \
 \                         * Bits 7-5 = the sign bits of normal_x, normal_y and
 \                           normal_z
 \
-\   * Byte 1            Magnitude of the face normal's x-coordinate
+\   * Byte 1            Magnitude of the face normal's x-coordinate, normal_x
 \
-\   * Byte 2            Magnitude of the face normal's y-coordinate
+\   * Byte 2            Magnitude of the face normal's y-coordinate, normal_y
 \
-\   * Byte 3            Magnitude of the face normal's z-coordinate
+\   * Byte 3            Magnitude of the face normal's z-coordinate, normal_z
 \
 \ To make the source code easier to follow, we use three macros (for vertices,
 \ edges and faces) that let us separate out the different values, and which
