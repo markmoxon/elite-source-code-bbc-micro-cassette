@@ -131,7 +131,8 @@ f9 = &77
 \
 \   (K+3 K+2 K+1 K)
 \
-\ where a 32-bit little-endian number is stored in memory locations K (low byte)\ through to K+3 (high byte). We can also refer to this number like this:
+\ where a 32-bit little-endian number is stored in memory locations K (low byte)
+\ through to K+3 (high byte). We can also refer to this number like this:
 \
 \   K(3 2 1 0)
 \
@@ -480,7 +481,7 @@ ORG &0000
                         \ takes 15 iterations to happen, but subsequent ticks
                         \ take 5 iterations each)
                         \
-                        \ QQ22+1 contains the number that's shown on screen
+                        \ QQ22+1 contains the number that's shown on-screen
                         \ during countdown. It counts down from 15 to 1, and
                         \ when it hits 0, the hyperspace engines kick in
 
@@ -1358,7 +1359,7 @@ ENDMACRO
 \ the accumulator, and if that number refers to a token, then the token is
 \ expanded before being printed. Whole strings can be printed by calling this
 \ subroutine on one character at a time, and this is how almost all of the text
-\ in the game gets put on screen. For example, the following code:
+\ in the game gets put on the screen. For example, the following code:
 \
 \   LDA #65
 \   JSR TT27
@@ -3066,7 +3067,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ INWK+31 = exploding/killed state, scanner flag, or missile count
 \
 \   * Bits 0-2: n = number of missiles or Thargons
-\   * Bit 3:    0 = isn't being drawn on screen  1 = is being drawn on screen
+\   * Bit 3:    0 = isn't being drawn on-screen  1 = is being drawn on-screen
 \   * Bit 4:    0 = don't show on scanner        1 = do show on scanner
 \   * Bit 5:    0 = ship is not exploding        1 = ship is exploding
 \   * Bit 6:    0 = ship is not firing lasers    1 = ship is firing lasers at us
@@ -4658,7 +4659,7 @@ LOAD_A% = LOAD%
 
 .MA8
 
- JSR LL9                \ Call LL9 to draw the ship we're processing on screen
+ JSR LL9                \ Call LL9 to draw the ship we're processing on-screen
 
 .MA15
 
@@ -4684,7 +4685,7 @@ LOAD_A% = LOAD%
 
 .q2
 
- LDA DLY                \ If we already have an in-flight message on screen (in
+ LDA DLY                \ If we already have an in-flight message on-screen (in
  ORA MJ                 \ which case DLY > 0), or we are in witchspace (in
  BNE KS1S               \ which case MJ > 0), jump to KS1S to skip showing an
                         \ on-screen bounty for this kill
@@ -6331,7 +6332,7 @@ LOAD_A% = LOAD%
 \ in front of us.
 \
 \ So this routine calculates the movement of the enemy ship in space when we
-\ pitch and roll, as then the game can show the ship on screen and work out
+\ pitch and roll, as then the game can show the ship on-screen and work out
 \ whether our lasers are pointing in the correct direction to unleash fiery
 \ death on the pirate/cop/innocent trader in our sights.
 \
@@ -7511,7 +7512,7 @@ PRINT "CH% = ", ~CH%
 \ NOSH + 1 (13) ships. Each of those ships has its own block of 36 (NI%) bytes
 \ that contains information such as the ship's position in space, speed,
 \ rotation, energy and so on, as well as a pointer to the line data for
-\ plotting it on screen. These 13 blocks of ship data live in the first 468
+\ plotting it on-screen. These 13 blocks of ship data live in the first 468
 \ bytes of the workspace at K% (&0900 to &0AD4).
 \
 \ In order to update the ship data, the whole block is copied to the INWK ship
@@ -7769,7 +7770,7 @@ NEXT
 \ then from C to A again, then if we plotted the end points, each of the
 \ triangle's vertices (A, B and C) would be plotted twice, once as the start of
 \ a line, and again as the end of the line. Normally this wouldn't be a problem,
-\ but because Elite draws everything on screen using EOR logic (so objects can
+\ but because Elite draws everything on-screen using EOR logic (so objects can
 \ be drawn and then erased by simply drawing them again), this would mean the
 \ corner points would disappear, and that would look very strange. So there is
 \ also logic in the following to omit the last pixel from the line, in the same
@@ -8044,7 +8045,7 @@ NEXT
  LDA R                  \ Fetch the pixel byte from R
 
  EOR (SC),Y             \ Store R into screen memory at SC(1 0), using EOR
- STA (SC),Y             \ logic so it merges with whatever is already on screen
+ STA (SC),Y             \ logic so it merges with whatever is already on-screen
 
 .LI6
 
@@ -8124,7 +8125,7 @@ NEXT
  LDA R                  \ Fetch the pixel byte from R
 
  EOR (SC),Y             \ Store R into screen memory at SC(1 0), using EOR
- STA (SC),Y             \ logic so it merges with whatever is already on screen
+ STA (SC),Y             \ logic so it merges with whatever is already on-screen
 
 .LI9
 
@@ -8344,7 +8345,7 @@ NEXT
  LDA R                  \ Fetch the pixel byte from R
 
  EOR (SC),Y             \ Store R into screen memory at SC(1 0), using EOR
- STA (SC),Y             \ logic so it merges with whatever is already on screen
+ STA (SC),Y             \ logic so it merges with whatever is already on-screen
 
 .LI17
 
@@ -8419,7 +8420,7 @@ NEXT
  LDA R                  \ Fetch the pixel byte from R
 
  EOR (SC),Y             \ Store R into screen memory at SC(1 0), using EOR
- STA (SC),Y             \ logic so it merges with whatever is already on screen
+ STA (SC),Y             \ logic so it merges with whatever is already on-screen
 
 .LI18
 
@@ -8701,7 +8702,7 @@ NEXT
                         \ line
 
  EOR (SC),Y             \ Store this into screen memory at SC(1 0), using EOR
- STA (SC),Y             \ logic so it merges with whatever is already on screen,
+ STA (SC),Y             \ logic so it merges with whatever is already on-screen,
                         \ so we have now drawn the line's left cap
 
  TYA                    \ Set Y = Y + 8 so (SC),Y points to the next character
@@ -8723,8 +8724,8 @@ NEXT
 .HLL1
 
  LDA #%11111111         \ Store a full-width 8-pixel horizintal line in SC(1 0)
- EOR (SC),Y             \ so that it draws the line on screen, using EOR logic
- STA (SC),Y             \ so it merges with whatever is already on screen
+ EOR (SC),Y             \ so that it draws the line on-screen, using EOR logic
+ STA (SC),Y             \ so it merges with whatever is already on-screen
 
  TYA                    \ Set Y = Y + 8 so (SC),Y points to the next character
  ADC #8                 \ block along, on the same pixel row as before
@@ -8747,7 +8748,7 @@ NEXT
                         \ shape we want for the right end of the line
 
  EOR (SC),Y             \ Store this into screen memory at SC(1 0), using EOR
- STA (SC),Y             \ logic so it merges with whatever is already on screen,
+ STA (SC),Y             \ logic so it merges with whatever is already on-screen,
                         \ so we have now drawn the line's right cap
 
  LDY YSAV               \ Restore Y from YSAV, so that it's preserved across the
@@ -8793,7 +8794,7 @@ NEXT
 
  EOR (SC),Y             \ Store our horizontal line byte into screen memory at
  STA (SC),Y             \ SC(1 0), using EOR logic so it merges with whatever is
-                        \ already on screen
+                        \ already on-screen
 
  LDY YSAV               \ Restore Y from YSAV, so that it's preserved
 
@@ -9035,7 +9036,7 @@ NEXT
 \ one page of memory. So the first character row starts at &6000, the second
 \ character row starts at &6100, and so on.
 \
-\ Each character row on screen is laid out like this in memory, where each
+\ Each character row on the screen is laid out like this in memory, where each
 \ digit (0, 1, 2 etc.) represents a pixel, or bit:
 \
 \         01234567 ->-.      ,------->- 01234567->-.
@@ -9128,7 +9129,7 @@ NEXT
 \   Set &600B = %10000000
 \
 \ Or, if we want to draw our stardust without obliterating anything that's
-\ already on screen in this area, we can use EOR logic, like this:
+\ already on-screen in this area, we can use EOR logic, like this:
 \
 \   Set &6002 = ?&6002 EOR %00000001
 \   Set &6003 = ?&6002 EOR %00000001
@@ -9143,7 +9144,7 @@ NEXT
 \
 \ this means that the screen display will only change when we want to poke a
 \ bit with value 1 into the screen memory (i.e. paint it white), and when we're
-\ doing this, it will invert what's already on screen. This not only means that
+\ doing this, it will invert what's already on-screen. This not only means that
 \ poking a 0 into the screen memory means "leave this pixel as it is", it also
 \ means we can draw something on the screen, and then redraw the exact same
 \ thing to remove it from the screen, which can be a lot more efficient than
@@ -9208,7 +9209,7 @@ NEXT
 \
 \ Poking bytes into screen addresses
 \ ----------------------------------
-\ To summarise, in order to paint pixel (x, y) on screen, we need to update
+\ To summarise, in order to paint pixel (x, y) on the screen, we need to update
 \ this character block:
 \
 \   (x >> 3, y >> 3)
@@ -9225,8 +9226,8 @@ NEXT
 \ of memory in Elite's mode 4 screen, so we can work out the page of the
 \ location we need to update by taking the y-coordinate of the character for
 \ the page. So, if (SCH SC) is the 16-bit address of the byte that we need to
-\ update in order to paint pixel (x, y) on screen (i.e. SCH is the high byte and
-\ SC is the low byte), then we know:
+\ update in order to paint pixel (x, y) on the screen (i.e. SCH is the high byte
+\ and SC is the low byte), then we know:
 \
 \   SCH = &60 + y >> 3
 \
@@ -9289,7 +9290,7 @@ NEXT
 \
 \   (SCH SC)
 \
-\ to set the pixel (x, y) on screen. (Or, if we want to set two pixels at this
+\ to set the pixel (x, y) on-screen. (Or, if we want to set two pixels at this
 \ location, we can use TWOS2, and if we wants a 2x2 square of pixels setting,
 \ we can do the same again on the row below.)
 \
@@ -9438,7 +9439,7 @@ NEXT
 \ the previous call to BLINE in K5(3 2 1 0), so it can draw a segment between
 \ the last point and this one.
 \
-\ If a line doesn't fit on screen, then it isn't drawn or stored in the heap.
+\ If a line doesn't fit on-screen, then it isn't drawn or stored in the heap.
 \ Instead a &FF marker is inserted into the LSY2 entry at the current position,
 \ which indicates to the next call to BLINE that it should start a new segment.
 \ In this way broken, non-continuous lines can still be stored in the line
@@ -9503,9 +9504,9 @@ NEXT
                         \ store both the (X1, Y1) and (X2, Y2) points. We do
                         \ this on the very first call to BLINE (when FLAG is
                         \ &FF), and on subsequent calls if the segment does not
-                        \ fit on screen, in which case we don't draw or store
+                        \ fit on-screen, in which case we don't draw or store
                         \ that segment, and we start a new segment with the next
-                        \ call to BLINE that does fit on screen
+                        \ call to BLINE that does fit on-screen
 
  LDY LSP                \ If byte LSP-1 of LSY2 = &FF, jump to BL7 to tidy up
  LDA #&FF               \ and return from the subroutine, as the point that has
@@ -9514,7 +9515,7 @@ NEXT
                         \ moving the pointer in LSP
 
  STA LSY2,Y             \ Otherwise we just tried to plot a segment but it
-                        \ didn't fit on screen, so put the &FF marker into the
+                        \ didn't fit on-screen, so put the &FF marker into the
                         \ heap for this point, so the next call to BLINE starts
                         \ a new segment
 
@@ -9551,7 +9552,7 @@ NEXT
  STA XX12+1
 
  JSR LL145              \ Call LL145 to see if the new line segment needs to be
-                        \ clipped to fit on screen, returning the clipped line's
+                        \ clipped to fit on-screen, returning the clipped line's
                         \ end-points in (X1, Y1) and (X2, Y2)
 
  BCS BL5                \ If the C flag is set then the line is not visible on
@@ -9735,7 +9736,7 @@ NEXT
 \ the stardust moves correctly when we steer our ship.
 \
 \ When a stardust particle rushes past us and falls off the side of the screen,
-\ its memory is recycled as a new particle that's positioned randomly on screen.
+\ its memory is recycled as a new particle that's positioned randomly on-screen.
 \
 \ ******************************************************************************
 \
@@ -11447,7 +11448,7 @@ NEXT
 
 .RR1                    \ If we get here, then the character to print is an
                         \ ASCII character in the range 32-95. The quickest way
-                        \ to display text on screen is to poke the character
+                        \ to display text on-screen is to poke the character
                         \ pixel by pixel, directly into screen memory, so
                         \ that's what the rest of this routine does
                         \
@@ -11470,7 +11471,7 @@ NEXT
                         \ The following code reads the relevant character
                         \ bitmap from the above locations in ROM and pokes
                         \ those values into the correct position in screen
-                        \ memory, thus printing the character on screen
+                        \ memory, thus printing the character on-screen
                         \
                         \ It's a long way from 10 PRINT "Hello world!":GOTO 10
 
@@ -11652,7 +11653,7 @@ NEXT
                         \ of this screen address in SC above (see the STA SC
                         \ instruction above), so all we need is the most
                         \ significant byte. As mentioned above, in Elite's
-                        \ square mode 4 screen, each row of text on screen
+                        \ square mode 4 screen, each row of text on-screen
                         \ takes up exactly one page, so the first row is page
                         \ &60xx, the second row is page &61xx, so we can get
                         \ the page for character (XC, YC) by OR-ing with &60.
@@ -12302,12 +12303,12 @@ NEXT
  PLA                    \ Restore the mask byte from the stack so we can use it
                         \ to draw the end cap of the indicator
 
- JMP DL5                \ Jump back up to DL5 to draw the mask byte on screen
+ JMP DL5                \ Jump back up to DL5 to draw the mask byte on-screen
 
 .DL6
 
  INC SC+1               \ Increment the high byte of SC to point to the next
-                        \ character row on screen (as each row takes up exactly
+                        \ character row on-screen (as each row takes up exactly
                         \ one page of 256 bytes) - so this sets up SC to point
                         \ to the next indicator, i.e. the one below the one we
                         \ just drew
@@ -12431,7 +12432,7 @@ NEXT
                         \ next one along
 
  INC SC+1               \ Increment the high byte of SC to point to the next
-                        \ character row on screen (as each row takes up exactly
+                        \ character row on-screen (as each row takes up exactly
                         \ one page of 256 bytes) - so this sets up SC to point
                         \ to the next indicator, i.e. the one below the one we
                         \ just drew
@@ -12793,7 +12794,7 @@ NEXT
 
  JSR MVEIT              \ Call MVEIT to move the Cobra in space
 
- JSR LL9                \ Call LL9 to draw the Cobra on screen
+ JSR LL9                \ Call LL9 to draw the Cobra on-screen
 
  DEC INWK+32            \ Decrement the counter in INWK+32
 
@@ -14323,7 +14324,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
  JSR HFL1               \ Call HFL1 below to draw a set of rings, with each one
                         \ twice the radius of the previous one, until they won't
-                        \ fit on screen
+                        \ fit on-screen
 
  INC XX4                \ Increment the counter and fetch it into X
  LDX XX4
@@ -17552,7 +17553,7 @@ NEXT
  BNE BOL1               \ the last character row in the space view part of the
                         \ screen (the mode 4 part)
 
- LDX QQ22+1             \ Fetch into X the number that's shown on screen during
+ LDX QQ22+1             \ Fetch into X the number that's shown on-screen during
                         \ the hyperspace countdown
 
  BEQ BOX                \ If the counter is zero then we are not counting down
@@ -17973,7 +17974,7 @@ NEXT
 \ will be further up the screen, while those behind us will be lower down the
 \ screen. It turns out that this is an easy way to work out the y-coordinate of
 \ the base of the stick - we just take the space y-coordinate and scale it so
-\ that it fits into the height of the ellipse on screen. As long as we reverse
+\ that it fits into the height of the ellipse on-screen. As long as we reverse
 \ things so that large positive y-coordinates (far in front of us) are scaled to
 \ smaller screen y-coordinates (higher up the screen), this should work pretty
 \ well.
@@ -17986,7 +17987,7 @@ NEXT
 \   SC = 220 - (z_sign z_hi) / 4
 \ 
 \ This is in the range 205 to 235, which is really close to the range of
-\ y-coordinates of the ellipse on screen (204 to 239), and fits within the
+\ y-coordinates of the ellipse on-screen (204 to 239), and fits within the
 \ ellipse nicely.
 \ 
 \ Next, we need to work out the height of the stick, and then we'll have all the
@@ -19625,7 +19626,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #255               \ The addition overflowed, so set A to 255 so the
                         \ crosshairs don't spill out of the right of the screen
                         \ (as 255 is the x-coordinate of the rightmost pixel
-                        \ on screen)
+                        \ on-screen)
 
  STA XX15+2             \ Set XX15+2 (X2) = A (the x-coordinate of the right
                         \ edge of the crosshairs)
@@ -21163,7 +21164,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \   * We have enough fuel to make the jump
 \
-\ and if all the pre-jump checks are passed, we print the destination on screen
+\ and if all the pre-jump checks are passed, we print the destination on-screen
 \ and start the countdown.
 \
 \ ******************************************************************************
@@ -21175,7 +21176,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ using a tail call (as we can't hyperspace when docked)
 
  LDA QQ22+1             \ Fetch QQ22+1, which contains the number that's shown
-                        \ on screen during hyperspace countdown
+                        \ on-screen during hyperspace countdown
 
  BNE zZ+1               \ If it is non-zero, return from the subroutine (as zZ+1
                         \ contains an RTS), as there is already a countdown in
@@ -21243,7 +21244,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ to 15 so we can set the two hyperspace counters
 
  STA QQ22+1             \ Set the number in QQ22+1 to 15, which is the number
-                        \ that's shown on screen during the hyperspace countdown
+                        \ that's shown on-screen during the hyperspace countdown
 
  STA QQ22               \ Set the number in QQ22 to 15, which is the internal
                         \ counter that counts down by 1 each iteration of the
@@ -24450,7 +24451,7 @@ LOAD_E% = LOAD% + P% - CODE%
  LDX XSAV               \ Restore the ship slot number from XSAV into X
 
  LDY #31                \ Clear bits 3, 4 and 6 in the ship's byte #31, which
- LDA (INF),Y            \ stops drawing the ship on screen (bit 3), hides it
+ LDA (INF),Y            \ stops drawing the ship on-screen (bit 3), hides it
  AND #%10100111         \ from the scanner (bit 4) and stops any lasers firing
  STA (INF),Y            \ at it (bit 6)
 
@@ -24523,8 +24524,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   X                   The number of text rows to display on screen (24 will
-\                       hide the dashboard, 31 will make it reappear)
+\   X                   The number of text rows to display on the screen (24
+\                       will hide the dashboard, 31 will make it reappear)
 \
 \ Returns
 \
@@ -24540,7 +24541,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  STA SHEILA+&00         \ Set 6845 register R6 to the value in X. Register R6
  STX SHEILA+&01         \ is the "vertical displayed" register, which sets the
-                        \ number of rows shown on screen
+                        \ number of rows shown on the screen
 
  CLI                    \ Re-enable interrupts
 
@@ -24919,7 +24920,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ would be 16 pixels across and 8 pixels high, in mode 5 each pixel takes up two
 \ bits, so the above block shows as 8 pixels across and 8 pixels high. Pixels in
 \ mode 5 are stretched out so they appear twice as wide as they are high, so
-\ everything still fits on screen in a sensible manner.
+\ everything still fits on-screen in a sensible manner.
 \ 
 \ So we know that a character block row in mode 5 consists of four pixels in one
 \ byte. The complicated part is how that byte stores those four pixels. If we
@@ -25041,9 +25042,9 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ on the colour we want to draw (i.e. A is acting as a
                         \ mask on the colour byte)
 
- EOR (SC),Y             \ Draw the pixel on screen using EOR logic, so we can
+ EOR (SC),Y             \ Draw the pixel on-screen using EOR logic, so we can
  STA (SC),Y             \ remove it later without ruining the background that's
-                        \ already on screen
+                        \ already on-screen
 
  LDA CTWOS+1,X          \ Fetch a mode 5 1-pixel byte with the pixel position
                         \ at X+1, so we can draw the right pixel of the dash
@@ -25849,17 +25850,17 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: PROJ
 \
 \ Project the current ship's location onto the screen, either returning the
-\ screen coordinates of the projection (if it's on screen), or returning an
+\ screen coordinates of the projection (if it's on-screen), or returning an
 \ error via the C flag.
 \
-\ In this context, "on screen" means that the point is projected into the
+\ In this context, "on-screen" means that the point is projected into the
 \ following range:
 \ 
 \   centre of screen - 1024 < x < centre of screen + 1024
 \   centre of screen - 1024 < y < centre of screen + 1024
 \
 \ This is to cater for ships (and, more likely, planets and suns) whose centres
-\ are off screen but whose edges may still be visible.
+\ are off-screen but whose edges may still be visible.
 \
 \ The projection calculation is:
 \
@@ -25871,13 +25872,13 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   INWK                The ship data block for the ship to project on screen
+\   INWK                The ship data block for the ship to project on-screen
 \
 \ Returns:
 \
-\   K3(1 0)             The x-coordinate of the ship's projection on screen
+\   K3(1 0)             The x-coordinate of the ship's projection on-screen
 \
-\   K4(1 0)             The y-coordinate of the ship's projection on screen
+\   K4(1 0)             The y-coordinate of the ship's projection on-screen
 \
 \   C flag              Set if the ship's projection doesn't fit on the screen,
 \                       clear if it does project onto the screen
@@ -26012,7 +26013,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ centre's coordinates in K3(1 0) and K4(1 0)
 
  BCS PL2                \ If the C flag is set by PROJ then the planet/sun is
-                        \ not visible on screen, so jump to PL2 to remove it
+                        \ not visible on-screen, so jump to PL2 to remove it
                         \ from the screen, returning from the subroutine using
                         \ a tail call
 
@@ -26077,7 +26078,7 @@ LOAD_E% = LOAD% + P% - CODE%
  JSR CIRCLE             \ Call CIRCLE to draw the planet's new circle
 
  BCS PL20               \ If the call to CIRCLE returned with the C flag set,
-                        \ then the circle does not fit on screen, so jump to
+                        \ then the circle does not fit on-screen, so jump to
                         \ PL20 to return from the subroutine
 
  LDA K+1                \ If K+1 is zero, jump to PL25 as K(1 0) < 256, so the
@@ -26085,7 +26086,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .PL20
 
- RTS                    \ The planet doesn't fit on screen, so return from the
+ RTS                    \ The planet doesn't fit on-screen, so return from the
                         \ subroutine
 
 .PL25
@@ -26701,7 +26702,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \   K4(1 0)             Pixel y-coordinate of the centre of the new sun
 \
 \   SUNX(1 0)           The x-coordinate of the vertical central axis of the old
-\                       sun (the one currently on screen)
+\                       sun (the one currently on-screen)
 \
 \ Other entry points:
 \
@@ -26721,7 +26722,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Line by line
 \ ------------
 \ Unlike the planets, which are drawn as circles, the sun is drawn as a set of
-\ horizontal lines, with one line per pixel line on screen. This is how the
+\ horizontal lines, with one line per pixel line on-screen. This is how the
 \ shimmering edges are drawn, by randomly making the lines shorter or longer
 \ (more on that later).
 \
@@ -26856,11 +26857,11 @@ LOAD_E% = LOAD% + P% - CODE%
  STA LSX
 
  JSR CHKON              \ Call CHKON to check whether the new sun's circle fits
-                        \ on screen, and set P(2 1) to the maximum y-coordinate
-                        \ of the new sun on screen
+                        \ on-screen, and set P(2 1) to the maximum y-coordinate
+                        \ of the new sun on-screen
 
  BCS PLF3-3             \ If CHKON set the C flag then the circle does not fit
-                        \ on screen, so jump to WPLS to remove the sun from the
+                        \ on-screen, so jump to WPLS to remove the sun from the
                         \ screen, returning from the subroutine using a tail
                         \ call
 
@@ -26897,7 +26898,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
                         \ We now calculate the highest pixel y-coordinate of the
                         \ new sun, given that P(2 1) contains the 16-bit maximum
-                        \ y-coordinate of the new sun on screen
+                        \ y-coordinate of the new sun on-screen
 
  LDA #2*Y-1             \ #Y is the y-coordinate of the centre of the mode 4
                         \ space view, so this sets Y to the y-coordinate of the
@@ -26910,7 +26911,7 @@ LOAD_E% = LOAD% + P% - CODE%
  BCC PLF2               \ the dashboard, so skip to PLF2 with A = 191
 
  LDA P+1                \ Set A = P+1, the low byte of the maximum y-coordinate
-                        \ of the sun on screen
+                        \ of the sun on-screen
 
  BNE PLF2               \ If A is non-zero, skip to PLF2 as it contains the
                         \ value we are after
@@ -26996,7 +26997,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  LDA SUNX               \ Set YY(1 0) = SUNX(1 0), the x-coordinate of the
  STA YY                 \ vertical central axis of the old sun that's currently
- LDA SUNX+1             \ on screen
+ LDA SUNX+1             \ on-screen
  STA YY+1
 
 .PLFL2
@@ -27052,7 +27053,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \                           get smaller as we work our way up, away from the
 \                           centre
 \
-\   TGT                 The maximum y-coordinate of the new sun on screen (i.e.
+\   TGT                 The maximum y-coordinate of the new sun on-screen (i.e.
 \                       the screen y-coordinate of the bottom row of the new
 \                       sun)
 \
@@ -27124,7 +27125,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  LDA SUNX               \ Set YY(1 0) = SUNX(1 0), the x-coordinate of the
  STA YY                 \ vertical central axis of the old sun that's currently
- LDA SUNX+1             \ on screen
+ LDA SUNX+1             \ on-screen
  STA YY+1
 
  TXA                    \ Transfer the line heap value for the old sun's line
@@ -27156,7 +27157,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ without drawing the new one
  
                         \ At this point the old line is from XX to XX+1 and the
-                        \ new line is from X1 to X2, and both fit on screen. We
+                        \ new line is from X1 to X2, and both fit on-screen. We
                         \ now want to remove the old line amd draw the new one.
                         \ We could do this by simply drawing the old one then
                         \ drawing the new one, but instead Elite does this by
@@ -27254,10 +27255,10 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ line centred on YY(1 0) and with half-width A, i.e.
                         \ the line for the new sun
                         
- BCC PLF16              \ If the line is on screen, jump up to PLF16 to draw the
+ BCC PLF16              \ If the line is on-screen, jump up to PLF16 to draw the
                         \ line and loop round for the next line up
 
- LDA #0                 \ The line is not on screen, so set the line heap for
+ LDA #0                 \ The line is not on-screen, so set the line heap for
  STA LSO,Y              \ line Y to 0, which means there is no sun line here
 
  BEQ PLF6               \ Jump up to PLF6 to loop round for the next line up
@@ -27285,7 +27286,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  LDA SUNX               \ Set YY(1 0) = SUNX(1 0), the x-coordinate of the
  STA YY                 \ vertical central axis of the old sun that's currently
- LDA SUNX+1             \ on screen
+ LDA SUNX+1             \ on-screen
  STA YY+1
 
 .PLFL3
@@ -27347,10 +27348,10 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .CIRCLE
 {
- JSR CHKON              \ Call CHKON to check whether the circle fits on screen
+ JSR CHKON              \ Call CHKON to check whether the circle fits on-screen
 
  BCS RTS2               \ If CHKON set the C flag then the circle does not fit
-                        \ on screen, so return from the subroutine (as RTS2
+                        \ on-screen, so return from the subroutine (as RTS2
                         \ contains an RTS)
 
  LDA #0                 \ Set LSX2 = 0
@@ -27739,7 +27740,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Returns:
 \
-\   C flag              Clear if the line fits on screen, set if it doesn't
+\   C flag              Clear if the line fits on-screen, set if it doesn't
 \
 \   X1, X2              The x-coordinates of the clipped line
 \
@@ -27788,7 +27789,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ to ED3
 
  CLC                    \ Otherwise the high byte of the subtraction was zero,
-                        \ so the line fits on screen and we clear the C flag to
+                        \ so the line fits on-screen and we clear the C flag to
                         \ indicate success
 
  RTS                    \ Return from the subroutine
@@ -27802,7 +27803,7 @@ LOAD_E% = LOAD% + P% - CODE%
  STA X1                 \ past the left edge of the screen, so clip X1 to the
                         \ y-coordinate of the left edge of the screen
 
- CLC                    \ The line does fit on screen, so clear the C flag to
+ CLC                    \ The line does fit on-screen, so clear the C flag to
                         \ indicate success
 
  RTS                    \ Return from the subroutine
@@ -27822,7 +27823,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: CHKON
 \
-\ Check whether a circle will fit on screen.
+\ Check whether a circle will fit on-screen.
 \
 \ Arguments:
 \
@@ -27834,11 +27835,11 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Returns:
 \
-\   C flag              Clear if the circle fits on screen, set if it doesn't
+\   C flag              Clear if the circle fits on-screen, set if it doesn't
 \
-\   P(2 1)              Maximum y-coordinate of circle on screen
+\   P(2 1)              Maximum y-coordinate of circle on-screen
 \
-\   (A X)               Minimum y-coordinate of circle on screen
+\   (A X)               Minimum y-coordinate of circle on-screen
 \
 \ ******************************************************************************
 
@@ -27918,7 +27919,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \   * C flag is set if coordinate (A X) is past the
                         \     bottom of the screen
                         \
-                        \   * C flag is clear if coordinate (A X) is on screen
+                        \   * C flag is clear if coordinate (A X) is on-screen
 
  RTS                    \ Return from the subroutine
 }
@@ -28223,7 +28224,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ 128 as the centre point
 
  EOR #&FF               \ Flip the sign so A = -JSTX, because the joystick roll
-                        \ works in the opposite way to moving a cursor on screen
+                        \ works in the opposite way to moving a cursor on-screen
                         \ in terms of left and right
 
  JSR TJS1               \ Call TJS1 just below to set Y to a value between -2
@@ -29900,7 +29901,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
  LDX QQ22+1             \ Set X = the on-screen hyperspace counter (i.e. the
                         \ current number in the sequence, which is already
-                        \ shown on screen)
+                        \ shown on-screen)
 
  JSR ee3                \ Print the 8-bit number in X at text location (0, 1),
                         \ i.e. print the hyperspace countdown in the top-left
@@ -32241,7 +32242,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  PHA                    \ Store the new message token we want to print
 
  LDA MCH                \ Set A to the token number of the message that is
- JSR mes9               \ currently on screen, and call mes9 to print it (which
+ JSR mes9               \ currently on-screen, and call mes9 to print it (which
                         \ will remove it from the screen, as printing is done
                         \ using EOR logic)
 
@@ -32362,7 +32363,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
                         \ E.C.M., fuel scoops, energy bomb, energy unit and
                         \ docking computer, all of which can be destroyed
 
- LDA DLY                \ If there is already an in-flight message on screen,
+ LDA DLY                \ If there is already an in-flight message on-screen,
  BNE out                \ return from the subroutine (as out contains an RTS)
 
  LDY #3                 \ Set bit 1 of de, the equipment destruction flag, so
@@ -33137,7 +33138,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \   * A = K4+1
 
  ORA K3+1               \ If either of the high bytes of the screen coordinates
- BNE nono               \ are non-zero, jump to nono as the ship is off screen
+ BNE nono               \ are non-zero, jump to nono as the ship is off-screen
 
  LDA K4                 \ Set A = y-coordinate of dot
 
@@ -33162,7 +33163,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ on the row below the first one)
 
  LDA #%00001000         \ Set bit 3 of the ship's byte #31 to record that we
- ORA XX1+31             \ have now drawn something on screen for this ship
+ ORA XX1+31             \ have now drawn something on-screen for this ship
  STA XX1+31
 
  LDA #8                 \ Set A = 8 so when we call LL18+2 next, byte 0 of the
@@ -33178,7 +33179,7 @@ LOAD_G% = LOAD% + P% - CODE%
 .nono
 
  LDA #%11110111         \ Clear bit 3 of the ship's byte #31 to record that
- AND XX1+31             \ nothing is being drawn on screen for this ship
+ AND XX1+31             \ nothing is being drawn on-screen for this ship
  STA XX1+31
 
  RTS                    \ Return from the subroutine
@@ -33187,7 +33188,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
                         \ This routine sets up four bytes in the ship line heap,
                         \ from byte Y-1 to byte Y+2. If the ship's screen point
-                        \ turns out to be off screen, then this routine aborts
+                        \ turns out to be off-screen, then this routine aborts
                         \ the entire call to LL9, exiting via nono
 
  STA (XX19),Y           \ Store A in byte Y of the ship line heap
@@ -33611,7 +33612,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL9 (Part 1 of )
 \
-\ Draw the current ship on screen. This part checks to see if the ship is
+\ Draw the current ship on the screen. This part checks to see if the ship is
 \ exploding, or if it should start exploding, and if it does it sets things up
 \ accordingly. It also does some basic checks to see if we can see the ship, and
 \ if not it removes it from the screen.
@@ -33657,7 +33658,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA #31                \ Set XX4 = 31 to store the ship's distance for later
  STA XX4                \ comparison with the visibility distance. We will
                         \ update this value below with the actual ship's
-                        \ distance if it turns out to be visible on screen
+                        \ distance if it turns out to be visible on-screen
 
  LDA #%00100000         \ If bit 5 of the ship's byte #31 is set, then the ship
  BIT XX1+31             \ is currently exploding, so jump down to EE28
@@ -33723,7 +33724,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ The following removes the ship from the screen by
                         \ redrawing it (or, if it is exploding, by redrawing the
                         \ explosion cloud). We call it when the ship is no
-                        \ longer on screen, is too far away to be fully drawn,
+                        \ longer on-screen, is too far away to be fully drawn,
                         \ and so on
 
  LDA XX1+31             \ If bit 5 of the ship's byte #31 is clear, then the
@@ -33732,7 +33733,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  LDA XX1+31             \ The ship is exploding, so clear bit 3 of the ship's
  AND #%11110111         \ byte #31 to denote that the ship is no longer being
- STA XX1+31             \ drawn on screen
+ STA XX1+31             \ drawn on-screen
 
  JMP DOEXP              \ Jump to DOEXP to display the explosion cloud, which
                         \ will remove it from the screen, returning from the
@@ -33746,7 +33747,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  EOR XX1+31             \ Otherwise flip bit 3 of byte #31 and store it (which
  STA XX1+31             \ clears bit 3 as we know it was set before the EOR), so
-                        \ this sets this ship as no longer being drawn on screen
+                        \ this sets this ship as no longer being drawn on-screen
 
  JMP LL155              \ Jump to LL155 to draw the ship, which removes it from
                         \ the screen, returning from the subroutine using a
@@ -33762,9 +33763,9 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL9 (Part 2 of )
 \
-\ Draw the current ship on screen. This part checks whether the ship is in our
-\ field of view, and whether it is close enough to be fully drawn (if not, we
-\ jump to SHPPT to draw it as a dot).
+\ Draw the current ship on the screen. This part checks whether the ship is in
+\ our field of view, and whether it is close enough to be fully drawn (if not,
+\ we jump to SHPPT to draw it as a dot).
 \
 \ ******************************************************************************
 
@@ -33858,7 +33859,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL9 (Part 3 of )
 \
-\ Draw the current ship on screen. This part sets up the following variable
+\ Draw the current ship on the screen. This part sets up the following variable
 \ blocks:
 \
 \   * XX16 contains the orientation vectors, divided to normalise them
@@ -33982,7 +33983,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL9 (Part 4 of )
 \
-\ Draw the current ship on screen. This part sets up the visibility block in
+\ Draw the current ship on the screen. This part sets up the visibility block in
 \ XX2 for a ship that is exploding.
 \
 \ The XX2 block consists of one byte for each face in the ship's blueprint,
@@ -34025,7 +34026,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL9 (Part 5 of )
 \
-\ Draw the current ship on screen. This section calculates the visibility of
+\ Draw the current ship on the screen. This section calculates the visibility of
 \ each of the ship's faces.
 \
 \ ******************************************************************************
@@ -34704,7 +34705,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL9 (Part 6 of )
 \
-\ Draw the current ship on screen. This section calculates the visibility of
+\ Draw the current ship on the screen. This section calculates the visibility of
 \ each of the ship's vertices.
 \
 \ ******************************************************************************
@@ -35286,14 +35287,14 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Subroutine: LL118
 \
 \ Given a point (x1, y1), a gradient and a direction of slope, move the point
-\ along the line until it is on screen, so this effectively clips the (x1, y1)
+\ along the line until it is on-screen, so this effectively clips the (x1, y1)
 \ end of a line to be on the screen.
 \
 \ For example, if x1 is negative, i.e. off the left edge of the screen, we move
 \ the point right along the line until x1 = 0. We calculate the new y1 by
 \ multiplying the distance travelled in the x-direction by the gradient.
 \
-\ Similar logic is applied when the point is off screen to the right, top or
+\ Similar logic is applied when the point is off-screen to the right, top or
 \ bottom. Also, because the gradient is always stored as a fractional value
 \ (it's less than 1.0, just expressed as a byte), then when the line is more
 \ vertical than horizontal, the value stored is actually 1 / gradient, as that
@@ -35369,7 +35370,7 @@ LOAD_G% = LOAD% + P% - CODE%
 .LL119
 
  BEQ LL134              \ If x1_hi = 0 then jump down to LL134 to skip the
-                        \ following, as the x-coordinate is already on screen
+                        \ following, as the x-coordinate is already on-screen
                         \ (as 0 <= (x_hi x_lo) <= 255)
 
  STA S                  \ Otherwise x1_hi is positive, i.e. x1 >= 256 and off
@@ -35454,7 +35455,7 @@ LOAD_G% = LOAD% + P% - CODE%
  STA S
 
  BCC LL136              \ If the subtraction underflowed, i.e. if y1 < 192, then
-                        \ y1 is already on screen, so jump to LL136 to return
+                        \ y1 is already on-screen, so jump to LL136 to return
                         \ from the subroutine, as we are done
 
 .LL139
@@ -35786,7 +35787,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL145 (Part 1 of 4)
 \
-\ Clip the line from (x1, y1) to (x2, y2) so it fits on screen, or return an
+\ Clip the line from (x1, y1) to (x2, y2) so it fits on-screen, or return an
 \ error if it can't be clipped to fit. The arguments are 16-bit coordinates,
 \ and the clipped line is returned as 8-bit screen coordinates.
 \
@@ -35806,16 +35807,16 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \   (X2, Y2)            Screen coordinate of the end of the clipped line
 \
-\   C flag              Clear if the clipped line fits on screen, set if it
+\   C flag              Clear if the clipped line fits on-screen, set if it
 \                       doesn't
 \
-\   XX13                The state of the original coordinates on screen:
+\   XX13                The state of the original coordinates on-screen:
 \
-\                         * 0   = (x2, y2) on screen
+\                         * 0   = (x2, y2) on-screen
 \
-\                         * 95  = (x1, y1) on screen,  (x2, y2) off screen
+\                         * 95  = (x1, y1) on-screen,  (x2, y2) off-screen
 \
-\                         * 191 = (x1, y1) off screen, (x2, y2) off screen
+\                         * 191 = (x1, y1) off-screen, (x2, y2) off-screen
 \
 \                       So XX13 is non-zero if the end of the line was clipped,
 \                       meaning the next line sent to BLINE can't join onto the
@@ -35845,14 +35846,14 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Part 1
 \
-\   * If both coordinates are on screen, then return with success as the line
-\     doesn't need clipping and already fits on screen
+\   * If both coordinates are on-screen, then return with success as the line
+\     doesn't need clipping and already fits on-screen
 \
-\   * Otherwise, set XX13 to reflect which point(s) are on and off screen
+\   * Otherwise, set XX13 to reflect which point(s) are on-screen and off-screen
 \
 \ Part 2
 \
-\   * If both points are off screen and both points are past the same screen
+\   * If both points are off-screen and both points are past the same screen
 \     edge, then return with failure
 \
 \   * If moving both points left by one screen doesn't move at least one of them
@@ -35878,10 +35879,10 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Part 4
 \
 \   * Do the actual clipping by calling LL118 to move one end of the line at a
-\     time (so if both points need moving on screen, we call LL118 twice)
+\     time (so if both points need moving on-screen, we call LL118 twice)
 \
 \   * If both the original coordinates were off-screen, double-check that the
-\     clipped line is indeed on screen, and if not return with failure
+\     clipped line is indeed on-screen, and if not return with failure
 \
 \   * Return the clipped line with success, and with XX13 and SWAP set to
 \     describe the kind of clipping we had to do
@@ -35916,12 +35917,12 @@ LOAD_G% = LOAD% + P% - CODE%
 
  STX XX13               \ Set XX13 = X, so we have:
                         \
-                        \   * XX13 = 0 if x2_hi = y2_hi = 0, y2_lo is on screen
+                        \   * XX13 = 0 if x2_hi = y2_hi = 0, y2_lo is on-screen
                         \
                         \   * XX13 = 191 if x2_hi or y2_hi are non-zero or y2_lo
                         \            is off the bottom of the screen
                         \
-                        \ In other words, XX13 is 191 if (x2, y2) is off screen,
+                        \ In other words, XX13 is 191 if (x2, y2) is off-screen,
                         \ otherwise it is 0
 
  LDA XX15+1             \ If one or both of x1_hi and y1_hi are non-zero, jump
@@ -35932,9 +35933,9 @@ LOAD_G% = LOAD% + P% - CODE%
  CMP XX15+2             \ then (x1, y1) is off the bottom of the screen, so jump
  BCC LL83               \ to LL83
 
-                        \ If we get here, (x1, y1) is on screen
+                        \ If we get here, (x1, y1) is on-screen
 
- LDA XX13               \ If XX13 is non-zero, i.e. (x2, y2) is off screen, jump
+ LDA XX13               \ If XX13 is non-zero, i.e. (x2, y2) is off-screen, jump
  BNE LL108              \ to LL108 to halve it before continuing at LL83
 
                         \ If we get here, the high bytes are all zero, which
@@ -35969,39 +35970,39 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA XX12               \ Set Y2 (aka XX15+3) = y2_lo
  STA XX15+3
 
- CLC                    \ Clear the C flag as the clipped line fits on screen
+ CLC                    \ Clear the C flag as the clipped line fits on-screen
 
  RTS                    \ Return from the subroutine
 
 .LL109
 
  SEC                    \ Set the C flag to indicate the clipped line does not
-                        \ fit on screen
+                        \ fit on-screen
 
  RTS                    \ Return from the subroutine
 
 .LL108
 
- LSR XX13               \ If we get here then (x2, y2) is off screen and XX13 is
+ LSR XX13               \ If we get here then (x2, y2) is off-screen and XX13 is
                         \ 191, so shift XX13 right to halve it to 95
 
 \ ******************************************************************************
 \
 \ Subroutine: LL145 (Part 2 of 4)
 \
-\ Clip the line from (x1, y1) to (x2, y2) so it fits on screen. This part does
+\ Clip the line from (x1, y1) to (x2, y2) so it fits on-screen. This part does
 \ a number of tests to see if the line is on or off the screen.
 \
-\ If we get here then at least one of (x1, y1) and (x2, y2) is off screen, with
+\ If we get here then at least one of (x1, y1) and (x2, y2) is off-screen, with
 \ XX13 set as follows:
 \
-\   * 0   = (x1, y1) off screen, (x2, y2) on screen
+\   * 0   = (x1, y1) off-screen, (x2, y2) on-screen
 \
-\   * 95  = (x1, y1) on screen,  (x2, y2) off screen
+\   * 95  = (x1, y1) on-screen,  (x2, y2) off-screen
 \
-\   * 191 = (x1, y1) off screen, (x2, y2) off screen
+\   * 191 = (x1, y1) off-screen, (x2, y2) off-screen
 \
-\ where "off screen" is defined as having a non-zero high byte in one of the
+\ where "off-screen" is defined as having a non-zero high byte in one of the
 \ coordinates, or in the case of y-coordinates, having a low byte > 191, the
 \ y-coordinate of the bottom of the space view.
 \
@@ -36009,12 +36010,12 @@ LOAD_G% = LOAD% + P% - CODE%
 
 .LL83
                
- LDA XX13               \ If XX13 < 128 then only one of the points is on screen
+ LDA XX13               \ If XX13 < 128 then only one of the points is on-screen
  BPL LL115              \ so jump down to LL115 to skip the checks of whether
                         \ both points are in the strips to the right or bottom
                         \ of the screen
 
-                        \ If we get here, both points are off screen
+                        \ If we get here, both points are off-screen
 
  LDA XX15+1             \ If both x1_hi and x2_hi have bit 7 set, jump to LL109
  AND XX15+5             \ to return from the subroutine with the C flag set, as
@@ -36034,43 +36035,43 @@ LOAD_G% = LOAD% + P% - CODE%
 
  ORA XX12+2             \ If neither (x1_hi - 1) or (x2_hi - 1) have bit 7 set,
  BPL LL109              \ jump to LL109 to return from the subroutine with the C
-                        \ flag set, as the line doesn't fit on screen
+                        \ flag set, as the line doesn't fit on-screen
 
  LDA XX15+2             \ If y1_lo < y-coordinate of screen bottom, clear the C
  CMP #Y*2               \ flag, otherwise set it
 
  LDA XX15+3             \ Set XX12+2 = y1_hi - (1 - C), so:
  SBC #0                 \
- STA XX12+2             \  * Set XX12+2 = y1_hi - 1 if y1_lo is on screen
+ STA XX12+2             \  * Set XX12+2 = y1_hi - 1 if y1_lo is on-screen
                         \  * Set XX12+2 = y1_hi     otherwise
                         \
                         \ We do this subtraction because we are only interested
                         \ in trying to move the points up by a screen if that
                         \ might move the point into the space view portion of
-                        \ the screen, i.e. if y1_lo is on screen
+                        \ the screen, i.e. if y1_lo is on-screen
 
  LDA XX12               \ If y2_lo < y-coordinate of screen bottom, clear the C
  CMP #Y*2               \ flag, otherwise set it
 
  LDA XX12+1             \ Set XX12+2 = y2_hi - (1 - C), so:
  SBC #0                 \
-                        \  * Set XX12+1 = y2_hi - 1 if y2_lo is on screen
+                        \  * Set XX12+1 = y2_hi - 1 if y2_lo is on-screen
                         \  * Set XX12+1 = y2_hi     otherwise
                         \
                         \ We do this subtraction because we are only interested
                         \ in trying to move the points up by a screen if that
                         \ might move the point into the space view portion of
-                        \ the screen, i.e. if y1_lo is on screen
+                        \ the screen, i.e. if y1_lo is on-screen
 
  ORA XX12+2             \ If neither XX12+1 or XX12+2 have bit 7 set, jump to
  BPL LL109              \ LL109 to return from the subroutine with the C flag
-                        \ set, as the line doesn't fit on screen
+                        \ set, as the line doesn't fit on-screen
 
 \ ******************************************************************************
 \
 \ Subroutine: LL145 (Part 3 of 4)
 \
-\ Clip the line from (x1, y1) to (x2, y2) so it fits on screen. This part
+\ Clip the line from (x1, y1) to (x2, y2) so it fits on-screen. This part
 \ calculates the line's gradient.
 \
 \ ******************************************************************************
@@ -36195,7 +36196,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL145 (Part 4 of 4)
 \
-\ Clip the line from (x1, y1) to (x2, y2) so it fits on screen. This part sets
+\ Clip the line from (x1, y1) to (x2, y2) so it fits on-screen. This part sets
 \ things up to call the routine in LL188, which does the actual clipping.
 \
 \ If we get here, then R has been set to the gradient of the line (x1, y1) to
@@ -36207,11 +36208,11 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ and XX13 has been set as follows:
 \
-\   * 0   = (x1, y1) off screen, (x2, y2) on screen
+\   * 0   = (x1, y1) off-screen, (x2, y2) on-screen
 \
-\   * 95  = (x1, y1) on screen,  (x2, y2) off screen
+\   * 95  = (x1, y1) on-screen,  (x2, y2) off-screen
 \
-\   * 191 = (x1, y1) off screen, (x2, y2) off screen
+\   * 191 = (x1, y1) off-screen, (x2, y2) off-screen
 \
 \ ******************************************************************************
 
@@ -36228,7 +36229,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BEQ LL138
 
  BPL LLX117             \ If XX13 is positive, it must be 95. This means
-                        \ (x1, y1) is on screen but (x2, y2) isn't, so we jump
+                        \ (x1, y1) is on-screen but (x2, y2) isn't, so we jump
                         \ to LLX117 to swap the (x1, y1) and (x2, y2)
                         \ coordinates around before doing the actual clipping,
                         \ because we need to clip (x2, y2) but the clipping
@@ -36237,32 +36238,32 @@ LOAD_G% = LOAD% + P% - CODE%
 .LL138
 
                         \ If we get here, XX13 = 0 or 191, so (x1, y1) is
-                        \ off screen and needs clipping
+                        \ off-screen and needs clipping
 
  JSR LL118              \ Call LL118 to move (x1, y1) along the line onto the
                         \ screen, i.e. clip the line at the (x1, y1) end
 
- LDA XX13               \ If XX13 = 0, i.e. (x2, y2) is on screen, jump down to
+ LDA XX13               \ If XX13 = 0, i.e. (x2, y2) is on-screen, jump down to
  BPL LL124              \ LL124 to return with a successfully clipped line
 
 .LL117
 
                         \ If we get here, XX13 = 191 (both coordinates are
-                        \ off screen)
+                        \ off-screen)
 
  LDA XX15+1             \ If either of x1_hi or y1_hi are non-zero, jump to
  ORA XX15+3             \ LL137 to return from the subroutine with the C flag
- BNE LL137              \ set, as the line doesn't fit on screen
+ BNE LL137              \ set, as the line doesn't fit on-screen
 
 
  LDA XX15+2             \ If y1_lo > y-coordinate of the bottom of the screen
  CMP #Y*2               \ jump to LL137 to return from the subroutine with the
- BCS LL137              \ C flag set, as the line doesn't fit on screen
+ BCS LL137              \ C flag set, as the line doesn't fit on-screen
 
 .LLX117
 
                         \ If we get here, XX13 = 95 or 191, and in both cases
-                        \ (x2, y2) is off screen, so we now need to swap the
+                        \ (x2, y2) is off-screen, so we now need to swap the
                         \ (x1, y1) and (x2, y2) coordinates around before doing
                         \ the actual clipping, because we need to clip (x2, y2)
                         \ but the clipping routine at LL118 only clips (x1, y1)
@@ -36310,7 +36311,7 @@ LOAD_G% = LOAD% + P% - CODE%
  TAY                    \ the call to this subroutine
 
  SEC                    \ Set the C flag to indicate the clipped line does not
-                        \ fit on screen
+                        \ fit on-screen
 
  RTS                    \ Return from the subroutine
 }
