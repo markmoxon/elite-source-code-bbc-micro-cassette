@@ -364,7 +364,9 @@ f9 = &77
 
 ORG &0000
 
-.ZP                     \ Zero page workspace
+.ZP
+
+                        \ Start of zero page workspace
 
 .RAND
 
@@ -492,7 +494,9 @@ ORG &0000
                         \
                         \ 0 is off, non-zero is on and counting down
 
-.XX15                   \ 6-byte storage from XX15 TO XX15+5
+.XX15
+
+                        \ 6-byte storage from XX15 TO XX15+5
                         \
                         \ Shares the first four bytes with X1, X2, Y1 and Y2:
                         \
@@ -964,17 +968,19 @@ ORG &D1
  SKIP 1                 \ Used as temporary storage (e.g. used in cpl for the
                         \ loop counter)
 
-.K3                     \ Used as temporary storage (e.g. used in TT27 for the
+.K3
+
+                        \ Used as temporary storage (e.g. used in TT27 for the
                         \ character to print)
 
-.XX2                    \ 
+.XX2
 
- SKIP 14
+ SKIP 14                \
 
-.K4                     \ Used as temporary storage (e.g. used in TT27 for the
+.K4
+
+ SKIP 2                 \ Used as temporary storage (e.g. used in TT27 for the
                         \ character to print)
-
- SKIP 2
 
 PRINT "Zero page variables from ", ~ZP, " to ", ~P%
 
@@ -989,7 +995,9 @@ PRINT "Zero page variables from ", ~ZP, " to ", ~P%
 
 ORG &0100
 
-.XX3                    \ Temporary heap space
+.XX3
+
+                        \ Temporary heap space
 
 \ ******************************************************************************
 \
@@ -1000,9 +1008,11 @@ ORG &0100
 \
 \ ******************************************************************************
 
-ORG &0300               \ Start of the commander block
+ORG &0300
 
-.T%                     \ Start of workspace T%
+.T%
+
+                        \ Start of workspace T%
 
 .TP
 
@@ -3105,7 +3115,9 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 
 ORG &0900
 
-.K%                     \ Ship data blocks and ship line heap space
+.K%
+
+                        \ Ship data blocks and ship line heap space
 
 \ ******************************************************************************
 \
@@ -3115,7 +3127,9 @@ ORG &0900
 
 ORG &0D40
 
-.WP                     \ Start of workspace WP
+.WP
+
+                        \ Start of workspace WP
 
 .FRIN
 
@@ -3151,7 +3165,9 @@ ORG &0D40
                         \
                         \ Ships in our local bubble start at FRIN+2 onwards
 
-.CABTMP                 \ Cabin temperature
+.CABTMP
+
+                        \ Cabin temperature
                         \
                         \ 30 = cabin temperature in deep space (i.e. one notch
                         \      on the dashboard bar)
@@ -4213,7 +4229,9 @@ LOAD_A% = LOAD%
  JSR DORND              \ Set A and X to random numbers and reduce A to a
  AND #7                 \ random number in the range 0-7
 
-.slvy2                  \ By the time we get here, we are scooping, and A
+.slvy2
+
+                        \ By the time we get here, we are scooping, and A
                         \ contains the type of item we are scooping (a random
                         \ number 0-7 if we are scooping a cargo canister, 3 if
                         \ we are scooping an escape pod, or 16 if we are
@@ -4437,7 +4455,9 @@ LOAD_A% = LOAD%
  CMP #&50               \ Is this something to do with matching the slot
  BCC MA62               \ rotation?
 
-.^GOIN                  \ If we arrive here, either the docking computer has
+.^GOIN
+
+                        \ If we arrive here, either the docking computer has
                         \ been activated, or we just docked successfully
 
  LDA #0                 \ Set the on-screen hyperspace counter to 0
@@ -4454,7 +4474,9 @@ LOAD_A% = LOAD%
  JMP BAY                \ Go to the docking bay (i.e. show the Status Mode
                         \ screen)
 
-.MA62                   \ If we arrive here, docking has just failed
+.MA62
+
+                        \ If we arrive here, docking has just failed
 
  LDA DELTA              \ If the ship's speed is < 5, jump to MA67 to register
  CMP #5                 \ some damage, but not a huge amount
@@ -4479,25 +4501,33 @@ LOAD_A% = LOAD%
 \
 \ ******************************************************************************
 
-.MA59                   \ If we get here then scooping failed
+.MA59
+
+                        \ If we get here then scooping failed
 
  JSR EXNO3              \ Make the sound of the cargo canister being destroyed
                         \ and fall through into MA60 to remove the canister
                         \ from our local bubble
 
-.MA60                   \ If we get here then scooping was successful
+.MA60
+
+                        \ If we get here then scooping was successful
 
  ASL INWK+31            \ Set bit 7 of the scooped or destroyed item, to denote
  SEC                    \ that it has been killed and should be removed from
  ROR INWK+31            \ the local bubble
 
-.MA61                   \ This label is not used but is in the original source
+.MA61
+
+                        \ This label is not used but is in the original source
 
  BNE MA26               \ Jump to MA26 to skip over the collision routines and
                         \ to move on to missile targeting (this BNE is
                         \ effectively a JMP as A will never be zero)
 
-.MA67                   \ If we get here then we have collided with something,
+.MA67
+
+                        \ If we get here then we have collided with something,
                         \ but not fatally
 
  LDA #1                 \ Set the speed in DELTA to 1 (i.e. a sudden stop)
@@ -4506,7 +4536,9 @@ LOAD_A% = LOAD%
  BNE MA63               \ jump down to MA63 to process the damage (this BNE is
                         \ effectively a JMP as A will never be zero)
 
-.MA58                   \ If we get here, we have collided with something in a
+.MA58
+
+                        \ If we get here, we have collided with something in a
                         \ fatal way
 
  ASL INWK+31            \ Set bit 7 of the ship we just collided with, to
@@ -4571,7 +4603,9 @@ LOAD_A% = LOAD%
                         \ loop at MAL1), and set the colour of the misile
                         \ indicator to the colour in Y (red = &0E)
 
-.MA47                   \ If we get here then the ship is in our sights, but
+.MA47
+
+                        \ If we get here then the ship is in our sights, but
                         \ we didn't lock a missile, so let's see if we're
                         \ firing the laser
 
@@ -6118,7 +6152,9 @@ LOAD_A% = LOAD%
 
  RTS                    \ Return from the subroutine
 
-.MV10                   \ If we get here, we know x_sign and delta have
+.MV10
+
+                        \ If we get here, we know x_sign and delta have
                         \ different signs, with delta's sign in T, and
                         \ |delta_hi| in S, so now we want to do:
                         \
@@ -8461,7 +8497,7 @@ NEXT
 
  CLC
 
-.LIC6                   \ no overflow
+.LIC6
 
  DEX                    \ Decrement the counter in X
 
@@ -10549,7 +10585,9 @@ NEXT
 \ ******************************************************************************
 
 {
-.st4                    \ We call this from st5 below with the high byte of the
+.st4
+
+                        \ We call this from st5 below with the high byte of the
                         \ kill tally in A, which is non-zero, and want to return
                         \ with the following in X, depending on our rating:
                         \
@@ -10696,7 +10734,9 @@ NEXT
  LSR A
  LSR A
 
-.st5L                   \ We now loop through bits 2 to 7, shifting each of them
+.st5L
+
+                        \ We now loop through bits 2 to 7, shifting each of them
                         \ off the end of A until there are no set bits left, and
                         \ incrementing X for each shift, so at the end of the
                         \ process, X contains the position of the leftmost 1 in
@@ -11107,7 +11147,9 @@ NEXT
  JMP TT36               \ Jump to TT36 to start the process of printing this
                         \ number's digits
 
-.TT35                   \ This subroutine multiplies K(S 0 1 2 3) by 10 and
+.TT35
+
+                        \ This subroutine multiplies K(S 0 1 2 3) by 10 and
                         \ stores the result back in K(S 0 1 2 3), using the
                         \ (K * 2) + (K * 2 * 2 * 2) approach described above
 
@@ -11189,7 +11231,9 @@ NEXT
                         \ of times we subtract 10 billion to get the left-most
                         \ digit, so set this to zero
 
-.TT36                   \ This is the main loop of our digit-printing routine.
+.TT36
+
+                        \ This is the main loop of our digit-printing routine.
                         \ In the following loop, we are going to count the
                         \ number of times that we can subtract 10 million in Y,
                         \ which we have already set to 0
@@ -11200,8 +11244,9 @@ NEXT
  SEC                    \ Set the carry flag so we can do subtraction without
                         \ the carry flag affecting the result
 
-.tt37                   \ Now we loop thorough each byte in turn to do this:
+.tt37
 
+                        \ Now we loop thorough each byte in turn to do this:
                         \
                         \ XX15(4 0 1 2 3) = K(S 0 1 2 3) - 100,000,000,000
 
@@ -11448,7 +11493,9 @@ NEXT
                         \ the subroutine (this BNE is effectively a JMP as Y
                         \ will never be zero)
 
-.RR1                    \ If we get here, then the character to print is an
+.RR1
+
+                        \ If we get here, then the character to print is an
                         \ ASCII character in the range 32-95. The quickest way
                         \ to display text on-screen is to poke the character
                         \ pixel by pixel, directly into screen memory, so
@@ -11616,7 +11663,9 @@ NEXT
                         \ return from the subroutine (this BNE is effectively
                         \ a JMP as ZES2 always returns with the zero flag set)
 
-.RR2                    \ Now to actually print the character
+.RR2
+
+                        \ Now to actually print the character
 
  INC XC                 \ Once we print the character, we want to move the text
                         \ cursor to the right, so we do this by incrementing
@@ -12180,7 +12229,9 @@ NEXT
 
  LSR A                  \ If we call DIL-1, we set A = A / 2, so A is 0-15
 
-.^DIL                   \ If we call DIL-1, we leave A alone, so A is 0-15
+.^DIL
+
+                        \ If we call DIL, we leave A alone, so A is 0-15
 
  STA Q                  \ Store the indicator value in Q, now reduced to 0-15,
                         \ which is the length of the indicator to draw in pixels
@@ -12315,7 +12366,8 @@ NEXT
                         \ to the next indicator, i.e. the one below the one we
                         \ just drew
 
-.DL9                    \ This label is never called and has no effect
+.DL9                    \ This label is never called and has no effect, but is
+                        \ in the original source
 
  RTS                    \ Return from the subroutine
 }
@@ -12626,7 +12678,9 @@ NEXT
 \ ******************************************************************************
 
 {
-.LINSCN                 \ This is called from the interrupt handler below, at
+.LINSCN
+
+                        \ This is called from the interrupt handler below, at
                         \ the start of each vertical sync (i.e. when the screen
                         \ refresh starts)
 
@@ -12900,7 +12954,9 @@ LOAD_C% = LOAD% +P% - CODE%
 \ ******************************************************************************
 
 {
-.TA34                   \ If we get here, the missile is hostile
+.TA34
+
+                        \ If we get here, the missile is hostile
 
  LDA #0                 \ Set A to x_hi OR y_hi OR z_hi
  JSR MAS4
@@ -12921,7 +12977,9 @@ LOAD_C% = LOAD% +P% - CODE%
  JMP OOPS               \ big hit, and return from the subroutine using a tail
                         \ call
 
-.TA18                   \ This is the entry point for missile tactics and is
+.TA18
+
+                        \ This is the entry point for missile tactics and is
                         \ called from the main TACTICS routine below
 
  LDA ECMA               \ If an E.C.M. is currently active (either our's or an
@@ -13015,7 +13073,9 @@ LOAD_C% = LOAD% +P% - CODE%
 
  RTS                    \ Return from the subroutine
 
-.TA64                   \ If we get here then the missile has not reached the
+.TA64
+
+                        \ If we get here then the missile has not reached the
                         \ target
 
  JSR DORND              \ Set A and X to random numbers
@@ -13166,7 +13226,9 @@ LOAD_C% = LOAD% +P% - CODE%
 
  BPL TAL1               \ Loop back until we have copied all 9 bytes
 
-.TA19                   \ If this is a missile that's heading for its target
+.TA19
+
+                        \ If this is a missile that's heading for its target
                         \ (not us, one of the other ships), then the missile
                         \ routine at TA18 above jumps here after setting K3 to
                         \ the vector from the target to the missile
@@ -13274,7 +13336,9 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ ******************************************************************************
 
-.ta3                    \ If we get here then the ship has less than half energy
+.ta3
+
+                        \ If we get here then the ship has less than half energy
                         \ so there may not be enough juice for lasers, but let's
                         \ see if we can fire a missile
 
@@ -13332,7 +13396,9 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ ******************************************************************************
 
-.TA3                    \ If we get here then the ship either has plenty of
+.TA3
+
+                        \ If we get here then the ship either has plenty of
                         \ energy, or levels are low but it couldn't manage to
                         \ launch a missile, so maybe we can fire the laser?
 
@@ -15958,7 +16024,9 @@ NEXT
 
  RTS                    \ Return from the subroutine
 
-.MU8                    \ If we reach here, then A and S have different signs,
+.MU8
+
+                        \ If we reach here, then A and S have different signs,
                         \ so we can subtract their absolute values and set the
                         \ sign to get the result
 
@@ -16259,7 +16327,9 @@ NEXT
  LDA INWK+8             \ Set S = z_sign
  STA S
 
-.DVID3B                 \ Given the above assignments, we now want to calculate
+.DVID3B
+
+                        \ Given the above assignments, we now want to calculate
                         \ the following to get the result we want:
                         \
                         \   K(3 2 1 0) = P(2 1 0) / (S R Q)
@@ -17322,7 +17392,9 @@ NEXT
 
  RTS                    \ Return from the subroutine
 
-.PU2                    \ We enter this with X set to the view, as follows:
+.PU2
+
+                        \ We enter this with X set to the view, as follows:
                         \
                         \   1 = left
                         \   2 = right
@@ -17566,7 +17638,7 @@ NEXT
                         \ i.e. print the hyperspace countdown in the top-left
                         \ corner
 
-.^BOX                   \ front view box but no title if menu id > 0
+.^BOX
 
  LDY #1                 \ Move the text cursor to row 1
  STY YC
@@ -18186,7 +18258,9 @@ NEXT
                         \ that value to implement two's complement negation, so
                         \ we don't need to add another 1 here
 
-.SCD6                   \ We now have all the information we need to draw this
+.SCD6
+
+                        \ We now have all the information we need to draw this
                         \ ship on the scanner, namely:
                         \
                         \   X1 = the screen x-coordinate of the ship's dot
@@ -18302,7 +18376,9 @@ NEXT
  BCC RTS+1              \ If the C flag is clear then the stick height in A is
                         \ negative, so jump down to RTS+1
 
-.VLL1                   \ If we get here then the stick length is positive (so
+.VLL1
+
+                        \ If we get here then the stick length is positive (so
                         \ the dot is below the ellipse and the stick is above
                         \ the dot, and we need to draw the stick upwards from
                         \ the dot)
@@ -18490,7 +18566,9 @@ LOAD_D% = LOAD% + P% - CODE%
  BCC kg                 \ and they have different cargo limits to the standard
                         \ tonne canisters
 
-.Tml                    \ Here we count the tonne canisters we have in the hold
+.Tml
+
+                        \ Here we count the tonne canisters we have in the hold
                         \ and add to A to see if we have enough room for A more
                         \ tonnes of cargo, using X as the loop counter, starting
                         \ with X = 12
@@ -18531,7 +18609,9 @@ LOAD_D% = LOAD% + P% - CODE%
 
  RTS                    \ Return from the subroutine
 
-.kg                     \ Here we count the number of items of this type that
+.kg
+
+                        \ Here we count the number of items of this type that
                         \ we already have in the hold, and add to A to see if
                         \ we have enough room for A more units
 
@@ -21893,7 +21973,9 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #0                 \ Set AVL+16 (availability of Alien Items) to 0,
  STA AVL+16             \ setting A to 0 in the process
 
-.TT153                  \ We now do the multiplication by doing a series of
+.TT153
+
+                        \ We now do the multiplication by doing a series of
                         \ additions in a loop, building the result in A. Each
                         \ loop adds QQ19+2 (|economic_factor|) to A, and it
                         \ loops the number of times given by the economy byte;
@@ -22804,7 +22886,9 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ exit to the docking bay (i.e. show the Status Mode
                         \ screen)
 
-.pres                   \ If we get here we need to show an error to say that
+.pres
+
+                        \ If we get here we need to show an error to say that
                         \ item number A is already present, where the item's
                         \ name is recursive token Y
 
@@ -24000,7 +24084,9 @@ LOAD_E% = LOAD% + P% - CODE%
  BNE TT51               \ Assuming we haven't yet reached the token number in
                         \ X, look back up to keep fetching characters
 
-.TT50                   \ We have now reached the correct token in the token
+.TT50
+
+                        \ We have now reached the correct token in the token
                         \ table, with Y pointing to the start of the token as
                         \ an offset within the page pointed to by V, so let's
                         \ print the recursive token. Because recursive tokens
@@ -25128,7 +25214,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ energy banks (this BCC is effectively a JMP as the C
                         \ flag is clear, as we jumped to OO2 with a BCC)
 
-.OO1                    \ Aft shield hit
+.OO1
 
  LDA ASH                \ The aft shield was damaged, so fetch the shield
  SBC T                  \ strength from ASH and subtract the damage in T
@@ -25352,7 +25438,9 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ that we have not managed to create the new ship, and
                         \ return from the subroutine
 
-.NW1                    \ If we get here, then we have found an empty slot at
+.NW1
+
+                        \ If we get here, then we have found an empty slot at
                         \ index X, so we can go ahead and create our new ship.
                         \ We do that by creating a ship data block at INWK and,
                         \ when we are done, copying the block from INWK into
@@ -25679,7 +25767,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-.SPBLB                  \ Space Station bulb
+.SPBLB
 {
  LDA #24*8              \ The space station bulb is in character block number 24
                         \ with each character taking 8 bytes, so this sets the
@@ -27266,7 +27354,7 @@ LOAD_E% = LOAD% + P% - CODE%
  BEQ PLF6               \ Jump up to PLF6 to loop round for the next line up
                         \ (this BEQ is effectively a JMP as A is always zero)
 
-.PLF10                  \ V flag set to take height back up to radius K
+.PLF10
 
  LDX V                  \ Increment V, the height of the sun that we use to work
  INX                    \ out the width, so this makes the line get narrower, as
@@ -28272,7 +28360,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  RTS                    \ Return from the subroutine
 
-.TJ1                    \ Arrows from keyboard
+.TJ1
 
  LDA KL                 \ Set A to the value of KL (the key pressed)
 
@@ -29555,7 +29643,9 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ dangerous systems spawn pirates and bounty hunters
                         \ more often)
 
-.LABEL_2                \ Now to spawn a lone bounty hunter, a Thargoid or a
+.LABEL_2
+
+                        \ Now to spawn a lone bounty hunter, a Thargoid or a
                         \ group of pirates
 
  JSR Ze                 \ Call Ze to initialise INWK to a potentially hostile
@@ -29922,7 +30012,9 @@ LOAD_F% = LOAD% + P% - CODE%
 
  RTS                    \ Return from the subroutine
 
-.T95                    \ If we get here, "D" was pressed, so we need to show
+.T95
+
+                        \ If we get here, "D" was pressed, so we need to show
                         \ the distance to the selected system (if we are in a
                         \ chart view)
 
@@ -29965,7 +30057,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-.BAD                    \ Legal status from Cargo scan
+.BAD
 {
  LDA QQ20+3             \ Set A to the number of tonnes of slaves in the hold
 
@@ -30219,7 +30311,9 @@ LOAD_F% = LOAD% + P% - CODE%
  LDX #&FF               \ Set stack pointer to &01FF, so stack is in page 1
  TXS                    \ (this is the standard location for the 6502 stack)
 
-.^BR1                   \ BRKV is set to point here by elite-loader.asm
+.^BR1
+
+                        \ BRKV is set to point here by elite-loader.asm
 
  LDX #3                 \ Set XC = 3 (set text cursor to column 3)
  STX XC
@@ -30267,7 +30361,9 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR TTX66              \ And we clear the top part of the screen and draw a
                         \ white border
 
-.QU5                    \ By the time we get here, the correct commander name
+.QU5
+
+                        \ By the time we get here, the correct commander name
                         \ is at NA% and the correct commander data is at NA%+8.
                         \ Specifically:
                         \
@@ -30696,7 +30792,9 @@ ENDIF
  JMP TT67               \ We have a name, so jump to TT67 to print a newline
                         \ and return from the subroutine using a tail call
 
-.RLINE                  \ This is the OSWORD configuration block used above
+.RLINE
+
+                        \ This is the OSWORD configuration block used above
 
  EQUW INWK              \ The address to store the input, so the commander's
                         \ name will be stored in INWK as it is typed
@@ -31127,7 +31225,7 @@ ENDIF
                         \ 1, as otherwise bit 7 of A would have been a 1 and we
                         \ would have taken the BCS above)
 
-.TA2                    \ exited, Build XX15(0to2) from (raw) K3(1to8)
+.TA2
 
  LDA K3+1               \ Fetch the high byte of the x-coordinate from our left-
  LSR A                  \ shifted K3, shift it right to clear bit 7, stick the
@@ -32057,7 +32155,9 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  CPX #&69               \ If COPY is not being pressed, jump to DK2 below,
  BNE DK2                \ otherwise let's process the configuration keys
 
-.FREEZE                 \ COPY is being pressed, so we enter a loop that
+.FREEZE
+
+                        \ COPY is being pressed, so we enter a loop that
                         \ listens for configuration keys, and we keep looping
                         \ until we detect a DELETE keypress. This effectively
                         \ pauses the game when COPY is pressed, and unpauses
@@ -32703,7 +32803,9 @@ ENDMACRO
 \ ******************************************************************************
 
 {
-.TI2                    \ Called from below with A = 0, X = 0, Y = 4 when
+.TI2
+
+                        \ Called from below with A = 0, X = 0, Y = 4 when
                         \ nosev_x and nosev_y are small, so we assume that
                         \ nosev_z is big
 
@@ -32714,7 +32816,9 @@ ENDMACRO
 
  JMP TI3                \ Jump to TI3 to keep tidying
 
-.TI1                    \ Called from below with A = 0, Y = 4 when nosev_x is
+.TI1
+
+                        \ Called from below with A = 0, Y = 4 when nosev_x is
                         \ small
 
  TAX                    \ Set X = A = 0
@@ -33340,6 +33444,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \   R = 256 * A / Q
 \
+\ This is a sister routine to LL61, which does the division when A >= Q.
+\
 \ If A >= Q then 255 is returned and the C flag is set to indicate an overflow
 \ (the C flag is clear if the division was a success).
 \
@@ -33398,7 +33504,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  RTS                    \ R left with remainder of division
 
-.LL29                   \ Reduce
+.LL29
 
  SBC Q                  \ A >= Q, so set A = A - Q
 
@@ -33628,7 +33734,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine: LL9 (Part 1 of )
+\ Subroutine: LL9 (Part 1 of 10)
 \
 \ Draw the current ship on the screen. This part checks to see if the ship is
 \ exploding, or if it should start exploding, and if it does it sets things up
@@ -33779,7 +33885,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine: LL9 (Part 2 of )
+\ Subroutine: LL9 (Part 2 of 10)
 \
 \ Draw the current ship on the screen. This part checks whether the ship is in
 \ our field of view, and whether it is close enough to be fully drawn (if not,
@@ -33819,12 +33925,18 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ to LL14 to remove it from the screen
  
  LDY #6                 \ Fetch byte #6 from the ship's blueprint into X, which
- LDA (XX0),Y            \ is the number * 4 of the vertex used for the gun spike
- TAX
+ LDA (XX0),Y            \ is the number * 4 of the vertex used for the ship's
+ TAX                    \ laser
 
- LDA #255               \ Set bytes X and X+1 of the XX3 heap space to 255, as
- STA XX3,X              \ a flag for the gun vertex
- STA XX3+1,X
+ LDA #255               \ Set bytes X and X+1 of the XX3 heap to 255. We're
+ STA XX3,X              \ going to use XX3 to store the screen coordinates of
+ STA XX3+1,X            \ all the visible vertices of this ship, so setting the
+                        \ laser vertex to 255 means that if we don't update this
+                        \ vertex with its screen coordinates in parts 6 and 7,
+                        \ this vertex's entry in the XX3 heap will still be 255,
+                        \ which we can check in part 9 to see if the laser
+                        \ vertex is visible (and therefore whether we should
+                        \ draw laser lines if the ship is firing on us)
 
  LDA XX1+6              \ Set (A T) = (z_hi z_lo)
  STA T
@@ -33875,7 +33987,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine: LL9 (Part 3 of )
+\ Subroutine: LL9 (Part 3 of 10)
 \
 \ Draw the current ship on the screen. This part sets up the following variable
 \ blocks:
@@ -33960,8 +34072,8 @@ LOAD_G% = LOAD% + P% - CODE%
  BPL LL21               \ Loop back for the next vector coordinate until we have
                         \ divided them all
  
-                        \ By this point, the vectors have been turned into scaled
-                        \ magnitudes, so we have the following:
+                        \ By this point, the vectors have been turned into
+                        \ scaled magnitudes, so we have the following:
                         \
                         \   * XX16   = scaled |sidev_x|
                         \   * XX16+2 = scaled |sidev_y|
@@ -34011,7 +34123,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine: LL9 (Part 4 of )
+\ Subroutine: LL9 (Part 4 of 10)
 \
 \ Draw the current ship on the screen. This part sets up the visibility block in
 \ XX2 for a ship that is exploding.
@@ -34054,7 +34166,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine: LL9 (Part 5 of )
+\ Subroutine: LL9 (Part 5 of 10)
 \
 \ Draw the current ship on the screen. This section calculates the visibility of
 \ each of the ship's faces.
@@ -34128,8 +34240,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \   line of sight vector . face normal vector
 \
-\ If the result of this dot product is negative, then the face is visible; if it's
-\ positive, it isn't visible; and if it's zero it's edge on to us.
+\ If the result of this dot product is negative, then the face is visible; if
+\ it's positive, it isn't visible; and if it's zero it's edge on to us.
 \
 \ Line of sight vector
 \ --------------------
@@ -34426,8 +34538,9 @@ LOAD_G% = LOAD% + P% - CODE%
 
  CMP XX4                \ If XX4 <= the visibility distance, where XX4 contains
  BCS LL87               \ the ship's z-distance reduced to 0-31 (which we set in
-                        \ part 2), skip to LL87 as this face is close enough that
-                        \ we have to test its visibility using the face normals
+                        \ part 2), skip to LL87 as this face is close enough
+                        \ that we have to test its visibility using the face
+                        \ normals
 
                         \ Otherwise this face is within range and is therefore
                         \ always shown
@@ -34503,7 +34616,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  JMP LL89               \ Jump down to LL89
 
-.ovflw                  \ overflow from below, reduce xx18+0,3,6
+.ovflw
 
                         \ If we get here then the addition below overflowed, so
                         \ we halve the dot products and normal vector
@@ -34734,10 +34847,12 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine: LL9 (Part 6 of )
+\ Subroutine: LL9 (Part 6 of 10)
 \
 \ Draw the current ship on the screen. This section calculates the visibility of
 \ each of the ship's vertices.
+\
+\ ******************************************************************************
 \
 \ We projected [x y z] onto the orientation vector space like this:
 \
@@ -34760,13 +34875,37 @@ LOAD_G% = LOAD% + P% - CODE%
 \ This is just a different way of expressing the exact same equation as we used
 \ in part 5, just with a matrix instead of individual dot products.
 \
-\ So the inverse maps vectors in the orientation vector space back into normal
-\ ship space? Is that it? Call the rotated vertex vector vectv.
+\ So the inverse matrix will map vectors in the orientation vector space back
+\ into normal ship space. The inverse of a rotation matrix is its transpose, so
+\ this is the calculation:
 \ 
+\                       [ sidev_x roofv_x nosev_x ]   [ x ]
+\   projected [x y z] = [ sidev_y roofv_y nosev_y ] . [ y ]
+\                       [ sidev_z roofv_z nosev_z ]   [ z ]
+\
+\ This takes a vector, which goes from the ship's centre to the vertex and is
+\ expressed in terms of the ship's axes (i.e. its orientation vectors), and
+\ instead expresses it in terms of our ship's axes (i.e. our orientation
+\ vectors).
+\
+\ Given this new vector, we can add the vector from our ship to the other ship,
+\ to get the vector from us to the vertex, expressed in our ship's coordinates:
+\
+\                      [ sidev_x roofv_x nosev_x ]   [ x ]   [ x ]
+\   vector to vertex = [ sidev_y roofv_y nosev_y ] . [ y ] + [ y ]
+\                      [ sidev_z roofv_z nosev_z ]   [ z ]   [ z ]
+\
+\ The code to calculate this equation takes up parts 6 and 7. It's in two parts
+\ because there are two small subroutines that have rudely inserted themselves
+\ just before the big reveal. These are is used by part 8 and don't play a part
+\ in this calculation (except to make it harder to follow).
+\
 \ ******************************************************************************
 
 .LL42
 
+                        \ The first task is to set up the inverse matrix, ready
+                        \ for us to send to the dot product routine at LL51.
                         \ Back up in part 3, we set up the following variables:
                         \
                         \   * XX16(1 0) = sidev_x
@@ -34795,8 +34934,8 @@ LOAD_G% = LOAD% + P% - CODE%
                         \   * XX16+14 = scaled |nosev_y|
                         \   * XX16+16 = scaled |nosev_z|
                         \
-                        \ We now rearrange these locations to group the x, y and
-                        \ z coordinates of the vectors together
+                        \ We now need to rearrange these locations so they
+                        \ effectively transpose the matrix into its inverse
 
  LDY XX16+2             \ Set XX16+2 = XX16+6 = scaled |roofv_x|
  LDX XX16+3             \ Set XX16+3 = XX16+7 = roofv_x_hi
@@ -34839,6 +34978,10 @@ LOAD_G% = LOAD% + P% - CODE%
                         \   XX16(13 12) = scaled sidev_z
                         \   XX16(15 14) = scaled roofv_z
                         \   XX16(17 16) = scaled nosev_z
+                        \
+                        \ which is what we want, as the various vectors are now
+                        \ arranged so we can use LL51 to multiply by the
+                        \ transpose (i.e. the inverse of the matrix)
 
  LDY #8                 \ Fetch byte #8 of the ship's blueprint, which is the
  LDA (XX0),Y            \ number of vertices * 8, and store it in XX20
@@ -34864,7 +35007,9 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ so it can act as an offset from V(1 0) to the current
                         \ vertex's data
 
- STY CNT                \ Set CNT = 0
+ STY CNT                \ Set CNT = 0, which we will use as a pointer to the
+                        \ heap at XX3, starting it at zero so the heap starts
+                        \ out empty
 
 .LL48
 
@@ -34919,7 +35064,7 @@ LOAD_G% = LOAD% + P% - CODE%
  AND #%00001111         \ Extract the number of face 1 into X
  TAX
 
- LDA XX2,X              \ If XX2+x is non-zero then we decided in part 5 that
+ LDA XX2,X              \ If XX2+X is non-zero then we decided in part 5 that
  BNE LL49               \ face 1 is visible, so jump to LL49
 
  LDA P                  \ Fetch byte #4 for this vertex into A
@@ -34930,7 +35075,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LSR A
  TAX
 
- LDA XX2,X              \ If XX2+x is non-zero then we decided in part 5 that
+ LDA XX2,X              \ If XX2+X is non-zero then we decided in part 5 that
  BNE LL49               \ face 2 is visible, so jump to LL49
 
  INY                    \ Increment Y to point to byte #5
@@ -34946,7 +35091,7 @@ LOAD_G% = LOAD% + P% - CODE%
  AND #%00001111         \ Extract the number of face 1 into X
  TAX
 
- LDA XX2,X              \ If XX2+x is non-zero then we decided in part 5 that
+ LDA XX2,X              \ If XX2+X is non-zero then we decided in part 5 that
  BNE LL49               \ face 3 is visible, so jump to LL49
 
  LDA P                  \ Fetch byte #5 for this vertex into A
@@ -34957,7 +35102,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LSR A
  TAX
 
- LDA XX2,X              \ If XX2+x is non-zero then we decided in part 5 that
+ LDA XX2,X              \ If XX2+X is non-zero then we decided in part 5 that
  BNE LL49               \ face 4 is visible, so jump to LL49
 
  JMP LL50               \ If we get here then none of the four faces associated
@@ -34997,21 +35142,27 @@ LOAD_G% = LOAD% + P% - CODE%
  JSR LL51               \ Call LL51 to set XX12 to the dot products of XX15 and
                         \ XX16, as follows:
                         \
-                        \   XX12(1 0) = [x y z] . _x
+                        \   XX12(1 0) = [x y z] . [sidev_x roofv_x nosev_x]
                         \
-                        \   XX12(3 2) = [x y z] . _y
+                        \   XX12(3 2) = [x y z] . [sidev_y roofv_y nosev_y]
                         \
-                        \   XX12(5 4) = [x y z] . _z
+                        \   XX12(5 4) = [x y z] . [sidev_z roofv_z nosev_z]
                         \
                         \ XX12 contains the vector from the ship's centre to
                         \ the vertex, transformed from the orientation vector
-                        \ space to our normal x, y, z universe ????
+                        \ space to the universe orientated around our ship. So
+                        \ we can refer to this vector below, let's call it
+                        \ vertv, so:
                         \
-                        \ Let's call them vertv_x, vertv_y and vertv_z
-
-                        \ We now want to calculate:
+                        \   vertv_x = [x y z] . [sidev_x roofv_x nosev_x]
                         \
-                        \   vertv + the ship's location (x, y, z))
+                        \   vertv_y = [x y z] . [sidev_y roofv_y nosev_y]
+                        \
+                        \   vertv_z = [x y z] . [sidev_z roofv_z nosev_z]
+                        \
+                        \ To finish the calculation, we now want to calculate:
+                        \
+                        \   vertv + [x y z]
                         \
                         \ So let's start with the vertv_x + x
 
@@ -35019,8 +35170,9 @@ LOAD_G% = LOAD% + P% - CODE%
 
  STA XX15+2             \ Set XX15+2 = x_sign
 
- EOR XX12+1             \ If the sign of x_sign * the sign of vertv_x is negative
- BMI LL52               \ (i.e. they have different signs), skip to LL52
+ EOR XX12+1             \ If the sign of x_sign * the sign of vertv_x is
+ BMI LL52               \ negative (i.e. they have different signs), skip to
+                        \ LL52
 
  CLC                    \ Set XX15(2 1 0) = XX1(2 1 0) + XX12(1 0)
  LDA XX12               \                 = (x_sign x_hi x_lo) + vertv_x
@@ -35044,8 +35196,8 @@ LOAD_G% = LOAD% + P% - CODE%
  SBC XX12               \
  STA XX15               \ Starting with the low bytes
 
- LDA XX1+1              \ And then doing the high bytes
- SBC #0
+ LDA XX1+1              \ And then doing the high bytes (we can subtract 0 here
+ SBC #0                 \ as we know the sign byte of vertv_x is 0)
  STA XX15+1
 
  BCS LL53               \ If the subtraction didn't underflow, then the sign of
@@ -35075,8 +35227,9 @@ LOAD_G% = LOAD% + P% - CODE%
 
  STA XX15+5             \ Set XX15+5 = y_sign
 
- EOR XX12+3             \ If the sign of y_sign * the sign of vertv_y is negative
- BMI LL54               \ (i.e. they have different signs), skip to LL54
+ EOR XX12+3             \ If the sign of y_sign * the sign of vertv_y is
+ BMI LL54               \ negative (i.e. they have different signs), skip to
+                        \ LL54
 
  CLC                    \ Set XX15(5 4 3) = XX1(5 4 3) + XX12(3 2)
  LDA XX12+2             \                 = (y_sign y_hi y_lo) + vertv_y
@@ -35100,8 +35253,8 @@ LOAD_G% = LOAD% + P% - CODE%
  SBC XX12+2             \
  STA XX15+3             \ Starting with the low bytes
 
- LDA XX1+4              \ And then doing the high bytes
- SBC #0
+ LDA XX1+4              \ And then doing the high bytes (we can subtract 0 here
+ SBC #0                 \ as we know the sign byte of vertv_z is 0)
  STA XX15+4
 
  BCS LL55               \ If the subtraction didn't underflow, then the sign of
@@ -35142,429 +35295,857 @@ LOAD_G% = LOAD% + P% - CODE%
 
  JMP LL57               \ We've added the z-coordinates, so jump to LL57
 
+                        \ The adding process is continued in part 8, after a
+                        \ couple of subroutines that we don't need quite yet
+
 \ ******************************************************************************
 \
-\ Subroutine: LL9 (Part 7 of )
+\ Subroutine: LL61
 \
-\ Draw the current ship on the screen. This section contains a subroutine for
+\ Calculate the following, where A >= Q:
+\
+\   (U R) = 256 * A / Q
+\
+\ This is a sister routine to LL28, which does the division when A < Q.
 \
 \ ******************************************************************************
 
-.LL61                   \ Handling division R=A/Q for case further down
+.LL61
 
- LDX Q
- BEQ LL84               \ div by zero div error
- LDX #0
+ LDX Q                  \ If Q = 0, jump down to LL84 to return a division
+ BEQ LL84               \ error
 
-.LL63                   \ roll Acc count Xreg
+                        \ The LL28 routine returns A / Q, but only if A < Q. In
+                        \ our case A >= Q, but we still want to use the LL28
+                        \ routine, so we halve A until it's less than Q, call
+                        \ the division routine, and then double A by the same
+                        \ number of times
 
- LSR A
- INX                    \ counts required will be stored in S
- CMP Q
- BCS LL63               \ loop back if Acc >= Q
- STX S
+ LDX #0                 \ Set X = 0 to count the number of times we halve A
+
+.LL63
+
+ LSR A                  \ Halve A by shifting right
+
+ INX                    \ Increment X
+
+ CMP Q                  \ If A >= Q, loop back to LL63 to halve it again
+ BCS LL63
+
+ STX S                  \ Otherwise store the number of times we halved A in S
 
  JSR LL28               \ Call LL28 to calculate:
                         \
                         \   R = 256 * A / Q
+                        \
+                        \ which we can do now as A < Q
 
- LDX S                  \ restore Xcount
- LDA R                  \ remainder
+ LDX S                  \ Otherwise restore the number of times we halved A
+                        \ above into X
 
-.LL64                   \ counter Xreg
+ LDA R                  \ Set A = our division result
 
- ASL A                  \ lo boost
- ROL U                  \ hi
- BMI LL84               \ bit7 set, overflowed, div error
- DEX                    \ bring X back down
- BNE LL64               \ loop X
- STA R                  \ remainder
- RTS
+.LL64
 
-.LL84                   \ div error  R=U=#50
+ ASL A                  \ Double (U A) by shifting left
+ ROL U
 
- LDA #50
- STA R
+ BMI LL84               \ If bit 7 of U is set, the doubling has overflowed, so
+                        \ jump to LL84 to return a division error
+
+ DEX                    \ Decrement X
+
+ BNE LL64               \ If X is not yet zero then we haven't done as many
+                        \ doublings as we did halvings earlier, so loop back for
+                        \ another doubling
+
+ STA R                  \ Store the low byte of the division result in R
+
+ RTS                    \ Return from the subroutine
+
+.LL84
+
+ LDA #50                \ If we get here then either we tried to divide by 0, or
+ STA R                  \ the result overflowed, so we set U and R to 50
  STA U
- RTS
+
+ RTS                    \ Return from the subroutine
+
 
 \ ******************************************************************************
 \
-\ Subroutine: LL9 (Part 8 of )
+\ Subroutine: LL62
+\
+\ Calculate the following for a positive sign-magnitude number (U R):
+\
+\   128 - (U R)
+\
+\ and then store the result, low byte then high byte, on the end of the heap at
+\ XX3, where X points to the first free byte on the heap. Return by jumping down
+\ to LL66.
+\
+\ Returns:
+\
+\   X                   X is incremented by 1
+\
+\ ******************************************************************************
+
+.LL62
+
+ LDA #128               \ Calculate 128 - (U R), starting with the low bytes
+ SEC
+ SBC R
+
+ STA XX3,X              \ Store the low byte of the result in the X-th byte of
+                        \ the heap at XX3
+
+ INX                    \ Increment the heap pointer in X to point to the next
+                        \ byte
+
+ LDA #0                 \ And then subtract the high bytes
+ SBC U
+
+ STA XX3,X              \ Store the low byte of the result in the X-th byte of
+                        \ the heap at XX3
+
+ JMP LL66               \ Jump down to LL66
+
+\ ******************************************************************************
+\
+\ Subroutine: LL9 (Part 7 of 10)
 \
 \ Draw the current ship on the screen. This section continues the coordinate
-\ adding from part 6
+\ adding from part 6 by finishing off the calculation that we started above:
+\
+\                      [ sidev_x roofv_x nosev_x ]   [ x ]   [ x ]
+\   vector to vertex = [ sidev_y roofv_y nosev_y ] . [ y ] + [ y ]
+\                      [ sidev_z roofv_z nosev_z ]   [ z ]   [ z ]
+\
+\ The gets stored as follows, in sign-magnitude values with the magnitudes
+\ fitting into the low bytes:
+\
+\   XX15(2 0)           [x y z] . [sidev_x roofv_x nosev_x] + [x y z]
+\
+\   XX15(5 3)           [x y z] . [sidev_y roofv_y nosev_y] + [x y z]
+\
+\   (U T)               [x y z] . [sidev_z roofv_z nosev_z] + [x y z]
+\
+\ Finally, because this vector is from our ship to the vertex, and we are at the
+\ origin, this vector is the same as the coordinates of the vertex. In other
+\ words, we have just worked out:
+\
+\   XX15(2 0)           x-coordinate of the current vertex
+\
+\   XX15(5 3)           y-coordinate of the current vertex
+\
+\   (U T)               z-coordinate of the current vertex
 \
 \ ******************************************************************************
 
-.LL62                   \ Arrive from LL65 just below, screen for -ve RU onto XX3 heap, index X=CNT
+.LL56
 
- LDA #128               \ x-screen mid-point
- SEC                    \ xcoord lo
- SBC R
- STA XX3,X
- INX                    \ hi
- LDA #0                 \ xcoord hi
- SBC U
- STA XX3,X
- JMP LL66               \ xccord shoved, go back down
+ LDA XX1+6              \ Set (U T) = XX1(7 6) - XX12(5 4)
+ SEC                    \           = (z_hi z_lo) - vertv_z
+ SBC XX12+4             \
+ STA T                  \ Starting with the low bytes
 
-.LL56                   \ Enter XX12+5 -ve Z node case  from above
-
- LDA XX1+6              \ z org lo
- SEC
- SBC XX12+4             \ rotated z node lo
- STA T
- LDA XX1+7              \ zhi
- SBC #0
+ LDA XX1+7              \ And then doing the high bytes (we can subtract 0 here
+ SBC #0                 \ as we know the sign byte of vertv_z is 0)
  STA U
- BCC LL140              \ underflow, make node close
- BNE LL57               \ Enter Node additions done, UT=z
- LDA T                  \ restore z lo
- CMP #4                 \ >= 4 ?
- BCS LL57               \ zlo big enough, Enter Node additions done
 
-.LL140                  \ else make node close
+ BCC LL140              \ If the subtraction just underflowed, skip to LL140 to
+                        \ set (U T) to the minimum value of 4
 
- LDA #0                 \ hi
- STA U
- LDA #4                 \ lo
+ BNE LL57               \ If U is non-zero, jump down to LL57
+
+ LDA T                  \ If T >= 4, junp down to LL57
+ CMP #4
+ BCS LL57
+
+.LL140
+
+ LDA #0                 \ If we get here then either (U T) < 4 or the
+ STA U                  \ subtraction underflowed, so set (U T) = 4
+ LDA #4
  STA T
 
-\ ******************************************************************************
-\
-\ Subroutine: LL9 (Part 9 of )
-\
-\ Draw the current ship on the screen. This section 
-\
-\ ******************************************************************************
+.LL57
 
+                        \ By this point we have our results, so now to scale
+                        \ the 16-bit results down into 8-bit values
 
-.LL57                   \ Enter Node additions done, z=T.U set up from LL55
+ LDA U                  \ If the high bytes of the result are all zero, we are
+ ORA XX15+1             \ done, so jump down to LL60 for the next stage
+ ORA XX15+4
+ BEQ LL60
 
- LDA U                  \ z hi
- ORA XX15+1             \ x hi
- ORA XX15+4             \ y hi
- BEQ LL60               \ exit loop down once hi U rolled to 0
- LSR XX15+1
+ LSR XX15+1             \ Shift XX15(1 0) to the right
  ROR XX15
- LSR XX15+4
+
+ LSR XX15+4             \ Shift XX15(4 3) to the right
  ROR XX15+3
- LSR U                  \ z hi
- ROR T                  \ z lo
- JMP LL57               \ loop U
 
-.LL60                   \ hi U rolled to 0, exited loop above
+ LSR U                  \ Shift (U T) to the right
+ ROR T
 
- LDA T
- STA Q                  \ zdist lo
- LDA XX15               \ rolled x lo
- CMP Q
- BCC LL69               \ if xdist < zdist hop over jmp to small x angle
- JSR LL61               \ visit up  R = A/Q = x/z
- JMP LL65               \ hop over small xangle
+ JMP LL57               \ Jump back to LL57 to see if we can shift the result
+                        \ any more
 
-.LL69                   \ small x angle
+\ ******************************************************************************
+\
+\ Subroutine: LL9 (Part 8 of 10)
+\
+\ Draw the current ship on the screen. This section projects the coordinate of
+\ the vertex into screen coordinates and stores them on the ship line heap. By
+\ the end of this part, the ship line heap contains four bytes containing the
+\ 16-bit screen coordinates of the current vertex, in the order: x_lo, x_hi,
+\ y_lo, y_hi.
+\
+\ When we reach here, we are looping through the vertices, and we've just worked
+\ out the coordinates of the vertex in our normal coordinate system, as follows
+\
+\   XX15(2 0)           (x_sign x_lo) = x-coordinate of the current vertex
+\
+\   XX15(5 3)           (y_sign y_lo) = y-coordinate of the current vertex
+\
+\   (U T)               (z_sign z_lo) = z-coordinate of the current vertex
+\
+\ Note that U is always zero when we get to this point, as the vertex is always
+\ in front of us (so it has a positive z-coordinate, into the screen).
+\
+\ Other entry points:
+\
+\   LL70+1              Contains an RTS (as the first byte of an LDA
+\                       instruction)
+\
+\ ******************************************************************************
+
+.LL60
+
+ LDA T                  \ Set Q = z_lo
+ STA Q
+
+ LDA XX15               \ Set A = x_lo
+
+ CMP Q                  \ If x_lo < z_lo jump to LL69
+ BCC LL69
+
+ JSR LL61               \ Call LL61 to calculate:
+                        \
+                        \   (U R) = 256 * A / Q
+                        \         = 256 * x / z
+                        \
+                        \ which we can do as x >= z
+
+ JMP LL65               \ Jump to LL65 to skip the division for x_lo < z_lo
+
+.LL69
 
  JSR LL28               \ Call LL28 to calculate:
                         \
                         \   R = 256 * A / Q
+                        \     = 256 * x / z
+                        \
+                        \ Because x < z, the result fits into one byte, and we
+                        \ also know that U = 0, so (U R) also contains the
+                        \ result
 
-.LL65                   \ both continue for scaling based on z
+.LL65
 
- LDX CNT                \ index for XX3 heap
- LDA XX15+2             \ sign of X dist
- BMI LL62               \ up, -ve Xdist, RU screen onto XX3 heap
- LDA R                  \ xscaled
- CLC                    \ xcoord lo to XX3 heap
- ADC #128               \ x screen mid-point
- STA XX3,X
- INX                    \ x hi onto node heap
- LDA U
- ADC #0                 \ any carry to hi
- STA XX3,X
+                        \ At this point we have:
+                        \
+                        \   (U R) = x / z
+                        \
+                        \ so (U R) contains the vertex's x-coordinate projected
+                        \ on screen
+                        \
+                        \ The next task is to convert (U R) to a pixel screen
+                        \ coordinate and stick it on the ship line heap.
+                        \
+                        \ We start with the x-coordinate. To convert the
+                        \ x-coordinate to a screen pixel we add 128, the
+                        \ x-coordinate of the centre of the screen, because the
+                        \ projected value is relative to an origin at the centre
+                        \ of the screen, but the origin of the screen pixels is
+                        \ at the top-left of the screen
 
-.LL66                   \ also from LL62, XX3 node heap has xscreen node so far
+ LDX CNT                \ Fetch the pointer to the end of the XX3 heap from CNT
+                        \ into X
 
- TXA                    \ Onto y coord
- PHA                    \ push XX3 heap pointer
- LDA #0                 \ y hi = 0
+ LDA XX15+2             \ If x_sign is negative, jump up to LL62, which will
+ BMI LL62               \ store 128 - (U R) on the ship line heap and return by
+                        \ jumping down to LL66 below
+
+ LDA R                  \ Calculate 128 + (U R), starting with the low bytes
+ CLC
+ ADC #128
+
+ STA XX3,X              \ Store the low byte of the result in the X-th byte of
+                        \ the heap at XX3
+
+ INX                    \ Increment the heap pointer in X to point to the next
+                        \ byte
+
+ LDA U                  \ And then add the high bytes
+ ADC #0
+
+ STA XX3,X              \ Store the high byte of the result in the X-th byte of
+                        \ the heap at XX3
+
+.LL66
+
+                        \ We've just stored the screen x-coordinate of the
+                        \ vertex on the ship line heap, so now for the
+                        \ y-coordinate
+
+ TXA                    \ Store the heap pointer in X on the stack (at this
+ PHA                    \ it points to the last entry on the heap, not the first
+                        \ free byte)
+
+ LDA #0                 \ Set U = 0
  STA U
- LDA T
- STA Q                  \ zdist lo
- LDA XX15+3             \ rolled y low
- CMP Q
- BCC LL67               \ if ydist < zdist hop to small yangle
 
- JSR LL61               \ else visit up R = A/Q = y/z
- JMP LL68               \ hop over small y yangle
+ LDA T                  \ Set Q = z_lo
+ STA Q
 
-.LL70                   \ arrive from below, Yscreen for -ve RU onto XX3 node heap, index X=CNT
+ LDA XX15+3             \ Set A = y_lo
 
- LDA #Y                 \ #Y = #96 mid Yscreen \ also rts at LL70+1
- CLC                    \ ycoord lo to XX3 node heap
- ADC R                  \ yscaled
- STA XX3,X
- INX                    \ y hi to node heap
- LDA #0                 \ any carry to y hi
+ CMP Q                  \ If y_lo < z_lo jump to LL67
+ BCC LL67
+
+ JSR LL61               \ Call LL61 to calculate:
+                        \
+                        \   (U R) = 256 * A / Q
+                        \         = 256 * y / z
+                        \
+                        \ which we can do as y >= z
+
+ JMP LL68               \ Jump to LL68 to skip the division for y_lo < z_lo
+
+.LL70
+
+                        \ This gets called from below when y_sign is negative
+
+ LDA #Y                 \ Calculate #Y + (U R), starting with the low bytes
+ CLC
+ ADC R
+
+ STA XX3,X              \ Store the low byte of the result in the X-th byte of
+                        \ the heap at XX3
+
+ INX                    \ Increment the heap pointer in X to point to the next
+                        \ byte
+
+ LDA #0                 \ And then add the high bytes
  ADC U
- STA XX3,X
- JMP LL50               \ down XX3 heap has yscreen node
 
-.LL67                   \ Arrive from LL66 above if XX15+3 < Q \ small yangle
+ STA XX3,X              \ Store the high byte of the result in the X-th byte of
+                        \ the heap at XX3
+
+ JMP LL50               \ Jump to LL68 to skip the division for y_lo < z_lo
+
+.LL67
 
  JSR LL28               \ Call LL28 to calculate:
                         \
                         \   R = 256 * A / Q
+                        \     = 256 * y / z
+                        \
+                        \ Because y < z, the result fits into one byte, and we
+                        \ also know that U = 0, so (U R) also contains the
+                        \ result
 
-.LL68                   \ -> &4CF5 both carry on, also arrive from LL66, yscaled based on z
+.LL68
 
- PLA                    \ restore
- TAX                    \ XX3 heap index
- INX                    \ take XX3 heap index up
- LDA XX15+5             \ rolled Ydist sign
- BMI LL70               \ up, -ve RU onto XX3 heap
- LDA #Y                 \ #Y = #96 Yscreen
- SEC                    \ subtracted yscaled and store on heap
+                        \ At this point we have:
+                        \
+                        \   (U R) = y / z
+                        \
+                        \ so (U R) contains the vertex's y-coordinate projected
+                        \ on screen
+                        \
+                        \ We now want to convert this to a screen y-coordinate
+                        \ and stick it on the ship line heap, much like we did
+                        \ with the x-coordinate above. Again, we convert the
+                        \ coordinate by adding or subtracting the y-coordinate
+                        \ of the centre of the screen, which is in the constant
+                        \ #Y, but this time we do the opposite, as a positive
+                        \ projected y-coordinate, i.e. up the space y-axis and
+                        \ up the screen, converts to a low y-coordinate, which
+                        \ is the opposite way round to the x-coordinates
+                        
+ PLA                    \ Restore the heap pointer from the stack into X
+ TAX
+
+ INX                    \ When we stored the heap pointer, it pointed to the
+                        \ last entry on the heap, not the first free byte, so we
+                        \ increment it so it does point to the next free byte
+
+ LDA XX15+5             \ If y_sign is negative, jump up to LL70, which will
+ BMI LL70               \ store #Y + (U R) on the ship line heap and return by
+                        \ jumping down to LL50 below
+
+ LDA #Y                 \ Calculate #Y - (U R), starting with the low bytes
+ SEC
  SBC R
- STA XX3,X
- INX                    \ y screen hi
- LDA #0                 \ any carry
+
+ STA XX3,X              \ Store the low byte of the result in the X-th byte of
+                        \ the heap at XX3
+
+ INX                    \ Increment the heap pointer in X to point to the next
+                        \ byte
+
+ LDA #0                 \ And then subtract the high bytes
  SBC U
- STA XX3,X
 
-.LL50                   \ also from LL70, Also from  LL49-3. XX3 heap has yscreen, Next vertex
+ STA XX3,X              \ Store the high byte of the result in the X-th byte of
+                        \ the heap at XX3
 
- CLC                    \ reload XX3 heap index base
- LDA CNT
- ADC #4                 \ +=4, next 16bit xcoord,ycoord pair on XX3 heap
+.LL50
+
+                        \ By the time we get here, the ship line heap contains
+                        \ four bytes containing the screen coordinates of the
+                        \ current vertex, in the order: x_lo, x_hi, y_lo, y_hi
+
+ CLC                    \ Set CNT = CNT + 4, so the heap pointer points to the
+ LDA CNT                \ next free byte on the heap
+ ADC #4
  STA CNT
- LDA XX17               \ vertex*6 count
- ADC #6                 \ +=6
- TAY                    \ Y taken up to next vertex
- BCS LL72               \ down Loaded if maxed out number of vertices (42)
- CMP XX20               \ number of vertices*6
- BCS LL72               \ done Loaded if all vertices done, exit loop
- JMP LL48               \ loop Y back to next vertex at transpose matrix
+
+ LDA XX17               \ Set A to the offset of the current vertex's data,
+                        \ which we set in part 6
+
+ ADC #6                 \ Set Y = A + 6, so Y now points to the data for the
+ TAY                    \ next vertex
+
+ BCS LL72               \ If the addition just overflowed, meaning we just tried
+                        \ to access vertex #43, jump to LL72, as the maximum
+                        \ number of vertices allowed is 42
+
+ CMP XX20               \ If Y >= number of vertices * 6 (which we stored in
+ BCS LL72               \ XX20 in part 6), jump to LL72, as we have processed
+                        \ all the vertices for this ship
+
+ JMP LL48               \ Loop back to LL48 in part 6 to calculate visibility
+                        \ and screen coordinates for the next vertex
 
 \ ******************************************************************************
 \
-\ Subroutine: LL9 (Part 10 of )
+\ Subroutine: LL9 (Part 9 of 10)
 \
-\ Draw the current ship on the screen.
+\ Draw the current ship on the screen. This part calculates which edges are
+\ visible - in other words, which lines we should draw. It also adds a line for
+\ laser fire, if the ship is firing at us.
+\
+\ When we get here, the heap at XX3 contains all the visible vertex screen
+\ coordinates.
 \
 \ ******************************************************************************
 
-.LL72                   \ XX3 node heap already loaded with 16bit xy screen
+.LL72
 
- LDA XX1+31             \ display/exploding state|missiles
- AND #32                \ bit5 of mask
- BEQ EE31               \ if zero no explosion
- LDA XX1+31
- ORA #8                 \ else set bit3 to erase old line
+ LDA XX1+31             \ If bit 5 of the ship's byte #31 is clear, then the
+ AND #%00100000         \ ship is not currently exploding, so jump down to EE31
+ BEQ EE31
+
+ LDA XX1+31             \ The ship is exploding, so set bit 3 of the ship's byte
+ ORA #8                 \ #31 to denote that we are drawing something on-screen
+ STA XX1+31             \ for this ship
+
+ JMP DOEXP              \ Jump to DOEXP to display the explosion cloud,
+                        \ returning from the subroutine using a tail call
+
+.EE31
+
+ LDA #%00001000         \ If bit 3 of the ship's byte #31 is clear, then there
+ BIT XX1+31             \ is nothing already being shown for this ship, so skip
+ BEQ LL74               \ to LL74 as we don't need to erase anything from the
+                        \ screen
+
+ JSR LL155              \ Otherwise call LL155 to draw the existing ship, which
+                        \ removes it from the screen
+
+ LDA #%00001000         \ Set bit 3 of A so the next instruction sets bit 3 of
+                        \ the ship's byte #31 to denote that we are drawing
+                        \ something on-screen for this ship
+
+.LL74
+
+ ORA XX1+31             \ Apply bit 3 of A to the ship's byte #31, so if there
+ STA XX1+31             \ was no ship already on screen, the bit is clear,
+                        \ otherwise it is set
+
+ LDY #9                 \ Fetch byte #9 of the ship's blueprint, which is the
+ LDA (XX0),Y            \ number of edges, and store it in XX20
+ STA XX20
+
+ LDY #0                 \ We are about to step through all the vertices, using
+                        \ Y as a counter
+
+ STY U                  \ Set U = 0 (though we increment it to 1 below)
+
+ STY XX17               \ Set XX17 = 0, which we are going to use as a counter
+                        \ for stepping through the ship's edges
+
+ INC U                  \ We are going to start calculating the lines we need to
+                        \ draw for this ship, and will store them in the ship
+                        \ line heap, using U to point to the end of the heap, so
+                        \ we start by setting U = 1
+
+ BIT XX1+31             \ If bit 6 of the ship's byte #31 is clear, then the
+ BVC LL170              \ ship is not firing its lasers, so jump to LL170 to
+                        \ skip the drawing of laser lines
+
+                        \ The ship is firing its laser at us, so we need to draw
+                        \ the laser lines
+
+ LDA XX1+31             \ Clear bit 6 of the ship's byte #31 so the ship doesn't
+ AND #%10111111         \ keep firing endlessly
  STA XX1+31
- JMP DOEXP              \ explosion
 
-.EE31                   \ no explosion
+ LDY #6                 \ Fetch byte #6 of the ship's blueprint, which is the
+ LDA (XX0),Y            \ number * 4 of the vertex where the ship has its lasers
 
- LDA #8                 \ mask bit 3 set of
- BIT XX1+31             \ exploding/display state|missiles
- BEQ LL74               \ clear is hop to do New lines
- JSR LL155              \ else erase lines in XX19 heap at LINEstr down
- LDA #8                 \ set bit3, as new lines
+ TAY                    \ Put the vertex number into Y, where it can act as an
+                        \ index into list of vertex screen coordinates we added
+                        \ to the ship line heap
 
-.LL74                   \ do New lines
+ LDX XX3,Y              \ Fetch the x_lo coordinate of the laser vertex from the
+ STX XX15               \ XX3 heap into XX15
 
- ORA XX1+31
- STA XX1+31
- LDY #9                 \ Hull byte#9, number of edges
- LDA (XX0),Y
- STA XX20               \ number of edges
- LDY #0                 \ ship line heap offset to 0 for XX19
- STY U
- STY XX17               \ edge counter
- INC U                  \ ship line heap offset = 1
- BIT XX1+31
- BVC LL170              \ bit6 of display state clear (laser not firing) \ Calculate new lines
- LDA XX1+31
- AND #&BF               \ else laser is firing, clear bit6
- STA XX1+31
- LDY #6                 \ Hull byte#6, gun vertex*4
- LDA (XX0),Y
- TAY                    \ index to gun on XX3 heap
- LDX XX3,Y
- STX XX15               \  x1 lo
- INX                    \ was heap entry updated from #255?
- BEQ LL170              \ skip the rest (laser node not visible)
- LDX XX3+1,Y
- STX XX15+1             \  x1 hi
- INX                    \ was heap entry updated from #255?
- BEQ LL170              \ skip the rest (laser node not visible)
- LDX XX3+2,Y
- STX XX15+2             \ y1 lo
- LDX XX3+3,Y
- STX XX15+3             \ y1 hi
- LDA #0                 \ x2 lo.hi = 0
- STA XX15+4
+ INX                    \ If X = 255 then the laser vertex is not visible, as
+ BEQ LL170              \ the value we stored in part 2 wasn't overwritten by
+                        \ the vertex calculation in part 6 and 7, so jump to
+                        \ LL170 to skip drawing the laser lines
+
+                        \ We now build a laser beam from the ship's laser vertex
+                        \ towards our ship, as follows:
+                        \
+                        \   XX15(1 0) = laser vertex x-coordinate
+                        \
+                        \   XX15(3 2) = laser vertex y-coordinate
+                        \
+                        \   XX15(5 4) = x-coordinate of the end of the beam
+                        \
+                        \   XX12(1 0) = y-coordinate of the end of the beam
+                        \
+                        \ The end of the laser beam will be set positioned to
+                        \ look good, rather than being directly aimed at us, as
+                        \ otherwise we would only see a flashing point of light
+                        \ as they unleashed their attack
+
+ LDX XX3+1,Y            \ Fetch the x_hi coordinate of the laser vertex from the
+ STX XX15+1             \ XX3 heap into XX15+1
+
+ INX                    \ If X = 255 then the laser vertex is not visible, as
+ BEQ LL170              \ the value we stored in part 2 wasn't overwritten by
+                        \ a vertex calculation in part 6 and 7, so jump to LL170
+                        \ to skip drawing the laser beam
+
+ LDX XX3+2,Y            \ Fetch the y_lo coordinate of the laser vertex from the
+ STX XX15+2             \ XX3 heap into XX15+2
+
+ LDX XX3+3,Y            \ Fetch the y_hi coordinate of the laser vertex from the
+ STX XX15+3             \ XX3 heap into XX15+3
+
+ LDA #0                 \ Set XX15(5 4) = 0, so their laser beam fires to the
+ STA XX15+4             \ left edge of the screen
  STA XX15+5
- STA XX12+1             \ y2 high = 0
- LDA XX1+6              \ z ship lo
- STA XX12               \ y2 low = z-lo
- LDA XX1+2              \ xship-sgn
- BPL P%+4               \ skip dec
- DEC XX15+4             \ else x2 lo =#255 to right across screen
- JSR LL145              \ clip test on XX15 XX12 vector
- BCS LL170              \ if carry set skip the rest (laser not firing)
- LDY U                  \ ship line heap offset
- LDA XX15               \ push (now clipped) to clipped lines ship heap
- STA (XX19),Y
- INY
- LDA XX15+1             \ Y1
- STA (XX19),Y
- INY
- LDA XX15+2             \ X2
- STA (XX19),Y
- INY
- LDA XX15+3             \ Y2
- STA (XX19),Y
- INY
- STY U                  \ ship line heap offset updated
 
-.LL170                  \ (laser not firing) \ Calculate new lines	\ their comment
+ STA XX12+1             \ Set XX12(1 0) = the ship's z_lo coordinate, which will
+ LDA XX1+6              \ effectively make the vertical position of the end of
+ STA XX12               \ the laser beam move around as the ship moves in space
 
- LDY #3                 \ Hull byte#3 edges lo
- CLC                    \ build base pointer
+ LDA XX1+2              \ If the ship's x_sign is positive, skip the next
+ BPL P%+4               \ instruction
+
+ DEC XX15+4             \ The ship's x_sign is negative (i.e. it's on the left
+                        \ side of the screen), so switch the laser beam so it
+                        \ goes to the right edge of the screen by decrementing
+                        \ XX15(5 4) to 255
+
+ JSR LL145              \ Call LL145 to see if the laser beam needs to be
+                        \ clipped to fit on-screen, returning the clipped line's
+                        \ end-points in (X1, Y1) and (X2, Y2)
+
+ BCS LL170              \ If the C flag is set then the line is not visible on
+                        \ screen, so jump to LL170 so we don't store this line
+                        \ in the ship line heap
+
+ LDY U                  \ Fetch the ship line heap pointer, which points to the
+                        \ next free byte on the heap, into Y
+
+ LDA XX15               \ Add X1 to the end of the heap
+ STA (XX19),Y
+
+ INY                    \ Increment the heap pointer
+
+ LDA XX15+1             \ Add Y1 to the end of the heap
+ STA (XX19),Y
+
+ INY                    \ Increment the heap pointer
+
+ LDA XX15+2             \ Add X2 to the end of the heap
+ STA (XX19),Y
+
+ INY                    \ Increment the heap pointer
+
+ LDA XX15+3             \ Add Y2 to the end of the heap
+ STA (XX19),Y
+
+ INY                    \ Increment the heap pointer
+
+ STY U                  \ Store the updated ship line heap pointer in U
+
+.LL170
+
+ LDY #3                 \ Fetch byte #3 of the ship's blueprint, which contains
+ CLC                    \ the low byte of the offset to the edges data
  LDA (XX0),Y
- ADC XX0
- STA V                  \ is pointer to where edges data start
- LDY #16                \ Hull byte #16 edges hi
- LDA (XX0),Y
- ADC XX0+1
- STA V+1
- LDY #5                 \ Hull byte#5 is 4*MAXLI + 1, for ship lines stack
- LDA (XX0),Y
- STA T1                 \ 4*MAXLI + 1, edge counter limit
- LDY XX17               \ edge counter
 
-.LL75                   \ count Visible edges
-
- LDA (V),Y              \ edge data byte#0
- CMP XX4                \ visibility
- BCC LL78               \ edge not visible
- INY
- LDA (V),Y              \ edge data byte#1
- INY                    \ Y = 2
- STA P                  \ store byte#1
- AND #15
- TAX                    \ lower 4 bits are face1
- LDA XX2,X              \ face visibility
- BNE LL79               \ hop down to Visible edge
- LDA P                  \ restore byte#1
- LSR A
- LSR A
- LSR A
- LSR A                  \ /=16 upper nibble
- TAX                    \ upper 4 bits are face2
- LDA XX2,X              \ face visibility
- BEQ LL78               \ edge not visible
-
-.LL79                   \ Visible edge
-
- LDA (V),Y              \ edge data byte#2
- TAX                    \ index into node heap for first node of edge
- INY                    \ Y = 3
- LDA (V),Y              \ edge data byte#3
- STA Q                  \ index into node heap for other node of edge
- LDA XX3+1,X
- STA XX15+1             \ x1 hi
- LDA XX3,X
- STA XX15               \ x1 lo
- LDA XX3+2,X
- STA XX15+2             \ y1 lo
- LDA XX3+3,X
- STA XX15+3             \ y1 hi
- LDX Q                  \ other index into node heap for second node
- LDA XX3,X
- STA XX15+4             \ x2 lo
- LDA XX3+3,X
- STA XX12+1             \ y2 hi
- LDA XX3+2,X
- STA XX12               \ y2 lo
- LDA XX3+1,X
- STA XX15+5             \ x2 hi
- JSR LL147              \ CLIP2, take care of swop and clips
- BCS LL78               \ jmp LL78 edge not visible
-
-.LL80                   \ Shove visible edge onto XX19 ship line heap counter U
-
- LDY U                  \ clipped edges heap index
- LDA XX15               \ X1
- STA (XX19),Y
- INY
- LDA XX15+1             \ Y1
- STA (XX19),Y
- INY
- LDA XX15+2             \ X2
- STA (XX19),Y
- INY
- LDA XX15+3             \ Y2
- STA (XX19),Y
- INY
- STY U                  \ clipped ship line heap index
- CPY T1                 \ >=  4*MAXLI + 1 counter limit
- BCS LL81               \ hop over jmp to Exit edge data loop
-
-.LL78                   \ also arrive here if Edge not visible, loop next data edge
-
- INC XX17               \ edge counter
- LDY XX17
- CPY XX20               \ number of edges
- BCS LL81               \ hop over jmp to Exit edge data loop
- LDY #0                 \ else next edge
- LDA V
- ADC #4                 \ take edge data pointer up to next edge
+ ADC XX0                \ Set V = low byte edges offset + XX0
  STA V
- BCC ll81               \ skip inc hi
- INC V+1
 
-.ll81                   \ skip inc hi
+ LDY #16                \ Fetch byte #16 of the ship's blueprint, which contains
+ LDA (XX0),Y            \ the high byte of the offset to the edges data
 
- JMP LL75               \ Loop Next Edge
+ ADC XX0+1              \ Set V+1 = high byte edges offset + XX0+1
+ STA V+1                \
+                        \ So V(1 0) now points to the start of the edges data
+                        \ for this ship
 
-.^LL81                  \ Exited edge data loop
+ LDY #5                 \ Fetch byte #5 of the ship's blueprint, which contains
+ LDA (XX0),Y            \ the maximum heap size for plotting the ship (which is
+ STA T1                 \ 1 + 4 * the maximum number of visible edges) and store
+                        \ it in T1
 
- LDA U                  \ clipped ship line heap index for (XX19),Y
- LDY #0                 \ first entry in ship edges heap is number of bytes
+ LDY XX17               \ Set Y to the edge counter in XX17
+
+.LL75
+
+ LDA (V),Y              \ Fetch byte #0 for this edge, which contains the
+                        \ visibility distance for this edge, beyond which the
+                        \ edge is not shown
+
+ CMP XX4                \ If XX4 > the visibility distance, where XX4 contains
+ BCC LL78               \ the ship's z-distance reduced to 0-31 (which we set in
+                        \ part 2), then this edge is too far away to be visible,
+                        \ so jump down to LL78 to move on to the next edge
+
+ INY                    \ Increment Y to point to byte #1
+
+ LDA (V),Y              \ Fetch byte #1 for this edge into A, so:
+                        \
+                        \   A = %ffff ffff, where:
+                        \
+                        \     * Bits 0-3 = the number of face 1
+                        \
+                        \     * Bits 4-7 = the number of face 2
+
+ INY                    \ Increment Y to point to byte #2
+
+ STA P                  \ Store byte #1 into P
+
+ AND #%00001111         \ Extract the number of face 1 into X
+ TAX
+
+ LDA XX2,X              \ If XX2+X is non-zero then we decided in part 5 that
+ BNE LL79               \ face 1 is visible, so jump to LL79
+
+ LDA P                  \ Fetch byte #1 for this edge into A
+
+ LSR A                  \ Shift right four times to extract the number of face 2
+ LSR A                  \ from bits 4-7 into X
+ LSR A
+ LSR A
+ TAX
+
+ LDA XX2,X              \ If XX2+X is zero then we decided in part 5 that
+ BEQ LL78               \ face 2 is hidden, so jump to LL78
+
+.LL79
+
+                        \ We now build the screen line for this edge, as
+                        \ follows:
+                        \
+                        \   XX15(1 0) = start x-coordinate
+                        \
+                        \   XX15(3 2) = start y-coordinate
+                        \
+                        \   XX15(5 4) = end x-coordinate
+                        \
+                        \   XX12(1 0) = end y-coordinate
+                        \
+                        \ We can then pass this to the line clipping routine
+                        \ before storing the resulting line in the ship line
+                        \ heap
+
+ LDA (V),Y              \ Fetch byte #2 for this edge into X, which contains
+ TAX                    \ the number of the vertex at the start of the edge
+
+ INY                    \ Increment Y to point to byte #3
+
+ LDA (V),Y              \ Fetch byte #3 for this edge into X, which contains
+ STA Q                  \ the number of the vertex at the end of the edge
+
+ LDA XX3+1,X            \ Fetch the x_hi coordinate of the edge's start vertex
+ STA XX15+1             \ from the XX3 heap into XX15+1
+
+ LDA XX3,X              \ Fetch the x_lo coordinate of the edge's start vertex
+ STA XX15               \ from the XX3 heap into XX15
+
+ LDA XX3+2,X            \ Fetch the y_lo coordinate of the edge's start vertex
+ STA XX15+2             \ from the XX3 heap into XX15+2
+
+ LDA XX3+3,X            \ Fetch the y_hi coordinate of the edge's start vertex
+ STA XX15+3             \ from the XX3 heap into XX15+3
+
+ LDX Q                  \ Set X to the number of the vertex at the end of the
+                        \ edge, which we stored in Q
+
+ LDA XX3,X              \ Fetch the x_lo coordinate of the edge's end vertex
+ STA XX15+4             \ from the XX3 heap into XX15+4
+
+ LDA XX3+3,X            \ Fetch the y_hi coordinate of the edge's end vertex
+ STA XX12+1             \ from the XX3 heap into XX11+1
+
+ LDA XX3+2,X            \ Fetch the y_lo coordinate of the edge's end vertex
+ STA XX12               \ from the XX3 heap into XX12
+
+ LDA XX3+1,X            \ Fetch the x_hi coordinate of the edge's end vertex
+ STA XX15+5             \ from the XX3 heap into XX15+5
+
+ JSR LL147              \ Call LL147 to see if the new line segment needs to be
+                        \ clipped to fit on-screen, returning the clipped line's
+                        \ end-points in (X1, Y1) and (X2, Y2)
+
+ BCS LL78               \ If the C flag is set then the line is not visible on
+                        \ screen, so jump to LL78 so we don't store this line
+                        \ in the ship line heap
+
+.LL80
+
+ LDY U                  \ Fetch the ship line heap pointer, which points to the
+                        \ next free byte on the heap, into Y
+
+ LDA XX15               \ Add X1 to the end of the heap
  STA (XX19),Y
 
-.^LL155                 \ CLEAR LINEstr visited by EE31 when XX3 heap ready to draw/erase lines in XX19 heap
+ INY                    \ Increment the heap pointer
 
- LDY #0                 \ number of bytes
- LDA (XX19),Y
- STA XX20               \ valid length of heap XX19
- CMP #4                 \ if < 4 then
- BCC LL118-1            \ rts
- INY                    \ #1
+ LDA XX15+1             \ Add Y1 to the end of the heap
+ STA (XX19),Y
 
-.LL27                   \ counter Y, Draw clipped lines in XX19 ship line heap
+ INY                    \ Increment the heap pointer
 
- LDA (XX19),Y
- STA XX15               \ X1
- INY
- LDA (XX19),Y
- STA XX15+1             \ Y1
- INY
- LDA (XX19),Y
- STA XX15+2             \ X2
- INY
- LDA (XX19),Y
- STA XX15+3             \ Y2
- JSR LL30               \ draw line using (X1,Y1), (X2,Y2)
- INY                    \ +=4
- CPY XX20               \ valid number of edges in heap XX19
- BCC LL27               \ loop Y
-\LL82
- RTS                    \ --- Wireframe end  \ LL118-1
+ LDA XX15+2             \ Add X2 to the end of the heap
+ STA (XX19),Y
+
+ INY                    \ Increment the heap pointer
+
+ LDA XX15+3             \ Add Y2 to the end of the heap
+ STA (XX19),Y
+
+ INY                    \ Increment the heap pointer
+
+ STY U                  \ Store the updated ship line heap pointer in U
+
+ CPY T1                 \ If Y >= T1 then we have reached the maximum number of edge
+ BCS LL81               \ lines that we can store in the ship line heap, so skip to
+                        \ LL81 so we don't loop back for the next edge
+
+.LL78
+
+ INC XX17               \ Increment the edge counter to point to the next edge
+
+ LDY XX17               \ If Y >= XX20, which contains the number of edges in
+ CPY XX20               \ the blueprint, jump to LL81 as we have processed all
+ BCS LL81               \ the edges
+
+ LDY #0                 \ Set Y to point to byte #0 again, ready for the next
+                        \ edge
+
+ LDA V                  \ Increment V by 4 so V(1 0) points to the data for the
+ ADC #4                 \ next edge
+ STA V
+
+ BCC ll81               \ If the above addition didn't overflow, jump to ll81
+
+ INC V+1                \ Otherwise increment the high byte of V(1 0), as we
+                        \ just moved the V(1 0) pointer past a page boundary
+
+.ll81
+
+ JMP LL75               \ Loop back to LL75 to process the next edge
+
+.^LL81
+
+                        \ We have finished adding lines to the ship line heap,
+                        \ so now we need to set the first byte of the heap to
+                        \ the number of bytes stored there
+
+ LDA U                  \ Fetch the ship line heap pointer from U into A, which
+                        \ points to the end of the heap, and therefore contains
+                        \ the heap size
+
+ LDY #0                 \ Store A as the first byte of the ship line heap, so
+ STA (XX19),Y           \ the heap is now correctly set up
+
+\ ******************************************************************************
+\
+\ Subroutine: LL9 (Part 10 of 10)
+\
+\ Draw the current ship on the screen. This part draws the lines in the ship
+\ line heap, which is used both to draw the ship, and to remove it from the
+\ screen.
+\
+\ ******************************************************************************
+
+.^LL155
+
+ LDY #0                 \ Fetch the first byte from the ship line heap into A,
+ LDA (XX19),Y           \ which contains the number of bytes in the heap
+
+ STA XX20               \ Store the heap size in XX20
+
+ CMP #4                 \ If the heap size is less than 4, there is nothing to
+ BCC LL118-1            \ draw, so return from the subroutine (as LL118-1
+                        \ contains an RTS)
+
+ INY                    \ Set Y = 1, which we will use as an index into the ship
+                        \ line heap, starting at byte #1 (as byte #0 contains
+                        \ the heap size)
+
+.LL27
+
+ LDA (XX19),Y           \ Fetch the X1 line coordinate from the heap and store
+ STA XX15               \ it in XX15
+
+ INY                    \ Increment the heap pointer
+
+ LDA (XX19),Y           \ Fetch the Y1 line coordinate from the heap and store
+ STA XX15+1             \ it in XX15+1
+
+ INY                    \ Increment the heap pointer
+
+ LDA (XX19),Y           \ Fetch the X2 line coordinate from the heap and store
+ STA XX15+2             \ it in XX15+2
+
+ INY                    \ Increment the heap pointer
+
+ LDA (XX19),Y           \ Fetch the Y2 line coordinate from the heap and store
+ STA XX15+3             \ it in XX15+3
+
+ JSR LL30               \ Draw a line from (X1, Y1) to (X2, Y2)
+
+ INY                    \ Increment the heap pointer
+
+ CPY XX20               \ If the heap counter is less than the size of the heap,
+ BCC LL27               \ loop back to LL27 to draw the next line from the heap
+
+\LL82                   \ This label is commented out in the original source
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -36118,7 +36699,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   LL147               Don't set the values in SWAP or A
+\   LL147               Don't initialise the values in SWAP or A
 \
 \ ******************************************************************************
 \
@@ -36752,18 +37333,20 @@ ENDMACRO
 \
 \   * Byte #3           Edges data offset low byte (offset is from byte #0)
 \
-\   * Byte #4           Faces data offset low byte(offset is from byte #0)
+\   * Byte #4           Faces data offset low byte (offset is from byte #0)
 \
 \   * Byte #5           Maximum heap size for plotting ship = 1 + 4 * max. no of
 \                       visible edges
 \
-\   * Byte #6           Number * 4 of the vertex used for the gun spike, if
-\                       applicable
+\   * Byte #6           Number * 4 of the vertex used for the ship's laser
+\                       position, for when the ship fires its lasers
 \
 \   * Byte #7           Explosion count = 4 * n + 6, where n = number of
 \                       vertices used as origins for explosion dust
 \
 \   * Byte #8           Number of vertices * 6
+\
+\   * Byte #9           Number of edges
 \
 \   * Byte #10-11       The bounty awarded for the destruction of this ship in
 \                       Cr * 10 (16-bit little-endian value, 10 = low byte,
@@ -36783,8 +37366,8 @@ ENDMACRO
 \
 \   * Byte #17          Faces data offset high byte
 \
-\   * Byte #18          Normals are scaled by 2 ^ this value to make large
-\                       ships' normals flare out further away (see EE29)
+\   * Byte #18          Face normals are scaled down by 2 ^ this value to enable
+\                       us to store more accurate fractional data in the table
 \
 \   * Byte #19          %00 lll mmm, where:
 \
@@ -36832,9 +37415,9 @@ ENDMACRO
 \
 \                         * Bits 4-7 = the number of face 2
 \
-\   * Byte 2            The number of the vertex at one end of the edge
+\   * Byte 2            The number of the vertex at the start the edge
 \
-\   * Byte 3            The number of the vertex at the other end of the edge
+\   * Byte 3            The number of the vertex at the end of the edge
 \
 \ Finally we have the face definitions. Each face is made up of four values
 \ stored in four bytes, as follows. Note that the visibility distance works in
@@ -37831,15 +38414,19 @@ ORG CODE_PYTHON%
  FACE      -25,      -37,      -11,         30    \ Face 11
  FACE        0,        0,     -112,         30    \ Face 12
 
- SKIP 11
+ SKIP 11                \ This space is unused
 
-.SVN                    \ SVN = &7FFD
+.SVN
 
- EQUB 0                 \ Set to 1 while we are saving a commander, 0 otherwise
+ EQUB 0                 \ SVN = &7FFD
+                        \
+                        \ Set to 1 while we are saving a commander, 0 otherwise
 
-.VEC                    \ VEC = &7FFE
+.VEC
 
- EQUW 0                 \ Set to the original IRQ1 vector by elite-loader.asm
+ EQUW 0                 \ VEC = &7FFE
+                        \
+                        \ Set to the original IRQ1 vector by elite-loader.asm
 
 \ ******************************************************************************
 \
