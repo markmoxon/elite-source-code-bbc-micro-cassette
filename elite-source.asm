@@ -13343,7 +13343,7 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ see if we can fire a missile
 
  LDA INWK+31            \ Set A = bits 0-2 of INWK+31, the number of missiles
- AND #%111              \ the ship has left
+ AND #%00000111         \ the ship has left
 
  BEQ TA3                \ If it doesn't have any missiles, jump to TA3
 
@@ -13433,7 +13433,7 @@ LOAD_C% = LOAD% +P% - CODE%
  BCC TA4                \ ship's line of fire, so jump to TA4
 
  LDA INWK+31            \ Set bit 6 on INWK+31 to denote that the ship is firing
- ORA #64                \ its laser at us
+ ORA #%01000000         \ its laser at us
  STA INWK+31
 
  CPX #163               \ If X < 163, i.e. X > -35, then we are not in the enemy
@@ -18137,7 +18137,7 @@ NEXT
 {
  LDA INWK+31            \ Fetch the ship's scanner flag from INWK+31
 
- AND #16                \ If bit 4 is clear then the ship should not be shown
+ AND #%00010000         \ If bit 4 is clear then the ship should not be shown
  BEQ SC5                \ on the scanner, so return from the subroutine (as SC5
                         \ contains an RTS)
 
@@ -24141,194 +24141,429 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: DOEXP
 \
-\ Do Explosion as bit5 set by LL9
+\ Draw an exploding ship.
+\
+\ ******************************************************************************
+\
+\ Deep dive: Explosion clouds
+\ ---------------------------
+\ Instead of storing lines on the ship line heap, we store details of the ship's
+\ explosion cloud on the heap. This is the heap structure:
+\
+\   * Byte #0 = cloud size
+\
+\   * Byte #1 = cloud counter, starts at 18,
+\     increases by 4 each time we redraw the cloud, cloud expands until 128,
+\     shrinks until it overflows, then the cloud disappears
+\
+\   * Byte #2 = explosion count for this ship from the blueprint (i.e. the
+\     number of vertices used as origins for explosion clouds)
+\
+\   * Bytes #3 to #6 = random seeds to pass to DORND2 at the start of the
+\     drawing process, so we can redraw the exact same cloud again
+\
+\   * Bytes 7 onwards = coordinates of the visible vertices for the exploding
+\     ship, so we can generate clouds around them (or, specifically, if byte #2
+\     is n, the first n of them)
+\
+\ The block above is set up when a ship explodes, in place of the ship lines
+\ themselves, as exploding ships don't have any lines any more.
+\
+\ The process for drawing explosion clouds is as follows:
+\
+\   * Redraw the existing explosion cloud, if there is one, to remove it from
+\     the screen
+\
+\   * Increase the cloud counter by 4 (it starts at 18 for new explosions)
+\
+\   * Set the cloud size to cloud counter / distance, so the further away the
+\     cloud, the smaller it is, and as the cloud counter ticks onward, the cloud
+\     expands
+\
+\   * Use the cloud counter to determine the number of particles in each vertex
+\     cloud, so the cloud has more particles as the counter increases, until it
+\     gets past 128, after which the number decreases
+\
+\   * For the first n vertices (where n is the explosion count from the ship's
+\     blueprint), do the following:
+\
+\     * Fetch the vertex coordinates from the XX3 workspace into the ship line
+\       heap
+\
+\     * Seed the random number generator with four bytes from the ship line heap
+\
+\     * Plot randomly placed points within the radius of the vertex, with the
+\       number of particles set above, with random sizes
 \
 \ ******************************************************************************
 
 {
 .EX2
 
- LDA INWK+31            \ exploding/display state|missiles
- ORA #&A0               \ bit7 to kill it, bit5 finished exploding
+ LDA INWK+31            \ Set bits 5 and 7 of the ship's byte #31 to denote that
+ ORA #%10100000         \ the ship is exploding and has been killed
  STA INWK+31
+
  RTS                    \ Return from the subroutine
 
-.^DOEXP                 \ Do Explosion as bit5 set by LL9
+.^DOEXP
 
- LDA INWK+31
- AND #64                \ display state keep bit6
- BEQ P%+5               \ exploding not started, skip ptcls
- JSR PTCLS              \ else exploding has started, remove old plot Cloud
- LDA INWK+6             \ zlo. All do a round of cloud counter
+ LDA INWK+31            \ If bit 6 of the ship's byte #31 is clear, then the
+ AND #%01000000         \ ship is not already exploding so there is no existing
+ BEQ P%+5               \ explosion cloud to remove, so skip the following
+                        \ instruction
+
+ JSR PTCLS              \ Call PTCLS to remove the existing cloud by drawing it
+                        \ again
+
+ LDA INWK+6             \ Set T = z_lo
  STA T
- LDA INWK+7
- CMP #&20               \ zhi < 32,  boost*8
- BCC P%+6               \ skip default
- LDA #&FE               \ furthest cloud distance
- BNE yy                 \ guaranteed Cloud
- ASL T                  \ else use zlo
- ROL A                  \ *=2
+
+ LDA INWK+7             \ Set A = z_hi, so (A T) = z
+
+ CMP #32                \ If z_hi < 32, skip the next two instructions
+ BCC P%+6
+
+ LDA #&FE               \ Set A = 254 and jump to yy (this BNE is effectively a
+ BNE yy                 \ JMP, as A is never zero)
+
+ ASL T                  \ Shift (A T) left twice
+ ROL A
  ASL T
- ROL A                  \ z lo.hi*=4
- SEC                    \ ensure cloud distance not 0
  ROL A
 
-.yy                     \ Cloud
+ SEC                    \ And then shift A left once more, inserting a 1 into
+ ROL A                  \ bit 0
 
- STA Q                  \ cloud distance
- LDY #1                 \ get ship heap byte1, which started at #18
- LDA (XX19),Y
- ADC #4                 \ +=4 Cloud counter
- BCS EX2                \ until overflow and ready to removed, up
+                        \ Overall, the above multiplies A by 8 and makes sure it
+                        \ is at least 1, to leave a one-byte distance in A. We
+                        \ can use this as the distance for our cloud, to ensure
+                        \ that the explosion cloud is visible even for ships
+                        \ that blow up a long way away
 
- STA (XX19),Y           \ else update Cloud counter
- JSR DVID4              \ P.R = cloud counter/cloud distance
- LDA P
- CMP #&1C               \ hi < #28 ?
- BCC P%+6               \ cloud radius < 28 skip max
- LDA #&FE               \ else max radius
- BNE LABEL_1            \ guaranteed  Acc = Cloud radius
+.yy
+
+ STA Q                  \ Store the distance to the explosion in Q
+
+ LDY #1                 \ Fetch byte #1 of the ship line heap, which contains
+ LDA (XX19),Y           \ the cloud counter
+
+ ADC #4                 \ Add 4 to the cloud counter, so it ticks onwards every
+                        \ we redraw it
+
+ BCS EX2                \ If the addition overflowed, jump up to EX2 to update
+                        \ the explosion flags and return from the subroutine
+
+ STA (XX19),Y           \ Store the updated cloud counter in byte #1 of the ship
+                        \ line heap
+
+ JSR DVID4              \ Calculate the following:
+                        \
+                        \   (R P) = A / Q
+                        \         = cloud counter / distance
+                        \
+                        \ We are going to use this as our cloud size, so the
+                        \ further away the cloud, the smaller it is, and as the
+                        \ cloud counter ticks onward, the cloud expands
+
+ LDA P                  \ Set A = P, so we now have:
+                        \
+                        \   (R A) = cloud counter / distance
+
+ CMP #&1C               \ If A < 28, skip the next two instructions
+ BCC P%+6
+
+ LDA #&FE               \ Set A = 254 and skip the following (this BNE is
+ BNE LABEL_1            \ effectively a JMP as A is never zero)
+
+ ASL R                  \ Shift (R A) left three times to multiply by 8
+ ROL A
  ASL R
- ROL A                  \ *=2
+ ROL A
  ASL R
- ROL A                  \ *=4
- ASL R
- ROL A                  \ *=8
+ ROL A
 
-.LABEL_1                \ Acc = Cloud radius
+                        \ Overall, the above multiplies A by 8 to leave a
+                        \ one-byte cloud size in A
 
- DEY                    \ Y = 0, save ship heap byte0 = Cloud radius
- STA (XX19),Y
- LDA INWK+31            \ display explosion state|missiles
- AND #&BF               \ clear bit6 in case can't start
+.LABEL_1
+
+ DEY                    \ Decrement Y to 0
+
+ STA (XX19),Y           \ Store the cloud size in byte #0 of the ship line heap
+
+ LDA INWK+31            \ Clear bit 6 of the ship's byte #31 to denote that the
+ AND #%10111111         \ explosion has not yet been drawn
  STA INWK+31
- AND #8                 \ keep bit3 of display state, something to erase?
- BEQ TT48               \ rts, up
 
- LDY #2                 \ else ship heap byte2 = hull byte#7 dust
- LDA (XX19),Y
- TAY                    \ Y counter multiples of 4, greater than 6
+ AND #%00001000         \ If bit 3 of the ship's byte #31 is clear, then nothing
+ BEQ TT48               \ is being drawn on-screen for this ship anyway, so
+                        \ return from the subroutine (as TT48 contains an RTS)
 
-.EXL1                   \ counter Y
+ LDY #2                 \ Otherwise it's time to draw an explosion cloud, so
+ LDA (XX19),Y           \ fetch byte #2 of the ship line heap into Y, which we
+ TAY                    \ set to the explosion count for this ship (i.e. the
+                        \ number of vertices used as origins for explosion
+                        \ clouds)
+                        \
+                        \ The explosion count is stored as 4 * n + 6, where n is
+                        \ the number of vertices, so the following loop copies
+                        \ the coordinates of the first n vertices from the heap
+                        \ at XX3, which is where we stored all the visible
+                        \ vertex coordinates in part 8 of the LL9 routine, and
+                        \ sticks them in the ship line heap pointed to by XX19,
+                        \ starting at byte #7 (so it leaves the first 6 bytes of
+                        \ the ship line heap alone)
 
- LDA XX3-7,Y            \ from (all visible) vertex heap
- STA (XX19),Y           \ to ship heap
- DEY                    \ next vertex
- CPY #6                 \ until down to 7
- BNE EXL1               \ loop Y
- LDA INWK+31
- ORA #64                \ set bit6 so this dust will be erased
+.EXL1
+
+ LDA XX3-7,Y            \ Copy byte Y-7 from the XX3 heap, into the Y-th byte of
+ STA (XX19),Y           \ the ship line heap
+
+ DEY                    \ Decrement the loop counter
+
+ CPY #6                 \ Keep copying vertex coordinates into the ship line
+ BNE EXL1               \ heap until Y = 6 (which will copy n vertices, where n
+                        \ is the number of vertices we should be exploding)
+
+ LDA INWK+31            \ Set bit 6 of the ship's byte #31 to denote that the
+ ORA #%01000000         \ explosion has been drawn (as it's about to be)
  STA INWK+31
 
-.PTCLS                  \ plot Cloud
+.PTCLS
 
- LDY #0                 \ ship heap byte0 = Cloud radius
- LDA (XX19),Y
- STA Q                  \ Cloud radius
- INY                    \ ship byte1 = Cloud counter
- LDA (XX19),Y
- BPL P%+4               \ Cloud counter not half way, skip flip
- EOR #&FF               \ else more than half way through cloud counter
+                        \ This part of the routine actually draws the explosion
+                        \ cloud
+
+ LDY #0                 \ Fetch byte #0 of the ship line heap, which contains
+ LDA (XX19),Y           \ the cloud size we stored above, and store it in Q
+ STA Q
+
+ INY                    \ Increment the index in Y to point to byte #1
+
+ LDA (XX19),Y           \ Fetch byte #1 of the ship line heap, which contains
+                        \ the cloud counter. We are now going to process this
+                        \ into the number of particles in each vertex's cloud
+
+ BPL P%+4               \ If the cloud counter < 128, then we are in the first
+                        \ half of the cloud's existence, so skip the next
+                        \ instruction
+
+ EOR #&FF               \ Flip the value of A so that in the second half of the
+                        \ cloud's existence, A counts down instead of up
+
+ LSR A                  \ Divide A by 8 so that is has a maximum value of 15
  LSR A
  LSR A
- LSR A                  \ cloud counter/8 max = 15 pixels
-                        \ pixel count set
- ORA #1                 \ 1 min
- STA U                  \ number of pixels per vertex
- INY                    \ ship byte2 = dust = counter target
- LDA (XX19),Y
- STA TGT                \ = hull byte#7 dust = counter target
- LDA RAND+1
- PHA                    \ restrict random
 
- LDY #6                 \ ship heap index at vertex-1
+ ORA #1                 \ Make sure A is at least 1 and store it in U, to
+ STA U                  \ give us the number of particles in the explosion for
+                        \ each vertex
 
-.EXL5                   \ counter Y=CNT Outer loop +=4 for each vertex on ship heap
+ INY                    \ Increment the index in Y to point to byte #2
 
- LDX #3
+ LDA (XX19),Y           \ Fetch byte #3 of the ship line heap, which contains
+ STA TGT                \ the explosion count for this ship (i.e. the number of
+                        \ vertices used as origins for explosion clouds) and
+                        \ store it in TGT
 
-.EXL3                   \ counter X, K3 loaded with reversed vertex from heap
+ LDA RAND+1             \ Fetch the current random number seed in RAND+1 and
+ PHA                    \ store it on the stack, so we can re-randomise the
+                        \ seeds when we are done
 
- INY                    \ Y++ = 7 start is a vertex on ship heap
- LDA (XX19),Y
- STA K3,X               \ Yorg hi,lo, Xorg hi,lo
- DEX                    \ next coord
- BPL EXL3               \ loop X
- STY CNT                \ store index for vertex on ship heap
- LDY #2
+ LDY #6                 \ Set Y = 6 to point to the byte before the first vertex
+                        \ coordinate we stored on the ship line heap above (we
+                        \ increment it below so it points to the first vertex)
 
-.EXL2                   \ inner counter Y to set rnd for each vertex
+.EXL5
 
- INY                    \ Y++ = 3 start, the 4 randoms on ship heap
- LDA (XX19),Y
- EOR CNT                \ rnd seeded for each vertex CNT
- STA &FFFD,Y            \ using bytes 3,4,5,6
- CPY #6                 \ 6 is last one
- BNE EXL2               \ loop next inner Y rnd seed
- LDY U                  \ number of pixels per vertex
+ LDX #3                 \ We are about to fetch a pair of coordinates from the
+                        \ ship line heap, so set a counter in X for 4 bytes
 
-.EXL4                   \ counter Y for pixels at each (reversed) vertex in K3
+.EXL3
 
- JSR DORND2             \ leave bit0 of RAND+2 at 0
- STA ZZ                 \ restricted pixel depth
- LDA K3+1               \ Yorg lo
+ INY                    \ Increment the index in Y so it points to the next byte
+                        \ from the coordinate we are copying
+
+ LDA (XX19),Y           \ Copy the Y-th byte from the ship line heap to the X-th
+ STA K3,X               \ byte of K3
+
+ DEX                    \ Decrement the X index
+
+ BPL EXL3               \ Loop back to EXL3 until we have copied all four bytes
+
+                        \ The above loop copies the vertex coordinates from the
+                        \ ship line heap to K3, reversing them as we go, so it
+                        \ sets the following:
+                        \
+                        \   K3+3 = x_lo
+                        \   K3+2 = x_hi
+                        \   K3+1 = y_lo
+                        \   K3+0 = y_hi
+
+ STY CNT                \ Set CNT to the index that points to the next vertex on
+                        \ the ship line heap
+
+ LDY #2                 \ Set Y = 2, which we will use to point to bytes #3 to
+                        \ #6, after incrementing it
+
+                        \ This next loop copies bytes #3 to #6 from the ship
+                        \ line heap into the four random number seeds in RAND to
+                        \ RAND+3, EOR'ing them with the vertex index so they are
+                        \ different for every vertex. This enables us to
+                        \ generate random numbers for drawing each vertex that
+                        \ are random but repeatable, which we need when we
+                        \ redraw the cloud to remove it
+                        \
+                        \ Note that we haven't actually set the values of bytes
+                        \ #3 to #6 in the ship line heap, so we have no idea
+                        \ what they are, we just use what's already there. But
+                        \ the fact that those bytes are stored for this ship
+                        \ means we can repeat the random generation of the
+                        \ cloud, which is the important bit
+
+.EXL2
+
+ INY                    \ Increment the index in Y so it points to the next
+                        \ random number seed to copy
+
+ LDA (XX19),Y           \ Fetch the Y-th byte from the ship line heap
+
+ EOR CNT                \ EOR with the vertex index, so the seeds are different
+                        \ for each vertex
+
+ STA &FFFD,Y            \ Y is going from 3 to 6, so this stores the four bytes
+                        \ in memory locations &00, &01, &02 and &03, which are
+                        \ the memory locations of RAND through RAND+3
+
+ CPY #6                 \ Loop back to EXL2 until Y = 6, which means we have
+ BNE EXL2               \ copied four bytes
+
+ LDY U                  \ Set Y to the number of particles in the explosion for
+                        \ each vertex, which we stored in U above. We will now
+                        \ use this as a loop counter to iterate through all the
+                        \ particles in the explosion
+
+.EXL4
+
+ JSR DORND2             \ Set ZZ to a random number (also restricts the
+ STA ZZ                 \ value of RAND+2 so that bit 0 is always 0)
+
+ LDA K3+1               \ Set (A R) = (y_hi y_lo)
+ STA R                  \           = y
+ LDA K3
+
+ JSR EXS1               \ Set (A X) = (A R) +/- random * cloud size
+                        \           = y +/- random * cloud size
+
+ BNE EX11               \ If A is non-zero, the particle is off-screen as the
+                        \ coordinate is bigger than 255), so jump to EX11 to do
+                        \ the next particle
+
+ CPX #2*Y-1             \ If X > the y-coordinate of the bottom of the screen,
+ BCS EX11               \ the particle is off the bottom of the screen, so jump
+                        \ to EX11 to do the next particle
+
+                        \ Otherwise X contains a random y-coordinate within the
+                        \ cloud
+
+ STX Y1                 \ Set Y1 = our random y-coordinate within the cloud
+
+ LDA K3+3               \ Set (A R) = (x_hi x_lo)
  STA R
- LDA K3                 \ Yorg hi
- JSR EXS1               \ Xlo.Ahi = Ylo+/-rnd*Cloud radius
- BNE EX11               \ Ahi too big, skip but new rnd
- CPX #2*Y-1             \ #2*Y-1 = Y screen range
- BCS EX11               \ too big, skip but new rnd
- STX Y1                 \ Y coord
- LDA K3+3               \ Xorg lo
- STA R
- LDA K3+2               \ Xorg hi
- JSR EXS1               \ Xlo.Ahi = Xlo+/-rnd*Cloud radius
- BNE EX4                \ skip pixel
- LDA Y1                 \ reload Y coord
- JSR PIXEL              \ at (X,Y1) ZZ away
+ LDA K3+2
 
-.EX4                    \ skipped pixel
+ JSR EXS1               \ Set (A X) = (A R) +/- random * cloud size
+                        \           = x +/- random * cloud size
 
- DEY                    \ loop Y
- BPL EXL4               \ next pixel at vertex
- LDY CNT                \ reload index for vertex on ship heap
- CPY TGT                \ counter target
- BCC EXL5               \ Outer loop, next vertex on ship heap
+ BNE EX4                \ If A is non-zero, the particle is off-screen as the
+                        \ coordinate is bigger than 255), so jump to EX11 to do
+                        \ the next particle
+                        
+                        \ Otherwise X contains a random x-coordinate within the
+                        \ cloud
 
- PLA                    \ restore random
- STA RAND+1
- LDA K%+6               \ planet zlo seed
- STA RAND+3
- RTS
+ LDA Y1                 \ Set A = our random y-coordinate within the cloud
 
-.EX11                   \ skipped pixel as Y too big, but new rnd
+ JSR PIXEL              \ Draw a point at screen coordinate (X, A) with the
+                        \ point size determined by the distance in ZZ
 
- JSR DORND2             \ new restricted rnd
- JMP EX4                \ skipped pixel, up
+.EX4
 
-.EXS1                   \ Xlo.Ahi = Rlo.Ahi+/-rnd*Q
+ DEY                    \ Decrement the loop counter for the next particle
 
- STA S                  \ store origin hi
- JSR DORND2             \ restricted rnd, carry
- ROL A                  \ rnd hi
- BCS EX5                \ negative
- JSR FMLTU              \ Xlo = Arnd*Q=Cloud radius/256
- ADC R
- TAX                    \ Xlo = R+Arnd*Cloud radius/256
- LDA S
- ADC #0                 \ Ahi = S
- RTS
+ BPL EXL4               \ Loop back to EXL4 until we have done all the particles
+                        \ in the cloud
 
-.EX5                    \ rnd hi negative
+ LDY CNT                \ Set Y to the index that points to the next vertex on
+                        \ the ship line heap
+                        
+ CPY TGT                \ If Y < TGT, which we set to the explosion count for
+ BCC EXL5               \ this ship (i.e. the number of vertices used as origins
+                        \ for explosion clouds), loop back to EXL5 to do a cloud
+                        \ for the next vertex
 
- JSR FMLTU              \ A=A*Q/256unsg
- STA T
- LDA R
- SBC T                  \ Arnd*Q=Cloud radius/256
- TAX                    \ Xlo = Rlo-T
- LDA S
- SBC #0                 \ Ahi = S
- RTS                    \ end of explosion code
+ PLA                    \ Restore the current random number seed to RAND+1 that
+ STA RAND+1             \ we stored at the start of the routine
+
+ LDA K%+6               \ Store the z_lo coordinate for the planet (which will
+ STA RAND+3             \ pretty random) in the RAND+3 seed
+
+ RTS                    \ Return from the subroutine
+
+.EX11
+
+ JSR DORND2             \ Set A and X to random numbers (also restricts the
+                        \ value of RAND+2 so that bit 0 is always 0)
+
+ JMP EX4                \ We just skipped a particle, so jump up to EX4 to do
+                        \ the next one
+
+.EXS1
+
+                        \ This routine calculates the following:
+                        \
+                        \   (A X) = (A R) +/- random * cloud size
+                        \
+                        \ returning with the flags set for the high byte in A
+
+ STA S                  \ Store A in S so we can use it later
+
+ JSR DORND2             \ Set A and X to random numbers (also restricts the
+                        \ value of RAND+2 so that bit 0 is always 0)
+
+ ROL A                  \ Set A = A * 2
+
+ BCS EX5                \ If bit 7 of A was set (50% chance), jump to EX5
+
+ JSR FMLTU              \ Set A = A * Q / 256
+                        \       = random << 1 * projected cloud size / 256
+
+ ADC R                  \ Set (A X) = (S R) + A
+ TAX                    \           = (S R) + random * projected cloud size
+                        \
+                        \ where S contains the argument A, starting with the low
+                        \ bytes
+
+ LDA S                  \ And then the high bytes
+ ADC #0
+
+ RTS                    \ Return from the subroutine
+
+.EX5
+
+ JSR FMLTU              \ Set T = A * Q / 256
+ STA T                  \       = random << 1 * projected cloud size / 256
+
+ LDA R                  \ Set (A X) = (S R) - T
+ SBC T                  \
+ TAX                    \ where S contains the argument A, starting with the low
+                        \ bytes
+
+ LDA S                  \ And then the high bytes
+ SBC #0
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
@@ -24752,9 +24987,9 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JSR DVID4              \ Calculate the following:
                         \
-                        \ (R P) = A / Q
-                        \       = |argument A| * 2 / 20
-                        \       = |argument A| / 10
+                        \   (R P) = A / Q
+                        \         = |argument A| * 2 / 20
+                        \         = |argument A| / 10
 
  LDX P                  \ Set X to P, the low byte of the result
 
@@ -29280,33 +29515,22 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine: DORND2
-\
-\ A version of DORND that restricts the value of r2 so that bit 0 is always 0.
-\ Having C cleared changes the calculations in DORND to:
-\
-\   r2´ = ((r0 << 1) mod 256)
-\   r0´ = r2´ + r2 + bit 7 of r0
-\
-\ so r2´ always has bit 0 cleared, i.e. r2 is always a multiple of 2.
-\
-\ ******************************************************************************
-
-.DORND2
-{
- CLC                    \ This ensures that bit 0 of r2 is 0
-}
-
-\ ******************************************************************************
-\
 \ Subroutine: DORND
 \
 \ Set A and X to random numbers. Carry flag is also set randomly. Overflow flag
 \ will be have a 50% probability of being 0 or 1.
 \
-\ There are two calculations of two 8-bit numbers in this routine. The first
-\ pair is at RAND and RAND+2 (let's call them r0 and r2) and the second pair
-\ is at RAND+1 and RAND+3 (let's call them r1 and r3).
+\ Other entry points:
+\
+\   DORND2              Restricts the value of RAND+2 so that bit 0 is always 0
+\
+\ ******************************************************************************
+\
+\ Deep dive: Generating random numbers
+\ ------------------------------------
+\ There are two calculations of two 8-bit numbers in the DORND routine. The
+\ first pair is at RAND and RAND+2 (let's call them r0 and r2) and the second
+\ pair is at RAND+1 and RAND+3 (let's call them r1 and r3).
 \
 \ The values of r0 and r2 are not read by any other routine apart from this
 \ one, so they are effectively internal to the random number generation
@@ -29348,10 +29572,23 @@ LOAD_F% = LOAD% + P% - CODE%
 \ of as a number sequence, with A being the next number in the sequence and X
 \ being the value of A from the previous call.
 \
+\ In DORND2, we enter with the C flag clear, which changes the calculations in
+\ DORND to:
+\
+\   r2´ = ((r0 << 1) mod 256)
+\   r0´ = r2´ + r2 + bit 7 of r0
+\
+\ so r2´ always has bit 0 cleared, i.e. r2 is always a multiple of 2.
+\
 \ ******************************************************************************
 
-.DORND
 {
+.^DORND2
+
+ CLC                    \ This ensures that bit 0 of r2 is 0
+ 
+.^DORND
+
  LDA RAND               \ r2´ = ((r0 << 1) mod 256) + C
  ROL A                  \ r0´ = r2´ + r2 + bit 7 of r0
  TAX
@@ -33295,7 +33532,9 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ This routine sets up four bytes in the ship line heap,
                         \ from byte Y-1 to byte Y+2. If the ship's screen point
                         \ turns out to be off-screen, then this routine aborts
-                        \ the entire call to LL9, exiting via nono
+                        \ the entire call to LL9, exiting via nono. The four
+                        \ bytes define a horizontal 4-pixel dash, for either the
+                        \ top or the bottom of the ship's dot
 
  STA (XX19),Y           \ Store A in byte Y of the ship line heap
 
@@ -33808,14 +34047,22 @@ LOAD_G% = LOAD% + P% - CODE%
 
  JSR EE51               \ Call EE51 to remove the ship from the screen
 
- LDY #1                 \ Set byte 1 of the ship line heap to 18, the initial
- LDA #18                \ value for the explosion cloud counter (see DOEXP for
- STA (XX19),Y           \ details)
+                        \ We now need to set up a new explosion cloud. We
+                        \ initialise it with a size of 18 (which gets increased
+                        \ by 4 every time the cloud gets redrawn), and the
+                        \ explosion count (i.e. the number of particles in the
+                        \ explosion), which go into bytes 1 and 2 of the ship
+                        \ line heap. See DOEXP for more details of explosion
+                        \ clouds
+
+ LDY #1                 \ Set byte #1 of the ship line heap to 18, the initial
+ LDA #18                \ size of the explosion cloud
+ STA (XX19),Y
 
  LDY #7                 \ Fetch byte #7 from the ship's blueprint, which
  LDA (XX0),Y            \ determines the explosion count (i.e. the number of
- LDY #2                 \ vertices used as origins for explosion dust), and
- STA (XX19),Y           \ store it in byte 2 of the ship line heap
+ LDY #2                 \ vertices used as origins for explosion clouds), and
+ STA (XX19),Y           \ store it in byte #2 of the ship line heap
 
 \LDA XX1+32             \ These instructions are commented out in the original
 \AND #&7F               \ source
@@ -35496,8 +35743,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Subroutine: LL9 (Part 8 of 10)
 \
 \ Draw the current ship on the screen. This section projects the coordinate of
-\ the vertex into screen coordinates and stores them on the ship line heap. By
-\ the end of this part, the ship line heap contains four bytes containing the
+\ the vertex into screen coordinates and stores them on the XX3 heap. By
+\ the end of this part, the XX3 heap contains four bytes containing the
 \ 16-bit screen coordinates of the current vertex, in the order: x_lo, x_hi,
 \ y_lo, y_hi.
 \
@@ -35560,7 +35807,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ on screen
                         \
                         \ The next task is to convert (U R) to a pixel screen
-                        \ coordinate and stick it on the ship line heap.
+                        \ coordinate and stick it on the XX3 heap.
                         \
                         \ We start with the x-coordinate. To convert the
                         \ x-coordinate to a screen pixel we add 128, the
@@ -35573,7 +35820,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ into X
 
  LDA XX15+2             \ If x_sign is negative, jump up to LL62, which will
- BMI LL62               \ store 128 - (U R) on the ship line heap and return by
+ BMI LL62               \ store 128 - (U R) on the XX3 heap and return by
                         \ jumping down to LL66 below
 
  LDA R                  \ Calculate 128 + (U R), starting with the low bytes
@@ -35595,8 +35842,7 @@ LOAD_G% = LOAD% + P% - CODE%
 .LL66
 
                         \ We've just stored the screen x-coordinate of the
-                        \ vertex on the ship line heap, so now for the
-                        \ y-coordinate
+                        \ vertex on the XX3 heap, so now for the y-coordinate
 
  TXA                    \ Store the heap pointer in X on the stack (at this
  PHA                    \ it points to the last entry on the heap, not the first
@@ -35665,8 +35911,8 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ on screen
                         \
                         \ We now want to convert this to a screen y-coordinate
-                        \ and stick it on the ship line heap, much like we did
-                        \ with the x-coordinate above. Again, we convert the
+                        \ and stick it on the XX3 heap, much like we did with
+                        \ the x-coordinate above. Again, we convert the
                         \ coordinate by adding or subtracting the y-coordinate
                         \ of the centre of the screen, which is in the constant
                         \ #Y, but this time we do the opposite, as a positive
@@ -35682,8 +35928,8 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ increment it so it does point to the next free byte
 
  LDA XX15+5             \ If y_sign is negative, jump up to LL70, which will
- BMI LL70               \ store #Y + (U R) on the ship line heap and return by
-                        \ jumping down to LL50 below
+ BMI LL70               \ store #Y + (U R) on the XX3 heap and return by jumping
+                        \ down to LL50 below
 
  LDA #Y                 \ Calculate #Y - (U R), starting with the low bytes
  SEC
@@ -35703,9 +35949,9 @@ LOAD_G% = LOAD% + P% - CODE%
 
 .LL50
 
-                        \ By the time we get here, the ship line heap contains
-                        \ four bytes containing the screen coordinates of the
-                        \ current vertex, in the order: x_lo, x_hi, y_lo, y_hi
+                        \ By the time we get here, the XX3 heap contains four
+                        \ bytes containing the screen coordinates of the current
+                        \ vertex, in the order: x_lo, x_hi, y_lo, y_hi
 
  CLC                    \ Set CNT = CNT + 4, so the heap pointer points to the
  LDA CNT                \ next free byte on the heap
@@ -35808,7 +36054,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  TAY                    \ Put the vertex number into Y, where it can act as an
                         \ index into list of vertex screen coordinates we added
-                        \ to the ship line heap
+                        \ to the XX3 heap
 
  LDX XX3,Y              \ Fetch the x_lo coordinate of the laser vertex from the
  STX XX15               \ XX3 heap into XX15
@@ -37342,7 +37588,7 @@ ENDMACRO
 \                       position, for when the ship fires its lasers
 \
 \   * Byte #7           Explosion count = 4 * n + 6, where n = number of
-\                       vertices used as origins for explosion dust
+\                       vertices used as origins for explosion clouds
 \
 \   * Byte #8           Number of vertices * 6
 \
