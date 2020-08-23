@@ -498,7 +498,7 @@ ORG &0000
 
 .XX15
 
-                        \ 6-byte storage from XX15 TO XX15+5
+ SKIP 0                 \ 6-byte storage from XX15 TO XX15+5
                         \
                         \ Shares the first four bytes with X1, X2, Y1 and Y2:
                         \
@@ -684,7 +684,7 @@ ORG &0000
 
 .XX1
 
-                        \ An alias for INWK that is used in the ship-drawing
+ SKIP 0                 \ An alias for INWK that is used in the ship-drawing
                         \ routine at LL9
 
 .INWK
@@ -710,13 +710,13 @@ ORG &0000
 
 .K5
 
-                        \ Temporary storage used to store segment coordinates
+ SKIP 0                 \ Temporary storage used to store segment coordinates
                         \ across successive calls to BLINE, the ball line
                         \ routine
 
 .XX18
 
-                        \ Temporary storage used to store coordinates in the
+ SKIP 0                 \ Temporary storage used to store coordinates in the
                         \ LL9 ship-drawing routine 
 
 .QQ17
@@ -907,7 +907,8 @@ ORG &0000
 
 .TGT
 
- SKIP 1                 \
+ SKIP 1                 \ Used as a target for counters when drawing explosion
+                        \ clouds and partial circles
 
 .SWAP
 
@@ -916,7 +917,8 @@ ORG &0000
 
 .COL
 
- SKIP 1                 \
+ SKIP 1                 \ Used to store colour information when drawing pixels
+                        \ in the mode 5 dashboard screen
 
 .FLAG
 
@@ -932,7 +934,8 @@ ORG &0000
 
 .CNT2
 
- SKIP 1                 \
+ SKIP 1                 \ Used as a secondary counter when drawing partial
+                        \ circles to denote when the arc should start
 
 .STP
 
@@ -956,23 +959,27 @@ ORG &0000
 
 .XX20
 
- SKIP 1                 \
+ SKIP 1                 \ Used as temporary storage (e.g. used as a counter for
+                        \ the edges loop in the main drawing routine at LL9)
 
 .XX14
 
- SKIP 1                 \
+ SKIP 1                 \ This byte is unused
 
 .RAT
 
- SKIP 1                 \
+ SKIP 1                 \ Used to store different signs depending on the current
+                        \ space view, for use in calculating stardust movement
 
 .RAT2
 
- SKIP 1                 \
+ SKIP 1                 \ Used to store the pitch and roll signs when moving
+                        \ objects and stardust
 
 .K2
 
- SKIP 4                 \ Used as temporary storage
+ SKIP 4                 \ Used as temporary storage (e.g. used in MVEIT for
+                        \ storing interim rotation calculations)
 
 ORG &D1
 
@@ -983,12 +990,13 @@ ORG &D1
 
 .K3
 
-                        \ Used as temporary storage (e.g. used in TT27 for the
+ SKIP 0                 \ Used as temporary storage (e.g. used in TT27 for the
                         \ character to print)
 
 .XX2
 
- SKIP 14                \
+ SKIP 14                \ Stores the visibility of the ship's faces during the
+                        \ ship drawing routine at LL9
 
 .K4
 
@@ -1010,14 +1018,16 @@ ORG &0100
 
 .XX3
 
-                        \ Temporary heap space
+ SKIP 0                 \ Used as temporary heap space (e.g. used in the main
+                        \ ship drawing routine at LL9 for storing the screen
+                        \ coordinates of the ship's visible vertices)
 
 \ ******************************************************************************
 \
 \ Workspace T% at &0300 - &035F
 \
 \ Contains the current commander data (NT% bytes at location TP), and the
-\ stardust data block (NOST bytes at location SX)
+\ stardust data blocks (NOST bytes at location SX)
 \
 \ ******************************************************************************
 
@@ -1025,7 +1035,7 @@ ORG &0300
 
 .T%
 
-                        \ Start of workspace T%
+ SKIP 0                 \ Start of workspace T%
 
 .TP
 
@@ -1093,19 +1103,22 @@ ORG &0300
 
  SKIP 4                 \ Laser power
                         \
-                        \ (byte 0 = front, 1 = rear, 2 = left, 3 = right)
+                        \   Byte #0 = front
+                        \   Byte #1 = rear
+                        \   Byte #2 = left
+                        \   Byte #3 = right
                         \
                         \   0 means no laser
                         \
                         \   non-zero denotes the following:
                         \
-                        \ Bits 0-6 contain the laser's power
+                        \   Bits 0-6 contain the laser's power
                         \
-                        \ Bit 7 determines whether or not the laser pulses
-                        \ (pulse laser) or is always on (beam laser)
+                        \   Bit 7 determines whether or not the laser pulses
+                        \   (pulse laser) or is always on (beam laser)
 
- SKIP 2                 \ Not used (originally reserved for up/down lasers,
-                        \ perhaps?)
+ SKIP 2                 \ These bytes are unused (originally reserved for
+                        \ up/down lasers, perhaps?)
 
 .CRGO
 
@@ -1173,7 +1186,7 @@ ORG &0300
                         \   0 = not fitted
                         \   &FF = fitted
 
- SKIP 4                 \ Not used
+ SKIP 4                 \ These bytes are unused
 
 .NOMSL
 
@@ -1237,20 +1250,21 @@ ORG &0300
 
  SKIP 1                 \ Save count, gets halved with each save
 
- SKIP 2                 \ Reserve two bytes for commander checksum, so when
-                        \ current commander block is copied to the last saved
-                        \ commnder block at NA%, CHK and CHK2 get overwritten
+ SKIP 2                 \ Reserve two bytes for the commander checksum, so when
+                        \ the current commander block is copied to the last
+                        \ saved commander block at NA%, CHK and CHK2 get
+                        \ overwritten
 
 NT% = SVC + 2 - TP      \ Set to the size of the commander block, which starts
                         \ at T% (&300) and goes to SVC+3
 
 .SX
 
- SKIP NOST + 1          \ x_hi = x-coordinate for stardust particles (high byte)
+ SKIP NOST + 1          \ Storage for x_hi coordinates for stardust particles
 
 .SXL
 
- SKIP NOST + 1          \ x_lo = x-coordinate for stardust particles (low byte)
+ SKIP NOST + 1          \ Storage for x_lo coordinates for stardust particles
 
 PRINT "T% workspace from  ", ~T%, " to ", ~P%
 
@@ -3131,7 +3145,7 @@ ORG &0900
 
 .K%
 
-                        \ Ship data blocks and ship line heap space
+ SKIP 0                 \ Ship data blocks and ship line heap space
 
 \ ******************************************************************************
 \
@@ -3143,7 +3157,7 @@ ORG &0D40
 
 .WP
 
-                        \ Start of workspace WP
+ SKIP 0                 \ Start of workspace WP
 
 .FRIN
 
@@ -3181,7 +3195,7 @@ ORG &0D40
 
 .CABTMP
 
-                        \ Cabin temperature
+ SKIP 0                 \ Cabin temperature
                         \
                         \ 30 = cabin temperature in deep space (i.e. one notch
                         \      on the dashboard bar)
@@ -3190,7 +3204,7 @@ ORG &0D40
                         \
                         \ Shares a location with MANY, but that's OK because
                         \ MANY would contain the number of ships of type 0, but
-                        \ isn't used because ship types start at 1
+                        \ IT isn't used because ship types start at 1
 
 .MANY
 
@@ -3219,41 +3233,46 @@ ORG &0D40
 
  SKIP 1                 \ Our E.C.M. status
                         \
-                        \ 0 is off, non-zero is on
+                        \   0 is off
+                        \   non-zero is on
 
 .MJ
 
- SKIP 1                 \ Are we in witchspace (i.e. we mis-jumped)?
+ SKIP 1                 \ Are we in witchspace (i.e. have we mis-jumped)?
                         \
-                        \ 0 = no, &FF = yes
+                        \   0 = no
+                        \   &FF = yes
 
 .LAS2
 
  SKIP 1                 \ Laser power for the current laser
                         \
-                        \ Bits 0-6 of the laser power of the current space view
-                        \ (bit 7 doesn't denote laser power, just whether or
-                        \ not the laser pulses)
+                        \   Bits 0-6 contain the laser power of the current
+                        \   space view
+                        \
+                        \   Bit 7 denotes whether or not the laser pulses, 0
+                        \   meaning a pulse laser, 1 meaning beam laser
 
 .MSAR
 
  SKIP 1                 \ Leftmost missile is currently armed and seeking a
                         \ target
                         \
-                        \ 0 = missile is not looking for a target, or it already
-                        \     has a target lock (indicator is not yellow/white)
+                        \   0 = missile is not looking for a target, or it
+                        \       already has a target lock (indicator is not
+                        \       yellow/white)
                         \
-                        \ non-zero = missile is currently looking for a target
-                        \            (indicator is yellow/white)
+                        \   non-zero = missile is currently looking for a target
+                        \              (indicator is yellow/white)
 
 .VIEW
 
  SKIP 1                 \ Current space view
                         \
-                        \ 0 = front
-                        \ 1 = rear
-                        \ 2 = left
-                        \ 3 = right
+                        \   0 = front
+                        \   1 = rear
+                        \   2 = left
+                        \   3 = right
 
 .LASCT
 
@@ -3261,7 +3280,8 @@ ORG &0D40
                         \
                         \ Defines the gap between pulses of a pulse laser
                         \
-                        \ 0 for beam laser, 10 for pulse laser
+                        \   0 for beam laser
+                        \   10 for pulse laser
                         \
                         \ This gets decremented every vertical sync (in LINSCN),
                         \ and is set to a non-zero value for pulse lasers only.
@@ -3283,7 +3303,8 @@ ORG &0D40
 
  SKIP 1                 \ Toggle hyperspace colour effects
                         \
-                        \ 0 = no effects, non-zero = hyperspace effects
+                        \   0 = no effects
+                        \   non-zero = hyperspace effects
                         \
                         \ When this is set to 1, the mode 4 screen that makes
                         \ up the top part of the display is switched to mode 5
@@ -3327,15 +3348,21 @@ ORG &0D40
 
 .LSX
 
+ SKIP 0                 \ LSX is an alias that points to the first byte of the
+                        \ sun line heap at LSO. If LSX is &FF then the sun line
+                        \ heap is empty, otherwise it contains the line data for
+                        \ the sun
+
 .LSO
 
- SKIP 192               \ This block is shared by LSX and LSO:
+ SKIP 192               \ This space has two uses:
                         \
-                        \ LSX is the ship line heap for the space station
+                        \   * The ship line heap for the space station (see
+                        \     NWSPS for details)
                         \
-                        \ LSO is the sun line heap (see SUN for details)
+                        \   * The sun line heap (see SUN for details)
                         \
-                        \ This space can be shared as our local bubble of
+                        \ The spaces can be shared as our local bubble of
                         \ universe can support either the sun or a space
                         \ station, but not both
 .LSX2
@@ -3350,19 +3377,19 @@ ORG &0D40
 
 .SY
 
- SKIP NOST + 1          \ y_hi = y-coordinate for stardust particles (high byte)
+ SKIP NOST + 1          \ Storage for y_hi coordinates for stardust particles
 
 .SYL
 
- SKIP NOST + 1          \ y_lo = y-coordinate for stardust particles (low byte)
+ SKIP NOST + 1          \ Storage for y_lo coordinates for stardust particles
 
 .SZ
 
- SKIP NOST + 1          \ z_hi = z-coordinate for stardust particles (high byte)
+ SKIP NOST + 1          \ Storage for z_hi coordinates for stardust particles
 
 .SZL
 
- SKIP NOST + 1          \ z_lo = y-coordinate for stardust particles (low byte)
+ SKIP NOST + 1          \ Storage for z_lo coordinates for stardust particles
 
 .XSAV2
 
@@ -3384,35 +3411,38 @@ ORG &0D40
 
  SKIP 1                 \ Forward shield status
                         \
-                        \ 0 = empty, &FF = full
+                        \   0 = empty
+                        \   &FF = full
 
 .ASH
 
  SKIP 1                 \ Aft shield status
                         \
-                        \ 0 = empty, &FF = full
+                        \   0 = empty
+                        \   &FF = full
 
 .ENERGY
 
  SKIP 1                 \ Energy bank status
                         \
-                        \ 0 = empty, &FF = full
+                        \   0 = empty
+                        \   &FF = full
 
 .LASX
 
- SKIP 1                 \
+ SKIP 1                 \ The x-coordinate of the tip of the laser line
 
 .LASY
 
- SKIP 1                 \
+ SKIP 1                 \ The y-coordinate of the tip of the laser line
 
 .COMX
 
- SKIP 1                 \
+ SKIP 1                 \ The x-coordinate of the compass dot
 
 .COMY
 
- SKIP 1                 \
+ SKIP 1                 \ The y-coordinate of the compass dot
 
 .QQ24
 
@@ -3452,13 +3482,13 @@ ORG &0D40
 
 .XX24
 
- SKIP 1                 \
+ SKIP 1                 \ This byte is unused
 
 .ALTIT
 
  SKIP 1                 \ Our altitude above the planet
                         \
-                        \ &FF = maximum
+                        \   &FF = maximum
                         \
                         \ Otherwise this contains our altitude as the square
                         \ root of x_hi^2 + y_hi^2 + z_hi^2 - 6^2, where our
@@ -3519,7 +3549,8 @@ ORG &0D40
 
 .NOSTM
 
- SKIP 1                 \ Number of stardust particles
+ SKIP 1                 \ Maximum number of stardust particles (18 for normal
+                        \ space, 3 for witchspace)
 
 PRINT "WP workspace from  ", ~WP," to ", ~P%
 
@@ -3559,13 +3590,15 @@ LOAD_A% = LOAD%
 
  EQUB 0                 \ Compass colour
                         \
-                        \ &F0 = in front, &FF = behind
+                        \   &F0 = in front
+                        \   &FF = behind
 
 .DNOIZ
 
  EQUB 0                 \ Sound on/off configuration setting
                         \
-                        \ 0 = on (default), &10 = off
+                        \   0 = on (default)
+                        \   &10 = off
                         \
                         \ Toggled by pressing "S" when paused, see DK4
 
@@ -3573,7 +3606,8 @@ LOAD_A% = LOAD%
 
  EQUB 0                 \ Keyboard damping configuration setting
                         \
-                        \ 0 = enabled (default), &FF = disabled
+                        \   0 = enabled (default)
+                        \   &FF = disabled
                         \
                         \ Toggled by pressing Caps Lock when paused, see DKS3
 
@@ -3581,7 +3615,8 @@ LOAD_A% = LOAD%
 
  EQUB 0                 \ Keyboard auto-recentre configuration setting
                         \
-                        \ 0 = enabled (default), &FF = disabled
+                        \   0 = enabled (default)
+                        \   &FF = disabled
                         \
                         \ Toggled by pressing "A" when paused, see DKS3
 
@@ -3590,7 +3625,8 @@ LOAD_A% = LOAD%
  EQUB 0                 \ Configuration setting to show author names on start-up
                         \ screen and enable manual hyperspace mis-jumps
                         \
-                        \ 0 = off (default), &FF = on
+                        \   0 = off (default)
+                        \   &FF = on
                         \
                         \ Toggled by pressing "X" when paused, see DKS3
                         \
@@ -3605,7 +3641,8 @@ LOAD_A% = LOAD%
 
  EQUB 0                 \ Flashing console bars configuration setting
                         \
-                        \ 0 = static (default), &FF = flashing
+                        \   0 = static (default)
+                        \   &FF = flashing
                         \
                         \ Toggled by pressing "F" when paused, see DKS3
 
@@ -3613,7 +3650,8 @@ LOAD_A% = LOAD%
 
  EQUB 0                 \ Reverse joystick Y channel configuration setting
                         \
-                        \ 0 = standard (default), &FF = reversed
+                        \   0 = standard (default)
+                        \   &FF = reversed
                         \
                         \ Toggled by pressing "Y" when paused, see DKS3
 
@@ -3621,7 +3659,8 @@ LOAD_A% = LOAD%
 
  EQUB 0                 \ Reverse both joystick channels configuration setting
                         \
-                        \ 0 = standard (default), &FF = reversed
+                        \   0 = standard (default)
+                        \   &FF = reversed
                         \
                         \ Toggled by pressing "J" when paused, see DKS3
 
@@ -3629,7 +3668,8 @@ LOAD_A% = LOAD%
 
  EQUB 0                 \ Keyboard or joystick configuration setting
                         \
-                        \ 0 = keyboard (default), &FF = joystick
+                        \   0 = keyboard (default)
+                        \   &FF = joystick
                         \
                         \ Toggled by pressing "K" when paused, see DKS3
 
@@ -3930,7 +3970,7 @@ LOAD_A% = LOAD%
  AND SSPR               \ zone, keep going, otherwise jump down to MA68 to
  BEQ MA68               \ skip the following
 
- LDA K%+NI%+32          \ Fetch the AI counter (byte 32) of the second ship
+ LDA K%+NI%+32          \ Fetch the AI counter (byte #32) of the second ship
  BMI MA68               \ in the ship data workspace at K%, which is reserved
                         \ for the sun or the space station (in this case it's
                         \ the latter), and if it's negative, meaning the
@@ -4442,7 +4482,7 @@ LOAD_A% = LOAD%
 
 .ISDK
 
- LDA K%+NI%+32          \ 1. Fetch the AI counter (byte 32) of the second ship
+ LDA K%+NI%+32          \ 1. Fetch the AI counter (byte #32) of the second ship
  BMI MA62               \ in the ship data workspace at K%, which is reserved
                         \ for the sun or the space station (in this case it's
                         \ the latter), and if it's negative, meaning the
@@ -4714,7 +4754,7 @@ LOAD_A% = LOAD%
 .MA15
 
  LDY #35                \ Fetch the ship's energy from INWK+35 and copy it to
- LDA INWK+35            \ byte 35 in INF (so the ship's data in K% gets
+ LDA INWK+35            \ byte #35 in INF (so the ship's data in K% gets
  STA (INF),Y            \ updated)
 
  LDA INWK+31            \ If bit 7 of the ship's INWK+31 byte is clear, then
@@ -4777,7 +4817,7 @@ LOAD_A% = LOAD%
 .MA27
 
  LDY #31                \ Fetch the ship's explosion/killed state from INWK+31
- LDA INWK+31            \ and copy it to byte 31 in INF (so the ship's data in
+ LDA INWK+31            \ and copy it to byte #31 in INF (so the ship's data in
  STA (INF),Y            \ K% gets updated)
 
  LDX XSAV               \ We're done processing this ship, so fetch the ship's
@@ -7465,7 +7505,8 @@ ENDIF
 
  EQUB 0                 \ LASER+3 = Right laser
 
- EQUW 0                 \ Not used (reserved for up/down lasers, maybe?)
+ EQUW 0                 \ These two bytes are unused (reserved for up/down
+                        \ lasers, maybe?)
 
  EQUB 22+(15 AND Q%)    \ CRGO = Cargo capacity
 
@@ -7489,7 +7530,7 @@ ENDIF
 
  EQUB Q%                \ ESCP = Escape pod
 
- EQUD FALSE             \ Not used
+ EQUD FALSE             \ These four bytes are unused
 
  EQUB 3+(Q% AND 1)      \ NOMSL = Number of missiles
 
@@ -9529,7 +9570,8 @@ NEXT
 \   LSY2  &FF  Y1  Y2  Y3 ...
 \
 \ When a planet is plotted for the second time to remove it from screen, the
-\ heaps are reset by setting LSX to &FF and LSP to 1. See WPLS2 for details.
+\ heaps are reset by setting LSP to 1 and inserting a &FF at the start of LSX2.
+\ See WPLS2 for details.
 \
 \ ******************************************************************************
 
@@ -13099,7 +13141,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .M32
 
- LDY #32                \ Fetch byte 32 for the target and shift bit 0 (E.C.M.)
+ LDY #32                \ Fetch byte #32 for the target and shift bit 0 (E.C.M.)
  LDA (V),Y              \ into the C flag
  LSR A
 
@@ -14013,7 +14055,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
  JSR AN2                \ Call AN2 to make the space station hostile
 
- LDY #32                \ Fetch the ship's byte 32 (AI flag)
+ LDY #32                \ Fetch the ship's byte #32 (AI flag)
  LDA (INF),Y
 
  BEQ HI1                \ If the AI flag is zero then this ship has no AI and
@@ -14023,11 +14065,11 @@ LOAD_C% = LOAD% +P% - CODE%
  ORA #%10000000         \ Otherwise set bit 7 to ensure AI is definitely enabled
  STA (INF),Y
 
- LDY #28                \ Set the ship's byte 28 (acceleration) to 2, so it
+ LDY #28                \ Set the ship's byte #28 (acceleration) to 2, so it
  LDA #2                 \ speeds up
  STA (INF),Y
 
- ASL A                  \ Set the ship's byte 30 (pitch counter) to 4, so it
+ ASL A                  \ Set the ship's byte #30 (pitch counter) to 4, so it
  LDY #30                \ starts pitching
  STA (INF),Y
 
@@ -14035,7 +14077,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .AN2
 
- ASL K%+NI%+32          \ Fetch the AI counter (byte 32) of the second ship
+ ASL K%+NI%+32          \ Fetch the AI counter (byte #32) of the second ship
  SEC                    \ in the ship data workspace at K%, which is reserved
  ROR K%+NI%+32          \ for the sun or the space station (in this case it's
                         \ the latter), and set bit 7 to make it hostile
@@ -16958,7 +17000,7 @@ NEXT
 
 .WA3
 
- LDY K%+NI%+8           \ Fetch the z_sign (byte 8) of the second ship in the
+ LDY K%+NI%+8           \ Fetch the z_sign (byte #8) of the second ship in the
                         \ ship data workspace at K%, which is reserved for the
                         \ sun or the space station (in this case it's the
                         \ former, as we already confirmed there isn't a space
@@ -24812,7 +24854,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: FLFLLS
 \
-\ Reset the LSO block by zero-filling it and setting LSO to &FF.
+\ Reset the sun line heap at LSO by zero-filling it and setting the first byte
+\ to &FF.
 \
 \ Returns:
 \
@@ -24840,10 +24883,9 @@ LOAD_E% = LOAD% + P% - CODE%
  DEY                    \ Decrement Y to value of &FF (as we exit the above loop
                         \ with Y = 0)
 
- STY LSX                \ Set the first byte of the LSO block, which shares its
-                        \ location with LSX, to &FF (this could also be written
-                        \ STY LSO, which would be clearer, but for some reason
-                        \ it isn't)
+ STY LSX                \ Set the first byte of the LSO block, which has its own
+                        \ label LSX, to &FF, to indicate that the sun line heap
+                        \ is empty
 
  RTS                    \ Return from the subroutine
 }
@@ -26147,7 +26189,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ for the rightmost missile indicator, made up as
                         \ follows:
                         \
-                        \   * 48 (character block 7, or byte 7 * 8 = 48, which
+                        \   * 48 (character block 7, or byte #7 * 8 = 48, which
                         \     is the character block of the rightmost missile
                         \
                         \   * 1 (so we start drawing on the second row of the
@@ -27155,9 +27197,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ screen, and leaving just the new sun on show.
 \
 \ The LSO line heap block shares its memory with the ship line heap for the
-\ space station at LSX (LSO and LSX point to the same memory block). This memory
-\ can be shared as our local bubble of universe can support either the sun or a
-\ space station, but not both.
+\ space station. This memory can be shared as our local bubble of universe can
+\ support either the sun or a space station, but not both.
 \
 \ ******************************************************************************
 
@@ -27192,8 +27233,8 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .^SUN
 
- LDA #1                 \ Set LSX = 1
- STA LSX
+ LDA #1                 \ Set LSX = 1 to indicate the sun line heap is about to
+ STA LSX                \ be filled up
 
  JSR CHKON              \ Call CHKON to check whether the new sun's circle fits
                         \ on-screen, and set P(2 1) to the maximum y-coordinate
@@ -28017,7 +28058,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .WPLS
 {
- LDA LSX                \ If LSX < 0, the line heap is empty, so return from
+ LDA LSX                \ If LSX < 0, the sun line heap is empty, so return from
  BMI WPLS-1             \ the subroutine (as WPLS-1 contains an RTS)
 
  LDA SUNX               \ Set YY(1 0) = SUNX(1 0), the x-coordinate of the
@@ -31293,7 +31334,8 @@ ENDIF
 .QUS1
 {
  LDX #INWK              \ Store a pointer to INWK at the start of the block at
- STX &0C00              \ &0C00, in byte 0 because INWK is in zero page
+ STX &0C00              \ &0C00, storing #INWK in the low byte because INWK is
+                        \ in zero page
 
  LDX #0                 \ Set X to 0 so (Y X) = &0C00
 
@@ -31811,7 +31853,7 @@ ENDIF
                         \ the smaller the value of X, the louder the sound)
 
  STA XX16+2             \ The amplitude byte of the sound block in XX16 is in
-                        \ byte 3 (where it's the low byte of the amplitude), so
+                        \ byte #3 (where it's the low byte of the amplitude), so
                         \ this sets the amplitude to the value in A
 
  JSR NO3                \ Make the sound from our updated sound block in XX16
@@ -32401,7 +32443,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  JSR RDKEY              \ Scan the keyboard from Q upwards and fetch any key
                         \ press into X
 
- STX KL                 \ Store X in KL, byte 0 of the key logger
+ STX KL                 \ Store X in KL, byte #0 of the key logger
 
  CPX #&69               \ If COPY is not being pressed, jump to DK2 below,
  BNE DK2                \ otherwise let's process the configuration keys
@@ -33523,7 +33565,7 @@ LOAD_G% = LOAD% + P% - CODE%
  ORA XX1+31             \ have now drawn something on-screen for this ship
  STA XX1+31
 
- LDA #8                 \ Set A = 8 so when we call LL18+2 next, byte 0 of the
+ LDA #8                 \ Set A = 8 so when we call LL18+2 next, byte #0 of the
                         \ heap gets set to 8, for the 8 bytes we just stuck on
                         \ the heap
 
@@ -34782,15 +34824,15 @@ LOAD_G% = LOAD% + P% - CODE%
 
 .LL86
 
- LDA (V),Y              \ Fetch byte #0 for this face into A
+ LDA (V),Y              \ Fetch byte #0 for this face into A, so:
                         \
-                        \ Byte 0 = %xyz vvvvv, where:
+                        \   A = %xyz vvvvv, where:
                         \
-                        \   * Bits 0-4 = visibility distance, beyond which the
-                        \     face is always shown
+                        \     * Bits 0-4 = visibility distance, beyond which the
+                        \       face is always shown
                         \
-                        \   * Bits 7-5 = the sign bits of normal_x, normal_y and
-                        \     normal_z
+                        \     * Bits 7-5 = the sign bits of normal_x, normal_y
+                        \       and normal_z
 
  STA XX12+1             \ Store byte #0 in XX12+1, so XX12+1 now has the sign of
                         \ normal_x
@@ -37638,27 +37680,27 @@ ENDMACRO
 \ Then come the vertex definitions. Each vertex is made up of eight values
 \ stored in six bytes, as follows:
 \
-\   * Byte 0            Magnitude of the vertex's x-coordinate, with the origin
+\   * Byte #0           Magnitude of the vertex's x-coordinate, with the origin
 \                       in the middle of the ship
 \
-\   * Byte 1            Magnitude of the vertex's y-coordinate
+\   * Byte #1           Magnitude of the vertex's y-coordinate
 \
-\   * Byte 2            Magnitude of the vertex's z-coordinate
+\   * Byte #2           Magnitude of the vertex's z-coordinate
 \
-\   * Byte 3            %xyz vvvvv, where:
+\   * Byte #3           %xyz vvvvv, where:
 \
 \                         * Bits 0-4 = visibility distance, beyond which the
 \                           vertex is not shown
 \
 \                         * Bits 7-5 = the sign bits of x, y and z
 \
-\   * Byte 4            %ffff ffff, where:
+\   * Byte #4           %ffff ffff, where:
 \
 \                          * Bits 0-3 = the number of face 1
 \
 \                          * Bits 4-7 = the number of face 2
 \
-\   * Byte 5            %ffff ffff, where:
+\   * Byte #5           %ffff ffff, where:
 \
 \                          * Bits 0-3 = the number of face 3
 \
@@ -37667,24 +37709,24 @@ ENDMACRO
 \ Next are the edge definitions. Each edge is made up of five values stored in
 \ four bytes, as follows:
 \
-\   * Byte 0            Visibility distance, beyond which the edge is not shown
+\   * Byte #0           Visibility distance, beyond which the edge is not shown
 \
-\   * Byte 1            %ffff ffff, where:
+\   * Byte #1           %ffff ffff, where:
 \
 \                         * Bits 0-3 = the number of face 1
 \
 \                         * Bits 4-7 = the number of face 2
 \
-\   * Byte 2            The number of the vertex at the start the edge
+\   * Byte #2           The number of the vertex at the start the edge
 \
-\   * Byte 3            The number of the vertex at the end of the edge
+\   * Byte #3           The number of the vertex at the end of the edge
 \
 \ Finally we have the face definitions. Each face is made up of four values
 \ stored in four bytes, as follows. Note that the visibility distance works in
 \ the opposite way for faces than for the ship, vertices and edges, in that the
 \ face is always shown when it's further away than the visibility distance.
 \
-\   * Byte 0            %xyz vvvvv, where:
+\   * Byte #0           %xyz vvvvv, where:
 \
 \                         * Bits 0-4 = visibility distance, beyond which the
 \                           face is always shown
@@ -37692,11 +37734,11 @@ ENDMACRO
 \                         * Bits 7-5 = the sign bits of normal_x, normal_y and
 \                           normal_z
 \
-\   * Byte 1            Magnitude of the face normal's x-coordinate, normal_x
+\   * Byte #1           Magnitude of the face normal's x-coordinate, normal_x
 \
-\   * Byte 2            Magnitude of the face normal's y-coordinate, normal_y
+\   * Byte #2           Magnitude of the face normal's y-coordinate, normal_y
 \
-\   * Byte 3            Magnitude of the face normal's z-coordinate, normal_z
+\   * Byte #3           Magnitude of the face normal's z-coordinate, normal_z
 \
 \ To make the source code easier to follow, we use three macros (for vertices,
 \ edges and faces) that let us separate out the different values, and which
