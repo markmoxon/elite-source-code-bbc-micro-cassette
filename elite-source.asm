@@ -366,7 +366,7 @@ ORG &0000
 
 .ZP
 
-                        \ Start of zero page workspace
+ SKIP 0                 \ Start of zero page workspace
 
 .RAND
 
@@ -414,7 +414,8 @@ ORG &0000
 
 .V
 
- SKIP 2                 \
+ SKIP 2                 \ Temporary storage, typically used for storing an
+                        \ address pointer
 
 .XX
 
@@ -492,7 +493,8 @@ ORG &0000
  SKIP 1                 \ E.C.M. countdown timer (can be either our E.C.M.
                         \ or an opponent's)
                         \
-                        \ 0 is off, non-zero is on and counting down
+                        \   0 = E.C.M. is off
+                        \   non-zero = E.C.M. is on and counting down
 
 .XX15
 
@@ -682,6 +684,9 @@ ORG &0000
 
 .XX1
 
+                        \ An alias for INWK that is used in the ship-drawing
+                        \ routine at LL9
+
 .INWK
 
  SKIP 33                \ Workspace for the current ship data block. See the
@@ -705,7 +710,14 @@ ORG &0000
 
 .K5
 
+                        \ Temporary storage used to store segment coordinates
+                        \ across successive calls to BLINE, the ball line
+                        \ routine
+
 .XX18
+
+                        \ Temporary storage used to store coordinates in the
+                        \ LL9 ship-drawing routine 
 
 .QQ17
 
@@ -811,25 +823,25 @@ ORG &0000
 
  SKIP 1                 \ Current view
                         \
-                        \ 0   = Space view
-                        \ 1   = Title screen
-                        \       Buy Cargo screen (red key f1)
-                        \       Data on System screen (red key f6)
-                        \       Get commander name ("@", save/load commander)
-                        \       In-system jump just arrived ("J")
-                        \       Mis-jump just arrived (witchspace)
-                        \ 4   = Sell Cargo screen (red key f2)
-                        \ 6   = Death screen
-                        \ 8   = Status Mode screen (red key f8)
-                        \       Inventory screen (red key f9)
-                        \ 16  = Market Price screen (red key f7)
-                        \ 32  = Equip Ship screen (red key f3)
-                        \ 64  = Long-range Chart (red key f4)
-                        \ 128 = Short-range Chart (red key f5)
+                        \   0   = Space view
+                        \   1   = Title screen
+                        \         Buy Cargo screen (red key f1)
+                        \         Data on System screen (red key f6)
+                        \         Get commander name ("@", save/load commander)
+                        \         In-system jump just arrived ("J")
+                        \         Mis-jump just arrived (witchspace)
+                        \   4   = Sell Cargo screen (red key f2)
+                        \   6   = Death screen
+                        \   8   = Status Mode screen (red key f8)
+                        \         Inventory screen (red key f9)
+                        \   16  = Market Price screen (red key f7)
+                        \   32  = Equip Ship screen (red key f3)
+                        \   64  = Long-range Chart (red key f4)
+                        \   128 = Short-range Chart (red key f5)
 
 .ZZ
 
- SKIP 1                 \
+ SKIP 1                 \ Temporary storage, typically used for distance values
 
 .XX13
 
@@ -890,7 +902,8 @@ ORG &0000
 
  SKIP 1                 \ Docked status
                         \
-                        \ 0 = not docked, &FF = docked
+                        \   0 = not docked
+                        \   &FF = docked
 
 .TGT
 
@@ -3079,11 +3092,12 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ INWK+31 = exploding/killed state, scanner flag, or missile count
 \
 \   * Bits 0-2: n = number of missiles or Thargons
-\   * Bit 3:    0 = isn't being drawn on-screen  1 = is being drawn on-screen
-\   * Bit 4:    0 = don't show on scanner        1 = do show on scanner
-\   * Bit 5:    0 = ship is not exploding        1 = ship is exploding
-\   * Bit 6:    0 = ship is not firing lasers    1 = ship is firing lasers at us
-\   * Bit 7:    0 = ship has not been killed     1 = ship has been killed
+\   * Bit 3:    0 = isn't being drawn on-screen    1 = is being drawn on-screen
+\   * Bit 4:    0 = don't show on scanner          1 = do show on scanner
+\   * Bit 5:    0 = ship is not exploding          1 = ship is exploding
+\   * Bit 6:    0 = ship is not firing lasers      1 = ship is firing lasers
+\               0 = explosion has not been drawn   1 = explosion has been drawn
+\   * Bit 7:    0 = ship has not been killed       1 = ship has been killed
 \
 \ INWK+32 = AI, hostility and E.C.M. flags
 \
@@ -9023,8 +9037,9 @@ NEXT
 \
 \ Subroutine: PIXEL
 \
-\ Draw a point at screen coordinate (X, A) at a distance of ZZ away, on the
-\ top part of the screen (the monochrome mode 4 portion).
+\ Draw a point at screen coordinate (X, A) with the point size determined by the
+\ distance in ZZ. This applies to the top part of the screen (the monochrome
+\ mode 4 portion).
 \
 \ Arguments:
 \
@@ -12366,8 +12381,7 @@ NEXT
                         \ to the next indicator, i.e. the one below the one we
                         \ just drew
 
-.DL9                    \ This label is never called and has no effect, but is
-                        \ in the original source
+.DL9                    \ This label is not used but is in the original source
 
  RTS                    \ Return from the subroutine
 }
