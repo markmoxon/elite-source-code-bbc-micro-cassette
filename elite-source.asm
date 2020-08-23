@@ -2,6 +2,19 @@
 \
 \ ELITE GAME SOURCE
 \
+\ Produces the following binary files that get loaded by elite-bcfs.asm:
+\
+\   * output/ELTA.bin
+\   * output/ELTB.bin
+\   * output/ELTC.bin
+\   * output/ELTD.bin
+\   * output/ELTE.bin
+\   * output/ELTF.bin
+\   * output/ELTG.bin
+\   * output/PYTHON.bin
+\   * output/SHIPS.bin
+\   * output/WORDS9.bin
+\ 
 \ ******************************************************************************
 
 INCLUDE "elite-header.h.asm"
@@ -45,7 +58,7 @@ OSWORD = &FFF1          \ times, OSWORD is used twice, and OSFILE is used just
 OSFILE = &FFDD          \ once
 
 SHEILA = &FE00          \ Memory-mapped space for accessing internal hardware,
-                        \ particularly the video ULA, 6845 CRTC and 6522 VIAs
+                        \ such as the video ULA, 6845 CRTC and 6522 VIAs
 
 VSCAN = 57              \ Defines the split position in the split screen mode
 
