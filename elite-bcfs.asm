@@ -1,16 +1,41 @@
 \ ******************************************************************************
 \
-\ Prepare the Big Code File
-\ ELTcode
+\ ELITE BIG CODE FILE SOURCE
+\
+\ The original 1984 source code is copyright Ian Bell and David Braben, and the
+\ code on this site is identical to the version released by the authors on Ian
+\ Bell's personal website at http://www.iancgbell.clara.net/elite/
+\
+\ The commentary is copyright Mark Moxon, and any misunderstandings or mistakes
+\ in the documentation are entirely my fault
+\
+\ ******************************************************************************
+\
+\ This source file produces the following binary files:
+\
+\   * output/ELTcode.unprot.bin
+\   * output/ELThead.bin
+\
+\ after reading in the following files:
+\
+\   * output/ELTA.bin
+\   * output/ELTB.bin
+\   * output/ELTC.bin
+\   * output/ELTD.bin
+\   * output/ELTE.bin
+\   * output/ELTF.bin
+\   * output/ELTG.bin
+\   * output/SHIPS.bin
 \
 \ ******************************************************************************
 
-C%=&F40             ; assembly address of Elite game code (elite-source.asm)
-L%=&1128            ; load address of Elite game code (after LBL fn)
-D%=&563A            ; hard-coded size of Elite game code (elite-source.asm)
-ZP=&70
+C% = &F40               \ assembly address of Elite game code (elite-source.asm)
+L% = &1128              \ load address of Elite game code (after LBL fn)
+D% = &563A              \ hard-coded size of Elite game code (elite-source.asm)
 
-ORG &1100           ; load address of ELTcode
+ZP = &70
+
+ORG &1100               \ load address of ELTcode
 
 \ ******************************************************************************
 \
@@ -21,70 +46,94 @@ ORG &1100           ; load address of ELTcode
 \ ******************************************************************************
 
 .LBL
- EQUB &6C            ; JMP indirect
- LDX #&60            ; &A2 &60 (RTS)
+
+ EQUB &6C               \ JMP indirect
+ LDX #&60               \ &A2 &60 (RTS)
  LDA #&B
  STA ZP+1
  LDY #0
  STY ZP
  TYA
  INY
+ 
  .CHK3
+ 
  CLC
  ADC (ZP),Y
  INY
  BNE CHK3
  INC ZP+1
+ 
  .CHK4
+ 
  CLC
  ADC (ZP),Y
  INY
  BPL CHK4
  CMP &B00
- BEQ LBL+2           ; RTS
+ BEQ LBL+2              \ RTS
  LDA #&7F
  STA &FE4E
- JMP (&FFFC)         ; reset machine
+ JMP (&FFFC)            \ reset machine
 
 .elitea
-PRINT "elitea=",~P%
+
+PRINT "elitea = ", ~P%
 INCBIN "output/ELTA.bin"
+
 .eliteb
-PRINT "eliteb=",~P%
+
+PRINT "eliteb = ", ~P%
 INCBIN "output/ELTB.bin"
+
 .elitec
-PRINT "elitec=",~P%
+
+PRINT "elitec = ", ~P%
 INCBIN "output/ELTC.bin"
+
 .elited
-PRINT "elited=",~P%
+
+PRINT "elited = ", ~P%
 INCBIN "output/ELTD.bin"
+
 .elitee
-PRINT "elitee=",~P%
+
+PRINT "elitee = ", ~P%
 INCBIN "output/ELTE.bin"
+
 .elitef
-PRINT "elitef=",~P%
+
+PRINT "elitef = ", ~P%
 INCBIN "output/ELTF.bin"
+
 .eliteg
-PRINT "eliteg=",~P%
+
+PRINT "eliteg = ", ~P%
 INCBIN "output/ELTG.bin"
+
 .checksum0
-PRINT "checksum0=",~P%
-SKIP 1      ; byte skipped for checksum later
+
+PRINT "checksum0 = ", ~P%
+
+SKIP 1                  \ byte skipped for checksum later
+
 .ships
-PRINT "ships=",~P%
+
+PRINT "ships = ", ~P%
 INCBIN "output/SHIPS.bin"
+
 .end
 
-PRINT "P%=",~P%
+PRINT "P% = ", ~P%
 
-\\ CHECKSUM PERFORMED IN BCFS.PY SCRIPT
+\ CHECKSUM PERFORMED IN BCFS.PY SCRIPT
 
-PRINT "S.ELTcode 1100 ", ~(L%+&6000-C%), " ", ~L%, ~L%
+PRINT "S.ELTcode 1100 ", ~(L% + &6000 - C%), " ", ~L%, ~L%
 
-\\ SAVE UNPROTECTED CODE
+\ SAVE UNPROTECTED CODE
 
-SAVE "output/ELTcode.unprot.bin", &1100, (L%+&6000-C%), L%
+SAVE "output/ELTcode.unprot.bin", &1100, (L% + &6000 - C%), L%
 
-\\ SAVE JUST THE HEADER
+\ SAVE JUST THE HEADER
 
 SAVE "output/ELThead.bin", &1100, elitea, &1100

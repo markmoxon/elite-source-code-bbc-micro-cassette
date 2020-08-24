@@ -2,9 +2,27 @@
 \
 \ ELITE LOADER SOURCE
 \
-\ Produces the following binary file that get loaded by elite-bcfs.asm:
+\ The original 1984 source code is copyright Ian Bell and David Braben, and the
+\ code on this site is identical to the version released by the authors on Ian
+\ Bell's personal website at http://www.iancgbell.clara.net/elite/
+\
+\ The commentary is copyright Mark Moxon, and any misunderstandings or mistakes
+\ in the documentation are entirely my fault
+\
+\ ******************************************************************************
+\
+\ This source file produces the following binary file:
 \
 \   * output/ELITE.unprot.bin
+\
+\ after reading in the following files:
+\
+\   * images/DIALS.bin
+\   * images/P.ELITE.bin
+\   * images/P.A-SOFT.bin
+\   * images/P.(C)ASFT.bin
+\   * output/WORDS9.bin
+\   * output/PYTHON.bin
 \
 \ ******************************************************************************
 
