@@ -27046,13 +27046,15 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 \
+\ Deep dive: Drawing meridians and craters
+\ ----------------------------------------
 \ This routine does the following:
 \
 \   K6(1 0) = K3(1 0) + (XX16 K2) * cos(CNT2) + (XX16+2 K2+2) * sin(CNT2)
 \
 \   (T X) = - |XX16+1 K2+1| * cos(CNT2) - |XX16+3 K2+3| * sin(CNT2)
 \
-\ and calls BLINE.
+\ and calls BLINE. I'm still working on exactly why this does what it does...
 \
 \ ******************************************************************************
 
@@ -35317,6 +35319,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 \
+\ Deep dive: Tranposing the rotation matrix
+\ -----------------------------------------
 \ We projected [x y z] onto the orientation vector space like this:
 \
 \   [x y z] projected onto sidev = [x y z] . sidev
@@ -37165,6 +37169,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 \
+\ Deep dive: Line clipping
+\ ------------------------
 \ This routine checks whether the line is worth clipping in other words, whether
 \ the line passes through the screen at any point. The actual clipping is done
 \ in part 4 by calling the LL118 routine, which is quite an involved process, so
