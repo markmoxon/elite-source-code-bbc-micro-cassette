@@ -209,7 +209,7 @@ f9 = &77
 \     |                                   |
 \     +-----------------------------------+   &7F00
 \     |                                   |
-\     | Screen memory                     |
+\     | Split-screen memory               |
 \     |                                   |
 \     +-----------------------------------+   &6000
 \     |                                   |
@@ -221,11 +221,11 @@ f9 = &77
 \     |                                   |
 \     +-----------------------------------+   &0F40
 \     |                                   |
-\     | &0F34-&0F40 unused?               |
+\     | &0F34-&0F40 unused                |
 \     |                                   |
 \     +-----------------------------------+   &0F34
 \     |                                   |
-\     | Workspace at WP                   |
+\     | WP workspace                      |
 \     |                                   |
 \     +-----------------------------------+   &0D40 = WP
 \     |                                   |
@@ -241,11 +241,11 @@ f9 = &77
 \     |                                   |
 \     +-----------------------------------+   INF
 \     |                                   |
-\     | Ship data blocks                  |
+\     | Ship data blocks ascend from K%   |
 \     |                                   |
 \     +-----------------------------------+   &0900 = K%
 \     |                                   |
-\     | Page 8, MOS sound/printer buffers |
+\     | Page 8 MOS sound/printer space    |
 \     |                                   |
 \     +-----------------------------------+   &0800
 \     |                                   |
@@ -253,15 +253,15 @@ f9 = &77
 \     |                                   |
 \     +-----------------------------------+   &0400 = QQ18
 \     |                                   |
-\     | &0372 - &03FF unused?             |
+\     | Page 3 MOS tape system workspace  |
 \     |                                   |
 \     +-----------------------------------+   &0372
 \     |                                   |
-\     | Workspace at T%                   |
+\     | T% workspace                      |
 \     |                                   |
 \     +-----------------------------------+   &0300 = T%
 \     |                                   |
-\     | Page 2, MOS workspace             |
+\     | Page 2 MOS workspace              |
 \     |                                   |
 \     +-----------------------------------+   &0200
 \     |                                   |
@@ -269,47 +269,122 @@ f9 = &77
 \     |                                   |
 \     +-----------------------------------+
 \     |                                   |
-\     | Heap space at XX3                 |
+\     .                                   .
+\     .                                   .
+\     .                                   .
+\     .                                   .
+\     .                                   .
+\     |                                   |
+\     +-----------------------------------+
+\     |                                   |
+\     | Heap space ascends from XX3       |
 \     |                                   |
 \     +-----------------------------------+   &0100 = XX3
 \     |                                   |
-\     | Zero page workspace at ZP         |
+\     | Zero page workspace               |
 \     |                                   |
 \     +-----------------------------------+   &0000 = ZP
 \
-\ More details on all of the memory blocks can be found in the source code
-\ below. Of the 64K of addressable memory that the BBC's 6502 supports, this
-\ is the breakdown of memory usage once Elite is loaded and running, shown in
-\ bytes:
+\ Of the 64K of addressable memory shown above that the BBC's 6502 supports,
+\ only the bottom 32K is writable, and hence usable by Elite. This 32K includes
+\ screen memory and operating system workspace, so let's take a look at how the
+\ authors managed to shoehorn their game into such a small amount of memory.
 \
-\   Operating system ROM                                 16384
-\   Paged ROMs                                           16384
-\   6502 stack                                             256
-\   Operating system workspace in page 2                   256
-\   Sound and printer buffers                              256
+\ Memory usage
+\ ------------
+\ Elite on a BBC Micro is a tight squeeze, particularly in the tape version
+\ where everything has to fit into the machine - there's no loading a whole new
+\ program from disk when you launch or dock, and as a result, usable memory is
+\ at a premium.
 \
-\   Elite's split screen memory (31 rows of 256 bytes)    7936
+\ Here's a full breakdown of memory usage in bytes, once Elite is loaded and
+\ running:
 \
-\   Game code                                            18170
-\   Ship blueprints (11 different designs)                2502
-\   K% workspace (ship data blocks and heap space)        1088
-\   Game text (recursive tokens)                          1024
-\   WP workspace (ship slots, variables)                   512
-\   Zero page workspace (INWK workspace, variables)        256
-\   T% workspace (current commander data, stardust data)   256
-\   Python ship definition, 14 bytes (3 for variables)     256
+\                                                                Used     Unused
 \
-\   Total                                                65536
+\   Machine operating system (MOS) ROM                         16,384          -
+\   Paged ROMs                                                 16,384          -
+\   MOS general workspace in page 2                               256          -
+\   MOS sound and printer workspace in page 8                     256          -
+\   MOS tape filing system workspace in page 3                    142          -
+\   MOS zero page locations, &B0-&D0 and &E2-&FF inclusive         63          -
 \
-\ Contrary to popular legend, Elite does not use every single last byte of
-\ usable memory. There are 12 unused bytes at the end of the WP workspace,
-\ and 6 unused bytes in T% amongst all the equipment bytes, as well as an
-\ unused duplicate of one of the multiplication routines that takes up 24 bytes
-\ that could have been reclaimed... and that's not including quite a few
-\ instructions that have no effect and could have been culled without impact.
+\                               Total MOS and ROM memory       33,485          -
+\
+\
+\   Elite's split-screen memory (31 rows of 256 bytes)          7,936          -
+\   6502 stack and XX3 heap space (at opposite ends of page 1)    256          -
+\
+\                               Total shared memory             8,192          -
+\
+\   Main game code                                             18,136         34
+\   Ship blueprints (11 different designs, all except Python)   2,502          -
+\   K% workspace (ship data blocks and line heaps)              1,088          -
+\   Game text (recursive token table)                           1,023          1
+\   WP workspace (ship slots, variables)                          499         13
+\   Python ship blueprint and SVN, VEC variables                  245         11
+\   Zero page workspace (INWK workspace, variables)               192          1
+\   T% workspace (current commander data, stardust data)          108          6
+\
+\                               Total game code memory         23,793         66
+\
+\                               Total memory                   65,536
+\
+\ As you can see - and contrary to popular legend - Elite does not use every
+\ single last byte of the BBC Micro's usable memory. There are actually quite a
+\ few unused bytes in the tape version, as noted in the "Unused" column above;
+\ 66 of them, to be precise. Here are the details, in the order in which they
+\ appear above:
+\
+\   * In the main game code:
+\
+\     * There are six unused bytes in the last saved commander data at NA%. Two
+\       of them are between LASER and CRGO, just after the four laser powers, so
+\       perhaps they were reserved for up and down lasers at one point? And
+\       there and four more between between the escape pod at ESCP and the cargo
+\       bay capacity at CRGO, which might have been for additional equipment
+\       that didn't get implemented... who knows?
+\
+\     * There's an unused and unlabelled duplicate of the multiplication routine
+\       MULTU sandwiched between FMLTU and MLTU2 that takes up 24 bytes
+\
+\     * The MUT3 routine is never called and would be identical to MUT2 even if
+\       it were, so that's another four bytes that aren't used
+\
+\   * In the recursive token table at QQ18
+\
+\     * There is one unused byte at &07FF, right at the end of the table
+\
+\   * In the WP workspace:
+\
+\     * The one-byte variable XX24 is never used
+\
+\     * There are 12 bytes at the end of the WP workspace, from &0F34 to &0F40,
+\       which aren't used
+\
+\   * In the Python workspace:
+\
+\     * There are 11 unused bytes between the end of the Python ship blueprint
+\       and the SVN and VEC variables, right at the top of user memory
+\
+\   * In the zero page workspace:
+\
+\     * The one-byte variable XX14 is never used
+\
+\   * In the T% workspace:
+\
+\     * There are six unused bytes in the current commander data at T% that
+\       correspond with the unused bytes in the last saved commander data at NA%
+\       (see above).
+\
+\ On top of this, there are quite a few instructions in the main game code that
+\ have no effect and could have been culled without impact; I've identified 20
+\ of them, but there are no doubt more of them to find (search the comments for
+\ "no effect" to find the ones I've spotted).
+\
 \ But this is splitting hairs, as Elite swells the BBC Micro to near bursting
-\ point while being incredibly clever and efficient, and for that, serious
-\ respect is due to the authors.
+\ point while being both incredibly clever and incredibly efficient, and for
+\ that, very serious respect is due to the authors.
 \
 \ ******************************************************************************
 
