@@ -5068,7 +5068,8 @@ LOAD_A% = LOAD%
 
  LDA MCNT               \ Fetch the main loop counter and look at bits 0-4,
  AND #%00011111         \ jumping to MA93 if they are zero (so the following
- BNE MA93               \ section only runs every 32 iterations of the main loop)
+ BNE MA93               \ section only runs every 32 iterations of the main
+                        \ loop)
 
  LDA SSPR               \ If we are inside the space station safe zone, jump to
  BNE MA23S              \ MA23S to skip the following, as we already have a
@@ -7306,8 +7307,8 @@ LOAD_A% = LOAD%
 \ Rotate the planet or sun's location in space by the amount of pitch and roll
 \ of our ship.
 \
-\ We implement this using the same equations as in part 5 of MVEIT. Specifically,
-\ the calculation is as follows:
+\ We implement this using the same equations as in part 5 of MVEIT.
+\ Specifically, the calculation is as follows:
 \
 \   x -> x + alpha * (y - alpha * x)
 \   y -> y - alpha * x - beta * z
@@ -7320,7 +7321,7 @@ LOAD_A% = LOAD%
 \   3. y = K2 - beta * z        y = y - alpha * x - beta * z
 \   4. x = x + alpha * y        x = x + alpha * y
 \
-\ See MVET (Part 5) for more details of this calculation.
+\ See MVEIT (Part 5) for more details of this calculation.
 \
 \ ******************************************************************************
 
@@ -7551,8 +7552,8 @@ LOAD_A% = LOAD%
                         \ x = x + y * alpha
 
  JMP MV45               \ We have now finished rotating the planet or sun by
-                        \ our pitch and roll, so jump back into the MVEIT routine
-                        \ at MV45 to apply all the other movements
+                        \ our pitch and roll, so jump back into the MVEIT
+                        \ routine at MV45 to apply all the other movements
 }
 
 \ ******************************************************************************
@@ -10078,9 +10079,9 @@ NEXT
 \                            = y^2 / 512
 \                            = 28
 \
-\ out of 256 pixels acros the screen, and that's at the extremeties of the screen
-\ and with full pitch. Perhaps this is a fisheye effect that makes space feel more
-\ curved when pitching is high? For now, I don't have an answer...
+\ out of 256 pixels acros the screen, and that's at the extremeties of the
+\ screen and with full pitch. Perhaps this is a fisheye effect that makes space
+\ feel more curved when pitching is high? For now, I don't have an answer...
 \ ******************************************************************************
 
 .STARS1
@@ -14037,8 +14038,8 @@ LOAD_C% = LOAD% +P% - CODE%
  LDY #2                 \ Fetch the ship's blueprint and set A to the high byte
  LDA (XX0),Y            \ of the targetable area of the ship
 
- CMP S                  \ We now compare the high bytes of the targetable area and
-                        \ the calculation in (S R):
+ CMP S                  \ We now compare the high bytes of the targetable area
+                        \ and the calculation in (S R):
                         \
                         \   * If A >= S then then the C flag will be set
                         \
@@ -18789,8 +18790,8 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ of market item number X. Note that the first time we
                         \ go round this loop, the C flag is set (as we didn't
                         \ branch with the BCC above, so the effect of this loop
-                        \ is count the number of tonne canisters in the hold, and
-                        \ add 1
+                        \ is count the number of tonne canisters in the hold,
+                        \ and add 1
 
  DEX                    \ Decrement the loop counter
 
@@ -20550,8 +20551,8 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ in the hold
 
  LDA QQ11               \ If the current view type in QQ11 is not 4 (Sell Cargo
- CMP #4                 \ screen), skip the next two instructions and just return
- BNE P%+8               \ from the subroutine
+ CMP #4                 \ screen), skip the next two instructions and just
+ BNE P%+8               \ return from the subroutine
 
  JSR dn2                \ This is the Sell Cargo screen, so call dn2 to make a
                         \ short, high beep and delay for 1 second
@@ -25551,7 +25552,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  STA SCH                \ Store the screen page in the high byte of SC(1 0)
 
- LDA X1                 \ Each character block covers 8 screen x-coordinates, so 
+ LDA X1                 \ Each character block covers 8 screen x-coordinates, so
  AND #%11111000         \ to get the address of the first byte in the character
                         \ block that we need to draw into, as an offset from the
                         \ start of the row we clear bits 0-2
@@ -31400,8 +31401,8 @@ ENDIF
  EOR CASH+2             \ Set K+1 = K+2 EOR'd with the third cash byte
  STA K+1
 
- EOR #%01011010         \ Set K+3 = K+1 EOR %01011010 EOR to get the high byte of
- EOR TALLY+1            \ kill tally
+ EOR #%01011010         \ Set K+3 = K+1 EOR %01011010 EOR to get the high byte
+ EOR TALLY+1            \ of the kill tally
  STA K+3
 
  JSR BPRNT              \ Print the competition number stored in K to K+3. The
@@ -33844,8 +33845,8 @@ LOAD_G% = LOAD% + P% - CODE%
 
  BNE LL8                \ If X > Q, jump to LL8
 
- CPY #64                \ If Y < 64, jump to LL7 with the C flag clear, otherwise
- BCC LL7                \ fall through into LL8 with the C flag set
+ CPY #64                \ If Y < 64, jump to LL7 with the C flag clear,
+ BCC LL7                \ otherwise fall through into LL8 with the C flag set
 
 .LL8
 
@@ -33853,8 +33854,8 @@ LOAD_G% = LOAD% + P% - CODE%
  SBC #64                \
  TAY                    \ This subtraction will work as we know C is set from
                         \ the BCC above, and the result will not underflow as we
-                        \ already checked that Y >= 64, so the C flag is also set
-                        \ for the next subtraction
+                        \ already checked that Y >= 64, so the C flag is also
+                        \ set for the next subtraction
 
  TXA                    \ Set X = X - Q
  SBC Q
@@ -36511,9 +36512,9 @@ LOAD_G% = LOAD% + P% - CODE%
 
  STY U                  \ Store the updated ship line heap pointer in U
 
- CPY T1                 \ If Y >= T1 then we have reached the maximum number of edge
- BCS LL81               \ lines that we can store in the ship line heap, so skip to
-                        \ LL81 so we don't loop back for the next edge
+ CPY T1                 \ If Y >= T1 then we have reached the maximum number of
+ BCS LL81               \ edge lines that we can store in the ship line heap, so
+                        \ skip to LL81 so we don't loop back for the next edge
 
 .LL78
 
