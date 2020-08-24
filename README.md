@@ -24,6 +24,7 @@ Hopefully this repository will be useful for those who want to learn about Elite
   * [Build targets](#build-targets)
   * [Windows](#windows)
   * [Mac and Linux](#mac-and-linux)
+  * [Verifying the output](#verifying-the-output)
 
 * [Source files and the build pipeline](#source-files-and-the-build-pipeline)
 
@@ -33,8 +34,6 @@ Hopefully this repository will be useful for those who want to learn about Elite
   * [4. Calculate checksums and add encryption with elite-checksum.py](#4-calculate-checksums-and-add-encryption-with-elite-checksumpy)
   * [5. Assemble a bootable disc image with elite-disc.asm](#5-assemble-a-bootable-disc-image-with-elite-discasm)
   * [Log files](#log-files)
-
-* [Verifying the output](#verifying-the-output)
 
 * [Differences between the various source files](#differences-between-the-various-source-files)
 
@@ -225,7 +224,7 @@ make encrypt
 
 will produce a file called `elite.ssd`, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
 
-## Verifying the output
+### Verifying the output
 
 The build process also supports a verification target that prints out checksums of all the generated files, along with the checksums of the files extracted from the original sources.
 
