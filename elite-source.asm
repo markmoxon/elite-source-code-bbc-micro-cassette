@@ -2,7 +2,16 @@
 \
 \ ELITE GAME SOURCE
 \
-\ Produces the following binary files that get loaded by elite-bcfs.asm:
+\ The original 1984 source code is copyright Ian Bell and David Braben, and the
+\ code on this site is identical to the version released by the authors on Ian
+\ Bell's personal website at http://www.iancgbell.clara.net/elite/
+\
+\ The commentary is copyright Mark Moxon, and any misunderstandings or mistakes
+\ in the documentation are entirely my fault
+\
+\ ******************************************************************************
+\
+\ This source file produces the following binary files:
 \
 \   * output/ELTA.bin
 \   * output/ELTB.bin
@@ -446,7 +455,7 @@ f9 = &77
 
 \ ******************************************************************************
 \
-\ Zero page workspace ZP at &0000 - &00B0
+\ Zero page workspace at &0000 - &00B0
 \
 \ ******************************************************************************
 
@@ -784,7 +793,7 @@ ORG &0000
 .XX19
 
  SKIP NI% - 33          \ XX19(1 0) shares location with INWK(34 33), which
-                        \ contains the ship line heap space address pointer
+                        \ contains the ship line heap address pointer
 
 .LSP
 
@@ -1095,7 +1104,7 @@ PRINT "Zero page variables from ", ~ZP, " to ", ~P%
 
 \ ******************************************************************************
 \
-\ Workspace XX3 at &0100
+\ XX3 workspace at &0100
 \
 \ Used as heap space for storing temporary data during calculations. Shared with
 \ the descending 6502 stack, which works down from &01FF.
@@ -1112,7 +1121,7 @@ ORG &0100
 
 \ ******************************************************************************
 \
-\ Workspace T% at &0300 - &035F
+\ T% workspace at &0300 - &035F
 \
 \ Contains the current commander data (NT% bytes at location TP), and the
 \ stardust data blocks (NOST bytes at location SX)
@@ -2945,12 +2954,11 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ Workspace K% at &0900
 \
 \ Contains ship data for all the ships, planets, suns and space stations in our
-\ local bubble of universe, along with their corresponding ship line heap space.
+\ local bubble of universe, along with their corresponding ship line heap.
 \
 \ The blocks are pointed to by the lookup table at location UNIV. The first 468
 \ bytes of the K% workspace holds data on up to 13 ships, with 36 (NI%) bytes
-\ per ship, and the heap space grows downwards from WP at the end of the K%
-\ workspace.
+\ per ship, and the heap grows downwards from WP at the end of the K% workspace.
 \
 \ ******************************************************************************
 \
@@ -2973,14 +2981,19 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ When working with a ship's data - such as when we move a ship in MVEIT, or
 \ spawn a child ship in SFS1 - we normally work with the data in the INWK
 \ workspace, as INWK is in zero page and is therefore faster and more memory
-\ efficient to manipulate. The ship data blocks in the workspace at K% are
+\ efficient to manipulate. The ship data blocks in the K% workspace are
 \ therefore copied into INWK before they are worked on, and new ship blocks
 \ are created in INWK before being copied to K%, so the layout of the INWK data
-\ block is identical the layout of each blocks in K%. Because we tend to work
-\ with INWK rather than K%, the comments below reflect that, talking about
-\ INWK+5 for byte #5 of the ship data (y_sign), or INWK+32 for byte #32 (the AI
-\ flag). Every now and then the bytes in the K% block are manipulated directly,
-\ but most of the time it's all about INWK.
+\ block is identical the layout of each blocks in K%.
+\
+\ To add to the confusion, INWK is known as XX1 in some parts of the codebase,
+\ namely those parts that were written by David Braben on his Acorn Atom, which
+\ forced you to start label names with AA to ZZ. Because we might end up talking
+\ about ship data at INWK, K% or XX1, this commentary refers to "ship byte #5"
+\ for byte #5 of the ship data (y_sign), or "ship byte #32" for byte #32 (the AI
+\ flag), and so on. Most of the time we will be working with INWK or XX1, but
+\ every now and then the bytes in the K% block are manipulated directly, which
+\ we will point out in the comments.
 \
 \ There are 36 bytes of data in each ship's block, and as mentioned above, the
 \ same data structure is used to describe every type of object in the universe,
@@ -2989,69 +3002,93 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ types; planets, for example, don't have AI or missiles, though it would be fun
 \ if they did...
 \
-\ Summary of .INWK and .K% ship data block format
-\ -----------------------------------------------
-\ The bytes in INWK and K% are arranged as follows:
+\ Summary of ship data block format
+\ ---------------------------------
+\ The bytes in each ship data block are arranged as follows:
 \
-\   * Ship coordinates (bytes 0-8):
+\   * Bytes #0-8        Ship coordinates:
 \
-\     * x = INWK(2 1 0)
-\     * y = INWK(5 4 3)
-\     * z = INWK(8 7 6)
+\                         * Bytes #0-2 = (x_sign x_hi x_lo) in INWK(2 1 0)
+\                         * Bytes #3-5 = (y_sign y_hi y_lo) in INWK(5 4 3)
+\                         * Bytes #6-8 = (z_sign z_hi z_lo) in INWK(8 7 6)
 \
-\   * Orientation vectors (bytes 9-26):
+\   * Bytes #9-26       Orientation vectors:
 \
-\     * nosev = (INWK(10 9),  INWK(12 11), INWK(14 13))
-\     * roofv = (INWK(16 15), INWK(18 17), INWK(20 19))
-\     * sidev = (INWK(22 21), INWK(24 23), INWK(26 25))
+\                         * Bytes #9-14 = nosev = [nosev_x nosev_y nosev_z]
 \
-\   * Ship movement (bytes 27-30):
+\                           * nosev_x = INWK(10 9)
+\                           * nosev_y = INWK(12 11)
+\                           * nosev_z = INWK(14 13)
 \
-\     * Speed = INWK+27
-\     * Acceleration = INWK+28
-\     * Roll counter = INWK+29
-\     * Pitch counter = INWK+30
+\                         * Bytes #15-19 = roofv = [roofv_x roofv_y roofv_z]
 \
-\   * Ship flags (bytes 31-32):
+\                           * roofv_x = INWK(16 15)
+\                           * roofv_y = INWK(18 17)
+\                           * roofv_z = INWK(20 19)
 \
-\     * Exploding/killed state, scanner flag, missile count = INWK+31
-\     * AI, hostility and E.C.M. flags = INWK+32
+\                         * Bytes #21-26 = sidev = [sidev_x sidev_y sidev_z]
 \
-\   * Heap pointer and energy (bytes 33-35):
+\                           * sidev_x = INWK(22 21)
+\                           * sidev_y = INWK(24 23)
+\                           * sidev_z = INWK(26 25)
 \
-\     * Ship line heap space pointer = INWK(34 33)
-\     * Ship energy = INWK+35
+\   * Bytes #27-30      Ship movement:
+\
+\                         * Byte #27 = Speed
+\                         * Byte #28 = Acceleration
+\                         * Byte #29 = Roll counter
+\                         * Byte #30 = Pitch counter
+\
+\   * Bytes #31-32      Ship flags:
+\
+\                         * Byte #31 = Exploding/killed state
+\                                      "Is being drawn on-screen" flag
+\                                      Scanner flag
+\                                      Missile count
+\
+\                         * Byte #32 = AI flag
+\                                      Hostility flag
+\                                      Aggression level
+\                                      E.C.M. flag
+\
+\   * Bytes #33-34      Ship line heap address pointer in INWK(34 33)
+\
+\   * Byte #35          Ship energy
 \ 
 \ Let's look at these in more detail.
 \
-\ Ship coordinates (bytes 0-8)
-\ ----------------------------
-\ INWK   = x_lo
-\ INWK+1 = x_hi
-\ INWK+2 = x_sign
+\ Ship coordinates (bytes #0-8)
+\ -----------------------------
+\ These bytes contain the ship's location in space relative to our ship. The
+\ x-axis goes to the right, the y-axis goes up and the z-axis goes into the
+\ screen.
 \
-\ INWK+3 = y_lo
-\ INWK+4 = y_hi
-\ INWK+5 = y_sign
+\   * Byte #0 = x_lo
+\   * Byte #1 = x_hi
+\   * Byte #2 = x_sign
 \
-\ INWK+6 = z_lo
-\ INWK+7 = z_hi
-\ INWK+8 = z_sign
+\   * Byte #3 = y_lo
+\   * Byte #4 = y_hi
+\   * Byte #5 = y_sign
 \
-\ The x, y and z coordinates in INWK to INWK+8 are stored as 24-bit
-\ sign-magnitude numbers, where the sign of the number is stored in bit 7 of the
-\ sign byte, and the other 23 bits contain the magnitude of the number without
-\ any sign (i.e. the absolute value, |x|, |y| or |z|). So an x value of &123456
-\ would be stored like this:
+\   * Byte #6 = z_lo
+\   * Byte #7 = z_hi
+\   * Byte #8 = z_sign
+\
+\ The x, y and z coordinates in bytes #0-8 are stored as 24-bit sign-magnitude
+\ numbers, where the sign of the number is stored in bit 7 of the sign byte, and
+\ the other 23 bits contain the magnitude of the number without any sign (i.e.
+\ the absolute value, |x|, |y| or |z|). So an x value of &123456 would be stored
+\ like this:
 \
 \      x_sign          x_hi          x_lo
-\         &12           &34           &56
+\   +     &12           &34           &56
 \   0 0010010      00110100      01010110
 \
 \ while -&123456 is identical, just with bit 7 of the x_sign byte set:
 \
 \      x_sign          x_hi          x_lo
-\        -&12           &34           &56
+\   -     &12           &34           &56
 \   1 0010010      00110100      01010110
 \
 \ We can also write it like this:
@@ -3060,32 +3097,35 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \   y-coordinate = (y_sign y_hi y_lo) = INWK(5 4 3)
 \   z-coordinate = (z_sign z_hi z_lo) = INWK(8 7 6)
 \
-\ Orientation vectors (bytes 9-26)
-\ --------------------------------
-\ INWK+9  = nosev_x_lo
-\ INWK+10 = nosev_x_hi
-\ INWK+11 = nosev_y_lo
-\ INWK+12 = nosev_y_hi
-\ INWK+13 = nosev_z_lo
-\ INWK+14 = nosev_z_hi
+\ Orientation vectors (bytes #9-26)
+\ ---------------------------------
+\ The ship's orientation vectors determine its orientation in space. There are
+\ three vectors, named according to the direction they point in.
 \
-\ INWK+15 = roofv_x_lo
-\ INWK+16 = roofv_x_hi
-\ INWK+17 = roofv_y_lo
-\ INWK+18 = roofv_y_hi
-\ INWK+19 = roofv_z_lo
-\ INWK+20 = roofv_z_hi
+\   * Byte #9  = nosev_x_lo
+\   * Byte #10 = nosev_x_hi
+\   * Byte #11 = nosev_y_lo
+\   * Byte #12 = nosev_y_hi
+\   * Byte #13 = nosev_z_lo
+\   * Byte #14 = nosev_z_hi
 \
-\ INWK+21 = sidev_x_lo
-\ INWK+22 = sidev_x_hi
-\ INWK+23 = sidev_y_lo
-\ INWK+24 = sidev_y_hi
-\ INWK+25 = sidev_z_lo
-\ INWK+26 = sidev_z_hi
+\   * Byte #15 = roofv_x_lo
+\   * Byte #16 = roofv_x_hi
+\   * Byte #17 = roofv_y_lo
+\   * Byte #18 = roofv_y_hi
+\   * Byte #19 = roofv_z_lo
+\   * Byte #20 = roofv_z_hi
 \
-\ The vectors in INWK+9 to INWK+26 are stored as 24-bit sign-magnitude numbers,
-\ where the sign of the number is stored in bit 7 of the high byte. See above
-\ for more on this number format.
+\   * Byte #21 = sidev_x_lo
+\   * Byte #22 = sidev_x_hi
+\   * Byte #23 = sidev_y_lo
+\   * Byte #24 = sidev_y_hi
+\   * Byte #25 = sidev_z_lo
+\   * Byte #26 = sidev_z_hi
+\
+\ The vectors in bytes #9-26 are stored as 24-bit sign-magnitude numbers, where
+\ the sign of the number is stored in bit 7 of the high byte. See above for more
+\ on this number format.
 \
 \ The ship's orientation vectors determine its orientation in space. There are
 \ three different vectors, nosev, roofv and sidev, with each of them pointing
@@ -3115,26 +3155,25 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ We can refer to these three vectors in various ways, such as these variations
 \ for the nosev vector:
 \
-\
 \   nosev = (nosev_x, nosev_y, nosev_z)
 \
-\            [ nosev_x ]
-\          = [ nosev_y ]
-\            [ nosev_z ]
+\           [ nosev_x ]
+\         = [ nosev_y ]
+\           [ nosev_z ]
 \           
-\            [ (nosev_x_hi nosev_x_lo) ]
-\          = [ (nosev_y_hi nosev_y_lo) ]
-\            [ (nosev_z_hi nosev_z_lo) ]
+\           [ (nosev_x_hi nosev_x_lo) ]
+\         = [ (nosev_y_hi nosev_y_lo) ]
+\           [ (nosev_z_hi nosev_z_lo) ]
 \           
-\            [ INWK(10 9) ]
-\          = [ INWK(12 11) ]
-\            [ INWK(14 13) ]
+\           [ INWK(10 9) ]
+\         = [ INWK(12 11) ]
+\           [ INWK(14 13) ]
 \
 \ The vectors are initialised in ZINF as follows:
 \
-\   nosev = (0,  0, -1)
-\   roofv = (0,  1,  0)
 \   sidev = (1,  0,  0)
+\   roofv = (0,  1,  0)
+\   nosev = (0,  0, -1)
 \
 \ so new ships are spawned facing out of the screen, as their nosev vectors
 \ point in a negative direction along the z-axis, which is positive into the
@@ -3144,88 +3183,116 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ and the orientation vectors are stored as 16-bit sign-magnitude numbers. 96 is
 \ &60, and &60 with bit 7 set is &E0, so we store the above vectors like this:
 \
-\   nosev = (0, 0, &E000)
-\   roofv = (0, &6000, 0)
 \   sidev = (&6000, 0, 0)
+\   roofv = (0, &6000, 0)
+\   nosev = (0, 0, &E000)
 \
 \ so nosev_z_hi = &E0, sidev_x_hi = &60 and so on.
 \
-\ Sometimes we might refer to the orientation vectors as a matrix, with nosev
-\ as the first row, roofv as the second row, and sidev as the third row, like
+\ Sometimes we might refer to the orientation vectors as a matrix, with sidev
+\ as the first row, roofv as the second row, and nosev as the third row, like
 \ this:
 \
-\   [nosev_x nosev_y nosev_z]
-\   [roofv_x roofv_y roofv_z]
 \   [sidev_x sidev_y sidev_z]
+\   [roofv_x roofv_y roofv_z]
+\   [nosev_x nosev_y nosev_z]
 \
-\ though generally we deal with the individual vectors, because that's easier
+\ though generally we talk about the individual vectors, because that's easier
 \ to understand.
 \
-\ Ship movement (bytes 27-30)
-\ ---------------------------
-\ INWK+27 = speed
+\ Ship movement (bytes #27-30)
+\ ----------------------------
+\ This block controls the ship's movement in space.
 \
-\   * 31 = fast
+\   * Byte #27 = Speed
 \
-\ INWK+28 = acceleration
+\     * 31 = fast
 \
-\   * Gets added to the speed once, in MVEIT, before being zeroed again
+\   * Byte #28 = Acceleration
 \
-\ INWK+29 = roll counter
+\     * Gets added to the speed once, in MVEIT, before being zeroed again
 \
-\   * Ship rolls when bits 0-6 counter > 0
+\   * Byte #29 = Roll counter
 \
-\   * Bit 7 = direction of roll (sign)
+\     * Bits 0-6 = counter, reduces by 1 every iteration of the main flight
+\       loop if damping is enabled, ship rolls when the counter in bits 0-6 > 0
 \
-\   * Bits 0-6 = counter, reduces by 1 every iteration of the main flight loop
-\     if damping is enabled
+\     * Bit 7 = direction of roll (sign)
 \
-\ INWK+30 = pitch counter
+\   * Byte #30 = Pitch counter
 \
-\   * Ship pitches when bits 0-6 counter > 0
+\     * Bits 0-6 = counter, reduces by 1 every iteration of the main flight loop
+\       if damping is enabled, hip pitches when the counter in bits 0-6 > 0
 \
-\   * Bit 7 = direction of pitch (sign)
+\     * Bit 7 = direction of pitch (sign)
 \
-\   * Bits 0-6 = counter, reduces by 1 every iteration of the main flight loop
-\     if damping is enabled
+\ Ship flags (bytes #31-32)
+\ -------------------------
+\ These two flags contain a lot of information about the ship, and they are
+\ consulted often.
 \
-\ Ship flags (bytes 31-32)
-\ ------------------------
-\ INWK+31 = exploding/killed state, scanner flag, or missile count
+\   * Byte #31 = exploding/killed state, drawn flag, scanner flag, or missile
+\     count
 \
-\   * Bits 0-2: n = number of missiles or Thargons
-\   * Bit 3:    0 = isn't being drawn on-screen    1 = is being drawn on-screen
-\   * Bit 4:    0 = don't show on scanner          1 = do show on scanner
-\   * Bit 5:    0 = ship is not exploding          1 = ship is exploding
-\   * Bit 6:    0 = ship is not firing lasers      1 = ship is firing lasers
-\               0 = explosion has not been drawn   1 = explosion has been drawn
-\   * Bit 7:    0 = ship has not been killed       1 = ship has been killed
+\     * Bits 0-2: %nnn = number of missiles or Thargons (maximum 7)
 \
-\ INWK+32 = AI, hostility and E.C.M. flags
+\     * Bit 3:    0 = isn't currently being drawn on-screen
+\                 1 = is currently being drawn on-screen
 \
-\   * For ships:
+\     * Bit 4:    0 = don't show on scanner
+\                 1 = do show on scanner
 \
-\     * Bit 0:    0 = no E.C.M.          1 = has E.C.M.
-\     * Bits 1-5: n = aggression level, high = aggressive (see TACTICS part 7)
-\     * Bit 6:    0 = friendly           1 = hostile
-\     * Bit 7:    0 = dumb               1 = AI enabled (tactics get applied)
+\     * Bit 5:    0 = ship is not exploding
+\                 1 = ship is exploding
 \
-\   * For the space station:
+\     * Bit 6:    0 = ship is not firing lasers
+\                 1 = ship is firing lasers
+\                 0 = explosion has not been drawn
+\                 1 = explosion has been drawn
 \
-\     * Bit 7:    0 = friendly           1 = hostile
+\     * Bit 7:    0 = ship has not been killed
+\                 1 = ship has been killed
 \
-\   * For missiles:
+\   * Byte #32 = AI, hostility and E.C.M. flags
 \
-\     * Bit 0:    0 = no lock/launched   1 = target locked
-\     * Bits 1-4: n = target's slot number
-\     * Bit 6:    0 = friendly           1 = hostile
-\     * Bit 7:    0 = dumb               1 = AI enabled (tactics get applied)
+\     * For ships:
 \
-\ Heap pointer and energy (bytes 33-34)
-\ -------------------------------------
-\ INWK(34 33) = ship line heap space address pointer
+\       * Bit 0:    0 = no E.C.M.          
+\                   1 = has E.C.M.
 \
-\ INWK+35 = ship energy
+\       * Bits 1-5: n = aggression level (see TACTICS part 7)
+\
+\       * Bit 6:    0 = friendly
+\                   1 = hostile
+\
+\       * Bit 7:    0 = dumb
+\                   1 = AI enabled (tactics get applied by the TACTICS routine)
+\
+\     * For the space station:
+\
+\       * Bit 7:    0 = friendly
+\                   1 = hostile
+\
+\     * For missiles:
+\
+\       * Bit 0:    0 = no lock/launched
+\                   1 = target locked
+\
+\       * Bits 1-4: %nnnn = target's slot number (maximum 15)
+\
+\       * Bit 6:    0 = friendly
+\                   1 = hostile
+\
+\       * Bit 7:    0 = dumb
+\                   1 = AI enabled (tactics get applied)
+\
+\ Heap pointer and energy (bytes #33-34)
+\ --------------------------------------
+\ The final two bytes are as follows:
+\
+\   * Bytes #33-34 = ship line heap address pointer in INWK(34 33)
+\
+\   * Byte #35 = ship energy
 \
 \ ******************************************************************************
 
@@ -3233,7 +3300,7 @@ ORG &0900
 
 .K%
 
- SKIP 0                 \ Ship data blocks and ship line heap space
+ SKIP 0                 \ Ship data blocks and ship line heap
 
 \ ******************************************************************************
 \
@@ -3267,7 +3334,7 @@ ORG &0D40
                         \
                         \ The corresponding address in the lookup table at UNIV
                         \ points to the ship's data block, which in turn points
-                        \ to that ship's line heap space
+                        \ to that ship's line heap
                         \
                         \ The first ship slot at location FRIN is always
                         \ reserved for the planet, so it will always be 128 or
@@ -3391,8 +3458,8 @@ ORG &0D40
 
  SKIP 1                 \ Toggle hyperspace colour effects
                         \
-                        \   0 = no effects
-                        \   non-zero = hyperspace effects
+                        \   0 = no colour effects
+                        \   non-zero = hyperspace colour effects
                         \
                         \ When this is set to 1, the mode 4 screen that makes
                         \ up the top part of the display is switched to mode 5
@@ -4059,7 +4126,7 @@ LOAD_A% = LOAD%
  BEQ MA68               \ skip the following
 
  LDA K%+NI%+32          \ Fetch the AI counter (byte #32) of the second ship
- BMI MA68               \ in the ship data workspace at K%, which is reserved
+ BMI MA68               \ from the ship data workspace at K%, which is reserved
                         \ for the sun or the space station (in this case it's
                         \ the latter), and if it's negative, meaning the
                         \ station is hostile, jump down to MA68 to skip the
@@ -4229,15 +4296,15 @@ LOAD_A% = LOAD%
                         \ to MA21 if our energy bomb is not going off
 
  CPY #2*SST             \ If the ship in Y is the space station, jump to BA21
- BEQ MA21               \ as energy bombs have no effect on space stations
+ BEQ MA21               \ as energy bombs are useless against space stations
 
  LDA INWK+31            \ If the ship we are checking has bit 5 set in their
- AND #%00100000         \ INWK+31 byte, then they are already exploding, so
+ AND #%00100000         \ ship byte #31, then they are already exploding, so
  BNE MA21               \ jump to BA21 as they can't explode more than once
 
  LDA INWK+31            \ The energy bomb is killing this ship, so set bit 7
- ORA #%10000000         \ of the ship's INWK+31 byte to indicate that it has
- STA INWK+31            \ now been killed
+ ORA #%10000000         \ of the ship byte #31 to indicate that it has now been
+ STA INWK+31            \ killed
 
  JSR EXNO2              \ Call EXNO2 to process the fact that we have killed a
                         \ ship (so increase the kill tally, make an explosion
@@ -4293,7 +4360,7 @@ LOAD_A% = LOAD%
 
  LDA INWK+31            \ Fetch the status of this ship from bits 5 (is ship
  AND #%10100000         \ exploding?) and bit 7 (has ship been killed?) from
-                        \ INWK+31 into A
+                        \ ship byte #31 into A
 
  JSR MAS4               \ Or this value with x_hi, y_hi and z_hi
 
@@ -4330,10 +4397,10 @@ LOAD_A% = LOAD%
  LDA BST                \ If we have fuel scoops fitted then BST will be 127,
                         \ otherwise it will be 0
 
- AND INWK+5             \ INWK+5 contains the y_sign of this ship, so a -1 here
-                        \ means the canister is below us, so this result will
-                        \ be negative if the canister is below us and we have a
-                        \ fuel scoop fitted
+ AND INWK+5             \ Ship byte #5 contains the y_sign of this ship, so a -1
+                        \ here means the canister is below us, so this result
+                        \ will be negative if the canister is below us and we
+                        \ have a fuel scoop fitted
 
  BPL MA58               \ If the result is positive, then we either have no
                         \ scoop or the canister is above us, and in both cases
@@ -4454,8 +4521,8 @@ LOAD_A% = LOAD%
 \
 \ 2. Check the angle of approach
 \ ------------------------------
-\ The space station's ship data is in INWK. The nosev vector in INWK+9 to
-\ INWK+14 is the station's forward-facing normal vector, and it's perpendicular
+\ The space station's ship data is in INWK. The nosev vector in byte #9 to
+\ byte #14 is the station's forward-facing normal vector, and it's perpendicular
 \ to the face containing the slot, pointing straight out into space out of the
 \ docking slot. You can see this in the diagram on the left, which is a side-on
 \ view of the station, with us approaching at a jaunty angle from the top-right,
@@ -4759,7 +4826,7 @@ LOAD_A% = LOAD%
  JSR EXNO               \ the crosshairs, so call EXNO to make the sound of
                         \ us making a laser strike on another ship
 
- LDA INWK+35            \ Fetch the hit ship's energy from INWK+35 and subtract
+ LDA INWK+35            \ Fetch the hit ship's energy from byte #35 and subtract
  SEC                    \ our current laser power, and if the result is greater
  SBC LAS                \ than zero, the other ship has survived the hit, so
  BCS MA14               \ jump down to MA14
@@ -4768,8 +4835,8 @@ LOAD_A% = LOAD%
  CMP #SST               \ MA14+2 to make the station hostile, skipping the
  BEQ MA14+2             \ following as we can't destroy a space station
 
- LDA INWK+31            \ Set bit 7 of the enemy ship's INWK+31 flag, to
- ORA #%10000000         \ to indicate that it has been killed
+ LDA INWK+31            \ Set bit 7 of the enemy ship's byte #31, to indicate
+ ORA #%10000000         \ that it has been killed
  STA INWK+31
 
  BCS MA8                \ If the enemy ship type is >= SST (i.e. missile,
@@ -4812,7 +4879,7 @@ LOAD_A% = LOAD%
 
 .MA14
 
- STA INWK+35            \ Store the hit ship's updated energy in INWK+35
+ STA INWK+35            \ Store the hit ship's updated energy in ship byte #35
 
  LDA TYPE               \ Call ANGRY to make this ship hostile, now that we
  JSR ANGRY              \ have hit it
@@ -4841,15 +4908,15 @@ LOAD_A% = LOAD%
 
 .MA15
 
- LDY #35                \ Fetch the ship's energy from INWK+35 and copy it to
+ LDY #35                \ Fetch the ship's energy from byte #35 and copy it to
  LDA INWK+35            \ byte #35 in INF (so the ship's data in K% gets
  STA (INF),Y            \ updated)
 
- LDA INWK+31            \ If bit 7 of the ship's INWK+31 byte is clear, then
- BPL MAC1               \ the ship hasn't been killed by energy bomb, collision
-                        \ or laser fire, so jump to MAC1 to skip the following
+ LDA INWK+31            \ If bit 7 of the ship's byte #31 is clear, then the
+ BPL MAC1               \ ship hasn't been killed by energy bomb, collision or
+                        \ laser fire, so jump to MAC1 to skip the following
 
- AND #%00100000         \ If bit 5 of the ship's INWK+31 byte is clear then the
+ AND #%00100000         \ If bit 5 of the ship's byte #31 is clear then the
  BEQ NBOUN              \ ship is no longer exploding, so jump to NBOUN to skip
                         \ the following
 
@@ -4858,7 +4925,7 @@ LOAD_A% = LOAD%
  BNE q2
 
  LDA FIST               \ We shot the sheriff, so update our FIST flag
- ORA #64                \ ("fugitive/ innocent status") to at least 64, which
+ ORA #64                \ ("fugitive/innocent status") to at least 64, which
  STA FIST               \ will instantly make us a fugitive
 
 .q2
@@ -4904,7 +4971,7 @@ LOAD_A% = LOAD%
 
 .MA27
 
- LDY #31                \ Fetch the ship's explosion/killed state from INWK+31
+ LDY #31                \ Fetch the ship's explosion/killed state from byte #31
  LDA INWK+31            \ and copy it to byte #31 in INF (so the ship's data in
  STA (INF),Y            \ K% gets updated)
 
@@ -5022,7 +5089,7 @@ LOAD_A% = LOAD%
                         \ station to our bubble of universe. We do this by
                         \ copying the planet data block from K% to INWK so we
                         \ can work on it, but we only need the first 29 bytes,
-                        \ as we don't need to worry about INWK+29 to INWK+35
+                        \ as we don't need to worry about bytes #29 to #35
                         \ for planets (as they don't have rotation counters,
                         \ AI, explosions, missiles, a ship line heap or energy
                         \ levels)
@@ -5637,7 +5704,7 @@ LOAD_A% = LOAD%
                         \ at MV45 (after all the rotation, tactics and scanner
                         \ code, which we don't need to apply to planets or suns)
 
- LDA INWK+32            \ Fetch the ship's INWK+32 byte (AI flag) into A
+ LDA INWK+32            \ Fetch the ship's byte #32 (AI flag) into A
 
  BPL MV30               \ If bit 7 of the AI flag is clear, then if this is a
                         \ ship or missile it is dumb and has no AI, and if this
@@ -5694,7 +5761,7 @@ LOAD_A% = LOAD%
 \
 \ ******************************************************************************
 
- LDA INWK+27            \ Set Q = the ship's speed (INWK+27) * 4
+ LDA INWK+27            \ Set Q = the ship's speed byte #27 * 4
  ASL A
  ASL A
  STA Q
@@ -5705,11 +5772,11 @@ LOAD_A% = LOAD%
  JSR FMLTU              \ Set R = A * Q / 256
  STA R                  \       = |nosev_x_hi| * speed / 64
 
- LDA INWK+10            \ If INWK+10 (nosev_x_hi) is positive, then:
+ LDA INWK+10            \ If nosev_x_hi is positive, then:
  LDX #0                 \
  JSR MVT1-2             \   (x_sign x_hi x_lo) = (x_sign x_hi x_lo) + R
                         \
-                        \ If INWK+10 (nosev_x_hi) is negative, then:
+                        \ If nosev_x_hi is negative, then:
                         \
                         \   (x_sign x_hi x_lo) = (x_sign x_hi x_lo) - R
                         \
@@ -5723,11 +5790,11 @@ LOAD_A% = LOAD%
  JSR FMLTU              \ Set R = A * Q / 256
  STA R                  \       = |nosev_y_hi| * speed / 64
 
- LDA INWK+12            \ If INWK+12 (nosev_y_hi) is positive, then:
+ LDA INWK+12            \ If nosev_y_hi is positive, then:
  LDX #3                 \
  JSR MVT1-2             \   (y_sign y_hi y_lo) = (y_sign y_hi y_lo) + R
                         \
-                        \ If INWK+12 (nosev_y_hi) is negative, then:
+                        \ If nosev_y_hi is negative, then:
                         \
                         \   (y_sign y_hi y_lo) = (y_sign y_hi y_lo) - R
                         \
@@ -5741,11 +5808,11 @@ LOAD_A% = LOAD%
  JSR FMLTU              \ Set R = A * Q / 256
  STA R                  \       = |nosev_z_hi| * speed / 64
 
- LDA INWK+14            \ If INWK+14 (nosev_y_hi) is positive, then:
+ LDA INWK+14            \ If nosev_y_hi is positive, then:
  LDX #6                 \
  JSR MVT1-2             \   (z_sign z_hi z_lo) = (z_sign z_hi z_lo) + R
                         \
-                        \ If INWK+14 (nosev_z_hi) is negative, then:
+                        \ If nosev_z_hi is negative, then:
                         \
                         \   (z_sign z_hi z_lo) = (z_sign z_hi z_lo) - R
                         \
@@ -5765,8 +5832,8 @@ LOAD_A% = LOAD%
 \
 \ ******************************************************************************
 
- LDA INWK+27            \ Set A = the ship's speed (INWK+24) + the ship's
- CLC                    \ acceleration (INWK+28)
+ LDA INWK+27            \ Set A = the ship's speed in byte #24 + the ship's
+ CLC                    \ acceleration in byte #28
  ADC INWK+28
 
  BPL P%+4               \ If the result is positive, skip the following
@@ -5784,10 +5851,10 @@ LOAD_A% = LOAD%
 
  STA INWK+27            \ We have now calculated the new ship's speed after
                         \ accelerating and keeping the speed within the ship's
-                        \ limits, so store the updated speed in INWK+27
+                        \ limits, so store the updated speed in byte #27
 
  LDA #0                 \ We have added the ship's acceleration, so we now set
- STA INWK+28            \ it back to 0 in INWK+28, as it's a one-off change
+ STA INWK+28            \ it back to 0 in byte #28, as it's a one-off change
 
 \ ******************************************************************************
 \
@@ -5848,7 +5915,7 @@ LOAD_A% = LOAD%
                         \ P(2 1 0) = (x_hi x_lo) * alpha
 
  LDA ALP2+1             \ Fetch the flipped sign of the current roll angle alpha
- EOR INWK+2             \ from ALP2+1 and EOR with INWK+2 (x_sign), so if the
+ EOR INWK+2             \ from ALP2+1 and EOR with byte #2 (x_sign), so if the
                         \ flipped roll angle and x_sign have the same sign, A
                         \ will be positive, else it will be negative. So A will
                         \ contain the sign bit of x_sign * flipped alpha sign,
@@ -5996,7 +6063,7 @@ LOAD_A% = LOAD%
                         \ P(2 1 0) = (y_hi y_lo) * alpha
 
  LDA ALP2               \ Fetch the correct sign of the current roll angle alpha
- EOR INWK+5             \ from ALP2 and EOR with INWK+5 (y_sign), so if the
+ EOR INWK+5             \ from ALP2 and EOR with byte #5 (y_sign), so if the
                         \ correct roll angle and y_sign have the same sign, A
                         \ will be positive, else it will be negative. So A will
                         \ contain the sign bit of x_sign * correct alpha sign,
@@ -6121,7 +6188,7 @@ LOAD_A% = LOAD%
  ORA RAT2               \ Change bit 7 of A to the sign we saved in RAT2, so
                         \ the updated pitch counter in A retains its sign
 
- STA INWK+30            \ Store the updated pitch counter in INWK+30
+ STA INWK+30            \ Store the updated pitch counter in byte #30
 
  LDX #15                \ Rotate (roofv_x, nosev_x) by a small angle (pitch)
  LDY #9
@@ -6157,7 +6224,7 @@ LOAD_A% = LOAD%
  ORA RAT2               \ Change bit 7 of A to the sign we saved in RAT2, so
                         \ the updated roll counter in A retains its sign
 
- STA INWK+29            \ Store the updated pitch counter in INWK+29
+ STA INWK+29            \ Store the updated pitch counter in byte #29
 
  LDX #15                \ Rotate (roofv_x, sidev_x) by a small angle (roll)
  LDY #21
@@ -6186,7 +6253,7 @@ LOAD_A% = LOAD%
 
 .MV5
 
- LDA INWK+31            \ Fetch the ship's exploding/killed state from INWK+31
+ LDA INWK+31            \ Fetch the ship's exploding/killed state from byte #31
 
  AND #%10100000         \ If we are exploding or removing this ship then jump to
  BNE MVD1               \ MVD1 to remove it from the scanner permanently
@@ -12980,13 +13047,13 @@ NEXT
  JSR FRS1               \ Call FRS1 to launch the Cobra Mk III straight ahead,
                         \ like a missile launch, but with our ship instead
 
- LDA #8                 \ Set the Cobra's INWK+27 (speed) to 8
+ LDA #8                 \ Set the Cobra's byte #27 (speed) to 8
  STA INWK+27
 
- LDA #194               \ Set the Cobra's INWK+30 (pitch counter) to 194, so it
+ LDA #194               \ Set the Cobra's byte #30 (pitch counter) to 194, so it
  STA INWK+30            \ pitches as we pull away
 
- LSR A                  \ Set the Cobra's INWK+32 (AI flag) to %01100001, so it
+ LSR A                  \ Set the Cobra's byte #32 (AI flag) to %01100001, so it
  STA INWK+32            \ has no AI, and we can use this value as a counter to
                         \ do the following loop 97 times
 
@@ -12996,7 +13063,7 @@ NEXT
 
  JSR LL9                \ Call LL9 to draw the Cobra on-screen
 
- DEC INWK+32            \ Decrement the counter in INWK+32
+ DEC INWK+32            \ Decrement the counter in byte #32
 
  BNE ESL1               \ Loop back to keep moving the Cobra until the AI flag
                         \ is 0, which gives it time to drift away from our pod
@@ -13112,7 +13179,7 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ straight to aggressive manoeuvring
 
  JSR TA87+3             \ The missile has hit our ship, so call TA87+3 to set
-                        \ bit 7 of the missile's INWK+31 byte, which marks the
+                        \ bit 7 of the missile's byte #31, which marks the
                         \ missile as being killed
 
  JSR EXNO3              \ Make the sound of the missile exploding
@@ -13129,7 +13196,7 @@ LOAD_C% = LOAD% +P% - CODE%
  LDA ECMA               \ If an E.C.M. is currently active (either our's or an
  BNE TA35               \ opponent's), jump to TA35 to destroy this missile
 
- LDA INWK+32            \ Fetch the AI flag from INWK+32 and if bit 6 is set
+ LDA INWK+32            \ Fetch the AI flag from byte #32 and if bit 6 is set
  ASL A                  \ (i.e. missile is hostile), jump up to TA34 to check
  BMI TA34               \ whether the missile has hit us
 
@@ -13171,7 +13238,7 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ distance from the target, so jump down to TA64 see if
                         \ the target activates its E.C.M.
 
- LDA INWK+32            \ Fetch the AI flag from INWK+32 and if only bits 7 and
+ LDA INWK+32            \ Fetch the AI flag from byte #32 and if only bits 7 and
  CMP #%10000010         \ 1 are set (AI is enabled and the target is slot 1, the
  BEQ TA35               \ space station), jump to TA35 to destroy this missile,
                         \ as the space station ain't kidding around
@@ -13209,7 +13276,7 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ missile (so increase the kill tally, make an explosion
                         \ sound and so on)
 
- ASL INWK+31            \ Set bit 7 of the missile's INWK+31 flag to mark it as
+ ASL INWK+31            \ Set bit 7 of the missile's byte #31 flag to mark it as
  SEC                    \ having been killed, so it explodes
  ROR INWK+31
 
@@ -13246,7 +13313,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ Apply tactics to the current ship. This section contains the main entry point
 \ at TACTICS, which is called from MVEIT (part 2) for ships that have the AI
-\ flag set (i.e. bit 7 of INWK+32). This part does the following:
+\ flag set (i.e. bit 7 of byte #32). This part does the following:
 \
 \   * If this is a missile, jump up to the missile code in part 1
 \
@@ -13437,11 +13504,11 @@ LOAD_C% = LOAD% +P% - CODE%
  LDA (XX0),Y
  LSR A
 
- CMP INWK+35            \ If the ship's current energy in INWK+35 > A, i.e. the
+ CMP INWK+35            \ If the ship's current energy in byte #35 > A, i.e. the
  BCC TA3                \ ship has at least half of its energy banks charged,
                         \ jump down to TA3
 
- LSR A                  \ If the ship's current energy in INWK+35 > A / 4, i.e.
+ LSR A                  \ If the ship's current energy in bute #35 > A / 4, i.e.
  LSR A                  \ the ship is not into the last 1/8th of its energy,
  CMP INWK+35            \ jump down to ta3 to consider firing a missile
  BCC ta3
@@ -13486,7 +13553,7 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ so there may not be enough juice for lasers, but let's
                         \ see if we can fire a missile
 
- LDA INWK+31            \ Set A = bits 0-2 of INWK+31, the number of missiles
+ LDA INWK+31            \ Set A = bits 0-2 of byte #31, the number of missiles
  AND #%00000111         \ the ship has left
 
  BEQ TA3                \ If it doesn't have any missiles, jump to TA3
@@ -13503,8 +13570,8 @@ LOAD_C% = LOAD% +P% - CODE%
  LDA ECMA               \ If an E.C.M. is currently active (either our's or an
  BNE TA3                \ opponent's), jump to TA3
 
- DEC INWK+31            \ We're done with the checks, so it's time to fire off
-                        \ a missile, so reduce the missile count in INWK+31 by 1
+ DEC INWK+31            \ We're done with the checks, so it's time to fire off a
+                        \ missile, so reduce the missile count in byte #31 by 1
 
  LDA TYPE               \ If this is not a Thargoid, jump down to TA16 to launch
  CMP #THG               \ a missile
@@ -13576,8 +13643,8 @@ LOAD_C% = LOAD% +P% - CODE%
  CPX #160               \ If X < 160, i.e. X > -32, then we are not in the enemy
  BCC TA4                \ ship's line of fire, so jump to TA4
 
- LDA INWK+31            \ Set bit 6 on INWK+31 to denote that the ship is firing
- ORA #%01000000         \ its laser at us
+ LDA INWK+31            \ Set bit 6 in byte #31 to denote that the ship is
+ ORA #%01000000         \ firing its laser at us
  STA INWK+31
 
  CPX #163               \ If X < 163, i.e. X > -35, then we are not in the enemy
@@ -13597,7 +13664,7 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ losing cargo or dying (if the latter, we don't come
                         \ back from this subroutine)
 
- DEC INWK+28            \ Halve the attacking ship's acceleration in INWK+28,
+ DEC INWK+28            \ Halve the attacking ship's acceleration in byte #28,
 
  LDA ECMA               \ If an E.C.M. is currently active (either our's or an
  BNE TA10               \ opponent's), return from the subroutine without making
@@ -13645,16 +13712,16 @@ LOAD_C% = LOAD% +P% - CODE%
 
  ORA #%10000000         \ Set bit 7 of A
 
- CMP INWK+32            \ If A >= INWK+32 (the ship's AI flag) then jump down
+ CMP INWK+32            \ If A >= byte #32 (the ship's AI flag) then jump down
  BCS TA15               \ to TA15 so it heads away from us
  
-                        \ We get here if A < INWK+32, and the chances of this
-                        \ being true are greater with high values of INWK+32. In
-                        \ other words, higher INWK+32 values increase the
+                        \ We get here if A < byte #32, and the chances of this
+                        \ being true are greater with high values of byte #32.
+                        \ In other words, higher byte #32 values increase the
                         \ chances of a ship changing direction to head towards
                         \ us - or, to put it another way, ships with higher
-                        \ INWK+32 values are spoiling for a fight. Thargoids
-                        \ have INWK+32 set to 255, which explains an awful lot
+                        \ byte #32 values are spoiling for a fight. Thargoids
+                        \ have byte #32 set to 255, which explains an awful lot
 
 .TA20
 
@@ -13715,7 +13782,7 @@ LOAD_C% = LOAD% +P% - CODE%
  ORA #%00000011         \ the ship towards the direction of the XX15 vector
  STA INWK+30
 
- LDA INWK+29            \ Fetch the roll counter from INWK+29 into A and clear
+ LDA INWK+29            \ Fetch the roll counter from byte #29 into A and clear
  AND #%01111111         \ the sign bit
 
  CMP #16                \ If A >= 16 then jump to TA6, as the ship is already
@@ -13744,7 +13811,7 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ directly towards each other, so jump to TA9 to slow
                         \ down
 
- LDA #3                 \ Otherwise set the acceleration in INWK+28 to 3
+ LDA #3                 \ Otherwise set the acceleration in byte #28 to 3
  STA INWK+28
 
  RTS                    \ Return from the subroutine
@@ -13872,7 +13939,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ 
 \   * Make sure this isn't the planet or sun (bit 7 of the ship type is clear)
 \ 
-\   * Make sure the ship isn't exploding (bit 5 of INWK+31 is clear)
+\   * Make sure the ship isn't exploding (bit 5 of byte #31 is clear)
 \ 
 \   * Make sure the ship is close enough to be targeted or hit (both x_hi and
 \     y_hi are 0)
@@ -13926,7 +13993,7 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ return from the subroutine with the C flag clear (as
                         \ HI1 contains an RTS)
 
- LDA INWK+31            \ Fetch bit 5 of INWK+31 (the exploding flag) and OR
+ LDA INWK+31            \ Fetch bit 5 of byte #31 (the exploding flag) and OR
  AND #%00100000         \ with x_hi and y_hi
  ORA INWK+1
  ORA INWK+4
@@ -14043,7 +14110,7 @@ LOAD_C% = LOAD% +P% - CODE%
  LDA MSTG               \ Set A to the missile lock target, shifted left so the
  ASL A                  \ slot number is in bits 1-4
 
- ORA #%10000000         \ Set bit 7 and store the result in INWK+32, the AI
+ ORA #%10000000         \ Set bit 7 and store the result in byte #32, the AI
  STA INWK+32            \ flag launched ship for the launched ship. For missiles
                         \ this enables AI (bit 7), makes it friendly towards us
                         \ (bit 6), sets the target to the value of MSTG (bits
@@ -14055,18 +14122,18 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .^fq1
 
- LDA #&60               \ Set INWK+14 (nosev_z_hi) to 1 (&60), so the launched
+ LDA #&60               \ Set byte #14 (nosev_z_hi) to 1 (&60), so the launched
  STA INWK+14            \ ship is pointing away from us
 
- ORA #128               \ Set INWK+22 (sidev_x_hi) to -1 (&D0), so the launched
+ ORA #128               \ Set byte #22 (sidev_x_hi) to -1 (&D0), so the launched
  STA INWK+22            \ ship has the same orientation as spawned ships, just
                         \ pointing away from us (if we set side_v to +1 instead,
                         \ this ship would be a mirror image of all the other
                         \ ships, which are spawned with -1 in nosev and +1 in
                         \ sidev)
 
- LDA DELTA              \ Set INWK+27 (speed) to 2 * DELTA, so the launched ship
- ROL A                  \ flies off at twice our speed
+ LDA DELTA              \ Set byte #27 (speed) to 2 * DELTA, so the launched
+ ROL A                  \ ship flies off at twice our speed
  STA INWK+27
 
  TXA                    \ Add a new ship of type X to our local bubble of
@@ -14226,8 +14293,8 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ Arguments:
 \
-\   A                   AI flag for the new ship (see the documentation on
-\                       INWK+32 for details)
+\   A                   AI flag for the new ship (see the documentation on ship
+\                       data byte #32 for details)
 \
 \   X                   The ship type of the child to spawn
 \
@@ -14307,7 +14374,7 @@ LOAD_C% = LOAD% +P% - CODE%
  TXA                    \ Store the child's ship type in X on the stack
  PHA
 
- LDA #32                \ Set the child's INWK+27 (speed) to 32
+ LDA #32                \ Set the child's byte #27 (speed) to 32
  STA INWK+27
 
  LDX #0                 \ Add 2 * nosev_x_hi to (x_lo, x_hi, x_sign) to get the
@@ -14328,9 +14395,9 @@ LOAD_C% = LOAD% +P% - CODE%
 .rx
 
  LDA T1                 \ Restore the child ship's AI flag from T1 and store it
- STA INWK+32            \ in the child's INWK+32 (AI)
+ STA INWK+32            \ in the child's byte #32 (AI)
 
- LSR INWK+29            \ Clear bit 0 of the child's INWK+29 (roll counter) so
+ LSR INWK+29            \ Clear bit 0 of the child's byte #29 (roll counter) so
  ASL INWK+29            \ that its roll dampens (so if we are spawning from a
                         \ space station, for example, the spawned ship won't
                         \ keep rolling forever)
@@ -14341,17 +14408,17 @@ LOAD_C% = LOAD% +P% - CODE%
 
  JSR DORND              \ Set A and X to random numbers
 
- ASL A                  \ Set the child's INWK+30 (pitch counter) to a random
+ ASL A                  \ Set the child's byte #30 (pitch counter) to a random
  STA INWK+30            \ value, and at the same time set the C flag randomly
 
- TXA                    \ Set the child's INWK+27 (speed) to a random value
+ TXA                    \ Set the child's byte #27 (speed) to a random value
  AND #%00001111         \ between 0 and 15
  STA INWK+27
 
- LDA #&FF               \ Set the child's INWK+29 (roll counter) to a full roll,
- ROR A                  \ so the canister tumbles through space, with damping
- STA INWK+29            \ randomly enabled or disabled, depending on the C flag
-                        \ from above
+ LDA #&FF               \ Set the child's byte #29 (roll counter) to a full
+ ROR A                  \ roll, so the canister tumbles through space, with
+ STA INWK+29            \ damping randomly enabled or disabled, depending on the
+                        \ C flag from above
 
  LDA #OIL               \ Set A to the ship type of a cargo canister
 
@@ -16529,8 +16596,9 @@ NEXT
  AND #%01111111
 
  BMI DV9                \ If bit 7 of A is set, jump down to DV9 to skip the
-                        \ left-shifting of the denominator (though this has no
-                        \ effect as bit 7 of the above AND can never be set)
+                        \ left-shifting of the denominator (though this branch
+                        \ instruction has no effect as bit 7 of the above AND
+                        \ can never be set)
 
 .DVL6
 
@@ -18279,7 +18347,7 @@ NEXT
 
 .SCAN
 {
- LDA INWK+31            \ Fetch the ship's scanner flag from INWK+31
+ LDA INWK+31            \ Fetch the ship's scanner flag from byte #31
 
  AND #%00010000         \ If bit 4 is clear then the ship should not be shown
  BEQ SC5                \ on the scanner, so return from the subroutine (as SC5
@@ -22335,8 +22403,8 @@ LOAD_D% = LOAD% + P% - CODE%
 {
  JSR Ze                 \ Call Ze to initialise INWK
 
- LDA #%11111111         \ Set the AI flag in INWK+32 so that the ship has AI, is
- STA INWK+32            \ extremely and aggressively hostile, and has E.C.M.
+ LDA #%11111111         \ Set the AI flag in byte #32 so that the ship has AI,
+ STA INWK+32            \ is extremely and aggressively hostile, and has E.C.M.
 
  LDA #THG               \ Call NWSHP to add a new Thargoid ship to our local
  JSR NWSHP              \ bubble of universe
@@ -24759,7 +24827,7 @@ LOAD_E% = LOAD% + P% - CODE%
  LDA QQ15+1             \ Fetch w0_hi, extract bits 0-2 (which also happen to
  AND #%00000111         \ determine the economy), add 6 + C, divide by 2, and
  ADC #6                 \ store the result - which will be between 3 and 7 - in
- LSR A                  \ z_sign in INWK+6
+ LSR A                  \ z_sign in byte #6
  STA INWK+8
 
  ROR A                  \ Halve A, rotating in the C flag, which was previously
@@ -25726,7 +25794,7 @@ LOAD_E% = LOAD% + P% - CODE%
 {
  JSR SPBLB              \ Light up the space station bulb on the dashboard
 
- LDX #1                 \ Set the AI flag in INWK+32 to 1 (friendly, no AI, has
+ LDX #1                 \ Set the AI flag in byte #32 to 1 (friendly, no AI, has
  STX INWK+32            \ E.C.M.)
 
  DEX                    \ Set pitch counter to 0 (no pitch, roll only)
@@ -25743,15 +25811,15 @@ LOAD_E% = LOAD% + P% - CODE%
  DEX                    \ Set roll counter to 255 (maximum roll with no
  STX INWK+29            \ damping)
 
- LDX #10                \ Call NwS1 to flip the sign of nosev_x_hi (INWK+10)
+ LDX #10                \ Call NwS1 to flip the sign of nosev_x_hi (byte #10)
  JSR NwS1
 
- JSR NwS1               \ And again to flip the sign of nosev_y_hi (INWK+12)
+ JSR NwS1               \ And again to flip the sign of nosev_y_hi (byte #12)
 
- JSR NwS1               \ And again to flip the sign of nosev_z_hi (INWK+14)
+ JSR NwS1               \ And again to flip the sign of nosev_z_hi (byte #14)
 
- LDA #LO(LSO)           \ Set INWK+33 and INWK+34 to point to LSO for the ship
- STA INWK+33            \ lines heap space for the space station
+ LDA #LO(LSO)           \ Set bytes #33 and #34 to point to LSO for the ship
+ STA INWK+33            \ line heap for the space station
  LDA #HI(LSO)
  STA INWK+34
 
@@ -25765,7 +25833,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: NWSHP
 \
 \ Add a new ship to our local bubble of universe. This creates a new block of
-\ ship data in the workspace at K%, allocates a new block in the ship line heap
+\ ship data in the K% workspace, allocates a new block in the ship line heap
 \ at WP, adds the new ship's type into the first empty slot in FRIN, and adds a
 \ pointer to the ship data into UNIV. If there isn't enough free memory for the
 \ new ship, it isn't added.
@@ -25823,7 +25891,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ index X, so we can go ahead and create our new ship.
                         \ We do that by creating a ship data block at INWK and,
                         \ when we are done, copying the block from INWK into
-                        \ the workspace at K% (specifically, to INF)
+                        \ the K% workspace (specifically, to INF)
 
  JSR GINF               \ Get the address of the data block for ship slot X
                         \ (which is in workspace K%) and store it in INF
@@ -25854,34 +25922,34 @@ LOAD_E% = LOAD% + P% - CODE%
  STA XX0+1              \ blueprint and store it in XX0+1
 
  CPY #2*SST             \ If the ship type is a space station (SST), then jump
- BEQ NW6                \ to NW6, skipping the heap space steps below
+ BEQ NW6                \ to NW6, skipping the heap space steps below, as the
+                        \ space station has its own line heap at LSO (which it
+                        \ shares with the sun)
 
                         \ We now want to allocate space for a heap that we can
                         \ use to store the lines we draw for our new ship (so it
                         \ can easily be erased from the screen again). SLSP
                         \ points to the start of the current heap space, and we
                         \ can extend it downwards with the heap for our new ship
-                        \ (as the heap space always ends just before the
-                        \ workspace at WP)
+                        \ (as the heap space always ends just before the WP
+                        \ workspace)
 
  LDY #5                 \ Fetch ship blueprint byte #5, which contains the
  LDA (XX0),Y            \ maximum heap size required for plotting the new ship,
  STA T1                 \ and store it in T1
 
  LDA SLSP               \ Take the 16-bit address in SLSP and subtract T1,
- SEC                    \ storing the 16-bit result in (INWK+34 INWK+33),
- SBC T1                 \ so this now points to the start of the heap space
- STA INWK+33            \ for our new ship
+ SEC                    \ storing the 16-bit result in INWK(34 33), so this now
+ SBC T1                 \ points to the start of the line heap for our new ship
+ STA INWK+33
  LDA SLSP+1
  SBC #0
  STA INWK+34
 
                         \ We now need to check that there is enough free space
-                        \ for both this new heap space and the new data block
+                        \ for both this new line heap and the new data block
                         \ for our ship. In memory, this is the layout of the
                         \ ship data and heap space:
-                        \
-                        \   High address
                         \
                         \   +-----------------------------------+   &0F34
                         \   |                                   |
@@ -25895,7 +25963,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \   |                                   |
                         \   | Proposed heap for new ship        |
                         \   |                                   |
-                        \   +-----------------------------------+   INWK+33
+                        \   +-----------------------------------+   INWK(34 33)
                         \   |                                   |
                         \   .                                   .
                         \   .                                   .
@@ -25903,7 +25971,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \   .                                   .
                         \   .                                   .
                         \   |                                   |
-                        \   +-----------------------------------+   INF+NI%
+                        \   +-----------------------------------+   INF + NI%
                         \   |                                   |
                         \   | Proposed data block for new ship  |
                         \   |                                   |
@@ -25913,19 +25981,20 @@ LOAD_E% = LOAD% + P% - CODE%
                         \   |                                   |
                         \   +-----------------------------------+   &0900 = K%
                         \
-                        \   Low address
-                        \
                         \ So, to work out if we have enough space, we have to
                         \ make sure there is room between the end of our new
-                        \ ship data block at INF+NI%, and the start of the
-                        \ proposed heap for our new ship at INWK+33. Or, to
-                        \ put it another way, we need to make sure that:
+                        \ ship data block at INF + NI%, and the start of the
+                        \ proposed heap for our new ship at the address we
+                        \ stored in INWK(34 33). Or, to put it another way, we
+                        \ and to make sure that:
                         \
-                        \   INWK+33 > INF+NI%
+                        \   INWK(34 33) > INF + NI%
                         \
                         \ which is the same as saying:
                         \
                         \   INWK+33 - INF > NI%
+                        \
+                        \ because INWK is in zero page, so INWK+34 = 0
 
  LDA INWK+33            \ Calculate INWK+33 - INF, again using 16-bit
 \SEC                    \ arithmetic, and put the result in (A Y), so the high
@@ -25955,20 +26024,20 @@ LOAD_E% = LOAD% + P% - CODE%
 .NW4
 
  LDA INWK+33            \ If we get here then we do have enough space for our
- STA SLSP               \ new ship, so store the new bottom of the ship lines
- LDA INWK+34            \ heap space (i.e. INWK+33) in SLSP, doing both the
- STA SLSP+1             \ high and low bytes
+ STA SLSP               \ new ship, so store the new bottom of the ship line
+ LDA INWK+34            \ heap (i.e. INWK+33) in SLSP, doing both the high and
+ STA SLSP+1             \ low bytes
 
 .NW6
 
  LDY #14                \ Fetch ship blueprint byte #14, which contains the
- LDA (XX0),Y            \ ship's energy, and store it in INWK+35
+ LDA (XX0),Y            \ ship's energy, and store it in byte #35
  STA INWK+35
 
  LDY #19                \ Fetch ship blueprint byte #19, which contains the
  LDA (XX0),Y            \ number of missiles and laser power, and AND with %111
  AND #%00000111         \ to extract the number of missiles before storing in
- STA INWK+31            \ INWK+31
+ STA INWK+31            \ byte #31
 
  LDA T                  \ Restore the ship type we stored above
 
@@ -28829,7 +28898,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   P(1 0)              Points to the heap space of the ship in the last
+\   P(1 0)              Points to the ship line heap of the ship in the last
 \                       occupied slot (i.e. it points to the bottom of the
 \                       descending heap)
 \
@@ -29087,11 +29156,11 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ The rest of this routine closes up these gaps by
                         \ looping through all the occupied ship slots after the
                         \ slot we are removing, one by one, and shuffling each
-                        \ ship's slot, data block and heap space down to close
+                        \ ship's slot, data block and line heap down to close
                         \ up the gaps left by the removed ship. As part of this,
                         \ we have to make sure we update any address pointers
                         \ so they point to the newly shuffled data blocks and
-                        \ heap space
+                        \ line heaps
                         \
                         \ In the following, when shuffling a ship's data down
                         \ into the preceding empty slot, we call the ship that
@@ -29100,7 +29169,7 @@ LOAD_F% = LOAD% + P% - CODE%
                         \
                         \ Before we start looping through the ships we need to
                         \ shuffle down, we need to set up some variables to
-                        \ point to the source and destination heap spaces
+                        \ point to the source and destination line heaps
 
  LDY #5                 \ Fetch byte #5 of the removed ship's blueprint into A,
  LDA (XX0),Y            \ which gives the ship's maximum heap size for the ship
@@ -29125,13 +29194,13 @@ LOAD_F% = LOAD% + P% - CODE%
 
                         \ Now, we're ready to start looping through the ships
                         \ we want to move, moving the slots, data blocks and
-                        \ heap space from the source to the destination. In the
+                        \ line heap from the source to the destination. In the
                         \ following, we set up SC to point to the source data,
                         \ and INF (which currently points to the removed ship's
                         \ data that we can now overwrite) points to the
                         \ destination
                         \
-                        \ So P(1 0) now points to the top of the heap space for
+                        \ So P(1 0) now points to the top of the line heap for
                         \ the destination
 
 .KSL1
@@ -29163,7 +29232,7 @@ LOAD_F% = LOAD% + P% - CODE%
  STA T
 
                         \ We now subtract T from P(1 0), so P(1 0) will point to
-                        \ the bottom of the heap space for the destination
+                        \ the bottom of the line heap for the destination
                         \ (which we will use later when closing up the gap in
                         \ the heap space)
 
@@ -29197,7 +29266,7 @@ LOAD_F% = LOAD% + P% - CODE%
                         \
                         \   INF(1 0) points to the destination's ship data block
                         \
-                        \   P(1 0) points to the destination's heap space
+                        \   P(1 0) points to the destination's line heap
                         \
                         \ so let's start copying data from the source to the
                         \ destination
@@ -29214,7 +29283,7 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ go...
 
  DEY                    \ Fetch byte #34 of the source ship, which is the
- LDA (SC),Y             \ high byte of the source ship's heap space, and store
+ LDA (SC),Y             \ high byte of the source ship's line heap, and store
  STA K+1                \ in K+1
 
  LDA P+1                \ Set the low byte of the destination's heap pointer
@@ -29224,7 +29293,7 @@ LOAD_F% = LOAD% + P% - CODE%
  LDA (SC),Y             \ low byte of the source ship's heap, and store in K
  STA K                  \ so now we have the following:
                         \
-                        \   K(1 0) points to the source's heap space
+                        \   K(1 0) points to the source's line heap
 
  LDA P                  \ Set the low byte of the destination's heap pointer
  STA (INF),Y            \ to P, so now the destination's heap pointer is to
@@ -29250,9 +29319,9 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ We have now shuffled the ship's slot and the ship's
                         \ data block, so we only have the heap data itself to do
 
- LDA SC                 \ First, we copy SC into INF, so when we loop round again,
- STA INF                \ INF will correctly point to the destination for the next
- LDA SC+1               \ iteration
+ LDA SC                 \ First, we copy SC into INF, so when we loop round
+ STA INF                \ again, INF will correctly point to the destination for
+ LDA SC+1               \ the next iteration
  STA INF+1
 
  LDY T                  \ Now we want to move the contents of the heap, as all
@@ -29263,9 +29332,9 @@ LOAD_F% = LOAD% + P% - CODE%
                         \
                         \ As a reminder, we have already set the following:
                         \
-                        \   K(1 0) points to the source's heap space
+                        \   K(1 0) points to the source's line heap
                         \
-                        \   P(1 0) points to the destination's heap space
+                        \   P(1 0) points to the destination's line heap
                         \
                         \ so we can move the heap data by simply copying the
                         \ correct number of bytes from K(1 0) to P(1 0)
@@ -29520,9 +29589,9 @@ LOAD_F% = LOAD% + P% - CODE%
 
                         \ Finally, we reset the orientation vectors as follows:
                         \
-                        \   nosev = (0,  0, -1)
-                        \   roofv = (0,  1,  0)
                         \   sidev = (1,  0,  0)
+                        \   roofv = (0,  1,  0)
+                        \   nosev = (0,  0, -1)
                         \
                         \ &6000 represents 1 in the orientation vectors, while
                         \ &E000 represents -1. We already set the vectors to
@@ -29531,12 +29600,13 @@ LOAD_F% = LOAD% + P% - CODE%
 
  LDA #&60               \ Set A to represent a 1
 
- STA INWK+18            \ Set INWK+18 = roofv_y_hi = &60 = 1
- STA INWK+22            \ Set INWK+22 = sidev_x_hi = &60 = 1
+ STA INWK+18            \ Set byte #18 = roofv_y_hi = &60 = 1
+
+ STA INWK+22            \ Set byte #22 = sidev_x_hi = &60 = 1
 
  ORA #128               \ Flip the sign of A to represent a -1
 
- STA INWK+14            \ Set INWK+14 = nosev_z_hi = &E0 = -1
+ STA INWK+14            \ Set byte #14 = nosev_z_hi = &E0 = -1
 
  RTS                    \ Return from the subroutine
 }
@@ -30575,7 +30645,7 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ the C flag randomly
 
  LSR A                  \ Set A = A / 4, so A is now between 48 and 63, and
- LSR A                  \ store in INWK+0 (x_lo)
+ LSR A                  \ store in byte #0 (x_lo)
  STA INWK
 
  LDY #0                 \ Set the following to 0: the current view in QQ11
@@ -30597,18 +30667,18 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ and 255 / 50 = 5.1)
 
  EOR #%00101010         \ Flip bits 1, 3 and 5 in A (x_lo) to get another number
- STA INWK+3             \ between 48 and 63, and store in INWK+3 (y_lo)
+ STA INWK+3             \ between 48 and 63, and store in byte #3 (y_lo)
 
  ORA #%01010000         \ Set bits 4 and 6 of A to bump it up to between 112 and
- STA INWK+6             \ 127, and store in INWK+6 (z_lo)
+ STA INWK+6             \ 127, and store in byte #6 (z_lo)
 
  TXA                    \ Set A to the random number in X and keep bits 0-3 and
  AND #%10001111         \ the bit 7 to get a number between -15 and +15, and
- STA INWK+29            \ store in INWK+29 (roll counter) to give our ship a
+ STA INWK+29            \ store in byte #29 (roll counter) to give our ship a
                         \ gentle roll with damping
 
  ROR A                  \ C is random from above call to Ze, so this sets A to a
- AND #%10000111         \ number between -7 and +7, which we store in INWK+30
+ AND #%10000111         \ number between -7 and +7, which we store in byte #30
  STA INWK+30            \ (pitch counter) to give our ship a very gentle pitch
                         \ with damping
 
@@ -31088,8 +31158,9 @@ ENDIF
  BPL GTL1               \ Loop back until we have copied all 8 bytes
 
                         \ Fall through into TR1 to copy the name back from NA%
-                        \ to INWK, though this has no effect apart from saving
-                        \ one byte, as we don't need an RTS here
+                        \ to INWK. This isn't necessary as the name is already
+                        \ there, but it does save one byte, as we don't need an
+                        \ RTS here
 }
 
 \ ******************************************************************************
@@ -33317,12 +33388,12 @@ ENDMACRO
                         \ orientation vectors
 
  LDX #14                \ We want to clear the low bytes, so start from sidev_y
-                        \ at INWK+9+14 (we clear all except sidev_z_lo, though
+                        \ at byte #9+14 (we clear all except sidev_z_lo, though
                         \ I suspect this is in error and that X should be 16)
 
 .TIL1
 
- STA INWK+9,X           \ Set the low byte in INWK+9+X to zero
+ STA INWK+9,X           \ Set the low byte in byte #9+X to zero
 
  DEX                    \ Set X = X - 2 to jump down to the next low byte
  DEX
@@ -34131,7 +34202,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \   XX1                 XX1 shares its location with INWK, which contains the
 \                       zero-page copy of the data block for this ship from the
-\                       workspace at K%
+\                       K% workspace
 \
 \   INF                 The address of the data block for this ship in workspace
 \                       K%
@@ -34212,7 +34283,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \AND #&7F               \ source
 
                         \ The following loop sets bytes 3-6 of the of the ship
-                        \ lines heap space to random numbers
+                        \ line heap to random numbers
 
 .EE55
 
