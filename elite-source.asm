@@ -31446,7 +31446,6 @@ ENDIF
                         \ which comes from the keyboard)
 
  INC SVN                \ Increment SVN to indicate we are about to start saving
-                        \ (SVN is actually a screen address at &7FFD)
 
  LDA #0                 \ Call QUS1 with A = 0, Y = &C to save the commander
  JSR QUS1               \ file with the filename we copied to INWK at the start

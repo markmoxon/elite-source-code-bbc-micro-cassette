@@ -34,35 +34,49 @@ INCLUDE "elite-header.h.asm"
 \
 \ ******************************************************************************
 
-DISC = TRUE             \ load above DFS and relocate down
-PROT = FALSE            \ TAPE protection
+DISC = TRUE             \ Set to TRUE to load the code above DFS and relocate
+                        \ down, so we can load the tape version from disc
 
-LOAD% = &1100           \ load address of ELTcode (elite-bcfs.asm)
+PROT = FALSE            \ Set to TRUE to enable the tape protection code
 
-C% = &F40               \ assembly address of Elite game code (elite-source.asm)
-S% = C%
-L% = LOAD% + &28        \ load address Elite game code (elite-bcfs.asm)
-D% = &563A              \ hardcoded size of Elite game code (elite-source.asm)
-LC% = &6000 - C%        \ maximum size of Elite game code
+LOAD% = &1100           \ LOAD% is the load address of the main game code file
+                        \ ("ELTcode")
 
-SVN = &7FFD
-LEN1 = 15
-LEN2 = 18
+C% = &0F40              \ C% is set to the location that the main game code gets
+                        \ moved to after it is loaded
+
+S% = C%                 \ S% points to the entry point for the main game code
+
+L% = LOAD% + &28        \ L% points to the start of the actual game code from
+                        \ elite-source.asm, after the &28 bytes of header code
+                        \ that are inserted by elite-bcfs.asm
+
+D% = &563A              \ D% is set to the size of the main game code
+
+LC% = &6000 - C%        \ LC% is set to the maximum size of the main game code
+
+N% = 67                 \ N% is set to the number of bytes in the VDU table, so we
+                        \ can loop through them in part 2 below
+
+SVN = &7FFD             \ SVN is the location of the "saving in progress" flag,
+                        \ to match the value in elite-source.asm
+
+LEN1 = 15               \ Size of the two blocks that make up the 33 bytes that
+LEN2 = 18               \ get pushed on the stack
 LEN = LEN1 + LEN2
 
-LE% = &B00              \ address of second stage loader (containing ENTRY2)
+LE% = &B00              \ LE% is the address of the second stage loader (the one
+                        \ containing ENTRY2)
 
-IF DISC
- LL% = &E00+&300        \ load address of loader
+IF DISC                 \ CODE% is set to the assembly address of the loader
+ CODE% = &E00+&300      \ code file that we assemble in this file ("ELITE")
 ELSE
- LL% = &E00
+ CODE% = &E00
 ENDIF
 
-CODE% = LL%             \ we can assemble in place
+TRTB% = 4               \ The location of the MOS key translation table
 
-TRTB% = 4               \ MOS key translation table
-
-NETV = &224             \ MOS vectors we want to intercept
+NETV = &224             \ MOS vectors that we want to intercept
 IRQ1V = &204
 
 OSWRCH = &FFEE          \ The OS routines used in the loader
@@ -93,8 +107,38 @@ EXCN = &85
 \
 \ Elite loader (Part 1 of )
 \
+\ The loader bundles a number of binary files in with the loader code, and moves
+\ them to their correct memory locations in part 3 below.
 \
-\ Include the binary files that the loader loads into memory
+\ There are two files containing code:
+\
+\   * WORDS9.bin contains the recursive token table, which moved to &0400 before
+\     the main game is loaded
+\
+\   * PYTHON.bin contains the Python ship blueprint, which gets moved to &7F00
+\     before the main game is loaded
+\
+\ And four files containing images, which are all moved into screen memory by
+\ the loader:
+\
+\   * P.A-SOFT.bin contains the "ACORNSOFT" title across the top of the loading
+\     screen, which gets moved to screen address &6100, on the second character
+\     row of the monochrome mode 4 screen
+\
+\   * P.ELITE.bin contains the "ELITE" title across the top of the loading
+\     screen, which gets moved to screen address &6300, on the fourth character
+\     row of the monochrome mode 4 screen
+\
+\   * P.(C)ASFT.bin contains the "(C) Acornsoft 1984" title across the bottom
+\     of the loading screen, which gets moved to screen address &7600, the
+\     penultimate character row of the monochrome mode 4 screen, just above the
+\     dashboard
+\
+\   * P.DIALS.bin contains the dashboard, which gets moved to screen address
+\     &7800, which is the starting point of the the four-colour mode 5 portion
+\     at the bottom of the split screen
+\
+\  The routine ends with a jump to the start of the loader code at ENTRY.
 \
 \ ******************************************************************************
 
@@ -103,8 +147,8 @@ PRINT "WORDS9 = ",~P%
 INCBIN "output/WORDS9.bin"
 
 ORG CODE% + &400
-PRINT "DIALS = ",~P%
-INCBIN "images/DIALS.bin"
+PRINT "P.DIALS = ",~P%
+INCBIN "images/P.DIALS.bin"
 
 ORG CODE% + &B00
 PRINT "PYTHON = ",~P%
@@ -122,107 +166,126 @@ ORG CODE% + &E00
 PRINT "P.(C)ASFT = ",~P%
 INCBIN "images/P.(C)ASFT.bin"
 
-ORG LL% + &400 + &800 + &300
 O% = CODE% + &400 + &800 + &300
-
-\ ******************************************************************************
-\
-\ Elite loader (Part 2 of )
-\
-\ Produces the binary file ELITE.unprot.bin that gets loaded by elite-bcfs.asm.
-\
-\ ******************************************************************************
+ORG O%
 
 .run
- JMP ENTRY
+
+ JMP ENTRY              \ Jump to ENTRY to start the loading process
 
 \ ******************************************************************************
 \
 \ Variable B%: VDU command data
 \
-\ Elite uses its own screen mode, based on mode 4 but with the following
+\ This block containd the bytes that get passed to the VDU command (via OSWRCH)
+\ in part 2 to set up the screen mode. This defines the whole screen using a
+\ square, monochrome mode 4 configuration; the mode 5 part is implemented in the
+\ IRQ1 routine.
+\
+\ Elite's monochrome screen mode is based on mode 4 but with the following
 \ differences:
 \
 \   * 32 columns, 31 rows (256 x 248 pixels) rather than 40, 32
 \
-\   * Horizontal sync position at character 45 rather than 49, which pushes the
-\     screen to the right
+\   * The horizontal sync position is at character 45 rather than 49, which
+\     pushes the screen to the right (which centres it as it's not as wide as
+\     the normal screen modes)
 \
-\   * Screen memory starts at &6000
+\   * Screen memory goes from &6000 to &7EFF, which leaves another whole page
+\     for code (i.e. 256 bytes) after the end of the screen. This is where the
+\     Python ship blueprint slots in
 \
-\   * Text window and large, fast blinking cursor
+\   * The text window is 1 row high and 13 columns wide, and is at at (2, 16)
 \
-\ This almost square mode 4 variant makes life a lot easier when drawing to the
+\   * There's a large, fast-blinking cursor
+\
+\ This almost-square mode 4 variant makes life a lot easier when drawing to the
 \ screen, as there are 256 pixels on each row (or, to put it in screen memory
-\ terms, there's one page of memory per row of pixels).
+\ terms, there's one page of memory per row of pixels). For more details of the
+\ screen mode, see the PIXEL subroutine in elite-source.asm.
 \
 \ There is also an interrupt-driven routine that switches the bytes-per-pixel
 \ setting from that of mode 4 to that of mode 5, when the raster reaches the
 \ split between the space view and the dashboard. This is described in the IRQ1
-\ routine, which does the switching.
+\ routine below, which does the switching.
 \
 \ ******************************************************************************
 
-B% = P%
-N% = 67
+.B%
 
- EQUB 22, 4             \ Screen mode 4
+ EQUB 22, 4             \ Switch to screen mode 4
 
- EQUB 28, 2, 17, 15, 16 \ Define text window left = 2, right = 15
-                        \ top = 16, bottom = 17
-                        \ i.e. 1 row high, 13 wide at (2, 16)
+ EQUB 28                \ Define a text window as follows:
+ EQUB 2, 17, 15, 16     \
+                        \   * Left = 2
+                        \   * Right = 15
+                        \   * Top = 16
+                        \   * Bottom = 17
+                        \
+                        \ i.e. 1 row high, 13 columns wide at (2, 16)
 
- EQUB 23, 0, 6, 31      \ 6845 register R6 = 31 (vertical displayed
- EQUB 0, 0, 0, 0, 0, 0  \ register, number of displayed character rows, 
-                        \ 32 for modes 4 and 5)
+ EQUB 23, 0, 6, 31      \ Set 6845 register R6 = 31
+ EQUB 0, 0, 0           \ 
+ EQUB 0, 0, 0           \ This is the "vertical displayed" register, and sets
+                        \ the number of displayed character rows to 31. For
+                        \ comparison, this value is 32 for standard modes 4 and
+                        \ 5, but we claw back the last row for storing code just
+                        \ above the end of screen memory
 
- EQUB 23, 0, 12, 12     \ 6845 register R12 = 12 = &0C
- EQUB 0, 0, 0, 0, 0, 0
+ EQUB 23, 0, 12, &0C    \ Set 6845 register R12 = &0C and R13 = &00
+ EQUB 0, 0, 0           \
+ EQUB 0, 0, 0           \ This sets 6845 registers (R12 R13) = &0C00 to point
+ EQUB 23, 0, 13, &00    \ to the start of screen memory in terms of character
+ EQUB 0, 0, 0           \ rows. There are 8 pixel lines in each character row,
+ EQUB 0, 0, 0           \ so to get the actual address of the start of screen
+                        \ memory, we multiply by 8:
+                        \
+                        \   &0C00 * 8 = &6000
+                        \
+                        \ So this sets the start of screen memory to &6000
 
- EQUB 23, 0, 13, 0      \ 6845 register R13 = 0 = &00
- EQUB 0, 0, 0, 0, 0, 0
-                        \ (R12 R13) = &0C00 points to the start of
-                        \ screen memory in character lines, so we
-                        \ multiply by 8 lines per character to get
-                        \ the start address of screen memory
-                        \ = &0C00 * 8 = &6000
+ EQUB 23, 0, 1, 32      \ Set 6845 register R1 = 32
+ EQUB 0, 0, 0           \
+ EQUB 0, 0, 0           \ This is the "horizontal displayed" register, which
+                        \ defines the number of character blocks per horizontal
+                        \ character row. For comparison, this value is 40 for
+                        \ modes 4 and 5, but our custom screen is not as wide at
+                        \ only 32 character blocks across
 
- EQUB 23, 0, 1, 32      \ 6845 register R1 = 32 (horizontal displayed
- EQUB 0, 0, 0, 0, 0, 0  \ register, number of displayed characters per
-                        \ horizontal line, 40 for modes 4 and 5)
+ EQUB 23, 0, 2, 45      \ Set 6845 register R2 = 45
+ EQUB 0, 0, 0           \
+ EQUB 0, 0, 0           \ This is the "horizontal sync position" register, which
+                        \ defines the position of the horizontal sync pulse on
+                        \ the horizontal line in terms of character widths from
+                        \ the left-hand side of the screen. For comparison this
+                        \ is 49 for modes 4 and 5, but needs to be adjusted for
+                        \ our custom screen's width
 
- EQUB 23, 0, 2, 45      \ 6845 register R2 = 45 (horizontal sync
- EQUB 0, 0, 0, 0, 0, 0  \ position register, the position of the  
-                        \ horizontal sync pulse on the horizontal line
-                        \ in terms of character widths from the left
-                        \ hand side of the screen, 49 for modes 4 and 5)
-
- EQUB 23, 0, 10, 32     \ 6845 register R10 = 32 (cursor start, 
- EQUB 0, 0, 0, 0, 0, 0  \ set start line 0 with fast blink rate)
+ EQUB 23, 0, 10, 32     \ Set 6845 register R10 = 32
+ EQUB 0, 0, 0           \
+ EQUB 0, 0, 0           \ This is the "cursor start" register, which sets the
+                        \ cursor start line at 0 with a fast blink rate
 
 \ ******************************************************************************
 \
 \ Variable E%: Sound envelope data
 \
+\ This table contains the sound envelope data, which is passed to OSWORD to set
+\ up the sound envelopes in part 2 below. Refer to chapter 30 of the BBE Micro
+\ User Guide for details of sound envelopes.
+\
 \ ******************************************************************************
 
-E% = P%
+.E%
 
 EQUB 1, 1, 0, 111, -8, 4, 1, 8, 8, -2, 0, -1, 112, 44
 EQUB 2, 1, 14, -18, -1, 44, 32, 50, 6, 1, 0, -2, 120, 126
 EQUB 3, 1, 1, -1, -3, 17, 32, 128, 1, 0, 0, -1, 1, 1
 EQUB 4, 1, 4, -8, 44, 4, 6, 8, 22, 0, 0, -127, 126, 0
 
-MACRO FNE I%
-  LDX #((E%+I%*14)MOD256)
-  LDY #((E%+I%*14)DIV256)
-  LDA #8
-  JSR OSWORD
-ENDMACRO
-
 \ ******************************************************************************
 \
-\ Elite loader (Part 3 of )
+\ Elite loader (Part 2 of )
 \
 \
 \
@@ -485,14 +548,21 @@ ENDIF
  EOR crunchit           \ JMP indirect
  STA crunchit
 
-  FNE 0                 \ Define 4x sound envelopes (via OSWORD 8)
-  FNE 1
-  FNE 2
-  FNE 3
+MACRO FNE I%
+  LDX #((E%+I%*14)MOD256)
+  LDY #((E%+I%*14)DIV256)
+  LDA #8
+  JSR OSWORD
+ENDMACRO
+
+ FNE 0                  \ Define 4x sound envelopes (via OSWORD 8)
+ FNE 1
+ FNE 2
+ FNE 3
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 4 of )
+\ Elite loader (Part 3 of )
 \
 \ Move & decrypt WORDS9 to language workspace (4x pages from &1100 to &0400)
 \ Move & decypt P.ELITE to screen (1x pages from &1D00 to &6300)
@@ -506,7 +576,7 @@ ENDIF
 
  LDX #4                 \ Move & decrypt WORDS9 to language workspace (4x pages from &1100 to &0400)
  STX P+1
- LDA #(LL%DIV256)
+ LDA #(CODE%DIV256)
  STA ZP+1
  LDY #0
  LDA #256-LEN1
@@ -516,7 +586,7 @@ ENDIF
  JSR crunchit
 
  LDX #1                 \ Move & decypt P.ELITE to screen (1x pages from &1D00 to &6300)
- LDA #((LL%DIV256)+&C)
+ LDA #((CODE%DIV256)+&C)
  STA ZP+1
  LDA #&63
  STA P+1
@@ -524,7 +594,7 @@ ENDIF
  JSR crunchit
 
  LDX #1                 \ Move & decypt P.A-SOFT to screen (1x pages from &1E00 to &6100)
- LDA #((LL%DIV256)+&D)
+ LDA #((CODE%DIV256)+&D)
  STA ZP+1
  LDA #&61
  STA P+1
@@ -533,7 +603,7 @@ ENDIF
 
  LDX #1                 \ Move & decypt P.A-SOFT to screen (1x pages from &1F00 to &7600)
 
- LDA #((LL%DIV256)+&E)
+ LDA #((CODE%DIV256)+&E)
  STA ZP+1
  LDA #&76
  STA P+1
@@ -543,7 +613,7 @@ ENDIF
  JSR PLL1               \ Draw Saturn
 
  LDX #8                 \ Move & decypt DIALSHP to screen (1x pages from &1500 to &7800)
- LDA #((LL%DIV256)+4)
+ LDA #((CODE%DIV256)+4)
  STA ZP+1
  LDA #&78
  STA P+1
@@ -566,7 +636,7 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 5 of )
+\ Elite loader (Part 4 of )
 \
 \
 \ ******************************************************************************
@@ -654,7 +724,7 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 6 of )
+\ Elite loader (Part 5 of )
 \
 \ Draw Saturn
 \
@@ -894,7 +964,7 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 7 of )
+\ Elite loader (Part 6 of )
 \
 \ Obfuscated code
 \
@@ -936,7 +1006,7 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 8 of )
+\ Elite loader (Part 7 of )
 \
 \ Obfuscated code
 \
@@ -982,7 +1052,7 @@ ENDIF
  
 \ ******************************************************************************
 \
-\ Elite loader (Part 9 of )
+\ Elite loader (Part 8 of )
 \
 \ This code all located at &B00
 \
@@ -1153,7 +1223,7 @@ ORG LE%
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 10 of )
+\ Elite loader (Part 9 of )
 \
 \ Following code all encrypted in elite-checksum.py
 \
@@ -1209,8 +1279,10 @@ IF DISC
  JSR OSBYTE             \*TAPE 
 ENDIF
 
- LDA #0
- STA SVN
+ LDA #0                 \ Set SVN to 0, as the main game code checks the value
+ STA SVN                \ of this location in its IRQ1 routine, so it needs to
+                        \ be set to 0 so it can work properly
+
 
  LDX #(LC% DIV256)      \ Decrypt and copy down all ELITE game code from &1128 to &F40
  LDA #(L% MOD256)
@@ -1355,7 +1427,7 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 11 of )
+\ Elite loader (Part 10 of )
 \
 \ Obfuscated code
 \
@@ -1370,7 +1442,7 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 12 of )
+\ Elite loader (Part 11 of )
 \
 \ Final boot code starts at &163
 \
@@ -1522,7 +1594,7 @@ ENDIF
 \ We assembled a block of code at &B00
 \ Need to copy this up to end of main code
 \ Further processing completed by elite-checksum.py script
-
+\
 \ ******************************************************************************
 
 COPYBLOCK LE%, P%, UU%
@@ -1536,5 +1608,5 @@ PRINT "UU% = ",~UU%," Q% = ",~Q%, " OSB = ",~OSB
 PRINT "Memory usage: ", ~LE%, " - ",~P%
 PRINT "Stack: ",LEN + ENDBLOCK - BLOCK
 
-PRINT "S. ELITE ", ~CODE%, " ", ~UU% + (P% - LE%), " ", ~run, " ", ~LL%
-SAVE "output/ELITE.unprot.bin", CODE%, UU% + (P% - LE%), run, LL%
+PRINT "S. ELITE ", ~CODE%, " ", ~UU% + (P% - LE%), " ", ~run, " ", ~CODE%
+SAVE "output/ELITE.unprot.bin", CODE%, UU% + (P% - LE%), run, CODE%

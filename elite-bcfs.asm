@@ -56,7 +56,7 @@ ORG &1100               \ load address of ELTcode
  TYA
  INY
  
- .CHK3
+.CHK3
  
  CLC
  ADC (ZP),Y
@@ -64,7 +64,7 @@ ORG &1100               \ load address of ELTcode
  BNE CHK3
  INC ZP+1
  
- .CHK4
+.CHK4
  
  CLC
  ADC (ZP),Y
@@ -115,7 +115,7 @@ INCBIN "output/ELTG.bin"
 
 PRINT "checksum0 = ", ~P%
 
-SKIP 1                  \ byte skipped for checksum later
+SKIP 1                  \ Skip this byte so we can insert the checksum later
 
 .ships
 
@@ -125,15 +125,6 @@ INCBIN "output/SHIPS.bin"
 .end
 
 PRINT "P% = ", ~P%
-
-\ CHECKSUM PERFORMED IN BCFS.PY SCRIPT
-
 PRINT "S.ELTcode 1100 ", ~(L% + &6000 - C%), " ", ~L%, ~L%
-
-\ SAVE UNPROTECTED CODE
-
 SAVE "output/ELTcode.unprot.bin", &1100, (L% + &6000 - C%), L%
-
-\ SAVE JUST THE HEADER
-
 SAVE "output/ELThead.bin", &1100, elitea, &1100
