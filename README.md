@@ -7,41 +7,41 @@ Hopefully this repository will be useful for those who want to learn about Elite
 
 ## Contents
 
-* [Acknowledgements](#Acknowledgements)
+* [Acknowledgements](#acknowledgements)
 
-* [Introduction](#Introduction)
+* [Introduction](#introduction)
 
-  * [Ian Bell's original sources](#Ian-Bell's-original-sources)
-  * [Paul Brink's annotated disc disassembly](#Paul-Brink's-annotated-disc-disassembly)
-  * [Kieran Connell's elite-beebasm](#Kieran-Connell's-elite-beebasm)
-  * [At last, a fully documented version](#At-last,-a-fully-documented-version)
+  * [Ian Bell's original sources](#ian-bells-original-sources)
+  * [Paul Brink's annotated disc disassembly](#paul-brinks-annotated-disc-disassembly)
+  * [Kieran Connell's elite-beebasm](#kieran-connells-elite-beebasm)
+  * [At last, a fully documented version](#at-last-a-fully-documented-version)
 
-* [Versions of Elite](#Versions-of-Elite)
+* [Versions of Elite](#versions-of-elite)
   
-* [Building Elite from the source](#Building-Elite-from-the-source)
+* [Building Elite from the source](#building-elite-from-the-source)
 
-  * [Requirements](#Requirements)
-  * [Build targets](#Build-targets)
-  * [Windows](#Windows)
-  * [Mac and Linux](#Mac-and-Linux)
+  * [Requirements](#requirements)
+  * [Build targets](#build-targets)
+  * [Windows](#windows)
+  * [Mac and Linux](#mac-and-linux)
 
-* [Source files and the build pipeline](#Source-files-and-the-build-pipeline)
+* [Source files and the build pipeline](#source-files-and-the-build-pipeline)
 
-  * [1. Compile the main game with elite-source.asm](#1.-Compile-the-main-game-with-elite-source.asm)
-  * [2. Concatentate the game code and compile the header with elite-bcfs.asm](#2.-Concatentate-the-game-code-and-compile-the-header-with-elite-bcfs.asm)
-  * [3. Compile the loader with elite-loader.asm](#3.-Compile-the-loader-with-elite-loader.asm)
-  * [4. Calculate checksums and add encryption with elite-checksum.py](#4.-Calculate-checksums-and-add-encryption-with-elite-checksum.py)
-  * [5. Assemble a bootable disc image with elite-disc.asm](#5.-Assemble-a-bootable-disc-image-with-elite-disc.asm)
-  * [Log files](#Log-files)
+  * [1. Compile the main game with elite-source.asm](#1-compile-the-main-game-with-elite-sourceasm)
+  * [2. Concatentate the game code and compile the header with elite-bcfs.asm](#2-concatentate-the-game-code-and-compile-the-header-with-elite-bcfsasm)
+  * [3. Compile the loader with elite-loader.asm](#3-compile-the-loader-with-elite-loaderasm)
+  * [4. Calculate checksums and add encryption with elite-checksum.py](#4-calculate-checksums-and-add-encryption-with-elite-checksumpy)
+  * [5. Assemble a bootable disc image with elite-disc.asm](#5-assemble-a-bootable-disc-image-with-elite-discasm)
+  * [Log files](#log-files)
 
-* [Verifying the output](#Verifying-the-output)
+* [Verifying the output](#verifying-the-output)
 
-* [Differences between the various source files](#Differences-between-the-various-source-files)
+* [Differences between the various source files](#differences-between-the-various-source-files)
 
-  * [ELITEC](#ELITEC)
-  * [ELTB](#ELTB)
+  * [ELITEC](#elitec)
+  * [ELTB](#eltb)
 
-* [Next steps](#Next-steps)
+* [Next steps](#next-steps)
 
 ## Acknowledgements
 
@@ -76,7 +76,7 @@ So I excitedly opened one of the files at random... and all I saw was page after
 
 Of course, the source files on Ian Bell's site are... well, "terse" is one word that springs to mind. Because the game was compiled on a BBC Micro, the source code is squashed into a number of extremely cramped BASIC files, with spaces removed and almost no comments to speak of.
 
-Not only that, but the game started life on an Acorn Atom, where labels in assembly language are restricted to two letters plus numbers, so the source is full of memorable names like XX16, QQ17 and LL9. I mean, look at this bit:
+Not only that, but the game started life on an Acorn Atom, where labels in assembly language are restricted to two letters plus numbers, so the source is full of memorable names like `XX16`, `QQ17` and `LL9`. I mean, look at this bit:
 
 ```
 8501.LL42 \DO nodeX-Ycoords
