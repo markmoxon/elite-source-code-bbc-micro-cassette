@@ -64,7 +64,7 @@ Here's a bit more on how this project came to be.
 
 ### Ian Bell's original sources
 
-When I first saw that the sources to Elite had been released by the authors, I couldn't believe it - I'd aways wanted to understand how this astonishing technical feat was achieved, ever since I'd sat wide-mouthed as a 14-year-old attempting my first docking (and, of course, learning the hard way that docking is difficult).
+When I first saw that the sources to Elite had been released by the authors, I couldn't believe it - I'd aways wanted to understand how this astonishing technical feat was achieved, ever since I'd sat wide-mouthed as a 14-year-old when I first launched from the space station and saw Lave .
 
 So I excitedly opened one of the files at random... and all I saw was page after page of this kind of thing:
 
@@ -75,7 +75,7 @@ So I excitedly opened one of the files at random... and all I saw was page after
 
 Of course, the source files on Ian Bell's site are... well, "terse" is one word that springs to mind. Because the game was compiled on a BBC Micro, the source code is squashed into a number of extremely cramped BASIC files, with spaces removed and almost no comments to speak of.
 
-Not only that, but the game started life on an Acorn Atom, where labels in assembly language are restricted to two letters plus numbers, so the source is full of memorable names like `XX16`, `QQ17` and `LL9`. I mean, look at this bit:
+Not only that, but parts of the game started life on an Acorn Atom, where labels in assembly language are restricted to two letters plus numbers, so the source is full of memorable names like `XX16`, `QQ17` and `LL9`. I mean, look at this bit:
 
 ```
 8501.LL42 \DO nodeX-Ycoords
@@ -86,7 +86,7 @@ Not only that, but the game started life on an Acorn Atom, where labels in assem
 8511STAXX16+11:STYXX16+14:STXXX16+15
 ```
 
-And this is an excerpt with comments, too. `TrnspMat` - is that "transporting materials"? Or "transport matrix"? I guess it's something to do with `nodeX-Ycoords`, whatever they are, but... honestly, this is approaching the unreadable. (Even though I now know that this part of the code is transposing a rotation matrix, it still doesn't make it any easier to follow.)
+And this is an excerpt that has some comments, too. `TrnspMat` - is that "transporting materials"? Or "transport matrix"? I guess it's something to do with `nodeX-Ycoords`, whatever they are, but... honestly, this is approaching the unreadable. (Even though I now know that this part of the code is transposing a rotation matrix, it still doesn't make it any easier to follow.)
 
 The terseness is not remotely surprising given the space constraints of compiling code on a 32K micro, but I was still flummoxed. The fact that any kind of source code was released in the first place was a kind of Holy Grail experience, but for me, it generated more questions than answers.
 
@@ -126,17 +126,17 @@ By this time my tea had gone cold, so I put it to one side and forgot about tryi
 
 ### Kieran Connell's elite-beebasm
 
-In 2020, lockdown boredom led me to stumble across a [2018 thread on the Stardot forums](https://stardot.org.uk/forums/viewtopic.php?t=15375) by Kieran Connell, founder of the [Bitshifters Collective](https://bitshifters.github.io/). These guys do some incredibly clever things with BBC computers, and that's exactly what Kieran had done - he'd created [elite-beebasm](https://github.com/kieranhj/elite-beebasm), a port of the original BBC Elite source code from the super-terse BASIC files into the [BeebAsm assembler](https://github.com/stardot/beebasm).
+In 2020, lockdown boredom led me to stumble across a [2018 thread on the Stardot forums](https://stardot.org.uk/forums/viewtopic.php?t=15375) by Kieran Connell of the [Bitshifters Collective](https://bitshifters.github.io/). These guys do some incredibly clever things with BBC computers, and that's exactly what Kieran had done - he'd created [elite-beebasm](https://github.com/kieranhj/elite-beebasm), a port of the original BBC Elite source code from the super-terse BASIC files into the [BeebAsm assembler](https://github.com/stardot/beebasm).
 
-This meant I could build a local version of Elite, and I figured that might be useful for trying to work out how Elite weaves its magic.
+Not only that, he'd managed to pull apart the encryption process that hides Elite's code from prying eyes, and he'd created an equivalent system in Python, enabling modern computers to build a full version of Elite from the original source. This meant I could not only build a local version of Elite, but I could tweak the code to figure out what it did, which I figured would be really useful for trying to work out how Elite weaves its magic.
 
 ### At last, a fully documented version
 
-Kieran's version gave me the leg-up that I needed to crack the problem. I started by copying Paul Brink's comments into Kieran's version, hoping that this would give me enough clues to start analysing the code, and that gave me enough confidence to start working my way through the aspects of the game that had always fascinated me.
+Kieran's version gave me the leg-up that I needed to crack the problem. I started by copying Paul Brink's comments into Kieran's version, hoping that this would give me enough clues to start analysing the code, and that gave me enough confidence to start working my way through the bits of the game that had always fascinated me.
 
-I started with the text token system, then worked out the split-screen mode, and then moved on to the universe generation... and I was completely hooked. I felt I was walking in the footprints of giants; they say you should never meet your heroes, but grokking their source code, well that's another matter altogether.
+I started with the text token system, then worked out the split-screen mode, and then moved on to the universe generation... and by then I was completely hooked. Every little step forward felt like I was unpicking a bit more of the story of two young developers, creating a modern-day masterpiece; if you squint carefully, you can almost sense where the whole starts to become greater than the sum of the parts. Elite is the coding equivalent of "A Day in the Life", with results that are just as seminal. They say you should never meet your heroes, but grokking their source code... well, that's another matter altogether.
 
-This repository is the result. The aim is that anyone with a basic knowledge of 6502 assembly language and simple trigonometry will be able to read through the source code and understand what's going on.
+This repository is the result. The aim is that anyone with a basic knowledge of 6502 assembly language and simple trigonometry will be able to read through the source code and not only understand what's going on, but bask in the beauty of this exceptional achievement.
 
 I hope you enjoy the ride.
 
@@ -254,7 +254,7 @@ make encrypt verify
 
 The Python script `crc32.py` does the actual verification, and shows the checksums and file sizes of both sets of files, alongside each other, and with a Match column that flags any discrepancies. If you are building an unencrypted set of files then there will be lots of differences, while the encrypted files should mostly match (see the Differences section below for more on this).
 
-The binaries in the `extracted` folder were taken straight from the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip) (though see the notes on `ELTB` below), while those in the `output` folder are produced by the build process. For example, if you build with `make encrypt verify`, then this is the output of the verification process:
+The binaries in the `extracted` folder were taken straight from the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip) (though see the [notes on `ELTB`](#eltb) below), while those in the `output` folder are produced by the build process. For example, if you don't make any changes to the code and build the project with `make encrypt verify`, then this is the output of the verification process:
 
 ```
 [--extracted--]  [---output----]
@@ -276,6 +276,8 @@ c4547e5e   1023  c4547e5e   1023   Yes   WORDS9.bin
 *             *  1e4466ec  20712    *    ELTcode.unprot.bin
 *             *  00d5bb7a     40    *    ELThead.bin
 ```
+
+All the compiled binaries match the extracts, so we know we are producing the same final game as the release version.
 
 ## Source files and the build pipeline
 
