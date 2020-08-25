@@ -119,7 +119,7 @@ This was a _big_ improvement over the original source files, and like many other
 \	    12 14 16=0 ?]
 ```
 
-This refers to the same code as above, and is one of the more verbose explanations in the commentary. it's definitely a step up from `DO nodeX-Ycoords` and `TrnspMat`, but what are `XX16` and `INWK`? And `ROTMAT` - that's a rotation matrix, right? OK, so there _are_ matrices in there somewhere, which is no surprise given the 3D nature of the game. But it's still really hard to work out what's going on, and the code that this comment explains doesn't really make things any clearer than before:
+This refers to the same code as above, and is one of the more verbose explanations in the commentary. It's definitely a step up from `DO nodeX-Ycoords` and `TrnspMat`, but what are `XX16` and `INWK`? And `ROTMAT` - that's a rotation matrix, right? OK, so there _are_ matrices in there somewhere, which is no surprise given the 3D nature of the game. But it's still really hard to work out what's going on, and the code that this comment explains doesn't really make things any clearer than before:
 
 ```
 	.LL42	\ ->  &4B04 \ DO nodeX-Ycoords their comment  \  TrnspMat 
@@ -130,7 +130,7 @@ A5 0F                   LDA &0F		\ XX16+6
 A5 10                   LDA &10		\ XX16+7
 ```
 
-We're still left with `XX16+2` and its friends, so this is essentially the source code, laid out differently, with cryptic hints scattered throughout, hints that seemed to be aimed at someone who already understood the basics, which I certainly didn't.
+We're still left with `XX16+2` and its friends, so this is essentially the source code, laid out differently, with cryptic hints scattered throughout, hints that seemed to be aimed at someone who already understands the basics, which I certainly didn't as I sat there, just as confused as ever.
 
 By this time my tea had gone cold, so once again I put my dreams on hold and forgot about trying to unlock the secrets of Elite.
 
@@ -138,7 +138,7 @@ By this time my tea had gone cold, so once again I put my dreams on hold and for
 
 In 2020, lockdown boredom led me to stumble across a [2018 post on the Stardot forums](https://stardot.org.uk/forums/viewtopic.php?t=15375) by Kieran Connell of the [Bitshifters Collective](https://bitshifters.github.io/). These guys do some incredibly clever things with BBC computers, and that's exactly what Kieran had done - he'd created [elite-beebasm](https://github.com/kieranhj/elite-beebasm), a port of the original BBC Elite source code from the super-terse BASIC files into the [BeebAsm assembler](https://github.com/stardot/beebasm).
 
-Not only had he managed to drag the source code into some kind of human-compatible shape, but he'd also managed to pull apart the encryption process that hides Elite's code from prying eyes. He'd then created an equivalent system in Python, enabling modern computers to build an exact replica of the released version of Elite from the original source. This meant I could not only build a local version of Elite, but I could tweak the code to figure out what it did, which I figured would be a really useful way of working out how Elite weaves its magic.
+Not only had he managed to drag the source code into some kind of human-compatible shape, but he'd also managed to pull apart the encryption process that hides Elite's code from prying eyes. He'd then created an equivalent system in Python, enabling modern computers to build an exact replica of the released version of Elite from the original source. This meant I could not only build a local version of Elite, but I could tweak the code to help work out what it did, which I figured would be a really useful way of working out how Elite weaves its magic.
 
 That said, the source code still looked worryingly familiar:
 
@@ -156,15 +156,15 @@ That said, the source code still looked worryingly familiar:
  STX XX16+7
 ```
 
-But at least I had a buildable codebase I could work with, and that was real progress.
+But at least I now had a buildable codebase I could work with, and that was real progress.
 
 ### At last, a fully documented version
 
-Kieran's version gave me the leg-up that I needed to crack the problem. I started by copying Paul Brink's comments into Kieran's version, hoping that this would give me some clues to analysing the code, and some small, early hints of understanding gave me enough confidence to start working my way through the bits of the game that had always fascinated me.
+Kieran's version gave me the leg-up that I needed to crack the problem. I started by copying Paul Brink's comments into Kieran's version, hoping that this would give me some clues to analysing the code, and some small, early glimmers of understanding gave me enough confidence to start poking my way through the bits of the game that had always fascinated me.
 
-I started with the text token system, then worked out the split-screen mode, and then moved on to the universe generation... and by then I was completely hooked. Every little step forward, I felt like I was unpicking a bit more of the story of two young developers creating a modern-day masterpiece; if you squint carefully, you can almost sense where the whole starts to become greater than the sum of the parts. Elite is the coding equivalent of "A Day in the Life", a mash-up between the Acorn world's Lennon and McCartney, with results that are just as seminal in their field. They say you should never meet your heroes, but grokking their source code... well, that's another matter altogether.
+I started with the text token system, then worked out the split-screen mode, and then moved on to the universe generation... and by then I was completely hooked. Every little step forward, I felt like I was unpicking a bit more of the story of two young developers creating a modern-day masterpiece; if you squint carefully, you can almost sense where the whole starts to become greater than the sum of the parts. Elite is the coding equivalent of _A Day in the Life_, a mash-up between the Acorn world's very own Lennon and McCartney, with results that are just as seminal in their field. They say you should never meet your heroes, but grokking their source code... well, that's another matter altogether.
 
-This repository is the result. The aim is that anyone with a basic knowledge of 6502 assembly language and simple trigonometry will be able to read through the source code and not only understand what's going on, but be able appreciate the beauty and elegance of this exceptional piece of 1980s programming.
+This repository is the result. The aim is that anyone with a basic knowledge of 6502 assembly language and simple trigonometry will be able to read through the source code and not only understand what's going on, but will also be able appreciate the beauty and elegance of this exceptional piece of 1980s programming.
 
 It has been a privilege to unravel the intricacies of Elite. I hope you enjoy the ride.
 
