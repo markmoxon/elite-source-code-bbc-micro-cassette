@@ -68,8 +68,20 @@ When I first saw that the sources to Elite had been released by the authors, I c
 So I excitedly opened one of the source files at random... and was greeted by page after page of this kind of thing:
 
 ```
-4500.NWSHP STAT:LDX#0:.NWL1 LDAFRIN,X:BEQNW1:INX:CPX#NOSH:BCCNWL1:.NW3 CLC:RTS
-4510.NW1 JSRGINF:LDAT:BMINW2:ASLA:TAY:LDAXX21-2,Y:STAXX0:LDAXX21-1,Y:STAXX0+1:CPY#2*SST:BEQNW6:LDY#5:LDA(XX0),Y:STAT1:LDASLSP:SEC:SBCT1:STAINWK+33:LDASLSP+1:SBC#0:STAINWK+34
+ 9310LDAXX15+5:.LL147 LDX#Y*2-1:ORAXX12+1:BNELL107:CPXXX12
+ 9315BCCLL107:LDX#0:.LL107 STXXX13:LDAXX15+1:ORAXX15+3:BNELL83
+ 9320LDA#Y*2-1:CMPXX15+2:BCCLL83
+ 9325LDAXX13:BNELL108:.LL146 LDAXX15+2
+ 9330STAXX15+1:LDAXX15+4:STAXX15+2:LDAXX12:STAXX15+3:CLC:RTS
+ 9335.LL109 SEC:RTS:.LL108 LSRXX13:.LL83
+ 9340LDAXX13:BPLLL115
+ 9345LDAXX15+1:ANDXX15+5:BMILL109:LDAXX15+3:ANDXX12+1:BMILL109
+ 9350LDXXX15+1:DEX:TXA:LDXXX15+5:DEX:STXXX12+2:ORAXX12+2
+ 9355BPLLL109:LDAXX15+2:CMP#Y*2:LDAXX15+3:SBC#0:STAXX12+2
+ 9360LDAXX12:CMP#Y*2:LDAXX12+1:SBC#0:ORAXX12+2:BPLLL109
+ 9365.LL115 TYA:PHA:LDAXX15+4:SEC:SBCXX15:STAXX12+2:LDAXX15+5
+ 9370SBCXX15+1:STAXX12+3:LDAXX12:SEC:SBCXX15+2:STAXX12+4
+ 9375LDAXX12+1:SBCXX15+3:STAXX12+5:EORXX12+3:STAS
 ```
 
 I suppose I should have expected it, but the original source files are _incredibly_ terse. Because the game was compiled on a BBC Micro, the source code had to be squashed into a number of extremely cramped BASIC files, with all the spaces removed and almost no comments to speak of. The source files are not particulatly human-friendly; they aren't supposed to be.
@@ -154,7 +166,7 @@ I started with the text token system, then worked out the split-screen mode, and
 
 This repository is the result. The aim is that anyone with a basic knowledge of 6502 assembly language and simple trigonometry will be able to read through the source code and not only understand what's going on, but be able appreciate the beauty and elegance of this exceptional piece of 1980s programming.
 
-It has been a privilege to unravel the intricacies of the Elite. I hope you enjoy the ride.
+It has been a privilege to unravel the intricacies of Elite. I hope you enjoy the ride.
 
 ## Versions of Elite
 
