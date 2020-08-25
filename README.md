@@ -1,9 +1,10 @@
-# elite-beebasm
-This repository contains fully documented source code for Elite on the BBC Micro. The commentary covers every single aspect of the game code.
+# Fully documented source code for Elite on the BBC Micro
+
+This repository contains the original source code for Elite on the BBC Micro, with every single line documented and explained.
 
 The annotated source can be assembled on modern computers to produce a working game disc that can be loaded into a BBC Micro or an emulator.
 
-Hopefully this repository will be useful for those who want to learn about Elite and what makes it tick. It is provided on an educational and non-profit basis, with the aim of helping people appreciate one of the most iconic games of the 8-bit era.
+Hopefully this repository will be useful for those who want to learn more about Elite and what makes it tick. It is provided on an educational and non-profit basis, with the aim of helping people appreciate one of the most iconic games of the 8-bit era.
 
 ## Contents
 
@@ -44,36 +45,34 @@ Hopefully this repository will be useful for those who want to learn about Elite
 
 ## Acknowledgements
 
-The original 1984 source code is copyright &copy; Ian Bell and David Braben, and the code on this site is identical to the version released by the authors on [Ian Bell's personal website](http://www.iancgbell.clara.net/elite/), just reformatted to be more readable.
+The original 1984 source code is copyright &copy; Ian Bell and David Braben, and the code on this site is identical to the version released by the authors on [Ian Bell's personal website](http://www.iancgbell.clara.net/elite/) (it's just been reformatted to be more readable).
 
 The commentary is copyright &copy; Mark Moxon. Any misunderstandings or mistakes in the documentation are entirely my fault.
 
-Huge thanks are due to the original authors for not only creating such an important piece of my childhood, but also for releasing the source code for us to play with; to Paul Brink for his annotated disassembly; and to Kieran Connell for his BeebAsm version, which I forked to create this repository. You can find out more about all of these in the [introduction](#Introduction) below.
-
-Right on, Commanders!
+Huge thanks are due to the original authors for not only creating such an important piece of my childhood, but also for releasing the source code for us to play with; to Paul Brink for his annotated disassembly; and to Kieran Connell for his BeebAsm version, which I forked as the original basis for this repository. You can find out more about all of these in the [introduction](#Introduction) below.
 
 ## Introduction
-This project is based on the original source files for BBC Elite, which can be found on [Ian Bell's personal website](http://www.iancgbell.clara.net/elite/). The game code in this repository is totally unchanged from the original source, apart from being reformatted to be easier to read. I've left all the original label names intact, as this site is all about digital archaeology and appreciating the authors' original handiwork.
+This project is based on the original source files for Elite on the BBC Micro, which can be found on [Ian Bell's personal website](http://www.iancgbell.clara.net/elite/). The game code in this repository is totally unchanged from the original source, apart from being reformatted to be easier to read. I've left all the original label names intact, as this site is all about digital archaeology and appreciating the authors' original handiwork.
 
 The following archives from Ian Bell's site form the basis for this project:
 
-* [Cassette sources](http://www.elitehomepage.org/archive/a/a4080602.zip) as a DFS disc image
-* [Cassette sources](http://www.elitehomepage.org/archive/a/a4080610.zip) as text files
+* [Cassette sources as a disc image](http://www.elitehomepage.org/archive/a/a4080602.zip)
+* [Cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip)
 
 Here's a bit more on how this project came to be.
 
 ### Ian Bell's original sources
 
-When I first saw that the sources to Elite had been released by the authors, I couldn't believe it - I'd aways wanted to understand how this astonishing technical feat was achieved, ever since I'd sat wide-mouthed as a 14-year-old when I first launched from the space station and saw Lave hanging in space, right in front of my eyes.
+When I first saw that the sources to Elite had been released by the authors, I couldn't believe it. I'd aways wanted to understand how this astonishing technical feat had been achieved, ever since I'd sat wide-mouthed as a 14-year-old when I first launched from the space station and saw the planet Lave hanging in space, right in front of my eyes. Which, of course, was shortly before dying for the first time, but that didn't matter. It was love at first sight.
 
-So I excitedly opened one of the files at random... was greeted by page after page of this kind of thing:
+So I excitedly opened one of the source files at random... and was greeted by page after page of this kind of thing:
 
 ```
 4500.NWSHP STAT:LDX#0:.NWL1 LDAFRIN,X:BEQNW1:INX:CPX#NOSH:BCCNWL1:.NW3 CLC:RTS
 4510.NW1 JSRGINF:LDAT:BMINW2:ASLA:TAY:LDAXX21-2,Y:STAXX0:LDAXX21-1,Y:STAXX0+1:CPY#2*SST:BEQNW6:LDY#5:LDA(XX0),Y:STAT1:LDASLSP:SEC:SBCT1:STAINWK+33:LDASLSP+1:SBC#0:STAINWK+34
 ```
 
-I suppose I should have expected it, but the original source files are _incredibly_ terse. Because the game was compiled on a BBC Micro, the source code is squashed into a number of extremely cramped BASIC files, with spaces removed and almost no comments to speak of. This is not a human-friendly codebase; it wasn't supposed to be.
+I suppose I should have expected it, but the original source files are _incredibly_ terse. Because the game was compiled on a BBC Micro, the source code had to be squashed into a number of extremely cramped BASIC files, with all the spaces removed and almost no comments to speak of. The source files are not particulatly human-friendly; they aren't supposed to be.
 
 Not only that, but parts of the game started life on an Acorn Atom, where labels in assembly language are restricted to two letters plus digits, so the source is full of memorable names like `XX16`, `QQ17` and `LL9`. I mean, look at this bit:
 
@@ -86,9 +85,9 @@ Not only that, but parts of the game started life on an Acorn Atom, where labels
 8511STAXX16+11:STYXX16+14:STXXX16+15
 ```
 
-All those `XXX`s are enough to make your eyes cross over, but at least this excerpt has some comments, so do they help? `TrnspMat` - is that "transponder materials"? Or "transport maths"? I guess it's something to do with `nodeX-Ycoords`, which clearly involves nodes and coordinates, but it's not exactly readable, is it? (I now know that this is part of the routine that transposes the rotation matrix, but knowing that doesn't make it any easier to follow; it possibly makes it even scarier.)
+All those `XXX`s are enough to make your eyes boggle, but at least this excerpt has some comments, so do they help? `TrnspMat` - is that "transponder materials"? Or "transport maths"? I guess it's something to do with `DO nodeX-Ycoords`, which clearly involves nodes and coordinates, but it's not exactly readable. (I now know that this is part of the `LL42` routine that transposes the rotation matrix, but knowing that doesn't make it any easier to follow; it possibly makes it even scarier.)
 
-The terseness is not remotely surprising given the space constraints of compiling code on a 32K micro, but I was still flummoxed. The fact that any kind of source code had been released at all was a kind of Holy Grail experience for me, but it ended up generating more questions than answers.
+This terseness is not remotely surprising given the space constraints of compiling code on a 32K micro, but I was still flummoxed. The fact that any kind of source code had been released at all was a kind of Holy Grail experience for me, but it ended up generating more questions than answers.
 
 So I put it to one side and figured I'd probably never understand how this game worked.
 
@@ -99,7 +98,7 @@ The next breakthrough was the commentary by Paul Brink, whose annotated disassem
 * [BBC disc source (docked) annotated by Paul Brink](http://www.elitehomepage.org/archive/a/d4090010.txt)
 * [BBC disc source (flight) annotated by Paul Brink](http://www.elitehomepage.org/archive/a/d4090012.txt)
 
-This was a _big_ improvement over the original source files, and like many others, I eagerly grabbed them and sat down with a cup of tea for some interesting reading. Unfortunately, I still couldn't really work out what was going on; it was like stumbling across a trail of breadcrumbs in the forest, but after heavy monsoonal rain. Every now and then something would seem to make some vague kind of sense, but then I'd stumble across this kind of thing:
+This was a _big_ improvement over the original source files, and like many others, I eagerly grabbed them and settled down with a cup of tea for some interesting reading. Unfortunately, I still couldn't really work out what was going on; it was like stumbling across a trail of breadcrumbs in the forest, but after heavy monsoonal rain. Every now and then something would seem to make some vague kind of sense, but then I'd come across this kind of thing:
 
 ```
 \XX16 got INWK 9..21..26 up at LL15  . The ROTMAT has 18 bytes, for 3x3 matrix
@@ -108,19 +107,18 @@ This was a _big_ improvement over the original source files, and like many other
 \	    12 14 16=0 ?]
 ```
 
-What's `INWK`? And `ROTMAT` - that's a rotation matrix, right? Great... so there are matrices in there somewhere, which is no surprise given the 3D nature of the game. But it's still hard to work out what's going on, and the code following this comment doesn't really make things any clearer:
+This refers to the same code as above, and is one of the more verbose explanations in the commentary. it's definitely a step up from `DO nodeX-Ycoords` and `TrnspMat`, but what are `XX16` and `INWK`? And `ROTMAT` - that's a rotation matrix, right? OK, so there _are_ matrices in there somewhere, which is no surprise given the 3D nature of the game. But it's still really hard to work out what's going on, and the code that this comment explains doesn't really make things any clearer than before:
 
 ```
-A5 D1                   LDA &D1	       \ T	\ 4th byte read for vertex, sign bits.
-85 35                   STA &35			\ XX15+1
-0A                      ASL A			\ y sgn
-85 37                   STA &37			\ XX15+3
-0A                      ASL A			\ z sgn
-85 39                   STA &39			\ XX15+5
-20 B8 3F                JSR &3FB8      \ LL51	\ XX12=XX15.XX16 Rotated.
+	.LL42	\ ->  &4B04 \ DO nodeX-Ycoords their comment  \  TrnspMat 
+A4 0B                   LDY &0B		\ XX16+2	      \ Transpose Matrix
+A6 0C                   LDX &0C		\ XX16+3
+A5 0F                   LDA &0F		\ XX16+6
+85 0B                   STA &0B		\ XX16+2
+A5 10                   LDA &10		\ XX16+7
 ```
 
-What are `XX15+1` and `y sgn`? And what is `XX12=XX15.XX16`, which has apparently been `Rotated`? Is that a matrix? Or a dot product?
+We're still left with `XX16+2` and its friends, so this is essentially the source code, laid out differently, with cryptic hints scattered throughout, hints that seemed to be aimed at someone who already understood the basics, which I certainly didn't.
 
 By this time my tea had gone cold, so once again I put my dreams on hold and forgot about trying to unlock the secrets of Elite.
 
@@ -130,36 +128,54 @@ In 2020, lockdown boredom led me to stumble across a [2018 post on the Stardot f
 
 Not only had he managed to drag the source code into some kind of human-compatible shape, but he'd also managed to pull apart the encryption process that hides Elite's code from prying eyes. He'd then created an equivalent system in Python, enabling modern computers to build an exact replica of the released version of Elite from the original source. This meant I could not only build a local version of Elite, but I could tweak the code to figure out what it did, which I figured would be a really useful way of working out how Elite weaves its magic.
 
+That said, the source code still looked worryingly familiar:
+
+```
+.LL42
+\DO nodeX-Ycoords
+\TrnspMat
+ LDY XX16+2
+ LDX XX16+3
+ LDA XX16+6
+ STA XX16+2
+ LDA XX16+7
+ STA XX16+3
+ STY XX16+6
+ STX XX16+7
+```
+
+But at least I had a buildable codebase I could work with, and that was real progress.
+
 ### At last, a fully documented version
 
 Kieran's version gave me the leg-up that I needed to crack the problem. I started by copying Paul Brink's comments into Kieran's version, hoping that this would give me some clues to analysing the code, and some small, early hints of understanding gave me enough confidence to start working my way through the bits of the game that had always fascinated me.
 
 I started with the text token system, then worked out the split-screen mode, and then moved on to the universe generation... and by then I was completely hooked. Every little step forward, I felt like I was unpicking a bit more of the story of two young developers creating a modern-day masterpiece; if you squint carefully, you can almost sense where the whole starts to become greater than the sum of the parts. Elite is the coding equivalent of "A Day in the Life", a mash-up between the Acorn world's Lennon and McCartney, with results that are just as seminal in their field. They say you should never meet your heroes, but grokking their source code... well, that's another matter altogether.
 
-This repository is the result. The aim is that anyone with a basic knowledge of 6502 assembly language and simple trigonometry will be able to read through the source code and not only understand what's going on, but be able bask in the beauty of this exceptional achievement.
+This repository is the result. The aim is that anyone with a basic knowledge of 6502 assembly language and simple trigonometry will be able to read through the source code and not only understand what's going on, but be able appreciate the beauty and elegance of this exceptional piece of 1980s programming.
 
-I hope you enjoy the ride.
+It has been a privilege to unravel the intricacies of the Elite. I hope you enjoy the ride.
 
 ## Versions of Elite
 
-Quite a few versions of Elite were released for the BBC range of computers:
+There are quite a few versions of Elite for the BBC range of computers. These are the main variants (the links will take you to playable web-based versions of the game):
 
-* The BBC Micro tape version, which is the version I analyse on this site
-* The BBC Micro disc version, which is regarded as the canonical version. I hope to tackle the source code for this version in the future
-* An enhanced version for the BBC Micro with a 6502 second processor with a four-colour space screen and no loading from disc
-* An enhanced version for the BBC Master that's almost identical to the second processor version
-* The "executive version", which has a different font, an extended intro sequence and a maxed-out default commander (this version was not officially released)
-* A version for the BBC Micro with sideways RAM, which is the same as the disc version, but loads the whole game into memory
+* The [BBC Micro tape version](http://bbcmicro.co.uk/game.php?id=2484), which is the version I analyse on this site
+* The [BBC Micro disc version](http://bbcmicro.co.uk/game.php?id=366), which is generally regarded as the canonical version
+* An [enhanced version for the BBC Micro with a 6502 second processor](http://bbcmicro.co.uk/game.php?id=3471), with a four-colour space screen and no loading from disc
+* An [enhanced version for the BBC Master](http://bbcmicro.co.uk/game.php?id=2088) that's almost identical to the second processor version
+* The "executive version", which has a different font, an extended intro sequence and a maxed-out default commander (this version was not officially released but is available from [Ian Bell's site](http://www.iancgbell.clara.net/elite/bbc/))
 
 I chose the tape version for this commentary for three reasons.
 
-First, that's the version that Kieran Connell converted to BeebAsm, which I forked to kickstart this project, so it made sense to stand on the shoulders of giants (as that's pretty much the whole theme of this project).
+* First, that's the version that Kieran Connell converted to BeebAsm, which I forked to kickstart this project, so it made sense to stand on the shoulders of giants (as that's pretty much the whole theme of this project).
 
-Second, the tape version is the one I fell in love with back in 1984, and in which I reached the heady rank of Elite for the first time. (I eventually upgraded to a disc drive, traded in my tape for the disc version, and achieved Elite all over again, but for me the tape version is the original Elite.)
+* Second, the tape version is the one I fell in love with back in 1984, and in which I reached the heady rank of Elite for the first time. I eventually upgraded to a disc drive, traded in my tape for the disc version and reached Elite all over again, but for me, the tape version is _the_ original game.
 
-Third, the tape version is the most impressive from a programming perspective. Sure, the disc version has loads more ships, a couple of missions, mining and military lasers and a proper docking computer, but the tape version takes the core of the game and squeezes it into a 32K BBC Micro, leaving very little free space. The disc version effectively loads a brand new program every time you launch or dock, but the tape version is 100% self-contained, and from a technical viewpoint, that's just incredible. How can such a sophisticated game squeeze into 32K? By being incredibly clever and incredibly efficient, and that's why the tape version is the most interesting one to pick apart.
-
+* Third, the tape version is the most impressive from a programming perspective. Sure, the disc version has loads more ships, a couple of missions, mining and military lasers and a proper docking computer, but the tape version takes the core of the game and squeezes it into a 32K BBC Micro, leaving very little free space. The disc version effectively loads a brand new program every time you launch or dock, but the tape version is 100% self-contained, and from a technical viewpoint, that's just incredible. How can such a sophisticated game squeeze into 32K? By being incredibly clever and incredibly efficient, and that's why the tape version is the most interesting one to pick apart. 
 After all, the best things come in small packages...
+
+I hope to document the extra features in the disc and second processor versions in a future project.
 
 ## Building Elite from the source
 
@@ -279,9 +295,9 @@ All the compiled binaries match the extracts, so we know we are producing the sa
 
 ## Source files and the build pipeline
 
-The build process described above uses a five-stage pipeline. This pipeline is based on the original build scripts from the source disc, but it uses BeebAsm and Python instead of BBC BASIC.
+The build process described above uses a five-stage pipeline. This pipeline is based on the original build process from the source disc, but it uses BeebAsm and Python instead of BBC BASIC.
 
-The end product is an SSD disc image file that can be loaded on a BBC Micro with DFS, or an emulator like JSBeeb or BeebEm. The code produced is identical to the released version of the game (see the section on [verifying the output](#Verifying-the-output) for more details).
+The end product is an SSD disc image file that can be loaded by a BBC Micro with DFS, or an emulator like JSBeeb or BeebEm. The code produced is identical to the released version of the game (see the section on [verifying the output](#Verifying-the-output) for more details).
 
 Each stage of the build pipeline uses one of the source files, so let's look at what's involved.
 
@@ -309,9 +325,9 @@ BeebAsm loads `elite-source.asm` and creates the following files:
 * `ELITEE` produces the `ELTE` binary
 * `ELITEF` produces the `ELTF` binary
 * `ELITEG` produces the `ELTG` binary
-* `GENTOK` produces the `WORDS9` binary
+* `DIALSHP` contains the `PYTHON` binary
 * `SHPPRTE` produces the `SHIPS` binary
-* `DIALSHP` produces the `PYTHON` binary
+* `GENTOK` produces the `WORDS9` binary
 
 So the BeebAsm process mirrors the original compilation steps pretty closely.
 
@@ -333,9 +349,9 @@ and creates the following:
 * `output/ELTcode.unprot.bin`
 * `output/ELThead.bin`
 
-`elite-bcfs.asm` is the BeebAsm version of the BASIC source file `S.BCFS`, which is responsible for creating the "Big Code File" - i.e. concatenating all the `ELTA`...`ELTG` binaries plus the `SHIPS` data into a single executable called `ELTcode`.
+`elite-bcfs.asm` is the BeebAsm version of the BASIC source file `S.BCFS`, which is responsible for creating the "Big Code File" - i.e. concatenating the `ELTA` to `ELTG` binaries plus the `SHIPS` data into a single executable called `ELTcode`.
 
-There is also a simple checksum test added to the start of the `ELTcode` file, but at this stage the code is not encrypted, which is why it has `unprot` in the name. The original BASIC files contain encryption code that can't be replicated in BeebAsm, so we do this using Python in step 4 below.
+There is also a simple checksum test added to the start of the `ELTcode` file, but at this stage the compiled code is not encrypted, which is why it has `unprot` in the name. The original BASIC files contain encryption code that can't be replicated in BeebAsm, so we do this using Python in step 4 below.
 
 ### 3. Compile the loader with `elite-loader.asm`
 
@@ -352,9 +368,11 @@ and creates the following:
 
 * `output/ELITE.unprot.bin`
 
-This is the BeebAsm version of the BASIC source file `ELITES`, which creates the executable Elite loader `ELITE`. This is responsible for displaying the title screen and planet, drawing the dashboard, setting up interrupt routines (for the mode 4/5 split-screen mode), relocating many routines to lower memory (below `PAGE`) and loading the main executable. It loads four image binaries from the `images` folder for the loading screen, and it also loads the `WORDS9` and `PYTHON` data files that contains the game's text and the Python ship blueprint.
+This is the BeebAsm version of the BASIC source file `ELITES`, which creates the executable Elite loader `ELITE`. This is responsible for displaying the title screen and planet, loading the dashboard image, setting up interrupt routines, configuring a number of operating system settings, relocating code to lower memory (below `PAGE`), and finally loading and running the main game.
 
-There are also a number of checksum and protection routines that EOR the code and data with other parts of memory in an attempt to obfuscate and protect the game from tampering. This cannot be done in the BeebAsm source so we do this using Python in the next step.
+The loader incorporates four image binaries from the `images` folder that, together with the code to draw the Saturn-esque planet, create the loading screen, and it also incorporates the `WORDS9` and `PYTHON` data files that contains the game's text and the Python ship blueprint.
+
+There are also a number of checksum and protection routines that EOR the code and data with other parts of memory in an attempt to obfuscate and protect the game from tampering. This can't be done in BeebAsm, so we do this using Python in the next step.
 
 ### 4. Calculate checksums and add encryption with `elite-checksum.py`
 
@@ -376,9 +394,9 @@ and creates the following:
 * `output/ELTcode.bin`
 * `output/ELITE.bin`
 
-There are a number of checksum and simple EOR encryption routines that form part of the Elite build process. These were trivial to interleave with the assembly process in the original BASIC source files, but they've been converted into Python so they can run on modern machines (as not too many modern computers support BBC BASIC out of the box).
+There are a number of checksum and simple EOR encryption routines that form part of the Elite build process. These were trivial to interleave with the assembly process in the original BASIC source files, but they've been converted into Python so they can run on modern machines (as not too many modern computers support BBC BASIC out of the box). Kieran Connell is the genius behind all this Python magic, so many thanks to him for cracking the code.
 
-The script has two parts. The first part generate an encrypted version of the `ELTcode` binary, based on the original `S.BCFS` BASIC source program:
+The script has two parts. The first part generates an encrypted version of the `ELTcode` binary, based on the original `S.BCFS` BASIC source program:
 
 * Concatenate all the compiled binaries
 * Compute the checksum for the commander data
@@ -389,12 +407,12 @@ The script has two parts. The first part generate an encrypted version of the `E
 * Compute the final checksum for the game code
 * Output the encrypted `ELTcode` binary
 
-The second part implementd the checksum and encryption functions from the `ELITES` BASIC source program:
+The second part implements the checksum and encryption functions from the `ELITES` BASIC source program:
 
 * Reverse the bytes for a block of code that is placed on the stack
-* Compute the checksum for MAINSUM
+* Compute the checksum for `MAINSUM`
 * Poke the checksum value into the binary
-* Compute the checksum for CHECKbyt
+* Compute the checksum for `CHECKbyt`
 * Poke the checksum value into the binary
 * Encrypt a block of code by EOR'ing with the code to be placed on the stack
 * Encrypt all the code destined for lower RAM by EOR'ing with the loader boot code
@@ -420,21 +438,21 @@ The disc image is called `elite.ssd`, and you can load it into an emulator, or i
 
 ### Log files
 
-During compilation, details of every step are output in a file called `compile.txt`. If you have problems, it might come in handy.
+During compilation, details of every step are output in a file called `compile.txt`. If you have problems, it might come in handy, and it's a great reference if you need to know the addresses of labels and variables for debugging (or just snooping around).
 
 ## Differences between the various source files
 
 ### ELITEC
 
-It turns out that the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip) do not contain identical code to the binaries in the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip). Specifically, there are three instructions in the `ELTC` binary that are different to the instructions in the `ELITEC.TXT` source file.
+It turns out that the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip) do not contain identical code to the binaries in the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip). Specifically, there are some instructions in the `ELTC` binary that are different to the instructions in the `ELITEC.TXT` source file.
 
-You can see these differences in the WARP routine in the `elite-source.asm` file (search the file for `.WARP` and follow the comments for mentions of `ELITEC.TXT`).
+You can see these differences documented in the `WARP` routine in the `elite-source.asm` file. To find this, search the file for `Subroutine: WARP` and follow the comments for mentions of `ELITEC.TXT`.
 
-The instructions in `elite-source.asm` are those from the binary files rather than `ELITEC.TXT`, to ensure that the build process produce binaries that match the released version of the game.
+The instructions included in `elite-source.asm` are those that match the binary files rather than `ELITEC.TXT`, to ensure that the build process produces binaries that match the released version of the game.
 
 ### ELTB
 
-It also turns out there are two versions of the `ELITEB` BASIC source program on the cassette sources disc, one called `$.ELITEB` and another called `O.ELITEB`. These two versions of `ELITEB` differ by just one byte in the default commander data. This byte controls whether or not the commander has a rear pulse laser. In `O.ELITEB` this byte is generated by:
+It also turns out there are two versions of the `ELITEB` BASIC source program on the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip), one called `$.ELITEB` and another called `O.ELITEB`. These two versions of `ELITEB` differ by just one byte in the default commander data. This byte controls whether or not the commander has a rear pulse laser. In `O.ELITEB` this byte is generated by:
 
 ```
 EQUB (POW + 128) AND Q%
@@ -456,7 +474,7 @@ In contrast, `$.ELITEB` will always produce a default commander with a rear puls
 
 The `ELTB` binary file in the `extracted` folder of this repository is the release version, so we can easily tell whether any changes we've made to the code deviate from the release version. However, the `ELTB` binary file on the sources disc matches the version produced by `$.ELITEB`, rather than the released version produced by `O.ELITEB` - in other words, `ELTB` on the source disc is not the release version.
 
-The implication is that the `ELTB` binary file on the cassette sources disc was produced by `$.ELITEB`, while the `ELTcode` file (the released game) used `O.ELITEB`. Perhaps the released game was compiled, and then someone backed up the `ELITEB` source to `O.ELITEB`, edited the `$.ELITEB` to have a rear pulse laser, and then generated a new `ELTB` binary file. Who knows? Unfortunately, files on DFS discs don't have timestamps, so it's hard to tell.
+The implication is that the `ELTB` binary file on the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip) was produced by `$.ELITEB`, while the `ELTcode` file (the released game) used `O.ELITEB`. Perhaps the released game was compiled, and then someone backed up the `ELITEB` source to `O.ELITEB`, edited the `$.ELITEB` to have a rear pulse laser, and then generated a new `ELTB` binary file. Who knows? Unfortunately, files on DFS discs don't have timestamps, so it's hard to tell.
 
 To support this discrepancy, there is an extra build target for building the `ELTB` binary as found on the sources disc, and as produced by `$.ELITEB`. You can build this version, which has the rear pulse laser, with:
 
@@ -466,11 +484,18 @@ The `ELTcode` executable produced by this build target is different to the relea
 
 ## Next steps
 
-I'm currently documenting the final stages of the loader, and tidying up the commentary. There are some areas where I need to clarify things, and there are one or two areas that I'm still trying to get my head around.
+* I'm currently documenting the final stages of the loader. Nearly there!
 
-I'm also going to add a number of deep dive articles to the repository, and I'm writing scripts to take the source files and display them on a website, which should make them easier to follow.
+* The commentary needs tidying up and clarifying in places. There are one or two areas where the code is documented, but I'm still trying to get my head around exactly how it works, so those need addressing.
 
-I'm also hoping to pull apart the disc and second processor versions, so I can document the code that differs from the tape version. That's a long-term goal, though!
+* I'm going to add more deep dive articles, as well as expanding the ones that are there. There is so much more to say about this masterpiece.
+
+* I'm writing scripts to take the source files from github and generate a code-friendly website. This should make the source code easier to follow, as github can only display the main source as a raw file (it's too big).
+
+* I'm also hoping to pull apart the disc and second processor versions, so I can document the code that differs from the tape version. That's a longer-term goal, though - first, I need to get the tape version finished off.
 
 ---
-Mark Moxon, August 2020
+
+Right on, Commanders!
+
+_Mark Moxon_ | August 2020
