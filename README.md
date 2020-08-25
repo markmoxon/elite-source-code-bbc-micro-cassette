@@ -44,11 +44,11 @@ Hopefully this repository will be useful for those who want to learn about Elite
 
 ## Acknowledgements
 
-The original 1984 source code is copyright &copy; Ian Bell and David Braben, and the code on this site is identical to the version released by the authors on [Ian Bell's personal website](http://www.iancgbell.clara.net/elite/).
+The original 1984 source code is copyright &copy; Ian Bell and David Braben, and the code on this site is identical to the version released by the authors on [Ian Bell's personal website](http://www.iancgbell.clara.net/elite/), just reformatted to be more readable.
 
 The commentary is copyright &copy; Mark Moxon. Any misunderstandings or mistakes in the documentation are entirely my fault.
 
-Huge thanks are due to the original authors for not only creating such an important piece of my childhood, but also for releasing the source code for us to play with; to Paul Brink for his annotated disassembly; and to Kieran Connell for his BeebAsm version, which I forked to create this repository. You can find out more in the [introduction](#Introduction) below.
+Huge thanks are due to the original authors for not only creating such an important piece of my childhood, but also for releasing the source code for us to play with; to Paul Brink for his annotated disassembly; and to Kieran Connell for his BeebAsm version, which I forked to create this repository. You can find out more about all of these in the [introduction](#Introduction) below.
 
 Right on, Commanders!
 
@@ -57,25 +57,25 @@ This project is based on the original source files for BBC Elite, which can be f
 
 The following archives from Ian Bell's site form the basis for this project:
 
-* [Cassette sources](http://www.elitehomepage.org/archive/a/a4080602.zip) as DFS disc image
+* [Cassette sources](http://www.elitehomepage.org/archive/a/a4080602.zip) as a DFS disc image
 * [Cassette sources](http://www.elitehomepage.org/archive/a/a4080610.zip) as text files
 
 Here's a bit more on how this project came to be.
 
 ### Ian Bell's original sources
 
-When I first saw that the sources to Elite had been released by the authors, I couldn't believe it - I'd aways wanted to understand how this astonishing technical feat was achieved, ever since I'd sat wide-mouthed as a 14-year-old when I first launched from the space station and saw Lave .
+When I first saw that the sources to Elite had been released by the authors, I couldn't believe it - I'd aways wanted to understand how this astonishing technical feat was achieved, ever since I'd sat wide-mouthed as a 14-year-old when I first launched from the space station and saw Lave hanging in space, right in front of my eyes.
 
-So I excitedly opened one of the files at random... and all I saw was page after page of this kind of thing:
+So I excitedly opened one of the files at random... was greeted by page after page of this kind of thing:
 
 ```
 4500.NWSHP STAT:LDX#0:.NWL1 LDAFRIN,X:BEQNW1:INX:CPX#NOSH:BCCNWL1:.NW3 CLC:RTS
 4510.NW1 JSRGINF:LDAT:BMINW2:ASLA:TAY:LDAXX21-2,Y:STAXX0:LDAXX21-1,Y:STAXX0+1:CPY#2*SST:BEQNW6:LDY#5:LDA(XX0),Y:STAT1:LDASLSP:SEC:SBCT1:STAINWK+33:LDASLSP+1:SBC#0:STAINWK+34
 ```
 
-Of course, the source files on Ian Bell's site are... well, "terse" is one word that springs to mind. Because the game was compiled on a BBC Micro, the source code is squashed into a number of extremely cramped BASIC files, with spaces removed and almost no comments to speak of.
+I suppose I should have expected it, but the original source files are _incredibly_ terse. Because the game was compiled on a BBC Micro, the source code is squashed into a number of extremely cramped BASIC files, with spaces removed and almost no comments to speak of. This is not a human-friendly codebase; it wasn't supposed to be.
 
-Not only that, but parts of the game started life on an Acorn Atom, where labels in assembly language are restricted to two letters plus numbers, so the source is full of memorable names like `XX16`, `QQ17` and `LL9`. I mean, look at this bit:
+Not only that, but parts of the game started life on an Acorn Atom, where labels in assembly language are restricted to two letters plus digits, so the source is full of memorable names like `XX16`, `QQ17` and `LL9`. I mean, look at this bit:
 
 ```
 8501.LL42 \DO nodeX-Ycoords
@@ -86,9 +86,9 @@ Not only that, but parts of the game started life on an Acorn Atom, where labels
 8511STAXX16+11:STYXX16+14:STXXX16+15
 ```
 
-And this is an excerpt that has some comments, too. `TrnspMat` - is that "transporting materials"? Or "transport matrix"? I guess it's something to do with `nodeX-Ycoords`, whatever they are, but... honestly, this is approaching the unreadable. (Even though I now know that this part of the code is transposing a rotation matrix, it still doesn't make it any easier to follow.)
+All those `XXX`s are enough to make your eyes cross over, but at least this excerpt has some comments, so do they help? `TrnspMat` - is that "transponder materials"? Or "transport maths"? I guess it's something to do with `nodeX-Ycoords`, which clearly involves nodes and coordinates, but it's not exactly readable, is it? (I now know that this is part of the routine that transposes the rotation matrix, but knowing that doesn't make it any easier to follow; it possibly makes it even scarier.)
 
-The terseness is not remotely surprising given the space constraints of compiling code on a 32K micro, but I was still flummoxed. The fact that any kind of source code was released in the first place was a kind of Holy Grail experience, but for me, it generated more questions than answers.
+The terseness is not remotely surprising given the space constraints of compiling code on a 32K micro, but I was still flummoxed. The fact that any kind of source code had been released at all was a kind of Holy Grail experience for me, but it ended up generating more questions than answers.
 
 So I put it to one side and figured I'd probably never understand how this game worked.
 
@@ -122,21 +122,21 @@ A5 D1                   LDA &D1	       \ T	\ 4th byte read for vertex, sign bits
 
 What are `XX15+1` and `y sgn`? And what is `XX12=XX15.XX16`, which has apparently been `Rotated`? Is that a matrix? Or a dot product?
 
-By this time my tea had gone cold, so I put it to one side and forgot about trying to understand Elite, once again.
+By this time my tea had gone cold, so once again I put my dreams on hold and forgot about trying to unlock the secrets of Elite.
 
 ### Kieran Connell's elite-beebasm
 
-In 2020, lockdown boredom led me to stumble across a [2018 thread on the Stardot forums](https://stardot.org.uk/forums/viewtopic.php?t=15375) by Kieran Connell of the [Bitshifters Collective](https://bitshifters.github.io/). These guys do some incredibly clever things with BBC computers, and that's exactly what Kieran had done - he'd created [elite-beebasm](https://github.com/kieranhj/elite-beebasm), a port of the original BBC Elite source code from the super-terse BASIC files into the [BeebAsm assembler](https://github.com/stardot/beebasm).
+In 2020, lockdown boredom led me to stumble across a [2018 post on the Stardot forums](https://stardot.org.uk/forums/viewtopic.php?t=15375) by Kieran Connell of the [Bitshifters Collective](https://bitshifters.github.io/). These guys do some incredibly clever things with BBC computers, and that's exactly what Kieran had done - he'd created [elite-beebasm](https://github.com/kieranhj/elite-beebasm), a port of the original BBC Elite source code from the super-terse BASIC files into the [BeebAsm assembler](https://github.com/stardot/beebasm).
 
-Not only that, he'd managed to pull apart the encryption process that hides Elite's code from prying eyes, and he'd created an equivalent system in Python, enabling modern computers to build a full version of Elite from the original source. This meant I could not only build a local version of Elite, but I could tweak the code to figure out what it did, which I figured would be really useful for trying to work out how Elite weaves its magic.
+Not only had he managed to drag the source code into some kind of human-compatible shape, but he'd also managed to pull apart the encryption process that hides Elite's code from prying eyes. He'd then created an equivalent system in Python, enabling modern computers to build an exact replica of the released version of Elite from the original source. This meant I could not only build a local version of Elite, but I could tweak the code to figure out what it did, which I figured would be a really useful way of working out how Elite weaves its magic.
 
 ### At last, a fully documented version
 
-Kieran's version gave me the leg-up that I needed to crack the problem. I started by copying Paul Brink's comments into Kieran's version, hoping that this would give me enough clues to start analysing the code, and that gave me enough confidence to start working my way through the bits of the game that had always fascinated me.
+Kieran's version gave me the leg-up that I needed to crack the problem. I started by copying Paul Brink's comments into Kieran's version, hoping that this would give me some clues to analysing the code, and some small, early hints of understanding gave me enough confidence to start working my way through the bits of the game that had always fascinated me.
 
-I started with the text token system, then worked out the split-screen mode, and then moved on to the universe generation... and by then I was completely hooked. Every little step forward felt like I was unpicking a bit more of the story of two young developers, creating a modern-day masterpiece; if you squint carefully, you can almost sense where the whole starts to become greater than the sum of the parts. Elite is the coding equivalent of "A Day in the Life", with results that are just as seminal. They say you should never meet your heroes, but grokking their source code... well, that's another matter altogether.
+I started with the text token system, then worked out the split-screen mode, and then moved on to the universe generation... and by then I was completely hooked. Every little step forward, I felt like I was unpicking a bit more of the story of two young developers creating a modern-day masterpiece; if you squint carefully, you can almost sense where the whole starts to become greater than the sum of the parts. Elite is the coding equivalent of "A Day in the Life", a mash-up between the Acorn world's Lennon and McCartney, with results that are just as seminal in their field. They say you should never meet your heroes, but grokking their source code... well, that's another matter altogether.
 
-This repository is the result. The aim is that anyone with a basic knowledge of 6502 assembly language and simple trigonometry will be able to read through the source code and not only understand what's going on, but bask in the beauty of this exceptional achievement.
+This repository is the result. The aim is that anyone with a basic knowledge of 6502 assembly language and simple trigonometry will be able to read through the source code and not only understand what's going on, but be able bask in the beauty of this exceptional achievement.
 
 I hope you enjoy the ride.
 
@@ -157,9 +157,7 @@ First, that's the version that Kieran Connell converted to BeebAsm, which I fork
 
 Second, the tape version is the one I fell in love with back in 1984, and in which I reached the heady rank of Elite for the first time. (I eventually upgraded to a disc drive, traded in my tape for the disc version, and achieved Elite all over again, but for me the tape version is the original Elite.)
 
-Third, the tape version is the most impressive from a programming perspective. Sure, the disc version has loads more ships, a couple of missions, mining and military lasers and a proper docking computer, but the tape version takes the core of the game and squeezes it into a 32K BBC Micro, leaving very little free space.
-
-The disc version effectively loads a new program every time you launch or dock, but the tape version is 100% self-contained, and from a technical viewpoint, that's just incredible. How can such a sophisticated game squeeze into 32K? Well, it's by being incredibly clever and incredibly efficient, and that's why the tape version is the most interesting one to pick apart.
+Third, the tape version is the most impressive from a programming perspective. Sure, the disc version has loads more ships, a couple of missions, mining and military lasers and a proper docking computer, but the tape version takes the core of the game and squeezes it into a 32K BBC Micro, leaving very little free space. The disc version effectively loads a brand new program every time you launch or dock, but the tape version is 100% self-contained, and from a technical viewpoint, that's just incredible. How can such a sophisticated game squeeze into 32K? By being incredibly clever and incredibly efficient, and that's why the tape version is the most interesting one to pick apart.
 
 After all, the best things come in small packages...
 
