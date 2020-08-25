@@ -30761,8 +30761,9 @@ LOAD_F% = LOAD% + P% - CODE%
 
 .TT170
 {
- LDX #&FF               \ Set stack pointer to &01FF, so stack is in page 1
- TXS                    \ (this is the standard location for the 6502 stack)
+ LDX #&FF               \ Set stack pointer to &01FF, as stack is in page 1
+ TXS                    \ (this is the standard location for the 6502 stack,
+                        \ so this instruction effectively resets the stack)
 
 .^BR1
 

@@ -55,11 +55,14 @@ D% = &563A              \ D% is set to the size of the main game code
 
 LC% = &6000 - C%        \ LC% is set to the maximum size of the main game code
 
-N% = 67                 \ N% is set to the number of bytes in the VDU table, so we
-                        \ can loop through them in part 2 below
+N% = 67                 \ N% is set to the number of bytes in the VDU table, so
+                        \ we can loop through them in part 2 below
 
-SVN = &7FFD             \ SVN is the location of the "saving in progress" flag,
-                        \ to match the value in elite-source.asm
+SVN = &7FFD             \ SVN is where we store the "saving in progress" flag,
+                        \ and it matches the location in elite-source.asm
+
+VEC = &7FFE             \ VEC is where we store the original value of the IRQ1
+                        \ vector, and it matches the value in elite-source.asm
 
 LEN1 = 15               \ Size of the two blocks that make up the 33 bytes that
 LEN2 = 18               \ get pushed on the stack
@@ -74,8 +77,6 @@ ELSE
  CODE% = &E00
 ENDIF
 
-TRTB% = 4               \ The location of the MOS key translation table
-
 NETV = &224             \ MOS vectors that we want to intercept
 IRQ1V = &204
 
@@ -88,9 +89,9 @@ VIA = &FE40             \ Memory-mapped space for accessing internal hardware,
 USVIA = VIA             \ such as the video ULA, 6845 CRTC and 6522 VIAs
 
 VSCAN = 57-1            \ Defines the split position in the split screen mode
-VEC = &7FFE
 
-ZP = &70                \ Zero page variables
+TRTB% = &04             \ Zero page variables
+ZP = &70
 P = &72
 Q = &73
 YY = &74
@@ -271,78 +272,81 @@ ORG O%
 \ Variable E%: Sound envelope data
 \
 \ This table contains the sound envelope data, which is passed to OSWORD to set
-\ up the sound envelopes in part 2 below. Refer to chapter 30 of the BBE Micro
+\ up the sound envelopes in part 2 below. Refer to chapter 30 of the BBC Micro
 \ User Guide for details of sound envelopes.
 \
 \ ******************************************************************************
 
 .E%
 
-EQUB 1, 1, 0, 111, -8, 4, 1, 8, 8, -2, 0, -1, 112, 44
-EQUB 2, 1, 14, -18, -1, 44, 32, 50, 6, 1, 0, -2, 120, 126
-EQUB 3, 1, 1, -1, -3, 17, 32, 128, 1, 0, 0, -1, 1, 1
-EQUB 4, 1, 4, -8, 44, 4, 6, 8, 22, 0, 0, -127, 126, 0
+ EQUB 1, 1, 0, 111, -8, 4, 1, 8, 8, -2, 0, -1, 112, 44
+ EQUB 2, 1, 14, -18, -1, 44, 32, 50, 6, 1, 0, -2, 120, 126
+ EQUB 3, 1, 1, -1, -3, 17, 32, 128, 1, 0, 0, -1, 1, 1
+ EQUB 4, 1, 4, -8, 44, 4, 6, 8, 22, 0, 0, -127, 126, 0
 
 \ ******************************************************************************
 \
 \ Elite loader (Part 2 of )
 \
-\
+\ This part of the loader does a number of calls to OS calls, sets up the sound
+\ envelopes, pushes 33 bytes onto the stack that will be used later, and sends
+\ us on a wild goose chase, just for kicks.
 \
 \ ******************************************************************************
 
 .swine 
 
- LDA #&7F               \ Machine reset
- STA &FE4E
- JMP (&FFFC)
+ LDA #%01111111         \ Set 6522 System VIA interrupt enable register IER
+ STA &FE4E              \ (SHEILA &4E) bits 0-6 (i.e. disable all hardware
+                        \ interrupts from the System VIA)
 
-\ This bit runs where it loads
+ JMP (&FFFC)            \ Jump to the address in &FFFC to reset the machine
 
 .OSB
 
- LDY #0                 \ OSBYTE call with Y = 0
- JMP OSBYTE
+ LDY #0                 \ Perform a call to OSBYTE with Y = 0, returning from
+ JMP OSBYTE             \ the subroutine using a tail call
 
- EQUS "R.ELITEcode"
+ EQUS "R.ELITEcode"     \ A message buried in the code from the authors
  EQUB 13
  EQUS "By D.Braben/I.Bell"
  EQUB 13
  EQUB &B0
 
-                        \ Addresses of various functions used by loader to
-                        \ obfuscate
-
 .oscliv
 
- EQUW &FFF7
+ EQUW &FFF7             \ Addresses of various functions used by loader to
+                        \ obfuscate
 
 .David9
 
- EQUW David5            \ used to direct decyrypt fn in stack to end of loop
+ EQUW David5            \ Used to direct decyrypt fn in stack to end of loop
  CLD
 
 .David23
 
- EQUW (512-LEN)         \ start of DOMOVE fn pushed onto stack (&1DF)
-
-                        \ Set up PROT1 fn to work correctly and set V219 to
-                        \ OSBPUT vector address
+ EQUW (512-LEN)         \ Start of DOMOVE routine pushed onto stack (&01DF)
 
 .doPROT1
 
-                        \ enters with A = &48;X = 255
+                        \ This is called from below with A = &48 and X = 255
 
- LDY#&DB
- STY TRTB%
- LDY #&EF               \ 0.1 look-up keys
+ LDY #&DB               \ Store &EFDB in TRTB%(1 0) to point to the keyboard
+ STY TRTB%              \ translation table for OS 0.1 (which we will overwrite
+ LDY #&EF               \ with a call to OSBYTE later)
  STY TRTB%+1
- LDY #2
+
+ LDY #2                 \ Set the high byte of V219(1 0) to 2
  STY V219+1
- STA PROT1-255,X        \ self-mod PHA -> PROT1
+
+ STA PROT1-255,X        \ Poke &48 into PROT1, which changes the instruction
+                        \ there to a PHA
+
  LDY #&18
- STY V219+1,X           \ set V219 to &0218
- RTS
+ STY V219+1,X           \ Set the low byte of V219(1 0) to &18 (as X = 255), so
+                        \ V219(1 0) now contains &0218
+
+ RTS                    \ Return from the subroutine
 
 .MHCA
 
@@ -350,15 +354,19 @@ EQUB 4, 1, 4, -8, 44, 4, 6, 8, 22, 0, 0, -127, 126, 0
 
 .David7
 
- BCC Ian1
+ BCC Ian1               \ This instruction is part of the multi-jump obfuscation
+                        \ in PROT1
 
 .ENTRY
 
- SEI                    \ Boot code
- CLD
+                        \ This is where the JMP at the start of the loader goes
+
+ SEI                    \ Disable all interrupts
+
+ CLD                    \ Clear the decimal flag, so we're not in decimal mode
 
 IF DISC = FALSE
- LDA #0              \ TAPE protection
+ LDA #0                 \ Tape protection code
  LDX #&FF
  JSR OSBYTE
  TXA
@@ -380,182 +388,247 @@ IF DISC = FALSE
 .OS100
 ENDIF
 
- LDA #&7F               \ Disable all interupts
- STA &FE4E
- STA &FE6E
+ LDA #%01111111         \ Set 6522 System VIA interrupt enable register IER
+ STA &FE4E              \ (SHEILA &4E) bits 0-6 (i.e. disable all hardware
+                        \ interrupts from the System VIA)
 
- LDA &FFFC              \ Set USERV, BRKV, IRQ2V and EVENTV to point to machine reset (&FFFC)
- STA &200
+ STA &FE6E              \ Set 6522 User VIA interrupt enable register IER
+                        \ (SHEILA &4E) bits 0-6 (i.e. disable all hardware
+                        \ interrupts from the User VIA)
+ 
+ LDA &FFFC              \ Fetch the low byte of the reset address in &FFFC,
+                        \ which will reset the machine if called
+ 
+ STA &200               \ Set the low bytes of USERV, BRKV, IRQ2V and EVENTV
  STA &202
  STA &206
  STA &220
- LDA &FFFD
- STA &201
+ 
+ LDA &FFFD              \ Fetch the high byte of the reset address in &FFFD,
+                        \ which will reset the machine if called
+ 
+ STA &201               \ Set the high bytes of USERV, BRKV, IRQ2V and EVENTV
  STA &203
  STA &207
- STA &221               \ Cold reset (Power on) on BRK,USER,& unrecog IRQ
+ STA &221
 
- LDX #&2F-2             \ Ensure all vectors are pointing into MOS (&C000 and upwards)
+ LDX #&2F-2             \ We now step through all the vectors from &0204 to
+                        \ &022F and OR their high bytes with &C0, so they all
+                        \ point into the MOS ROM space (which is from &C000 and
+                        \ upwards), so we set a counter in X to count through
+                        \ them
 
 .purge
 
- LDA &202,X
- ORA #&C0
+ LDA &202,X             \ Set the high byte of the vector in &202+X so it points
+ ORA #&C0               \ to the MOS ROM
  STA &202,X
- DEX
- DEX
- BPL purge
 
- LDA #&60               \ Make NETV an RTS
+ DEX                    \ Increment the counter to point to the next high byte
+ DEX
+
+ BPL purge              \ Loop back until we have done all the vectors
+
+ LDA #&60               \ Store an RTS instruction in location &232 NETV
  STA &232
- LDA #2
- STA NETV+1
+
+ LDA #&2                \ Point the NETV vector at &232, which we just filled
+ STA NETV+1             \ with an RTS
  LDA #&32
- STA NETV               \ Knock out NETVEC
+ STA NETV
 
-                        \ Poke JSR into David2 fn and set ADC to sample 2 channels
+ LDA #&20               \ Set A to the op code for a JSR call with absolute
+                        \ addressing
 
- LDA #32                \ JSR absolute
- EQUB &2C               \ BIT absolute (skip next 2 bytes)
+ EQUB &2C               \ Skip the next instruction by turning it into a BIT
+                        \ instruction, which does nothing bar affecting the
+                        \ flags
 
 .Ian1
 
- BNE David3
- STA David2             \ self-mod code -> JSR at David2
- LSR A
- LDX #3
- STX BLPTR+1
+ BNE David3             \ This instruction is skipped if we came from above,
+                        \ otherwise this is part of the multi-jump obfuscation
+                        \ in PROT1
+
+ STA David2             \ Store &20 in location David2, which modifies the
+                        \ instruction there (see David2 for details)
+
+ LSR A                  \ Set A = 16
+
+ LDX #3                 \ Set the high bytes of BLPTR(1 0), BLN(1 0) and
+ STX BLPTR+1            \ EXCN(1 0) to &3
  STX BLN+1
  STX EXCN+1
- DEX
- JSR OSBYTE             \ ADC
 
- EQUB &2C               \ BIT absolute (skip next 2 bytes)
+ DEX                    \ Set X = 2
+ 
+ JSR OSBYTE             \ Call OSBYTE with A = 16 and X = 2 to set the ADC to
+                        \ sample 2 channels from the joystick
+
+ EQUB &2C               \ Skip the next instruction by turning it into a BIT
+                        \ instruction, which does nothing bar affecting the
+                        \ flags
 
 .FRED1
 
- BNE David7
+ BNE David7             \ This instruction is skipped if we came from above,
+                        \ otherwise this is part of the multi-jump obfuscation
+                        \ in PROT1
 
- LDX #255               \ Poke PHA into PROT1 fn
- LDA #&48
+ LDX #255               \ Call doPROT1 to change an instruction in the PROT1
+ LDA #&48               \ routine and set up another couple of variables
  JSR doPROT1
 
- LDA #144               \ Issue *TV 255,0 command (via OSBYTE 144)
+ LDA #144               \ Call OSBYTE with A = 144 and Y = 0 to turn the screen
+ JSR OSB                \ interlace on (equivalent to a *TV 255,0 command)
+
+ LDA #247               \ Call OSBYTE with A = 247 and X = Y = 0 to disable the
+ LDX #0                 \ BREAK intercept code by poking 0 into the first value
  JSR OSB
 
- LDA #247               \ Remove BREAK intercept (via OSBYTE 247)
- LDX #0
+\LDA #&81               \ These instructions are commented out in the original
+\LDY #&FF               \ source, along with the comment "Damn 0.1", so
+\LDX #1                 \ presumably MOS version 0.1 was a bit of a pain to
+\JSR OSBYTE             \ support
+\TXA
+\BPL OS01
+\Damn 0.1
+
+ LDA #190               \ Call OSBYTE with A = 190, X = 8 and Y = 0 to set the
+ LDX #8                 \ ADC conversion type to 8 bits, for the joystick
  JSR OSB
 
-\LDA#&81\LDY#&FF\LDX#1\JSROSBYTE\TXA\BPLOS01 \Damn 0.1
-
- LDA #190               \ Set ADC to 8-bit conversion (via OSBYTE 190)
- LDX #8
- JSR OSB
-
- EQUB &2C               \ BIT absolute (skip next 2 bytes)
+ EQUB &2C               \ Skip the next instruction by turning it into a BIT
+                        \ instruction, which does nothing bar affecting the
+                        \ flags
 
 .David8
 
- BNE FRED1
+ BNE FRED1              \ This instruction is skipped if we came from above,
+                        \ otherwise this is part of the multi-jump obfuscation
+                        \ in PROT1
+                        
+ LDA #143               \ Call OSBYTE 143 to issue a paged ROM service call of
+ LDX #&C                \ type &C with argument &FF, which is the "NMI claim"
+ LDY #&FF               \ service call that asks the current user of the NMI
+ JSR OSBYTE             \ space to clear it out
 
- LDA #&8F               \ Issue paged ROM service call (via OSBYTE &8F)
- LDX #&C
- LDY #&FF
- JSR OSBYTE
-
- LDA #13                \ Disable output buffer empty event (via OSBYTE 13)
+ LDA #13                \ Set A = 13 for the next OSBYTE call
 
 .abrk
 
- LDX #0
- JSR OSB
+ LDX #0                 \ Call OSBYTE with A = 13, X = 0 and Y = 0 to disable
+ JSR OSB                \ the "output buffer empty" event
 
- LDA #225               \ Set character status flag (via OSBYTE 225)
- LDX #128
- JSR OSB
+ LDA #225               \ Call OSBYTE with A = 225, X = 128 and Y = 0 to set
+ LDX #128               \ the function keys to return ASCII codes for Shift-fn
+ JSR OSB                \ keys (i.e. add 128)
 
- LDA #172               \ Get address of MOS key translation table (via OSBYTE 172)
- LDX #0
+ LDA #172               \ Call OSBYTE 172 to read the address of the MOS
+ LDX #0                 \ keyboard translation table into (Y X)
  LDY #255
  JSR OSBYTE
- STX TRTB%
- STY TRTB%+1
+ 
+ STX TRTB%              \ Store the address of the keyboard translation table in
+ STY TRTB%+1            \ TRTB%(1 0)
 
- LDA #200               \ Disable ESCAPE, memory cleared on BREAK (via OSBYTE 200)
- LDX #3
- JSR OSB
+ LDA #200               \ Call OSBYTE with A = 200, X = 3 and Y = 0 to disable
+ LDX #3                 \ the Escape key and clear memory if the Break key is
+ JSR OSB                \ pressed
 
 IF PROT AND DISC = 0
- CPX #3
- BNE abrk+1             \ Clear memory on BREAK 
+
+ CPX #3                 \ If the previous value of X from the call to OSBYTE 200
+ BNE abrk+1             \ was not 3 (Escape disabled, clear memory), jump to
+                        \ abrk+1, which contains a BRK instruction which will
+                        \ reset the computer (as we set BRKV above)
 ENDIF
 
- LDA #13                \ Disable character entering keyboard buffer event (via OSBYTE 13)
- LDX #2
+ LDA #13                \ Call OSBYTE with A = 13, X = 2 and Y = 0 to disable
+ LDX #2                 \ the "character entering keyboard buffer" event
  JSR OSB
 
 .OS01                   \ Reset stack
 
- LDX #&FF
- TXS 
- INX 
+ LDX #&FF               \ Set stack pointer to &01FF, as stack is in page 1
+ TXS                    \ (this is the standard location for the 6502 stack,
+                        \ so this instruction effectively resets the stack)
+
+ INX                    \ Set X = 0, to use as a counter in the following loop
 
 .David3
 
-                        \ Push 33 bytes from BEGIN% onto the stack
-                        \ NB. loops by indirecting through 5 branches!
-
- LDA BEGIN%,X
+ LDA BEGIN%,X           \ This routine pushes 33 bytes from BEGIN% onto the
+                        \ stack, so fetch the X-th byte from BEGIN%
 
 .PROT1
 
- INY
-\PHA
- INX 
- CPX #LEN
- BNE David8
+ INY                    \ This instruction gets changed to a PHA instruction by
+                        \ the doPROT1 routine that's called above, so by the
+                        \ time we get here, this instruction actually pushes the
+                        \ X-th byte from BEGIN% onto the stack
 
- LDA #(B% MOD256)       \ Issue 67 VDU commands to set up square MODE4 screen at &6000
- STA ZP
- LDA #&C8               \ self-mod INY -> PROT1
- STA PROT1
- LDA #(B% DIV256)
- STA ZP+1
+ INX                    \ Increment the loop counter
+ 
+ CPX #LEN               \ If X < #LEN (which is 33), loop back for the next one.
+ BNE David8             \ This branch actually takes us on wold goose chase
+                        \ through the following locations, where each BNE is
+                        \ prefaced by an EQUB &2C that disables the branch
+                        \ instruction during the normal instruction flow:
+                        \
+                        \   David8 -> FRED1 -> David7 -> Ian1 -> David3 
+                        \
+                        \ so in the end this just loops back to push the next
+                        \ byte onto the stack, but in a really sneaky way
 
- LDY #0
+ LDA #LO(B%)            \ Set the low byte of ZP(1 0) to point to the VDU code
+ STA ZP                 \ table at B%
+
+ LDA #&C8               \ Poke &C8 into PROT1 to change the instruction that we
+ STA PROT1              \ modified back to an INY instruction, rather than a PHA
+
+ LDA #HI(B%)            \ Set the high byte of ZP(1 0) to point to the VDU code
+ STA ZP+1               \ table at B%
+
+ LDY #0                 \ We are now going to send the 67 VDU bytes in the table
+                        \ at B% to OSWRCH to set up the special mode 4 screen
+                        \ that forms the basis for the split-screen mode
 
 .LOOP
 
- LDA (ZP),Y
+ LDA (ZP),Y             \ Pass the Y-th byte of the B% table to OSWRCH
  JSR OSWRCH
- INY 
- CPY #N%
- BNE LOOP               \ set up pokey-mode-4
 
- LDA #1                 \ Disable cursor editing, keys give ASCII values (via OSBYTE 4)
- TAX
- TAY
- STA (V219),Y
- LDA #4
- JSR OSB
+ INY                    \ Increment the loop counter
+
+ CPY #N%                \ Loop back for the next byte until we have done them
+ BNE LOOP               \ all (the number of bytes was set in N% above)
+
+ LDA #1                 \ In doPROT1 above we set V219(1 0) = &0218, so this
+ TAX                    \ code sets the contents of &0219 (the high byte of
+ TAY                    \ BPUTV) to 1. We will see why this later, at the start
+ STA (V219),Y           \ of part 4
+
+ LDA #4                 \ Call OSBYTE with A = 4, X = 1 and Y = 0 to disable
+ JSR OSB                \ cursor editing, so the cursor keys return ASCII values
+                        \ and can therfore be used in-game
 
  LDA #9                 \ Disable flashing colours (via OSBYTE 9)
  LDX #0
  JSR OSB
 
- LDA #&6C               \ Poke JSR indirect into crunchit fn
- EOR crunchit           \ JMP indirect
- STA crunchit
+ LDA #&6C               \ Poke &6C into crunchit after EOR'ing it first (which
+ EOR crunchit           \ has no effect as crunchit contains a BRK instruction
+ STA crunchit           \ with opcode 0), to change crunchit to an indirect JMP
 
 MACRO FNE I%
-  LDX #((E%+I%*14)MOD256)
-  LDY #((E%+I%*14)DIV256)
-  LDA #8
+  LDX #LO(E%+I%*14)     \ Call OSWORD with A = 8 and (Y X) pointing to the
+  LDY #HI(E%+I%*14)     \ I%-th set of envelope data in E%, to set up sound
+  LDA #8                \ envelope I%
   JSR OSWORD
 ENDMACRO
 
- FNE 0                  \ Define 4x sound envelopes (via OSWORD 8)
+ FNE 0                  \ Set up sound envelopes 0-3 using the macro above
  FNE 1
  FNE 2
  FNE 3
@@ -650,9 +723,8 @@ ENDMACRO
 
 .David2
 
- EQUB &AC               \ self moded to JSR &FFD4
- EQUW &FFD4
-\JSR&FFD4
+ EQUB &AC               \ This byte is changed to &20 in part 2, so the three
+ EQUW &FFD4             \ bytes together become JSR &FFD4
 
 .LBLa
 
