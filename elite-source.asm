@@ -13001,7 +13001,7 @@ NEXT
  TAY
 
  JMP (VEC)              \ Jump to the address in VEC, which was set to the
-                        \ original IRQ1 vector by elite-loader.asm, so this
+                        \ original IRQ1V vector by elite-loader.asm, so this
                         \ instruction passes control to the next interrupt
                         \ handler
 

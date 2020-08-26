@@ -309,8 +309,9 @@ ORG O%
 
 .OSB
 
- LDY #0                 \ Perform a call to OSBYTE with Y = 0, returning from
- JMP OSBYTE             \ the subroutine using a tail call
+ LDY #0                 \ Call OSBYTE with Y = 0, returning from the subroutine
+ JMP OSBYTE             \ using a tail call (so we can call OSB to call OSBYTE
+                        \ for when we know we want Y set to 0)
 
  EQUS "R.ELITEcode"     \ A message buried in the code from the authors
  EQUB 13
@@ -325,7 +326,10 @@ ORG O%
 
 .David9
 
- EQUW David5            \ Used to direct decyrypt fn in stack to end of loop
+ EQUW David5            \ This address is used in the decryption loop starting
+                        \ at David2 in part 4, and is used to jump back into the
+                        \ loop at David5
+
  CLD
 
 .David23
@@ -417,7 +421,7 @@ ENDIF
                         \ interrupts from the System VIA)
 
  STA &FE6E              \ Set 6522 User VIA interrupt enable register IER
-                        \ (SHEILA &4E) bits 0-6 (i.e. disable all hardware
+                        \ (SHEILA &6E) bits 0-6 (i.e. disable all hardware
                         \ interrupts from the User VIA)
  
  LDA &FFFC              \ Fetch the low byte of the reset address in &FFFC,
@@ -513,8 +517,8 @@ ENDIF
 \LDA #&81               \ These instructions are commented out in the original
 \LDY #&FF               \ source, along with the comment "Damn 0.1", so
 \LDX #1                 \ presumably MOS version 0.1 was a bit of a pain to
-\JSR OSBYTE             \ support
-\TXA
+\JSR OSBYTE             \ support - which is probably why Elite doesn't bother
+\TXA                    \ and only supports 1.0 and 1.2
 \BPL OS01
 \Damn 0.1
 
@@ -564,7 +568,8 @@ IF PROT AND DISC = 0
  CPX #3                 \ If the previous value of X from the call to OSBYTE 200
  BNE abrk+1             \ was not 3 (Escape disabled, clear memory), jump to
                         \ abrk+1, which contains a BRK instruction which will
-                        \ reset the computer (as we set BRKV above)
+                        \ reset the computer (as we set BRKV to point to the
+                        \ reset address above)
 ENDIF
 
  LDA #13                \ Call OSBYTE with A = 13, X = 2 and Y = 0 to disable
@@ -758,12 +763,15 @@ ENDMACRO
  STY P
 
  JSR crunchit           \ Call crunchit to move and decrypt either &200 or &300
-                        \ bytes from UU% to LE%
+                        \ bytes from UU% to LE%, leaving X = 0
 
 \ ******************************************************************************
 \
 \ Elite loader (Part 4 of )
 \
+\ This part copies more code onto the stack (from BLOCK to ENDBLOCK), decrypts
+\ the code from TUT onwards, and sets up the IRQ1 handler for the split-screen
+\ mode.
 \
 \ ******************************************************************************
 
@@ -773,13 +781,22 @@ ENDMACRO
                         \
                         \   LDX #&FF
                         \   BRK
+                        \
+                        \ This is presumably just to confuse any cracker, as we
+                        \ don't call OS01 again
+
+                        \ We now enter a loop that starts with the counter in Y
+                        \ (initially set to 0). It calls JSR &01F1 on the stack,
+                        \ which pushes the Y-th byte of BLOCK on the stack
+                        \ before decrypting the Y-th byte of BLOCK in-place. It
+                        \ then jumps back to David5 below, where we increment Y
+                        \ until it reaches a value of ENDBLOCK - BLOCK. So this
+                        \ loop basically decrypts the code from TUT onwards, and
+                        \ at the same time it pushed the code between BLOCK and
+                        \ ENDBLOCK onto the stack, so it's there ready to be run
+                        \ (at address &0163)
 
 .David2
-
-                        \ This is the start of a loop with a counter in Y.
-                        \ which was set to 0 above. The end of the loop is in
-                        \ David5 below, which increments Y until it reaches a
-                        \ value of ENDBLOCK - BLOCK
 
  EQUB &AC               \ This byte was changed to &20 by part 2, so by the time
  EQUW &FFD4             \ we get here, these three bytes together become JSR
@@ -797,26 +814,41 @@ ENDMACRO
                         \ BLOCK
                         \
                         \ This obfuscation probably kept the crackers busy for a
-                        \ while! - it'd difficult enough to work out when you
+                        \ while - it's difficult enough to work out when you
                         \ have the source code in front of you!
 
 .LBLa
 
                         \ If, for some reason, the above JSR doesn't call the
-                        \ routine on the stack and returns, we end up here,
-                        \ which might happen if crackers manage to unpick the
-                        \ BPUTV protection
+                        \ routine on the stack and returns normally, which might
+                        \ happen if crackers manage to unpick the BPUTV
+                        \ redirection, then we end up here. We now obfuscate the
+                        \ the first 255 bytes of the location where the main
+                        \ game gets loaded (which is set in C%), just to make
+                        \ things hard, and then we reset the machine... all in
+                        \ a completely twisted manner, of course
 
- LDA C%,X               \ Code should never reach here if decryption is success
+ LDA C%,X               \ Obfuscate the X-th byte of C% by EOR-ing with &A5
  EOR #&A5
  STA C%,X
- DEX
- BNE LBLa
- JMP (C%+&CF)
+
+ DEX                    \ Decrement the loop counter
+
+ BNE LBLa               \ Loop back until X wraps around, after EOR'ing a whole
+                        \ page
+
+ JMP (C%+&CF)           \ C%+&CF is &100F, which in the main game code contains
+                        \ an LDA KY17 instruction (it's in the main loader in
+                        \ the MA76 section). This has opcode &A5 &4E, and the
+                        \ EOR above changes the first of these to &00, so this
+                        \ jump goes to a BRK instruction, which in turn goes to
+                        \ BRKV, which in turn resets the computer (as we set
+                        \ BRKV to point to the reset address in part 2)
 
 .swine2
 
- JMP swine
+ JMP swine              \ Jump to swine to reset the machine
+
  EQUW &4CFF
 
 .crunchit
@@ -839,7 +871,7 @@ ENDMACRO
                         \
                         \   JSR MVDL
                         \
-                        \ It's another impressive bit of obfuscation and
+                        \ It's yet another impressive bit of obfuscation and
                         \ misdirection
 .RAND
 
@@ -852,48 +884,76 @@ ENDMACRO
  CPY #(ENDBLOCK-BLOCK)  \ Loop back to decrypt the next byte until we have
  BNE David2             \ decrypted all the bytes between BLOCK and ENDBLOCK
 
- SEI                    \ Enable interupts and set IRQ1V to IRQ1 fn
- LDA #&C2
- STA VIA+&E
- LDA #&7F
- STA &FE6E
- LDA IRQ1V
+ SEI                    \ Disable interrupts while we set up our interrupt
+                        \ handler to support the split-screen mode
+
+ LDA #%11000010         \ Clear 6522 System VIA interrupt enable register IER
+ STA VIA+&E             \ (SHEILA &4E) bits 1 and 7 (i.e. enable CA1 and TIMER1
+                        \ interrupts from the System VIA, which enable vertical
+                        \ sync and the 1 MHz timer, which we need enabled for
+                        \ the split-screen interrupt code to work)
+
+ LDA #%01111111         \ Set 6522 User VIA interrupt enable register IER
+ STA &FE6E              \ (SHEILA &6E) bits 0-7 (i.e. disable all hardware
+                        \ interrupts from the User VIA)
+
+ LDA IRQ1V              \ Store the low byte of the current IRQ1V vector in VEC
  STA VEC
- LDA IRQ1V+1
- BPL swine2
- STA VEC+1
- LDA #(IRQ1 DIV256)
- STA IRQ1V+1
- LDA #(IRQ1 MOD256)
+
+ LDA IRQ1V+1            \ If the current high byte of the IRQ1V vector is less
+ BPL swine2             \ than &80, which means it points to user RAM rather
+                        \ the MOS ROM, then something is probably afoot, so jump
+                        \ to swine2 to reset the machine
+
+ STA VEC+1              \ Otherwise all is well, so store the high byte of the
+                        \ current IRQ1V vector in VEC+1, so VEC(1 0) now
+                        \ contains the original address of the IRQ1 handler
+
+ LDA #HI(IRQ1)          \ Set the IRQ1V vector to IRQ1, so IRQ1 is now the
+ STA IRQ1V+1            \ interrupt handler
+ LDA #LO(IRQ1)
  STA IRQ1V
- LDA #VSCAN
- STA USVIA+5
- CLI                    \ INTERRUPTS NOW OK
+
+ LDA #VSCAN             \ Set 6522 System VIA T1C-L timer 1 high-order counter
+ STA USVIA+5            \ (SHEILA &45) to VSCAN (56) to start the T1 counter
+                        \ counting down from 14080 at a rate of 1 MHz (this is
+                        \ a different value to the main game code)
+
+ CLI                    \ Re-enable interrupts
 
 IF DISC
 
- LDA #&81               \ Read key with time limit (via OSBYTE &81)
- STA &FE4E
- LDY #20
+ LDA #%10000001         \ Clear 6522 System VIA interrupt enable register IER
+ STA &FE4E              \ (SHEILA &4E) bit 1 (i.e. enable the CA2 interrupt,
+                        \ which comes from the keyboard)
+
+ LDY #20                \ Set Y = 20 for the following OSBYTE call
 
  IF _REMOVE_CHECKSUMS
  
-  NOP
+  NOP                   \ Skip the OSBYTE call if checksums are disabled
   NOP
   NOP
  
  ELSE
 
-  JSR OSBYTE
+  JSR OSBYTE            \ A was set to 129 above, so this calls OSBYTE with
+                        \ A = 129 and Y = 20, which reads the keyboard with a
+                        \ time limit, in this case 20 centiseconds, or 0.2
+                        \ seconds
  
  ENDIF
 
- LDA #1
- STA &FE4E
+ LDA #%00000001         \ Set 6522 System VIA interrupt enable register IER
+ STA &FE4E              \ (SHEILA &4E) bit 1 (i.e. disable the CA2 interrupt,
+                        \ which comes from the keyboard)
 
 ENDIF
 
- RTS                    \ ENTRY2 already pushed onto stack at start of BLOCK code
+ RTS                    \ The address of ENTRY2-1 was pushed onto the stack by
+                        \ the decryption loop above (as ENTRY2-1 is stored in
+                        \ BLOCK, unencrypted), so this RTS actually does a jump
+                        \ to ENTRY2, for the next step of the loader
 
 \ ******************************************************************************
 \
@@ -1161,7 +1221,7 @@ ENDIF
 \
 \ The routine is called inside a loop with Y as the counter. It counts from 0 to
 \ ENDBLOCK - BLOCK, so the routine eventually decrypts every byte between BLOCK
-\ and ENDBLOCK.
+\ and ENDBLOCK, as well as pushing the unencrypted bytes onto the stack.
 \
 \ ******************************************************************************
 
@@ -1298,9 +1358,9 @@ ENDIF
  
 \ ******************************************************************************
 \
-\ Elite loader (Part 8 of )
+\ Variables
 \
-\ This code all located at &B00
+\ This code all located at &B00 onwards
 \
 \ ******************************************************************************
 
@@ -1326,23 +1386,11 @@ ORG LE%
 
  EQUW LOAD%+1           \ address of LBL fn in elite-bcfs.asm (ELThead)
 
-\ ******************************************************************************
-\
-\ Variable: block1
-\
-\ ******************************************************************************
-
 .block1
 
  EQUD &A5B5E5F5       \ ULA Palette colours for MODE 5 portion of screen
  EQUD &26366676
  EQUD &8494C4D4
-
-\ ******************************************************************************
-\
-\ Variable: block2
-\
-\ ******************************************************************************
 
 .block2
 
@@ -1469,7 +1517,7 @@ ORG LE%
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 9 of )
+\ Elite loader (Part 6 of )
 \
 \ Following code all encrypted in elite-checksum.py
 \
@@ -1494,7 +1542,7 @@ ELSE
  EQUS "L.ELITEcode F1F"
 ENDIF
 
- EQUB 13                 \ *LOAD ELITEcode
+ EQUB 13                \ *LOAD ELITEcode
 
 .ENTRY2                 \ Second entry point for loader after screen & irq set up
 
@@ -1673,7 +1721,7 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 10 of )
+\ Elite loader (Part 6 of )
 \
 \ Obfuscated code
 \
@@ -1688,7 +1736,7 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 11 of )
+\ Elite loader (Part 7 of )
 \
 \ Final boot code starts at &163
 \
@@ -1821,7 +1869,7 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variable XC, YC
+\ Variable block
 \
 \ ******************************************************************************
 
