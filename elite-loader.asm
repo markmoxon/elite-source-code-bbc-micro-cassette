@@ -64,9 +64,14 @@ SVN = &7FFD             \ SVN is where we store the "saving in progress" flag,
 VEC = &7FFE             \ VEC is where we store the original value of the IRQ1
                         \ vector, and it matches the value in elite-source.asm
 
-LEN1 = 15               \ Size of the two blocks that make up the 33 bytes that
-LEN2 = 18               \ get pushed on the stack
-LEN = LEN1 + LEN2
+LEN1 = 15               \ Size of the BEGIN% routine that gets pushed onto the
+                        \ stack and executed there
+
+LEN2 = 18               \ Size of the MVDL routine that gets pushed onto the
+                        \ stack and executed there
+
+LEN = LEN1 + LEN2       \ Total number of bytes that get pushed on the stack for
+                        \ execution there (33)
 
 LE% = &B00              \ LE% is the address of the second stage loader (the one
                         \ containing ENTRY2)
@@ -325,7 +330,14 @@ ORG O%
 
 .David23
 
- EQUW (512-LEN)         \ Start of DOMOVE routine pushed onto stack (&01DF)
+ EQUW (512-LEN)         \ This two-byte address points to the start of the
+                        \ 6502 stack, which descends from the end of page 2,
+                        \ less LEN bytes, which comes out as &01DF. So if we
+                        \ push 33 bytes onto the stack (LEN being 33), this
+                        \ address will point to the start of those bytes, which
+                        \ means we can push executable code onto the stack and
+                        \ run it by calling this address with a JMP (David23)
+                        \ instruction. Sneaky stuff!
 
 .doPROT1
 
@@ -366,26 +378,38 @@ ORG O%
  CLD                    \ Clear the decimal flag, so we're not in decimal mode
 
 IF DISC = FALSE
- LDA #0                 \ Tape protection code
- LDX #&FF
+
+ LDA #0                 \ Call OSBYTE with A = 0 and X = 255 to fetch the
+ LDX #255               \ operating sustem version into X
  JSR OSBYTE
- TXA
- BEQ OS100
- LDY &FFB6
- LDA &FFB7
- STA ZP
+
+ TXA                    \ If X = 0 then this is OS 1.00, so jump down to OS100
+ BEQ OS100              \ to skip the following
+
+ LDY &FFB6              \ Otherwise this is OS 1.20, so set Y to the contents of
+                        \ &FFB6, which contains the length of the default vector
+                        \ table
+
+ LDA &FFB7              \ Set ZP(1 0) to the location stored in &FFB7-&FFB8,
+ STA ZP                 \ which contains the address of the default vector table
  LDA &FFB8
  STA ZP+1
- DEY
+
+ DEY                    \ Decrement Y so we can use it as an index for setting
+                        \ all the vectors to their default states
 
 .ABCDEFG
 
- LDA (ZP),Y
- STA &200,Y
- DEY
- BPL ABCDEFG
+ LDA (ZP),Y             \ Copy the Y-th byte from the default vector table into
+ STA &200,Y             \ the vector table in &0200
+
+ DEY                    \ Decrement the loop counter
+
+ BPL ABCDEFG            \ Loop back for the next vector until we have done them
+                        \ all
 
 .OS100
+
 ENDIF
 
  LDA #%01111111         \ Set 6522 System VIA interrupt enable register IER
@@ -537,7 +561,6 @@ ENDIF
  JSR OSB                \ pressed
 
 IF PROT AND DISC = 0
-
  CPX #3                 \ If the previous value of X from the call to OSBYTE 200
  BNE abrk+1             \ was not 3 (Escape disabled, clear memory), jump to
                         \ abrk+1, which contains a BRK instruction which will
@@ -637,75 +660,105 @@ ENDMACRO
 \
 \ Elite loader (Part 3 of )
 \
-\ Move & decrypt WORDS9 to language workspace (4x pages from &1100 to &0400)
-\ Move & decypt P.ELITE to screen (1x pages from &1D00 to &6300)
-\ Move & decypt P.A-SOFT to screen (1x pages from &1E00 to &6100)
-\ Move & decypt P.A-SOFT to screen (1x pages from &1F00 to &7600)
-\ Draw saturn
-\ Move & decypt DIALSHP to screen (1x pages from &1500 to &7800)
-\ Move & decypt 2x pages of code from UU% down to &0B00
+\ Move and decrypt the following memory blocks:
+\
+\   * WORDS9: move 4 pages (1024 bytes) from CODE% to &0400
+\
+\   * P.ELITE: move 1 page (256 bytes) from CODE% + &C00 to &6300
+\
+\   * P.A-SOFT: move 1 page (256 bytes) from CODE% + &D00 to &6100
+\
+\   * P.(C)ASFT: move 1 page (256 bytes) from CODE% + &E00 to &7600
+\
+\   * P.DIALS and PYTHON: move 8 pages (2048 bytes) from CODE% + &400 to &7800
+\
+\   * Move 2 pages (512 bytes) from UU% to &0B00-&0CFF
+\
+\ and call the routine to draw Saturn between P.(C)ASFT and P.DIALS.
+\
+\ See part 1 above for more details on the above files and the locations that
+\ they are moved to.
+\
+\ The code at UU% (see below) forms part of the loader code and is moved before
+\ being run, so it's tucked away safely while the main game code is loaded and
+\ decrypted.
 \
 \ ******************************************************************************
 
- LDX #4                 \ Move & decrypt WORDS9 to language workspace (4x pages from &1100 to &0400)
- STX P+1
- LDA #(CODE%DIV256)
- STA ZP+1
+ LDX #4                 \ Set the following:
+ STX P+1                \
+ LDA #HI(CODE%)         \   P(1 0) = &0400
+ STA ZP+1               \   ZP(1 0) = CODE%
+ LDY #0                 \   (X Y) = &400 = 1024
+ LDA #256-LEN1          \
+ STA (V219-4,X)         \ In doPROT1 above we set V219(1 0) = &0218, so this
+ STY ZP                 \ also sets the contents of &0218 (the low byte of
+ STY P                  \ BPUTV) to 256 - LEN1, or &F1. We set the low byte to
+                        \ 1 above, so BPUTV now contains &01F1, which we will
+                        \ use at the start of part 4
+
+ JSR crunchit           \ Call crunchit, which has now been modified to call the
+                        \ MVDL routine on the stack, to move and decrypt &400
+                        \ bytes from CODE% to &0400. We loaded WORDS9.bin to
+                        \ CODE% in part 1, so this moves WORDS9
+
+ LDX #1                 \ Set the following:
+ LDA #(HI(CODE%)+&C)    \
+ STA ZP+1               \   P(1 0) = &6300
+ LDA #&63               \   ZP(1 0) = CODE% + &C
+ STA P+1                \   (X Y) = &100 = 256
  LDY #0
- LDA #256-LEN1
- STA (V219-4,X)
- STY ZP
- STY P
- JSR crunchit
 
- LDX #1                 \ Move & decypt P.ELITE to screen (1x pages from &1D00 to &6300)
- LDA #((CODE%DIV256)+&C)
- STA ZP+1
- LDA #&63
- STA P+1
+ JSR crunchit           \ Call crunchit to move and decrypt &100 bytes from
+                        \ CODE% + &C to &6300, so this moves P.ELITE
+
+ LDX #1                 \ Set the following:
+ LDA #(HI(CODE%)+&D)    \
+ STA ZP+1               \   P(1 0) = &6100
+ LDA #&61               \   ZP(1 0) = CODE% + &D
+ STA P+1                \   (X Y) = &100 = 256
  LDY #0
- JSR crunchit
 
- LDX #1                 \ Move & decypt P.A-SOFT to screen (1x pages from &1E00 to &6100)
- LDA #((CODE%DIV256)+&D)
- STA ZP+1
- LDA #&61
- STA P+1
+ JSR crunchit           \ Call crunchit to move and decrypt &100 bytes from
+                        \ CODE% + &D to &6100, so this moves P.A-SOFT
+
+ LDX #1                 \ Set the following:
+ LDA #(HI(CODE%)+&E)    \
+ STA ZP+1               \   P(1 0) = &7600
+ LDA #&76               \   ZP(1 0) = CODE% + &E
+ STA P+1                \   (X Y) = &100 = 256
  LDY #0
- JSR crunchit
 
- LDX #1                 \ Move & decypt P.A-SOFT to screen (1x pages from &1F00 to &7600)
+ JSR crunchit           \ Call crunchit to move and decrypt &100 bytes from
+                        \ CODE% + &E to &7600, so this moves P.(C)ASFT
 
- LDA #((CODE%DIV256)+&E)
- STA ZP+1
- LDA #&76
- STA P+1
- LDY #0
- JSR crunchit
+ JSR PLL1               \ Call PLL1 to draw Saturn
 
- JSR PLL1               \ Draw Saturn
-
- LDX #8                 \ Move & decypt DIALSHP to screen (1x pages from &1500 to &7800)
- LDA #((CODE%DIV256)+4)
- STA ZP+1
- LDA #&78
- STA P+1
- LDY #0
- STY ZP
+ LDX #8                 \ Set the following:
+ LDA #(HI(CODE%)+4)     \
+ STA ZP+1               \   P(1 0) = &7800
+ LDA #&78               \   ZP(1 0) = CODE% + &4
+ STA P+1                \   (X Y) = &800 = 2048
+ LDY #0                 \
+ STY ZP                 \ Also set BLCNT = 0
  STY BLCNT
  STY P
- JSR crunchit           \ Move DIALSHP to &7800
 
- LDX #(3-(DISC AND1))   \ Move & decypt 2x pages of code from UU% down to &0B00
- LDA #(UU%DIV256)
- STA ZP+1
- LDA #(UU%MOD256)
- STA ZP
- LDA #(LE%DIV256)
+ JSR crunchit           \ Call crunchit to move and decrypt &800 bytes from
+                        \ CODE% + &4 to &7800, so this moves P.DIALS and PYTHON
+
+ LDX #(3-(DISC AND 1))  \ Set the following:
+ LDA #HI(UU%)           \
+ STA ZP+1               \   P(1 0) = LE%
+ LDA #LO(UU%)           \   ZP(1 0) = UU%
+ STA ZP                 \   (X Y) = &300 = 768 (if we are building for tape)
+ LDA #HI(LE%)           \        or &200 = 512 (if we are building for disc)
  STA P+1
  LDY #0
  STY P
- JSR crunchit           \ Move Part of this program to LE%
+
+ JSR crunchit           \ Call crunchit to move and decrypt either &200 or &300
+                        \ bytes from UU% to LE%
 
 \ ******************************************************************************
 \
@@ -714,21 +767,47 @@ ENDMACRO
 \
 \ ******************************************************************************
 
-                    \ Poke BRK into OS01 fn and call OSBPUT with file handle Y = 0...
-                    \ By now the address &01F1 has been sneakily placed into BPUTV (&218)
-                    \ So this call to OSBPUT actually calls the second function placed in stack
-
- STY David3-2
-\LDY#0
+ STY David3-2           \ Y was set to 0 above, so this modifies the OS01
+                        \ routine above by changing the TXS instruction to BRK,
+                        \ so calls to OS01 will now do this:
+                        \
+                        \   LDX #&FF
+                        \   BRK
 
 .David2
 
- EQUB &AC               \ This byte is changed to &20 in part 2, so the three
- EQUW &FFD4             \ bytes together become JSR &FFD4
+                        \ This is the start of a loop with a counter in Y.
+                        \ which was set to 0 above. The end of the loop is in
+                        \ David5 below, which increments Y until it reaches a
+                        \ value of ENDBLOCK - BLOCK
+
+ EQUB &AC               \ This byte was changed to &20 by part 2, so by the time
+ EQUW &FFD4             \ we get here, these three bytes together become JSR
+                        \ &FFD4, or JSR OSBPUT. Amongst all the code above,
+                        \ we've also managed to set BPUTV to &01F1, and as BPUTV
+                        \ is the vector that OSBPUT goes through, these three
+                        \ bytes are actually doing JSR &01F1
+                        \
+                        \ That address is in the stack, and is the address of
+                        \ the first routine, that we pushed onto the stack in
+                        \ the modified PROT1 routine. That routine doesn't
+                        \ return with an RTS, but instead it removes the return
+                        \ address from the stack and jumps to David5 below after
+                        \ EOR'ing the Y-th byte of TUT with the Y-th byte of
+                        \ BLOCK
+                        \
+                        \ This obfuscation probably kept the crackers busy for a
+                        \ while! - it'd difficult enough to work out when you
+                        \ have the source code in front of you!
 
 .LBLa
 
- LDA C%,X               \ Code should never reach here if decryption is successful!!
+                        \ If, for some reason, the above JSR doesn't call the
+                        \ routine on the stack and returns, we end up here,
+                        \ which might happen if crackers manage to unpick the
+                        \ BPUTV protection
+
+ LDA C%,X               \ Code should never reach here if decryption is success
  EOR #&A5
  STA C%,X
  DEX
@@ -742,22 +821,36 @@ ENDMACRO
 
 .crunchit
 
-                        \ Call DOMOVE fn but inside the stack
-
- BRK                    \ JSR (David23)
- EQUW David23
-
+ BRK                    \ This instruction gets changed to an indirect JMP at
+ EQUW David23           \ the end of part 2, so this does JMP (David23). David23
+                        \ contains &01DF, so these bytes are actually doing JMP
+                        \ &01DF. That address is in the stack, and is the
+                        \ address of the MVDL routine, which we pushed onto the
+                        \ stack in the modified PROT1 routine... so this
+                        \ actually does the following:
+                        \
+                        \   JMP MVDL
+                        \
+                        \ meaning that this instruction:
+                        \
+                        \   JSR crunchit
+                        \
+                        \ actually does this, because it's a tail call:
+                        \
+                        \   JSR MVDL
+                        \
+                        \ It's another impressive bit of obfuscation and
+                        \ misdirection
 .RAND
 
- EQUD &6C785349
-
-                        \ End of our decrypt fn inside the stack
+ EQUD &6C785349         \ The random number seed used for drawing Saturn
 
 .David5
 
- INY
- CPY #(ENDBLOCK-BLOCK)
- BNE David2
+ INY                    \ Increment the loop counter
+
+ CPY #(ENDBLOCK-BLOCK)  \ Loop back to decrypt the next byte until we have
+ BNE David2             \ decrypted all the bytes between BLOCK and ENDBLOCK
 
  SEI                    \ Enable interupts and set IRQ1V to IRQ1 fn
  LDA #&C2
@@ -777,19 +870,27 @@ ENDMACRO
  STA USVIA+5
  CLI                    \ INTERRUPTS NOW OK
 
-IF DISC 
+IF DISC
+
  LDA #&81               \ Read key with time limit (via OSBYTE &81)
  STA &FE4E
  LDY #20
 
  IF _REMOVE_CHECKSUMS
-  NOP:NOP:NOP
+ 
+  NOP
+  NOP
+  NOP
+ 
  ELSE
+
   JSR OSBYTE
+ 
  ENDIF
 
  LDA #1
  STA &FE4E
+
 ENDIF
 
  RTS                    \ ENTRY2 already pushed onto stack at start of BLOCK code
@@ -1036,91 +1137,164 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 6 of )
+\ Subroutine: Copied from BEGIN% to the stack at &01F1
 \
-\ Obfuscated code
+\ The 15 instructions for this routine are pushed onto the stack and executed
+\ there. The instructions are pushed onto the stack in reverse (as the stack
+\ grows downwards in memory), so first the JMP gets pushed, then the STA, and
+\ so on.
 \
-\ Copy BLOCK fn to stack and decrypt TUT fn
+\ This is the code that is pushed onto the stack. It gets run by a JMP call to
+\ David2, which then calls the routine on the stack with JSR &01F1.
 \
-\    01F1 : PLA
-\    01F2 : PLA
-\    01F3 : LDA 0C7C,Y      \ BLOCK
-\    01F6 : PHA
-\    01F7 : EOR 0BAD,Y      \ TUT
-\    01FA : STA 0BAD,Y
-\    01FD : JMP (20AD)
+\    01F1 : PLA             \ Remove the return address from the stack that was
+\    01F2 : PLA             \ put here by the JSR that called this routine
+\
+\    01F3 : LDA BLOCK,Y     \ Set A = the Y-th byte of BLOCK
+\
+\    01F6 : PHA             \ Push A onto the stack
+\
+\    01F7 : EOR TUT,Y       \ EOR the Y-th byte of TUT with A
+\    01FA : STA TUT,Y       
+\
+\    01FD : JMP (David9)    \ Jump to the address in David9
+\
+\ The routine is called inside a loop with Y as the counter. It counts from 0 to
+\ ENDBLOCK - BLOCK, so the routine eventually decrypts every byte between BLOCK
+\ and ENDBLOCK.
 \
 \ ******************************************************************************
 
 .BEGIN%
 
- EQUB (David9 DIV256)   \ Copy BLOCK fn to stack and decrypt TUT fn
- EQUB (David9 MOD256)
- EQUB &6C \JMP
- EQUB (TUT DIV256)
- EQUB (TUT MOD256)
- EQUB &99 \STA,Y
- EQUB (TUT DIV256)
- EQUB (TUT MOD256)
+ EQUB HI(David9)        \ JMP (David9)
+ EQUB LO(David9)
+ EQUB &6C
+
+ EQUB HI(TUT)           \ STA TUT,Y
+ EQUB LO(TUT)
+ EQUB &99
 
 IF _REMOVE_CHECKSUMS
- EQUB &B9 \LDA,Y
+
+ EQUB HI(TUT)           \ LDA TUT,Y
+ EQUB LO(TUT)
+ EQUB &B9
+
 ELSE
- EQUB &59 \EOR,Y
+
+ EQUB HI(TUT)           \ EOR TUT,Y
+ EQUB LO(TUT)
+ EQUB &59
+
 ENDIF
 
- PHA
- EQUB ((BLOCK)DIV256)
- EQUB ((BLOCK)MOD256)
- EQUB &B9 \LDA,Y
- PLA
- PLA
+ PHA                    \ PHA
+
+ EQUB HI(BLOCK)         \ LDA BLOCK,Y
+ EQUB LO(BLOCK)
+ EQUB &B9
+
+ PLA                    \ PLA
+
+ PLA                    \ PLA
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 7 of )
+\ Subroutine: MVDL, copied from DOMOVE to the stack at &01DF
 \
-\ Obfuscated code
+\ The 18 instructions for this routine are pushed onto the stack and executed
+\ there. The instructions are pushed onto the stack in reverse (as the stack
+\ grows downwards in memory), so first the RTS gets pushed, then the BNE, and
+\ so on.
 \
-\ DOMOVE fn as running on the stack
+\ This is the code that is pushed onto the stack. It gets run by a JMP call to
+\ crunchit, which then calls the routine on the stack at MVDL, or &01DF. The
+\ label MVDL comes from a comment in the original source file ELITES.
 \
-\    01DF : LDA (70),Y
-\    01E1 : EOR 2086,Y
-\    01E4 : STA (72),Y
-\    01E6 : DEY
-\    01E7 : BNE 01DF
-\    01E9 : INC 73
-\    01EB : INC 71
-\    01ED : DEX
-\    01EE : BNE 01DF
-\    01F0 : RTS
-
+\    01DF : .MVDL
+\
+\    01DF : LDA (ZP),Y      \ Set A = the Y-th byte from the block whose address
+\                           \ is in ZP(1 0)
+\
+\    01E1 : EOR OSB,Y       \ EOR A with the Y-th byte on from from OSB
+\
+\    01E4 : STA (P),Y       \ Store A in the Y-th byte of the block whose
+\                           \ address is in P(1 0)
+\
+\    01E6 : DEY             \ Decrement the loop counter
+\
+\    01E7 : BNE MVDL        \ Loop back to copy and EOR the next byte until we
+\                           \ have copied an entire page (256 bytes)
+\
+\    01E9 : INC P+1         \ Increment the high byte of P(1 0) so it points to
+\                           \ the next page of 256 bytes
+\
+\    01EB : INC ZP+1        \ Increment ZP(1 0) so it points to the next page of
+\                           \ 256 bytes
+\
+\    01ED : DEX             \ Decrement X
+\
+\    01EE : BNE MVDL        \ Loop back to copy the next page
+\
+\    01F0 : RTS             \ Return from the subroutine, which takes us back
+\                           \ to the caller of the crunchit routine using a
+\                           \ tail call, as we called this with JMP crunchit
+\
+\ We call MVDL with the following arguments:
+\
+\   (X Y)               The number of bytes to copy
+\
+\   ZP(1 0)             The source address
+\
+\   P(1 0)              The destination address
+\
+\ The routine moves and decrypts a block of memory, and is used in part 3 to
+\ move blocks of code and images that are embedded within the loader binary,
+\ either into low memory locations below PAGE (for the the recursive token table
+\ and page at UU%), or into screen memory (for the loading screen and dashboard
+\ images).
+\
+\ If checksums are disabled in the build, we don't do the EOR instruction, so
+\ the routine just moves and doesn't decrypt.
+\
 \ ******************************************************************************
 
 .DOMOVE
 
- RTS                    \ Move memory fn with EOR against loader code from OSB onwards
+ RTS                    \ RTS
 
- EQUW &D0EF             \BNEMVDL
- DEX
- EQUB ZP+1
- INC P+1
- EQUB &E6               \INCP+1 INCZP+1
- EQUW &D0F6             \BNEMVDL
- DEY
- EQUB P
- EQUB &91               \STA(),Y
+ EQUW &D0EF             \ BNE MVDL
+
+ DEX                    \ DEX
+
+ EQUB ZP+1              \ INC ZP+1
+ INC P+1                \ INC P+1
+ EQUB &E6
+
+ EQUW &D0F6             \ BNE MVDL
+
+ DEY                    \ DEY
+
+ EQUB P                 \ STA(P),Y
+ EQUB &91
 
 IF _REMOVE_CHECKSUMS
- NOP:NOP:NOP
+
+ NOP                    \ Skip the EOR if checksums are disabled
+ NOP
+ NOP
+
 ELSE
- EQUB (OSB DIV256)
- EQUB (OSB MOD256)
- EQUB &59               \EOR
+
+ EQUB HI(OSB)           \ EOR OSB,Y
+ EQUB LO(OSB)
+ EQUB &59
+
 ENDIF
 
- EQUB ZP
- EQUB &B1               \LDA(),Y        \ 18 Bytes ^ Stack
+ EQUB ZP                \ LDA(ZP),Y
+ EQUB &B1
  
 \ ******************************************************************************
 \
