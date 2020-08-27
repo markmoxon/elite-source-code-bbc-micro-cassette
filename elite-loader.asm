@@ -957,9 +957,9 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 5 of )
+\ PLL1
 \
-\ Draw Saturn
+\ Draw Saturn on the loading screen.
 \
 \ ******************************************************************************
 
@@ -1077,122 +1077,257 @@ ENDIF
  DEC CNT3+1
  BNE PLL3
 
+\ ******************************************************************************
+\
+\ Subroutine: DORND
+\
+\ Set A and X to random numbers. Carry flag is also set randomly. Overflow flag
+\ will be have a 50% probability of being 0 or 1.
+\
+\ This is a simplified version of the DORND routine in the main game code. It
+\ swaps the two calculations around and omits the ROL A instruction, but is
+\ otherwise very similar. See the DORND routine in the main game code for more
+\ details.
+\
+\ ******************************************************************************
+
 .DORND
- LDA RAND+1
- TAX
+
+ LDA RAND+1             \ r1´ = r1 + r3 + C
+ TAX                    \ r3´ = r1
  ADC RAND+3
  STA RAND+1
  STX RAND+3
- LDA RAND
- TAX
+
+ LDA RAND               \ X = r2´ = r0
+ TAX                    \ A = r0´ = r0 + r2
  ADC RAND+2
  STA RAND
  STX RAND+2
- RTS
+
+ RTS                    \ Return from the subroutine
+
+\ ******************************************************************************
+\
+\ Subroutine: SQUA2
+\
+\ Do the following multiplication of unsigned 8-bit numbers:
+\
+\   (A P) = A * A
+\
+\ This uses the same approach as routine SQUA2 in the main game code, which
+\ itself uses the MU11 routine to do the multiplication. See those routines for
+\ more details.
+\
+\ ******************************************************************************
 
 .SQUA2
- BPL SQUA
- EOR #&FF
- CLC
- ADC #1
+
+ BPL SQUA               \ If A > 0, jump to SQUA
+
+ EOR #&FF               \ Otherwise we need to negate A for the SQUA algorithm
+ CLC                    \ to work, so we do this using two's complement, by
+ ADC #1                 \ setting A = ~A + 1
 
 .SQUA
- STA Q
- STA P
- LDA #0
- LDY #8
- LSR P
+
+ STA Q                  \ Set Q = A and P = A
+
+ STA P                  \ Set P = A
+
+ LDA #0                 \ Set A = 0 so we can start building the answer in A
+
+ LDY #8                 \ Set up a counter in Y to count the 8 bits in P
+
+ LSR P                  \ Set P = P >> 1
+                        \ and carry = bit 0 of P
 
 .SQL1
- BCC SQ1
- CLC
- ADC Q
+
+ BCC SQ1                \ If C (i.e. the next bit from P) is set, do the
+ CLC                    \ addition for this bit of P:
+ ADC Q                  \
+                        \   A = A + Q
 
 .SQ1
- ROR A
- ROR P
- DEY
- BNE SQL1
- RTS
+
+ ROR A                  \ Shift A right to catch the next digit of our result,
+                        \ which the next ROR sticks into the left end of P while
+                        \ also extracting the next bit of P
+
+ ROR P                  \ Add the overspill from shifting A to the right onto
+                        \ the start of P, and shift P right to fetch the next
+                        \ bit for the calculation into the C flag
+
+ DEY                    \ Decrement the loop counter
+
+ BNE SQL1               \ Loop back for the next bit until P has been rotated
+                        \ all the way
+
+ RTS                    \ Return from the subroutine
+
+\ ******************************************************************************
+\
+\ Subroutine: PIX
+\
+\ Draw a pixel at screen coordinate (X, A). This uses the same approach as the
+\ PIXEL routine in the main game code, except it plots a single pixel from TWOS
+\ instead of a two pixel dash from TWOS2. This applies to the top part of the
+\ screen (the monochrome mode 4 portion). See the PIXEL routine in the main game
+\ code for more details.
+\
+\ Arguments:
+\
+\   X                   The screen x-coordinate of the pixel to draw
+\
+\   A                   The screen y-coordinate of the pixel to draw
+\
+\ ******************************************************************************
 
 .PIX
- TAY
- EOR #128
- LSR A
+
+ TAY                    \ Copy A into Y, for use later
+
+ EOR #%10000000         \ Flip the sign of A
+
+ LSR A                  \ Set ZP+1 = &60 + A >> 3
  LSR A
  LSR A
  ORA #&60
  STA ZP+1
- TXA
- EOR #128
- AND #&F8
+
+ TXA                    \ Set ZP = (X >> 3) * 8
+ EOR #%10000000
+ AND #%11111000
  STA ZP
- TYA
- AND #7
+
+ TYA                    \ Set Y = Y AND %111
+ AND #%00000111
  TAY
- TXA
- AND #7
+
+ TXA                    \ Set X = X AND %111
+ AND #%00000111
  TAX
 
- LDA TWOS,X
+ LDA TWOS,X             \ Otherwise fetch a pixel from TWOS and OR it into ZP+Y
  ORA (ZP),Y
  STA (ZP),Y
- RTS
+
+ RTS                    \ Return from the subroutine
+
+\ ******************************************************************************
+\
+\ Variables
+\
+\ This block contains various variables and tables used by the routines that
+\ draw Saturn on the loading screen.
+\
+\ ******************************************************************************
 
 .TWOS
- EQUD &10204080
- EQUD &01020408
+
+ EQUB %10000000         \ Ready-made bytes for plotting one-pixel points in mode
+ EQUB %01000000         \ 4 (the top part of the split screen). See the PIX
+ EQUB %00100000         \ routine for details
+ EQUB %00010000
+ EQUB %00001000
+ EQUB %00000100
+ EQUB %00000010
+ EQUB %00000001
 
 .CNT
- EQUW &500
+
+ EQUW &0500             \ The number of iterations of the PLL1 loop (1280)
+
 .CNT2
- EQUW &1DD
+
+ EQUW &01DD             \ The number of iterations of the PLL2 loop (477)
+
 .CNT3
- EQUW &500
+
+ EQUW &0500             \ The number of iterations of the PLL3 loop (1280)
+
+\ ******************************************************************************
+\
+\ Subroutine: ROOT
+\
+\ Calculate the following square root:
+\
+\   ZP = SQRT(ZP(1 0))
+\
+\ This routine is identical to LL5 in the main game code - it even has the same
+\ label names. The only difference is that LL5 calculates Q = SQRT(R Q), but
+\ apart from the variables used, the instructions are identical, so see the LL5
+\ routine in the main game code for more details.
+\
+\ ******************************************************************************
 
 .ROOT
- LDY ZP+1
+
+ LDY ZP+1               \ Set (Y Q) = ZP(1 0)
  LDA ZP
  STA Q
- LDX #0
- STX ZP
- LDA #8
+
+                        \ So now to calculate ZP = SQRT(Y Q)
+
+ LDX #0                 \ Set X = 0, to hold the remainder
+
+ STX ZP                 \ Set ZP = 0, to hold the result
+
+ LDA #8                 \ Set P = 8, to use as a loop counter
  STA P
 
 .LL6
- CPX ZP
- BCC LL7
- BNE LL8
- CPY #&40
+
+ CPX ZP                 \ If X < ZP, jump to LL7
  BCC LL7
 
+ BNE LL8                \ If X > ZP, jump to LL8
+
+ CPY #64                \ If Y < 64, jump to LL7 with the C flag clear,
+ BCC LL7                \ otherwise fall through into LL8 with the C flag set
+
 .LL8
- TYA
- SBC #&40
- TAY
- TXA
+
+ TYA                    \ Set Y = Y - 64
+ SBC #64                \
+ TAY                    \ This subtraction will work as we know C is set from
+                        \ the BCC above, and the result will not underflow as we
+                        \ already checked that Y >= 64, so the C flag is also
+                        \ set for the next subtraction
+
+ TXA                    \ Set X = X - ZP
  SBC ZP
  TAX
 
 .LL7
- ROL ZP
- ASL Q
+
+ ROL ZP                 \ Shift the result in Q to the left, shifting the C flag
+                        \ into bit 0 and bit 7 into the C flag
+
+ ASL Q                  \ Shift the dividend in (Y S) to the left, inserting
+ TYA                    \ bit 7 from above into bit 0
+ ROL A
+ TAY
+ 
+ TXA                    \ Shift the remainder in X to the left
+ ROL A
+ TAX
+ 
+ ASL Q                  \ Shift the dividend in (Y S) to the left
  TYA
  ROL A
  TAY
- TXA
+ 
+ TXA                    \ Shift the remainder in X to the left
  ROL A
  TAX
- ASL Q
- TYA
- ROL A
- TAY
- TXA
- ROL A
- TAX
- DEC P
- BNE LL6
- RTS
+ 
+ DEC P                  \ Decrement the loop counter
+ 
+ BNE LL6                \ Loop back to LL6 until we have done 8 loops
+
+ RTS                    \ Return from the subroutine
 }
 
 \ ******************************************************************************
