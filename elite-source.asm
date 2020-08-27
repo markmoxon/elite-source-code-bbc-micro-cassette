@@ -9557,7 +9557,7 @@ NEXT
  LSR A                  \ Set SCH = &60 + A >> 3
  LSR A
  LSR A
- ORA #%01100000
+ ORA #&60
  STA SCH
 
  TXA                    \ Set SC = (X >> 3) * 8

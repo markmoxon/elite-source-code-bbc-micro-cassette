@@ -965,79 +965,160 @@ ENDIF
 
 .PLL1
 {
- LDA VIA+4
- STA RAND+1
- JSR DORND
- JSR SQUA2
- STA ZP+1
- LDA P
- STA ZP
- JSR DORND
- STA YY
- JSR SQUA2
- TAX
- LDA P
- ADC ZP
- STA ZP
- TXA
- ADC ZP+1
- BCS PLC1
+                        \ The following loop iterates CNT(1 0) times, i.e. &500
+                        \ or 1280 times
 
- STA ZP+1
- LDA #1
- SBC ZP
+ LDA VIA+4              \ Read the 6522 System VIA T1C-L timer 1 low-order
+ STA RAND+1             \ counter, which increments 1000 times a second so this
+                        \ will be pretty random, and store it in RAND+1 among
+                        \ the hard-coded random seeds in RAND
+
+ JSR DORND              \ Set A and X to random numbers, say A = random1
+
+ JSR SQUA2              \ Set (A P) = A * A
+                        \           = random1^2
+
+ STA ZP+1               \ Set ZP(1 0) = (A P)
+ LDA P                  \             = random1^2
  STA ZP
- LDA #&40
+
+ JSR DORND              \ Set A and X to random numbers, say A = random2
+
+ STA YY                 \ Set YY = A
+                        \        = random2
+
+ JSR SQUA2              \ Set (A P) = A * A
+                        \           = random2^2
+
+ TAX                    \ Set (X P) = (A P)
+                        \           = random2^2
+
+ LDA P                  \ Set (A ZP) = (X P) + ZP(1 0)
+ ADC ZP                 \
+ STA ZP                 \ first adding the low bytes
+
+ TXA                    \ And then adding the high bytes
+ ADC ZP+1
+
+ BCS PLC1               \ If the addition overflowed, jump down to PLC1 to skip
+                        \ to the next pixel
+
+ STA ZP+1               \ Set ZP(1 0) = (A ZP)
+                        \             = random1^2 + random2^2
+
+ LDA #1                 \ Set ZP(1 0) = &4000 - ZP(1 0)
+ SBC ZP                 \             = 128^2 - ZP(1 0)
+ STA ZP                 \
+                        \ (as the C flag is clear), first subtracting the low
+                        \ bytes
+
+ LDA #&40               \ And then subtracting the high bytes
  SBC ZP+1
  STA ZP+1
- BCC PLC1
- JSR ROOT
- LDA ZP
+
+ BCC PLC1               \ If the subtraction underflowed, jump down to PLC1 to
+                        \ skip to the next pixel
+
+                        \ If we get here, then both calculations fitted into
+                        \ 16 bits, and we have:
+                        \
+                        \   ZP(1 0) = 128^2 - (random1^2 + random2^2)
+                        \
+                        \ where ZP > 0
+
+ JSR ROOT               \ Set ZP = SQRT(ZP(1 0))
+                        \
+                        \ so ZP is now in the range 0-128
+
+ LDA ZP                 \ Set X = ZP / 2
  LSR A
  TAX
- LDA YY
- CMP #128
- ROR A
- JSR PIX
+
+ LDA YY                 \ If YY >= 128, set the C flag (YY was set to a random
+ CMP #128               \ number above, so this sets the C flag randomly)
+
+ ROR A                  \ Halve A and set the sign bit to the C flag (i.e. give
+                        \ it a random sign), so:
+                        \
+                        \   A = +/- ZP / 4
+
+ JSR PIX                \ Draw a pixel at screen coordinate (X, A), i.e. at
+                        \
+                        \ (ZP / 2, +/-ZP / 4)
+                        \
+                        \ where ZP = SQRT(128^2 - (random1^2 + random2^2))
 
 .PLC1
- DEC CNT
- BNE PLL1
- DEC CNT+1
- BNE PLL1
- LDX #&C2
- STX EXCN
+
+ DEC CNT                \ Decrement the counter in CNT (the low byte)
+
+ BNE PLL1               \ Loop back to PLL1 until CNT = 0
+
+ DEC CNT+1              \ Decrement the counter in CNT+1 (the high byte)
+
+ BNE PLL1               \ Loop back to PLL1 until CNT+1 = 0
+
+ LDX #&C2               \ Set the low byte of EXCN(1 0) to &C2, so we now have
+ STX EXCN               \ EXCN(1 0) = &03C2, which we use later
 
 .PLL2
- JSR DORND
- TAX
- JSR SQUA2
- STA ZP+1
- JSR DORND
- STA YY
- JSR SQUA2
- ADC ZP+1
- CMP #&11
+
+ JSR DORND              \ Set A and X to random numbers, say A = random3
+
+ TAX                    \ Set X = A
+                        \       = random3
+
+ JSR SQUA2              \ Set (A P) = A * A
+                        \           = random3^2
+
+ STA ZP+1               \ Set ZP+1 = A
+                        \          = random3^2 / 256
+
+ JSR DORND              \ Set A and X to random numbers, say A = random4
+
+ STA YY                 \ Set YY = random4
+
+ JSR SQUA2              \ Set (A P) = A * A
+                        \           = random4^2
+
+ ADC ZP+1               \ Set A = A + random3^2 / 256
+                        \       = random4^2 / 256 + random3^2 / 256
+                        \       = (random3^2 + random4^2) / 256
+
+ CMP #&11               \ If A < 17, jump down to PLC2 to skip to the next pixel
  BCC PLC2
- LDA YY
- JSR PIX
+
+ LDA YY                 \ Set A = random4
+
+ JSR PIX                \ Draw a pixel at screen coordinate (X, A), i.e. at
+                        \ (random3, random4)
 
 .PLC2
- DEC CNT2
- BNE PLL2
- DEC CNT2+1
- BNE PLL2
+
+ DEC CNT2               \ Decrement the counter in CNT2 (the low byte)
+
+ BNE PLL2               \ Loop back to PLL2 until CNT2 = 0
+
+ DEC CNT2+1             \ Decrement the counter in CNT2+1 (the high byte)
+
+ BNE PLL2               \ Loop back to PLL2 until CNT2+1 = 0
+
  LDX MHCA
  STX BLPTR
+
  LDX #&C6
  STX BLN
 
 .PLL3
- JSR DORND
+
+ JSR DORND              \ Set A and X to random numbers
  STA ZP
+
  JSR SQUA2
  STA ZP+1
- JSR DORND
+
+ JSR DORND              \ Set A and X to random numbers
+
  STA YY
  JSR SQUA2
  STA T
@@ -1068,10 +1149,13 @@ ENDIF
  BPL PLC3
 
 .PL1
+
  LDA YY
- JSR PIX
+
+ JSR PIX                \ Draw a pixel at screen coordinate (X, A)
 
 .PLC3
+
  DEC CNT3
  BNE PLL3
  DEC CNT3+1
@@ -1523,7 +1607,7 @@ ORG LE%
 
 .block1
 
- EQUD &A5B5E5F5       \ ULA Palette colours for MODE 5 portion of screen
+ EQUD &A5B5E5F5         \ ULA Palette colours for MODE 5 portion of screen
  EQUD &26366676
  EQUD &8494C4D4
 
@@ -1633,7 +1717,6 @@ ORG LE%
  STA (ZP),Y
  DEY
  BPL RRL1
-}
 
 .RR4
  PLA
@@ -1642,17 +1725,18 @@ ORG LE%
  TAY
  LDA K3
 
-.FOOL
+.^FOOL
  RTS
 
 .R5
  LDA #7
  JSR osprint
  JMP RR4
+}
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 6 of )
+\ Elite loader (Part 5 of )
 \
 \ Following code all encrypted in elite-checksum.py
 \
@@ -1856,7 +1940,7 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 6 of )
+\ Subroutine: Copied from BLOCK to the stack
 \
 \ Obfuscated code
 \
@@ -1871,7 +1955,7 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 7 of )
+\ Elite loader (Part 6 of )
 \
 \ Final boot code starts at &163
 \
@@ -2004,7 +2088,7 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variable block
+\ Variables: XC, YC
 \
 \ ******************************************************************************
 
