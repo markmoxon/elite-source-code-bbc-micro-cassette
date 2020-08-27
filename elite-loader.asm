@@ -366,7 +366,8 @@ ORG O%
 
 .MHCA
 
- EQUB &CA
+ EQUB &CA               \ This value is used to set the low byte of BLPTR(1 0)
+                        \ when it's set in PLL1
 
 .David7
 
@@ -484,9 +485,9 @@ ENDIF
  LSR A                  \ Set A = 16
 
  LDX #3                 \ Set the high bytes of BLPTR(1 0), BLN(1 0) and
- STX BLPTR+1            \ EXCN(1 0) to &3
- STX BLN+1
- STX EXCN+1
+ STX BLPTR+1            \ EXCN(1 0) to &3. We will fill in the high bytes in
+ STX BLN+1              \ the PLL1 routine, and will then use these values in
+ STX EXCN+1             \ the IRQ1 handler
 
  DEX                    \ Set X = 2
  
@@ -961,6 +962,22 @@ ENDIF
 \
 \ Draw Saturn on the loading screen.
 \
+\ Part 1 (PLL1) x 1280 - planet
+\ Draw pixels at (x, y) where:
+\
+\   x = SQRT(128^2 - (r1^2 + r2^2)) / 2
+\
+\   r1^2 + r2^2 fits into 16-bits
+\
+\   128^2 - (r1^2 + r2^2) fits into 16-bits
+\
+\   y = a random number in either 0-63 or 192-255
+\
+\ Part 2 (PLL2) x 477 - stars
+\ Draw pixels at (r3, r4) where (r3^2 + r4^2) / 256 > 17
+\
+\ Part 3 (PLL3) x 1280 - rings
+\
 \ ******************************************************************************
 
 .PLL1
@@ -973,25 +990,25 @@ ENDIF
                         \ will be pretty random, and store it in RAND+1 among
                         \ the hard-coded random seeds in RAND
 
- JSR DORND              \ Set A and X to random numbers, say A = random1
+ JSR DORND              \ Set A and X to random numbers, say A = r1
 
  JSR SQUA2              \ Set (A P) = A * A
-                        \           = random1^2
+                        \           = r1^2
 
  STA ZP+1               \ Set ZP(1 0) = (A P)
- LDA P                  \             = random1^2
+ LDA P                  \             = r1^2
  STA ZP
 
- JSR DORND              \ Set A and X to random numbers, say A = random2
+ JSR DORND              \ Set A and X to random numbers, say A = r2
 
  STA YY                 \ Set YY = A
-                        \        = random2
+                        \        = r2
 
  JSR SQUA2              \ Set (A P) = A * A
-                        \           = random2^2
+                        \           = r2^2
 
  TAX                    \ Set (X P) = (A P)
-                        \           = random2^2
+                        \           = r2^2
 
  LDA P                  \ Set (A ZP) = (X P) + ZP(1 0)
  ADC ZP                 \
@@ -1004,7 +1021,7 @@ ENDIF
                         \ to the next pixel
 
  STA ZP+1               \ Set ZP(1 0) = (A ZP)
-                        \             = random1^2 + random2^2
+                        \             = r1^2 + r2^2
 
  LDA #1                 \ Set ZP(1 0) = &4000 - ZP(1 0)
  SBC ZP                 \             = 128^2 - ZP(1 0)
@@ -1022,7 +1039,7 @@ ENDIF
                         \ If we get here, then both calculations fitted into
                         \ 16 bits, and we have:
                         \
-                        \   ZP(1 0) = 128^2 - (random1^2 + random2^2)
+                        \   ZP(1 0) = 128^2 - (r1^2 + r2^2)
                         \
                         \ where ZP > 0
 
@@ -1034,19 +1051,25 @@ ENDIF
  LSR A
  TAX
 
- LDA YY                 \ If YY >= 128, set the C flag (YY was set to a random
- CMP #128               \ number above, so this sets the C flag randomly)
+ LDA YY                 \ Set A = YY
+                        \       = r2
 
- ROR A                  \ Halve A and set the sign bit to the C flag (i.e. give
-                        \ it a random sign), so:
+ CMP #128               \ If YY >= 128, set the C flag (so the C flag is now set
+                        \ to bit 7 of YY, i.e. bit 7 of A)
+
+ ROR A                  \ Rotate A and set the sign bit to the C flag, so bits
+                        \ 6 and 7 are now the same, i.e. A is a random number in
+                        \ one of these ranges:
                         \
-                        \   A = +/- ZP / 4
+                        \   %00000000 - %00111111  = 0-63
+                        \   %11000000 - %11111111  = 192-255
 
  JSR PIX                \ Draw a pixel at screen coordinate (X, A), i.e. at
                         \
-                        \ (ZP / 2, +/-ZP / 4)
+                        \ (ZP / 2, A)
                         \
-                        \ where ZP = SQRT(128^2 - (random1^2 + random2^2))
+                        \ where ZP = SQRT(128^2 - (r1^2 + r2^2)) and A is a
+                        \ random number in either 0-63 or 192-255
 
 .PLC1
 
@@ -1059,39 +1082,41 @@ ENDIF
  BNE PLL1               \ Loop back to PLL1 until CNT+1 = 0
 
  LDX #&C2               \ Set the low byte of EXCN(1 0) to &C2, so we now have
- STX EXCN               \ EXCN(1 0) = &03C2, which we use later
+ STX EXCN               \ EXCN(1 0) = &03C2, which we will use in the IRQ1
+                        \ handler (this has nothing to do with drawing Saturn,
+                        \ it's all part of the copy protection)
 
 .PLL2
 
- JSR DORND              \ Set A and X to random numbers, say A = random3
+ JSR DORND              \ Set A and X to random numbers, say A = r3
 
  TAX                    \ Set X = A
-                        \       = random3
+                        \       = r3
 
  JSR SQUA2              \ Set (A P) = A * A
-                        \           = random3^2
+                        \           = r3^2
 
  STA ZP+1               \ Set ZP+1 = A
-                        \          = random3^2 / 256
+                        \          = r3^2 / 256
 
- JSR DORND              \ Set A and X to random numbers, say A = random4
+ JSR DORND              \ Set A and X to random numbers, say A = r4
 
- STA YY                 \ Set YY = random4
+ STA YY                 \ Set YY = r4
 
  JSR SQUA2              \ Set (A P) = A * A
-                        \           = random4^2
+                        \           = r4^2
 
- ADC ZP+1               \ Set A = A + random3^2 / 256
-                        \       = random4^2 / 256 + random3^2 / 256
-                        \       = (random3^2 + random4^2) / 256
+ ADC ZP+1               \ Set A = A + r3^2 / 256
+                        \       = r4^2 / 256 + r3^2 / 256
+                        \       = (r3^2 + r4^2) / 256
 
  CMP #&11               \ If A < 17, jump down to PLC2 to skip to the next pixel
  BCC PLC2
 
- LDA YY                 \ Set A = random4
+ LDA YY                 \ Set A = r4
 
  JSR PIX                \ Draw a pixel at screen coordinate (X, A), i.e. at
-                        \ (random3, random4)
+                        \ (r3, r4) where (r3^2 + r4^2) / 256 > 17
 
 .PLC2
 
@@ -1103,63 +1128,110 @@ ENDIF
 
  BNE PLL2               \ Loop back to PLL2 until CNT2+1 = 0
 
- LDX MHCA
- STX BLPTR
+ LDX MHCA               \ Set the low byte of BLPTR(1 0) to the contents of MHCA
+ STX BLPTR              \ (which is &CA), so we now have BLPTR(1 0) = &03CA,
+                        \ which we will use in the IRQ1 handler (this has
+                        \ nothing to do with drawing Saturn, it's all part of
+                        \ the copy protection)
 
- LDX #&C6
- STX BLN
+ LDX #&C6               \ Set the low byte of BLN(1 0) to &C6, so we now have
+ STX BLN                \ BLN(1 0) = &03C6, which we will use in the IRQ1
+                        \ handler (this has nothing to do with drawing Saturn,
+                        \ it's all part of the copy protection)
 
 .PLL3
 
- JSR DORND              \ Set A and X to random numbers
- STA ZP
+ JSR DORND              \ Set A and X to random numbers, say A = r5
 
- JSR SQUA2
- STA ZP+1
+ STA ZP                 \ Set ZP = r5
 
- JSR DORND              \ Set A and X to random numbers
+ JSR SQUA2              \ Set (A P) = A * A
+                        \           = r5^2
 
- STA YY
- JSR SQUA2
- STA T
+ STA ZP+1               \ Set ZP+1 = A
+                        \          = r5^2 / 256
 
- ADC ZP+1
- STA ZP+1
- LDA ZP
- CMP #128
- ROR A
- CMP #128
- ROR A
- ADC YY
- TAX
- JSR SQUA2
- TAY
- ADC ZP+1
+ JSR DORND              \ Set A and X to random numbers, say A = r6
 
- BCS PLC3
- CMP #&50
- BCS PLC3
- CMP #&20
- BCC PLC3
- TYA
- ADC T
- CMP #&10
+ STA YY                 \ Set YY = r6
+
+ JSR SQUA2              \ Set (A P) = A * A
+                        \           = r6^2
+
+ STA T                  \ Set T = A
+                        \       = r6^2 / 256
+
+ ADC ZP+1               \ Set ZP+1 = A + r5^2 / 256
+ STA ZP+1               \          = r6^2 / 256 + r5^2 / 256
+                        \          = (r5^2 + r6^2) / 256
+
+ LDA ZP                 \ Set A = ZP
+                        \       = r5
+
+ CMP #128               \ If A >= 128, set the C flag (so the C flag is now set
+                        \ to bit 7 of ZP, i.e. bit 7 of A)
+
+ ROR A                  \ Rotate A and set the sign bit to the C flag, so bits
+                        \ 6 and 7 are now the same
+
+ CMP #128               \ If A >= 128, set the C flag (so again, the C flag is
+                        \ set to bit 7 of A)
+
+ ROR A                  \ Rotate A and set the sign bit to the C flag, so bits
+                        \ 5-7 are now the same, i.e. A is in one of these
+                        \ ranges:
+                        \
+                        \   %00000000 - %00011111  = 0-31
+                        \   %11100000 - %11111111  = 224-255
+                        \
+                        \ Call it r7
+
+ ADC YY                 \ Set X = A + YY
+ TAX                    \       = r7 + r6
+
+ JSR SQUA2              \ Set (A P) = r7 * r7
+
+ TAY                    \ Set Y = A
+                        \       = r7 * r7 / 256
+
+ ADC ZP+1               \ Set A = A + ZP+1
+                        \       = r7^2 / 256 + (r5^2 + r6^2) / 256
+
+ BCS PLC3               \ If the addition overflowed, jump down to PLC3 to skip
+                        \ to the next pixel
+
+ CMP #80                \ If A >= 80, jump down to PLC3 to skip to the next
+ BCS PLC3               \ pixel
+
+
+ CMP #32                \ If A < 32, jump down to PLC3 to skip to the next
+ BCC PLC3               \ pixel
+
+ TYA                    \ Set A = Y + T
+ ADC T                  \       = r7 * r7 / 256 + r6^2 / 256
+
+ CMP #16                \ If A > 16, skip to PL1 to plot the pixel
  BCS PL1
- LDA ZP
- BPL PLC3
+
+ LDA ZP                 \ If ZP is positive (50% chance), jump down to PLC3 to
+ BPL PLC3               \ skip to the next pixel
 
 .PL1
 
- LDA YY
+ LDA YY                 \ Set A = YY
+                        \       = r6
 
  JSR PIX                \ Draw a pixel at screen coordinate (X, A)
 
 .PLC3
 
- DEC CNT3
- BNE PLL3
- DEC CNT3+1
- BNE PLL3
+ DEC CNT3               \ Decrement the counter in CNT3 (the low byte)
+
+ BNE PLL3               \ Loop back to PLL3 until CNT3 = 0
+
+ DEC CNT3+1             \ Decrement the counter in CNT3+1 (the high byte)
+
+ BNE PLL3               \ Loop back to PLL3 until CNT3+1 = 0
 
 \ ******************************************************************************
 \
