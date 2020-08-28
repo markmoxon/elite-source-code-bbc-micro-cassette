@@ -11820,7 +11820,7 @@ NEXT
                         \ the page) of the address
 
  STA P+1                \ Store the address of this character's definition in
- STX P+2                \ P+1 (low byte) and P+2 (high byte)
+ STX P+2                \ P(2 1)
 
  LDA XC                 \ Fetch XC, the x-coordinate (column) of the text
  ASL A                  \ cursor, multiply by 8, and store in SC. As each
@@ -11928,7 +11928,7 @@ NEXT
                         \             and:  %00010111
                         \          &60 is:  %01100000
                         \
-                        \ so YC OR &60 effectively adds &60 to YV, giving us
+                        \ so YC OR &60 effectively adds &60 to YC, giving us
                         \ the page number that we want
 
 .^RREN
@@ -11943,9 +11943,8 @@ NEXT
 
 .RRL1
 
- LDA (P+1),Y            \ The character definition is at P+1 (low byte) and P+2
-                        \ (high byte) - we set this up above -  so load the
-                        \ Y-th byte from P+1
+ LDA (P+1),Y            \ The character definition is at P(2 1) - we set this up
+                        \ above -  so load the Y-th byte from P(2 1)
 
  EOR (SC),Y             \ If we EOR this value with the existing screen
                         \ contents, then it's reversible (so reprinting the
@@ -11960,7 +11959,7 @@ NEXT
 
  DEY                    \ Decrement the loop counter
 
- BPL RRL1               \ Loop back for the next byte to print to the screen=
+ BPL RRL1               \ Loop back for the next byte to print to the screen
 
 .RR4
 
@@ -11978,7 +11977,7 @@ NEXT
  JSR BEEP               \ Call the BEEP subroutine to make a short, high beep
 
  JMP RR4                \ Jump to RR4 to restore the registers and return from
-                        \ the subroutine
+                        \ the subroutine using a tail call
 }
 
 \ ******************************************************************************
