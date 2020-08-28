@@ -73,8 +73,19 @@ LEN2 = 18               \ Size of the MVDL routine that gets pushed onto the
 LEN = LEN1 + LEN2       \ Total number of bytes that get pushed on the stack for
                         \ execution there (33)
 
-LE% = &B00              \ LE% is the address of the second stage loader (the one
-                        \ containing ENTRY2)
+LE% = &0B00             \ LE% is the address to which the code from UU% onwards
+                        \ is copied to by part 3. It contains:
+                        \
+                        \   * ENTRY2, the entry point for the second block of
+                        \     loader code
+                        \
+                        \   * IRQ1, the interrrupt routine for the split-screen
+                        \     mode
+                        \
+                        \   * BLOCK, which by this point has already been put
+                        \     on the stack by this point
+                        \
+                        \   * The variables used by the above
 
 IF DISC                 \ CODE% is set to the assembly address of the loader
  CODE% = &E00+&300      \ code file that we assemble in this file ("ELITE")
@@ -811,6 +822,7 @@ ENDMACRO
                         \ the modified PROT1 routine. That routine doesn't
                         \ return with an RTS, but instead it removes the return
                         \ address from the stack and jumps to David5 below after
+                        \ pushing the Y-th byte of BLOCK onto the stack and
                         \ EOR'ing the Y-th byte of TUT with the Y-th byte of
                         \ BLOCK
                         \
@@ -951,32 +963,52 @@ IF DISC
 
 ENDIF
 
- RTS                    \ The address of ENTRY2-1 was pushed onto the stack by
-                        \ the decryption loop above (as ENTRY2-1 is stored in
-                        \ BLOCK, unencrypted), so this RTS actually does a jump
-                        \ to ENTRY2, for the next step of the loader
+ RTS                    \ This RTS actually does a jump to ENTRY2, to the next
+                        \ step of the loader in part 5. See the documentation
+                        \ for the stack routine at BEGIN% for more details
 
 \ ******************************************************************************
 \
-\ PLL1
+\ Subroutine: PLL1
 \
 \ Draw Saturn on the loading screen.
 \
 \ Part 1 (PLL1) x 1280 - planet
-\ Draw pixels at (x, y) where:
 \
-\   x = SQRT(128^2 - (r1^2 + r2^2)) / 2
+\   * Draw pixels at (x, y) where:
 \
-\   r1^2 + r2^2 fits into 16-bits
+\     r1 = random number from 0 to 255
+\     r1 = random number from 0 to 255
+\     (r1^2 + r1^2) < 128^2
 \
-\   128^2 - (r1^2 + r2^2) fits into 16-bits
+\     y = r2, squished into 64 to 191 by negation
 \
-\   y = a random number in either 0-63 or 192-255
+\     x = SQRT(128^2 - (r1^2 + r1^2)) / 2
 \
 \ Part 2 (PLL2) x 477 - stars
-\ Draw pixels at (r3, r4) where (r3^2 + r4^2) / 256 > 17
+\
+\   * Draw pixels at (x, y) where:
+\
+\     y = random number from 0 to 255
+\     y = random number from 0 to 255
+\     (x^2 + y^2) div 256 > 17
 \
 \ Part 3 (PLL3) x 1280 - rings
+\
+\   *Draw pixels at (x, y) where:
+\
+\     r5 = random number from 0 to 255
+\     r6 = random number from 0 to 255
+\     r7 = r5, squashed into -32 to 31
+\
+\     32 <= (r5^2 + r6^2 + r7^2) / 256 <= 79
+\     Draw 50% fewer pixels when (r6^2 + r7^2) / 256 <= 16
+\
+\     x = r5 + r7
+\     y = r5
+\
+\ Draws pixels within the diagonal band of horizontal width 64, from top-left to
+\ bottom-right of the screen.
 \
 \ ******************************************************************************
 
@@ -1023,7 +1055,7 @@ ENDIF
  STA ZP+1               \ Set ZP(1 0) = (A ZP)
                         \             = r1^2 + r2^2
 
- LDA #1                 \ Set ZP(1 0) = &4000 - ZP(1 0)
+ LDA #1                 \ Set ZP(1 0) = &4001 - ZP(1 0) - (1 - C)
  SBC ZP                 \             = 128^2 - ZP(1 0)
  STA ZP                 \
                         \ (as the C flag is clear), first subtracting the low
@@ -1041,35 +1073,52 @@ ENDIF
                         \
                         \   ZP(1 0) = 128^2 - (r1^2 + r2^2)
                         \
-                        \ where ZP > 0
+                        \ where ZP(1 0) >= 0
 
  JSR ROOT               \ Set ZP = SQRT(ZP(1 0))
-                        \
-                        \ so ZP is now in the range 0-128
 
- LDA ZP                 \ Set X = ZP / 2
- LSR A
+ LDA ZP                 \ Set X = ZP >> 1
+ LSR A                  \       = SQRT(128^2 - (a^2 + b^2)) / 2
  TAX
 
  LDA YY                 \ Set A = YY
                         \       = r2
 
  CMP #128               \ If YY >= 128, set the C flag (so the C flag is now set
-                        \ to bit 7 of YY, i.e. bit 7 of A)
+                        \ to bit 7 of A)
 
  ROR A                  \ Rotate A and set the sign bit to the C flag, so bits
                         \ 6 and 7 are now the same, i.e. A is a random number in
                         \ one of these ranges:
                         \
-                        \   %00000000 - %00111111  = 0-63
-                        \   %11000000 - %11111111  = 192-255
+                        \   %00000000 - %00111111  = 0 to 63    (r2 = 0 - 127)
+                        \   %11000000 - %11111111  = 192 to 255 (r2 = 128 - 255)
+                        \
+                        \ The PIX routine flips bit 7 of A before drawing, and
+                        \ that makes -A in these ranges:
+                        \
+                        \   %10000000 - %10111111  = 128-191
+                        \   %01000000 - %01111111  = 64-127
+                        \
+                        \ so that's in the range 64 to 191
 
- JSR PIX                \ Draw a pixel at screen coordinate (X, A), i.e. at
+ JSR PIX                \ Draw a pixel at screen coordinate (X, -A), i.e. at
                         \
-                        \ (ZP / 2, A)
+                        \ (ZP / 2, -A)
                         \
-                        \ where ZP = SQRT(128^2 - (r1^2 + r2^2)) and A is a
-                        \ random number in either 0-63 or 192-255
+                        \ where ZP = SQRT(128^2 - (r1^2 + r2^2))
+                        \
+                        \ So this is the same as plotting at (x, y) where:
+                        \
+                        \   r1 = random number from 0 to 255
+                        \   r1 = random number from 0 to 255
+                        \   (r1^2 + r1^2) < 128^2
+                        \
+                        \   y = r2, squished into 64 to 191 by negation
+                        \
+                        \   x = SQRT(128^2 - (r1^2 + r1^2)) / 2
+                        \
+                        \ which is what we want
 
 .PLC1
 
@@ -1115,8 +1164,18 @@ ENDIF
 
  LDA YY                 \ Set A = r4
 
- JSR PIX                \ Draw a pixel at screen coordinate (X, A), i.e. at
-                        \ (r3, r4) where (r3^2 + r4^2) / 256 > 17
+ JSR PIX                \ Draw a pixel at screen coordinate (X, -A), i.e. at
+                        \ (r3, -r4), where (r3^2 + r4^2) / 256 >= 17
+                        \
+                        \ Negating a random number from 0 to 255 gives the same
+                        \ thing, so this is the same as plotting at (x, y)
+                        \ where:
+                        \
+                        \   x = random number from 0 to 255
+                        \   y = random number from 0 to 255
+                        \   (x^2 + y^2) div 256 >= 17
+                        \
+                        \ which is what we want
 
 .PLC2
 
@@ -1178,13 +1237,14 @@ ENDIF
                         \ set to bit 7 of A)
 
  ROR A                  \ Rotate A and set the sign bit to the C flag, so bits
-                        \ 5-7 are now the same, i.e. A is in one of these
-                        \ ranges:
+                        \ 5-7 are now the same, i.e. A is a random number in one
+                        \ of these ranges:
                         \
                         \   %00000000 - %00011111  = 0-31
                         \   %11100000 - %11111111  = 224-255
                         \
-                        \ Call it r7
+                        \ In terms of signed 8-bit integers, this is from -32 to
+                        \ 31. Let's call it r7
 
  ADC YY                 \ Set X = A + YY
  TAX                    \       = r7 + r6
@@ -1196,6 +1256,7 @@ ENDIF
 
  ADC ZP+1               \ Set A = A + ZP+1
                         \       = r7^2 / 256 + (r5^2 + r6^2) / 256
+                        \       = (r5^2 + r6^2 + r7^2) / 256
 
  BCS PLC3               \ If the addition overflowed, jump down to PLC3 to skip
                         \ to the next pixel
@@ -1208,7 +1269,8 @@ ENDIF
  BCC PLC3               \ pixel
 
  TYA                    \ Set A = Y + T
- ADC T                  \       = r7 * r7 / 256 + r6^2 / 256
+ ADC T                  \       = r7^2 / 256 + r6^2 / 256
+                        \       = (r6^2 + r7^2) / 256
 
  CMP #16                \ If A > 16, skip to PL1 to plot the pixel
  BCS PL1
@@ -1221,7 +1283,26 @@ ENDIF
  LDA YY                 \ Set A = YY
                         \       = r6
 
- JSR PIX                \ Draw a pixel at screen coordinate (X, A)
+ JSR PIX                \ Draw a pixel at screen coordinate (X, -A), where:
+                        \
+                        \   X = (random -32 to 31) + r6
+                        \   A = r6
+                        \
+                        \ Negating a random number from 0 to 255 gives the same
+                        \ thing, so this is the same as plotting at (x, y)
+                        \ where:
+                        \
+                        \   r5 = random number from 0 to 255
+                        \   r6 = random number from 0 to 255
+                        \   r7 = r5, squashed into -32 to 31
+                        \
+                        \   x = r5 + r7
+                        \   y = r5
+                        \
+                        \   32 <= (r5^2 + r6^2 + r7^2) / 256 <= 79
+                        \   Draw 50% fewer pixels when (r6^2 + r7^2) / 256 <= 16
+                        \
+                        \ which is what we want
 
 .PLC3
 
@@ -1326,8 +1407,9 @@ ENDIF
 \
 \ Subroutine: PIX
 \
-\ Draw a pixel at screen coordinate (X, A). This uses the same approach as the
-\ PIXEL routine in the main game code, except it plots a single pixel from TWOS
+\ Draw a pixel at screen coordinate (X, -A). The sign bit of A gets flipped
+\ before drawing, and then the routine uses the same approach as the PIXEL
+\ routine in the main game code, except it plots a single pixel from TWOS
 \ instead of a two pixel dash from TWOS2. This applies to the top part of the
 \ screen (the monochrome mode 4 portion). See the PIXEL routine in the main game
 \ code for more details.
@@ -1336,7 +1418,7 @@ ENDIF
 \
 \   X                   The screen x-coordinate of the pixel to draw
 \
-\   A                   The screen y-coordinate of the pixel to draw
+\   A                   The screen y-coordinate of the pixel to draw, negated
 \
 \ ******************************************************************************
 
@@ -1488,7 +1570,7 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine: Copied from BEGIN% to the stack at &01F1
+\ Subroutine: BEGIN%, copied to the stack at &01F1
 \
 \ The 15 instructions for this routine are pushed onto the stack and executed
 \ there. The instructions are pushed onto the stack in reverse (as the stack
@@ -1511,8 +1593,16 @@ ENDIF
 \    01FD : JMP (David9)    \ Jump to the address in David9
 \
 \ The routine is called inside a loop with Y as the counter. It counts from 0 to
-\ ENDBLOCK - BLOCK, so the routine eventually decrypts every byte between BLOCK
-\ and ENDBLOCK, as well as pushing the unencrypted bytes onto the stack.
+\ ENDBLOCK - BLOCK, so the routine eventually pushes every byte between BLOCK
+\ and ENDBLOCK onto the stack, as well as EOR'ing each byte to obfuscate every
+\ byte once it's been pushed.
+\
+\ The elite-checksums.py script reverses the order of the bytes between BLOCK
+\ and ENDBLOCK in the final file, so pushing them onto the stack (which is a
+\ descending stack) realigns them in memory as assembled below. Not only that,
+\ but the last two bytes pushed onthe stack are the ones that are at the start
+\ of the block at BLOCK, and these contain the address of ENTRY2. This is why
+\ the RTS at the end of part 4 above actually jumps to ENTRY2 in part 5.
 \
 \ ******************************************************************************
 
@@ -1552,7 +1642,7 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine: MVDL, copied from DOMOVE to the stack at &01DF
+\ Subroutine: DOMOVE, copied to the stack at &01DF (MVDL)
 \
 \ The 18 instructions for this routine are pushed onto the stack and executed
 \ there. The instructions are pushed onto the stack in reverse (as the stack
@@ -1651,7 +1741,8 @@ ENDIF
 \
 \ Variables
 \
-\ This code all located at &B00 onwards
+\ The code from here to the end of the file gets copied to &0B00 (LE%) by part
+\ 3. It is called from the end of part 4, via ENTRY2 in part 5 below.
 \
 \ ******************************************************************************
 
@@ -1662,32 +1753,49 @@ ORG LE%
 
 .CHECKbyt
 
- BRK                    \ CHECKbyt checksum value calcuated in elite-checksum.py
+ BRK                    \ We calculate the value of the CHECKbyt checksum in
+                        \ elite-checksum.py, so this just reserves a byte. This
+                        \ could be an EQUB 0 directive instead of a BRK, but
+                        \ this is what's in the source code
 
 .MAINSUM
 
- EQUB &CB               \ hard-coded checksum value of &28 bytes at LBL in elite-bcfs.asm (ELThead)
- EQUB 0                 \ MAINSUM checksum value calculated in elite-checksum.py
+ EQUB &CB               \ This is the checksum value of the decryption header
+                        \ code (from LBL to elitea) that gets prepended to the
+                        \ main game code by elite-bcfs.asm and saved as
+                        \ ELThead.bin
+
+ EQUB 0                 \ We calculate the value of the MAINSUM checksum in
+                        \ elite-checksum.py, so this just reserves a byte
 
 .FOOLV
 
- EQUW FOOL              \ address of fn with just RTS
+ EQUW FOOL              \ The address of FOOL, which contains an RTS
 
 .CHECKV
 
- EQUW LOAD%+1           \ address of LBL fn in elite-bcfs.asm (ELThead)
+ EQUW LOAD%+1           \ The address of the LBL routine at the very start of
+                        \ the main game code file, in the decryption header code
+                        \ that gets prepended to the main game code by
+                        \ elite-bcfs.asm and saved as ELThead.bin
 
 .block1
 
- EQUD &A5B5E5F5         \ ULA Palette colours for MODE 5 portion of screen
- EQUD &26366676
- EQUD &8494C4D4
+ EQUB &F5, &E5          \ Palette bytes for use with the split-screen mode 5,
+ EQUB &B5, &A5          \ see TVT1 in the main game code for an explanation
+ EQUB &76, &66
+ EQUB &36, &26
+ EQUB &D4, &C4
+ EQUB &94, &84
 
 .block2
 
- EQUD &A0B0C0D0         \ ULA Palette colours for MODE 4 portion of screen
- EQUD &8090E0F0
- EQUD &27376777         \ Colours for interrupts
+ EQUB &D0, &C0          \ Palette bytes for use with the split-screen mode 4,
+ EQUB &B0, &A0          \ see TVT1 in the main game code for an explanation
+ EQUB &F0, &E0
+ EQUB &90, &80
+ EQUB &77, &67
+ EQUB &37, &27
 
 \ ******************************************************************************
 \
@@ -2012,9 +2120,9 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine: Copied from BLOCK to the stack
+\ Elite loader (Part 6 of )
 \
-\ Obfuscated code
+\ Final boot code starts at &163
 \
 \ Entire BLOCK to ENDBLOCK copied into stack at location &15E
 \
@@ -2024,14 +2132,6 @@ ENDIF
 
  EQUW ENTRY2-1                  \ return address for ENTRY2
  EQUW 512-LEN+BLOCK-ENDBLOCK+3  \ return address for final boot code (below)
-
-\ ******************************************************************************
-\
-\ Elite loader (Part 6 of )
-\
-\ Final boot code starts at &163
-\
-\ ******************************************************************************
 
  LDA VIA+4              \ Disable SYSVIA interrupts Timer2, CB1, CB2, CA2
  STA 1
@@ -2160,17 +2260,19 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variables: XC, YC
+\ Variables
 \
 \ ******************************************************************************
 
 .XC
 
- EQUB 7                 \ Variables used by PRINT function
+ EQUB 7                 \ Contains the x-coordinate of the text cursor (i.e.
+                        \ the text column) with an initial value of column 7
 
 .YC
 
- EQUB 6
+ EQUB 6                 \ Contains the y-coordinate of the text cursor (i.e.
+                        \ the text row) with an initial value of row 6
 
 \ ******************************************************************************
 \

@@ -12845,7 +12845,7 @@ NEXT
 \ screen redraw hits row 34, though in practice the sync actually fires quite a
 \ bit later, at around line 34.5.
 \
-\ Tt's probably easiest to visualise the screen layout in terms of rows, with
+\ It's probably easiest to visualise the screen layout in terms of rows, with
 \ row 1 being the top of the screen:
 \
 \   1     First row of space view
