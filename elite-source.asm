@@ -102,7 +102,7 @@ f9 = &77
 \
 \   * Little-endian numbers store the least significance bytes first then the
 \     most significant ones. The 6502 stores its addresses in little-endian
-\     format, as do the EQUD and EQUW directives, for example.
+\     format, as do the EQUD and EQUW operatives, for example.
 \
 \   * Sign-magnitude numbers store their sign in their highest bit, and the
 \     rest of the number contains the magnitude of the number (i.e. the number
@@ -30762,7 +30762,10 @@ LOAD_F% = LOAD% + P% - CODE%
 {
  LDX #&FF               \ Set stack pointer to &01FF, as stack is in page 1
  TXS                    \ (this is the standard location for the 6502 stack,
-                        \ so this instruction effectively resets the stack)
+                        \ so this instruction effectively resets the stack).
+                        \ We need to do this because the loader code in
+                        \ elite-loader.asm pushes code onto the stack, and this
+                        \ effectively removes that code so we start afresh
 
 .^BR1
 
@@ -37677,7 +37680,8 @@ SAVE "output/ELTG.bin", CODE_G%, P%, LOAD%
 
 .checksum0
 {
-SKIP 1
+ SKIP 1                 \ This value is checked against the calculated checksum
+                        \ in part 6 of the loader in elite-loader.asm
 }
 
 \ ******************************************************************************

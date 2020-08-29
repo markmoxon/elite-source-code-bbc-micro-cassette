@@ -40,7 +40,7 @@ DISC = TRUE             \ Set to TRUE to load the code above DFS and relocate
 PROT = FALSE            \ Set to TRUE to enable the tape protection code
 
 LOAD% = &1100           \ LOAD% is the load address of the main game code file
-                        \ ("ELTcode")
+                        \ ("ELTcode" for disc loading, "ELITEcode" for tape)
 
 C% = &0F40              \ C% is set to the location that the main game code gets
                         \ moved to after it is loaded
@@ -53,7 +53,9 @@ L% = LOAD% + &28        \ L% points to the start of the actual game code from
 
 D% = &563A              \ D% is set to the size of the main game code
 
-LC% = &6000 - C%        \ LC% is set to the maximum size of the main game code
+LC% = &6000 - C%        \ LC% is set to the maximum size of the the main game
+                        \ code (as the code starts at C% and screen memory
+                        \ starts at &6000)
 
 N% = 67                 \ N% is set to the number of bytes in the VDU table, so
                         \ we can loop through them in part 2 below
@@ -74,7 +76,7 @@ LEN = LEN1 + LEN2       \ Total number of bytes that get pushed on the stack for
                         \ execution there (33)
 
 LE% = &0B00             \ LE% is the address to which the code from UU% onwards
-                        \ is copied to by part 3. It contains:
+                        \ is copied in part 3. It contains:
                         \
                         \   * ENTRY2, the entry point for the second block of
                         \     loader code
@@ -122,7 +124,7 @@ EXCN = &85
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 1 of )
+\ Elite loader (Part 1 of 6)
 \
 \ The loader bundles a number of binary files in with the loader code, and moves
 \ them to their correct memory locations in part 3 below.
@@ -302,7 +304,7 @@ ORG O%
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 2 of )
+\ Elite loader (Part 2 of 6)
 \
 \ This part of the loader does a number of calls to OS calls, sets up the sound
 \ envelopes, pushes 33 bytes onto the stack that will be used later, and sends
@@ -393,7 +395,7 @@ ORG O%
 
  CLD                    \ Clear the decimal flag, so we're not in decimal mode
 
-IF DISC = FALSE
+IF DISC = 0
 
  LDA #0                 \ Call OSBYTE with A = 0 and X = 255 to fetch the
  LDX #255               \ operating sustem version into X
@@ -675,7 +677,7 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 3 of )
+\ Elite loader (Part 3 of 6)
 \
 \ Move and decrypt the following memory blocks:
 \
@@ -779,7 +781,7 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 4 of )
+\ Elite loader (Part 4 of 6)
 \
 \ This part copies more code onto the stack (from BLOCK to ENDBLOCK), decrypts
 \ the code from TUT onwards, and sets up the IRQ1 handler for the split-screen
@@ -800,11 +802,11 @@ ENDMACRO
                         \ We now enter a loop that starts with the counter in Y
                         \ (initially set to 0). It calls JSR &01F1 on the stack,
                         \ which pushes the Y-th byte of BLOCK on the stack
-                        \ before decrypting the Y-th byte of BLOCK in-place. It
+                        \ before encrypting the Y-th byte of BLOCK in-place. It
                         \ then jumps back to David5 below, where we increment Y
                         \ until it reaches a value of ENDBLOCK - BLOCK. So this
                         \ loop basically decrypts the code from TUT onwards, and
-                        \ at the same time it pushed the code between BLOCK and
+                        \ at the same time it pushes the code between BLOCK and
                         \ ENDBLOCK onto the stack, so it's there ready to be run
                         \ (at address &0163)
 
@@ -894,8 +896,8 @@ ENDMACRO
 
  INY                    \ Increment the loop counter
 
- CPY #(ENDBLOCK-BLOCK)  \ Loop back to decrypt the next byte until we have
- BNE David2             \ decrypted all the bytes between BLOCK and ENDBLOCK
+ CPY #(ENDBLOCK-BLOCK)  \ Loop back to copy the next byte until we have copied
+ BNE David2             \ all the bytes between BLOCK and ENDBLOCK
 
  SEI                    \ Disable interrupts while we set up our interrupt
                         \ handler to support the split-screen mode
@@ -1572,6 +1574,9 @@ ENDIF
 \
 \ Subroutine: BEGIN%, copied to the stack at &01F1
 \
+\ This routine pushes BLOCK to ENDBLOCK onto the stack, and decrypts the code
+\ from TUt onwards.
+\
 \ The 15 instructions for this routine are pushed onto the stack and executed
 \ there. The instructions are pushed onto the stack in reverse (as the stack
 \ grows downwards in memory), so first the JMP gets pushed, then the STA, and
@@ -1594,13 +1599,13 @@ ENDIF
 \
 \ The routine is called inside a loop with Y as the counter. It counts from 0 to
 \ ENDBLOCK - BLOCK, so the routine eventually pushes every byte between BLOCK
-\ and ENDBLOCK onto the stack, as well as EOR'ing each byte to obfuscate every
-\ byte once it's been pushed.
+\ and ENDBLOCK onto the stack, as well as EOR'ing each byte from TUT onwards to
+\ decrypt that section.
 \
 \ The elite-checksums.py script reverses the order of the bytes between BLOCK
 \ and ENDBLOCK in the final file, so pushing them onto the stack (which is a
 \ descending stack) realigns them in memory as assembled below. Not only that,
-\ but the last two bytes pushed onthe stack are the ones that are at the start
+\ but the last two bytes pushed on the stack are the ones that are at the start
 \ of the block at BLOCK, and these contain the address of ENTRY2. This is why
 \ the RTS at the end of part 4 above actually jumps to ENTRY2 in part 5.
 \
@@ -1643,6 +1648,8 @@ ENDIF
 \ ******************************************************************************
 \
 \ Subroutine: DOMOVE, copied to the stack at &01DF (MVDL)
+\
+\ This routine moves and decypts a block of memory.
 \
 \ The 18 instructions for this routine are pushed onto the stack and executed
 \ there. The instructions are pushed onto the stack in reverse (as the stack
@@ -2013,347 +2020,619 @@ ORG LE%
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 5 of )
+\ Elite loader (Part 5 of 6)
 \
-\ Following code all encrypted in elite-checksum.py
+\ This part loads the main game code, decrypts it and moves it to the correct
+\ location for it to run.
+\
+\ The code in this part is encrypted by elite-checksum.py and is decrypted in
+\ part 4 by the same routine that moves part 6 onto the stack.
 \
 \ ******************************************************************************
 
-.TUT                    \ EOR here onward
+.TUT
 
 .osprint
 
- JMP (OSPRNT)           \ Jump to the address in OSPRNT
+ JMP (OSPRNT)           \ Jump to the address in OSPRNT and return using a
+                        \ tail call
+
  EQUB &6C
 
 .command
 
- JMP (oscliv)
+ JMP (oscliv)           \ Jump to &FFF7 to execute the OSCLI command pointed to
+                        \ by (Y X) and return using a tail call
 
 .MESS1
 
-IF DISC
+IF DISC                 \ OSCLI command string for loading the main game code
  EQUS "L.ELTcode 1100"
 ELSE
  EQUS "L.ELITEcode F1F"
 ENDIF
 
- EQUB 13                \ *LOAD ELITEcode
+ EQUB 13
 
-.ENTRY2                 \ Second entry point for loader after screen & irq set up
+.ENTRY2
 
- LDA &20E               \ Set OSPRNT vector to TT26 fn
+                        \ We start this part of the loader by setting:
+                        \
+                        \   OSPRNT(1 0) = WRCHV
+                        \   WRCHV(1 0) = TT26
+                        \   (Y X) = MESS1(1 0)
+                        \
+                        \ so any character printing will use the TT26 routine
+
+ LDA &20E               \ Copy the low byte of WRCHV to the low byte of OSPRNT
  STA OSPRNT
- LDA #LO(TT26)
+
+ LDA #LO(TT26)          \ Set the low byte of WRCHV to the low byte of TT26
  STA &20E
- LDX #LO(MESS1)
- LDA &20F
+
+ LDX #LO(MESS1)         \ Set X to the low byte of MESS1
+
+ LDA &20F               \ Copy the high byte of WRCHV to the high byte of OSPRNT
  STA OSPRNT+1
- LDA #HI(TT26)
- LDY #HI(MESS1)
- STA &20F               \ OSWRCH for loading messages
 
- JSR AFOOL
+ LDA #HI(TT26)          \ Set the high byte of WRCHV to the high byte of TT26
+ LDY #HI(MESS1)         \ and set Y to the high byte of MESS1
+ STA &20F
 
- JSR command            \ Issue OSCLI command in MESS1 "*L.ELTcode 1100"
+ JSR AFOOL              \ This calls AFOOL, which jumps to the address in FOOLV,
+                        \ which contains the address of FOOL, which contains an
+                        \ RTS instruction... so overall this does nothing, but
+                        \ in a rather roundabout fashion
 
-                        \ Execute CHECKER fn but in stack
+ JSR command            \ Call command to execute the OSCLI command pointed to
+                        \ by (Y X) in MESS1, which starts loading the main game
+                        \ code
 
- JSR 512-LEN+CHECKER-ENDBLOCK 
- JSR AFOOL
-                        \ (Gratuitous JSRs)- LOAD Mcode and checksum it.
+ JSR 512-LEN+CHECKER-ENDBLOCK \ Call the CHECKER routine in its new location on
+                              \ the stack, to run a number of checksums on the
+                              \ code (this routine, along with the whole of part
+                              \ 6, was pushed onto the stack in part 4)
+
+ JSR AFOOL              \ Another call to the round-the-houses routine to try
+                        \ and distract the crackers, presumably
 
 IF DISC
- LDA #140               \ Issue *TAPE command (via OSBYTE 140)
- LDX #12
- JSR OSBYTE             \*TAPE 
+
+ LDA #140               \ Call OSBYTE with A = 140 and X = 12 to select the
+ LDX #12                \ tape filing system (i.e. do a *TAPE command)
+ JSR OSBYTE
+
 ENDIF
 
  LDA #0                 \ Set SVN to 0, as the main game code checks the value
  STA SVN                \ of this location in its IRQ1 routine, so it needs to
-                        \ be set to 0 so it can work properly
+                        \ be set to 0 so it can work properly once it takes over
+                        \ when the game itself runs
 
+                        \ We now decrypt and move the main game code from &1128
+                        \ to &0F40
 
- LDX #(LC% DIV256)      \ Decrypt and copy down all ELITE game code from &1128 to &F40
- LDA #(L% MOD256)
+ LDX #HI(LC%)           \ Set X = high byte of LC%, the maximum size of the main
+                        \ game code, so if we move this number of pages, we will
+                        \ have definitely moved all the game code down
+
+ LDA #LO(L%)            \ Set ZP(1 0) = L% (the start of the game code)
  STA ZP
- LDA #(L% DIV256)
+ LDA #HI(L%)
  STA ZP+1
- LDA #(C% MOD256)
+
+ LDA #LO(C%)            \ Set P(1 0) = C% = &0F40
  STA P
- LDA #(C% DIV256)
+ LDA #HI(C%)
  STA P+1
- LDY #0
+
+ LDY #0                 \ Set Y as a counter for working our way through every
+                        \ byte of the game code. We EOR the counter with the
+                        \ current byte to decrypt it
 
 .ML1
 
- TYA
+ TYA                    \ Copy the counter into A
 
 IF _REMOVE_CHECKSUMS
- LDA (ZP),Y
+
+ LDA (ZP),Y             \ If encryption is disabled, fetch the byte to copy from
+                        \ the Y-th block pointed to by ZP(1 0)
+
 ELSE
- EOR (ZP),Y
+
+ EOR (ZP),Y             \ If encryption is enabled, fetch the byte and EOR it
+                        \ with the counter
+
 ENDIF
 
- STA (P),Y
- INY 
- BNE ML1
- INC ZP+1
- INC P+1
- DEX
- BPL ML1                \ Move code down (d)
+ STA (P),Y              \ Store the copied (and decrypted) byte in the Y-th byte
+                        \ of the block pointed to by P(1 0)
 
- LDA S%+6               \ Set BRKV and WRCHV to point at BR1 and TT26 fns in elite-source.asm
+ INY                    \ Increment the loop counter
 
- STA &202
+ BNE ML1                \ Loop back for the next byte until we have finished the
+                        \ first 256 bytes
+
+ INC ZP+1               \ Increment the high bytes of both ZP(1 0) and P(1 0) to
+ INC P+1                \ point to the next 256 bytes
+
+ DEX                    \ Decrement the number of pages we need to copy in X
+
+ BPL ML1                \ Loop back to copy and decrypt the next page of bytes
+                        \ until we have done them all
+ 
+                        \ S% points to the entry point for the main game code,
+                        \ so the following copies the addresses from the start
+                        \ of the main code (see the S% label in the main game
+                        \ code for the vector values)
+
+ LDA S%+6               \ Set BRKV to point to the BR1 routine in the main game
+ STA &202               \ code
  LDA S%+7
  STA &203
- LDA S%+2
- STA &20E
+
+ LDA S%+2               \ Set WRCHV to point to the TT26 routine in the main
+ STA &20E               \ game code
  LDA S%+3
- STA &20F               \ BRK,OSWRCH     
+ STA &20F
 
-                        \ Calls final boot code from value copied to stack
-
- RTS                    \- ON STACK 
+ RTS                    \ This RTS actually does a jump to the first instruction
+                        \ in BLOCK, after the two EQUW operatives, which is now
+                        \ on the stack. This takes us to the next and final
+                        \ step of the loader in part 6. See the documentation
+                        \ for the stack routine at BEGIN% for more details
 
 .AFOOL
 
- JMP(FOOLV)
-
-.M2
-
- EQUB 2
+ JMP (FOOLV)            \ This jumps to the address in FOOLV as part of the
+                        \ JSR AFOOL instruction above, which does nothing except
+                        \ take us on wild goose chase
 
 \ ******************************************************************************
 \
 \ Subroutine: IRQ1
 \
-\ IRQ1V handler for Timer 1 interrupt
+\ The main interrupt handler, which implements Elite's split screen mode.
+\
+\ This routine is similar to the main IRQ1 routine in the main game code, except
+\ it's a bit simpler (it doesn't need to support the mode-flashing effect of
+\ hyperspace, for example).
+\
+\ It also sets Timer 1 to a different value, 14386 instead of 14622. The split
+\ in the split-screen mode does overlap more in the loader than in the game, so
+\ it's interesting that they didn't fine-tune this version as much.
+\
+\ For more details on how the following works, see the IRQ1 routine in the main
+\ game code.
 \
 \ ******************************************************************************
 
 {
+.M2
+
+ EQUB %00000010         \ This is used in the following for testing bit 1 of the
+                        \ 6522 System VIA status byte
+
 .VIA2
 
- LDA #4                 \ Set ULA Control Register to 20 characters per line (MODE 5)
- STA &FE20
+ LDA #%00000100         \ Set Video ULA control register (SHEILA+&20) to
+ STA &FE20              \ %00000100, which is the same as switching to mode 5,
+                        \ (i.e. the bottom part of the screen) but with no
+                        \ cursor
 
- LDY #11                \ Set ULA Palette Registers for MODE 5 colour scheme
+ LDY #11                \ We now apply the palette bytes from block1 to the
+                        \ mode 5 screen, so set a counter in Y for 12 bytes
 
 .inlp1
 
- LDA block1,Y
- STA &FE21
- DEY
- BPL inlp1
- PLA
+ LDA block1,Y           \ Copy the Y-th palette byte from block1 to SHEILA+&21
+ STA &FE21              \ to map logical to actual colours for the bottom part
+                        \ of the screen (i.e. the dashboard)
+
+ DEY                    \ Decrement the palette byte counter
+
+ BPL inlp1              \ Loop back to the inlp1 until we have copied all the
+                        \ palette bytes
+
+ PLA                    \ Restore Y from the stack
  TAY
- JMP (VEC)
+
+ JMP (VEC)              \ Jump to the address in VEC, which was set to the
+                        \ original IRQ1V vector in part 4, so this instruction
+                        \ passes control to the next interrupt handler
 
 .^IRQ1
 
- TYA                    \ IRQ1V handler
+ TYA                    \ Store Y on the stack
  PHA
 
 IF PROT AND DISC = 0
- LDY #0                 \ TAPE protection
 
- LDA (BLPTR),Y
- BIT M2
+                        \ By this point, we have set up the following in
+                        \ various places throughout the loader code (such as
+                        \ part 2 and PLL1):
+                        \
+                        \   BLPTR(1 0) = &03CA
+                        \   BLN(1 0)   = &03C6
+                        \   EXCN(1 0)  = &03C2
+                        \
+                        \ BLPTR (&03CA) is a byte in the MOS workspace that
+                        \ stores the block flag of the most recent block loaded
+                        \ from tape
+                        \
+                        \ BLN (&03C6) is the low byte of the number of the last
+                        \ block loaded from tape
+                        \
+                        \ EXCN (&03C2) is the low byte of the execution address
+                        \ of the file being loaded
+
+ LDY #0                 \ Set A to the block flag of the most recent block
+ LDA (BLPTR),Y          \ loaded from tape
+
+ BIT M2                 \ If bit 1 of the block flag is set, jump to itdone
  BNE itdone
- EOR#128+3
- INC BLCNT
- BNE ZQK
- DEC BLCNT
+
+ EOR #%10000011         \ Otherwise flip bits 0, 1 and 7 of A, so that bit 1 is
+                        \ set in A, so we won't increment BLCNT until the next
+                        \ block starts loading (so in this way we count the
+                        \ number of blocks loaded in BLCNT)
+
+ INC BLCNT              \ Increment BLCNT, which was initialised to 0 in part 3
+
+ BNE ZQK                \ If BLCNT is non-zero, skip the next instruction
+
+ DEC BLCNT              \ If incrementing BLCNT set it to zero, decrement it, so
+                        \ this sets a maximum of 255 on BLCNT 
 
 .ZQK
 
- STA (BLPTR),Y
- LDA #&23
- CMP (BLN),Y
+ STA (BLPTR),Y          \ Store the updated value of A in the block flag
+
+ LDA #&23               \ If the block number in BLN is &23, skip the next
+ CMP (BLN),Y            \ instruction
  BEQ P%+4
- EOR #17
- CMP (EXCN),Y
- BEQ itdone
- DEC LOAD%
+
+ EOR #17                \ EOR A with 17
+
+ CMP (EXCN),Y           \ If A = the low byte of the execution address of the
+ BEQ itdone             \ file we are loading, skip to itsdone
+
+ DEC LOAD%              \ Otherwise decrement LOAD%, which is the address of the
+                        \ first byte of the main game code file (i.e. the load
+                        \ address of "ELTcode"), so this decrements the first
+                        \ byte of the file we are loading
 
 .itdone
 
 ENDIF
 
- LDA VIA+&D             \ Test which interrupt has occurred
- BIT M2
- BNE LINSCN
- AND #64
- BNE VIA2
- PLA
+ LDA VIA+&D             \ Read the 6522 System VIA status byte bit 1, which is
+ BIT M2                 \ set if vertical sync has occurred on the video system
+
+ BNE LINSCN             \ If we are on the vertical sync pulse, jump to LINSCN
+                        \ to set up the timers to enable us to switch the
+                        \ screen mode between the space view and dashboard
+
+ AND #%01000000         \ If the 6522 System VIA status byte bit 6 is set, which
+ BNE VIA2               \ means timer 1 has timed out, jump to VIA2
+
+ PLA                    \ Restore Y from the stack
  TAY
- JMP (VEC)
+
+ JMP (VEC)              \ Jump to the address in VEC, which was set to the
+                        \ original IRQ1V vector in part 4, so this instruction
+                        \ passes control to the next interrupt handler
 
 .LINSCN
 
-                        \ IRQ1V handler for Vsync interrupt
+ LDA #50                \ Set 6522 System VIA T1C-L timer 1 low-order counter
+ STA USVIA+4            \ (SHEILA &44) to 50
 
- LDA #50                \ Reset Timer 1 counter value Hi and Low bytes
- STA USVIA+4
- LDA #VSCAN
- STA USVIA+5
+ LDA #VSCAN             \ Set 6522 System VIA T1C-L timer 1 high-order counter
+ STA USVIA+5            \ (SHEILA &45) to VSCAN (56) to start the T1 counter
+                        \ counting down from 14386 at a rate of 1 MHz
 
- LDA #8                 \ Set ULA Control Register to 40 characters per line (MODE 4)
- STA &FE20
- LDY #11
+ LDA #8                 \ Set Video ULA control register (SHEILA+&20) to
+ STA &FE20              \ %00001000, which is the same as switching to mode 4
+                        \ (i.e. the top part of the screen) but with no cursor
+
+ LDY #11                \ We now apply the palette bytes from block2 to the
+                        \ mode 4 screen, so set a counter in Y for 12 bytes
 
 .inlp2
 
- LDA block2,Y           \ Set ULA Palette Registers for MODE 4 black & white
- STA &FE21
- DEY
- BPL inlp2
- PLA
+ LDA block2,Y           \ Copy the Y-th palette byte from block2 to SHEILA+&21
+ STA &FE21              \ to map logical to actual colours for the top part of
+                        \ the screen (i.e. the space view)
+
+ DEY                    \ Decrement the palette byte counter
+
+ BPL inlp2              \ Loop back to the inlp1 until we have copied all the
+                        \ palette bytes
+
+ PLA                    \ Restore Y from the stack
  TAY
- JMP (VEC)
+
+ JMP (VEC)              \ Jump to the address in VEC, which was set to the
+                        \ original IRQ1V vector in part 4, so this instruction
+                        \ passes control to the next interrupt handler
 }
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 6 of )
+\ Elite loader (Part 6 of 6)
 \
-\ Final boot code starts at &163
+\ This is the final part of the loader. It sets up some of the main game's
+\ interrupt vectors and calculates various checksums, before finally handing
+\ over to the main game.
 \
-\ Entire BLOCK to ENDBLOCK copied into stack at location &15E
+\ This entire section from BLOCK to ENDBLOCK was copied into the stack at
+\ location &015E by part 4, so by the time we call the routine at the second
+\ EQUW address at the start, the entry point is on the stack at &0163.
 \
 \ ******************************************************************************
 
 .BLOCK                  \ Pushed onto stack for execution
 
- EQUW ENTRY2-1                  \ return address for ENTRY2
- EQUW 512-LEN+BLOCK-ENDBLOCK+3  \ return address for final boot code (below)
+                        \ These two addresses get pushed onto the stack in part
+                        \ 4, so the RTS instructions at the end of parts 4 and 5
+                        \ jump to ENTRY2 and the start of this routine. See part
+                        \ 4 for details
 
- LDA VIA+4              \ Disable SYSVIA interrupts Timer2, CB1, CB2, CA2
- STA 1
- SEI
- LDA #&39
- STA VIA+&E
-\LDA#&7F
-\STA&FE6E
-\LDAIRQ1V
-\STAVEC
-\LDAIRQ1V+1
-\STAVEC+1  Already done
+ EQUW ENTRY2-1                  \ RTS address of ENTRY2
+ EQUW 512-LEN+BLOCK-ENDBLOCK+3  \ RTS address of the following instruction
 
- LDA S%+4               \ Set IRQ1V to IRQ1 fn in elite-source.asm & set Timer 1 Counter Hi value
- STA IRQ1V
- LDA S%+5
+ LDA VIA+4              \ Read the 6522 System VIA T1C-L timer 1 low-order
+ STA 1                  \ counter, which increments 1000 times a second so this
+                        \ will be pretty random, and store it in location 1,
+                        \ which is among the main game code's random seeds in
+                        \ RAND (so this seeds the random numbers for the main
+                        \ game)
+
+ SEI                    \ Disable all interrupts
+
+ LDA #%00111001         \ Set 6522 System VIA interrupt enable register IER
+ STA VIA+&E             \ (SHEILA &4E) bits 0 and 3-5 (i.e. disable the Timer1,
+                        \ CB1, CB2 and CA2 interrupts from the System VIA)
+
+\LDA #&7F               \ These instructions are commented out in the original
+\STA &FE6E              \ source with the comment "already done", which they
+\LDA IRQ1V              \ were, in part 4
+\STA VEC
+\LDA IRQ1V+1
+\STA VEC+1
+
+ LDA S%+4               \ S% points to the entry point for the main game code,
+ STA IRQ1V              \ so this copies the address of the main game's IRQ1
+ LDA S%+5               \ routine from the start of the main code into IRQ1V
  STA IRQ1V+1
- LDA #VSCAN
- STA USVIA+5
- CLI \Interrupt vectors
 
-\LDA#&81LDY#FFLDX#1JSROSBYTETXAEOR#FFSTAMOS \FF if MOS0.1 else 0
-\BMIBLAST
+ LDA #VSCAN             \ Set 6522 System VIA T1C-L timer 1 high-order counter
+ STA USVIA+5            \ (SHEILA &45) to VSCAN (56) to start the T1 counter
+                        \ counting down from 14080 at a rate of 1 MHz (this is
+                        \ a different value to the main game code)
 
- LDY #0                 \ Disable ESCAPE, memory cleared on BREAK (via OSBYTE 200)
- LDA #200
- LDX #3
+ CLI                    \ Re-enable interrupts
+
+\LDA #129               \ These instructions are commented out in the original
+\LDY #&FF               \ source. They read the keyboard with a time limit, and
+\LDX #1                 \ there's a comment "FF if MOS0.1 else 0", so this might
+\JSR OSBYTE             \ be another way of detecting the MOS version
+\TXA
+\EOR #&FF
+\STA MOS
+\BMI BLAST
+
+ LDY #0                 \ Call OSBYTE with A = 200, X = 3 and Y = 0 to disable
+ LDA #200               \ the Escape key and clear memory if the Break key is
+ LDX #3                 \ pressed
  JSR OSBYTE
+
+                        \ The rest of the routine calculates various checksums
+                        \ and makes sure they are correct before proceeding, to
+                        \ prevent code tampering. We start by calculating the
+                        \ checksum for the main game code from &0F40 to &5540,
+                        \ which just adds up every byte and checks it against
+                        \ the checksum stored at the end of the main game code
 
 .BLAST
 
-                        \ break,escape
-
- LDA #(S% DIV256)       \ Calculate Checksum0 = 70x pages of all Elite code from &F40 to &5540
- STA ZP+1
- LDA #(S% MOD256)
+ LDA #HI(S%)            \ Set ZP(1 0) = S%
+ STA ZP+1               \
+ LDA #LO(S%)            \ so ZP(1 0) points to the start of the main game code
  STA ZP
- LDX #&45
- LDY #0
- TYA
+
+ LDX #&45               \ We are going to checksum &45 pages from &0F40 to &5540
+                        \ so set a page counter in X
+
+ LDY #0                 \ Set Y to count through each byte within each page
+
+ TYA                    \ Set A = 0 for building the checksum
 
 .CHK
 
- CLC
+ CLC                    \ Add the Y-th byte of this page of the game code to A
  ADC (ZP),Y
- INY 
- BNE CHK
- INC ZP+1
- DEX
- BPL CHK
+
+ INY                    \ Increment the counter for this page
+
+ BNE CHK                \ Loop back for the next byte until we have finished
+                        \ adding up this page
+
+ INC ZP+1               \ Increment the high byte of ZP(1 0) to point to the
+                        \ next page
+
+ DEX                    \ Decrement the page counter we set in X
+
+ BPL CHK                \ Loop back to add up the next page until we have done
+                        \ them all
 
 IF _REMOVE_CHECKSUMS
- LDA #0:NOP
+
+ LDA #0                 \ If the checksum is disabled, just set A to 0 so the
+ NOP                    \ BEQ below jumps to itsOK
+
 ELSE
- CMP D%-1
+
+ CMP D%-1               \ D% is set to the size of the main game code, so this
+                        \ compares the result to the last byte in the main game
+                        \ code, at location checksum0
+
 ENDIF
 
- BEQ itsOK
+ BEQ itsOK              \ If the checksum we just calculated matches the value
+                        \ in location checksum0, jump to itsOK
 
 .nononono
 
- STA S%+1               \ Checksum wrong - disable all interrupts and reset machine
- LDA #&7F
- STA &FE4E
- JMP (&FFFC)
+ STA S%+1               \ If we get here then the checksum was wrong, so first
+                        \ we store the incorrect checksum value in the low byte
+                        \ of the address stored at the start of the main game
+                        \ code, which contains the address of TT170, the entry
+                        \ point for the main game (so this hides this address
+                        \ from prying eyes)
+
+ LDA #%01111111         \ Set 6522 System VIA interrupt enable register IER
+ STA &FE4E              \ (SHEILA &4E) bits 0-6 (i.e. disable all hardware
+                        \ interrupts from the System VIA)
+
+ JMP (&FFFC)            \ Jump to the address in &FFFC to reset the machine
 
 .itsOK
 
- JMP(S%)
+ JMP (S%)               \ The checksum was correct, so we call the address held
+                        \ in the first two bytes of the main game code, which
+                        \ point to TT170, the entry point for the main game
+                        \ code, so this, finally, is where we hand over to the
+                        \ game itself
+
+\ ******************************************************************************
+\
+\ Subroutine: CHECKER
+\
+\ This routine runs checksum checks on the recursive token table and the loader
+\ code at the start of the main game code file, to prevent tampering with these
+\ areas of memory. It also runs a check on the tape loading block count.
+\
+\ ******************************************************************************
 
 .CHECKER
 
- LDY #0                  \ CHECKER fn verifies checksum values
- LDX #4
- STX ZP+1
- STY ZP
- TYA
+                        \ First we check the MAINSUM checksum for the recursive
+                        \ token table from &0400 to &07FF
+
+ LDY #0                 \ Set Y = 0 to count through each byte within each page
+
+ LDX #4                 \ We are going to checksum 4 pages from &0400 to &07FF
+                        \ so set a page counter in X
+
+ STX ZP+1               \ Set ZP(1 0) = &0400, to point to the start of the code
+ STY ZP                 \ we want to checksum
+
+ TYA                    \ Set A = 0 for building the checksum
 
 .CHKq
 
- CLC                    \ Verify MAINSUM of WORDS9 = 4 pages from &400 to &800
+ CLC                    \ Add the Y-th byte of this page of the token table to A
  ADC (ZP),Y
- INY 
- BNE CHKq
- INC ZP+1
- DEX
- BNE CHKq
- CMP MAINSUM+1
+
+ INY                    \ Increment the counter for this page
+
+ BNE CHKq               \ Loop back for the next byte until we have finished
+                        \ adding up this page
+
+ INC ZP+1               \ Increment the high byte of ZP(1 0) to point to the
+                        \ next page
+
+ DEX                    \ Decrement the page counter we set in X
+
+ BNE CHKq               \ Loop back to add up the next page until we have done
+                        \ them all
+
+ CMP MAINSUM+1          \ Compare the result to the contents of MAINSUM+1, which
+                        \ contains the checksum for the table (this gets set by
+                        \ elite-checksum.py)
 
 IF _REMOVE_CHECKSUMS
- NOP:NOP
+
+ NOP                    \ If checksums are disabled, do nothing
+ NOP
+
 ELSE
- BNE nononono
+
+ BNE nononono           \ If checksums are enabled and the checksum we just
+                        \ calculated does not match the contents of MAINSUM+1,
+                        \ jump to nononono to reset the machine
+
 ENDIF
 
- TYA                    \ Verify (hard coded) checksum of LBL in elite-bcfs.asm (ELThead)
+                        \ Next, we check the LBL routine in the header that's
+                        \ appended to the main game code in elite-bcfs.asm, and
+                        \ which is currently loaded at LOAD% (which contains the
+                        \ load address of the main game code file)
+
+ TYA                    \ Set A = 0 for building the checksum (as Y is still 0
+                        \ from the above checksum loop)
 
 .CHKb
 
- CLC
+ CLC                    \ Add the Y-th byte of LOAD% to A
  ADC LOAD%,Y
- INY 
- CPY #&28
- BNE CHKb
- CMP MAINSUM
+
+ INY                    \ Increment the counter
+
+ CPY #&28               \ There are &28 bytes in the loader, so loop back until
+ BNE CHKb               \ we have added them all
+
+ CMP MAINSUM            \ Compare the result to the contents of MAINSUM, which
+                        \ contains the checksum for loader code
 
 IF _REMOVE_CHECKSUMS
- NOP:NOP
+
+ NOP                    \ If checksums are disabled, do nothing
+ NOP
+
 ELSE
- BNE nononono
+
+ BNE nononono           \ If checksums are enabled and the checksum we just
+                        \ calculated does not match the contents of MAINSUM,
+                        \ jump to nononono to reset the machine
+
 ENDIF
+
+                        \ Finally, we check the block count from the tape
+                        \ loading code in the IRQ1 routine, which counts the
+                        \ number of blocks in the main game code
 
 IF PROT AND DISC = 0
- LDA BLCNT
- CMP #&4F
- BCC nononono
+
+ LDA BLCNT              \ If the tape protection is enabled and we are loading
+ CMP #&4F               \ from tape (as opposed to disc), check that the block
+ BCC nononono           \ count in BLCNT is &4F, and if it isn't, jump to
+                        \ nononono to reset the machine
+
 ENDIF
 
 IF _REMOVE_CHECKSUMS
- RTS:NOP:NOP
+
+ RTS                    \ If checksums are disabled, return from the subroutine
+ NOP
+ NOP
+
 ELSE
- JMP (CHECKV)           \ Call LBL in elite-bcfs.sm (ELThead) to verify CHECKbyt checksum
+
+ JMP (CHECKV)           \ If checksums are enabled, call the LBL routine in the
+                        \ header (whose address is in CHECKV). This routine is
+                        \ inserted before the main game code by elite-bcfs.asm,
+                        \ and it checks the validity of the first two pages of
+                        \ the UU% routine, which was copied to LE% above, and
+                        \ which contains a checksum byte in CHECKbyt. We return
+                        \ from the subroutine using a tail call
+
 ENDIF
 
-.ENDBLOCK               \ no more on to stack
+.ENDBLOCK
 
 \ ******************************************************************************
 \
