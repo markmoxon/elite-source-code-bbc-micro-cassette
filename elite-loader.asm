@@ -106,7 +106,7 @@ OSPRNT = &234
 VIA = &FE40             \ Memory-mapped space for accessing internal hardware,
 USVIA = VIA             \ such as the video ULA, 6845 CRTC and 6522 VIAs
 
-VSCAN = 57-1            \ Defines the split position in the split screen mode
+VSCAN = 57-1            \ Defines the split position in the split-screen mode
 
 TRTB% = &04             \ Zero page variables
 ZP = &70
@@ -244,7 +244,7 @@ ORG O%
                         \ i.e. 1 row high, 13 columns wide at (2, 16)
 
  EQUB 23, 0, 6, 31      \ Set 6845 register R6 = 31
- EQUB 0, 0, 0           \ 
+ EQUB 0, 0, 0           \
  EQUB 0, 0, 0           \ This is the "vertical displayed" register, and sets
                         \ the number of displayed character rows to 31. For
                         \ comparison, this value is 32 for standard modes 4 and
@@ -312,7 +312,7 @@ ORG O%
 \
 \ ******************************************************************************
 
-.swine 
+.swine
 
  LDA #%01111111         \ Set 6522 System VIA interrupt enable register IER
  STA &FE4E              \ (SHEILA &4E) bits 0-6 (i.e. disable all hardware
@@ -437,18 +437,18 @@ ENDIF
  STA &FE6E              \ Set 6522 User VIA interrupt enable register IER
                         \ (SHEILA &6E) bits 0-6 (i.e. disable all hardware
                         \ interrupts from the User VIA)
- 
+
  LDA &FFFC              \ Fetch the low byte of the reset address in &FFFC,
                         \ which will reset the machine if called
- 
+
  STA &200               \ Set the low bytes of USERV, BRKV, IRQ2V and EVENTV
  STA &202
  STA &206
  STA &220
- 
+
  LDA &FFFD              \ Fetch the high byte of the reset address in &FFFD,
                         \ which will reset the machine if called
- 
+
  STA &201               \ Set the high bytes of USERV, BRKV, IRQ2V and EVENTV
  STA &203
  STA &207
@@ -503,7 +503,7 @@ ENDIF
  STX EXCN+1             \ the IRQ1 handler
 
  DEX                    \ Set X = 2
- 
+
  JSR OSBYTE             \ Call OSBYTE with A = 16 and X = 2 to set the ADC to
                         \ sample 2 channels from the joystick
 
@@ -549,7 +549,7 @@ ENDIF
  BNE FRED1              \ This instruction is skipped if we came from above,
                         \ otherwise this is part of the multi-jump obfuscation
                         \ in PROT1
-                        
+
  LDA #143               \ Call OSBYTE 143 to issue a paged ROM service call of
  LDX #&C                \ type &C with argument &FF, which is the "NMI claim"
  LDY #&FF               \ service call that asks the current user of the NMI
@@ -570,7 +570,7 @@ ENDIF
  LDX #0                 \ keyboard translation table into (Y X)
  LDY #255
  JSR OSBYTE
- 
+
  STX TRTB%              \ Store the address of the keyboard translation table in
  STY TRTB%+1            \ TRTB%(1 0)
 
@@ -611,14 +611,14 @@ ENDIF
                         \ X-th byte from BEGIN% onto the stack
 
  INX                    \ Increment the loop counter
- 
+
  CPX #LEN               \ If X < #LEN (which is 33), loop back for the next one.
  BNE David8             \ This branch actually takes us on wold goose chase
                         \ through the following locations, where each BNE is
                         \ prefaced by an EQUB &2C that disables the branch
                         \ instruction during the normal instruction flow:
                         \
-                        \   David8 -> FRED1 -> David7 -> Ian1 -> David3 
+                        \   David8 -> FRED1 -> David7 -> Ian1 -> David3
                         \
                         \ so in the end this just loops back to push the next
                         \ byte onto the stack, but in a really sneaky way
@@ -945,18 +945,18 @@ IF DISC
  LDY #20                \ Set Y = 20 for the following OSBYTE call
 
  IF _REMOVE_CHECKSUMS
- 
+
   NOP                   \ Skip the OSBYTE call if checksums are disabled
   NOP
   NOP
- 
+
  ELSE
 
   JSR OSBYTE            \ A was set to 129 above, so this calls OSBYTE with
                         \ A = 129 and Y = 20, which reads the keyboard with a
                         \ time limit, in this case 20 centiseconds, or 0.2
                         \ seconds
- 
+
  ENDIF
 
  LDA #%00000001         \ Set 6522 System VIA interrupt enable register IER
@@ -1549,22 +1549,22 @@ ENDIF
  TYA                    \ bit 7 from above into bit 0
  ROL A
  TAY
- 
+
  TXA                    \ Shift the remainder in X to the left
  ROL A
  TAX
- 
+
  ASL Q                  \ Shift the dividend in (Y S) to the left
  TYA
  ROL A
  TAY
- 
+
  TXA                    \ Shift the remainder in X to the left
  ROL A
  TAX
- 
+
  DEC P                  \ Decrement the loop counter
- 
+
  BNE LL6                \ Loop back to LL6 until we have done 8 loops
 
  RTS                    \ Return from the subroutine
@@ -1593,7 +1593,7 @@ ENDIF
 \    01F6 : PHA             \ Push A onto the stack
 \
 \    01F7 : EOR TUT,Y       \ EOR the Y-th byte of TUT with A
-\    01FA : STA TUT,Y       
+\    01FA : STA TUT,Y
 \
 \    01FD : JMP (David9)    \ Jump to the address in David9
 \
@@ -1743,7 +1743,7 @@ ENDIF
 
  EQUB ZP                \ LDA(ZP),Y
  EQUB &B1
- 
+
 \ ******************************************************************************
 \
 \ Variables
@@ -2161,7 +2161,7 @@ ENDIF
 
  BPL ML1                \ Loop back to copy and decrypt the next page of bytes
                         \ until we have done them all
- 
+
                         \ S% points to the entry point for the main game code,
                         \ so the following copies the addresses from the start
                         \ of the main code (see the S% label in the main game
@@ -2193,7 +2193,7 @@ ENDIF
 \
 \ Subroutine: IRQ1
 \
-\ The main interrupt handler, which implements Elite's split screen mode.
+\ The main interrupt handler, which implements Elite's split-screen mode.
 \
 \ This routine is similar to the main IRQ1 routine in the main game code, except
 \ it's a bit simpler (it doesn't need to support the mode-flashing effect of
@@ -2283,7 +2283,7 @@ IF PROT AND DISC = 0
  BNE ZQK                \ If BLCNT is non-zero, skip the next instruction
 
  DEC BLCNT              \ If incrementing BLCNT set it to zero, decrement it, so
-                        \ this sets a maximum of 255 on BLCNT 
+                        \ this sets a maximum of 255 on BLCNT
 
 .ZQK
 

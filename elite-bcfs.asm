@@ -97,7 +97,7 @@ ORG &1100               \ load address of ELTcode
                         \ next page
 
 .CHK4
- 
+
  CLC                    \ Add the Y-th byte of this page to the checksum in A
  ADC (ZP),Y
 

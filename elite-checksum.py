@@ -1,9 +1,20 @@
 #!/usr/bin/env python
 #
-# S.BCFS
-# Prepare the Big Code File
-# ELTcode
+# ******************************************************************************
 #
+# ELITE CHECKSUM SCRIPT
+#
+# Written by Kieran Connell.
+#
+# The script has two parts.
+#
+# The first part generates an encrypted version of the "ELTcode" binary, based
+# on the code in the original "S.BCFS" BASIC source program.
+#
+# The second part implements the checksum and encryption functions from the
+# "ELITES" BASIC source program to generate an excrypted "ELITE" binary.
+#
+# ******************************************************************************
 
 from __future__ import print_function
 import sys

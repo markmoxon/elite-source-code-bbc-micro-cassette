@@ -1,3 +1,16 @@
+#!/usr/bin/env python
+#
+# ******************************************************************************
+#
+# ELITE VERIFICATION SCRIPT
+#
+# Written by Kieran Connell, extended by Mark Moxon.
+#
+# This script performs checksums on the compiled files from the build process,
+# and checks them against the extracted files from the original source disc.
+#
+# ******************************************************************************
+
 from __future__ import print_function
 import sys
 import os
