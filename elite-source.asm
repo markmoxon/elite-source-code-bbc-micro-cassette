@@ -23,7 +23,7 @@
 \   * output/PYTHON.bin
 \   * output/SHIPS.bin
 \   * output/WORDS9.bin
-\ 
+\
 \ ******************************************************************************
 
 INCLUDE "elite-header.h.asm"
@@ -69,7 +69,7 @@ OSFILE = &FFDD          \ once
 SHEILA = &FE00          \ Memory-mapped space for accessing internal hardware,
                         \ such as the video ULA, 6845 CRTC and 6522 VIAs
 
-VSCAN = 57              \ Defines the split position in the split screen mode
+VSCAN = 57              \ Defines the split position in the split-screen mode
 
 X = 128                 \ The centre coordinates of the 256 x 192 mode 4 space
 Y = 96                  \ view
@@ -218,7 +218,7 @@ f9 = &77
 \     |                                   |
 \     +-----------------------------------+   &7F00
 \     |                                   |
-\     | Split-screen memory               |
+\     | Memory for the split-screen mode  |
 \     |                                   |
 \     +-----------------------------------+   &6000
 \     |                                   |
@@ -321,7 +321,7 @@ f9 = &77
 \                               Total MOS and ROM memory       33,485          -
 \
 \
-\   Elite's split-screen memory (31 rows of 256 bytes)          7,936          -
+\   Memory for the split-screen mode (31 rows of 256 bytes)     7,936          -
 \   6502 stack and XX3 heap space (at opposite ends of page 1)    256          -
 \
 \                               Total shared memory             8,192          -
@@ -814,7 +814,7 @@ ORG &0000
 .XX18
 
  SKIP 0                 \ Temporary storage used to store coordinates in the
-                        \ LL9 ship-drawing routine 
+                        \ LL9 ship-drawing routine
 
 .QQ17
 
@@ -3054,7 +3054,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \   * Bytes #33-34      Ship line heap address pointer in INWK(34 33)
 \
 \   * Byte #35          Ship energy
-\ 
+\
 \ Let's look at these in more detail.
 \
 \ Ship coordinates (bytes #0-8)
@@ -3151,7 +3151,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ space, and it is is not completely accurate, the three vectors tend to get
 \ stretched over time, so periodically we tidy the vectors in the TIDY routine
 \ to ensure they remain as orthonormal as possible.
-\ 
+\
 \ We can refer to these three vectors in various ways, such as these variations
 \ for the nosev vector:
 \
@@ -3160,11 +3160,11 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \           [ nosev_x ]
 \         = [ nosev_y ]
 \           [ nosev_z ]
-\           
+\
 \           [ (nosev_x_hi nosev_x_lo) ]
 \         = [ (nosev_y_hi nosev_y_lo) ]
 \           [ (nosev_z_hi nosev_z_lo) ]
-\           
+\
 \           [ INWK(10 9) ]
 \         = [ INWK(12 11) ]
 \           [ INWK(14 13) ]
@@ -3178,7 +3178,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ so new ships are spawned facing out of the screen, as their nosev vectors
 \ point in a negative direction along the z-axis, which is positive into the
 \ screen and negative out of the screen.
-\ 
+\
 \ Internally, we store a vector value of 1 as 96, to support fractional values,
 \ and the orientation vectors are stored as 16-bit sign-magnitude numbers. 96 is
 \ &60, and &60 with bit 7 set is &E0, so we store the above vectors like this:
@@ -3257,7 +3257,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \
 \     * For ships:
 \
-\       * Bit 0:    0 = no E.C.M.          
+\       * Bit 0:    0 = no E.C.M.
 \                   1 = has E.C.M.
 \
 \       * Bits 1-5: n = aggression level (see TACTICS part 7)
@@ -4515,7 +4515,7 @@ LOAD_A% = LOAD%
 \
 \   4. Confirm that we are within a small "cone" of safe approach.
 \
-\   5. Unsure at this point - needs more investigation.
+\   5. Confirm that the slot is less than 33.6 degrees off the horizontal.
 \
 \ Here's a further look at the more complicated of these tests.
 \
@@ -4553,16 +4553,16 @@ LOAD_A% = LOAD%
 \ The station's nose vector has length 1, because it's a unit vector. We
 \ actually store a 1 in a unit vector as &6000, because this means we don't
 \ have to deal with fractions. We can also just consider the high byte of
-\ this figure, so 1 has a high byte of &60 when we're talking about vectors
+\ this figure, so 1 has a high byte of 96 when we're talking about vectors
 \ like the station's nose vector.
 \
 \ So the nose vector is a big stick, poking out of the slot, with a length of
-\ 1 unit (stored as a high byte of &60 internally).
+\ 1 unit (stored as a high byte of 96 internally).
 \
 \ Now, if that vector was coming perpendicularly out of the screen towards us,
 \ we would be on a perfect approach angle, the stick would be poking in our
 \ face, and the length of the stick in our direction would be the full length
-\ of 1, or &60. However, if our angle of approach is off by a bit, then the
+\ of 1, or 96. However, if our angle of approach is off by a bit, then the
 \ nose vector won't be pointing straight at us, and the end of the stick will
 \ be further away from us - less "in our face", if you like.
 \
@@ -4573,7 +4573,7 @@ LOAD_A% = LOAD%
 \ Or, to put it mathematically, the z-coordinate of the end of the stick, or
 \ nosev_z, is smaller when our approach angle is off. The routine below uses
 \ this method to see how well we are approaching the slot, by comparing nosev_z
-\ with &D6, so what does that mean?
+\ with 214, so what does that mean?
 \
 \ We can draw a triangle showing this whole stick-slot situation, like this. The
 \ left triangle is from the diagram above, while the triangle on the right is
@@ -4594,34 +4594,34 @@ LOAD_A% = LOAD%
 \ bottom, and the ship is at the top, looking down towards the slot. We know
 \ that the right-hand edge of the triangle - the adjacent side - has length
 \ nosev_z, while the hypotenuse is the length of the space station's vector, 1
-\ (stored as &60). So we can do some trigonometry, like this, if we just
+\ (stored as 96). So we can do some trigonometry, like this, if we just
 \ consider the high bytes of our vectors:
 \
 \   cos(t) = adjacent / hypotenuse
-\          = nosev_z_hi / &60
+\          = nosev_z_hi / 96
 \
 \ so:
 \
-\   nosev_z_hi = &60 * cos(t)
+\   nosev_z_hi = 96 * cos(t)
 \
 \ We need our approach angle to be off by less than 26 degrees, so this
 \ becomes the following, if we round down the result to an integer:
 \
-\   nosev_z_hi = &60 * cos(26)
-\               = &56
+\   nosev_z_hi = 96 * cos(26)
+\              = 86
 \
 \ So, we get this:
 \
-\   The angle of approach is less than 26 degrees if nosev_z_hi >= &56
+\   The angle of approach is less than 26 degrees if nosev_z_hi >= 86
 \
 \ There is one final twist, however, because we are approaching the slot head
 \ on, the z-zxis from our perspective points into the screen, so that means
 \ the station's nose vector is coming out of the screen towards us, so it has
 \ a negative z-coordinate. So the station's nose vector in this case is
 \ actually in the reverse direction, so we need to reverse the check and set
-\ the sign bit, to this:
+\ the sign bit, to this. Setting bit 7 of 86 gives us 214, so we get this:
 \
-\   The angle of approach is less than 26 degrees if nosev_z_hi <= &D6
+\   The angle of approach is less than 26 degrees if nosev_z_hi <= 214
 \
 \ And that's the check we make below to make sure our docking angle is correct.
 \
@@ -4632,6 +4632,34 @@ LOAD_A% = LOAD%
 \ place in space. That place is within a cone that extends out from the slot
 \ and into space, and we can check where we are in that cone by checking the
 \ angle of the vector between our position and the space station.
+\
+\ 5. Horizontal docking slot
+\ --------------------------
+\ The space station's roofv vector points out of the top of the space station
+\ (OK, it dosn't have a roof, but it still points up). The station's blueprint
+\ has the slot in a vertical orientation, so this means roofv points in the
+\ same direction as the slot (when we do a successful docking, the space
+\ station is actually on its side, which makes this part a little harder to
+\ visualise).
+\
+\ As we are approaching the station and trying to dock, then, the roof vector
+\ is pointing to the side when the slot is nice and horizontal. If we start to
+\ veer away from the horizontal, the roof vector will start to tilt further up
+\ or down, so instead of pointing to 3 o'clock or 9 o'clock, it will tilt
+\ above or below.
+\
+\ As the vector tilts away from the horizontal, its x-coordinate component will
+\ start to shrink, as the x-axis goes from right to left. So this test:
+\
+\   |roofv_x_hi| >= 80
+\
+\ makes sure that the slot is reasonably horizontal. Specifically, the maximum
+\ angle we are allowed to be off the horizontal by is given by:
+\
+\   cos(t) = 80 / 96
+\
+\ which gives an angle of t = 33.6 degrees. So if we approach with the slot at
+\ an angle of more than 33.6 degrees, we will fail docking.
 \
 \ ******************************************************************************
 
@@ -4645,8 +4673,8 @@ LOAD_A% = LOAD%
                         \ (so trying to dock at a station that we have annoyed
                         \ does not end well)
 
- LDA INWK+14            \ 2. If nosev_z_hi < &D6, jump down to MA62 to fail
- CMP #&D6               \ docking, as the angle of approach is greater than 26
+ LDA INWK+14            \ 2. If nosev_z_hi < 214, jump down to MA62 to fail
+ CMP #214               \ docking, as the angle of approach is greater than 26
  BCC MA62               \ degrees (see the notes on test 2 above)
 
  JSR SPS4               \ Call SPS4 to get the vector to the space station
@@ -4656,13 +4684,13 @@ LOAD_A% = LOAD%
  BMI MA62               \ if it is negative, we are facing away from the
                         \ station, so jump to MA62 to fail docking
 
- CMP #&59               \ 4. If z-axis < &59, jump to MA62 to fail docking
- BCC MA62
+ CMP #89                \ 4. If z-axis < 89, jump to MA62 to fail docking, as
+ BCC MA62               \ we are not in the safe cone of approach
 
- LDA INWK+16            \ 5. If |roofv_x_hi| < &50, jump to MA62 to fail
- AND #%01111111         \ docking
- CMP #&50               \ Is this something to do with matching the slot
- BCC MA62               \ rotation?
+ LDA INWK+16            \ 5. If |roofv_x_hi| < 80, jump to MA62 to fail docking,
+ AND #%01111111         \ as the slot is more than 36.6 degrees from horizontal
+ CMP #80
+ BCC MA62
 
 .^GOIN
 
@@ -5118,9 +5146,9 @@ LOAD_A% = LOAD%
 
  LDY #9                 \ Call MAS1 with X = 0, Y = 9 to do the following:
  JSR MAS1               \
-                        \ (x_sign x_hi x_lo) += (nosev_x_hi nosev_x_lo) * 2
+                        \   (x_sign x_hi x_lo) += (nosev_x_hi nosev_x_lo) * 2
                         \
-                        \ A = |x_hi|
+                        \   A = |x_hi|
 
  BNE MA23S              \ If A > 0, jump to MA23S to skip the following, as we
                         \ are too far from the planet in the x-direction to
@@ -5128,9 +5156,9 @@ LOAD_A% = LOAD%
 
  LDX #3                 \ Call MAS1 with X = 3, Y = 11 to do the following:
  LDY #11                \
- JSR MAS1               \ (y_sign y_hi y_lo) += (nosev_y_hi nosev_y_lo) * 2
+ JSR MAS1               \   (y_sign y_hi y_lo) += (nosev_y_hi nosev_y_lo) * 2
                         \
-                        \ A = |y_hi|
+                        \   A = |y_hi|
 
  BNE MA23S              \ If A > 0, jump to MA23S to skip the following, as we
                         \ are too far from the planet in the y-direction to
@@ -5138,20 +5166,20 @@ LOAD_A% = LOAD%
 
  LDX #6                 \ Call MAS1 with X = 6, Y = 13 to do the following:
  LDY #13                \
- JSR MAS1               \ (z_sign z_hi z_lo) += (nosev_z_hi nosev_z_lo) * 2
+ JSR MAS1               \   (z_sign z_hi z_lo) += (nosev_z_hi nosev_z_lo) * 2
                         \
-                        \ A = |z_hi|
+                        \   A = |z_hi|
 
  BNE MA23S              \ If A > 0, jump to MA23S to skip the following, as we
                         \ are too far from the planet in the z-direction to
                         \ bump into a space station
 
- LDA #&C0               \ Call FAROF2 to compare x_hi, y_hi and z_hi with &C0,
- JSR FAROF2             \ which will set the C flag if all three are < &C0, or
-                        \ clear the C flag if any of them are >= &C0
+ LDA #192               \ Call FAROF2 to compare x_hi, y_hi and z_hi with 192,
+ JSR FAROF2             \ which will set the C flag if all three are < 192, or
+                        \ clear the C flag if any of them are >= 192
 
  BCC MA23S              \ Jump to MA23S if any one of x_hi, y_hi or z_hi are
-                        \ >= &C0 (i.e. they must all be < &C0 for us to be near
+                        \ >= 192 (i.e. they must all be < 192 for us to be near
                         \ enough to the planet to bump into a space station)
 
  LDA QQ11               \ If the current view is a space view, call WPLS to
@@ -7877,59 +7905,59 @@ NEXT
 \ Non-horizontal lines in Elite are drawn using Bresenham's line algorithm
 \ (horizontal lines use a much simpler routine at HLOIN). Let's look at how that
 \ works.
-\ 
+\
 \ The basic idea is quite simple. Let's consider a line from (X1, Y1) to (X2,
 \ Y2), where that line slopes down and right at a reasonably shallow angle, like
 \ this:
-\ 
+\
 \   (X1, Y1) ''-..__
 \                   ''--..__
 \                           ''--..__
 \                                   ''--.._
 \                                           (X2, Y2)
-\ 
+\
 \ As we move along the line from (X1, Y1) to (X2, Y2), let's say that we move
 \ across by delta_x and down by delta_y, like this:
-\ 
-\ 
+\
+\
 \            <---------- delta_x --------->
-\                                             
+\
 \   (X1, Y1) ''-..__                                    ^
 \                   ''--..__                            | delta_y
 \                           ''--..__                    |
 \                                   ''--.._             v
 \                                           (X2, Y2)
-\ 
+\
 \ So we have the following:
-\ 
+\
 \   * As we move along the line by delta_x in the x-direction, we move down by
 \     delta_y in the y-direction.
-\ 
+\
 \ If we divide each side of the triangle by delta_x, we also get the following:
-\ 
+\
 \   * As we move along the line by 1 in the x-direction, we move down by
 \     (delta_y / delta_x) in the y-direction.
-\ 
+\
 \ This is the core of the algorithm: if we step along the x-axis, 1 pixel at a
 \ time, then if we also move down by (delta_y / delta_x) in the y-direction and
 \ plot a point each time, we'll have our line. In pseudo-code, it looks like
 \ this:
-\ 
+\
 \   function line(x1, y1, x2, y2)
 \     delta_x = x2 - x1
 \     delta_y = y2 - y1
 \     y = y1
-\     for x from x1 to x2 
+\     for x from x1 to x2
 \       plot(x, y)
 \       y = y + (delta_y / delta_x)
-\ 
+\
 \ If our screen had an infinite resolution, then this would do nicely... but, of
 \ course, it doesn't, so we need to refine this idea. Internally we still do the
 \ same calculation for y, but when we come to plot the point with plot(x, y), we
 \ need to convert y into an integer. We could just convert y to the nearest
 \ integer each time, but working with floating point numbers is pretty slow, so
 \ the algorithm speeds things up by using the concept of a "slope error".
-\ 
+\
 \ We're drawing a pixel line, so each time we step along the x-axis by 1 pixel,
 \ we have a choice of either staying where we are in the y-axis, or moving down
 \ one line (i.e. incrementing y by 1). We can't increase y by fractions, so
@@ -7940,18 +7968,18 @@ NEXT
 \ onto the next line, at which point we add 1 to y. This tally is known as the
 \ "slope error", as it's a running tally of the current error between our pixels
 \ and the real slope of the line.
-\ 
+\
 \ There's one final tweak, and that's starting our slope error tally at 0.5,
 \ which denotes the centre of the starting pixel. So the final algorithm looks
 \ like this:
-\ 
+\
 \   function line(x1, y1, x2, y2)
 \     delta_x = x2 - x1
 \     delta_y = y2 - y1
 \     slope_err = abs(delta_y / delta_x)
 \     error = 0.5
-\     y = y1 
-\     for x from x1 to x2 
+\     y = y1
+\     for x from x1 to x2
 \       plot(x, y)
 \       error = error + slope_err
 \       if error >= 1.0 then
@@ -7965,13 +7993,13 @@ NEXT
 \ so that 256 is equivalent to 1.0. We can now initialise error to 128, and
 \ instead of checking whether error >= 1.0, we can check whether error is >=
 \ 256, like this:
-\ 
+\
 \   function line(x1, y1, x2, y2)
 \     delta_x = x2 - x1
 \     delta_y = y2 - y1
 \     slope_err = abs(delta_y / delta_x)
 \     error = 128
-\     y = y1 
+\     y = y1
 \     for x = x1 to x2
 \       plot(x, y)
 \       error = error + slope_err
@@ -7983,13 +8011,13 @@ NEXT
 \ then error >= 256 is the same as saying "has the addition just overflowed", in
 \ which case we don't need to subtract 256 as the byte will already have rolled
 \ around to 0. So here is the final algorithm used in Elite:
-\ 
+\
 \   function line(x1, y1, x2, y2)
 \     delta_x = x2 - x1
 \     delta_y = y2 - y1
 \     slope_err = abs(delta_y / delta_x)
 \     error = 128
-\     y = y1 
+\     y = y1
 \     for x = x1 to x2
 \       plot(x, y)
 \       error = error + slope_err
@@ -7998,7 +8026,7 @@ NEXT
 \
 \ This is the algorithm that's implemented in part 4 of the routine below, for
 \ gently sloping lines that go right and down. It uses Q, S, X and Y as follows:
-\ 
+\
 \   Q = |delta_y| / |delta_x|
 \   S = 128
 \   Y = Y1
@@ -8007,12 +8035,12 @@ NEXT
 \     S = S + Q
 \     if C flag set then
 \       inc Y
-\ 
+\
 \ The full routine below implements the same basic algorithm multiple times,
 \ tweaked to cater for all the other variations of sloping line (such as more
 \ vertical lines that slope sharply up and to the left, for example). But the
 \ same principles apply, just with different signs.
-\ 
+\
 \ Also, it's worth noting that Elite doesn't plot the last pixel in any of its
 \ lines. This is to prevent corners from disappearing; if you imagine us drawing
 \ a triangle by drawing a line from point A to point B, then from B to C, and
@@ -8032,38 +8060,38 @@ NEXT
 \
 \   1. Calculate delta_x, delta_y
 \      Choose either parts 2-4 or parts 5-7
-\ 
+\
 \ If the line is closer to being horizontal than vertical, we step right along
 \ the x-axis:
-\ 
+\
 \   2. Potentially swap coordinates so X1 < X2
 \      Set up screen address variables
 \      Calculate |delta_y| / |delta_x|
 \      Choose either part 3 or part 4
-\ 
+\
 \   3. The line is going right and up (no swap) or left and down (swap)
 \      X1 < X2 and Y1-1 > Y2
 \      Draw from (X1, Y1) at bottom left to (X2, Y2) at top right
 \      If we swapped, don't plot (X1, Y1)
-\ 
+\
 \   4. The line is going right and down (no swap) or left and up (swap)
 \      X1 < X2 and Y1-1 <= Y2
 \      Draw from (X1, Y1) at top left to (X2, Y2) at bottom right
 \      If we didn't swap, skip plotting (X1, Y1)
-\ 
+\
 \ If the line is closer to being vertical than horizontal, we step up along
 \ the y-axis:
-\ 
+\
 \   5. Potentially swap coordinates so Y1 >= Y2
 \      Set up screen address variable
 \      Calculate |delta_x| / |delta_y|
 \      Choose either part 6 or part 7
-\ 
+\
 \   6. The line is going up and left (no swap) or down and right (swap)
 \      X1 < X2 and Y1 >= Y2
 \      Draw from (X1, Y1) at bottom right to (X2, Y2) at top left
 \      If we didn't swap, skip plotting (X1, Y1)
-\ 
+\
 \   7. The line is going up and right (no swap) or down and left (swap)
 \      X1 >= X2 and Y1 >= Y2
 \      Draw from (X1, Y1) at bottom left to (X2, Y2) at top right
@@ -8095,7 +8123,7 @@ NEXT
  EOR #%11111111         \ Negate the result in A by flipping all the bits and
  ADC #1                 \ adding 1, i.e. using two's complement to make it
                         \ positive
- 
+
 
  SEC                    \ Set the C flag, ready for the subtraction below
 
@@ -8158,7 +8186,7 @@ NEXT
  LDA X2                 \ Swap the values of X1 and X2
  STA X1
  STX X2
- 
+
  TAX                    \ Set X = X1
 
  LDA Y2                 \ Swap the values of Y1 and Y2
@@ -8455,7 +8483,7 @@ NEXT
  LDA X2                 \ Swap the values of X1 and X2
  STA X1
  STX X2
- 
+
  TAX                    \ Set X = X1
 
  LDA Y2                 \ Swap the values of Y1 and Y2
@@ -8562,7 +8590,7 @@ NEXT
 
  BCC LFT                \ If X2 < X1 - 1 then jump to LFT, as we need to draw
                         \ the line to the left and down
- 
+
 \ ******************************************************************************
 \
 \ Subroutine: LL30, LOIN (Part 6 of 7)
@@ -9205,7 +9233,7 @@ NEXT
  LDA Y1                 \ Fetch the y-coordinate offset into A and clear the
  AND #%01111111         \ sign bit, so A = |Y1|
 
- CMP #96                \ If |Y1| >= 96 then it's off the screen (as 96 is half 
+ CMP #96                \ If |Y1| >= 96 then it's off the screen (as 96 is half
  BCS PX4                \ the screen height), so return from the subroutine (as
                         \ PX4 contains an RTS)
 
@@ -9258,7 +9286,7 @@ NEXT
 \
 \ Deep dive: Drawing monochrome pixels in mode 4
 \ ----------------------------------------------
-\ The top part of Elite's split screen mode - the monochrome mode 4 part -
+\ The top part of Elite's split-screen mode - the monochrome mode 4 part -
 \ consists of 192 rows of pixels, with 256 pixels in each row. That sounds nice
 \ and simple... except the way the BBC Micro stores its screen memory isn't
 \ completely straightforward, and to understand Elite's drawing routines, an
@@ -9811,9 +9839,9 @@ NEXT
                         \ storing this line
 
  LDA SWAP               \ If SWAP = 0, then we didn't have to swap the line
- BEQ BL9                \ coordinates around during the clipping process, so 
+ BEQ BL9                \ coordinates around during the clipping process, so
                         \ jump to BL9 to skip the following swap
- 
+
  LDA X1                 \ Otherwise the coordinates were swapped by the call to,
  LDY X2                 \ LL145 above, so we swap (X1, Y1) and (X2, Y2) back
  STA X2                 \ again
@@ -9874,7 +9902,7 @@ NEXT
  STA K5+2               \   * K5(3 2) = screen y-coordinate of this point
  LDA K6+3               \
  STA K5+3               \ They now become the "previous point" in the next call
-            
+
 
  LDA CNT                \ Set CNT = CNT + STP
  CLC
@@ -10068,7 +10096,7 @@ NEXT
 \
 \ The second one is essentially the same as the pitch equation from MVS4,
 \ just applied to the y-coordinate projected into 2D (i.e. divided by z).
-\ 
+\
 \ The first one, though, is still a bit of a mystery. Removing this part of the
 \ calculation doesn't seem to affect the look of the stardust field, and with
 \ the maximum magnitude of beta being 8, and y always being less than 120, the
@@ -10126,13 +10154,13 @@ NEXT
                         \   Q = 64 * speed / z_hi
 
  LDA SZL,Y              \ We now calculate the following:
- SBC DELT4              \                 
+ SBC DELT4              \
  STA SZL,Y              \  (z_hi z_lo) = (z_hi z_lo) - DELT4(1 0)
                         \
                         \ starting with the low bytes
 
  LDA SZ,Y               \ And then we do the high bytes
- STA ZZ                 \ 
+ STA ZZ                 \
  SBC DELT4+1            \ We also set ZZ to the original value of z_hi, which we
  STA SZ,Y               \ use below to remove the existing particle
                         \
@@ -10164,7 +10192,7 @@ NEXT
                         \   (? R) = YY(1 0) = (A P) + y_lo
 
  LDA Y1                 \ And then we do the high bytes with:
- ADC YY+1               \ 
+ ADC YY+1               \
  STA YY+1               \   S = YY+1 = y_hi + YY+1
  STA S                  \
                         \ so we get our result:
@@ -10230,7 +10258,7 @@ NEXT
                         \   A = YY+1 = y + alpha * x / 256
                         \
                         \ i.e. A is the new value of y, divided by 256
-                        
+
  EOR ALP2               \ EOR A with the correct sign of the roll angle alpha,
                         \ so A has the opposite sign to the roll angle alpha
 
@@ -10255,12 +10283,12 @@ NEXT
 
  LDA YY+1               \ Set A to y_hi and set it to the flipped sign of beta
  EOR BET2+1
- 
+
  JSR MULTS-2            \ Call MULTS-2 to calculate:
                         \
                         \   (A P) = X * A
                         \         = -beta * y_hi
- 
+
  STA Q                  \ Store the high byte of the result in Q, so:
                         \
                         \   Q = -beta * y_hi / 256
@@ -10296,12 +10324,12 @@ NEXT
 
  TXA
  STA SXL,Y              \ Store the low byte X in x_lo
- 
+
                         \ So (XX+1 x_lo) now contains:
                         \
                         \   x = x + 2 * (beta * y / 256) ^ 2
                         \
-                        \ which is result 7 above 
+                        \ which is result 7 above
 
  LDA YY                 \ Set (S R) = YY(1 0) = y
  STA R
@@ -10313,7 +10341,7 @@ NEXT
 
  LDA #0                 \ Set P = 0
  STA P
- 
+
  LDA BETA               \ Set A = -beta, so:
  EOR #%10000000         \
                         \   (A P) = (-beta 0)
@@ -10598,7 +10626,7 @@ NEXT
                         \
                         \   (A P) = X * A
                         \         = beta * y_hi
- 
+
  STA Q                  \ Store the high byte of the result in Q, so:
                         \
                         \   Q = beta * y_hi / 256
@@ -10638,12 +10666,12 @@ NEXT
 
  TXA
  STA SXL,Y              \ Store the low byte X in x_lo
- 
+
                         \ So (XX+1 x_lo) now contains:
                         \
                         \   x = x - 2 * (beta * y / 256) ^ 2
                         \
-                        \ which is result 7 above 
+                        \ which is result 7 above
 
  LDA YY                 \ Set (S R) = YY(1 0) = y
  STA R
@@ -10657,7 +10685,7 @@ NEXT
 
  LDA #0                 \ Set P = 0
  STA P
- 
+
  LDA BETA               \ Set A = beta, so (A P) = (beta 0) = beta * 256
 
  JSR PIX1               \ Call PIX1 to calculate the following:
@@ -12709,7 +12737,7 @@ NEXT
 \
 \ Variable: TVT1
 \
-\ Palette bytes for use with the split screen mode (see IRQ1 below for more
+\ Palette bytes for use with the split-screen mode (see IRQ1 below for more
 \ details).
 \
 \ Palette data is given as a set of bytes, with each byte mapping a logical
@@ -12772,7 +12800,7 @@ NEXT
 \
 \ Subroutine: IRQ1
 \
-\ The main interrupt handler, which implements Elite's split screen mode.
+\ The main interrupt handler, which implements Elite's split-screen mode.
 \
 \ IRQ1V is set to point to IRQ1 by elite-loader.asm.
 \
@@ -13242,7 +13270,7 @@ LOAD_C% = LOAD% +P% - CODE%
  CMP #%10000010         \ 1 are set (AI is enabled and the target is slot 1, the
  BEQ TA35               \ space station), jump to TA35 to destroy this missile,
                         \ as the space station ain't kidding around
- 
+
  LDY #31                \ Fetch byte #31 (the exploding flag) of the target ship
  LDA (V),Y              \ into A
 
@@ -13390,7 +13418,7 @@ LOAD_C% = LOAD% +P% - CODE%
  CPX #COPS              \ If this is a cop, jump down to TA62
  BEQ TA62
 
- LDA SSPR               \ If we aren't within range of the space station, jump 
+ LDA SSPR               \ If we aren't within range of the space station, jump
  BEQ TA62               \ down to TA62
 
  LDA INWK+32            \ This is a pirate or bounty hunter, but we are inside
@@ -13494,7 +13522,7 @@ LOAD_C% = LOAD% +P% - CODE%
  BCC TA7                \ the following
 
  JSR DORND              \ Set A and X to random numbers
- 
+
  ORA #104               \ Bump A up to at least 104 and store in the roll
  STA INWK+29            \ counter, to gives the ship a noticeable roll
 
@@ -13563,7 +13591,7 @@ LOAD_C% = LOAD% +P% - CODE%
  JSR DORND              \ Set A and X to random numbers
 
  AND #31                \ Restrict A to a random number in the range 0-31
- 
+
  CMP T                  \ If A >= T, which is quite likely, though less likely
  BCS TA3                \ with higher numbers of missiles, jump to TA3
 
@@ -13696,7 +13724,7 @@ LOAD_C% = LOAD% +P% - CODE%
  LDA INWK+7             \ If z_hi >= 3 then the ship is quite far away, so jump
  CMP #3                 \ down to TA5
  BCS TA5
- 
+
  LDA INWK+1             \ Otherwise set A = x_hi OR y_hi and extract bits 1-7
  ORA INWK+4
  AND #%11111110
@@ -13714,7 +13742,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
  CMP INWK+32            \ If A >= byte #32 (the ship's AI flag) then jump down
  BCS TA15               \ to TA15 so it heads away from us
- 
+
                         \ We get here if A < byte #32, and the chances of this
                         \ being true are greater with high values of byte #32.
                         \ In other words, higher byte #32 values increase the
@@ -13904,10 +13932,10 @@ LOAD_C% = LOAD% +P% - CODE%
 
  STA K3+2,X             \ Store K(3 2 1) in K3+X(2 1 0), starting with the sign
                         \ byte
- 
+
  LDA K+2                \ And then doing the high byte
  STA K3+1,X
- 
+
  LDA K+1                \ And finally the low byte
  STA K3,X
 
@@ -13934,43 +13962,43 @@ LOAD_C% = LOAD% +P% - CODE%
 \ ----------------------------
 \ There are a number of steps we have to take to work out whether a ship is in
 \ our crosshairs. They are as follows.
-\ 
+\
 \   * Make sure the ship is in front of us (z_sign is positive)
-\ 
+\
 \   * Make sure this isn't the planet or sun (bit 7 of the ship type is clear)
-\ 
+\
 \   * Make sure the ship isn't exploding (bit 5 of byte #31 is clear)
-\ 
+\
 \   * Make sure the ship is close enough to be targeted or hit (both x_hi and
 \     y_hi are 0)
-\ 
-\   * Test whether our crosshairs are within the targetable area for this ship 
-\ 
+\
+\   * Test whether our crosshairs are within the targetable area for this ship
+\
 \ This last one needs further explanation. Each ship type has, as part of its
 \ blueprint, a 16-bit value that defines the area of the ship that can be locked
 \ onto by a missle or hit by laser fire. The bigger this value, the easier the
 \ ship is to hit.
-\ 
+\
 \ The key to the calculation is the observation that the ship's x- and
 \ y-coordinates give the horizontal and vertical distances between our line of
 \ fire and the ship. This is because the z-axis points out of the nose of our
 \ ship, and is therefore the same as our line of fire, so the other two axes
 \ give the deviation of the other ship's position from this line.
-\ 
+\
 \ We've already confirmed in the checks above that x_hi and y_hi are both zero,
 \ so we calculate this:
-\ 
+\
 \   (S R) = x_lo^2 + y_lo^2
-\ 
+\
 \ which, using Pythagoras, is the same as the square of the distance from our
 \ crosshairs to the ship.
-\ 
+\
 \ If this calculation doesn't fit into the 16 bits of (S R) then we know we
 \ can't be aiming at the ship, but if it does, we compare (S R) with the 16-bit
 \ targetable area from the ship's blueprint, and if (S R) is less than the
 \ targetable area, the ship is determined to be in our crosshairs and can
 \ be hit or targeted.
-\ 
+\
 \ So the targetable area is the square of the distance that the ship can be from
 \ the centre of our crosshairs but still be locked onto by our missiles or hit
 \ by our lasers.
@@ -14540,7 +14568,7 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ there are fewer sections in the rings and thay are
                         \ quite ploygonal (compared to the step size of 4 used
                         \ in the much rounder launch rings)
-                    
+
                         \ Fall through into HFS2 to draw the launch tunnel rings
 }
 
@@ -14858,7 +14886,7 @@ LOAD_C% = LOAD% +P% - CODE%
                         \         = alpha * y
 
  STA Q                  \ Set Q = high byte of alpha * y
- 
+
  LDA XX                 \ Set (S R) = XX(1 0)
  STA R                  \           = x
  LDA XX+1               \
@@ -14875,7 +14903,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
  TXA
  STA SXL,Y              \ Store the low byte X in x_lo
- 
+
                         \ So (XX+1 x_lo) now contains result 5 above:
                         \
                         \   x = x - alpha * x * y
@@ -14950,7 +14978,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
  JMP STL2               \ We have more stardust to process, so jump back up to
                         \ STL2 for the next particle
-                        
+
                         \ Fall through into ST2 to restore the signs of the
                         \ following if this is the right view: ALPHA, ALP2,
                         \ ALP2+1, BET2 and BET2+1
@@ -14967,11 +14995,11 @@ LOAD_C% = LOAD% +P% - CODE%
 
  EOR #%10000000         \ If this is the right view, flip the sign of ALP2+1
  STA ALP2+1
- 
+
  LDA BET2               \ If this is the right view, flip the sign of BET2
  EOR RAT
  STA BET2
- 
+
  EOR #%10000000         \ If this is the right view, flip the sign of BET2+1
  STA BET2+1
 
@@ -16046,7 +16074,7 @@ NEXT
  STA S                  \ Set (S R) = (A P)
  LDA P
  STA R
- 
+
  RTS                    \ Return from the subroutine
 }
 
@@ -16084,7 +16112,7 @@ NEXT
 
  LDA XX15               \ Set A = XX15
 
- JSR MULT12             \ Set (S R) = Q * A = 
+ JSR MULT12             \ Set (S R) = Q * A =
 
  LDX INWK+2,Y           \ Set Q = the Y+2-th byte of INWK, i.e. vect_y
  STX Q
@@ -16335,7 +16363,7 @@ NEXT
 
  TXA                    \ Set A to the high byte of the result with the sign bit
  AND #%01111111         \ cleared, so (A ?) = |X * A + (S R)|
- 
+
                         \ The following is identical to TIS2, except Q is
                         \ hard-coded to 96, so this does A = A / 96
 
@@ -16370,7 +16398,7 @@ NEXT
  LDA T1                 \ Fetch the result from T1 into A
 
  ORA T                  \ Give A the sign of the result that we stored above
- 
+
  RTS                    \ Return from the subroutine
 }
 
@@ -16943,8 +16971,8 @@ NEXT
 .AR4
 
  LDX T1                 \ If T1 is negative, i.e. P and Q have different signs,
- BMI AR3                \ jump down to AR3 to change 
-                        
+ BMI AR3                \ jump down to AR3 to change
+
  RTS                    \ Otherwise P and Q have the same sign, so our result is
                         \ correct and we can return from the subroutine
 
@@ -16959,7 +16987,7 @@ NEXT
  STX P                  \
  TXA                    \ This also sets A = P (which now contains the original
                         \ argument |Q|)
- 
+
 
  JSR ARS1               \ Call ARS1 to set the following from the lookup table:
                         \
@@ -16974,7 +17002,7 @@ NEXT
  BCS AR4                \ Jump to AR4 to continue the calculation (this BCS is
                         \ effectively a JMP as the subtraction will never
                         \ underflow, as ARS1 returns values in the range 0-31)
- 
+
 
 .AR2
 
@@ -18127,89 +18155,89 @@ NEXT
 \ -------------------------
 \ To display a ship on the iconic 3D scanner in Elite, there are six main hoops
 \ we have to jump through.
-\ 
+\
 \ We start with the ship's coordinates in space, given relative to our position
 \ (and therefore relative to the centre of the ellipse in the scanner, which
 \ represents our ship). Let's call the other ship's coordinates (x, y, z), with
 \ our position being at the origin (0, 0, 0).
-\ 
+\
 \ We want to display a dot on the scanner at the ship's position, as well as a
 \ stick that drops down (or rises up) from the dot onto the scanner's ellipse.
-\ 
+\
 \ The steps we have to perform are as follows:
-\ 
+\
 \   1. Check that the ship is within the scanner range (and stop if it isn't)
-\ 
+\
 \   2. Set X1 = the screen x-coordinate of the ship's dot (and stick)
-\ 
+\
 \   3. Set SC = the screen y-coordinate of the base of the ship's stick
-\ 
+\
 \   4. Set A = the screen height of the ship's stick
-\ 
+\
 \   5. Use these values to calculate Y1, the screen y-coordinate of the ship's
 \      dot
-\ 
+\
 \   6. Draw the dot at (X1, Y1) and draw a stick of length A from that dot (up
 \      or down as appropriate)
-\ 
+\
 \ Before looking at these steps individually, first we need to talk about the
 \ scanner's dimensions.
-\ 
+\
 \ Scanner dimensions
 \ ------------------
 \ In terms of screen coordinates, the scanner is laid out as follows.
-\ 
+\
 \ The rectangle containing the scanner and compass has the following range of
 \ screen coordinates inside the rectangle (so we definitely don't want to draw
 \ anything outside these values, or the scanner will leak out into the
 \ surrounding dashboard and space view):
-\ 
+\
 \   * x-coordinate from  50 to 204
 \   * y-coordinate from 193 to 246
-\ 
+\
 \ The scanner's ellipse is 138 screen coordinates wide and 36 screen coordinates
 \ high, and the range of coordinates is:
-\ 
+\
 \   * x-coordinate from  56 to 192
 \   * y-coordinate from 204 to 239
-\ 
+\
 \ The centre of the scanner is at (124, 220).
-\ 
+\
 \ That said, this routine restricts itself to a slightly smaller range when
 \ passing coordinates to the drawing routines, only drawing dots and sticks
 \ within this range:
-\ 
+\
 \   * x-coordinate from  60 to 186
 \   * y-coordinate from 194 to 246
-\ 
+\
 \ These values are explained in the following.
-\ 
+\
 \ Now that we know the screen area in which we are going to show our ships,
 \ let's look at the different things we have to do.
-\ 
+\
 \ Check the ship is in range
 \ --------------------------
 \ Elite does a simple check to see whether to show a ship on the scanner. Ship
 \ coordinates are stored in the INWK workspace using three bytes, like this:
-\ 
+\
 \   x = (x_sign x_hi x_lo)
 \   y = (y_sign y_hi y_lo)
 \   z = (z_sign z_hi z_lo)
-\ 
+\
 \ The sign bytes only use bit 7, so the actual value is in the high and low
 \ bytes (these two bytes store the absolute value, without the sign).
-\ 
+\
 \ A ship should be shown on the scanner if bits 7 and 6 of all the high bytes
 \ are 0. This means that ships to be shown on the scanner have high bytes in the
 \ range 0-63, as 63 = %00111111, and because the sign is kept separately, it
 \ means that for ships that we show on the scanner, the following are true:
-\ 
+\
 \   -63 <= x_hi <= 63
 \   -63 <= y_hi <= 63
 \   -63 <= z_hi <= 63
-\ 
+\
 \ We can now move on to calculating the screen coordinates of the dot and stick.
-\ 
+\
 \ Calculate the x-coordinate
 \ --------------------------
 \ The x-coordinate is the easiest, as all we have to do is scale x so that it
@@ -18217,11 +18245,11 @@ NEXT
 \ range of (x_sign x_hi) is already pretty close to the full width of the
 \ scanner (the ellipse is 138 screen coordinates wide, while the range of
 \ (x_sign x_hi) values from -63 to +63 is 127, which is in the right ballpark).
-\ 
+\
 \ So if we take the x-coordinate of the centre of the scanner, 124, and add
 \ (x_sign x_hi), we get a range of 61 to 187, which fits nicely within the the
 \ ellipse range of 56 to 192 and is quick and easy to calculate.
-\ 
+\
 \ There is one small tweak to this, however. If we add 124 to (x_sign x_hi),
 \ then if the other ship is dead ahead of us - i.e. when (x_sign x_hi) = 0 - the
 \ dot will be drawn with the left pixel on the centre line and the right pixel
@@ -18233,14 +18261,14 @@ NEXT
 \ has the benefit of making the end-points even numbers, as the range of 123 +
 \ (x_sign x_hi) is 60 to 186 (and even numbers are good news when your pixels
 \ are always 2 screen coordinates wide).
-\ 
+\
 \ So this is how we get the screen x-coordinate of the ship on the scanner:
-\ 
+\
 \   X1 = 123 + (x_sign x_hi)
-\   
+\
 \ This was the easy one. Now for the y-coordinate of the base of the stick,
 \ which is a bit more challenging.
-\ 
+\
 \ Calculate the base of the stick
 \ ---------------------------------
 \ We already know the x-coordinate of dot, as we just calculated that, and the
@@ -18248,14 +18276,14 @@ NEXT
 \ drawing it, as the stick is on the right side of the 2-pixel-wide dot. So we
 \ already know the x-coordinate of the base of the stick - now to find the
 \ y-coordinate.
-\ 
+\
 \ The main observation here is that the scanner's ellipse is a plane in space,
 \ and for every point in that plane, the space y-coordinate is zero, and the
 \ space x- and z-coordinates determine where those points appear, either from
 \ left to right (for the x-axis) or front to back (the z-axis). We've already
 \ worked out where the base of the stick is in terms of left and right, but what
 \ about front to back?
-\ 
+\
 \ If you think about it, points on the ellipse that are further in front of us
 \ will be further up the screen, while those behind us will be lower down the
 \ screen. It turns out that this is an easy way to work out the y-coordinate of
@@ -18264,62 +18292,62 @@ NEXT
 \ things so that large positive y-coordinates (far in front of us) are scaled to
 \ smaller screen y-coordinates (higher up the screen), this should work pretty
 \ well.
-\ 
+\
 \ The maths for this is relatively simple. We take (z_sign z_hi), which is in
 \ the range -63 to +63, divide it by 4 to get a range of -15 to +15, and then
 \ negate it. We then add this to the coordinate of the centre of the ellipse,
 \ which is at screen y-coordinate 220, to get the following:
-\ 
+\
 \   SC = 220 - (z_sign z_hi) / 4
-\ 
+\
 \ This is in the range 205 to 235, which is really close to the range of
 \ y-coordinates of the ellipse on-screen (204 to 239), and fits within the
 \ ellipse nicely.
-\ 
+\
 \ Next, we need to work out the height of the stick, and then we'll have all the
 \ information we need to draw this thing.
-\ 
+\
 \ Convert the stick height
 \ ------------------------
 \ The stick height should be a signed number that contains the number of pixels
 \ in the stick, with the sign set so that we can get the dot's y-coordinate by
 \ adding the height to the y-coordinate of the base of the stick. This means
 \ that we want the following to be true:
-\ 
+\
 \   * The stick height should be negative for dots above the ellipse (as the dot
 \     is above the base of the stick, so it has a lower y-coordinate)
-\ 
+\
 \   * The stick height should be zero for dots on the ellipse
-\ 
+\
 \   * The stick height should be positive for dots below the ellipse (as the dot
 \     is below the base of the stick, so it has a lower y-coordinate)
-\ 
+\
 \ The main observation here is that the length of the stick is effectively the
 \ same as the ship's y-coordinate in space, just negated. Specifically:
-\ 
+\
 \   * If the y-coordinate is 0, then the dot is in the plane of the ellipse and
 \     there is no stick
-\ 
+\
 \   * If the y-coordinate is positive, then the ship is above us and the stick
 \     length should be negative
-\ 
+\
 \   * If the y-coordinate is negative, then the ship is above us and the stick
 \     length should be positive
-\ 
+\
 \   * The further the ship is above or below us, the longer the stick
-\ 
+\
 \ It turns out that it's good enough just to scale the y-coordinate to get the
 \ stick length. Sure, if you were building an accurate scanner than the stick
 \ length would also have to be scaled for reasons of perspective, but this is an
 \ 8-bit space simulation from 1984 where every processor cycle counts, and the
 \ following approximation is easily good enough.
-\ 
+\
 \ It also turns out that dividing the y-coordinate by 2 does a good enough job.
 \ We take (y_sign y_hi), which is in the range -63 to +63, and divide it by 2 to
 \ get a range of -31 to +31. As we noted above, the y-coordinate for the base of
 \ the stick is in the range 205 to 235, so this means the range of screen
 \ y-coordinates for our dots comes out as 174 to 266.
-\ 
+\
 \ But this is a bit of a problem - the dashboard only covers y-coordinates from
 \ 193 to 246, so quite a few of the more distant dots will end up spilling out
 \ of the dashboard if we don't do something about it. The solution is pretty
@@ -18329,18 +18357,18 @@ NEXT
 \ which isn't correct - but somehow our brains don't seem to care. The stick
 \ heights still remain correct, and the orientation of these outliers is still
 \ generally in the right direction, so we can get away with this simplification.
-\ 
+\
 \ In terms of this clipping, we actually clip the dot's y-coordinate so that it
 \ is in the range 194 to 246, rather than 193 to 246. This is because the
 \ double-height dot-drawing routine at CPIX2 takes the coordinate of the bottom
 \ row of the dot, so we have to restrict it to a minimum of 194, as passing 193
 \ would draw a dot that overlapped the top border of the dashboard.
-\ 
+\
 \ So this is how we calculate the stick height from the ship's y-coordinate in
 \ space:
-\ 
+\
 \   A = - (y_sign y_hi) / 2
-\ 
+\
 \ and clip the result so that it's in the range 193 to 246.
 \
 \ ******************************************************************************
@@ -18511,7 +18539,7 @@ NEXT
  LDA #246               \ A >= 247, so set A to 246, the maximum allowed value
                         \ for the y-coordinate of our ship's dot
 
- STA Y1                 \ Store A in Y1, as it now contains the screen 
+ STA Y1                 \ Store A in Y1, as it now contains the screen
                         \ y-coordinate for the ship's dot, clipped so that it
                         \ fits within the dashboard
 
@@ -18561,7 +18589,7 @@ NEXT
                         \
                         \   SC(1 0) = screen address of the pixel's character
                         \             block
-                        \ 
+                        \
                         \   Y = number of the character row containing the pixel
                         \
                         \   X = the pixel's number (0-3) in that row
@@ -18573,18 +18601,18 @@ NEXT
  AND COL                \ for the top-right pixel, and mask it with the same
  STA X1                 \ colour, storing the result in X1, so we can use it as
                         \ the character row byte for the stick
- 
+
  PLA                    \ Restore the stick height from the stack into A
- 
+
  PLP                    \ Restore the flags from above, so the C flag once again
                         \ reflects the sign of the stick height
- 
+
  TAX                    \ Copy the stick height into X
- 
+
  BEQ RTS                \ If the stick height is zero, then there is no stick to
                         \ draw, so return from the subroutine (as RTS contains
                         \ an RTS)
- 
+
  BCC RTS+1              \ If the C flag is clear then the stick height in A is
                         \ negative, so jump down to RTS+1
 
@@ -20021,7 +20049,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA QQ11               \ If the current view is the Short-range Chart, which
  BMI TT126              \ is the only view with bit 7 set, then jump up to TT126
                         \ to draw the crosshairs and circle for that view
-                        
+
                         \ Otherwise this is the Long-range Chart, so we draw the
                         \ crosshairs and circle for that view instead
 
@@ -24691,7 +24719,7 @@ LOAD_E% = LOAD% + P% - CODE%
  BNE EX4                \ If A is non-zero, the particle is off-screen as the
                         \ coordinate is bigger than 255), so jump to EX11 to do
                         \ the next particle
-                        
+
                         \ Otherwise X contains a random x-coordinate within the
                         \ cloud
 
@@ -24709,7 +24737,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  LDY CNT                \ Set Y to the index that points to the next vertex on
                         \ the ship line heap
-                        
+
  CPY TGT                \ If Y < TGT, which we set to the explosion count for
  BCC EXL5               \ this ship (i.e. the number of vertices used as origins
                         \ for explosion clouds), loop back to EXL5 to do a cloud
@@ -25364,7 +25392,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  LDA COMX               \ Set X1 = COMX, the x-coordinate of the dot
  STA X1
- 
+
  LDA COMC               \ Set COL = COMC, the mode 5 colour byte for the dot
  STA COL
 
@@ -25428,20 +25456,20 @@ LOAD_E% = LOAD% + P% - CODE%
 \ in the two-colour mode 4 screen that Elite uses for the space view, and I
 \ highly recommend you first read the documentation in the PIXEL routine, where
 \ we discuss screen addresses and plotting techniques for this simpler mode.
-\ 
+\
 \ As with mode 4, the mode 5 screen is laid out in memory using character
 \ blocks. Indeed, the character blocks are the same size and height in terms of
 \ bits and bytes, and pixel coordinates are identical in both screen modes (both
 \ screen modes are 256 coordinates wide), so as far as the end used is
 \ concerned, the screen modes are really similar. At the screen memory level,
 \ however, there are some key differences.
-\ 
+\
 \ The main difference is that each pixel can be one of four colours rather than
 \ two, so as a result each pixel takes up twice as much memory (2 bits as
 \ opposed to 1 bit). If we look at the way character blocks are laid out in
 \ terms of bits, it looks the same as for mode 4 - here's what two neighbouring
 \ character blocks look like in both modes:
-\ 
+\
 \   01234567 01234567
 \   01234567 01234567
 \   01234567 01234567
@@ -25450,80 +25478,80 @@ LOAD_E% = LOAD% + P% - CODE%
 \   01234567 01234567
 \   01234567 01234567
 \   01234567 01234567
-\ 
+\
 \ However, while in mode 4 each bit represents one pixel, so the above block
 \ would be 16 pixels across and 8 pixels high, in mode 5 each pixel takes up two
 \ bits, so the above block shows as 8 pixels across and 8 pixels high. Pixels in
 \ mode 5 are stretched out so they appear twice as wide as they are high, so
 \ everything still fits on-screen in a sensible manner.
-\ 
+\
 \ So we know that a character block row in mode 5 consists of four pixels in one
 \ byte. The complicated part is how that byte stores those four pixels. If we
 \ consider a character row byte like this:
-\ 
+\
 \   01234567
-\ 
+\
 \ then the first pixel is defined by bits 0 and 4, the second by bits 1 and 5,
 \ and so on. If we split it up into nibbles:
-\ 
+\
 \   0123 4567
-\ 
+\
 \ then the first pixel is defined by the first bits of each nibble (0 and 4),
 \ the second is defined by the second bits of each nibble (1 and 5), and so on
 \ with bits 2 and 6, and bits 3 and 7. So consider this character row byte:
-\ 
+\
 \   1111 0000
-\ 
+\
 \ Each of the four bits has a 1 as the first bit and a 0 as the second bit,
 \ giving %10, or 2, so this defines four pixels in a row of colour 2. And this
 \ one:
-\ 
+\
 \  1010 0011
-\ 
+\
 \ contains the following pixels: %10, %00, %11 and %01, so this is a four-pixel
 \ row consisting of pixel colours 2, 0, 3 and 1.
-\ 
+\
 \ That aside, modes 4 and 5 work in the same way. Each character row takes up
 \ 256 bytes, or exactly one page, so we can convert from screen coordinates to
 \ character blocks using the same code. We can even work out the correct row in
 \ the relevant character block in the same way, as the screen x- and
 \ y-coordinate systems are identical. The only differences are:
-\ 
+\
 \   * How we manipulate the individual character row bytes to support the nibble
 \     system for four colours
-\ 
+\
 \   * The fact that the y-coordinate still ranges from 0 to 256, but this time
 \     there are only 128 pixels across the screen, so each pixel effectively has
 \     two different screen coordinates (though we can easily cater for this by
 \     ignoring the last bit of the y-coordinate)
-\ 
+\
 \ We can even use a similar system to the TWOS table that we use in PIXEL, but
 \ this time it's set up for the nibble system above. As a reminder, the TWOS
 \ table provides ready-made bytes for plotting single pixels, such as this one
 \ for plotting the third pixel in the row (out of 8):
-\ 
+\
 \   TWOS+2  = %00100000
-\ 
+\
 \ We can do the same for mode 5, but for the third pixel in the row (out of 4),
 \ the table returns this value instead:
-\ 
+\
 \   CTWOS+2  = %00100010
-\ 
+\
 \ which breaks up into 0010 0010, or %11 in the third pixel. As with TWOS, we
 \ can use this byte as a mask onto a 4-pixel colour byte to work out what to
 \ poke into screen memory.
-\ 
+\
 \ On the subject of 4-pixel colour bytes, this is what they look like for the
 \ four colours used in the dashboard:
-\ 
+\
 \   * Colour 0: %00000000 = &00 (black)
-\ 
+\
 \   * Colour 1: %00001111 = &0F (red)
-\ 
+\
 \   * Colour 2: %11110000 = &F0 (yellow/white)
-\ 
+\
 \   * Colour 3: %11111111 = &FF (green/cyan)
-\ 
+\
 \ So aside from having two bits per pixel and four pixels per character row,
 \ mode 5 is pretty similar to the monochrome mode 4.
 \
@@ -26393,7 +26421,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ In this context, "on-screen" means that the point is projected into the
 \ following range:
-\ 
+\
 \   centre of screen - 1024 < x < centre of screen + 1024
 \   centre of screen - 1024 < y < centre of screen + 1024
 \
@@ -26716,7 +26744,7 @@ LOAD_E% = LOAD% + P% - CODE%
  LDA K                  \ If the planet's radius is less than 6, the planet is
  CMP #6                 \ too small to show a crater, so jump to PL20 to return
  BCC PL20               \ from the subroutine
- 
+
  LDA INWK+14            \ Set P = -nosev_z_hi
  EOR #%10000000
  STA P
@@ -26861,7 +26889,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \   (Y A P) = 222 * roofv_y / z
                         \
                         \ to give the y-coordinate of the crater offset
-                        
+
  STA P                  \ Calculate:
  LDA K4                 \
  SEC                    \   K4(1 0) = K4(1 0) - (Y A)
@@ -26877,7 +26905,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  LDX #9                 \ Set X = 9, so the following call to PLS1 operates on
                         \ nosev
- 
+
  JSR PLS1               \ Call PLS1 to calculate the following:
                         \
                         \   (Y A) = nosev_x / z
@@ -27284,7 +27312,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \                     =             =                   |`.
 \                    =               =                  |  `.  K
 \   We want          =       |`.     =                V |    `.
-\   to draw           =      |  `.  =         __-->     |      `. 
+\   to draw           =      |  `.  =         __-->     |      `.
 \   this line ------>  ._____|____`.   ___.--´          +--------`
 \                          - _ -                     SQRT(K^2 - V^2)
 \
@@ -27506,7 +27534,7 @@ LOAD_E% = LOAD% + P% - CODE%
 .PLF5
 
  STX V                  \ Store the height in V
- 
+
  STA V+1                \ Store the direction in V+1
 
  LDA K                  \ Set (A P) = K * K
@@ -27673,7 +27701,7 @@ LOAD_E% = LOAD% + P% - CODE%
  JSR EDGES              \ Call EDGES to calculate X1 and X2 for the horizontal
                         \ line centred on YY(1 0) and with half-width A, i.e.
                         \ the line for the old sun
- 
+
  LDA X1                 \ Store X1 and X2, the ends of the line for the old sun,
  STA XX                 \ in XX and XX+1
  LDA X2
@@ -27694,7 +27722,7 @@ LOAD_E% = LOAD% + P% - CODE%
  BCS PLF23              \ If the C flag is set, the new line doesn't fit on the
                         \ screen, so jump to PLF23 to just draw the old line
                         \ without drawing the new one
- 
+
                         \ At this point the old line is from XX to XX+1 and the
                         \ new line is from X1 to X2, and both fit on-screen. We
                         \ now want to remove the old line amd draw the new one.
@@ -27728,7 +27756,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ We can draw from X1 to XX and X2 to XX+1 by swapping
                         \ XX and X2 and drawing from X1 to X2, and then drawing
                         \ from XX to XX+1, so let's do this now
-                        
+
  LDA X2                 \ Swap XX and X2
  LDX XX
  STX X2
@@ -27770,7 +27798,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  BNE PLFL               \ If V is non-zero, jump back up to PLFL to do the next
                         \ screen line up
- 
+
  DEC V+1                \ Otherwise V is 0 and we have reached the centre of the
                         \ sun, so decrement V+1 to -1 so we start incrementing V
                         \ each time, thus doing the top half of the new sun
@@ -27793,7 +27821,7 @@ LOAD_E% = LOAD% + P% - CODE%
  JSR EDGES              \ Call EDGES to calculate X1 and X2 for the horizontal
                         \ line centred on YY(1 0) and with half-width A, i.e.
                         \ the line for the new sun
-                        
+
  BCC PLF16              \ If the line is on-screen, jump up to PLF16 to draw the
                         \ line and loop round for the next line up
 
@@ -27975,7 +28003,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \        =         =                     |`.                          |`.
 \      =             =                   |c `.                        |c `.  K
 \     =               =                  |    `. K         K * cos(c) |    `.
-\     =       |`.     =        __-->     |      `.                    |      `. 
+\     =       |`.     =        __-->     |      `.                    |      `.
 \      =      |  `.  =  ___.--´          |        `.                  +--------`
 \       =     |    `.                    |     __--´    ----->        K * sin(c)
 \        `--__|__--´                     |__--´
@@ -28556,7 +28584,7 @@ LOAD_E% = LOAD% + P% - CODE%
 }
 
 \ ******************************************************************************
-\ 
+\
 \ Subroutine: PLS4
 \
 \ Calculate the following:
@@ -28790,13 +28818,13 @@ LOAD_E% = LOAD% + P% - CODE%
 \SBC #0                 \ source, but they would make the joystick move the
                         \ cursor faster by increasing the range of Y by -1 to +1
 
- CPY #&40               \ If Y >= &40 set carry, so A = A - 1
+ CPY #64                \ If Y >= 64 set carry, so A = A - 1
  SBC #0
 
- CPY #&C0               \ If Y >= &C0 set carry, so A = A + 1
+ CPY #192               \ If Y >= 192 set carry, so A = A + 1
  ADC #0
 
- CPY #&E0               \ If Y >= &E0 set carry, so A = A + 1
+ CPY #224               \ If Y >= 224 set carry, so A = A + 1
  ADC #0
 
 \CPY #&F0               \ These instructions are commented out in the original
@@ -29801,7 +29829,7 @@ LOAD_F% = LOAD% + P% - CODE%
 .^DORND2
 
  CLC                    \ This ensures that bit 0 of r2 is 0
- 
+
 .^DORND
 
  LDA RAND               \ r2´ = ((r0 << 1) mod 256) + C
@@ -33045,7 +33073,7 @@ MACRO ITEM price, factor, units, quantity, mask
   ELIF units == 'k'
     u = 1 << 5
   ELSE
-    u = 1 << 6 
+    u = 1 << 6
   ENDIF
   e = ABS(factor)
   EQUB price
@@ -33139,32 +33167,32 @@ ENDMACRO
 \ sidev, and tweak then so that they are orthogonal and normal once again. Let's
 \ call these new, tweaked vectors nosev´, roofv´ and sidev´, and let's look at
 \ how we can calculate them.
-\ 
+\
 \ The first vector, nosev´
 \ ------------------------
 \ First, let's normalise nosev, so it has length 1 (stored internally as 96),
 \ and let's call this nosev´. We start with the node vector, as normalising it
 \ doesn't change the direction that the ship is pointing in, so if we happen to
 \ be looking at a ship as it gets tidied, at least it won't change direction.
-\ 
+\
 \ The second vector, roofv´
 \ -------------------------
 \ Next, we want to tweak roofv into a new vector roofv´, where roofv´ is
 \ perpendicular to nosev´. When two vectors are perpendicular, their dot product
 \ is zero, so this means:
-\ 
+\
 \   roofv´ . nosev´ = 0
-\ 
+\
 \ This expands to:
-\ 
+\
 \   nosev_x´ * roofv_x´ + nosev_y´ * roofv_y´ + nosev_z´ * roofv_z´ = 0
-\ 
+\
 \ which we can expand to the following:
-\ 
+\
 \   roofv_x´ = -(nosev_y´ * roofv_y´ + nosev_z´ * roofv_z´) / nosev_x´
 \   roofv_y´ = -(nosev_x´ * roofv_x´ + nosev_z´ * roofv_z´) / nosev_y´
 \   roofv_z´ = -(nosev_x´ * roofv_x´ + nosev_y´ * roofv_y´) / nosev_z´
-\ 
+\
 \ Because time is of the essence, we would rather only calculate one of these,
 \ so we do a clever trick. If you think of two arbitrary lines on a piece of
 \ paper, then given any direction, it's possible to move the end of one of the
@@ -33172,86 +33200,86 @@ ENDMACRO
 \ vectors, this means we can tweak roofv in one axis only - i.e. only change one
 \ of its x, y, and z coordinates - and can still get a vector that's at
 \ right-angles to nosev´.
-\ 
+\
 \ So let's say that we tweak roofv in the x-axis only, then that means we leave
 \ roofv_y and roofv_z alone - so roofv_y´ = roofv_y and roofv_z´ = roofv_z. So
 \ this means:
-\ 
+\
 \   roofv_x´ = -(nosev_y´ * roofv_y + nosev_z´ * roofv_z) / nosev_x´
 \   roofv_y´ = roofv_y
 \   roofv_z´ = roofv_z
-\ 
+\
 \ So we can just tweak roofv_x to roofv_x´, using this calculation:
-\ 
+\
 \   roofv_x´ = -(nosev_y´ * roofv_y + nosev_z´ * roofv_z) / nosev_x´
-\ 
+\
 \ and roofv´ will be perpendicular to nosev; then all we need to do is normalise
 \ roofv´ and we've got our second orthonormal vector.
-\ 
+\
 \ We can do the same with any of the axes, leading to these two equations:
-\ 
+\
 \   roofv_y´ = -(nosev_x´ * roofv_x + nosev_z´ * roofv_z) / nosev_y´
 \   roofv_z´ = -(nosev_x´ * roofv_x + nosev_y´ * roofv_y) / nosev_z´
-\ 
+\
 \ So how do we choose which coordinate axis to move? Well, seeing as we are
 \ going to be dividing by one of the coordinates of nosev´ in our calculation,
 \ and dividing by big numbers in integer arithmetic isn't so accurate (as we're
 \ dealing in integers here, not floating point numbers), we could always choose
 \ an equation with a low nosev value, and this is exactly what Elite does. First
 \ we check whether nosev_x´ is small, and if it is, we do this one:
-\ 
+\
 \   roofv_x´ = -(nosev_y´ * roofv_y + nosev_z´ * roofv_z) / nosev_x´
-\ 
+\
 \ Otherwise we check whether nosev_y´ is small, and if it is, we do this one:
-\ 
+\
 \   roofv_y´ = -(nosev_x´ * roofv_x + nosev_z´ * roofv_z) / nosev_y´
-\ 
+\
 \ Otherwise, we have no choice but to do this one:
-\ 
+\
 \   roofv_z´ = -(nosev_x´ * roofv_x + nosev_y´ * roofv_y) / nosev_z´
-\ 
+\
 \ And finally we normalise roofv, so it has length 1 (stored internally as 96)
-\ 
+\
 \ The third vector, sidev´
 \ ------------------------
 \ So we have two vectors in nosev´ and roofv´ that are orthogonal and normal, so
 \ we just need to find a vector that is perpendicular to these two. There's an
 \ easy way to calculate such a vector, by using the cross-product.
-\ 
+\
 \ The cross-product works like this. Consider two vectors, a and b, which have
 \ an angle theta between them. The cross-product of these two vectors, a x b,
 \ gives us another vector that is at right-angles to the first two, and which
 \ has length |a| * |b| * sin(theta).
-\ 
+\
 \ In other words, if we calculate the following:
-\ 
+\
 \   sidev = nosev x roofv
-\ 
+\
 \ which we can do by breaking it down into axes:
-\ 
+\
 \   [sidex_x]   [nosev_x´]   [roofv_x´]
 \   [sidex_y] = [nosev_y´] x [roofv_y´]
 \   [sidex_z]   [nosev_z´]   [roofv_z´]
-\ 
+\
 \               [nosev_z´ * roofv_y´ - nosev_y´ * roofv_z´]
 \             = [nosev_x´ * roofv_z´ - nosev_z´ * roofv_x´]
 \               [nosev_y´ * roofv_x´ - nosev_x´ * roofv_y´]
-\ 
+\
 \ then this sets sidev to a vector that is perpendicular to the others, and
 \ which has length |nose_v´| * |roof_v´| * sin(theta). We know that because
 \ nose_v´ and roof_v´ are orthonormal, theta must be a right-angle, and
 \ |nose_v´| and |roof_v´| must be 1, so this means sidev has length 1:
-\ 
+\
 \   |nose_v´| * |roof_v´| * sin(theta) = 1 * 1 * 1 = 1
-\ 
+\
 \ So if we calculate the following in the routine below, this will set sidev to
 \ a vector of length 1 that's perpendicular to the other two, which is a third
 \ orthonormal vector - exactly what we want our third vector to be.
-\ 
+\
 \   sidev_x´ = (nosev_z´ * roofv_y´ - nosev_y´ * roofv_z´) / 96
 \   sidev_y´ = (nosev_x´ * roofv_z´ - nosev_z´ * roofv_x´) / 96
 \   sidev_z´ = (nosev_y´ * roofv_x´ - nosev_x´ * roofv_y´) / 96
-\ 
+\
 \ We divide by 96 as we use 96 to represent 1 internally. This means the length
 \ of nosev and roofv internally is actually 96, so the length of the
 \ cross-product would be 96 96. We want the length of sidev to be 96 (so it
@@ -33612,7 +33640,7 @@ ENDMACRO
  EOR Q                  \ Set T = the sign bit of A EOR Q, so it's 1 if A and Q
  AND #%10000000         \ have different signs, i.e. it's the sign of the result
  STA T                  \ of A / Q
- 
+
  LDA #0                 \ Set A = 0 for us to build a result
 
  LDX #16                \ Set a counter in X to count the 16 bits in P(1 0)
@@ -33746,7 +33774,7 @@ LOAD_G% = LOAD% + P% - CODE%
  STA XX1+31
 
  RTS                    \ Return from the subroutine
- 
+
 .Shpt
 
                         \ This routine sets up four bytes in the ship line heap,
@@ -33820,7 +33848,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ There is a deeper explanation of this exact routine here, though I have to say
 \ it makes my head spin more than a little:
-\ 
+\
 \    http://6502org.wikidot.com/software-math-sqrt
 \
 \ Definitely one for the "must study later" pile...
@@ -33836,7 +33864,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ So now to calculate Q = SQRT(Y S)
 
  LDX #0                 \ Set X = 0, to hold the remainder
- 
+
  STX Q                  \ Set Q = 0, to hold the result
 
  LDA #8                 \ Set T = 8, to use as a loop counter
@@ -33874,22 +33902,22 @@ LOAD_G% = LOAD% + P% - CODE%
  TYA                    \ bit 7 from above into bit 0
  ROL A
  TAY
- 
+
  TXA                    \ Shift the remainder in X to the left
  ROL A
  TAX
- 
+
  ASL S                  \ Shift the dividend in (Y S) to the left
  TYA
  ROL A
  TAY
- 
+
  TXA                    \ Shift the remainder in X to the left
  ROL A
  TAX
- 
+
  DEC T                  \ Decrement the loop counter
- 
+
  BNE LL6                \ Loop back to LL6 until we have done 8 loops
 
  RTS                    \ Return from the subroutine
@@ -34026,12 +34054,12 @@ LOAD_G% = LOAD% + P% - CODE%
  CLC                    \ Otherwise the result is correct, and S contains the
                         \ correct sign of the result as R is the dominant side
                         \ of the subtraction, so clear the C flag
- 
+
  RTS                    \ And return from the subroutine
 
                         \ If we get here we need to negate both the result and
                         \ the sign in S, as both are the wrong sign
- 
+
  PHA                    \ Store the result of the subtraction on the stack
 
  LDA S                  \ Flip the sign of S
@@ -34133,7 +34161,7 @@ LOAD_G% = LOAD% + P% - CODE%
  JSR FMLTU              \ Set T = A * Q / 256
  STA T                  \       = |sidev_x| * x_lo / 256
 
- 
+
  LDA XX15+1             \ Set S to the sign of x_sign * sidev_x
  EOR XX16+1,X
  STA S
@@ -34219,11 +34247,11 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   EE51                
+\   EE51
 \
-\   LL81                
+\   LL81
 \
-\   LL155               
+\   LL155
 \
 \ ******************************************************************************
 
@@ -34390,7 +34418,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ further above us than it is in front of us, so it's
                         \ outside our viewing angle of 45 degrees, and we jump
                         \ to LL14 to remove it from the screen
- 
+
  LDY #6                 \ Fetch byte #6 from the ship's blueprint into X, which
  LDA (XX0),Y            \ is the number * 4 of the vertex used for the ship's
  TAX                    \ laser
@@ -34538,7 +34566,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  BPL LL21               \ Loop back for the next vector coordinate until we have
                         \ divided them all
- 
+
                         \ By this point, the vectors have been turned into
                         \ scaled magnitudes, so we have the following:
                         \
@@ -34566,7 +34594,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  BPL ll91               \ Loop back for the next byte until we have copied all
                         \ three coordinates
- 
+
                         \ So we now have the following:
                         \
                         \   * XX18(2 1 0) = (x_sign x_hi x_lo)
@@ -34574,7 +34602,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \   * XX18(5 4 3) = (y_sign y_hi y_lo)
                         \
                         \   * XX18(8 7 6) = (z_sign z_hi z_lo)
-                        
+
 
  LDA #255               \ Set the 15th byte of XX2 to 255, so the last face is
  STA XX2+15             \ always visible
@@ -35120,7 +35148,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  LSR XX15               \ Set XX15 = XX15 / 2
                         \          = normal_x / 2
- 
+
  LSR XX15+2             \ Set XX15+2 = XX15+2 / 2
                         \            = normal_y / 2
 
@@ -35288,7 +35316,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LSR A                  \       = the number of this face * 4 /4
  LSR A                  \       = the number of this face
  TAX
- 
+
  PLA                    \ Pull the dot product off the stack into A
 
  BIT S                  \ If bit 7 of S is set, i.e. the dot product is
@@ -35307,7 +35335,7 @@ LOAD_G% = LOAD% + P% - CODE%
 .LL88
 
  CPY XX20               \ If Y >= XX20, the number of faces * 4, jump down to
- BCS LL42               \ LL42 to move on to the 
+ BCS LL42               \ LL42 to move on to the
 
  JMP LL86               \ Otherwise loop back to LL86 to work out the visibility
                         \ of the next face
@@ -35347,7 +35375,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ So the inverse matrix will map vectors in the orientation vector space back
 \ into normal ship space. The inverse of a rotation matrix is its transpose, so
 \ this is the calculation:
-\ 
+\
 \                       [ sidev_x roofv_x nosev_x ]   [ x ]
 \   projected [x y z] = [ sidev_y roofv_y nosev_y ] . [ y ]
 \                       [ sidev_z roofv_z nosev_z ]   [ z ]
@@ -35496,7 +35524,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \   XX15+2 = magnitude of the vertex's y-coordinate
 
  INY                    \ Increment Y to point to byte #2
- 
+
  LDA (V),Y              \ Fetch byte #2 for this vertex into XX15+4, so:
  STA XX15+4             \
                         \   XX15+4 = magnitude of the vertex's z-coordinate
@@ -35521,7 +35549,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ in LL49-3) to move on to the next vertex
 
  INY                    \ Increment Y to point to byte #4
- 
+
  LDA (V),Y              \ Fetch byte #4 for this vertex into P, so:
  STA P                  \
                         \  P = %ffff ffff, where:
@@ -35548,7 +35576,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BNE LL49               \ face 2 is visible, so jump to LL49
 
  INY                    \ Increment Y to point to byte #5
- 
+
  LDA (V),Y              \ Fetch byte #5 for this vertex into P, so:
  STA P                  \
                         \  P = %ffff ffff, where:
@@ -36141,7 +36169,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ projected y-coordinate, i.e. up the space y-axis and
                         \ up the screen, converts to a low y-coordinate, which
                         \ is the opposite way round to the x-coordinates
-                        
+
  PLA                    \ Restore the heap pointer from the stack into X
  TAX
 
@@ -36992,7 +37020,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \
                         \ using the same "shift and subtract" algorithm that's
                         \ documented in TIS2
-                        
+
  LDA #%11111111         \ Set Y = %11111111
  TAY
 
@@ -37227,7 +37255,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 .LL145
 {
-    
+
  LDA #0                 \ Set SWAP = 0
  STA SWAP
 
@@ -37247,7 +37275,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BCC LL107              \ then (x2, y2) is off the bottom of the screen, so skip
                         \ the following instruction, leaving X at 191
 
- LDX #0                 \ Set X = 0 
+ LDX #0                 \ Set X = 0
 
 .LL107
 
@@ -37345,7 +37373,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ ******************************************************************************
 
 .LL83
-               
+
  LDA XX13               \ If XX13 < 128 then only one of the points is on-screen
  BPL LL115              \ so jump down to LL115 to skip the checks of whether
                         \ both points are in the strips to the right or bottom
@@ -37946,7 +37974,7 @@ ENDMACRO
 \VERTEX    x,    y,    z, face1, face2, face3, face4, visibility
  VERTEX  -32,    0,   36,     0,      1,    4,     5,         31    \ Vertex 0
  VERTEX   32,    0,   36,     0,      2,    5,     6,         31    \ Vertex 1
- VERTEX   64,    0,  -28,     2,      3,    6,     6,         31    \ Vertex 2 
+ VERTEX   64,    0,  -28,     2,      3,    6,     6,         31    \ Vertex 2
  VERTEX  -64,    0,  -28,     1,      3,    4,     4,         31    \ Vertex 3
  VERTEX    0,   16,  -28,     0,      1,    2,     3,         31    \ Vertex 4
  VERTEX    0,  -16,  -28,     3,      4,    5,     6,         31    \ Vertex 5
