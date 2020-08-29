@@ -1,6 +1,6 @@
 # Fully documented source code for Elite on the BBC Micro
 
-This repository contains the original source code for Elite on the BBC Micro, with every single line documented and explained.
+This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained.
 
 The annotated source can be assembled on modern computers to produce a working game disc that can be loaded into a BBC Micro or an emulator.
 
@@ -408,7 +408,7 @@ and creates the following:
 
 There are a number of checksum and simple EOR encryption routines that form part of the Elite build process. These were trivial to interleave with the assembly process in the original BASIC source files, but they've been converted into Python so they can run on modern machines (as not too many modern computers support BBC BASIC out of the box). Kieran Connell is the genius behind all this Python magic, so many thanks to him for cracking the code.
 
-The script has two parts. The first part generates an encrypted version of the `ELTcode` binary, based on the original `S.BCFS` BASIC source program:
+The script has two parts. The first part generates an encrypted version of the `ELTcode` binary, based on the code in the original `S.BCFS` BASIC source program:
 
 * Concatenate all the compiled binaries
 * Compute the checksum for the commander data
@@ -419,7 +419,7 @@ The script has two parts. The first part generates an encrypted version of the `
 * Compute the final checksum for the game code
 * Output the encrypted `ELTcode` binary
 
-The second part implements the checksum and encryption functions from the `ELITES` BASIC source program:
+The second part implements the checksum and encryption functions from the `ELITES` BASIC source program to generate an encrypted `ELITE` binary:
 
 * Reverse the bytes for a block of code that is placed on the stack
 * Compute the checksum for `MAINSUM`
