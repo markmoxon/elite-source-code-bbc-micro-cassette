@@ -47,7 +47,7 @@ Hopefully this repository will be useful for those who want to learn more about 
 
 ## Quick start
 
-If you want to jump straight in, here's a _tl;dr_ just for you.
+If you want to jump straight in, here's a _tl;dr_ for you.
 
 * The most interesting files are these ones:
 
