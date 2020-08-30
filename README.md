@@ -1,5 +1,7 @@
 # Fully documented source code for Elite on the BBC Micro
 
+![The screenshot from the box for Elite on the BBC Micro](images/Elite-BBCMicro.png)
+
 This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained.
 
 The annotated source can be assembled on modern computers to produce a working game disc that can be loaded into a BBC Micro or an emulator.
