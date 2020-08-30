@@ -32,7 +32,7 @@ Hopefully this repository will be useful for those who want to learn more about 
 * [Source files and the build pipeline](#source-files-and-the-build-pipeline)
 
   * [1. Compile the main game with elite-source.asm](#1-compile-the-main-game-with-elite-sourceasm)
-  * [2. Concatentate the game code and compile the header with elite-bcfs.asm](#2-concatentate-the-game-code-and-compile-the-header-with-elite-bcfsasm)
+  * [2. Concatenate the game code and compile the header with elite-bcfs.asm](#2-concatenate-the-game-code-and-compile-the-header-with-elite-bcfsasm)
   * [3. Compile the loader with elite-loader.asm](#3-compile-the-loader-with-elite-loaderasm)
   * [4. Calculate checksums and add encryption with elite-checksum.py](#4-calculate-checksums-and-add-encryption-with-elite-checksumpy)
   * [5. Assemble a bootable disc image with elite-disc.asm](#5-assemble-a-bootable-disc-image-with-elite-discasm)
@@ -47,25 +47,25 @@ Hopefully this repository will be useful for those who want to learn more about 
 
 ## Quick start
 
-If you want to jump straight in, here's a tl;dr just for you.
+If you want to jump straight in, here's a _tl;dr_ just for you.
 
 * The most interesting files are these ones:
 
-  * The main game's source code is in [the elite-source.asm file](elite-source.asm) - this is the motherlode and probably contains all the stuff you're interested in
+  * The main game's source code is in the [elite-source.asm](elite-source.asm) file - this is the motherlode and probably contains all the stuff you're interested in
 
-  * The game's loader is in [the elite-loader.asm file](elite-loader.asm) - this is mainly concerned with setup and copy protection
+  * The game's loader is in the [elite-loader.asm](elite-loader.asm) file - this is mainly concerned with setup and copy protection
 
-* It's probably worth skimming through the notes on terminology at the start of the elite-loader.asm file, as this explains a number of terms used in the commentary, without which it might be a bit tricky to follow at times (in particular, you should understand the terminology I use for multi-byte numbers)
+* It's probably worth skimming through the notes on terminology at the start of the [elite-loader.asm](elite-loader.asm) file, as this explains a number of terms used in the commentary, without which it might be a bit tricky to follow at times (in particular, you should understand the terminology I use for multi-byte numbers)
 
 * The source code is peppered with a number of "deep dives", each of which goes into an aspect of the game in more detail. You find deep dives in the source files by simply searching for `Deep dive:`
 
-* There are loads of routines in Elite - literally hundreds. You can find them in the source files by searching for `Subroutine:`
+* There are loads of routines in Elite - literally hundreds. I will be adding more information on these soon, but for now you can find them in the source files by searching for `Subroutine:`
 
-* The entry point for the main game code is routine `TT170`, which you can find by searching for `Subroutine: TT170`, so if you want to follow the program flow from the title screen, this is the place to start
+* The entry point for the [main game code](elite-source.asm) is routine `TT170`, which you can find by searching for `Subroutine: TT170`. If you want to follow the program flow all the way from the title screen, this is the place to start
 
 * The source code is designed to be read at an 80-column width and with a monospaced font, just like in the good old days
 
-* If you want to build the source on a modern computer, or if you want to know more about this project, keep reading
+If you want to build the source on a modern computer, or if you want to know more about this project, keep reading. Otherwise, I hope you enjoy exploring the inner-workings of BBC Elite as much as I have.
 
 ## Acknowledgements
 
@@ -87,7 +87,7 @@ Here's a bit more on how this project came to be.
 
 ### Ian Bell's original sources
 
-When I first saw that the sources to Elite had been released by the authors, I couldn't believe it. I'd aways wanted to understand how this astonishing technical feat had been achieved, ever since I'd sat wide-mouthed as a 14-year-old when I first launched from the space station and saw the planet Lave hanging in space, right in front of my eyes. Which, of course, was shortly before dying for the first time, but that didn't matter. It was love at first sight.
+When I first saw that the sources to Elite had been released by the authors, I couldn't believe it. I'd always wanted to understand how this astonishing technical feat had been achieved, ever since I'd sat wide-mouthed as a 14-year-old when I first launched from the space station and saw the planet Lave hanging in space, right in front of my eyes. Which, of course, was shortly before dying for the first time, but that didn't matter. It was love at first sight.
 
 So I excitedly opened one of the source files at random... and was greeted by page after page of this kind of thing:
 
@@ -108,7 +108,7 @@ So I excitedly opened one of the source files at random... and was greeted by pa
  9375LDAXX12+1:SBCXX15+3:STAXX12+5:EORXX12+3:STAS
 ```
 
-I suppose I should have expected it, but the original source files are _incredibly_ terse. Because the game was compiled on a BBC Micro, the source code had to be squashed into a number of extremely cramped BASIC files, with all the spaces removed and almost no comments to speak of. The source files are not particulatly human-friendly; they aren't supposed to be.
+I suppose I should have expected it, but the original source files are _incredibly_ terse. Because the game was compiled on a BBC Micro, the source code had to be squashed into a number of extremely cramped BASIC files, with all the spaces removed and almost no comments to speak of. The source files are not particularly human-friendly; they aren't supposed to be.
 
 Not only that, but parts of the game started life on an Acorn Atom, where labels in assembly language are restricted to two letters plus digits, so the source is full of memorable names like `XX16`, `QQ17` and `LL9`. I mean, look at this bit:
 
@@ -367,7 +367,7 @@ BeebAsm loads `elite-source.asm` and creates the following files:
 
 So the BeebAsm process mirrors the original compilation steps pretty closely.
 
-### 2. Concatentate the game code and compile the header with `elite-bcfs.asm`
+### 2. Concatenate the game code and compile the header with `elite-bcfs.asm`
 
 BeebAsm then loads `elite-bcfs.asm`, which reads the following files:
 
@@ -406,7 +406,7 @@ and creates the following:
 
 This is the BeebAsm version of the BASIC source file `ELITES`, which creates the executable Elite loader `ELITE`. This is responsible for displaying the title screen and planet, loading the dashboard image, setting up interrupt routines, configuring a number of operating system settings, relocating code to lower memory (below `PAGE`), and finally loading and running the main game.
 
-The loader incorporates four image binaries from the `images` folder that, together with the code to draw the Saturn-esque planet, create the loading screen, and it also incorporates the `WORDS9` and `PYTHON` data files that contains the game's text and the Python ship blueprint.
+The loader incorporates four image binaries from the `images` folder that, together with the code to draw the Saturn backdrop, make up the loading screen. It also incorporates the `WORDS9` and `PYTHON` data files that contains the game's text and the Python ship blueprint.
 
 There are also a number of checksum and protection routines that EOR the code and data with other parts of memory in an attempt to obfuscate and protect the game from tampering. This can't be done in BeebAsm, so we do this using Python in the next step.
 
@@ -524,7 +524,7 @@ The `ELTcode` executable produced by this build target is different to the relea
 
 * I'm going to more deep dive articles, as well as expanding the ones that are there. There is so much more to say about this masterpiece, from explaining the program flow to analysing how much of the code is devoted to each type of functionality.
 
-* I'm in the process of creating a website that will take the documented source files from github and generate a code-friendly website. This should make the source code easier to navigate, as github can only display the main source as a raw file (it's too big). Having linked routine names and indexes into the code will make a big difference.
+* I'm in the process of creating a website that will take the documented source files from GitHub and generate a code-friendly website. This should make the source code easier to navigate, as GitHub can only display the main source as a raw file (it's too big). Having linked routine names and indexes into the code will make a big difference.
 
 * I'm also hoping to analyse the disc and second processor versions, so I can document the code that differs from the tape version. That's a longer-term goal, though - first, I need to get the tape version polished up.
 

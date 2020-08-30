@@ -32,13 +32,19 @@
 \
 \ ******************************************************************************
 
-C% = &F40               \ assembly address of Elite game code (elite-source.asm)
-L% = &1128              \ load address of Elite game code (after LBL fn)
-D% = &563A              \ hard-coded size of Elite game code (elite-source.asm)
+C% = &0F40              \ C% is set to the location that the main game code gets
+                        \ moved to after it is loaded
 
-ZP = &70
+L% = &1128              \ L% points to the start of the actual game code, after
+                        \ the &28 bytes of header code that are inserted below
 
-ORG &1100               \ load address of ELTcode
+D% = &563A              \ D% is set to the size of the main game code
+
+ZP = &70                \ ZP is a zero page variable used in the checksum
+                        \ routine at LBL
+
+ORG &1100               \ The load address of the main game code file ("ELTcode"
+                        \ for disc loading, "ELITEcode" for tape)
 
 \ ******************************************************************************
 \

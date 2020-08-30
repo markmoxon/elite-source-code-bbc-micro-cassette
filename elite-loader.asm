@@ -40,7 +40,7 @@
 \
 \   * Given a number X, ~X is the number with all the bits inverted
 \
-\   * Given a number A, |A| is the the absolute of that number - i.e. the number
+\   * Given a number A, |A| is the absolute of that number - i.e. the number
 \     with no sign, or just the magnitude of the number
 \
 \   * Given a multi-byte number, (S R) say, the absolute would be written |S R|
@@ -227,9 +227,9 @@ L% = LOAD% + &28        \ L% points to the start of the actual game code from
 
 D% = &563A              \ D% is set to the size of the main game code
 
-LC% = &6000 - C%        \ LC% is set to the maximum size of the the main game
-                        \ code (as the code starts at C% and screen memory
-                        \ starts at &6000)
+LC% = &6000 - C%        \ LC% is set to the maximum size of the main game code
+                        \ (as the code starts at C% and screen memory starts
+                        \ at &6000)
 
 N% = 67                 \ N% is set to the number of bytes in the VDU table, so
                         \ we can loop through them in part 2 below
@@ -255,7 +255,7 @@ LE% = &0B00             \ LE% is the address to which the code from UU% onwards
                         \   * ENTRY2, the entry point for the second block of
                         \     loader code
                         \
-                        \   * IRQ1, the interrrupt routine for the split-screen
+                        \   * IRQ1, the interrupt routine for the split-screen
                         \     mode
                         \
                         \   * BLOCK, which by this point has already been put
@@ -328,8 +328,8 @@ EXCN = &85
 \     dashboard
 \
 \   * P.DIALS.bin contains the dashboard, which gets moved to screen address
-\     &7800, which is the starting point of the the four-colour mode 5 portion
-\     at the bottom of the split screen
+\     &7800, which is the starting point of the four-colour mode 5 portion at
+\     the bottom of the split screen
 \
 \  The routine ends with a jump to the start of the loader code at ENTRY.
 \
@@ -370,7 +370,7 @@ ORG O%
 \
 \ Variable: B%
 \
-\ This block containd the bytes that get passed to the VDU command (via OSWRCH)
+\ This block contains the bytes that get passed to the VDU command (via OSWRCH)
 \ in part 2 to set up the screen mode. This defines the whole screen using a
 \ square, monochrome mode 4 configuration; the mode 5 part is implemented in the
 \ IRQ1 routine.
@@ -388,7 +388,7 @@ ORG O%
 \     for code (i.e. 256 bytes) after the end of the screen. This is where the
 \     Python ship blueprint slots in
 \
-\   * The text window is 1 row high and 13 columns wide, and is at at (2, 16)
+\   * The text window is 1 row high and 13 columns wide, and is at (2, 16)
 \
 \   * There's a large, fast-blinking cursor
 \
@@ -572,7 +572,7 @@ ORG O%
 IF DISC = 0
 
  LDA #0                 \ Call OSBYTE with A = 0 and X = 255 to fetch the
- LDX #255               \ operating sustem version into X
+ LDX #255               \ operating system version into X
  JSR OSBYTE
 
  TXA                    \ If X = 0 then this is OS 1.00, so jump down to OS100
@@ -827,7 +827,7 @@ ENDIF
 
  LDA #4                 \ Call OSBYTE with A = 4, X = 1 and Y = 0 to disable
  JSR OSB                \ cursor editing, so the cursor keys return ASCII values
-                        \ and can therfore be used in-game
+                        \ and can therefore be used in-game
 
  LDA #9                 \ Disable flashing colours (via OSBYTE 9)
  LDX #0
@@ -1017,7 +1017,7 @@ ENDMACRO
                         \ things hard, and then we reset the machine... all in
                         \ a completely twisted manner, of course
 
- LDA C%,X               \ Obfuscate the X-th byte of C% by EOR-ing with &A5
+ LDA C%,X               \ Obfuscate the X-th byte of C% by EOR'ing with &A5
  EOR #&A5
  STA C%,X
 
@@ -1749,7 +1749,7 @@ ENDIF
 \ Subroutine: BEGIN%, copied to the stack at &01F1
 \
 \ This routine pushes BLOCK to ENDBLOCK onto the stack, and decrypts the code
-\ from TUt onwards.
+\ from TUT onwards.
 \
 \ The 15 instructions for this routine are pushed onto the stack and executed
 \ there. The instructions are pushed onto the stack in reverse (as the stack
@@ -1823,7 +1823,7 @@ ENDIF
 \
 \ Subroutine: DOMOVE, copied to the stack at &01DF (MVDL)
 \
-\ This routine moves and decypts a block of memory.
+\ This routine moves and decrypts a block of memory.
 \
 \ The 18 instructions for this routine are pushed onto the stack and executed
 \ there. The instructions are pushed onto the stack in reverse (as the stack
@@ -1839,7 +1839,7 @@ ENDIF
 \    01DF : LDA (ZP),Y      \ Set A = the Y-th byte from the block whose address
 \                           \ is in ZP(1 0)
 \
-\    01E1 : EOR OSB,Y       \ EOR A with the Y-th byte on from from OSB
+\    01E1 : EOR OSB,Y       \ EOR A with the Y-th byte on from OSB
 \
 \    01E4 : STA (P),Y       \ Store A in the Y-th byte of the block whose
 \                           \ address is in P(1 0)
@@ -1873,8 +1873,8 @@ ENDIF
 \
 \ The routine moves and decrypts a block of memory, and is used in part 3 to
 \ move blocks of code and images that are embedded within the loader binary,
-\ either into low memory locations below PAGE (for the the recursive token table
-\ and page at UU%), or into screen memory (for the loading screen and dashboard
+\ either into low memory locations below PAGE (for the recursive token table and
+\ page at UU%), or into screen memory (for the loading screen and dashboard
 \ images).
 \
 \ If checksums are disabled in the build, we don't do the EOR instruction, so
@@ -2470,7 +2470,7 @@ IF PROT AND DISC = 0
  EOR #17                \ EOR A with 17
 
  CMP (EXCN),Y           \ If A = the low byte of the execution address of the
- BEQ itdone             \ file we are loading, skip to itsdone
+ BEQ itdone             \ file we are loading, skip to itdone
 
  DEC LOAD%              \ Otherwise decrement LOAD%, which is the address of the
                         \ first byte of the main game code file (i.e. the load

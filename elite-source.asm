@@ -245,9 +245,9 @@ f9 = &77
 \     * There are six unused bytes in the last saved commander data at NA%. Two
 \       of them are between LASER and CRGO, just after the four laser powers, so
 \       perhaps they were reserved for up and down lasers at one point? And
-\       there and four more between between the escape pod at ESCP and the cargo
-\       bay capacity at CRGO, which might have been for additional equipment
-\       that didn't get implemented... who knows?
+\       there and four more between the escape pod at ESCP and the cargo bay
+\       capacity at CRGO, which might have been for additional equipment that
+\       didn't get implemented... who knows?
 \
 \     * There's an unused and unlabelled duplicate of the multiplication routine
 \       MULTU sandwiched between FMLTU and MLTU2 that takes up 24 bytes
@@ -468,7 +468,7 @@ ORG &0000
                         \ A value of 0 denotes the leftmost column and 32 the
                         \ rightmost column, but because the top part of the
                         \ screen (the mode 4 part) has a white border that
-                        \ clashes with columns 0 amd 32, text is only shown
+                        \ clashes with columns 0 and 32, text is only shown
                         \ at columns 1-31
 
 
@@ -553,7 +553,7 @@ ORG &0000
 
  SKIP 6                 \ Temporary storage for a block of values (e.g. used to
                         \ store the energy bank values when updating the
-                        \ dsashboard)
+                        \ dashboard)
 
 .K
 
@@ -1101,7 +1101,7 @@ ORG &0300
                         \
                         \ Bit 7 is set on start-up if CHK and CHK2 do not match,
                         \ which presumably indicates that there may have been
-                        \ some cheatimg going on
+                        \ some cheating going on
                         \
                         \ Bit 1 is set on start-up
                         \
@@ -1618,7 +1618,7 @@ ENDMACRO
 \ but would instead terminate at the character before.
 \
 \ Interestingly, there's no lookup table for each recursive token's starting
-\ point im memory, as that would take up too much space, so to get hold of the
+\ point in memory, as that would take up too much space, so to get hold of the
 \ encoded string for a specific recursive token, the print routine runs through
 \ the entire list of tokens, character by character, counting all the nulls
 \ until it reaches the right spot. This might not be fast, but it is much more
@@ -3058,7 +3058,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ perpendicular to each other), and normal (i.e. each of the vectors has length
 \ 1). We can rotate a ship in space by rotating these vectors, as in the MVS4
 \ and MVS5 routines. Because we use the small angle approximation to rotate in
-\ space, and it is is not completely accurate, the three vectors tend to get
+\ space, and it is not completely accurate, the three vectors tend to get
 \ stretched over time, so periodically we tidy the vectors in the TIDY routine
 \ to ensure they remain as orthonormal as possible.
 \
@@ -3696,7 +3696,7 @@ LOAD_A% = LOAD%
                         \ Toggled by pressing "X" when paused, see DKS3
                         \
                         \ This needs to be turned on for manual mis-jumps to be
-                        \ possible. To to do a manual mis-jump, first toggle the
+                        \ possible. To do a manual mis-jump, first toggle the
                         \ author display by pausing the game (Copy) and pressing
                         \ X, and during the next hyperspace, hold down CTRL to
                         \ force a mis-jump; see routine ee5 for the "AND PATG"
@@ -3918,7 +3918,7 @@ LOAD_A% = LOAD%
  DEC DELTA              \ The "slow down" key is being pressed, so we decrement
                         \ the current ship speed in DELTA
 
- BNE MA4                \ If the speed is still greater then zero, jump to MA4
+ BNE MA4                \ If the speed is still greater than zero, jump to MA4
 
  INC DELTA              \ Otherwise we just braked a little too hard, so bump
                         \ the speed back up to the minimum value of 1
@@ -3946,7 +3946,7 @@ LOAD_A% = LOAD%
  LDA MSTG               \ If MSTG is positive (i.e. does not have bit 7 set),
  BPL MA25               \ then it indicates we already have a missile locked on
                         \ a target (in which case MSTG contains the ship number
-                        \ of the target), so jump to MA25 to skip targetting (or
+                        \ of the target), so jump to MA25 to skip targeting (or
                         \ put another way, if MSTG = &FF, which means there is
                         \ no current target lock, keep going)
 
@@ -4078,7 +4078,7 @@ LOAD_A% = LOAD%
 
                         \ If we get here, then the "fire" button is being
                         \ pressed, our laser hasn't overheated and isn't
-                        \ already beign fired, and we actually have a laser
+                        \ already being fired, and we actually have a laser
                         \ fitted to the current space view, so it's time to hit
                         \ me with those laser beams
 
@@ -4145,7 +4145,7 @@ LOAD_A% = LOAD%
 
  LDA FRIN,X             \ Fetch the contents of this slot into A. If it is 0
  BNE P%+5               \ then this slot is empty and we have no more ships to
- JMP MA18               \ process, so jump tp MA18 below, otherwise A contains
+ JMP MA18               \ process, so jump to MA18 below, otherwise A contains
                         \ the type of ship in this slot, so skip the JMP MA18
                         \ and keep going
 
@@ -4208,9 +4208,9 @@ LOAD_A% = LOAD%
  CPY #2*SST             \ If the ship in Y is the space station, jump to BA21
  BEQ MA21               \ as energy bombs are useless against space stations
 
- LDA INWK+31            \ If the ship we are checking has bit 5 set in their
- AND #%00100000         \ ship byte #31, then they are already exploding, so
- BNE MA21               \ jump to BA21 as they can't explode more than once
+ LDA INWK+31            \ If the ship we are checking has bit 5 set in its
+ AND #%00100000         \ ship byte #31, then it is already exploding, so jump
+ BNE MA21               \ to BA21 as ships can't explode more than once
 
  LDA INWK+31            \ The energy bomb is killing this ship, so set bit 7
  ORA #%10000000         \ of the ship byte #31 to indicate that it has now been
@@ -4458,7 +4458,7 @@ LOAD_A% = LOAD%
 \ We want to check whether the angle t is too large, because if it is, we are
 \ coming in at the wrong angle and will probably bounce off the front of the
 \ space station. To find out the value of t, we need to look at the geometry
-\ of ths situation.
+\ of this situation.
 \
 \ The station's nose vector has length 1, because it's a unit vector. We
 \ actually store a 1 in a unit vector as &6000, because this means we don't
@@ -4525,7 +4525,7 @@ LOAD_A% = LOAD%
 \   The angle of approach is less than 26 degrees if nosev_z_hi >= 86
 \
 \ There is one final twist, however, because we are approaching the slot head
-\ on, the z-zxis from our perspective points into the screen, so that means
+\ on, the z-axis from our perspective points into the screen, so that means
 \ the station's nose vector is coming out of the screen towards us, so it has
 \ a negative z-coordinate. So the station's nose vector in this case is
 \ actually in the reverse direction, so we need to reverse the check and set
@@ -4546,7 +4546,7 @@ LOAD_A% = LOAD%
 \ 5. Horizontal docking slot
 \ --------------------------
 \ The space station's roofv vector points out of the top of the space station
-\ (OK, it dosn't have a roof, but it still points up). The station's blueprint
+\ (OK, it doesn't have a roof, but it still points up). The station's blueprint
 \ has the slot in a vertical orientation, so this means roofv points in the
 \ same direction as the slot (when we do a successful docking, the space
 \ station is actually on its side, which makes this part a little harder to
@@ -4747,7 +4747,7 @@ LOAD_A% = LOAD%
  LDX XSAV               \ Call ABORT2 to store the details of this missile
  LDY #&0E               \ lock, with the targeted ship's slot number in X
  JSR ABORT2             \ (which we stored in XSAV at the start of this ship's
-                        \ loop at MAL1), and set the colour of the misile
+                        \ loop at MAL1), and set the colour of the missile
                         \ indicator to the colour in Y (red = &0E)
 
 .MA47
@@ -5251,7 +5251,7 @@ LOAD_A% = LOAD%
  BEQ MA23               \ skip fuel scooping, as we can't scoop without fuel
                         \ scoops
 
- LDA DELT4+1            \ We are now cuccessfully fuel scooping, so it's time
+ LDA DELT4+1            \ We are now successfully fuel scooping, so it's time
  LSR A                  \ to work out how much fuel we're scooping. Fetch the
                         \ high byte of DELT4, which contains our current speed
                         \ divided by 4, and halve it to get our current speed
@@ -6349,7 +6349,7 @@ LOAD_A% = LOAD%
 
  LDA #0                 \ Then we subtract the high bytes:
  SBC INWK+1,X           \
- STA INWK+1,X           \   x_high = 0 - x_high
+ STA INWK+1,X           \   x_hi = 0 - x_hi
 
  LDA #0                 \ And then we subtract the sign bytes:
  SBC INWK+2,X           \
@@ -6448,7 +6448,7 @@ LOAD_A% = LOAD%
                         \ the sign of K(3 2 1). In this case, we want the
                         \ result to have the same sign as the largest argument,
                         \ which is (x_sign x_hi x_lo), which we know has the
-                        \ oposite sign to K(3 2 1), and that's what we just set
+                        \ opposite sign to K(3 2 1), and that's what we just set
                         \ the sign of K(3 2 1) to... so we can jump to MV14 to
                         \ return from the subroutine
 
@@ -6643,8 +6643,8 @@ LOAD_A% = LOAD%
 \   y´ = y * cos(a) + x * sin(a)
 \   z´ = z
 \
-\ Tranformation matrices
-\ ----------------------
+\ Transformation matrices
+\ -----------------------
 \ We can express the exact same thing in matrix form, like this:
 \
 \   [  cos(a)  sin(a)  0 ]     [ x ]     [ x * cos(a) + y * sin(a) ]
@@ -6918,7 +6918,7 @@ LOAD_A% = LOAD%
 \
 \ Deep dive: Rolling and pitching by a fixed angle
 \ ------------------------------------------------
-\ This routine applies the same trigonomety as described in routine MVS4, but
+\ This routine applies the same trigonometry as described in routine MVS4, but
 \ this time the angle is fixed at a very small 1/16 radians (around 3.6 degrees)
 \ so the maths is rather simpler. If you refer to the documentation for MVS4,
 \ you can see that the equations for rolling a point (x, y, z) through an angle
@@ -6953,7 +6953,7 @@ LOAD_A% = LOAD%
 \
 \ To clarify further, let's consider the example when X = 15 (roofv_x) and
 \ Y = 21 (sidev_x), which applies roll to the ship. If we consider the
-\ orientation vectors, this it how the three vectors look if we're sitting in
+\ orientation vectors, this is how the three vectors look if we're sitting in
 \ in the ship's cockpit:
 \
 \   roofv (points up out of the ship's sunroof...
@@ -7554,7 +7554,7 @@ Q% = _ENABLE_MAX_COMMANDER
                         \ here is copied to TP, which restores the last saved
                         \ commander when we die
                         \
-                        \ The intial state of this block defines the default
+                        \ The initial state of this block defines the default
                         \ commander. Q% can be set to TRUE to give the default
                         \ commander lots of credits and equipment
 
@@ -7917,7 +7917,7 @@ NEXT
 \         y = y + 1
 \         error = error - 256
 \
-\ There is one final improvement. If we use a a single byte to store the error,
+\ There is one final improvement. If we use a single byte to store the error,
 \ then error >= 256 is the same as saying "has the addition just overflowed", in
 \ which case we don't need to subtract 256 as the byte will already have rolled
 \ around to 0. So here is the final algorithm used in Elite:
@@ -8027,7 +8027,7 @@ NEXT
                         \ This subtraction works as the ASL A above sets the C
                         \ flag
 
- BCS LI1                \ If X2 > X1 then A is aleady positive and we can skip
+ BCS LI1                \ If X2 > X1 then A is already positive and we can skip
                         \ the next three instructions
 
  EOR #%11111111         \ Negate the result in A by flipping all the bits and
@@ -8910,7 +8910,7 @@ NEXT
 
 .HLL1
 
- LDA #%11111111         \ Store a full-width 8-pixel horizintal line in SC(1 0)
+ LDA #%11111111         \ Store a full-width 8-pixel horizontal line in SC(1 0)
  EOR (SC),Y             \ so that it draws the line on-screen, using EOR logic
  STA (SC),Y             \ so it merges with whatever is already on-screen
 
@@ -9049,7 +9049,7 @@ NEXT
 \
 \   Y                   The y-coordinate of the pixel within the character block
 \
-\   (SC+1 SC)           The screen addresss of the character block
+\   SC(1 0)             The screen address of the character block
 \
 \   T1                  The value of Y to restore on exit, so Y is preserved by
 \                       the call to PIXEL
@@ -9451,10 +9451,10 @@ NEXT
 \ slightly different approach, one which makes it easier for us to plot not only
 \ individual pixels, but also two pixels and even blocks of four.
 \
-\ The are two tables of bytes, one at TWOS and the other at TWOS2, that contain
-\ ready-made bytes for plotting one-pixel and two-pixel points. In each table,
-\ the byte at offset X contains a byte that, when poked into a character row,
-\ will plot a single-pixel at column X (for TWOS) or a two-pixel "dash" at
+\ There are two tables of bytes, one at TWOS and the other at TWOS2, that
+\ contain ready-made bytes for plotting one-pixel and two-pixel points. In each
+\ table, the byte at offset X contains a byte that, when poked into a character
+\ row, will plot a single-pixel at column X (for TWOS) or a two-pixel "dash" at
 \ column X (for TWOS2). As one example, this is what's in the fourth entry from
 \ each table (i.e. the entry at offset 3):
 \
@@ -9831,11 +9831,11 @@ NEXT
 \
 \ This is a quick way of making the stardust field in the new view feel
 \ different without having to generate a whole new field. If you look carefully
-\ at the stardust field when you switch views, you can just about see that new
-\ field is a reflection of the previous field in the screen diagonal, i.e. in
-\ the line from bottom left to top right. This is the line where x = y when the
-\ origin is in the middle of the screen, and positive x and y are right and up,
-\ which is the coordinate system we use for stardust).
+\ at the stardust field when you switch views, you can just about see that the
+\ new field is a reflection of the previous field in the screen diagonal, i.e.
+\ in the line from bottom left to top right. This is the line where x = y when
+\ the origin is in the middle of the screen, and positive x and y are right and
+\ up, which is the coordinate system we use for stardust).
 \
 \ ******************************************************************************
 
@@ -9843,7 +9843,7 @@ NEXT
 {
 \LDA MJ                 \ These instructions are commented out in the original
 \BNE FLIP-1             \ source. They would have the effect of not swapping the
-                        \ stardust if we had misjumped into witchspace
+                        \ stardust if we had mis-jumped into witchspace
 
  LDY NOSTM              \ Set Y to the current number of stardust particles, so
                         \ we can use it as a counter through all the stardust
@@ -10017,7 +10017,7 @@ NEXT
 \                            = y^2 / 512
 \                            = 28
 \
-\ out of 256 pixels acros the screen, and that's at the extremeties of the
+\ out of 256 pixels across the screen, and that's at the extremities of the
 \ screen and with full pitch. Perhaps this is a fisheye effect that makes space
 \ feel more curved when pitching is high? For now, I don't have an answer...
 \ ******************************************************************************
@@ -10281,7 +10281,7 @@ NEXT
 
  AND #%01111111         \ If |x_hi| >= 120 then jump to KILL1 to recycle this
  CMP #120               \ particle, as it's gone off the side of the screen,
- BCS KILL1              \ and rejoin at STC1 with the new particle
+ BCS KILL1              \ and re-join at STC1 with the new particle
 
  LDA YY+1               \ Set Y1 and y_hi to the high byte of YY in YY+1, so
  STA SY,Y               \ the new x-coordinate is in (y_hi y_lo) and the high
@@ -10289,11 +10289,11 @@ NEXT
 
  AND #%01111111         \ If |y_hi| >= 120 then jump to KILL1 to recycle this
  CMP #120               \ particle, as it's gone off the top or bottom of the
- BCS KILL1              \ screen, and rejoin at STC1 with the new particle
+ BCS KILL1              \ screen, and re-join at STC1 with the new particle
 
  LDA SZ,Y               \ If z_hi < 16 then jump to KILL1 to recycle this
  CMP #16                \ particle, as it's so close that it's effectively gone
- BCC KILL1              \ past us, and rejoin at STC1 with the new particle
+ BCC KILL1              \ past us, and re-join at STC1 with the new particle
 
  STA ZZ                 \ Set ZZ to the z-coordinate in z_hi
 
@@ -10626,11 +10626,11 @@ NEXT
 
  AND #%01111111         \ If |y_hi| >= 110 then jump to KILL6 to recycle this
  CMP #110               \ particle, as it's gone off the top or bottom of the
- BCS KILL6              \ screen, and rejoin at STC6 with the new particle
+ BCS KILL6              \ screen, and re-join at STC6 with the new particle
 
  LDA SZ,Y               \ If z_hi >= 160 then jump to KILL6 to recycle this
  CMP #160               \ particle, as it's so far away that it's too far to
- BCS KILL6              \ see, and rejoin at STC1 with the new particle
+ BCS KILL6              \ see, and re-join at STC1 with the new particle
 
  STA ZZ                 \ Set ZZ to the z-coordinate in z_hi
 
@@ -10671,7 +10671,7 @@ NEXT
 
  LDA #252               \ Set A to either +126 or -126 (252 >> 1) depending on
  ROR A                  \ the C flag, as this is a sign-magnitude number with
-                        \ the C flag rotated into its signbit
+                        \ the C flag rotated into its sign bit
 
  STA X1                 \ Set x_hi and X1 to A, so this particle starts on
  STA SX,Y               \ either the left or right edge of the screen
@@ -10694,7 +10694,7 @@ NEXT
 
  LDA #230               \ Set A to either +115 or -115 (230 >> 1) depending on
  ROR A                  \ the C flag, as this is a sign-magnitude number with
-                        \ the C flag rotated into its signbit
+                        \ the C flag rotated into its sign bit
 
  STA Y1                 \ Set y_hi and Y1 to A, so the particle starts anywhere
  STA SY,Y               \ along either the top or bottom edge of the screen
@@ -10770,7 +10770,7 @@ NEXT
  CMP #2                 \ If A >= 2, jump to st3 to print out our rating, as we
  BCS st3                \ are Dangerous
 
- DEX                    \ Decrement X to 6 for a Competant rating
+ DEX                    \ Decrement X to 6 for a Competent rating
 
  BNE st3                \ Jump to st3 to print out our rating, as we are
                         \ Competent (this BNE is effectively a JMP as A will
@@ -10997,7 +10997,7 @@ NEXT
                         \ move on to the next one
 
  TXA                    \ Print recursive token 96 + X, which will print from 96
- CLC                    \ ("FRONT") through to 99 ("RIGHT"), follwed by a space
+ CLC                    \ ("FRONT") through to 99 ("RIGHT"), followed by a space
  ADC #96
  JSR spc
 
@@ -11054,9 +11054,9 @@ NEXT
 \
 \ Contains the four low bytes of the value 100,000,000,000 (100 billion).
 \
-\ The maximum number of digits that we can print with the the BPRNT routine
-\ below is 11, so the biggest number we can print is 99,999,999,999. This
-\ maximum number plus 1 is 100,000,000,000, which in hexadecimal is:
+\ The maximum number of digits that we can print with the BPRNT routine below is
+\ 11, so the biggest number we can print is 99,999,999,999. This maximum number
+\ plus 1 is 100,000,000,000, which in hexadecimal is:
 \
 \   & 17 48 76 E8 00
 \
@@ -11212,7 +11212,7 @@ NEXT
 \
 \ And that's what we do in the TT35 subroutine below, just with 32-bit
 \ numbers with an 8-bit overflow. This doubling process is used quite a few
-\ times in the following, so let's look an an example, in which we double the
+\ times in the following, so let's look at an example, in which we double the
 \ number in K(S 0 1 2 3):
 \
 \   ASL K+3
@@ -11457,7 +11457,7 @@ NEXT
  LDA T                  \ Otherwise the digit is zero. If we are already
                         \ printing the number then we will want to print a 0,
                         \ but if we haven't started printing the number yet,
-                        \ then we probbaly don't, as we don't want to print
+                        \ then we probably don't, as we don't want to print
                         \ leading zeroes unless this is the only digit before
                         \ the decimal point
                         \
@@ -11700,7 +11700,7 @@ NEXT
                         \ about to pull A apart to work out where this
                         \ character definition lives in the ROM
 
-                        \ Now we want to set X to point to the revevant page
+                        \ Now we want to set X to point to the relevant page
                         \ number for this character - i.e. &C0, &C1 or &C2.
                         \ The following logic is easier to follow if we look
                         \ at the three character number ranges in binary:
@@ -11765,7 +11765,7 @@ NEXT
  ASL A                  \ character is 8 bits wide, and the special screen mode
  ASL A                  \ Elite uses for the top part of the screen is 256
  STA SC                 \ bits across with one bit per pixel, this value is
-                        \ not only the screen address offest of the text cursor
+                        \ not only the screen address offset of the text cursor
                         \ from the left side of the screen, it's also the least
                         \ significant byte of the screen address where we want
                         \ to print this character, as each row of on-screen
@@ -11858,7 +11858,7 @@ NEXT
                         \ square mode 4 screen, each row of text on-screen
                         \ takes up exactly one page, so the first row is page
                         \ &60xx, the second row is page &61xx, so we can get
-                        \ the page for character (XC, YC) by OR-ing with &60.
+                        \ the page for character (XC, YC) by OR'ing with &60.
                         \ To see this in action, consider that our two values
                         \ are, in binary:
                         \
@@ -11939,7 +11939,7 @@ NEXT
  STA SC+1               \ one showing our speed
 
  JSR PZW                \ Call PZW to set A to the colour for dangerous values
-                        \ and and X to the colour for safe values
+                        \ and X to the colour for safe values
 
  STX K+1                \ Set K+1 (the colour we should show for low values) to
                         \ X (the colour to use for safe values)
@@ -12044,7 +12044,7 @@ NEXT
  LDY #0                 \ Set Y = 0, for use in various places below
 
  JSR PZW                \ Call PZW to set A to the colour for dangerous values
-                        \ and and X to the colour for safe values
+                        \ and X to the colour for safe values
 
  STX K                  \ Set K (the colour we should show for high values) to X
                         \ (the colour to use for safe values)
@@ -12171,7 +12171,7 @@ NEXT
                         \ cabin temperature)
 
  JSR PZW                \ Call PZW to set A to the colour for dangerous values
-                        \ and and X to the colour for safe values
+                        \ and X to the colour for safe values
 
  STX K+1                \ Set K+1 (the colour we should show for low values) to
                         \ X (the colour to use for safe values)
@@ -12881,7 +12881,7 @@ NEXT
  LDA SHEILA+&41         \ Read 6522 System VIA input register IRA (SHEILA &41)
 
  LDA &FC                \ Set A to the interrupt accumulator save register,
-                        \ which restores A to the value it had on enterting the
+                        \ which restores A to the value it had on entering the
                         \ interrupt
 
  RTI                    \ Return from interrupts, so this interrupt is not
@@ -13203,7 +13203,7 @@ LOAD_C% = LOAD% +P% - CODE%
  BNE TA87               \ If A is non-zero then the missile is not near our
                         \ ship, so jump to TA87 to skip damaging our ship
 
- LDA #80                \ Otherwise the missile just got desttoyed near us, so
+ LDA #80                \ Otherwise the missile just got destroyed near us, so
  JSR OOPS               \ call OOPS to damage the ship by 80, which is nowhere
                         \ near as bad as the 250 damage from a missile slamming
                         \ straight into us, but it's still pretty nasty
@@ -13263,7 +13263,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \   * If this is a lone Thargon without a mothership, set it adrift aimlessly
 \     and we're done
 \
-\   * If this is a pirate and we are within the space staion safe zone, stop
+\   * If this is a pirate and we are within the space station safe zone, stop
 \     the pirate from attacking
 \
 \   * Recharge the ship's energy banks by 1
@@ -13357,7 +13357,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \   * Calculate the dot product of the ship's nose vector (i.e. the direction it
 \     is pointing) with the vector between us and the ship. This value will help
 \     us work out later on whether the enemy ship is pointing towards us, and
-\     therefore whether it can hit us with it lasers.
+\     therefore whether it can hit us with its lasers.
 \
 \ ******************************************************************************
 
@@ -13446,7 +13446,7 @@ LOAD_C% = LOAD% +P% - CODE%
  BCC TA3                \ ship has at least half of its energy banks charged,
                         \ jump down to TA3
 
- LSR A                  \ If the ship's current energy in bute #35 > A / 4, i.e.
+ LSR A                  \ If the ship's current energy in byte #35 > A / 4, i.e.
  LSR A                  \ the ship is not into the last 1/8th of its energy,
  CMP INWK+35            \ jump down to ta3 to consider firing a missile
  BCC ta3
@@ -13531,7 +13531,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ Subroutine: TACTICS (Part 6 of 7)
 \
-\ Apply tactics to the current ship. This section looks at potentialy firing
+\ Apply tactics to the current ship. This section looks at potentially firing
 \ the ship's laser at us. Specifically:
 \
 \   * If the ship is not pointing at us, skip to the next part
@@ -13886,7 +13886,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ This last one needs further explanation. Each ship type has, as part of its
 \ blueprint, a 16-bit value that defines the area of the ship that can be locked
-\ onto by a missle or hit by laser fire. The bigger this value, the easier the
+\ onto by a missile or hit by laser fire. The bigger this value, the easier the
 \ ship is to hit.
 \
 \ The key to the calculation is the observation that the ship's x- and
@@ -14065,7 +14065,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
  ORA #128               \ Set byte #22 (sidev_x_hi) to -1 (&D0), so the launched
  STA INWK+22            \ ship has the same orientation as spawned ships, just
-                        \ pointing away from us (if we set side_v to +1 instead,
+                        \ pointing away from us (if we set sidev to +1 instead,
                         \ this ship would be a mirror image of all the other
                         \ ships, which are spawned with -1 in nosev and +1 in
                         \ sidev)
@@ -14449,7 +14449,7 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ for details)
 
  LDA #4                 \ Set the step size for the hyperspace rings to 4, so
-                        \ there are more sections in the rings and thay are
+                        \ there are more sections in the rings and they are
                         \ quite round (compared to the step size of 8 used in
                         \ the much more polygonal launch rings)
 
@@ -14475,8 +14475,8 @@ LOAD_C% = LOAD% +P% - CODE%
  JSR NOISE              \ of the ship launching from the station
 
  LDA #8                 \ Set the step size for the hyperspace rings to 8, so
-                        \ there are fewer sections in the rings and thay are
-                        \ quite ploygonal (compared to the step size of 4 used
+                        \ there are fewer sections in the rings and they are
+                        \ quite polygonal (compared to the step size of 4 used
                         \ in the much rounder launch rings)
 
                         \ Fall through into HFS2 to draw the launch tunnel rings
@@ -14804,7 +14804,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
  EOR #%10000000         \ Flip the sign of A = -x_hi
 
- JSR MAD                \ Call MAD to calclate:
+ JSR MAD                \ Call MAD to calculate:
                         \
                         \   (A X) = Q * A + (S R)
                         \         = alpha * y * -x + x
@@ -14823,7 +14823,7 @@ LOAD_C% = LOAD% +P% - CODE%
  LDA YY+1               \
  STA S                  \ and set A = y_hi at the same time
 
- JSR MAD                \ Call MAD to calclate:
+ JSR MAD                \ Call MAD to calculate:
                         \
                         \   (A X) = Q * A + (S R)
                         \         = alpha * y * y_hi + y
@@ -14864,7 +14864,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
  AND #%01111111         \ If |x_hi| >= 116 then jump to KILL2 to recycle this
  CMP #116               \ particle, as it's gone off the side of the screen,
- BCS KILL2              \ and rejoin at STC2 with the new particle
+ BCS KILL2              \ and re-join at STC2 with the new particle
 
  LDA YY+1               \ Set Y1 and y_hi to the high byte of YY in YY+1, so
  STA SY,Y               \ the new x-coordinate is in (y_hi y_lo) and the high
@@ -14872,7 +14872,7 @@ LOAD_C% = LOAD% +P% - CODE%
 
  AND #%01111111         \ If |y_hi| >= 116 then jump to ST5 to recycle this
  CMP #116               \ particle, as it's gone off the top or bottom of the
- BCS ST5                \ screen, and rejoin at STC2 with the new particle
+ BCS ST5                \ screen, and re-join at STC2 with the new particle
 
 .STC2
 
@@ -15159,7 +15159,7 @@ NEXT
 
  ORA T                  \ Apply this to the high byte of the result in T, so
                         \ that A now has the correct sign for the result, and
-                        \ (A K+2 K+1 K) therfore contains the correctly signed
+                        \ (A K+2 K+1 K) therefore contains the correctly signed
                         \ result
 
  STA K+3                \ Store A in K+3, so K(3 2 1 0) now contains the result
@@ -16220,7 +16220,7 @@ NEXT
  SBC U                  \ a subtraction with carry clear
 
  ORA #128               \ We now set the sign bit of A, so that the EOR on the
-                        \ next line wil give the result the opposite sign to
+                        \ next line will give the result the opposite sign to
                         \ argument A (as T contains the sign bit of argument
                         \ A). This is the same as giving the result the same
                         \ sign as argument S (as A and S have different signs),
@@ -16291,7 +16291,7 @@ NEXT
 
  SBC #96                \ Set A = A - 96
                         \
-                        \ Going into this subtraction we we know the C flag is
+                        \ Going into this subtraction we know the C flag is
                         \ set as we passed through the BCC above, and we also
                         \ know that A >= 96, so the C flag will still be set
                         \ once we are done
@@ -16670,9 +16670,9 @@ NEXT
 \ Apply damping to the value in X, where X ranges from 1 to 255 with 128 as the
 \ centre point (so X represents a position on a centre-based dashboard slider,
 \ such as pitch or roll). If the value is in the left-hand side of the slider
-\ (1-127) then it bumps the value up by 1 so it moves towards towards the
-\ centre, and if it's in the right-hand side, it reduces it by 1, also moving
-\ it towards the centre.
+\ (1-127) then it bumps the value up by 1 so it moves towards the centre, and
+\ if it's in the right-hand side, it reduces it by 1, also moving it towards the
+\ centre.
 \
 \ ******************************************************************************
 
@@ -16693,7 +16693,7 @@ NEXT
 
 .BUMP
 
- INX                    \ Bump X up by 1, and if it hasn't ovedrshot the end of
+ INX                    \ Bump X up by 1, and if it hasn't overshot the end of
  BNE RE1                \ the dashboard slider, jump to RE1 to return from the
                         \ subroutine, otherwise fall through to REDU to drop
                         \ it down by 1 again
@@ -17333,7 +17333,7 @@ NEXT
 \
 \ The local universe is stored as if we are looking forward, so the z-axis is
 \ in the direction of travel. This routine takes those stored coordinates and
-\ switches the axes around if we are looking bahind us or to the sides, so that
+\ switches the axes around if we are looking behind us or to the sides, so that
 \ we can use the same maths to display what's in that view - in other words, to
 \ switch the axes so that the value of the z-coordinate that we've stored in
 \ our universe - the direction of travel - is translated into the correct axis
@@ -17647,7 +17647,7 @@ NEXT
 
  JSR SIGHT              \ Draw the laser crosshairs
 
- JMP NWSTARS            \ Set up a new new stardust field and return from the
+ JMP NWSTARS            \ Set up a new stardust field and return from the
                         \ subroutine using a tail call
 
 .^LOOK1
@@ -18157,7 +18157,7 @@ NEXT
 \ (x_sign x_hi) values from -63 to +63 is 127, which is in the right ballpark).
 \
 \ So if we take the x-coordinate of the centre of the scanner, 124, and add
-\ (x_sign x_hi), we get a range of 61 to 187, which fits nicely within the the
+\ (x_sign x_hi), we get a range of 61 to 187, which fits nicely within the
 \ ellipse range of 56 to 192 and is quick and easy to calculate.
 \
 \ There is one small tweak to this, however. If we add 124 to (x_sign x_hi),
@@ -18590,8 +18590,8 @@ NEXT
 
 .VLL2
 
- INY                    \ We want to draw the stick itsef, heading downwards, so
-                        \ increment the pixel row in Y
+ INY                    \ We want to draw the stick itself, heading downwards,
+                        \ so increment the pixel row in Y
 
  CPY #8                 \ If the row number in Y is less than 8, then it
  BNE VL2                \ correctly points at the next line down, so jump to
@@ -18832,10 +18832,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \ It is therefore no exaggeration that the twisting process implemented below
 \ is the fundamental building block of Elite's "universe in a bottle" approach,
 \ which enabled the authors to squeeze eight galaxies of 256 planets out of
-\ nothing more then three initial numbers and a short twisting routine (and
+\ nothing more than three initial numbers and a short twisting routine (and
 \ they could have had far larger galaxies and many more of them, if they had
 \ wanted, but they made the wise decision to limit the number). Let's look at
-\ how this twisting proces works.
+\ how this twisting process works.
 \
 \ The three seeds that describe a system represent three consecutive numbers in
 \ a Tribonacci sequence, where each number is equal to the sum of the preceding
@@ -19121,7 +19121,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ in the seeds. Specifically, all the bits in w2_hi are used, along with bits
 \ 0-2 of w0_hi and w1_hi, and bit 7 of w2_lo.
 \
-\ First, we check bit 7 of w2_lo. It it is clear, print "Human Colonials" and
+\ First, we check bit 7 of w2_lo. If it is clear, print "Human Colonials" and
 \ stop, otherwise this is an alien species, so we move onto the following
 \ steps. (In the following steps, the potential range of the calculated value
 \ of A is 0-7, and if a match isn't made, nothing is printed for that step.)
@@ -19834,7 +19834,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ In the following, the authors have used XX15 for
                         \ temporary storage. XX15 shares location with X1, Y1,
                         \ X2 and Y2, so in the following, you can consider
-                        \ the varibles like this:
+                        \ the variables like this:
                         \
                         \   XX15   is the same as X1
                         \   XX15+1 is the same as Y1
@@ -20199,7 +20199,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ cargo hold)
 
  LDA AVL,Y              \ Subtract the number of items from the Y-th byte of
- SEC                    \ AVL,which contains the number of items of this type
+ SEC                    \ AVL, which contains the number of items of this type
  SBC R                  \ that are available on the market
  STA AVL,Y
 
@@ -20215,7 +20215,7 @@ LOAD_D% = LOAD% + P% - CODE%
 .TT222
 
  LDA QQ29               \ Move the text cursor to row QQ29 + 5 (where QQ29 is
- CLC                    \ the item numberm starting from 0)
+ CLC                    \ the item number, starting from 0)
  ADC #5
  STA YC
 
@@ -20368,7 +20368,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: TT210
 \
-\ Show a list of current cargo in our hold, either with the abilty to sell (the
+\ Show a list of current cargo in our hold, either with the ability to sell (the
 \ Sell Cargo screen) or without (the Inventory screen), depending on the current
 \ view.
 \
@@ -20421,7 +20421,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #14                \ Set the text cursor to column 14, for the item's
  STA XC                 \ quantity
 
- PLA                    \ Retore the amount of item in the hold into X
+ PLA                    \ Restore the amount of item in the hold into X
  TAX
 
  CLC                    \ Print the 8-bit number in X to 3 digits, without a
@@ -20564,7 +20564,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  JSR TT27               \ Print the text token in A
 
- LDA #225               \ Pring recursive token 65 ("(Y/N)?")
+ LDA #225               \ Print recursive token 65 ("(Y/N)?")
  JSR TT27
 
  JSR TT217              \ Scan the keyboard until a key is pressed, and return
@@ -20657,7 +20657,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: TT103
 \
-\ Draw a small set of crosshairs on a galactic chart at the cooordinates in
+\ Draw a small set of crosshairs on a galactic chart at the coordinates in
 \ (QQ9, QQ10).
 \
 \ ******************************************************************************
@@ -21390,7 +21390,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \   * We are not already in a hyperspace countdown
 \
 \ If CTRL is being held down, we jump to Ghy to engage the galactic hyperdrive,
-\ othwerwise we check that:
+\ otherwise we check that:
 \
 \   * The selected system is not the current system
 \
@@ -21798,8 +21798,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \     expensive, and it's the other way round in rich industrial systems,
 \     where narcotics are closer to the average price, but food is pricier.
 \
-\   * The units for this item (i.e. tonnes, grams pr kilograms) are given by
-\     bits 5-6 of of byte #1 in the market prices table at QQ23.
+\   * The units for this item (i.e. tonnes, grams or kilograms) are given by
+\     bits 5-6 of byte #1 in the market prices table at QQ23.
 \
 \ ******************************************************************************
 
@@ -22170,7 +22170,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   hyp1+3              Jump straight to the the system at (QQ9, QQ10) without
+\   hyp1+3              Jump straight to the system at (QQ9, QQ10) without
 \                       first calculating which system is closest. We do this
 \                       if we already know that (QQ9, QQ10) points to a system
 \
@@ -22303,7 +22303,7 @@ LOAD_D% = LOAD% + P% - CODE%
 .TT158
 
  BPL TT159              \ If A < 0, then set A = 0, so we don't have negative
- LDA #0                 \ availibility
+ LDA #0                 \ availability
 
 .TT159
 
@@ -22359,9 +22359,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Process a mis-jump into witchspace (which happens very rarely). Witchspace has
 \ a strange, almost dust-free aspect to it, and it is populated by hostile
 \ Thargoids. Using our escape pod will be fatal, and our position on the
-\ galactic chart is inbetween systems. It is a scary place...
+\ galactic chart is in-between systems. It is a scary place...
 \
-\ There is a 1% chance that this routine is is called from TT18 instead of doing
+\ There is a 1% chance that this routine is called from TT18 instead of doing
 \ a normal hyperspace, or we can manually trigger a mis-jump by holding down
 \ CTRL after first enabling the "author display" configuration option ("X") when
 \ paused.
@@ -22440,7 +22440,7 @@ LOAD_D% = LOAD% + P% - CODE%
  SBC QQ8
  STA QQ14
 
- LDA QQ11               \ If ths current view is not a space view, jump to ee5
+ LDA QQ11               \ If the current view is not a space view, jump to ee5
  BNE ee5                \ to skip the following
 
  JSR TT66               \ Clear the top part of the screen, draw a white border,
@@ -22477,7 +22477,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ (QQ9, QQ10), but we don't need to do this as the
                         \ crosshairs will already be on a system by this point
 
- JSR hyp1+3             \ Jump straight to the the system at (QQ9, QQ10) without
+ JSR hyp1+3             \ Jump straight to the system at (QQ9, QQ10) without
                         \ first calculating which system is closest
 
  JSR GVL                \ Calculate the availability for each market item in the
@@ -23473,7 +23473,7 @@ LOAD_E% = LOAD% + P% - CODE%
 .TT55
 
  LDA QQ15+5             \ Step 2: Load w2_hi, which is stored in QQ15+5, and
- AND #%00011111         \ extract bits 0-4 by AND-ing with %11111
+ AND #%00011111         \ extract bits 0-4 by AND'ing with %11111
 
  BEQ P%+7               \ If all those bits are zero, then skip the following
                         \ 2 instructions to go to step 3
@@ -24804,7 +24804,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: NWSTARS
 \
-\ Initialise the stardust field. Called when the space view is intialised in
+\ Initialise the stardust field. Called when the space view is initialised in
 \ routine LOOK1.
 \
 \ ******************************************************************************
@@ -24815,7 +24815,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ORA MJ                 \ the initialisation of the SX, SY and SZ tables. The OR
  BNE WPSHPS             \ instruction is commented out in the original source,
                         \ but it would have the effect of also skipping the
-                        \ initialisation if we had misjumped into witchspace
+                        \ initialisation if we had mis-jumped into witchspace
 }
 
 \ ******************************************************************************
@@ -24890,7 +24890,7 @@ LOAD_E% = LOAD% + P% - CODE%
  LDA FRIN,X             \ Fetch the ship type in slot X
 
  BEQ WS2                \ If the slot contains 0 then it is empty and we have
-                        \ checked all ths slots (as they are always shuffled
+                        \ checked all the slots (as they are always shuffled
                         \ down in the main loop to close up and gaps), so jump
                         \ to WS2 as we are done
 
@@ -25073,7 +25073,7 @@ LOAD_E% = LOAD% + P% - CODE%
  BNE P%+5               \ If the energy levels are not yet zero, skip the
                         \ following instruction
 
- INC ENERGY             \ The minimum allowed energy level is 1, amd we just
+ INC ENERGY             \ The minimum allowed energy level is 1, and we just
                         \ reached 0, so increment ENERGY back to 1
 
  PLP                    \ Restore the flags from the stack, so we return with
@@ -25155,8 +25155,8 @@ LOAD_E% = LOAD% + P% - CODE%
 
  LDY #&FF               \ The result is negative, so set the high byte to &FF
 
- TXA                    \ Flip the the low byte and add 1 to get the negated
- EOR #&FF               \ low byte, using two's complement
+ TXA                    \ Flip the low byte and add 1 to get the negated low
+ EOR #&FF               \ byte, using two's complement
  TAX
  INX
 
@@ -25183,7 +25183,7 @@ LOAD_E% = LOAD% + P% - CODE%
  LDA K%+NI%,X           \ Copy the X-th byte from the station's data block at
  STA K3,X               \ K% + NI% to the X-th byte of K3
 
- DEX                    \ Decrement the loop countr
+ DEX                    \ Decrement the loop counter
 
  BPL SPL1               \ Loop back to SPL1 until we have copied all 9 bytes
 
@@ -25653,10 +25653,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: SPS3
 \
-\ Copy one of the the planet's coordinates into the corresponding location in
-\ the temporary variable K3. The high byte and absolute value of the sign byte
-\ are copied into the first two K3 bytes, and the sign of the sign byte is
-\ copied into the highest K3 byte.
+\ Copy one of the planet's coordinates into the corresponding location in the
+\ temporary variable K3. The high byte and absolute value of the sign byte are
+\ copied into the first two K3 bytes, and the sign of the sign byte is copied
+\ into the highest K3 byte.
 \
 \ The comments below are written for the x-coordinate.
 \
@@ -26005,7 +26005,7 @@ LOAD_E% = LOAD% + P% - CODE%
  BPL NWL3               \ Loop back for the next byte until we have copied them
                         \ all over
 
- SEC                    \ We have successfuly created our new ship, so set the
+ SEC                    \ We have successfully created our new ship, so set the
                         \ carry flag to indicate success
 
  RTS                    \ Return from the subroutine
@@ -26084,7 +26084,7 @@ LOAD_E% = LOAD% + P% - CODE%
 {
  STX MSTG               \ Store the target of our missile lock in MSTG
 
- LDX NOMSL              \ Update the leftmost indicator in the dashboards's
+ LDX NOMSL              \ Update the leftmost indicator in the dashboard's
  JSR MSBAR              \ missile bar, returns with Y = 0
 
  STY MSAR               \ Set MSAR = 0 to indicate that the leftmost missile
@@ -26177,7 +26177,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \                       are on this character row in the dashboard)
 \
 \   (Y X)               The address of the character definition of the bulb to
-\                       be drawn (i.e ECBT for the E.C.M. bulb, or SPBT for the
+\                       be drawn (i.e. ECBT for the E.C.M. bulb, or SPBT for the
 \                       space station bulb)
 \
 \ ******************************************************************************
@@ -26243,7 +26243,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: MSBAR
 \
-\ Draw a specific indicator in the dashboards's missile bar. Each indicator is
+\ Draw a specific indicator in the dashboard's missile bar. Each indicator is
 \ a rectangle that's 3 pixels wide and 5 pixels high. If the indicator is set to
 \ black, this effectively removes a missile.
 \
@@ -26310,7 +26310,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .MBL1
 
- STA (SC),Y             \ Draw the 3-pixel row, as as we do not use EOR logic,
+ STA (SC),Y             \ Draw the 3-pixel row, and as we do not use EOR logic,
                         \ this will overwrite anything that is already there
                         \ (so drawing a black missile will delete what's there)
 
@@ -27492,7 +27492,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JSR HLOIN2             \ Call HLOIN2 to draw a horizontal line on pixel line Y,
                         \ with centre point YY(1 0) and half-width A, and remove
-                        \ the line from from the sun line heap once done
+                        \ the line from the sun line heap once done
 
 .PLF13
 
@@ -27594,8 +27594,8 @@ LOAD_E% = LOAD% + P% - CODE%
  LDX LSO,Y              \ Set X to the line heap value for the old sun's line
                         \ at row Y
 
- STA LSO,Y              \ Store the half-width of the new row Y line line in the
-                        \ line heap
+ STA LSO,Y              \ Store the half-width of the new row Y line in the line
+                        \ heap
 
  BEQ PLF11              \ If X = 0 then there was no sun line on pixel row Y, so
                         \ jump to PLF11
@@ -27622,8 +27622,8 @@ LOAD_E% = LOAD% + P% - CODE%
  LDA K3+1
  STA YY+1
 
- LDA LSO,Y              \ Fetch the half-width of the new row Y line line from
-                        \ the line heap (which we stored above)
+ LDA LSO,Y              \ Fetch the half-width of the new row Y line from the
+                        \ line heap (which we stored above)
 
  JSR EDGES              \ Call EDGES to calculate X1 and X2 for the horizontal
                         \ line centred on YY(1 0) and with half-width A, i.e.
@@ -27635,7 +27635,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
                         \ At this point the old line is from XX to XX+1 and the
                         \ new line is from X1 to X2, and both fit on-screen. We
-                        \ now want to remove the old line amd draw the new one.
+                        \ now want to remove the old line and draw the new one.
                         \ We could do this by simply drawing the old one then
                         \ drawing the new one, but instead Elite does this by
                         \ drawing first from X1 to XX and then from X2 to XX+1,
@@ -27777,7 +27777,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JSR HLOIN2             \ Call HLOIN2 to draw a horizontal line on pixel line Y,
                         \ with centre point YY(1 0) and half-width A, and remove
-                        \ the line from from the sun line heap once done
+                        \ the line from the sun line heap once done
 
 .PLF9
 
@@ -27791,7 +27791,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
                         \ If we get here, we have successfully made it from the
                         \ bottom line of the screen to the top, and the old sun
-                        \ has been replaced bu the new one
+                        \ has been replaced by the new one
 
  CLC                    \ Clear the C flag to indicate success in drawing the
                         \ sun
@@ -27929,7 +27929,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ circle, we'll need to set the signs of x and y according to the particular
 \ quadrant we're in, but the magnitude of the coordinates will be as above.
 \ Specifically, we need to do the following (as screen y-coordinates are
-\ positive down the screen and sceen x-coordinates are positive to the right):
+\ positive down the screen and screen x-coordinates are positive to the right):
 \
 \   CNT = 0-16  is the bottom-right quadrant so x is +ve and y is +ve
 \   CNT = 16-32 is the top-right quadrant    so x is +ve and y is -ve
@@ -28109,8 +28109,8 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ for the next point in the heap
 
  LDA X2                 \ Swap (X1, Y1) and (X2, Y2), so the next segment will
- STA X1                 \ be drawn from the the current (X2, Y2) to the next
- LDA Y2                 \ point in the heap
+ STA X1                 \ be drawn from the current (X2, Y2) to the next point
+ LDA Y2                 \ in the heap
  STA Y1
 
  JMP WPL1               \ Loop back to WPL1 for the next point in the heap
@@ -28179,7 +28179,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JSR HLOIN2             \ Call HLOIN2 to draw a horizontal line on pixel line Y,
                         \ with centre point YY(1 0) and half-width A, and remove
-                        \ the line from from the sun line heap once done
+                        \ the line from the sun line heap once done
 
  DEY                    \ Decrement the loop counter
 
@@ -28388,7 +28388,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  CPX #2*Y-1             \ The high byte of the result is zero, so check the low
                         \ byte against 2 * #Y - 1 and return the C flag
-                        \ acccordingly. The constant #Y is the y-coordinate of
+                        \ accordingly. The constant #Y is the y-coordinate of
                         \ the mid-point of the space view, so 2 * #Y - 1 is 191,
                         \ the y-coordinate of the bottom pixel row of the space
                         \ view. So this returns:
@@ -28504,7 +28504,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ giving the result the opposite sign to nosev_z_hi. This is called with the
 \ following arguments when calculating the equator and meridian for planets:
 \
-\   * A = roofv_z_hi, P = -nosev_z_h
+\   * A = roofv_z_hi, P = -nosev_z_hi
 \
 \   * A = sidev_z_hi, P = -nosev_z_hi
 \
@@ -28672,7 +28672,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \     the stick has moved
 \
 \   * For keyboard, X and Y are integers between -1 and +1 depending on which
-\     keys ar pressed
+\     keys are pressed
 \
 \ Returns:
 \
@@ -28860,9 +28860,9 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Part 12 of the main flight loop calls this routine to remove the ship that is
 \ currently being analysed by the flight loop. Once the ship is removed, it
-\ jumps back to MAL1 to rejoin the main flight loop, with X pointing to the same
-\ slot that we just cleared (and which now contains the next ship in the local
-\ bubble of universe).
+\ jumps back to MAL1 to re-join the main flight loop, with X pointing to the
+\ same slot that we just cleared (and which now contains the next ship in the
+\ local bubble of universe).
 \
 \ Arguments:
 \
@@ -28882,7 +28882,7 @@ LOAD_F% = LOAD% + P% - CODE%
  LDX XSAV               \ Restore the current ship's slot number from XSAV,
                         \ which now points to the next ship in the bubble
 
- JMP MAL1               \ Jump to MAL1 to rejoin the main flight loop at the
+ JMP MAL1               \ Jump to MAL1 to re-join the main flight loop at the
                         \ start of the ship analysis loop
 }
 
@@ -29577,7 +29577,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
  DEX                    \ Decrement the counter to point to the next missile
 
- BNE ss                 \ Loop back to ss if we stil have missiles to draw
+ BNE ss                 \ Loop back to ss if we still have missiles to draw
 
  RTS                    \ Return from the subroutine
 
@@ -29588,7 +29588,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
  DEX                    \ Decrement the counter to point to the next missile
 
- BNE SAL8               \ Loop back to SAL8 if we stil have missiles to draw
+ BNE SAL8               \ Loop back to SAL8 if we still have missiles to draw
 
  RTS                    \ Return from the subroutine
 }
@@ -30119,7 +30119,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Other entry points:
 \
 \   MLOOP               The entry point for the main game loop. This entry point
-\                       comes after the the call to the main flight loop and
+\                       comes after the call to the main flight loop and
 \                       spawning routines, so it marks the start of the main
 \                       game loop for when we are docked (as we don't need to
 \                       call the main flight loop or spawning routines if we
@@ -30378,7 +30378,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
  JSR ee3                \ Print the 8-bit number in X at text location (0, 1)
 
- LDA #5                 \ Reset the the internal hyperspace counter to 5
+ LDA #5                 \ Reset the internal hyperspace counter to 5
  STA QQ22
 
  LDX QQ22+1             \ Set X = the on-screen hyperspace counter (i.e. the
@@ -30869,7 +30869,7 @@ ENDIF
 \
 \ Go to the docking bay (i.e. show the Status Mode screen).
 \
-\ We end up here after the startup process (load commander etc.), as well as
+\ We end up here after the start-up process (load commander etc.), as well as
 \ after a successful save, an escape pod launch, a successful docking, the end
 \ of a cargo sell, and various errors (such as not having enough cash, entering
 \ too many items when buying, trying to fit an item to your ship when you
@@ -30924,7 +30924,7 @@ ENDIF
  STA INWK+14            \ rotation vector)
 
 \LSR A                  \ This instruction is commented out in the original
-                        \ source. It would halve the value of zhi to 48, so the
+                        \ source. It would halve the value of z_hi to 48, so the
                         \ ship would start off closer to the viewer
 
  STA INWK+7             \ Set z_hi, the high byte of the ship's z-coordinate,
@@ -32217,7 +32217,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  STA SHEILA+&43         \ (SHEILA &43) to %01111111. This sets the A registers
                         \ (IRA and ORA) so that
                         \
-                        \ Bits 0-6 of ORA will sent to the keyboard
+                        \ Bits 0-6 of ORA will be sent to the keyboard
                         \
                         \ Bit 7 of IRA will be read from the keyboard
 
@@ -32288,7 +32288,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Subroutine: DKS3
 \
 \ Toggle a configuration setting and emit a beep. This is called when the game
-\ is paused and a key is pressed that changes the games's configuration.
+\ is paused and a key is pressed that changes the game's configuration.
+\
 \ Specifically, this routine toggles the configuration settings for the
 \ following keys:
 \
@@ -33065,7 +33066,7 @@ ENDMACRO
 \ each of the vectors has length 1).
 \
 \ We do this because we use the small angle approximation to rotate these
-\ vectors in space. It is is not completely accurate, so the three vectors tend
+\ vectors in space. It is not completely accurate, so the three vectors tend
 \ to get stretched over time, so periodically we tidy the vectors with this
 \ routine to ensure they remain as orthonormal as possible.
 \
@@ -33167,20 +33168,20 @@ ENDMACRO
 \
 \ which we can do by breaking it down into axes:
 \
-\   [sidex_x]   [nosev_x´]   [roofv_x´]
-\   [sidex_y] = [nosev_y´] x [roofv_y´]
-\   [sidex_z]   [nosev_z´]   [roofv_z´]
+\   [sidev_x]   [nosev_x´]   [roofv_x´]
+\   [sidev_y] = [nosev_y´] x [roofv_y´]
+\   [sidev_z]   [nosev_z´]   [roofv_z´]
 \
 \               [nosev_z´ * roofv_y´ - nosev_y´ * roofv_z´]
 \             = [nosev_x´ * roofv_z´ - nosev_z´ * roofv_x´]
 \               [nosev_y´ * roofv_x´ - nosev_x´ * roofv_y´]
 \
 \ then this sets sidev to a vector that is perpendicular to the others, and
-\ which has length |nose_v´| * |roof_v´| * sin(theta). We know that because
-\ nose_v´ and roof_v´ are orthonormal, theta must be a right-angle, and
-\ |nose_v´| and |roof_v´| must be 1, so this means sidev has length 1:
+\ which has length |nosev´| * |roofv´| * sin(theta). We know that because
+\ nosev´ and roofv´ are orthonormal, theta must be a right-angle, and
+\ |nosev´| and |roofv´| must be 1, so this means sidev has length 1:
 \
-\   |nose_v´| * |roof_v´| * sin(theta) = 1 * 1 * 1 = 1
+\   |nosev´| * |roofv´| * sin(theta) = 1 * 1 * 1 = 1
 \
 \ So if we calculate the following in the routine below, this will set sidev to
 \ a vector of length 1 that's perpendicular to the other two, which is a third
@@ -33419,7 +33420,7 @@ ENDMACRO
 
  SBC Q                  \ A >= Q, so set A = A - Q
                         \
-                        \ Going into this subtraction we we know the C flag is
+                        \ Going into this subtraction we know the C flag is
                         \ set as we passed through the BCC above, and we also
                         \ know that A >= Q, so the C flag will still be set once
                         \ we are done
@@ -33484,11 +33485,11 @@ ENDMACRO
 \
 \ Arguments:
 \
-\   X                   Index 1 (0 = x, 2 = ny, 4 = z)
+\   X                   Index 1 (0 = x, 2 = y, 4 = z)
 \
-\   Y                   Index 2 (0 = x, 2 = ny, 4 = z)
+\   Y                   Index 2 (0 = x, 2 = y, 4 = z)
 \
-\   A                   Index 3 (0 = x, 2 = ny, 4 = z)
+\   A                   Index 3 (0 = x, 2 = y, 4 = z)
 \
 \ ******************************************************************************
 
@@ -33570,7 +33571,7 @@ ENDMACRO
 
  SBC Q                  \ Set A = A - Q
                         \
-                        \ Going into this subtraction we we know the C flag is
+                        \ Going into this subtraction we know the C flag is
                         \ set as we passed through the BCC above, and we also
                         \ know that A >= Q, so the C flag will still be set once
                         \ we are done
@@ -33643,7 +33644,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  LDA K4                 \ Set A = y-coordinate of dot
 
- CMP #Y*2-2             \ If the y-coordinate is bigger then the y-coordinate of
+ CMP #Y*2-2             \ If the y-coordinate is bigger than the y-coordinate of
  BCS nono               \ the bottom of the screen, jump to nono as the ship's
                         \ dot is off the bottom of the space view
 
@@ -34139,7 +34140,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ if not it removes it from the screen.
 \
 \ In this code, XX1 is used to point to the current ship's data block at INWK
-\ (the two labels are interchageable).
+\ (the two labels are interchangeable).
 \
 \ Arguments:
 \
@@ -34561,7 +34562,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ set to 255 for each face
 
  INX                    \ Set XX4 = 0 for the distance value we use to test
- STX XX4                \ for visibility, so we alway shows everything
+ STX XX4                \ for visibility, so we always shows everything
 
 .LL41
 
@@ -34704,19 +34705,19 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ The problem is that the vector from our position to the ship we're displaying
 \ uses a different set of axes to the ship's blueprint. As we cavort through
-\ space, rolling and pitching away,the x-axis is always pointing to the right on
-\ screen, the y-axis always points up, and the z-axis always points into the
+\ space, rolling and pitching away, the x-axis is always pointing to the right
+\ on screen, the y-axis always points up, and the z-axis always points into the
 \ screen. This is always the case, even if we switch views (this is where the
 \ PLUT routine comes in, as it switches the axes around to maintain this
 \ relationship between the screen and the axes). When we roll, pitch and travel
 \ through space, we don't actually roll or pitch, but instead we rotate the
 \ universe around us (this is done in the MVEIT routine). On top of this, each
 \ ship has its own set of orientation vectors - nosev, roofv and sidev - that
-\ determing the direction that the ship is pointing.
+\ determine the direction that the ship is pointing.
 \
 \ The problem is that the face normal vector in the ship's blueprint is stored
 \ in terms of an unrotated ship. Ship coordinates are stored with the x, y and
-\ z axes along the orientation vectors, so if were were sitting in the ship,
+\ z axes along the orientation vectors, so if we were sitting in the ship,
 \ the x-coordinate of the face normal vector would be pointing to our right, the
 \ y-coordinate would be pointing up, and the z-coordinate would be pointing
 \ forward, because that's how the coordinates are stored. This intentionally
@@ -34875,7 +34876,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  JSR LL51               \ Call LL51 to set XX12 to the dot products of XX15 and
                         \ XX16, which we'll call dot_sidev, dot_roofv and
-                        \ dot_nose:
+                        \ dot_nosev:
                         \
                         \   XX12(1 0) = [x y z] . sidev
                         \             = (dot_sidev_sign dot_sidev_lo)
@@ -35259,8 +35260,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 \
-\ Deep dive: Tranposing the rotation matrix
-\ -----------------------------------------
+\ Deep dive: Transposing the rotation matrix
+\ ------------------------------------------
 \ We projected [x y z] onto the orientation vector space like this:
 \
 \   [x y z] projected onto sidev = [x y z] . sidev
@@ -35865,7 +35866,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  BNE LL57               \ If U is non-zero, jump down to LL57
 
- LDA T                  \ If T >= 4, junp down to LL57
+ LDA T                  \ If T >= 4, jump down to LL57
  CMP #4
  BCS LL57
 
@@ -37736,7 +37737,7 @@ ENDMACRO
 \
 \   * Byte #1-2         The ship's targetable area, which represents how far the
 \                       ship can be from the centre of our crosshairs and still
-\                       be locked onto by our missles or hit by our lasers, as
+\                       be locked onto by our missiles or hit by our lasers, as
 \                       described in the HITCH routine (16-bit value, 1 = low
 \                       byte, 2 = high byte)
 \
