@@ -9,6 +9,9 @@
 \ The commentary is copyright Mark Moxon, and any misunderstandings or mistakes
 \ in the documentation are entirely my fault
 \
+\ The terminology used in this commentary is explained at the start of the
+\ elite-loader.asm file
+\
 \ ******************************************************************************
 \
 \ This source file produces the following binary files:
@@ -84,114 +87,6 @@ f6 = &75
 f7 = &16
 f8 = &76
 f9 = &77
-
-\ ******************************************************************************
-\
-\ Deep dive: Multi-byte number terminology
-\ ----------------------------------------
-\ Not surprisingly, Elite deals with some pretty big numbers. For example, the
-\ cash reserves are stored as big-endian 32-bit numbers, space coordinates are
-\ stored as 24-bit sign-magnitude little-endian numbers, and the joystick gives
-\ us two's complement signed 16-bit numbers. When you only have the 8-bit bytes
-\ of 6502 assembly language to play with, things can get confusing, and quickly.
-\
-\ First, let's recap some basic definitions, so we're all on the same page.
-\
-\   * Big-endian numbers store their most significant bytes first, then the
-\     least significant bytes. This is how humans tend to write numbers.
-\
-\   * Little-endian numbers store the least significance bytes first then the
-\     most significant ones. The 6502 stores its addresses in little-endian
-\     format, as do the EQUD and EQUW operatives, for example.
-\
-\   * Sign-magnitude numbers store their sign in their highest bit, and the
-\     rest of the number contains the magnitude of the number (i.e. the number
-\     without the sign). You can change the sign of a sign magnitude number by
-\     simply flipping the highest bit (bit 7 in an 8-bit sign-magnitude number,
-\     bit 15 in a 16-bit sign-magnitude number, and so on).
-\
-\   * Two's complement numbers, meanwhile, are the mainstay of 6502 assembly
-\     language, and instructions like ADC and SBC are designed to work with both
-\     negative and positive two's complement numbers without us having to worry
-\     about a thing. They also have a sign bit in the highest bit, but negative
-\     numbers have their bits flipped compared to positive numbers. To flip the
-\     sign of a number in two's complement, you flip all the bits and add 1.
-\
-\ Elite uses a smorgasbord of all these types, and it can get pretty confusing.
-\ Given this, let's invent some terminology to make it easier to talk about
-\ multi-byte numbers and how they are stored in memory.
-\
-\ If we have three bytes called x_sign, x_hi and x_lo, then we can refer to
-\ their 32-bit number like this:
-\
-\   (x_sign x_hi x_lo)
-\
-\ In this terminology, the most significant byte is always written first,
-\ irrespective of how the bytes ar stored in memory. Similarly, we can talk
-\ about 16-bit numbers made up of registers:
-\
-\   (X Y)
-\
-\ Or a 24-bit number made up of a mix of registers and memory locations:
-\
-\  (A S S+1)
-\
-\ In this case, the most significant byte is in the accumulator A, then the next
-\ most significant is in memory location S, and the least significant byte is in
-\ S+1.
-\
-\ Or we can even talk about numbers made up of registers, a memory locations and
-\ constants, like this 24-bit number:
-\
-\   (A P 0)
-\
-\ Just remember that in every case, the high byte is on the left, and the low
-\ byte is on the right.
-\
-\ When talking about numbers in sequential memory locations, we can use another
-\ shorthand. Consider this little-endian number:
-\
-\   (K+3 K+2 K+1 K)
-\
-\ where a 32-bit little-endian number is stored in memory locations K (low byte)
-\ through to K+3 (high byte). We can also refer to this number like this:
-\
-\   K(3 2 1 0)
-\
-\ Or a big-endian number stored in XX15 through XX15+3 would be:
-\
-\   XX15(0 1 2 3)
-\
-\ where XX15 is the most significant byte and XX15+3 the least significant.
-\
-\ To take this even further, if we want to add
-\ another significant byte to make this a five-byte number - an overflow byte
-\ in a memory location called S, say - then we might talk about:
-\
-\   K(S 3 2 1 0)
-\
-\ or even something like this:
-\
-\   XX15(4 0 1 2 3)
-\
-\ which is a five-byte number stored with the highest byte in XX15+4, then the
-\ next most significant in XX15, then XX15+1 and XX15+2, through to the lowest
-\ byte in XX15+3. And yes, Elite does store one of its numbers like this - see
-\ the BPRNT routine for the gory details.
-\
-\ With this terminology, it might help to think of the digits listed in the
-\ brackets as being written down in the same order that we would write them
-\ down as humans. The point of this terminology is to make it easier for people
-\ to read, after all.
-\
-\ Finally, we might also refer to the following:
-\
-\   * Given a multi-byte number, (S R) say, the absolute of that number - the
-\     magnitude with no sign - would be written |S R|
-\
-\   * Given a number X, ~X is the number with all the bits inverted
-\
-\ ******************************************************************************
 
 \ ******************************************************************************
 \
@@ -394,6 +289,32 @@ f9 = &77
 \ But this is splitting hairs, as Elite swells the BBC Micro to near bursting
 \ point while being both incredibly clever and incredibly efficient, and for
 \ that, very serious respect is due to the authors.
+\
+\ Shared locations
+\ ----------------
+\ Some locations have two names in the source code. This is partly because some
+\ of the code was developed on an Acorn Atom, which restricts the names you can
+\ use for labels to two letters followed by numbers. Presumably when this code
+\ was merged with code on the BBC Micro, where label naming is more flexible,
+\ it was easier just to share label names than refactor the Atom code.
+\
+\ The following label names point to the same locations in memory, and are
+\ therefore interchangeable:
+\
+\   LOIN        LL30
+\   INWK        XX1
+\   INWK(34 33) XX19(1 0)
+\   X1          XX15
+\   Y1          XX15+1
+\   X2          XX15+2
+\   Y2          XX15+3
+\   K5          XX18        QQ17
+\   K3          XX2
+\   LSO         LSX
+\   CABTMP      MANY
+\
+\ The last one is slightly different, in that the first byte of the MANY table
+\ is unused, so CABTMP simply makes the most of the otherwise unused location.
 \
 \ ******************************************************************************
 
@@ -3078,20 +2999,9 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ The x, y and z coordinates in bytes #0-8 are stored as 24-bit sign-magnitude
 \ numbers, where the sign of the number is stored in bit 7 of the sign byte, and
 \ the other 23 bits contain the magnitude of the number without any sign (i.e.
-\ the absolute value, |x|, |y| or |z|). So an x value of &123456 would be stored
-\ like this:
+\ the absolute value, |x|, |y| or |z|).
 \
-\      x_sign          x_hi          x_lo
-\   +     &12           &34           &56
-\   0 0010010      00110100      01010110
-\
-\ while -&123456 is identical, just with bit 7 of the x_sign byte set:
-\
-\      x_sign          x_hi          x_lo
-\   -     &12           &34           &56
-\   1 0010010      00110100      01010110
-\
-\ We can also write it like this:
+\ We can also write the coordinates like this:
 \
 \   x-coordinate = (x_sign x_hi x_lo) = INWK(2 1 0)
 \   y-coordinate = (y_sign y_hi y_lo) = INWK(5 4 3)

@@ -9,6 +9,9 @@
 \ The commentary is copyright Mark Moxon, and any misunderstandings or mistakes
 \ in the documentation are entirely my fault
 \
+\ The terminology used in this commentary is explained at the start of the
+\ elite-loader.asm file
+\
 \ ******************************************************************************
 \
 \ This source file produces the following SSD disc image:

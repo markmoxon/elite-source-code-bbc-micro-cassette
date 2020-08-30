@@ -4,15 +4,16 @@
 #
 # ELITE CHECKSUM SCRIPT
 #
-# Written by Kieran Connell.
+# Written by Kieran Connell
 #
-# The script has two parts.
+# This script applies encryption, checksums and obfuscation to the compiled
+# binaries for the main game and the loader. The script has two parts:
 #
-# The first part generates an encrypted version of the "ELTcode" binary, based
-# on the code in the original "S.BCFS" BASIC source program.
+#   * The first part generates an encrypted version of the main game's "ELTcode"
+#     binary, based on the code in the original "S.BCFS" BASIC source program
 #
-# The second part implements the checksum and encryption functions from the
-# "ELITES" BASIC source program to generate an excrypted "ELITE" binary.
+#   * The second part generates an encrypted version of the main game's "ELITE"
+#     binary, based on the code in the original "ELITES" BASIC source program
 #
 # ******************************************************************************
 
