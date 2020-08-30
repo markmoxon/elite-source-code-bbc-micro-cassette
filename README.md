@@ -8,6 +8,8 @@ Hopefully this repository will be useful for those who want to learn more about 
 
 ## Contents
 
+* [Quick start](#quick-start)
+
 * [Acknowledgements](#acknowledgements)
 
 * [Introduction](#introduction)
@@ -43,13 +45,35 @@ Hopefully this repository will be useful for those who want to learn more about 
 
 * [Next steps](#next-steps)
 
+## Quick start
+
+If you want to jump straight in, here's a tl;dr just for you.
+
+* The most interesting files are these ones:
+
+  * The main game's source code is in [the elite-source.asm file](elite-source.asm) - this is the motherlode and probably contains all the stuff you're interested in
+
+  * The game's loader is in [the elite-loader.asm file](elite-loader.asm) - this is mainly concerned with setup and copy protection
+
+* It's probably worth skimming through the notes on terminology at the start of the elite-loader.asm file, as this explains a number of terms used in the commentary, without which it might be a bit tricky to follow at times (in particular, you should understand the terminology I use for multi-byte numbers)
+
+* The source code is peppered with a number of "deep dives", each of which goes into an aspect of the game in more detail. You find deep dives in the source files by simply searching for `Deep dive:`
+
+* There are loads of routines in Elite - literally hundreds. You can find them in the source files by searching for `Subroutine:`
+
+* The entry point for the main game code is routine `TT170`, which you can find by searching for `Subroutine: TT170`, so if you want to follow the program flow from the title screen, this is the place to start
+
+* The source code is designed to be read at an 80-column width and with a monospaced font, just like in the good old days
+
+* If you want to build the source on a modern computer, or if you want to know more about this project, keep reading
+
 ## Acknowledgements
 
 The original 1984 source code is copyright &copy; Ian Bell and David Braben, and the code on this site is identical to the version released by the authors on [Ian Bell's personal website](http://www.iancgbell.clara.net/elite/) (it's just been reformatted to be more readable).
 
 The commentary is copyright &copy; Mark Moxon. Any misunderstandings or mistakes in the documentation are entirely my fault.
 
-Huge thanks are due to the original authors for not only creating such an important piece of my childhood, but also for releasing the source code for us to play with; to Paul Brink for his annotated disassembly; and to Kieran Connell for his BeebAsm version, which I forked as the original basis for this repository. You can find out more about all of these in the [introduction](#Introduction) below.
+Huge thanks are due to the original authors for not only creating such an important piece of my childhood, but also for releasing the source code for us to play with; to Paul Brink for his annotated disassembly; and to Kieran Connell for his BeebAsm version, which I forked as the original basis for this repository. You can find out more about all of these in the [introduction](#Introduction) that follows.
 
 ## Introduction
 This project is based on the original source files for Elite on the BBC Micro, which can be found on [Ian Bell's personal website](http://www.iancgbell.clara.net/elite/). The game code in this repository is totally unchanged from the original source, apart from being reformatted to be easier to read. I've left all the original label names intact, as this site is all about digital archaeology and appreciating the authors' original handiwork.
@@ -496,15 +520,13 @@ The `ELTcode` executable produced by this build target is different to the relea
 
 ## Next steps
 
-* I'm currently documenting the final stages of the loader. Nearly there!
+* The commentary needs tidying up and clarifying in places - as it stands, this whole thing is basically a first draft that needs a fair amount of editing. There are one or two areas where the code is documented in terms of explaining what the code does, but I'm still trying to get my head around exactly how it works, so those areas still need addressing.
 
-* The commentary needs tidying up and clarifying in places. There are one or two areas where the code is documented, but I'm still trying to get my head around exactly how it works, so those need addressing.
+* I'm going to more deep dive articles, as well as expanding the ones that are there. There is so much more to say about this masterpiece, from explaining the program flow to analysing how much of the code is devoted to each type of functionality.
 
-* I'm going to add more deep dive articles, as well as expanding the ones that are there. There is so much more to say about this masterpiece.
+* I'm in the process of creating a website that will take the documented source files from github and generate a code-friendly website. This should make the source code easier to navigate, as github can only display the main source as a raw file (it's too big). Having linked routine names and indexes into the code will make a big difference.
 
-* I'm writing scripts to take the source files from github and generate a code-friendly website. This should make the source code easier to follow, as github can only display the main source as a raw file (it's too big).
-
-* I'm also hoping to pull apart the disc and second processor versions, so I can document the code that differs from the tape version. That's a longer-term goal, though - first, I need to get the tape version finished off.
+* I'm also hoping to analyse the disc and second processor versions, so I can document the code that differs from the tape version. That's a longer-term goal, though - first, I need to get the tape version polished up.
 
 ---
 
