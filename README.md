@@ -522,7 +522,7 @@ The `ELTcode` executable produced by this build target is different to the relea
 
 * The commentary needs tidying up and clarifying in places - as it stands, this whole thing is basically a first draft that needs a fair amount of editing. There are one or two areas where the code is documented in terms of explaining what the code does, but I'm still trying to get my head around exactly how it works, so those areas still need addressing.
 
-* I'm going to more deep dive articles, as well as expanding the ones that are there. There is so much more to say about this masterpiece, from explaining the program flow to analysing how much of the code is devoted to each type of functionality.
+* I'm going to write more deep dive articles, as well as expanding the ones that are there. There is so much more to say about this masterpiece, from explaining the program flow to analysing how much of the code is devoted to each type of functionality.
 
 * I'm in the process of creating a website that will take the documented source files from GitHub and generate a code-friendly website. This should make the source code easier to navigate, as GitHub can only display the main source as a raw file (it's too big). Having linked routine names and indexes into the code will make a big difference.
 
