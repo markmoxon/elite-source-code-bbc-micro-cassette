@@ -61,7 +61,7 @@ If you want to jump straight in, here's a _tl;dr_ for you.
 
 * There are loads of routines in Elite - literally hundreds. I will be adding more information on these soon, but for now you can find them in the source files by searching for `Subroutine:`
 
-* The entry point for the [main game code](elite-source.asm) is routine `TT170`, which you can find by searching for `Subroutine: TT170`. If you want to follow the program flow all the way from the title screen, this is the place to start
+* The entry point for the [main game code](elite-source.asm) is routine `TT170`, which you can find by searching for `Subroutine: TT170`. If you want to follow the program flow all the way from the title screen around the main game loop, then you can find a deep dive in the `TT170` routine that has you covered
 
 * The source code is designed to be read at an 80-column width and with a monospaced font, just like in the good old days
 
@@ -522,7 +522,7 @@ The `ELTcode` executable produced by this build target is different to the relea
 
 * The commentary needs tidying up and clarifying in places - as it stands, this whole thing is basically a first draft that needs a fair amount of editing. There are one or two areas where the code is documented in terms of explaining what the code does, but I'm still trying to get my head around exactly how it works, so those areas still need addressing.
 
-* I'm going to more deep dive articles, as well as expanding the ones that are there. There is so much more to say about this masterpiece, from explaining the program flow to analysing how much of the code is devoted to each type of functionality.
+* I'm going to write more deep dive articles, as well as expanding the ones that are there. There is so much more to say about this masterpiece, from explaining the program flow to analysing how much of the code is devoted to each type of functionality.
 
 * I'm in the process of creating a website that will take the documented source files from GitHub and generate a code-friendly website. This should make the source code easier to navigate, as GitHub can only display the main source as a raw file (it's too big). Having linked routine names and indexes into the code will make a big difference.
 

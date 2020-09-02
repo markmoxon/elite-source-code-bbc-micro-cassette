@@ -299,6 +299,7 @@ EXCN = &85
 \ ******************************************************************************
 \
 \ Elite loader (Part 1 of 6)
+\ Category: Loader
 \
 \ The loader bundles a number of binary files in with the loader code, and moves
 \ them to their correct memory locations in part 3 below.
@@ -369,6 +370,7 @@ ORG O%
 \ ******************************************************************************
 \
 \ Variable: B%
+\ Category: Screen mode
 \
 \ This block contains the bytes that get passed to the VDU command (via OSWRCH)
 \ in part 2 to set up the screen mode. This defines the whole screen using a
@@ -462,6 +464,7 @@ ORG O%
 \ ******************************************************************************
 \
 \ Variable: E%
+\ Category: Sound
 \
 \ This table contains the sound envelope data, which is passed to OSWORD to set
 \ up the sound envelopes in part 2 below. Refer to chapter 30 of the BBC Micro
@@ -478,11 +481,10 @@ ORG O%
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 2 of 6)
+\ Subroutine: swine
+\ Category: Copy protection
 \
-\ This part of the loader does a number of calls to OS calls, sets up the sound
-\ envelopes, pushes 33 bytes onto the stack that will be used later, and sends
-\ us on a wild goose chase, just for kicks.
+\ Reset the machine. Called when the copy protection detects a problem.
 \
 \ ******************************************************************************
 
@@ -494,45 +496,96 @@ ORG O%
 
  JMP (&FFFC)            \ Jump to the address in &FFFC to reset the machine
 
+\ ******************************************************************************
+\
+\ Subroutine: OSB
+\ Category: Utility routines
+\
+\ A convenience routine for calling OSBYTE with Y = 0.
+\
+\ ******************************************************************************
+
 .OSB
 
  LDY #0                 \ Call OSBYTE with Y = 0, returning from the subroutine
  JMP OSBYTE             \ using a tail call (so we can call OSB to call OSBYTE
                         \ for when we know we want Y set to 0)
 
- EQUS "R.ELITEcode"     \ A message buried in the code from the authors
+\ ******************************************************************************
+\
+\ Variable: Author names
+\ Category: Copy protection
+\
+\ Contains the authors' names, plus an unused OS command string that would
+\ *RUN the main game code, which isn't what actually happens (so presumably
+\ this is to throw the crackers off the scent).
+\
+\ ******************************************************************************
+
+ EQUS "R.ELITEcode"
  EQUB 13
  EQUS "By D.Braben/I.Bell"
  EQUB 13
  EQUB &B0
 
+\ ******************************************************************************
+\
+\ Variable: oscliv
+\ Category: Utility routines
+\
+\ Contains the address of OSCLIV, for executing OS commands.
+\
+\ ******************************************************************************
+
 .oscliv
 
- EQUW &FFF7             \ Addresses of various functions used by loader to
-                        \ obfuscate
+ EQUW &FFF7             \ Address of OSCLIV, for executing OS commands
+                        \ (specifically the *LOAD that loads the main game code)
+
+\ ******************************************************************************
+\
+\ Variable: David9
+\ Category: Copy protection
+\
+\ This address is used in the decryption loop starting at David2 in part 4, and
+\ is used to jump back into the loop at David5.
+\
+\ ******************************************************************************
 
 .David9
 
- EQUW David5            \ This address is used in the decryption loop starting
-                        \ at David2 in part 4, and is used to jump back into the
-                        \ loop at David5
+ EQUW David5            \ The address of David5
 
- CLD
+ CLD                    \ This instruction is not used
+
+\ ******************************************************************************
+\
+\ Variable: David23
+\ Category: Copy protection
+\
+\ This two-byte address points to the start of the 6502 stack, which descends
+\ from the end of page 2, less LEN bytes, which comes out as &01DF. So when we
+\ push 33 bytes onto the stack (LEN being 33), this address will point to the
+\ start of those bytes, which means we can push executable code onto the stack
+\ and run it by calling this address with a JMP (David23) instruction. Sneaky
+\ stuff!
+\ ******************************************************************************
 
 .David23
 
- EQUW (512-LEN)         \ This two-byte address points to the start of the
-                        \ 6502 stack, which descends from the end of page 2,
-                        \ less LEN bytes, which comes out as &01DF. So if we
-                        \ push 33 bytes onto the stack (LEN being 33), this
-                        \ address will point to the start of those bytes, which
-                        \ means we can push executable code onto the stack and
-                        \ run it by calling this address with a JMP (David23)
-                        \ instruction. Sneaky stuff!
+ EQUW (512-LEN)         \ The address of LEN bytes before the start of the stack
+
+\ ******************************************************************************
+\
+\ Subroutine: 
+\ Category: Copy protection
+\
+\ This routine modifies various bits of code in-place as part of the copy
+\ protection mechanism. It is called with A = &48 and X = 255.
+\
+\ ******************************************************************************
 
 .doPROT1
-
-                        \ This is called from below with A = &48 and X = 255
 
  LDY #&DB               \ Store &EFDB in TRTB%(1 0) to point to the keyboard
  STY TRTB%              \ translation table for OS 0.1 (which we will overwrite
@@ -551,19 +604,49 @@ ORG O%
 
  RTS                    \ Return from the subroutine
 
+\ ******************************************************************************
+\
+\ Variable: 
+\ Category: Copy protection
+\
+\ This value is used to set the low byte of BLPTR(1 0), when it's set in PLL1
+\ as part of the copy protection.
+\
+\ ******************************************************************************
+
 .MHCA
 
- EQUB &CA               \ This value is used to set the low byte of BLPTR(1 0)
-                        \ when it's set in PLL1
+ EQUB &CA               \ The low byte of BLPTR(1 0)
+
+\ ******************************************************************************
+\
+\ Subroutine: David7
+\ Category: Copy protection
+\
+\ This instruction is part of the multi-jump obfuscation in PROT1 (see part 2 of
+\ the loader), which does the following jumps:
+\
+\   David8 -> FRED1 -> David7 -> Ian1 -> David3
+\
+\ ******************************************************************************
 
 .David7
 
  BCC Ian1               \ This instruction is part of the multi-jump obfuscation
                         \ in PROT1
 
-.ENTRY
+\ ******************************************************************************
+\
+\ Elite loader (Part 2 of 6)
+\ Category: Loader
+\
+\ This part of the loader does a number of calls to OS calls, sets up the sound
+\ envelopes, pushes 33 bytes onto the stack that will be used later, and sends
+\ us on a wild goose chase, just for kicks.
+\
+\ ******************************************************************************
 
-                        \ This is where the JMP at the start of the loader goes
+.ENTRY
 
  SEI                    \ Disable all interrupts
 
@@ -852,6 +935,7 @@ ENDMACRO
 \ ******************************************************************************
 \
 \ Elite loader (Part 3 of 6)
+\ Category: Loader
 \
 \ Move and decrypt the following memory blocks:
 \
@@ -956,6 +1040,7 @@ ENDMACRO
 \ ******************************************************************************
 \
 \ Elite loader (Part 4 of 6)
+\ Category: Loader
 \
 \ This part copies more code onto the stack (from BLOCK to ENDBLOCK), decrypts
 \ the code from TUT onwards, and sets up the IRQ1 handler for the split-screen
@@ -1038,7 +1123,7 @@ ENDMACRO
 
  JMP swine              \ Jump to swine to reset the machine
 
- EQUW &4CFF
+ EQUW &4CFF             \ This data doesn't appear to be used
 
 .crunchit
 
@@ -1146,6 +1231,7 @@ ENDIF
 \ ******************************************************************************
 \
 \ Subroutine: PLL1
+\ Category: Drawing planets
 \
 \ Draw Saturn on the loading screen.
 \
@@ -1493,6 +1579,7 @@ ENDIF
 \ ******************************************************************************
 \
 \ Subroutine: DORND
+\ Category: Utility routines
 \
 \ Set A and X to random numbers. Carry flag is also set randomly. Overflow flag
 \ will be have a 50% probability of being 0 or 1.
@@ -1523,6 +1610,7 @@ ENDIF
 \ ******************************************************************************
 \
 \ Subroutine: SQUA2
+\ Category: Maths
 \
 \ Do the following multiplication of unsigned 8-bit numbers:
 \
@@ -1582,6 +1670,7 @@ ENDIF
 \ ******************************************************************************
 \
 \ Subroutine: PIX
+\ Category: Drawing pixels
 \
 \ Draw a pixel at screen coordinate (X, -A). The sign bit of A gets flipped
 \ before drawing, and then the routine uses the same approach as the PIXEL
@@ -1631,31 +1720,62 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variables
+\ Variable: TWOS
+\ Category: Drawing pixels
 \
-\ This block contains various variables and tables used by the routines that
-\ draw Saturn on the loading screen.
+\ Ready-made bytes for plotting one-pixel points in mode 4 (the top part of the
+\ split screen). See the PIX routine for details.
 \
 \ ******************************************************************************
 
 .TWOS
 
- EQUB %10000000         \ Ready-made bytes for plotting one-pixel points in mode
- EQUB %01000000         \ 4 (the top part of the split screen). See the PIX
- EQUB %00100000         \ routine for details
+ EQUB %10000000
+ EQUB %01000000
+ EQUB %00100000
  EQUB %00010000
  EQUB %00001000
  EQUB %00000100
  EQUB %00000010
  EQUB %00000001
 
+\ ******************************************************************************
+\
+\ Variable: CNT
+\ Category: Drawing planets
+\
+\ Defines the number of iterations of the PLL1 loop, which draws the planet part
+\ of the loading screen's Saturn.
+\
+\ ******************************************************************************
+
 .CNT
 
  EQUW &0500             \ The number of iterations of the PLL1 loop (1280)
 
+\ ******************************************************************************
+\
+\ Variable: CNT2
+\ Category: Drawing planets
+\
+\ Defines the number of iterations of the PLL2 loop, which draws the background
+\ stars on the loading screen.
+\
+\ ******************************************************************************
+
 .CNT2
 
  EQUW &01DD             \ The number of iterations of the PLL2 loop (477)
+
+\ ******************************************************************************
+\
+\ Variable: CNT3
+\ Category: Drawing planets
+\
+\ Defines the number of iterations of the PLL3 loop, which draws the rings
+\ around the loading screen's Saturn.
+\
+\ ******************************************************************************
 
 .CNT3
 
@@ -1664,6 +1784,7 @@ ENDIF
 \ ******************************************************************************
 \
 \ Subroutine: ROOT
+\ Category: Maths
 \
 \ Calculate the following square root:
 \
@@ -1747,6 +1868,7 @@ ENDIF
 \ ******************************************************************************
 \
 \ Subroutine: BEGIN%, copied to the stack at &01F1
+\ Category: Copy protection
 \
 \ This routine pushes BLOCK to ENDBLOCK onto the stack, and decrypts the code
 \ from TUT onwards.
@@ -1822,6 +1944,7 @@ ENDIF
 \ ******************************************************************************
 \
 \ Subroutine: DOMOVE, copied to the stack at &01DF (MVDL)
+\ Category: Copy protection
 \
 \ This routine moves and decrypts a block of memory.
 \
@@ -1920,7 +2043,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variables
+\ UU% workspace
+\ Category: Copy protection
 \
 \ The code from here to the end of the file gets copied to &0B00 (LE%) by part
 \ 3. It is called from the end of part 4, via ENTRY2 in part 5 below.
@@ -1932,12 +2056,31 @@ ENDIF
 Q% = P% - LE%
 ORG LE%
 
+\ ******************************************************************************
+\
+\ Variable: CHECKbyt
+\ Category: Copy protection
+\
+\ We calculate the value of the CHECKbyt checksum in elite-checksum.py, so this
+\ just reserves a byte. It checks the validity of the first two pages of the UU%
+\ workspace, which gets copied to LE%.
+\
+\ ******************************************************************************
+
 .CHECKbyt
 
- BRK                    \ We calculate the value of the CHECKbyt checksum in
-                        \ elite-checksum.py, so this just reserves a byte. This
-                        \ could be an EQUB 0 directive instead of a BRK, but
-                        \ this is what's in the source code
+ BRK                    \ This could be an EQUB 0 directive instead of a BRK,
+                        \ but this is what's in the source code
+
+\ ******************************************************************************
+\
+\ Variable: MAINSUM
+\ Category: Copy protection
+\
+\ Contains two checksum values, one for the header code at LBL, and the other
+\ for the recursive token table from &0400 to &07FF.
+\
+\ ******************************************************************************
 
 .MAINSUM
 
@@ -1946,33 +2089,74 @@ ORG LE%
                         \ main game code by elite-bcfs.asm and saved as
                         \ ELThead.bin
 
- EQUB 0                 \ We calculate the value of the MAINSUM checksum in
+ EQUB 0                 \ This is the checksum value for the recursive token
+                        \ table from &0400 to &07FF. We calculate the value in
                         \ elite-checksum.py, so this just reserves a byte
+
+\ ******************************************************************************
+\
+\ Variable: FOOLV
+\ Category: Copy protection
+\
+\ FOOLV contains the address of FOOL. This is part of the JSR AFOOL obfuscation
+\ routine, which calls AFOOL, which then jumps to the address in FOOLV, which
+\ contains the address of FOOL, which contains an RTS instruction... so overall
+\ it does nothing, but in a rather roundabout fashion.
+\
+\ ******************************************************************************
 
 .FOOLV
 
  EQUW FOOL              \ The address of FOOL, which contains an RTS
 
+\ ******************************************************************************
+\
+\ Variable: CHECKV
+\ Category: Copy protection
+\
+\ CHECKV contains the address of the LBL routine at the very start of the main
+\ game code file, in the decryption header code that gets prepended to the main
+\ game code by elite-bcfs.asm and saved as ELThead.bin
+\
+\ ******************************************************************************
+
 .CHECKV
 
- EQUW LOAD%+1           \ The address of the LBL routine at the very start of
-                        \ the main game code file, in the decryption header code
-                        \ that gets prepended to the main game code by
-                        \ elite-bcfs.asm and saved as ELThead.bin
+ EQUW LOAD%+1           \ The address of the LBL routine
+
+\ ******************************************************************************
+\
+\ Variable: block1
+\ Category: Screen mode
+\
+\ Palette bytes for use with the split-screen mode 5. See TVT1 in the main game
+\ code for an explanation.
+\
+\ ******************************************************************************
 
 .block1
 
- EQUB &F5, &E5          \ Palette bytes for use with the split-screen mode 5,
- EQUB &B5, &A5          \ see TVT1 in the main game code for an explanation
+ EQUB &F5, &E5
+ EQUB &B5, &A5
  EQUB &76, &66
  EQUB &36, &26
  EQUB &D4, &C4
  EQUB &94, &84
 
+\ ******************************************************************************
+\
+\ Variable: block2
+\ Category: Screen mode
+\
+\ Palette bytes for use with the split-screen mode 4. See TVT1 in the main game
+\ code for an explanation.
+\
+\ ******************************************************************************
+
 .block2
 
- EQUB &D0, &C0          \ Palette bytes for use with the split-screen mode 4,
- EQUB &B0, &A0          \ see TVT1 in the main game code for an explanation
+ EQUB &D0, &C0
+ EQUB &B0, &A0
  EQUB &F0, &E0
  EQUB &90, &80
  EQUB &77, &67
@@ -1981,6 +2165,7 @@ ORG LE%
 \ ******************************************************************************
 \
 \ Subroutine: TT26
+\ Category: Text
 \
 \ Print a character at the text cursor (XC, YC).
 \
@@ -2194,13 +2379,14 @@ ORG LE%
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 5 of 6)
+\ Subroutine: osprint
+\ Category: Utility routines
 \
-\ This part loads the main game code, decrypts it and moves it to the correct
-\ location for it to run.
+\ Print a character.
 \
-\ The code in this part is encrypted by elite-checksum.py and is decrypted in
-\ part 4 by the same routine that moves part 6 onto the stack.
+\ Arguments:
+\
+\   A                   The character to print
 \
 \ ******************************************************************************
 
@@ -2213,14 +2399,36 @@ ORG LE%
 
  EQUB &6C
 
+\ ******************************************************************************
+\
+\ Subroutine: command
+\ Category: Utility routines
+\
+\ Execute an OS command.
+\
+\ Arguments:
+\
+\   (Y X)               The address of the OS command string to execute
+\
+\ ******************************************************************************
+
 .command
 
- JMP (oscliv)           \ Jump to &FFF7 to execute the OSCLI command pointed to
+ JMP (oscliv)           \ Jump to &FFF7 to execute the OS command pointed to
                         \ by (Y X) and return using a tail call
+
+\ ******************************************************************************
+\
+\ Variable: MESS1
+\ Category: Utility routines
+\
+\ Contains an OS command string for loading the main game code.
+\
+\ ******************************************************************************
 
 .MESS1
 
-IF DISC                 \ OSCLI command string for loading the main game code
+IF DISC
  EQUS "L.ELTcode 1100"
 ELSE
  EQUS "L.ELITEcode F1F"
@@ -2228,9 +2436,23 @@ ENDIF
 
  EQUB 13
 
+\ ******************************************************************************
+\
+\ Elite loader (Part 5 of 6)
+\ Category: Loader
+\
+\ This part loads the main game code, decrypts it and moves it to the correct
+\ location for it to run.
+\
+\ The code in this part is encrypted by elite-checksum.py and is decrypted in
+\ part 4 by the same routine that moves part 6 onto the stack.
+\
+\ ******************************************************************************
+
 .ENTRY2
 
-                        \ We start this part of the loader by setting:
+                        \ We start this part of the loader by setting the
+                        \ following:
                         \
                         \   OSPRNT(1 0) = WRCHV
                         \   WRCHV(1 0) = TT26
@@ -2365,7 +2587,23 @@ ENDIF
 
 \ ******************************************************************************
 \
+\ Variable: M2
+\ Category: Utility routines
+\
+\ Used for testing bit 1 of the 6522 System VIA status byte in the IRQ1 routine,
+\ as well as bit 1 of the block flag.
+\
+\ ******************************************************************************
+
+.M2
+{
+ EQUB %00000010         \ Bit 1 is set
+}
+
+\ ******************************************************************************
+\
 \ Subroutine: IRQ1
+\ Category: Screen mode
 \
 \ The main interrupt handler, which implements Elite's split-screen mode.
 \
@@ -2383,11 +2621,6 @@ ENDIF
 \ ******************************************************************************
 
 {
-.M2
-
- EQUB %00000010         \ This is used in the following for testing bit 1 of the
-                        \ 6522 System VIA status byte
-
 .VIA2
 
  LDA #%00000100         \ Set Video ULA control register (SHEILA+&20) to
@@ -2535,27 +2768,38 @@ ENDIF
 
 \ ******************************************************************************
 \
+\ Variable: BLOCK
+\ Category: Copy protection
+\
+\ These two addresses get pushed onto the stack in part 4. The first EQUW is the
+\ address of ENTRY2, while the second is the address of the first instruction in
+\ part 6, after it is pushed onto the stack.
+\
+\ This entire section from BLOCK to ENDBLOCK gets copied into the stack at
+\ location &015E by part 4, so by the time we call the routine at the second
+\ EQUW address at the start, the entry point is on the stack at &0163.
+\
+\ This means that the RTS instructions at the end of parts 4 and 5 jump to
+\ ENTRY2 and the start of part 6 respectively. See part 4 for details.
+\
+\ ******************************************************************************
+
+.BLOCK
+
+ EQUW ENTRY2-1
+
+ EQUW 512-LEN+BLOCK-ENDBLOCK+3
+
+\ ******************************************************************************
+\
 \ Elite loader (Part 6 of 6)
+\ Category: Loader
 \
 \ This is the final part of the loader. It sets up some of the main game's
 \ interrupt vectors and calculates various checksums, before finally handing
 \ over to the main game.
 \
-\ This entire section from BLOCK to ENDBLOCK was copied into the stack at
-\ location &015E by part 4, so by the time we call the routine at the second
-\ EQUW address at the start, the entry point is on the stack at &0163.
-\
 \ ******************************************************************************
-
-.BLOCK                  \ Pushed onto stack for execution
-
-                        \ These two addresses get pushed onto the stack in part
-                        \ 4, so the RTS instructions at the end of parts 4 and 5
-                        \ jump to ENTRY2 and the start of this routine. See part
-                        \ 4 for details
-
- EQUW ENTRY2-1                  \ RTS address of ENTRY2
- EQUW 512-LEN+BLOCK-ENDBLOCK+3  \ RTS address of the following instruction
 
  LDA VIA+4              \ Read the 6522 System VIA T1C-L timer 1 low-order
  STA 1                  \ counter, which increments 1000 times a second so this
@@ -2684,6 +2928,7 @@ ENDIF
 \ ******************************************************************************
 \
 \ Subroutine: CHECKER
+\ Category: Copy protection
 \
 \ This routine runs checksum checks on the recursive token table and the loader
 \ code at the start of the main game code file, to prevent tampering with these
@@ -2693,8 +2938,8 @@ ENDIF
 
 .CHECKER
 
-                        \ First we check the MAINSUM checksum for the recursive
-                        \ token table from &0400 to &07FF
+                        \ First we check the MAINSUM+1 checksum for the
+                        \ recursive token table from &0400 to &07FF
 
  LDY #0                 \ Set Y = 0 to count through each byte within each page
 
@@ -2810,23 +3055,33 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variables
+\ Variable: XC
+\ Category: Text
+\
+\ Contains the x-coordinate of the text cursor (i.e. the text column) with an
+\ initial value of column 7, at the top-left corner of the 14x14 text window
+\ where we show the tape loading messages (see TT26 for details).
 \
 \ ******************************************************************************
 
 .XC
 
- EQUB 7                 \ Contains the x-coordinate of the text cursor (i.e.
-                        \ the text column) with an initial value of column 7, at
-                        \ the top-left corner of the 14x14 text window where we
-                        \ show the tape loading messages (see TT26 for details)
+ EQUB 7
+
+\ ******************************************************************************
+\
+\ Variable: YC
+\ Category: Text
+\
+\ Contains the y-coordinate of the text cursor (i.e. the text row) with an
+\ initial value of row 6, at the top-left corner of the 14x14 text window where
+\ we show the tape loading messages (see TT26 for details).
+\
+\ ******************************************************************************
 
 .YC
 
- EQUB 6                 \ Contains the y-coordinate of the text cursor (i.e.
-                        \ the text row) with an initial value of row 6, at
-                        \ the top-left corner of the 14x14 text window where we
-                        \ show the tape loading messages (see TT26 for details)
+ EQUB 6
 
 \ ******************************************************************************
 \
