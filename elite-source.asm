@@ -198,7 +198,7 @@ f9 = &77
 \ ------------
 \ Elite on a BBC Micro is a tight squeeze, particularly in the tape version
 \ where everything has to fit into the machine - there's no loading a whole new
-\ program from disk when you launch or dock, and as a result, usable memory is
+\ program from disc when you launch or dock, and as a result, usable memory is
 \ at a premium.
 \
 \ Here's a full breakdown of memory usage in bytes, once Elite is loaded and
@@ -5136,11 +5136,11 @@ LOAD_A% = LOAD%
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
 \
-\   * Altitude check (every 32 iterations of the main loop, on iteration 10
-\     of each 32)
+\   * Perform an altitude check with the planet (every 32 iterations of the main
+\     loop, on iteration 10 of each 32)
 \
-\   * Sun altitude check and fuel scooping (every 32 iterations of the main
-\     loop, on iteration 20 of each 32)
+\   * Perform an an altitude check with the sun and process fuel scooping (every
+\     32 iterations of the main loop, on iteration 20 of each 32)
 \
 \ ******************************************************************************
 
@@ -5311,7 +5311,7 @@ LOAD_A% = LOAD%
 \
 \   * Process E.C.M. energy drain
 \
-\   * Jump to the stardust routine if we are in space
+\   * Jump to the stardust routine if we are in a space view
 \
 \   * Return from the main flight loop
 \
@@ -5605,7 +5605,7 @@ LOAD_A% = LOAD%
 \ Move the current ship, planet or sun in space. This routine has multiple
 \ stages. This stage does the following:
 \
-\   * Tidy ship slots
+\   * Tidy the orientation vectors for one of the ship slots
 \
 \ Arguments:
 \
@@ -6799,9 +6799,8 @@ LOAD_A% = LOAD%
 \ Anyway, the rotation in Minsky's method doesn't describe a perfect circle,
 \ but instead it follows a slightly sheared ellipse, but that's close enough
 \ for 8-bit space combat in 192 x 256 pixels. So, coming back to the Elite
-\ sourced code, the routine below implements the rotation like this (shown
-\ here for the nosev orientation vectors, i.e. nosev_x, nosev_y and
-\ nosev_z):
+\ source code, the routine below implements the rotation like this (shown
+\ here for the nosev orientation vectors, i.e. nosev_x, nosev_y and nosev_z):
 \
 \ Roll calculations:
 \
@@ -12883,7 +12882,7 @@ NEXT
 \   .     ... 24 rows of space view = 192 pixel rows ...
 \   .
 \   24    Last row of space view
-\   24    First row of dashboard
+\   25    First row of dashboard
 \   .
 \   .     ... 7 rows of dashboard = 56 pixel rows ...
 \   .
@@ -12912,10 +12911,12 @@ NEXT
 \ below, the low byte is set to 30, to give a total timer count of 14622.
 \
 \ (Interestingly, in the loading screen in elite-loader.asm, the T1 timer for
-\ the split screen has 57 in the high byte, but 0 in the low byte, and as a
-\ result the screen does flicker quite a bit more at the top of the dashboard.
-\ Perhaps the authors didn't think it worth spending time perfecting the
-\ loader's split screen? Who knows...)
+\ the split screen has 56 in the high byte, and 50 in the low byte, so it counts
+\ down from 14386 instead of 14622. As a result the screen does flicker quite a
+\ bit more at the top of the dashboard, and there are quite a few red and yellow
+\ pixels above the split, as it switches a bit too early. Perhaps the authors
+\ didn't think it worth spending time perfecting the loader's split screen? Who
+\ knows...)
 \
 \ ******************************************************************************
 
@@ -30130,7 +30131,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
 .^TT100
 
- JSR M%                 \ Call M% to enter the main flight loop
+ JSR M%                 \ Call M% to iterate through the main flight loop
 
  DEC DLY                \ Decrement the delay counter in DLY, so any in-flight
                         \ messages get removed once the counter reaches zero
@@ -30171,7 +30172,7 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ If we are in that 13%, then 50% of the time this will
                         \ be a Cobra Mk III trader, and the other 50% of the
                         \ time it will either be an asteroid (98.5% chance) or,
-                        \ very rarely, a cargo (1.5% chance) canister
+                        \ very rarely, a cargo canister (1.5% chance)
 
  LDA MJ                 \ If we are in witchspace following a mis-jump, skip the
  BNE ytq                \ following by jumping down to MLOOP (via ytq above)
@@ -31019,6 +31020,296 @@ LOAD_F% = LOAD% + P% - CODE%
 \   BR1                 Restarts the game, but without resetting the stack
 \                       pointer. BRKV is set to point here by elite-loader.asm
 \
+\ ******************************************************************************
+\
+\ Deep dive: Program flow
+\ -----------------------
+\ Here is a high-level look at the main program flow, from the title screen to
+\ the end of life as we know it, via the main game loop, the main flight loop,
+\ moving and tactics.
+\
+\ This is mainly about the flight aspects of the game, as the docked screens
+\ don't really have mich of a flow, they just get shown when the relevant keys
+\ are pressed.
+\
+\ Each section is broken down into parts that mirror the structure of the source
+\ code, so it should be easy enough to find the relevant parts mentioned below.
+\ 
+\ Title sequence
+\ --------------
+\ 1/2 TT170
+\
+\   * Show "load commander?" title screen (TITLE)
+\   * Process loading of commander file, if selected
+\   * Copy last-saved commander NA% to current commander TP
+\   * Show "press space or fire" title screen (TITLE)
+\   * Set target system to home system
+\   * Process arrival in system closest to target
+\
+\ 2/2 BAY
+\
+\   * Set the docked flag
+\   * Jump to the docked section of the main game loop (FRCE, see below) with f8
+\     "pressed" to show Status Mode
+\ 
+\ Main game loop
+\ --------------
+\ 1/6 (potentially called from part 2)
+\
+\   * Spawn a trader
+\ 
+\ 2/6
+\
+\   * Call the main flight loop (M%, see below)
+\   * Clear any expired in-flight messages from the screen
+\   * On 255 out of 256 iterations, skip straight to MLOOP in part 5
+\   * Potentially spawn a trader by jumping up to part 1
+\   * Potentially spawn a cargo canister or an asteroid
+\ 
+\ 3/6
+\
+\   * Potentially spawn a cop, with a higher chance if we've been bad
+\ 
+\ 4/6
+\
+\   * Potentially spawn a lone bounty hunter, a Thargoid, or a group of 1-4
+\     pirates
+\ 
+\ 5/6 MLOOP (main entry point for main game loop)
+\
+\   * Cool down the lasers
+\   * Update the dashboard (DIALS)
+\   * If this is not a space view, scan for cursor keys
+\ 
+\ 6/6 FRCE (entry point for displaying a specific screen)
+\
+\   * Process function keys and other non-flight keys (TT102)
+\   * If docked, loop back to part 5 (MLOOP)
+\   * If in-flight, loop back to part 2
+\ 
+\ Main flight loop
+\ ----------------
+\ 1/16 M% (main entry point for main flight loop)
+\
+\   * Seed the random number generator
+\ 
+\ 2/16
+\
+\   * Calculate the alpha and beta angles from the current roll and pitch
+\ 
+\ 3/16
+\
+\   * Scan for flight keys and process the results
+\ 
+\ Now start looping through all the ships in the local bubble, and for each one,
+\ do parts 4-12:
+\ 
+\ 4/16
+\
+\   * Copy the ship's data block from K% to INWK
+\ 
+\ 5/16
+\
+\   * If an energy bomb has been set off and this ship can be killed, kill it
+\     and increase the kill tally
+\ 
+\ 6/16
+\
+\   * Move the ship in space (MVEIT, see below) and update K% with the new data
+\ 
+\ 7/16
+\
+\   * Check how close we are to this ship and work out if we are docking,
+\     scooping or colliding with it
+\ 
+\ 8/16
+\
+\   * Process scooping of items
+\ 
+\ 9/16
+\
+\   * Process docking with space station, which can take us to the main loop via
+\     BAY (if we dock successfully) or DEATH (if we don't)
+\ 
+\ 10/16
+\
+\   * Remove scooped item after both successful and failed scoopings
+\   * Process collisions, which can lead to DEATH
+\ 
+\ 11/16
+\
+\   * Process missile lock
+\   * Process our laser firing
+\ 
+\ 12/16
+\
+\   * Draw the ship (LL9)
+\   * Process the removal of killed ships
+\
+\ Loop back up to part 4 to do the next ship in the local bubble until we have
+\ processed them all
+\ 
+\ 13/16
+\
+\   * Show energy bomb effect (if applicable)
+\   * Charge shields and energy banks
+\ 
+\ 14/16
+\
+\   * Spawn a space station if we are close enough to the planet
+\ 
+\ 15/16
+\
+\   * Perform an altitude check with the planet, which can lead to DEATH
+\   * Perform an an altitude check with the sun, which can also lead to DEATH
+\   * Process fuel scooping
+\ 
+\ 16/16
+\
+\   * Process laser pulsing
+\   * Process E.C.M. energy drain
+\   * Call the stardust routine if we are on a space view (STARS)
+\   * Return from the main flight loop
+\ 
+\ Moving
+\ ------
+\ 1/9 MVEIT (main entry point for moving)
+\
+\   * Tidy the orientation vectors for one of the ship slots (TIDY)
+\ 
+\ 2/9
+\
+\   * Apply tactics to ships with AI enabled (TACTICS, see below)
+\   * Remove the ship from the scanner, so we can move it (SCAN)
+\ 
+\ 3/9
+\
+\   * Move the ship forward (along the vector pointing in the direction of
+\     travel) according to its speed
+\ 
+\ 4/9
+\
+\   * Apply acceleration to the ship's speed (if acceleration is non-zero), and
+\     then zero the acceleration as it's a one-off change
+\ 
+\ 5/9
+\
+\   * Rotate the ship's location in space by the amount of pitch and roll of our
+\     ship
+\ 
+\ 6/9
+\
+\   * Move the ship in space according to our speed
+\ 
+\ 7/9
+\
+\   * Rotate the ship's orientation vectors according to our pitch and roll
+\     (MVS4)
+\ 
+\ 8/9
+\
+\   * If the ship we are processing is rolling or pitching itself, rotate it and
+\     apply damping if required
+\ 
+\ 9/9
+\
+\   * If the ship is exploding or being removed, hide it on the scanner
+\   * Otherwise redraw the ship on the scanner, now that it's been moved
+\ 
+\ Tactics
+\ -------
+\ 1/7 TA34 (missile tactics, called from part 1 for missiles only)
+\
+\   * If E.C.M. is active, destroy the missile
+\
+\   * If the missile is hostile towards us, then check how close it is. If it
+\     hasn't reached us, jump to part 3 so it can streak towards us, otherwise
+\     we've been hit, so process a large amount of damage to our ship, which can
+\     lead to DEATH
+\
+\   * Otherwise see how close the missile is to its target. If it has not yet
+\     reached its target, give the target a chance to activate its E.C.M. if it
+\     has one, otherwise jump to part 3
+\
+\   * If it has reached its target and the target is the space station, destroy
+\     the missile, potentially damaging us if we are nearby
+\
+\   * If it has reached its target and the target is a ship, destroy the missile
+\     and the ship, potentially damaging us if we are nearby
+\
+\ 2/7 TACTICS (main entry point for tactics)
+\
+\   * If this is a missile, jump up to the missile code in part 1
+\
+\   * If this is an escape pod, point it at the planet and jump to part 7
+\
+\   * If this is the space station and it is hostile, spawn a cop and we're done
+\
+\   * If this is a lone Thargon without a mothership, set it adrift aimlessly
+\     and we're done
+\
+\   * If this is a pirate and we are within the space station safe zone, stop
+\     the pirate from attacking
+\
+\   * Recharge the ship's energy banks by 1
+\ 
+\ 3/7
+\
+\   * Calculate the dot product of the ship's nose vector (i.e. the direction it
+\     is pointing) with the vector between us and the ship so we can work out
+\     later on whether the enemy ship can hit us with its lasers
+\ 
+\ 4/7
+\
+\   * Rarely (2.5% chance) roll the ship by a noticeable amount
+\
+\   * If the ship has at least half its energy banks full, jump to part 6 to
+\     consider firing the lasers
+\
+\   * If the ship isn't really low on energy, jump to part 5 to consider firing
+\     a missile
+\
+\   * Rarely (10% chance) the ship runs out of both energy and luck, and bails,
+\     launching an escape pod and drifting in space
+\ 
+\ 5/7
+\   * If the ship doesn't have any missiles, skip to the next part
+\
+\   * If an E.C.M. is firing, skip to the next part
+\
+\   * Randomly decide whether to fire a missile (or, in the case of Thargoids,
+\     release a Thargon), and if we do, we're done
+\ 
+\ 6/7
+\   * If the ship is not pointing at us, skip to the next part
+\
+\   * If the ship is pointing at us but not accurately, fire its laser at us and
+\     skip to the next part
+\
+\   * If we are in the ship's crosshairs, register some damage to our ship, slow
+\     down the attacking ship, make the noise of us being hit by laser fire
+\     (which could end in DEATH), and we're done
+\ 
+\ 7/7
+\   * Work out which direction the ship should be moving, depending on whether
+\     it's an escape pod, where it is, which direction it is pointing, and how
+\     aggressive it is
+\
+\   * Set the roll and pitch counters to head in that direction
+\
+\   * Speed up or slow down, depending on where the ship is in relation to us
+\ 
+\ Death
+\ -----
+\ 1/1 DEATH
+\
+\   * We have been killed, so display the chaos of our destruction above a "GAME
+\     OVER" sign
+\
+\   * Clean up a number of variables and workspaces, ready for the next attempt
+\
+\   * Jump up to TT170 to start the whole process again
+\ 
 \ ******************************************************************************
 
 .TT170

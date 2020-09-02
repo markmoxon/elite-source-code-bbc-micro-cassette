@@ -61,7 +61,7 @@ If you want to jump straight in, here's a _tl;dr_ for you.
 
 * There are loads of routines in Elite - literally hundreds. I will be adding more information on these soon, but for now you can find them in the source files by searching for `Subroutine:`
 
-* The entry point for the [main game code](elite-source.asm) is routine `TT170`, which you can find by searching for `Subroutine: TT170`. If you want to follow the program flow all the way from the title screen, this is the place to start
+* The entry point for the [main game code](elite-source.asm) is routine `TT170`, which you can find by searching for `Subroutine: TT170`. If you want to follow the program flow all the way from the title screen around the main game loop, then you can find a deep dive in the `TT170` routine that has you covered
 
 * The source code is designed to be read at an 80-column width and with a monospaced font, just like in the good old days
 
