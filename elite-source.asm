@@ -91,7 +91,8 @@ f9 = &77
 \ ******************************************************************************
 \
 \ Deep dive: The Elite memory map
-\ -------------------------------
+\ ===============================
+\
 \ The tape version of Elite uses almost every nook and cranny of the BBC Micro,
 \ which isn't surprising when you consider just how much the authors managed to
 \ squeeze into this 32K micro, without the disc version's luxury of being able
@@ -321,7 +322,8 @@ f9 = &77
 \ ******************************************************************************
 \
 \ Deep dive: Galaxy and system seeds
-\ ----------------------------------
+\ ==================================
+\
 \ Famously, Elite's galaxy and system data is generated procedurally, using a
 \ set of three 16-bit seed numbers and the Tribonnaci series. You can read all
 \ about this process in the individual documentation for the routines mentioned
@@ -1354,7 +1356,8 @@ ENDMACRO
 \ ******************************************************************************
 \
 \ Deep dive: Game text in Elite
-\ -----------------------------
+\ =============================
+\
 \ This table contains data for the recursive token system used in Elite. There
 \ are actually three types of token used by Elite - recursive, two-letter and
 \ control codes - so let's look at all of them in one go.
@@ -2885,7 +2888,8 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ ******************************************************************************
 \
 \ Deep dive: Ship data blocks
-\ ---------------------------
+\ ===========================
+\
 \ Every ship in our local bubble of universe has its own data block, stored in
 \ the K% workspace. The data block contains information about the ship's status,
 \ its location in space, its orientation and so on. Each ship in the local
@@ -2924,8 +2928,8 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ types; planets, for example, don't have AI or missiles, though it would be fun
 \ if they did...
 \
-\ Summary of ship data block format
-\ ---------------------------------
+\ Summary of the ship data block format
+\ -------------------------------------
 \ The bytes in each ship data block are arranged as follows:
 \
 \   * Bytes #0-8        Ship coordinates:
@@ -4429,7 +4433,8 @@ LOAD_A% = LOAD%
 \ ******************************************************************************
 \
 \ Deep dive: Docking
-\ ------------------
+\ ==================
+\
 \ The following routine does five tests to confirm whether we are docking
 \ safely, as opposed to slamming into the sides of the space station, leaving
 \ a trail of sparks and dented pride. They are:
@@ -5843,7 +5848,8 @@ LOAD_A% = LOAD%
 \ ******************************************************************************
 \
 \ Deep dive: Rotating the universe
-\ --------------------------------
+\ ================================
+\
 \ When we rotate our ship with the keyboard or joystick, we actually just rotate
 \ the whole universe around our Cobra, as everything is drawn from the
 \ perspective of our cockpit. This routine therefore applies the rotation
@@ -6135,6 +6141,7 @@ LOAD_A% = LOAD%
 \ ******************************************************************************
 \
 \ Subroutine: MVEIT (Part 8 of 9)
+\ Category: Moving
 \
 \ Move the current ship, planet or sun in space. This routine has multiple
 \ stages. This stage does the following:
@@ -6542,7 +6549,8 @@ LOAD_A% = LOAD%
 \ ******************************************************************************
 \
 \ Deep dive: Rolling and pitching
-\ -------------------------------
+\ ===============================
+\
 \ In order to understand this routine, we need first to understand what it's
 \ for, so consider our Cobra Mk III sitting in deep space, minding its own
 \ business, when an enemy ship appears in the distance. Inside the little
@@ -6958,7 +6966,8 @@ LOAD_A% = LOAD%
 \ ******************************************************************************
 \
 \ Deep dive: Rolling and pitching by a fixed angle
-\ ------------------------------------------------
+\ ================================================
+\
 \ This routine applies the same trigonometry as described in routine MVS4, but
 \ this time the angle is fixed at a very small 1/16 radians (around 3.6 degrees)
 \ so the maths is rather simpler. If you refer to the documentation for MVS4,
@@ -7862,7 +7871,8 @@ NEXT
 \ ******************************************************************************
 \
 \ Deep dive: Bresenham's line algorithm
-\ -------------------------------------
+\ =====================================
+\
 \ Non-horizontal lines in Elite are drawn using Bresenham's line algorithm
 \ (horizontal lines use a much simpler routine at HLOIN). Let's look at how that
 \ works.
@@ -9264,7 +9274,8 @@ NEXT
 \ ******************************************************************************
 \
 \ Deep dive: Drawing monochrome pixels in mode 4
-\ ----------------------------------------------
+\ ==============================================
+\
 \ The top part of Elite's split-screen mode - the monochrome mode 4 part -
 \ consists of 192 rows of pixels, with 256 pixels in each row. That sounds nice
 \ and simple... except the way the BBC Micro stores its screen memory isn't
@@ -9661,7 +9672,8 @@ NEXT
 \ ******************************************************************************
 \
 \ Deep dive: The ball line heap
-\ -----------------------------
+\ =============================
+\
 \ The planet and sun are complex shapes that use plenty of maths to calculate
 \ their shapes, and that takes up time. We remove shapes from the screen by
 \ drawing the same shape again in exactly the same place (which erases them
@@ -10003,7 +10015,8 @@ NEXT
 \ ******************************************************************************
 \
 \ Deep dive: Stardust in the forward view
-\ ---------------------------------------
+\ =======================================
+\
 \ Let's look at this process in more detail. It breaks down into three stages:
 \
 \  * Moving the stardust towards us
@@ -11248,7 +11261,8 @@ NEXT
 \ ******************************************************************************
 \
 \ Deep dive: Printing huge numbers
-\ --------------------------------
+\ ================================
+\
 \ The algorithm is relatively simple, but it looks fairly complicated because
 \ we're dealing with 32-bit numbers.
 \
@@ -12396,7 +12410,8 @@ NEXT
 \ ******************************************************************************
 \
 \ Deep dive: The dashboard indicators
-\ -----------------------------------
+\ ===================================
+\
 \ Using one routine to display all the different bar indicators in the dashboard
 \ leads to some interesting behaviour. Each bar indicator is 16 pixels long, and
 \ the default entry point at DILX can show values from 0-255, with each pixel in
@@ -12809,7 +12824,8 @@ NEXT
 \ ******************************************************************************
 \
 \ Deep dive: The split-screen mode
-\ --------------------------------
+\ ================================
+\
 \ Elite uses a unique split-screen mode that enables a high-resolution
 \ black-and-white space view to coexist with a lower resolution, colour ship
 \ dashboard. There are two parts to this screen mode: the custom mode, and the
@@ -13973,7 +13989,8 @@ LOAD_C% = LOAD% +P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: In the crosshairs
-\ ----------------------------
+\ ============================
+\
 \ There are a number of steps we have to take to work out whether a ship is in
 \ our crosshairs. They are as follows.
 \
@@ -14719,7 +14736,8 @@ LOAD_C% = LOAD% +P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Stardust in the side views
-\ -------------------------------------
+\ =====================================
+\
 \ Let's look at this process in more detail. It breaks down into three stages:
 \
 \  * Moving the stardust sideways
@@ -15098,7 +15116,8 @@ LOAD_C% = LOAD% +P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Sine/cosine table
-\ ----------------------------
+\ ============================
+\
 \ Here's how this works. The value at byte number (theta * 10) is:
 \
 \   256 * ABS(SIN((theta * 10 / 64) * 2 * PI))
@@ -15683,7 +15702,8 @@ NEXT
 \ ******************************************************************************
 \
 \ Deep dive: Optimised multiplication
-\ -----------------------------------
+\ ===================================
+\
 \ This routine uses the same basic algorithm as MU11, but because we are only
 \ interested in the high byte of the result, we can optimise away a few
 \ instructions. Instead of having a loop counter to count the 8 bits in the
@@ -15957,7 +15977,8 @@ NEXT
 \ ******************************************************************************
 \
 \ Deep dive: "Shift-and-add" multiplication
-\ -----------------------------------------
+\ =========================================
+\
 \ This routine implements simple multiplication of two 8-bit numbers into a
 \ 16-bit result using the "shift and add" algorithm. Consider multiplying two
 \ example numbers, which we'll call p and a (as this makes it easier to map the
@@ -16219,7 +16240,8 @@ NEXT
 \ ******************************************************************************
 \
 \ Deep dive: Adding sign-magnitude numbers
-\ ----------------------------------------
+\ ========================================
+\
 \ When adding two signed numbers using two's complement, the result can have
 \ the wrong sign when an overflow occurs. The classic example in 8-bit signed
 \ arithmetic is 127 + 1, which doesn't give the expected 128, but instead gives
@@ -16233,10 +16255,10 @@ NEXT
 \ flag and deal with the overflow.
 \
 \ Elite doesn't want to have to bother with this overhead, so the ADD
-\ subroutine, which adds two signed 16-bit numbers, instead ensures that the
-\ result always has the correct sign, even in the event of an overflow, though
-\ if the addition does overflow, the result still won't be correct. It will
-\ have the right sign, though.
+\ subroutine, which adds two sign-magnitude 16-bit numbers, instead ensures that
+\ the result always has the correct sign, even in the event of an overflow,
+\ though if the addition does overflow, the result still won't be correct. It
+\ will have the right sign, though.
 \
 \ To implement this, the algorithm goes as follows. We want to add A and S, so:
 \
@@ -17467,7 +17489,8 @@ NEXT
 \ ******************************************************************************
 \
 \ Deep dive: Flipping axes between space views
-\ --------------------------------------------
+\ ============================================
+\
 \ The easiest way to think about this is that the z-axis always points into the
 \ screen, the y-axis always points up, and the x-axis always points to the
 \ right, like this:
@@ -18214,7 +18237,8 @@ NEXT
 \ ******************************************************************************
 \
 \ Deep dive: The 3D scanner
-\ -------------------------
+\ =========================
+\
 \ To display a ship on the iconic 3D scanner in Elite, there are six main hoops
 \ we have to jump through.
 \
@@ -18971,7 +18995,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Twisting the system seeds
-\ ------------------------------------
+\ ====================================
+\
 \ Famously, the universe in Elite is generated procedurally, and the core of
 \ this process is the set of three 16-bit seeds that describe each system in
 \ the universe. Each of the eight galaxies in the game is generated in the same
@@ -19011,15 +19036,15 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ giving us 7, 13 and 24. To generalise this, if we start with seeds w0, w1
 \ and w2 and we want to work out their new values after we perform a twist
-\ (let's call the new values x0, x1 and x2), then:
+\ (let's call the new values w0´, w1´ and w2´), then:
 \
-\   x0 = w1
-\   x1 = w2
-\   x2 = w0 + w1 + w2
+\   w0´ = w1
+\   w1´ = w2
+\   w2´ = w0 + w1 + w2
 \
 \ So given an existing set of seeds in w0, w1 and w2, we can get the new values
-\ x0, x1 and x2 simply by doing the above sums. And if we want to do the above
-\ in-place without creating three new x variables, then we can do the
+\ w0´, w1´ and w2´ simply by doing the above sums. And if we want to do the
+\ above in-place without creating three new w´ variables, then we can do the
 \ following:
 \
 \   tmp = w0 + w1
@@ -19269,7 +19294,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Generating system data (TT25)
-\ ----------------------------------------
+\ ========================================
+\
 \ Although most system data is calculated in TT24 below and stored in locations
 \ QQ3 to QQ7, the species type and average radius are not. Here's how they are
 \ calculated.
@@ -19652,7 +19678,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Generating system data (TT24)
-\ ----------------------------------------
+\ ========================================
+\
 \ The above system statistics are generated from the system seeds, specifically
 \ from parts of w0_hi, w1_hi and w1_lo. Here's how it all works.
 \
@@ -21944,7 +21971,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Market prices
-\ ------------------------
+\ ========================
+\
 \ Item prices are calculated using a formula that takes a number of variables
 \ into consideration, and mixes in a bit of random behaviour to boot. This is
 \ the formula, which is performed as an 8-bit calculation:
@@ -22433,7 +22461,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Market item availability
-\ -----------------------------------
+\ ===================================
+\
 \ Item availability is calculated using a formula that takes a number of
 \ variables into consideration, and mixes in a bit of random behaviour to boot.
 \ This is the formula, which is performed as an 8-bit calculation:
@@ -23638,7 +23667,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Generating system names
-\ ----------------------------------
+\ ==================================
+\
 \ System names are generated from the three 16-bit seeds for that system. In
 \ the case of the selected system, those seeds live at QQ15. The process works
 \ as follows, where w0, w1, w2 are the seeds for the system in question
@@ -24535,7 +24565,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Explosion clouds
-\ ---------------------------
+\ ===========================
+\
 \ Instead of storing lines on the ship line heap, we store details of the ship's
 \ explosion cloud on the heap. This is the heap structure:
 \
@@ -25616,7 +25647,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Drawing colour pixels in mode 5
-\ ------------------------------------------
+\ ==========================================
+\
 \ Drawing pixels in the four-colour mode 5 screen that Elite uses for the
 \ dashboard is not as straightforward as you might think. It's slightly simpler
 \ in the two-colour mode 4 screen that Elite uses for the space view, and I
@@ -26871,7 +26903,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Drawing meridians and equators
-\ -----------------------------------------
+\ =========================================
+\
 \ This routine calculates the following and, for each meridian, calls PLS2 to do
 \ the actual plotting.
 \
@@ -26994,9 +27027,9 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Subroutine: PL9 (Part 3 of 3)
+\ Category: Drawing planets
 \
 \ Draw the planet's crater.
-\ Category: Drawing planets
 \
 \ Arguments:
 \
@@ -27011,7 +27044,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Drawing craters
-\ --------------------------
+\ ==========================
+\
 \ This routine calculates the following and calls PLS22 to do the actual
 \ plotting.
 \
@@ -27264,7 +27298,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Drawing meridians and craters
-\ ----------------------------------------
+\ ========================================
+\
 \ This routine does the following:
 \
 \   K6(1 0) = K3(1 0) + (XX16 K2) * cos(CNT2) + (XX16+2 K2+2) * sin(CNT2)
@@ -27470,7 +27505,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Drawing the sun
-\ --------------------------
+\ ==========================
+\
 \ The sun in Elite is an absolute sight to behold, with its flickering fringes
 \ and bright, white glare that lights up even the darkest corners of space.
 \ Perhaps surprisingly, it turns out to be quite a lot easier to draw the sun
@@ -28167,7 +28203,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Drawing circles
-\ --------------------------
+\ ==========================
+\
 \ This routine draws a circle by starting at the bottom of the circle - or at
 \ 6 o'clock if you think of it as a clock face - and moving anti-clockwise in
 \ steps defined by the size of the step size in STP. The whole circle is divided
@@ -29991,7 +30028,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Generating random numbers
-\ ------------------------------------
+\ ====================================
+\
 \ There are two calculations of two 8-bit numbers in the DORND routine. The
 \ first pair is at RAND and RAND+2 (let's call them r0 and r2) and the second
 \ pair is at RAND+1 and RAND+3 (let's call them r1 and r3).
@@ -31023,7 +31061,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Program flow
-\ -----------------------
+\ =======================
+\
 \ Here is a high-level look at the main program flow, from the title screen to
 \ the end of life as we know it, via the main game loop, the main flight loop,
 \ moving and tactics.
@@ -31273,6 +31312,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \     launching an escape pod and drifting in space
 \ 
 \ 5/7
+\
 \   * If the ship doesn't have any missiles, skip to the next part
 \
 \   * If an E.C.M. is firing, skip to the next part
@@ -31281,6 +31321,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \     release a Thargon), and if we do, we're done
 \ 
 \ 6/7
+\
 \   * If the ship is not pointing at us, skip to the next part
 \
 \   * If the ship is pointing at us but not accurately, fire its laser at us and
@@ -31291,6 +31332,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \     (which could end in DEATH), and we're done
 \ 
 \ 7/7
+\
 \   * Work out which direction the ship should be moving, depending on whether
 \     it's an escape pod, where it is, which direction it is pointing, and how
 \     aggressive it is
@@ -33735,7 +33777,8 @@ ENDMACRO
 \ ******************************************************************************
 \
 \ Deep dive: Tidying orthonormal vectors
-\ --------------------------------------
+\ ======================================
+\
 \ The challenge here is to take the three orientation vectors, nosev, roofv and
 \ sidev, and tweak then so that they are orthogonal and normal once again. Let's
 \ call these new, tweaked vectors nosev´, roofv´ and sidev´, and let's look at
@@ -34027,7 +34070,8 @@ ENDMACRO
 \ ******************************************************************************
 \
 \ Deep dive: "Shift-and-subtract" division
-\ ----------------------------------------
+\ ========================================
+\
 \ This routine implements integer division using the "shift and subtract"
 \ algorithm. This is similar in concept to the "shift and add" algorithm used to
 \ implement multiplication in routines like MULT1, but it's essentially the
@@ -34829,11 +34873,202 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   EE51
+\   EE51                Remove the current ship from the screen, called from
+\                       SHPPT before drawing the ship as a point
 \
-\   LL81
+\   LL81+2              Draw the contents of the ship lone heap, used to draw
+\                       the ship as a dot from SHPPT
 \
-\   LL155
+\ ******************************************************************************
+\
+\ Deep dive: Drawing ships
+\ ========================
+\ 
+\ The ship-drawing routine is one of the most celebrated aspects of Elite. The
+\ 3D graphics were groundbreaking and breathtaking in equal measure, at least as
+\ far as 8-bit gome computers were concerned, and even today the way that the
+\ ships and space stations move through space is impressive. Without its slick
+\ 3D graphics engine, Elite wouldn't have been nearly as immersive, and without
+\ its immersion, it just wouldn't have been Elite.
+\ 
+\ It doesn't take a rocket scientist to work out that Elite must have some
+\ pretty clever optimisations at the heart of its graphics routines, and this is
+\ indeed the case. Elite's 3D objects are stored in a way that makes visibility
+\ calculations relatively quick, so we can work out which parts of the ship need
+\ to be converted into screen coordinates and drawn, and (more to the point)
+\ which ones don't.
+\ 
+\ Let's look at visibility distances before moving on to the details of the
+\ ship-drawing process.
+\ 
+\ Visibility distances
+\ --------------------
+\ Ships are stored as collections of vertices (i.e. points in space) as you
+\ would imagine, and they also come bundled with data on all the edges in the
+\ shape, plus data on each face in the model. In addition, each of these
+\ vertices, edges and faces comes with its own "visibility distance" figure that
+\ enables us to quickly work out which of them are close enough to be worth
+\ considering, so we only spend spend time calculating what we need to draw,
+\ discarding anything we don't need. The whole process is aimed at narrowing
+\ down what we need to do, as quickly and easily as possible.
+\ 
+\ These are the visibility rules for the various components of the ship:
+\ 
+\   * If the ship is further away than the ship visibility distance in ship byte
+\     #13, we draw it as a dot and skip all the wireframe calculations
+\   
+\   * A face is visible if one of these is true:
+\   
+\     * The ship is further away than that face's visibility distance
+\     
+\     * The ship is closer than the face's visibility distance and the face is
+\       turned towards us
+\     
+\   * A vertex is visible if at least one face associated with that vertex is
+\     visible
+\   
+\   * An edge is visible if at least one face associated with that edge is
+\     visible
+\ 
+\ These rules get applied as we work our way through all the faces, vertices and
+\ edges in the process below.
+\ 
+\ The ship line heap
+\ ------------------
+\ Just as with the planet and sun, we need a way to remove ships from the screen
+\ quickly, so it's no surprise that each ship has its own storage heap for doing
+\ just that - the ship line heap.
+\ 
+\ Each ship has its own heap as part of the main ship line heap, which descends
+\ from location WP. The ship line heap is very simple - it contains sets of four
+\ coordinates, each of which describes a line in that ship's screen depiction.
+\ To draw the ship we simply work through the heap, drawing each line, and to
+\ remove the ship from the screen, we repeat the process.
+\ 
+\ The first byte of the heap contains the total number of bytes in the heap.
+\ Each line is stored as four bytes - X1, Y1, X2, Y2 - which describe the start
+\ and end screen coordinates for that line.
+\ 
+\ When a ship is added to our local bubble of universe, a ship line heap is
+\ reserved for that ship, with the heap size given in byte #5 of the ship's
+\ blueprint. This gives the maximum heap size needed for plotting ship, which
+\ is:
+\ 
+\   1 + 4 * max. no of visible edges
+\ 
+\ as there are four bytes needed for each line, plus 1 for the size byte at the
+\ start. So for the Sidewinder there are never more than 15 edges visible, so
+\ there will never be more than 15 lines on the ship line heap, so the maximum
+\ heap size is 1 + 4 * 15 = 61 bytes.
+\ 
+\ The drawing workflow
+\ --------------------
+\ The following process summarises the different steps in the LL9 routine. The
+\ part numbers match the breakdown of the source code, so you can refer to the
+\ code as you go.
+\ 
+\ 1/10 LL9
+\ 
+\   * If the ship is a planet or sun, jump to PLANET to draw it
+\ 
+\   * If the ship has just been killed but isn't yet exploding, initialise a new
+\     explosion cloud
+\ 
+\   * If the ship is behind us, then it isn't visible, so remove it from the
+\     screen (by calling part 10 below to redraw it using EOR logic) and we're
+\     done
+\ 
+\ 2/10
+\ 
+\   * If the ship is outside of our field of view, remove it from the screen and
+\     we're done
+\ 
+\   * If the ship is a long way away, jump to SHPPT to remove it from the screen
+\     and redraw it as a dot
+\ 
+\   * Flag the ship's laser vertex in the XX3 buffer, so we can check it in part
+\     9 when processing laser fire
+\ 
+\   * Calculate the ship's distance from us, reduced to a value in the range
+\     0-31 so it's testable against visibility distances
+\ 
+\   * If the ship is further away than the ship blueprint's visibility distance,
+\     jump to SHPPT to remove it from the screen and redraw it as a dot
+\ 
+\ 3/10
+\ 
+\   * Fetch the ship's orientation vectors and normalise them
+\ 
+\   * Fetch the ship's x, y and z coordinates in space
+\ 
+\ 4/10
+\ 
+\   * If the ship is exploding, set all the faces to be visible and skip down to
+\     part 6
+\ 
+\ 5/10
+\ 
+\   * Work out the scale factor for the face normals so we can make them as big
+\     as possible while not overflowing, incorporating the scale factor from the
+\     blueprint
+\ 
+\   * Process the ship's faces and work out if they're visible, as follows:
+\ 
+\     * If the ship is further away than a face's visibility distance, mark it
+\       as visible (this is the opposite to the other visibility distance tests)
+\     
+\     * Otherwise work out if the face is pointing towards us or away from us
+\       using the dot product (see the deep dive on back-face culling)
+\ 
+\ 6/10
+\ 
+\   * Process the ship's vertices and work out which ones are visible:
+\   
+\     * If the ship is further away than the vertex's visibility distance, it is
+\       not visible
+\     
+\     * If at least one face associated with this vertex is visible, the vertex
+\       is visible
+\   
+\   * For visible vertices only:
+\   
+\     * Calculate the space coordinates of that vertex (see the deep dive on
+\       calculating vertex coordinates), starting the calculation in part 6...
+\ 
+\ 7/10
+\ 
+\     * ...and finishing it in part 7, before moving on to part 8...
+\ 
+\ 8/10
+\ 
+\     * ...to convert the visible vertex's space coordinates into screen
+\       coordinates
+\   
+\ 9/10
+\ 
+\   * If the ship is exploding, jump to DOEXP to display the explosion cloud
+\  
+\   * Remove the ship from the screen
+\   
+\   * If the ship is firing at us and its laser vertex (which we tagged in part
+\     2) is visible, then calculate the laser beam line coordinates and add them
+\     to the ship line heap
+\  
+\   * Process the ship's edges and work out which ones are visible:
+\   
+\     * If the ship is further away than the edge's visibility distance, it is
+\       not visible
+\     
+\     * If at least one face associated with this edge is visible, the edge is
+\       visible
+\ 
+\   * For visible edges, add this edge to the ship line heap (i.e. add the
+\     screen coordinates of the start and end vertices)
+\ 
+\ 10/10
+\ 
+\   * Draw the lines in the ship line heap, which draws the ship on screen (or
+\     removes it, if the ship is already on screen)
 \
 \ ******************************************************************************
 
@@ -35188,8 +35423,13 @@ LOAD_G% = LOAD% + P% - CODE%
                         \   * XX18(8 7 6) = (z_sign z_hi z_lo)
 
 
- LDA #255               \ Set the 15th byte of XX2 to 255, so the last face is
- STA XX2+15             \ always visible
+ LDA #255               \ Set the 15th byte of XX2 to 255, so that face 15 is
+ STA XX2+15             \ always visible. No ship definitions actually have this
+                        \ number of faces in the tape version, but this allows
+                        \ us to force a vertex to always be visible by
+                        \ associating it with face 15 (see the blueprints for
+                        \ the Cobra Mk III at SHIP5 and asteroid at SHIP10 for
+                        \ examples)
 
  LDY #12                \ Set Y = 12 to point to the ship blueprint byte #12,
 
@@ -35255,7 +35495,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Back-face culling
-\ ----------------------------
+\ ============================
+\
 \ One of the reasons that Elite's 3D wireframe ships look so good is because
 \ you can't see through them - they look genuinely solid. This is down to a
 \ process called "back-face culling", a mathematical process that works out
@@ -35932,12 +36173,14 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Category: Drawing ships
 \
 \ Draw the current ship on the screen. This section calculates the visibility of
-\ each of the ship's vertices.
+\ each of the ship's vertices, and for those that are visible, it starts the
+\ process of calculating the screen coordinates of each vertex
 \
 \ ******************************************************************************
 \
-\ Deep dive: Transposing the rotation matrix
-\ ------------------------------------------
+\ Deep dive: Calculating vertex coordinates
+\ =========================================
+\
 \ We projected [x y z] onto the orientation vector space like this:
 \
 \   [x y z] projected onto sidev = [x y z] . sidev
@@ -35959,6 +36202,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \ This is just a different way of expressing the exact same equation as we used
 \ in part 5, just with a matrix instead of individual dot products.
 \
+\ Transposing the rotation matrix
+\ -------------------------------
 \ So the inverse matrix will map vectors in the orientation vector space back
 \ into normal ship space. The inverse of a rotation matrix is its transpose, so
 \ this is the calculation:
@@ -36379,7 +36624,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  JMP LL57               \ We've added the z-coordinates, so jump to LL57
 
-                        \ The adding process is continued in part 8, after a
+                        \ The adding process is continued in part 7, after a
                         \ couple of subroutines that we don't need quite yet
 
 \ ******************************************************************************
@@ -36867,8 +37112,8 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA (XX0),Y            \ number of edges, and store it in XX20
  STA XX20
 
- LDY #0                 \ We are about to step through all the vertices, using
-                        \ Y as a counter
+ LDY #0                 \ We are about to step through all the edges, using Y
+                        \ as a counter
 
  STY U                  \ Set U = 0 (though we increment it to 1 below)
 
@@ -37190,7 +37435,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-.^LL155
+.LL155
 
  LDY #0                 \ Fetch the first byte from the ship line heap into A,
  LDA (XX19),Y           \ which contains the number of bytes in the heap
@@ -37798,7 +38043,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \ ******************************************************************************
 \
 \ Deep dive: Line clipping
-\ ------------------------
+\ ========================
+\
 \ This routine checks whether the line is worth clipping in other words, whether
 \ the line passes through the screen at any point. The actual clipping is done
 \ in part 4 by calling the LL118 routine, which is quite an involved process, so
