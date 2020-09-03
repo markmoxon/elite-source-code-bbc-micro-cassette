@@ -34873,11 +34873,202 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   EE51
+\   EE51                Remove the current ship from the screen, called from
+\                       SHPPT before drawing the ship as a point
 \
-\   LL81
+\   LL81+2              Draw the contents of the ship lone heap, used to draw
+\                       the ship as a dot from SHPPT
 \
-\   LL155
+\ ******************************************************************************
+\
+\ Deep dive: Drawing ships
+\ ========================
+\ 
+\ The ship-drawing routine is one of the most celebrated aspects of Elite. The
+\ 3D graphics were groundbreaking and breathtaking in equal measure, at least as
+\ far as 8-bit gome computers were concerned, and even today the way that the
+\ ships and space stations move through space is impressive. Without its slick
+\ 3D graphics engine, Elite wouldn't have been nearly as immersive, and without
+\ its immersion, it just wouldn't have been Elite.
+\ 
+\ It doesn't take a rocket scientist to work out that Elite must have some
+\ pretty clever optimisations at the heart of its graphics routines, and this is
+\ indeed the case. Elite's 3D objects are stored in a way that makes visibility
+\ calculations relatively quick, so we can work out which parts of the ship need
+\ to be converted into screen coordinates and drawn, and (more to the point)
+\ which ones don't.
+\ 
+\ Let's look at visibility distances before moving on to the details of the
+\ ship-drawing process.
+\ 
+\ Visibility distances
+\ --------------------
+\ Ships are stored as collections of vertices (i.e. points in space) as you
+\ would imagine, and they also come bundled with data on all the edges in the
+\ shape, plus data on each face in the model. In addition, each of these
+\ vertices, edges and faces comes with its own "visibility distance" figure that
+\ enables us to quickly work out which of them are close enough to be worth
+\ considering, so we only spend spend time calculating what we need to draw,
+\ discarding anything we don't need. The whole process is aimed at narrowing
+\ down what we need to do, as quickly and easily as possible.
+\ 
+\ These are the visibility rules for the various components of the ship:
+\ 
+\   * If the ship is further away than the ship visibility distance in ship byte
+\     #13, we draw it as a dot and skip all the wireframe calculations
+\   
+\   * A face is visible if one of these is true:
+\   
+\     * The ship is further away than that face's visibility distance
+\     
+\     * The ship is closer than the face's visibility distance and the face is
+\       turned towards us
+\     
+\   * A vertex is visible if at least one face associated with that vertex is
+\     visible
+\   
+\   * An edge is visible if at least one face associated with that edge is
+\     visible
+\ 
+\ These rules get applied as we work our way through all the faces, vertices and
+\ edges in the process below.
+\ 
+\ The ship line heap
+\ ------------------
+\ Just as with the planet and sun, we need a way to remove ships from the screen
+\ quickly, so it's no surprise that each ship has its own storage heap for doing
+\ just that - the ship line heap.
+\ 
+\ Each ship has its own heap as part of the main ship line heap, which descends
+\ from location WP. The ship line heap is very simple - it contains sets of four
+\ coordinates, each of which describes a line in that ship's screen depiction.
+\ To draw the ship we simply work through the heap, drawing each line, and to
+\ remove the ship from the screen, we repeat the process.
+\ 
+\ The first byte of the heap contains the total number of bytes in the heap.
+\ Each line is stored as four bytes - X1, Y1, X2, Y2 - which describe the start
+\ and end screen coordinates for that line.
+\ 
+\ When a ship is added to our local bubble of universe, a ship line heap is
+\ reserved for that ship, with the heap size given in byte #5 of the ship's
+\ blueprint. This gives the maximum heap size needed for plotting ship, which
+\ is:
+\ 
+\   1 + 4 * max. no of visible edges
+\ 
+\ as there are four bytes needed for each line, plus 1 for the size byte at the
+\ start. So for the Sidewinder there are never more than 15 edges visible, so
+\ there will never be more than 15 lines on the ship line heap, so the maximum
+\ heap size is 1 + 4 * 15 = 61 bytes.
+\ 
+\ The drawing workflow
+\ --------------------
+\ The following process summarises the different steps in the LL9 routine. The
+\ part numbers match the breakdown of the source code, so you can refer to the
+\ code as you go.
+\ 
+\ 1/10 LL9
+\ 
+\   * If the ship is a planet or sun, jump to PLANET to draw it
+\ 
+\   * If the ship has just been killed but isn't yet exploding, initialise a new
+\     explosion cloud
+\ 
+\   * If the ship is behind us, then it isn't visible, so remove it from the
+\     screen (by calling part 10 below to redraw it using EOR logic) and we're
+\     done
+\ 
+\ 2/10
+\ 
+\   * If the ship is outside of our field of view, remove it from the screen and
+\     we're done
+\ 
+\   * If the ship is a long way away, jump to SHPPT to remove it from the screen
+\     and redraw it as a dot
+\ 
+\   * Flag the ship's laser vertex in the XX3 buffer, so we can check it in part
+\     9 when processing laser fire
+\ 
+\   * Calculate the ship's distance from us, reduced to a value in the range
+\     0-31 so it's testable against visibility distances
+\ 
+\   * If the ship is further away than the ship blueprint's visibility distance,
+\     jump to SHPPT to remove it from the screen and redraw it as a dot
+\ 
+\ 3/10
+\ 
+\   * Fetch the ship's orientation vectors and normalise them
+\ 
+\   * Fetch the ship's x, y and z coordinates in space
+\ 
+\ 4/10
+\ 
+\   * If the ship is exploding, set all the faces to be visible and skip down to
+\     part 6
+\ 
+\ 5/10
+\ 
+\   * Work out the scale factor for the face normals so we can make them as big
+\     as possible while not overflowing, incorporating the scale factor from the
+\     blueprint
+\ 
+\   * Process the ship's faces and work out if they're visible, as follows:
+\ 
+\     * If the ship is further away than a face's visibility distance, mark it
+\       as visible (this is the opposite to the other visibility distance tests)
+\     
+\     * Otherwise work out if the face is pointing towards us or away from us
+\       using the dot product (see the deep dive on back-face culling)
+\ 
+\ 6/10
+\ 
+\   * Process the ship's vertices and work out which ones are visible:
+\   
+\     * If the ship is further away than the vertex's visibility distance, it is
+\       not visible
+\     
+\     * If at least one face associated with this vertex is visible, the vertex
+\       is visible
+\   
+\   * For visible vertices only:
+\   
+\     * Calculate the space coordinates of that vertex (see the deep dive on
+\       calculating vertex coordinates), starting the calculation in part 6...
+\ 
+\ 7/10
+\ 
+\     * ...and finishing it in part 7, before moving on to part 8...
+\ 
+\ 8/10
+\ 
+\     * ...to convert the visible vertex's space coordinates into screen
+\       coordinates
+\   
+\ 9/10
+\ 
+\   * If the ship is exploding, jump to DOEXP to display the explosion cloud
+\  
+\   * Remove the ship from the screen
+\   
+\   * If the ship is firing at us and its laser vertex (which we tagged in part
+\     2) is visible, then calculate the laser beam line coordinates and add them
+\     to the ship line heap
+\  
+\   * Process the ship's edges and work out which ones are visible:
+\   
+\     * If the ship is further away than the edge's visibility distance, it is
+\       not visible
+\     
+\     * If at least one face associated with this edge is visible, the edge is
+\       visible
+\ 
+\   * For visible edges, add this edge to the ship line heap (i.e. add the
+\     screen coordinates of the start and end vertices)
+\ 
+\ 10/10
+\ 
+\   * Draw the lines in the ship line heap, which draws the ship on screen (or
+\     removes it, if the ship is already on screen)
 \
 \ ******************************************************************************
 
