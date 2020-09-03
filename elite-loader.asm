@@ -31,7 +31,8 @@
 \ ******************************************************************************
 \
 \ Terminology used in this commentary
-\ -----------------------------------
+\ ===================================
+\
 \ There's a lot to explain in Elite, and some of it is pretty gnarly stuff. So
 \ before getting stuck in, it's probably wise to take a brief look at some of
 \ the terminology I've used in this commentary.
