@@ -1249,20 +1249,20 @@ ORG &0300
                         \ Mostly Harmless, Poor, Average or Above Average,
                         \ according to the value of the low byte in TALLY:
                         \
-                        \ Harmless        = %00000000 to %00000011 = 0 to 3
-                        \ Mostly Harmless = %00000100 to %00000111 = 4 to 7
-                        \ Poor            = %00001000 to %00001111 = 8 to 15
-                        \ Average         = %00010000 to %00011111 = 16 to 31
-                        \ Above Average   = %00100000 to %11111111 = 32 to 255
+                        \   Harmless        = %00000000 to %00000011 = 0 to 3
+                        \   Mostly Harmless = %00000100 to %00000111 = 4 to 7
+                        \   Poor            = %00001000 to %00001111 = 8 to 15
+                        \   Average         = %00010000 to %00011111 = 16 to 31
+                        \   Above Average   = %00100000 to %11111111 = 32 to 255
                         \
                         \ If the high byte in TALLY+1 is non-zero then we are
                         \ Competent, Dangerous, Deadly or Elite, according to
                         \ the high byte in TALLY+1:
                         \
-                        \ Competent       = 1           = 256 to 511 kills
-                        \ Dangerous       = 2 to 9      = 512 to 2559 kills
-                        \ Deadly          = 10 to 24    = 2560 to 6399 kills
-                        \ Elite           = 25 and up   = 6400 kills and up
+                        \   Competent       = 1           = 256 to 511 kills
+                        \   Dangerous       = 2 to 9      = 512 to 2559 kills
+                        \   Deadly          = 10 to 24    = 2560 to 6399 kills
+                        \   Elite           = 25 and up   = 6400 kills and up
                         \
                         \ You can see the rating calculation in STATUS
 
@@ -3757,6 +3757,8 @@ LOAD_A% = LOAD%
 \ Subroutine: Main flight loop (Part 1 of 16)
 \ Category: Main loop
 \
+\ One-line summary: The main flight loop, which runs when we are in space
+\
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
 \
@@ -5393,6 +5395,8 @@ LOAD_A% = LOAD%
 \ Subroutine: MAS1
 \ Category: Maths
 \
+\ One-line summary: Add an orientation vector coordinate to an INWK coordinate
+\
 \ Add a doubled nosev vector coordinate, e.g. (nosev_y_hi nosev_y_lo) * 2, to
 \ an INWK coordinate, e.g. (x_sign x_hi x_lo), storing the result in the INWK
 \ coordinate. The axes used in each side of the addition are specified by the
@@ -5462,46 +5466,10 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine: m
-\ Category: Maths
-\
-\ Given a value in Y that points to the start of a ship data block as an offset
-\ from K%, calculate the following:
-\
-\   A = x_sign OR y_sign OR z_sign
-\
-\ and clear the sign bit of the result. The K% workspace contains the ship data
-\ blocks, so the offset in Y must be 0 or a multiple of NI% (as each block in
-\ K% contains NI% bytes).
-\
-\ The result effectively contains a maximum cap of the three values (though it
-\ might not be one of the three input values - it's just guaranteed to be
-\ larger than all of them).
-\
-\ If Y = 0, then this calculates the maximum distance to the planet in any of
-\ the three axes, as K%+2 = x_sign, K%+5 = y_sign and K%+8 = z_sign (the first
-\ slot in the K% workspace represents the planet).
-\
-\ Arguments:
-\
-\   Y                   The offset from K% for the three values to OR
-\
-\ Returns:
-\
-\   A                   K%+2+Y OR K%+5+Y OR K%+8+Y, with bit 7 cleared
-\
-\ ******************************************************************************
-
-.m
-{
- LDA #0                 \ Set A = 0 and fall through into MAS2 to calculate the
-                        \ OR of the three bytes at K%+2+Y, K%+5+Y and K%+8+Y
-}
-
-\ ******************************************************************************
-\
 \ Subroutine: MAS2
 \ Category: Maths
+\
+\ One-line summary: Calculate a cap on the maximum distance to the planet or sun
 \
 \ Given a value in Y that points to the start of a ship data block as an offset
 \ from K%, calculate the following:
@@ -5529,10 +5497,19 @@ LOAD_A% = LOAD%
 \
 \   A                   A OR K%+2+Y OR K%+5+Y OR K%+8+Y, with bit 7 cleared
 \
+\ Other entry points:
+\
+\   m                   Do not include A in the calculation
+\
 \ ******************************************************************************
 
-.MAS2
 {
+.^m
+ LDA #0                 \ Set A = 0 and fall through into MAS2 to calculate the
+                        \ OR of the three bytes at K%+2+Y, K%+5+Y and K%+8+Y
+
+.^MAS2
+
  ORA K%+2,Y             \ Set A = A OR x_sign OR y_sign OR z_sign
  ORA K%+5,Y
  ORA K%+8,Y
@@ -5546,6 +5523,8 @@ LOAD_A% = LOAD%
 \
 \ Subroutine: MAS3
 \ Category: Maths
+\
+\ One-line summary: Calculate A = x_hi^2 + y_hi^2 + z_hi^2 in the K% block
 \
 \ Given a value in Y that points to the start of a ship data block as an offset
 \ from K%, calculate the following:
@@ -5607,8 +5586,9 @@ LOAD_A% = LOAD%
 \ Subroutine: MVEIT (Part 1 of 9)
 \ Category: Moving
 \
-\ Move the current ship, planet or sun in space. This routine has multiple
-\ stages. This stage does the following:
+\ One-line summary: Move the current ship, planet or sun in space
+\
+\ This routine has multiple stages. This stage does the following:
 \
 \   * Tidy the orientation vectors for one of the ship slots
 \
@@ -6263,6 +6243,8 @@ LOAD_A% = LOAD%
 \ Subroutine: MVT1
 \ Category: Moving
 \
+\ One-line summary: Calculate (x_sign x_hi x_lo) = (x_sign x_hi x_lo) + (A R)
+\
 \ Add the signed delta (A R) to a ship's coordinate, along the axis given in X.
 \ Mathematically speaking, this routine translates the ship along a single axis
 \ by a signed delta. Taking the example of X = 0, the x-axis, it does the
@@ -6415,6 +6397,8 @@ LOAD_A% = LOAD%
 \ Subroutine: MVT3
 \ Category: Moving
 \
+\ One-line summary: Calculate K(3 2 1) = (x_sign x_hi x_lo) + K(3 2 1)
+\
 \ Add an INWK position coordinate - i.e. x, y or z - to K(3 2 1), like this:
 \
 \   K(3 2 1) = (x_sign x_hi x_lo) + K(3 2 1)
@@ -6524,6 +6508,8 @@ LOAD_A% = LOAD%
 \
 \ Subroutine: MVS4
 \ Category: Moving
+\
+\ One-line summary: Apply pitch and roll to an orientation vector
 \
 \ Apply pitch and roll angles alpha and beta to the orientation vector in Y.
 \
@@ -6915,6 +6901,8 @@ LOAD_A% = LOAD%
 \ Subroutine: MVS5
 \ Category: Moving
 \
+\ One-line summary: Apply a 3.6 degree pitch or roll to an orientation vector
+\
 \ Pitch or roll a ship by a small, fixed amount (1/16 radians, or 3.6 degrees),
 \ in a specified direction, by rotating the orientation vectors. The vectors to
 \ rotate are given in X and Y, and the direction of the rotation is given in
@@ -7191,6 +7179,8 @@ LOAD_A% = LOAD%
 \ Subroutine: MVT6
 \ Category: Moving
 \
+\ One-line summary: Calculate (A P+2 P+1) = (x_sign x_hi x_lo) + (A P+2 P+1)
+\
 \ Do the following calculation, for the coordinate given by X (so this is what
 \ it does for the x-coordinate):
 \
@@ -7293,6 +7283,8 @@ LOAD_A% = LOAD%
 \
 \ Subroutine: MV40
 \ Category: Moving
+\
+\ One-line summary: Rotate the planet or sun by our ship's pitch and roll
 \
 \ Rotate the planet or sun's location in space by the amount of pitch and roll
 \ of our ship.
@@ -7579,6 +7571,8 @@ Q% = _ENABLE_MAX_COMMANDER
 \ Variable: NA%
 \ Category: Save and load
 \
+\ One-line summary: The data block for the last-saved commander
+\
 \ Contains the last saved commander data, with the name at NA% and the data at
 \ NA%+8 onwards. The size of the data block is given in NT% (which also includes
 \ the two checksum bytes that follow this block. This block is initially set up
@@ -7714,6 +7708,8 @@ ENDIF
 \ Variable: CHK2
 \ Category: Save and load
 \
+\ One-line summary: Second checksum byte for the saved commander data file
+\
 \ Second checksum byte, see elite-checksum.py for more details.
 \
 \ ******************************************************************************
@@ -7735,6 +7731,8 @@ ENDIF
 \ Variable: CHK
 \ Category: Save and load
 \
+\ One-line summary: First cchecksum byte for the saved commander data file
+\
 \ Commander checksum byte, see elite-checksum.py for more details.
 \
 \ ******************************************************************************
@@ -7750,6 +7748,8 @@ PRINT "CH% = ", ~CH%
 \
 \ Variable: UNIV
 \ Category: Universe
+\
+\ One-line summary: Table of pointers to local universe's ship data blocks
 \
 \ The little bubble of the universe that we simulate in Elite can contain up to
 \ NOSH + 1 (13) ships. Each of those ships has its own block of 36 (NI%) bytes
@@ -7787,6 +7787,8 @@ NEXT
 \ Variable: TWOS
 \ Category: Drawing pixels
 \
+\ One-line summary: Ready-made single-pixel character row bytes for mode 4
+\
 \ Ready-made bytes for plotting one-pixel points in mode 4 (the top part of the
 \ split screen). See the PIXEL routine for details.
 \
@@ -7809,6 +7811,8 @@ NEXT
 \ Variable: TWOS2
 \ Category: Drawing pixels
 \
+\ One-line summary: Ready-made double-pixel character row bytes for mode 4
+\
 \ Ready-made bytes for plotting two-pixel dashes in mode 4 (the top part of the
 \ split screen). See the PIXEL routine for details.
 \
@@ -7830,6 +7834,8 @@ NEXT
 \
 \ Variable: CTWOS
 \ Category: Drawing pixels
+\
+\ One-line summary: Ready-made single-pixel character row bytes for mode 5
 \
 \ Ready-made bytes for plotting one-pixel points in mode 5 (the bottom part of
 \ the split screen). See the dashboard routines SCAN, DIL2 and CPIX2 for
@@ -7856,6 +7862,8 @@ NEXT
 \
 \ Subroutine: LL30, LOIN (Part 1 of 7)
 \ Category: Drawing lines
+\
+\ One-line summary: Draw a line from (X1, Y1) to (X2, Y2)
 \
 \ Draw a line from (X1, Y1) to (X2, Y2). We do not draw a pixel at the end
 \ point.
@@ -8732,7 +8740,11 @@ NEXT
 \ Subroutine: NLIN3
 \ Category: Drawing lines
 \
-\ Print a text token and draw a horizontal line at pixel row 19.
+\ One-line summary: Print a title and a horizontal line at row 19 to box it in
+\
+\ This routine print a text token at the cursor position and draws a horizontal
+\ line at pixel row 19. It is used for the Status Mode screen, the Short-range
+\ Chart, the Market Price screen and the Equip Ship screen.
 \
 \ ******************************************************************************
 
@@ -8749,7 +8761,10 @@ NEXT
 \ Subroutine: NLIN4
 \ Category: Drawing lines
 \
-\ Draw a horizontal line at pixel row 19.
+\ One-line summary: Draw a horizontal line at pixel row 19 to box in a title
+\
+\ This routine is used on the Inventory scren to draw a horizontal line at pixel
+\ row 19 to box in the title.
 \
 \ ******************************************************************************
 
@@ -8765,6 +8780,8 @@ NEXT
 \
 \ Subroutine: NLIN
 \ Category: Drawing lines
+\
+\ One-line summary: Draw a horizontal line at pixel row 23 to box in a title
 \
 \ Draw a horizontal line at pixel row 23 and move the text cursor down one
 \ line.
@@ -8787,8 +8804,10 @@ NEXT
 \ Subroutine: NLIN2
 \ Category: Drawing lines
 \
-\ Draw a screen-wide horizontal line at the pixel row given in A - so the line
-\ goes from (2, A) to (254, A).
+\ One-line summary: Draw a screen-wide horizontal line at the pixel row in A
+\
+\ This draws a line from (2, A) to (254, A), which is almost screen-wide and
+\ fits in nicely between the white borders without clashing with it.
 \
 \ Arguments:
 \
@@ -8816,7 +8835,7 @@ NEXT
 \ Subroutine: HLOIN2
 \ Category: Drawing lines
 \
-\ Draw a line from the sun line heap and then remove it from the heap.
+\ One-line summary: Remove a line from the sun line heap and draw it on-screen
 \
 \ Specifically, this does the following:
 \
@@ -8863,8 +8882,9 @@ NEXT
 \ Subroutine: HLOIN
 \ Category: Drawing lines
 \
-\ Draw a horizontal line from (X1, Y1) to (X2, Y1). We do not draw a pixel at
-\ the end point (X2, X1).
+\ One-line summary: Draw a horizontal line from (X1, Y1) to (X2, Y1)
+\
+\ We do not draw a pixel at the end point (X2, X1).
 \
 \ To understand this routine, you might find it helpful to read the deep dive
 \ on drawing monochrome pixels in mode 4 in the PIXEL routine.
@@ -9066,6 +9086,8 @@ NEXT
 \ Variable: TWFL
 \ Category: Drawing lines
 \
+\ One-line summary: Ready-made character rows for left end of horizontal line
+\
 \ Ready-made bytes for plotting horizontal line end caps in mode 4 (the top part
 \ of the split screen). This table provides a byte with pixels at the left end,
 \ which is used for the right end of the line.
@@ -9089,6 +9111,8 @@ NEXT
 \
 \ Variable: TWFR
 \ Category: Drawing lines
+\
+\ One-line summary: Ready-made character rows for right end of horizontal line
 \
 \ Ready-made bytes for plotting horizontal line end caps in mode 4 (the top part
 \ of the split screen). This table provides a byte with pixels at the right end,
@@ -9114,6 +9138,8 @@ NEXT
 \
 \ Subroutine: PX3
 \ Category: Drawing pixels
+\
+\ One-line summary: Plot a single pixel at (X, Y) within a character block
 \
 \ This routine is called from PIXEL to set 1 pixel within a character block for
 \ a distant point (i.e. where the distance ZZ >= &90). See the PIXEL routine for
@@ -9147,6 +9173,8 @@ NEXT
 \
 \ Subroutine: PIX1
 \ Category: Drawing pixels
+\
+\ One-line summary: Calculate (YY+1 SYL+Y) = (A P) + (S R) for drawing stardust
 \
 \ Calculate the following:
 \
@@ -9188,7 +9216,9 @@ NEXT
 \ Subroutine: PIXEL2
 \ Category: Drawing pixels
 \
-\ Draw a point (X1,Y1) from the middle of the screen with a size determined by
+\ One-line summary: Draw a stardust particle relative to the screen centre
+\
+\ Draw a point (X1, Y1) from the middle of the screen with a size determined by
 \ a distance value. Used to draw stardust particles.
 \
 \ Arguments:
@@ -9250,6 +9280,8 @@ NEXT
 \
 \ Subroutine: PIXEL
 \ Category: Drawing pixels
+\
+\ One-line summary: Draw a 1-pixel dot, 2-pixel dash or 4-pixel square
 \
 \ Draw a point at screen coordinate (X, A) with the point size determined by the
 \ distance in ZZ. This applies to the top part of the screen (the monochrome
@@ -9634,6 +9666,8 @@ NEXT
 \ Subroutine: BLINE
 \ Category: Drawing circles
 \
+\ One-line summary: Draw a circle segment and add it to the ball line heap
+\
 \ Draw a single segment of a circle, adding the point to the ball line heap.
 \
 \ Arguments:
@@ -9909,6 +9943,8 @@ NEXT
 \ Subroutine: FLIP
 \ Category: Stardust
 \
+\ One-line summary: Reflect the stardust particles in the screen diagonal
+\
 \ Swap the x- and y-coordinates of all the stardust particles and draw the new
 \ set of particles. Called by LOOK1 when we switch views.
 \
@@ -9963,7 +9999,9 @@ NEXT
 \ Subroutine: STARS
 \ Category: Stardust
 \
-\ Process the stardust. Called at the very end of the main flight loop.
+\ One-line summary: The main routine for processing the stardust
+\
+\ Called at the very end of the main flight loop.
 \
 \ ******************************************************************************
 
@@ -10003,7 +10041,7 @@ NEXT
 \ Subroutine: STARS1
 \ Category: Stardust
 \
-\ Process the stardust for the forward view.
+\ One-line summary: Process the stardust for the forward view
 \
 \ This moves the stardust towards us according to our speed (so the dust rushes
 \ past us), and applies our current pitch and roll to each particle of dust, so
@@ -10106,6 +10144,7 @@ NEXT
 \ out of 256 pixels across the screen, and that's at the extremities of the
 \ screen and with full pitch. Perhaps this is a fisheye effect that makes space
 \ feel more curved when pitching is high? For now, I don't have an answer...
+\
 \ ******************************************************************************
 
 .STARS1
@@ -10436,7 +10475,7 @@ NEXT
 \ Subroutine: STARS6
 \ Category: Stardust
 \
-\ Process the stardust for the rear view.
+\ One-line summary: Process the stardust for the rear view
 \
 \ This routine is very similar to STARS1, which processes stardust for the
 \ forward view. The main difference is that the direction of travel is reversed,
@@ -10795,7 +10834,10 @@ NEXT
 \ Variable: PRXS
 \ Category: Equipment
 \
-\ Equipment prices.
+\ One-line summary: Equipment prices
+\
+\ Equipment prices are stored as 10 * the actual value, so we can support prices
+\ with fractions of credits (0.1 Cr). This is used for the price of fuel only.
 \
 \ ******************************************************************************
 
@@ -10820,7 +10862,7 @@ NEXT
 \ Subroutine: STATUS
 \ Category: Status
 \
-\ Show the Status Mode screen (red key f8).
+\ One-line summary: Show the Status Mode screen (red key f8)
 \
 \ ******************************************************************************
 
@@ -10831,18 +10873,18 @@ NEXT
                         \ kill tally in A, which is non-zero, and want to return
                         \ with the following in X, depending on our rating:
                         \
-                        \ Competent = 6
-                        \ Dangerous = 7
-                        \ Deadly    = 8
-                        \ Elite     = 9
+                        \   Competent = 6
+                        \   Dangerous = 7
+                        \   Deadly    = 8
+                        \   Elite     = 9
                         \
                         \ The high bytes of the top tier ratings are as follows,
                         \ so this a relatively simple calculation:
                         \
-                        \ Competent       = 1 to 2
-                        \ Dangerous       = 2 to 9
-                        \ Deadly          = 10 to 24
-                        \ Elite           = 25 and up
+                        \   Competent       = 1 to 2
+                        \   Dangerous       = 2 to 9
+                        \   Deadly          = 10 to 24
+                        \   Elite           = 25 and up
 
  LDX #9                 \ Set X to 9 for an Elite rating
 
@@ -11118,6 +11160,8 @@ NEXT
 \ Subroutine: plf2
 \ Category: Text
 \
+\ One-line summary: Print text followed by a newline and indent of 6 characters
+\
 \ Print a text token followed by a newline, and indent the next line to text
 \ column 6.
 \
@@ -11143,6 +11187,8 @@ NEXT
 \ Variable: TENS
 \ Category: Text
 \
+\ One-line summary: A constant used when printing large numbers in BPRNT
+\
 \ Contains the four low bytes of the value 100,000,000,000 (100 billion).
 \
 \ The maximum number of digits that we can print with the BPRNT routine below is
@@ -11167,6 +11213,8 @@ NEXT
 \
 \ Subroutine: pr2
 \ Category: Text
+\
+\ One-line summary: Print 8-bit number, left-padded to 3 digits, optional point
 \
 \ Print the 8-bit number in X to 3 digits, left-padding with spaces for numbers
 \ with fewer than 3 digits (so numbers < 100 are right-aligned). Optionally
@@ -11194,6 +11242,8 @@ NEXT
 \
 \ Subroutine: TT11
 \ Category: Text
+\
+\ One-line summary: Print 16-bit number, left-padded to n digits, optional point
 \
 \ Print the 16-bit number in (Y X) to a specific number of digits, left-padding
 \ with spaces for numbers with fewer digits (so lower numbers will be right-
@@ -11234,6 +11284,8 @@ NEXT
 \
 \ Subroutine: BPRNT
 \ Category: Text
+\
+\ One-line summary: Print 32-bit number, left-padded to n digits, optional point
 \
 \ Print the 32-bit number stored in K(0 1 2 3) to a specific number of digits,
 \ left-padding with spaces for numbers with fewer digits (so lower numbers are
@@ -11636,7 +11688,9 @@ NEXT
 \ Subroutine: BELL
 \ Category: Sound
 \
-\ Make a beep sound.
+\ One-line summary:  Make a beep sound
+\
+\ This is the standard system beep as made bu VDU 7.
 \
 \ ******************************************************************************
 
@@ -11651,6 +11705,8 @@ NEXT
 \
 \ Subroutine: TT26
 \ Category: Text
+\
+\ One-line summary: Print a character at the text cursor (WRCHV points here)
 \
 \ Print a character at the text cursor (XC, YC), do a beep, print a newline,
 \ or delete left (backspace).
@@ -12020,7 +12076,9 @@ NEXT
 \ Subroutine: DIALS (Part 1 of 4)
 \ Category: Dashboard
 \
-\ Update the dashboard. This section draws the speed indicator.
+\ One-line summary: Update the dashboard
+\
+\ This section draws the speed indicator.
 \
 \ First we draw all the indicators in the right part of the dashboard, from top
 \ (speed) to bottom (energy banks), and then we move on to the left part, again
@@ -12318,6 +12376,8 @@ NEXT
 \ Subroutine: PZW
 \ Category: Dashboard
 \
+\ One-line summary: Fetch the current dashboard colours, to support flashing
+\
 \ Set A and X to the colours we should use for indicators showing dangerous and
 \ safe values respectively. This enables us to implement flashing indicators,
 \ which is one of the game's configurable options. If flashing is enabled, the
@@ -12372,10 +12432,11 @@ NEXT
 \ Subroutine: DILX
 \ Category: Dashboard
 \
-\ Update a bar-based indicator on the dashboard. The range of values shown on
-\ the indicator depends on which entry point is called. For the default entry
-\ point of DILX, the range is 0-255 (as the value passed in A is one byte).
-\ The other entry points are shown below.
+\ One-line summary: Update a bar-based indicator on the dashboard
+\
+\ The range of values shown on the indicator depends on which entry point is
+\ called. For the default entry point of DILX, the range is 0-255 (as the value
+\ passed in A is one byte). The other entry points are shown below.
 \
 \ Arguments:
 \
@@ -12630,9 +12691,10 @@ NEXT
 \ Subroutine: DIL2
 \ Category: Dashboard
 \
-\ Update the roll or pitch indicator on the dashboard. The indicator can show a
-\ vertical bar in 16 positions, with a value of 8 showing the bar in the middle
-\ of the indicator.
+\ One-line summary: Update the roll or pitch indicator on the dashboard
+\
+\ The indicator can show a vertical bar in 16 positions, with a value of 8
+\ showing the bar in the middle of the indicator.
 \
 \ In practice this routine is only ever called with A in the range 1 to 15, so
 \ the vertical bar never appears in the leftmost position (though it does appear
@@ -12753,6 +12815,8 @@ NEXT
 \ Variable: TVT1
 \ Category: Screen mode
 \
+\ One-line summary: Palette data for space and the two dashboard colour schemes
+\
 \ Palette bytes for use with the split-screen mode (see IRQ1 below for more
 \ details).
 \
@@ -12816,6 +12880,8 @@ NEXT
 \
 \ Subroutine: IRQ1
 \ Category: Screen mode
+\
+\ One-line summary: The main screen-mode interrupt handler (IRQ1V points here)
 \
 \ The main interrupt handler, which implements Elite's split-screen mode.
 \
@@ -13076,7 +13142,9 @@ NEXT
 \ Subroutine: ESCAPE
 \ Category: Flight
 \
-\ Launch our escape pod, displaying our Cobra disappearing off into the ether
+\ One-line summary: Launch our escape pod
+\
+\ This routine displays our doomed Cobra Mk III disappearing off into the ether
 \ before arranging our replacement ship. Called when we press Escape during
 \ flight and have an escape pod fitted.
 \
@@ -13191,9 +13259,11 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Subroutine: TACTICS (Part 1 of 7)
 \ Category: Tactics
 \
-\ Apply tactics to the current ship. This section implements missile tactics
-\ and is entered at TA18 from the main entry point below, of the current ship is
-\ a missile. Specifically:
+\ One-line summary: Apply AI tactics to ships, missiles, escape pods & stations
+\
+\ This routine applies tactics to the current ship. This section implements
+\ missile tactics and is entered at TA18 from the main entry point below, of the
+\ current ship is a missile. Specifically:
 \
 \   * If E.C.M. is active, destroy the missile
 \
@@ -13902,6 +13972,8 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Subroutine: TAS1
 \ Category: Maths
 \
+\ One-line summary: Calculate K3 = (x_sign x_hi x_lo) - V(1 0)
+\
 \ Calculate one of the following, depending on the value in Y:
 \
 \   K3(2 1 0) = (x_sign x_hi x_lo) - x-coordinate in V(1 0)
@@ -13976,7 +14048,10 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Subroutine: HITCH
 \ Category: Tactics
 \
-\ Work out if the ship in INWK is in our crosshairs.
+\ One-line summary: Work out if the ship in INWK is in our crosshairs
+\
+\ This is called by the main flight loop to see if we have laser or missile lock
+\ on an enemy ship.
 \
 \ Returns:
 \
@@ -14126,7 +14201,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Subroutine: FRS1
 \ Category: Tactics
 \
-\ Launch a ship straight ahead of us, just below our line of sight.
+\ One-line summary: Launch a ship straight ahead of us, below the laser sights
 \
 \ This is used in two places:
 \
@@ -14206,6 +14281,8 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Subroutine: FRMIS
 \ Category: Tactics
 \
+\ One-line summary: Fire a missile from our ship
+\
 \ We fired a missile, so send it streaking away from us to unleash mayhem and
 \ destruction on our sworn enemies.
 \
@@ -14245,9 +14322,11 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Subroutine: ANGRY
 \ Category: Tactics
 \
-\ Make a ship hostile. All this actually does is set the ship's hostile flag,
-\ start it turning and give it a kick of acceleration - later calls to TACTICS
-\ will make the ship attack.
+\ One-line summary: Make a ship hostile
+\
+\ All this actually does is set the ship's hostile flag, start it turning and
+\ give it a kick of acceleration - later calls to TACTICS will make the ship
+\ actually attack.
 \
 \ Arguments:
 \
@@ -14311,7 +14390,10 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Subroutine: FR1
 \ Category: Tactics
 \
-\ Display the "missile jammed" message.
+\ One-line summary: Display the "missile jammed" message
+\
+\ This is shown if there isn't room in the local bubble of universe for a new
+\ missile.
 \
 \ Other entry points:
 \
@@ -14331,7 +14413,10 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Subroutine: SESCP
 \ Category: Flight
 \
-\ Spawn an escape pod from the current (parent) ship.
+\ One-line summary: Spawn an escape pod from the current (parent) ship
+\
+\ This is called when an enemy ship has run out of both energy and luck, so it's
+\ time to bail.
 \
 \ ******************************************************************************
 
@@ -14350,11 +14435,13 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Subroutine: SFS1
 \ Category: Universe
 \
-\ Spawn a child ship from the current (parent) ship. If the parent is a space
-\ station then the child ship is spawned coming out of the slot, and if the
-\ child is a cargo canister, it is sent tumbling through space. Otherwise the
-\ child ship is spawned with the same ship data as the parent, just with damping
-\ disabled and the ship type and AI flag that are passed in A and X.
+\ One-line summary: Spawn a child ship from the current (parent) ship
+\
+\ If the parent is a space station then the child ship is spawned coming out of
+\ the slot, and if the child is a cargo canister, it is sent tumbling through
+\ space. Otherwise the child ship is spawned with the same ship data as the
+\ parent, just with damping disabled and the ship type and AI flag that are
+\ passed in A and X.
 \
 \ Arguments:
 \
@@ -14527,6 +14614,8 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Subroutine: SFS2
 \ Category: Moving
 \
+\ One-line summary: Move a ship in space along one of the coordinate axes
+\
 \ Move a ship's coordinates by a certain amount in the direction of one of the
 \ axes, where X determines the axis. Mathematically speaking, this routine
 \ translates the ship along a single axis by a signed delta.
@@ -14563,7 +14652,9 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Subroutine: LL164
 \ Category: Drawing circles
 \
-\ Make the hyperspace sound and draw the hyperspace tunnel.
+\ One-line summary: Make the hyperspace sound and draw the hyperspace tunnel
+\
+\ See the IRQ1 routine for details on the multi-coloured effect that's used.
 \
 \ ******************************************************************************
 
@@ -14595,7 +14686,9 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Subroutine: LAUN
 \ Category: Drawing circles
 \
-\ Make the launch sound and draw the launch tunnel.
+\ One-line summary: Make the launch sound and draw the launch tunnel
+\
+\ This is shown when launching from or docking with the space station.
 \
 \ ******************************************************************************
 
@@ -14617,7 +14710,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Subroutine: HFS2
 \ Category: Drawing circles
 \
-\ Draw the launch or hyperspace tunnel.
+\ One-line summary: Draw the launch or hyperspace tunnel
 \
 \ The animation gets drawn like this. First, we draw a circle of radius 8 at the
 \ centre, and then double the radius, draw another circle, double the radius
@@ -14719,7 +14812,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Subroutine: STARS2
 \ Category: Stardust
 \
-\ Process the stardust for the left or right view.
+\ One-line summary: Process the stardust for the left or right view
 \
 \ This moves the stardust sideways according to our speed and which side we are
 \ looking out of, and applies our current pitch and roll to each particle of
@@ -15095,7 +15188,9 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Variable: SNE
 \ Category: Maths
 \
-\ Sine/cosine table. To calculate the following:
+\ One-line summary: Sine/cosine table
+\
+\ To calculate the following:
 \
 \   sin(theta) * 256
 \
@@ -15171,7 +15266,12 @@ NEXT
 \ Subroutine: MU5
 \ Category: Maths
 \
-\ Set all four bytes in K(3 2 1 0) to A and clear the C flag.
+\ One-line summary: Set K(3 2 1 0) = (A A A A) and clear the C flGag
+\
+\ In practice this is only called via a BEQ following an AND instruction, in
+\ which case A = 0, so this routine effectively does this:
+\
+\   K(3 2 1 0) = 0
 \
 \ ******************************************************************************
 
@@ -15191,6 +15291,8 @@ NEXT
 \
 \ Subroutine: MULT3
 \ Category: Maths
+\
+\ One-line summary: Calculate K(3 2 1 0) = (A P+1 P) * Q
 \
 \ Calculate the following multiplication between a signed 24-bit number and a
 \ signed 8-bit number, returning the result as a signed 32-bit number:
@@ -15309,6 +15411,8 @@ NEXT
 \ Subroutine: MLS2
 \ Category: Maths
 \
+\ One-line summary: Calculate (S R) = XX(1 0) and (A P) = A * ALP1
+\
 \ Calculate the following:
 \
 \   (S R) = XX(1 0)
@@ -15335,6 +15439,8 @@ NEXT
 \
 \ Subroutine: MLS1
 \ Category: Maths
+\
+\ One-line summary: Calculate (A P) = ALP1 * A
 \
 \ Calculate the following:
 \
@@ -15447,6 +15553,8 @@ NEXT
 \ Subroutine: SQUA
 \ Category: Maths
 \
+\ One-line summary: Clear bit 7 of A and calculate (A P) = A * A
+\
 \ Do the following multiplication of unsigned 8-bit numbers, after first
 \ clearing bit 7 of A:
 \
@@ -15464,6 +15572,8 @@ NEXT
 \
 \ Subroutine: SQUA2
 \ Category: Maths
+\
+\ One-line summary: Calculate (A P) = A * A
 \
 \ Do the following multiplication of unsigned 8-bit numbers:
 \
@@ -15485,7 +15595,9 @@ NEXT
 \ Subroutine: MU1
 \ Category: Maths
 \
-\ Copy X into P and A, and clear the C flag.
+\ One-line summary: Copy X into P and A, and clear the C flag
+\
+\ Used to return a 0 result quickly from MULTU below.
 \
 \ ******************************************************************************
 
@@ -15503,6 +15615,8 @@ NEXT
 \
 \ Subroutine: MLU1
 \ Category: Maths
+\
+\ One-line summary: Calculate Y1 = y_hi and (A P) = |y_hi| * Q for Y-th stardust
 \
 \ Do the following assignment, and multiply the Y-th stardust particle's
 \ y-coordinate with an unsigned number Q:
@@ -15528,6 +15642,8 @@ NEXT
 \ Subroutine: MLU2
 \ Category: Maths
 \
+\ One-line summary: Calculate (A P) = |A| * Q
+\
 \ Do the following multiplication of a sign-magnitude 8-bit number P with an
 \ unsigned number Q:
 \
@@ -15551,6 +15667,8 @@ NEXT
 \ Subroutine: MULTU
 \ Category: Maths
 \
+\ One-line summary: Calculate (A P) = P * Q
+\
 \ Do the following multiplication of unsigned 8-bit numbers:
 \
 \   (A P) = P * Q
@@ -15572,6 +15690,8 @@ NEXT
 \
 \ Subroutine: MU11
 \ Category: Maths
+\
+\ One-line summary: Calculate (A P) = P * X
 \
 \ Do the following multiplication of two unsigned 8-bit numbers:
 \
@@ -15633,8 +15753,10 @@ NEXT
 \ Subroutine: MU6
 \ Category: Maths
 \
-\ Set P(1 0) = (A A). In practice this is only called via a BEQ following an AND
-\ instruction, in which case A = 0, so this routine effectively does this:
+\ One-line summary: Set P(1 0) = (A A)
+\
+\ In practice this is only called via a BEQ following an AND instruction, in
+\ which case A = 0, so this routine effectively does this:
 \
 \   P(1 0) = 0
 \
@@ -15652,6 +15774,8 @@ NEXT
 \
 \ Subroutine: FMLTU2
 \ Category: Maths
+\
+\ One-line summary: Calculate A = K * sin(A)
 \
 \ Calculate the following:
 \
@@ -15689,6 +15813,8 @@ NEXT
 \
 \ Subroutine: FMLTU
 \ Category: Maths
+\
+\ One-line summary: Calculate A = A * Q / 256
 \
 \ Do the following multiplication of two unsigned 8-bit numbers, returning only
 \ the high byte of the result:
@@ -15782,6 +15908,8 @@ NEXT
 \ Subroutine: Unused duplicate of MULTU
 \ Category: Maths
 \
+\ One-line summary: Unused duplicate of the MULTU routine
+\
 \ This is a duplicate of the MULTU routine, but with no entry label, so it can't
 \ be called by name. It is unused, and could have been culled to save a few
 \ bytes (24 to be precise), but it's still here.
@@ -15815,6 +15943,8 @@ NEXT
 \
 \ Subroutine: MLTU2
 \ Category: Maths
+\
+\ One-line summary: Calculate (A P+1 P) = (A ~P) * Q
 \
 \ Do the following multiplication of an unsigned 16-bit number and an unsigned
 \ 8-bit number:
@@ -15904,6 +16034,8 @@ NEXT
 \ Subroutine: MUT3
 \ Category: Maths
 \
+\ One-line summary: Unused routine that does the same as MUT2
+\
 \ This routine is never actually called, but it is identical to MUT2, as the
 \ extra instructions have no effect.
 \
@@ -15924,6 +16056,8 @@ NEXT
 \
 \ Subroutine: MUT2
 \ Category: Maths
+\
+\ One-line summary: Calculate (S R) = XX(1 0) and (A P) = Q * A
 \
 \ Do the following assignment, and multiplication of two signed 8-bit numbers:
 \
@@ -15948,6 +16082,8 @@ NEXT
 \ Subroutine: MUT1
 \ Category: Maths
 \
+\ One-line summary: Calculate R = XX and (A P) = Q * A
+\
 \ Do the following assignment, and multiplication of two signed 8-bit numbers:
 \
 \   R = XX
@@ -15970,7 +16106,9 @@ NEXT
 \ Subroutine: MULT1
 \ Category: Maths
 \
-\ Do the following multiplication of two signed 8-bit numbers:
+\ One-line summary: Calculate (A P) = Q * A
+\
+\ Do the following multiplication of two 8-bit sign-magnitude numbers:
 \
 \   (A P) = Q * A
 \
@@ -16129,6 +16267,8 @@ NEXT
 \ Subroutine: MULT12
 \ Category: Maths
 \
+\ One-line summary: Calculate (S R) = Q * A
+\
 \ Calculate:
 \
 \   (S R) = Q * A
@@ -16150,6 +16290,8 @@ NEXT
 \
 \ Subroutine: TAS3
 \ Category: Maths
+\
+\ One-line summary: Calculate the dot product of XX15 and an orientation vector
 \
 \ Calculate the dot product of the vector in XX15 and one of the orientation
 \ vectors, as determined by the value of Y. If vect is the orientation vector,
@@ -16211,7 +16353,9 @@ NEXT
 \ Subroutine: MAD
 \ Category: Maths
 \
-\ Multiply and add
+\ One-line summary: Calculate (A X) = Q * A + (S R)
+\
+\ Calculate
 \
 \   (A X) = Q * A + (S R)
 \
@@ -16231,6 +16375,8 @@ NEXT
 \
 \ Subroutine: ADD
 \ Category: Maths
+\
+\ One-line summary: Calculate (A X) = (A P) + (S R)
 \
 \ Add two signed 16-bit numbers together, making sure the result has the
 \ correct sign. Specifically:
@@ -16405,6 +16551,8 @@ NEXT
 \ Subroutine: TIS1
 \ Category: Maths
 \
+\ One-line summary: Calculate (A ?) = (-X * A + (S R)) / 96
+\
 \ Calculate the following expression between sign-magnitude numbers, ignoring
 \ the low byte of the result:
 \
@@ -16480,6 +16628,8 @@ NEXT
 \ Subroutine: DV42
 \ Category: Maths
 \
+\ One-line summary: Calculate (P R) = 256 * DELTA / z_hi
+\
 \ Calculate the following division and remainder:
 \
 \   P = DELTA / (the Y-th stardust particle's z_hi coordinate)
@@ -16517,11 +16667,17 @@ NEXT
 \ Subroutine: DV41
 \ Category: Maths
 \
+\ One-line summary: Calculate (P R) = 256 * DELTA / A
+\
 \ Calculate the following division and remainder:
 \
 \   P = DELTA / A
 \
 \   R = remainder as a fraction of A, where 1.0 = 255
+\
+\ Another way of saying the above is this:
+\
+\   (P R) = 256 * DELTA / A
 \
 \ This uses the same "shift and subtract" algorithm as TIS2, but this time we
 \ keep the remainder.
@@ -16544,11 +16700,17 @@ NEXT
 \ Subroutine: DVID4
 \ Category: Maths
 \
+\ One-line summary: Calculate (P R) = 256 * A / Q
+\
 \ Calculate the following division and remainder:
 \
 \   P = A / Q
 \
 \   R = remainder as a fraction of Q, where 1.0 = 255
+\
+\ Another way of saying the above is this:
+\
+\   (P R) = 256 * A / Q
 \
 \ This uses the same "shift and subtract" algorithm as TIS2, but this time we
 \ keep the remainder.
@@ -16604,6 +16766,8 @@ NEXT
 \
 \ Subroutine: DVID3B2
 \ Category: Maths
+\
+\ One-line summary: Calculate K(3 2 1 0) = (A P+1 P) / (z_sign z_hi z_lo)
 \
 \ Calculate the following:
 \
@@ -16835,6 +16999,8 @@ NEXT
 \ Subroutine: cntr
 \ Category: Dashboard
 \
+\ One-line summary: Apply damping to the pitch or roll dashboard indicator
+\
 \ Apply damping to the value in X, where X ranges from 1 to 255 with 128 as the
 \ centre point (so X represents a position on a centre-based dashboard slider,
 \ such as pitch or roll). If the value is in the left-hand side of the slider
@@ -16881,6 +17047,8 @@ NEXT
 \
 \ Subroutine: BUMP2
 \ Category: Dashboard
+\
+\ One-line summary: Bump up the value of the pitch or roll dashboard indicator
 \
 \ Increase ("bump up") X by A, where X is either the current rate of pitch or
 \ the current rate of roll.
@@ -16942,6 +17110,8 @@ NEXT
 \
 \ Subroutine: REDU2
 \ Category: Dashboard
+\
+\ One-line summary: Reduce the value of the pitch or roll dashboard indicator
 \
 \ Reduce X by A, where X is either the current rate of pitch or the current
 \ rate of roll.
@@ -17009,6 +17179,8 @@ NEXT
 \
 \ Subroutine: ARCTAN
 \ Category: Maths
+\
+\ One-line summary: Calculate A = arctan(P / Q)
 \
 \ Calculate the following:
 \
@@ -17139,7 +17311,7 @@ NEXT
 \ Variable: ACT
 \ Category: Maths
 \
-\ Arctan table.
+\ One-line summary: Arctan table
 \
 \ To calculate the following:
 \
@@ -17188,8 +17360,10 @@ NEXT
 \ Subroutine: WARP
 \ Category: Flight
 \
-\ Perform an-system jump. This is called when we press "J" during flight. The
-\ following checks are performed:
+\ One-line summary: Perform an in-system jump
+\
+\ This is called when we press "J" during flight. The following checks are
+\ performed:
 \
 \   * Make sure we don't have any ships or space stations in the vicinity
 \
@@ -17382,6 +17556,8 @@ NEXT
 \ Subroutine: LASLI
 \ Category: Drawing lines
 \
+\ One-line summary: Draw the laser lines for when we fire our lasers
+\
 \ Draw the laser lines, aiming them to slightly different place each time so
 \ they appear to flicker and dance. Also heat up the laser temperature and drain
 \ some energy.
@@ -17476,6 +17652,8 @@ NEXT
 \
 \ Subroutine: PLUT
 \ Category: Flight
+\
+\ One-line summary: Flip the coordinate axes for the four different views
 \
 \ This routine flips the relevant geometric axes in INWK depending on which
 \ view we are looking through (forward, rear, left, right).
@@ -17790,6 +17968,8 @@ NEXT
 \ Subroutine: LOOK1
 \ Category: Flight
 \
+\ One-line summary: Initialise the space view
+\
 \ Initialise the space view, with the direction of view given in X. This clears
 \ the upper screen and draws the laser crosshairs, if the view in X has lasers
 \ fitted. It also wipes all the ships from the scanner, so we can recalculate
@@ -17884,6 +18064,8 @@ NEXT
 \ Subroutine: TT66
 \ Category: Utility routines
 \
+\ One-line summary: Clear the screen and set the current view type
+\
 \ Clear the top part of the screen (mode 4), draw a white border, and set the
 \ current view type in QQ11 to A.
 \
@@ -17913,6 +18095,8 @@ NEXT
 \
 \ Subroutine: TTX66
 \ Category: Utility routines
+\
+\ One-line summary: Clear the top part of the screen and draw a white border
 \
 \ Clear the top part of the screen (the mode 4 part) and draw a white border
 \ along the top and sides.
@@ -18058,6 +18242,8 @@ NEXT
 \ Subroutine: DELAY
 \ Category: Utility routines
 \
+\ One-line summary: Wait for a specified time, in 1/50s of a second
+\
 \ Wait for the number of vertical syncs given in Y, so this effectively waits
 \ for Y/50 of a second (as the vertical sync occurs 50 times a second).
 \
@@ -18103,6 +18289,8 @@ NEXT
 \ Subroutine: hm
 \ Category: Charts
 \
+\ One-line summary: Select the closest system and redraw the chart crosshairs
+\
 \ Set the system closest to galactic coordinates (QQ9, QQ10) as the selected
 \ system, redraw the crosshairs on the chart accordingly (if they are being
 \ shown), and, if this is not a space view, clear the bottom three text rows of
@@ -18133,6 +18321,8 @@ NEXT
 \
 \ Subroutine: CLYNS
 \ Category: Utility routines
+\
+\ One-line summary: Clear the bottom three text rows of the mode 4 screen
 \
 \ Clear some space at the bottom of the screen and move the text cursor to
 \ column 1, row 21. Specifically, this zeroes the following screen locations:
@@ -18187,6 +18377,8 @@ NEXT
 \ Subroutine: LYN
 \ Category: Utility routines
 \
+\ One-line summary: Clear most of a row of pixels
+\
 \ Set pixels 0-233 to the value in A, starting at the pixel pointed to by SC.
 \
 \ Arguments:
@@ -18227,8 +18419,9 @@ NEXT
 \ Subroutine: SCAN
 \ Category: Dashboard
 \
-\ Display the current ship on the scanner.
+\ One-line summary: Display the current ship on the scanner
 \
+\ This is used both to display a ship on the scanner, and to erase it again.
 \
 \ Arguments:
 \
@@ -18804,6 +18997,8 @@ NEXT
 \ Subroutine: WSCAN
 \ Category: Screen mode
 \
+\ One-line summary: Wait for the vertical sync
+\
 \ Wait for vertical sync to occur on the video system - in other words, wait
 \ for the screen to start its refresh cycle, which it does 50 times a second
 \ (50Hz).
@@ -18855,6 +19050,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: tnpr
 \ Category: Market
+\
+\ One-line summary: Work out if we have space for a specific amount of cargo
 \
 \ Given a market item and an amount, work out whether there is room in the
 \ cargo hold for this item.
@@ -18966,6 +19163,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT20
 \ Category: Universe
 \
+\ One-line summary: Twist the selected system's seeds four times
+\
 \ Twist the three 16-bit seeds in QQ15 (selected system) four times, to
 \ generate the next system.
 \
@@ -18989,6 +19188,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: TT54
 \ Category: Universe
+\
+\ One-line summary: Twist the selected system's seeds
 \
 \ This routine twists the three 16-bit seeds in QQ15 once.
 \
@@ -19126,8 +19327,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT146
 \ Category: Text
 \
-\ Print the distance to the selected system in light years, if non-zero. If
-\ zero, just move the text cursor down a line.
+\ One-line summary: Print the distance to the selected system in light years
+\
+\ If it is non-zero, print the distance to the selected system in light years.
+\ If it is zero, just move the text cursor down a line.
 \
 \ Specifically, if the distance in QQ8 is non-zero, print token 31 ("DISTANCE"),
 \ then a colon, then the distance to one decimal place, then token 35 ("LIGHT
@@ -19169,6 +19372,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT60
 \ Category: Text
 \
+\ One-line summary: Print a text token and a paragraph break
+\
 \ Print a text token (i.e. a character, control code, two-letter token or
 \ recursive token). Then print a paragraph break (a blank line between
 \ paragraphs) by moving the cursor down a line, setting Sentence Case, and then
@@ -19191,6 +19396,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TTX69
 \ Category: Text
 \
+\ One-line summary: Print a paragraph break
+\
 \ Print a paragraph break (a blank line between paragraphs) by moving the cursor
 \ down a line, setting Sentence Case, and then printing a newline.
 \
@@ -19209,7 +19416,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT69
 \ Category: Text
 \
-\ Set Sentence Case and print a newline.
+\ One-line summary: Set Sentence Case and print a newline
 \
 \ ******************************************************************************
 
@@ -19226,7 +19433,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT67
 \ Category: Text
 \
-\ Print a newline.
+\ One-line summary: Print a newline
 \
 \ ******************************************************************************
 
@@ -19243,8 +19450,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT70
 \ Category: Text
 \
-\ Display "MAINLY " and jump to TT72. This subroutine is called by TT25 when
-\ displaying a system's economy.
+\ One-line summary: Display "MAINLY " and jump to TT72
+\
+\ This subroutine is called by TT25 when displaying a system's economy.
 \
 \ ******************************************************************************
 
@@ -19261,6 +19469,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: spc
 \ Category: Text
+\
+\ One-line summary: Print a text token followed by a space
 \
 \ Print a text token (i.e. a character, control code, two-letter token or
 \ recursive token) followed by a space.
@@ -19284,7 +19494,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT25
 \ Category: Universe
 \
-\ Show the Data on System screen (red key f6).
+\ One-line summary: Show the Data on System screen (red key f6)
 \
 \ Other entry points:
 \
@@ -19661,6 +19871,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT24
 \ Category: Universe
 \
+\ One-line summary: Calculate system data from the system seeds
+\
 \ Calculate system data from the seeds in QQ15 and store them in the relevant
 \ locations. Specifically, this routine calculates the following from the three
 \ 16-bit seeds in QQ15 (using only w0_hi, w1_hi and w1_lo):
@@ -19887,7 +20099,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT22
 \ Category: Charts
 \
-\ Show the Long-range Chart (red key f4).
+\ One-line summary: Show the Long-range Chart (red key f4)
 \
 \ ******************************************************************************
 
@@ -19984,8 +20196,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT15
 \ Category: Drawing lines
 \
-\ Draw a set of crosshairs. For all views except the Short-range Chart, the
-\ centre is drawn 24 pixels to the right of the y-coordinate given.
+\ One-line summary: Draw a set of crosshairs
+\
+\ For all views except the Short-range Chart, the centre is drawn 24 pixels to
+\ the right of the y-coordinate given.
 \
 \ Arguments:
 \
@@ -20122,6 +20336,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT14
 \ Category: Drawing circles
 \
+\ One-line summary: Draw a circle with crosshairs on a chart
+\
 \ Draw a circle with crosshairs at the current system's galactic coordinates.
 \
 \ ******************************************************************************
@@ -20194,6 +20410,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT128
 \ Category: Drawing circles
 \
+\ One-line summary: Draw a circle on a chart
+\
 \ Draw a circle with the centre at (QQ19, QQ19+1) and radius K.
 \
 \ Arguments:
@@ -20241,7 +20459,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT219
 \ Category: Market
 \
-\ Show the Buy Cargo screen (red key f1).
+\ One-line summary: Show the Buy Cargo screen (red key f1)
 \
 \ Other entry points:
 \
@@ -20440,6 +20658,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: gnum
 \ Category: Market
 \
+\ One-line summary: Get a number from the keyboard
+\
 \ Get a number from the keyboard, up to the maximum number in QQ25. Pressing a
 \ key with an ASCII code less than ASCII "0" will return a 0 in A (so that
 \ includes pressing Space or Return), while pressing a key with an ASCII code
@@ -20534,7 +20754,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT208
 \ Category: Market
 \
-\ Show the Sell Cargo screen (red key f2).
+\ One-line summary: Show the Sell Cargo screen (red key f2)
 \
 \ ******************************************************************************
 
@@ -20567,6 +20787,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: TT210
 \ Category: Inventory
+\
+\ One-line summary: Show a list of current cargo in our hold, optionally to sell
 \
 \ Show a list of current cargo in our hold, either with the ability to sell (the
 \ Sell Cargo screen) or without (the Inventory screen), depending on the current
@@ -20705,7 +20927,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT213
 \ Category: Inventory
 \
-\ Show the Inventory screen (red key f9).
+\ One-line summary: Show the Inventory screen (red key f9)
 \
 \ ******************************************************************************
 
@@ -20722,7 +20944,9 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR TT60               \ by a paragraph break and Sentence Case
 
  JSR NLIN4              \ Draw a horizontal line at pixel row 19 to box in the
-                        \ title
+                        \ title. The authors could have used a call to NLIN3
+                        \ instead and saved the above call to TT60, but you
+                        \ just can't optimise everything
 
  JSR fwl                \ Call fwl to print the fuel and cash levels on two
                         \ separate lines
@@ -20744,7 +20968,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT214
 \ Category: Inventory
 \
-\ Ask a question with a "Y/N?" prompt and return the response.
+\ One-line summary: Ask a question with a "Y/N?" prompt and return the response
 \
 \ Arguments:
 \
@@ -20795,6 +21019,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: TT16
 \ Category: Charts
+\
+\ One-line summary: Move the crosshairs on a chart
 \
 \ Move the chart crosshairs by the amount in X and Y.
 \
@@ -20861,6 +21087,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT103
 \ Category: Charts
 \
+\ One-line summary: Draw a small set of crosshairs on a chart
+\
 \ Draw a small set of crosshairs on a galactic chart at the coordinates in
 \ (QQ9, QQ10).
 \
@@ -20893,6 +21121,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: TT123
 \ Category: Charts
+\
+\ One-line summary: Move galactic coordinates by a signed delta
 \
 \ Move an 8-bit galactic coordinate by a certain distance in either direction
 \ (i.e. a signed 8-bit delta), but only if it doesn't cause the coordinate to
@@ -20954,6 +21184,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: TT105
 \ Category: Charts
+\
+\ One-line summary: Draw crosshairs on the Short-range Chart, with clipping
 \
 \ Check whether the crosshairs are close enough to the current system to appear
 \ on the Short-range Chart, and if so, draw them.
@@ -21018,7 +21250,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT23
 \ Category: Charts
 \
-\ Show the Short-range Chart (red key f5).
+\ One-line summary: Show the Short-range Chart (red key f5)
 \
 \ ******************************************************************************
 
@@ -21263,9 +21495,11 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT81
 \ Category: Universe
 \
+\ One-line summary: Set the selected system's seeds to those of system 0
+\
 \ Copy the three 16-bit seeds for the current galaxy's system 0 (QQ21) into the
 \ seeds for the selected system (QQ15) - in other words, set the selected
-\ system's seeds to those of the system 0.
+\ system's seeds to those of system 0.
 \
 \ ******************************************************************************
 
