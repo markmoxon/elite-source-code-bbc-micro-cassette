@@ -59,9 +59,9 @@ If you want to jump straight in, here's a _tl;dr_ for you.
 
 * The source code is peppered with a number of "deep dives", each of which goes into an aspect of the game in more detail. You find deep dives in the source files by simply searching for `Deep dive:`
 
-* There are loads of routines in Elite - literally hundreds. I will be adding more information on these soon, but for now you can find them in the source files by searching for `Subroutine:`
+* There are loads of routines in Elite - literally hundreds. I will be adding more information on these soon, but for now you can find them in the source files by searching for `Subroutine name:`
 
-* The entry point for the [main game code](elite-source.asm) is routine `TT170`, which you can find by searching for `Subroutine: TT170`. If you want to follow the program flow all the way from the title screen around the main game loop, then you can find a deep dive in the `TT170` routine that has you covered
+* The entry point for the [main game code](elite-source.asm) is routine `TT170`, which you can find by searching for `Subroutine name:  TT170` (note the two spaces after the colon). If you want to follow the program flow all the way from the title screen around the main game loop, then you can find a deep dive in the `TT170` routine that has you covered
 
 * The source code is designed to be read at an 80-column width and with a monospaced font, just like in the good old days
 
@@ -482,7 +482,7 @@ During compilation, details of every step are output in a file called `compile.t
 
 It turns out that the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip) do not contain identical code to the binaries in the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip). Specifically, there are some instructions in the `ELTC` binary that are different to the instructions in the `ELITEC.TXT` source file.
 
-You can see these differences documented in the `WARP` routine in the `elite-source.asm` file. To find this, search the file for `Subroutine: WARP` and follow the comments for mentions of `ELITEC.TXT`.
+You can see these differences documented in the `WARP` routine in the `elite-source.asm` file. To find this, search the file for `Subroutine name:  WARP` and follow the comments for mentions of `ELITEC.TXT`.
 
 The instructions included in `elite-source.asm` are those that match the binary files rather than `ELITEC.TXT`, to ensure that the build process produces binaries that match the released version of the game.
 

@@ -299,9 +299,8 @@ EXCN = &85
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 1 of 6)
-\ Category: Loader
-\
+\ Subroutine name:  Elite loader (Part 1 of 6)
+\ Category:         Loader
 \ One-line summary: Elite loader, which loads, decrypts and runs the main game
 \
 \ The loader bundles a number of binary files in with the loader code, and moves
@@ -372,9 +371,8 @@ ORG O%
 
 \ ******************************************************************************
 \
-\ Variable: B%
-\ Category: Screen mode
-\
+\ Variable name:    B%
+\ Category:         Screen mode
 \ One-line summary: VDU commands for setting the square mode 4 screen
 \
 \ This block contains the bytes that get passed to the VDU command (via OSWRCH)
@@ -468,9 +466,8 @@ ORG O%
 
 \ ******************************************************************************
 \
-\ Variable: E%
-\ Category: Sound
-\
+\ Variable name:    E%
+\ Category:         Sound
 \ One-line summary: Sound envelope definitions
 \
 \ This table contains the sound envelope data, which is passed to OSWORD to set
@@ -488,9 +485,8 @@ ORG O%
 
 \ ******************************************************************************
 \
-\ Subroutine: swine
-\ Category: Copy protection
-\
+\ Subroutine name:  swine
+\ Category:         Copy protection
 \ One-line summary: Resets the machine if the copy protection detects a problem
 \
 \ ******************************************************************************
@@ -505,9 +501,8 @@ ORG O%
 
 \ ******************************************************************************
 \
-\ Subroutine: OSB
-\ Category: Utility routines
-\
+\ Subroutine name:  OSB
+\ Category:         Utility routines
 \ One-line summary: A convenience routine for calling OSBYTE with Y = 0
 \
 \ ******************************************************************************
@@ -520,9 +515,8 @@ ORG O%
 
 \ ******************************************************************************
 \
-\ Variable: Author names
-\ Category: Copy protection
-\
+\ Variable name:    Author names
+\ Category:         Copy protection
 \ One-line summary: The authors' names, buried in the code
 \
 \ Contains the authors' names, plus an unused OS command string that would
@@ -539,9 +533,8 @@ ORG O%
 
 \ ******************************************************************************
 \
-\ Variable: oscliv
-\ Category: Utility routines
-\
+\ Variable name:    oscliv
+\ Category:         Utility routines
 \ One-line summary: Contains the address of OSCLIV, for executing OS commands
 \
 \ ******************************************************************************
@@ -553,9 +546,8 @@ ORG O%
 
 \ ******************************************************************************
 \
-\ Variable: David9
-\ Category: Copy protection
-\
+\ Variable name:    David9
+\ Category:         Copy protection
 \ One-line summary: Address used as part of the stack-based decryption loop
 \
 \ This address is used in the decryption loop starting at David2 in part 4, and
@@ -571,9 +563,8 @@ ORG O%
 
 \ ******************************************************************************
 \
-\ Variable: David23
-\ Category: Copy protection
-\
+\ Variable name:    David23
+\ Category:         Copy protection
 \ One-line summary: Address pointer to the start of the 6502 stack
 \
 \ This two-byte address points to the start of the 6502 stack, which descends
@@ -590,9 +581,8 @@ ORG O%
 
 \ ******************************************************************************
 \
-\ Subroutine: 
-\ Category: Copy protection
-\
+\ Subroutine name:  
+\ Category:         Copy protection
 \ One-line summary: Routine to self-modify the loader code
 \
 \ This routine modifies various bits of code in-place as part of the copy
@@ -621,9 +611,8 @@ ORG O%
 
 \ ******************************************************************************
 \
-\ Variable: 
-\ Category: Copy protection
-\
+\ Variable name:    MHCA
+\ Category:         Copy protection
 \ One-line summary: Used to set one of the vectors in the copy protection code
 \
 \ This value is used to set the low byte of BLPTR(1 0), when it's set in PLL1
@@ -637,9 +626,8 @@ ORG O%
 
 \ ******************************************************************************
 \
-\ Subroutine: David7
-\ Category: Copy protection
-\
+\ Subroutine name:  David7
+\ Category:         Copy protection
 \ One-line summary: Part of the multi-jump obfuscation code in PROT1
 \
 \ This instruction is part of the multi-jump obfuscation in PROT1 (see part 2 of
@@ -656,8 +644,9 @@ ORG O%
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 2 of 6)
-\ Category: Loader
+\ Subroutine name:  Elite loader (Part 2 of 6)
+\ Category:         Loader
+\ One-line summary: Elite loader, which loads, decrypts and runs the main game
 \
 \ This part of the loader does a number of calls to OS calls, sets up the sound
 \ envelopes, pushes 33 bytes onto the stack that will be used later, and sends
@@ -953,8 +942,9 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 3 of 6)
-\ Category: Loader
+\ Subroutine name:  Elite loader (Part 3 of 6)
+\ Category:         Loader
+\ One-line summary: Elite loader, which loads, decrypts and runs the main game
 \
 \ Move and decrypt the following memory blocks:
 \
@@ -1058,8 +1048,9 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 4 of 6)
-\ Category: Loader
+\ Subroutine name:  Elite loader (Part 4 of 6)
+\ Category:         Loader
+\ One-line summary: Elite loader, which loads, decrypts and runs the main game
 \
 \ This part copies more code onto the stack (from BLOCK to ENDBLOCK), decrypts
 \ the code from TUT onwards, and sets up the IRQ1 handler for the split-screen
@@ -1249,9 +1240,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine: PLL1
-\ Category: Drawing planets
-\
+\ Subroutine name:  PLL1
+\ Category:         Drawing planets
 \ One-line summary: Draw Saturn on the loading screen
 \
 \ Part 1 (PLL1) x 1280 - planet
@@ -1597,9 +1587,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine: DORND
-\ Category: Utility routines
-\
+\ Subroutine name:  DORND
+\ Category:         Utility routines
 \ One-line summary: Generate random numbers
 \
 \ Set A and X to random numbers. Carry flag is also set randomly. Overflow flag
@@ -1630,9 +1619,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine: SQUA2
-\ Category: Maths
-\
+\ Subroutine name:  SQUA2
+\ Category:         Maths
 \ One-line summary: Calculate (A P) = A * A
 \
 \ Do the following multiplication of unsigned 8-bit numbers:
@@ -1692,9 +1680,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine: PIX
-\ Category: Drawing pixels
-\
+\ Subroutine name:  PIX
+\ Category:         Drawing pixels
 \ One-line summary: Draw a single pixel at a specific coordinate
 \
 \ Draw a pixel at screen coordinate (X, -A). The sign bit of A gets flipped
@@ -1745,9 +1732,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variable: TWOS
-\ Category: Drawing pixels
-\
+\ Variable name:    TWOS
+\ Category:         Drawing pixels
 \ One-line summary: Ready-made single-pixel character row bytes for mode 4
 \
 \ Ready-made bytes for plotting one-pixel points in mode 4 (the top part of the
@@ -1768,9 +1754,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variable: CNT
-\ Category: Drawing planets
-\
+\ Variable name:    CNT
+\ Category:         Drawing planets
 \ One-line summary: A counter for use in drawing Saturn's planetary body
 \
 \ Defines the number of iterations of the PLL1 loop, which draws the planet part
@@ -1784,9 +1769,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variable: CNT2
-\ Category: Drawing planets
-\
+\ Variable name:    CNT2
+\ Category:         Drawing planets
 \ One-line summary: A counter for use in drawing Saturn's background stars
 \
 \ Defines the number of iterations of the PLL2 loop, which draws the background
@@ -1800,9 +1784,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variable: CNT3
-\ Category: Drawing planets
-\
+\ Variable name:    CNT3
+\ Category:         Drawing planets
 \ One-line summary: A counter for use in drawing Saturn's rings
 \
 \ Defines the number of iterations of the PLL3 loop, which draws the rings
@@ -1816,9 +1799,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine: ROOT
-\ Category: Maths
-\
+\ Subroutine name:  ROOT
+\ Category:         Maths
 \ One-line summary: Calculate ZP = SQRT(ZP(1 0))
 \
 \ Calculate the following square root:
@@ -1902,9 +1884,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine: BEGIN%
-\ Category: Copy protection
-\
+\ Subroutine name:  BEGIN%
+\ Category:         Copy protection
 \ One-line summary: Single-byte decryption and copying routine, run on the stack
 \
 \ This routine is copied to the stack at &01F1. It pushes BLOCK to ENDBLOCK onto
@@ -1980,9 +1961,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine: DOMOVE
-\ Category: Copy protection
-\
+\ Subroutine name:  DOMOVE
+\ Category:         Copy protection
 \ One-line summary: Multi-byte decryption and copying routine, run on the stack
 \
 \ This routine is copied to the stack at &01DF. It moves and decrypts a block of
@@ -2083,9 +2063,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ UU% workspace
-\ Category: Copy protection
-\
+\ Workspace name:   UU%
+\ Category:         Copy protection
 \ One-line summary: Marker for a block that is moved as part of the obfuscation
 \
 \ The code from here to the end of the file gets copied to &0B00 (LE%) by part
@@ -2100,9 +2079,8 @@ ORG LE%
 
 \ ******************************************************************************
 \
-\ Variable: CHECKbyt
-\ Category: Copy protection
-\
+\ Variable name:    CHECKbyt
+\ Category:         Copy protection
 \ One-line summary: Checksum for the validity of the UU% workspace
 \
 \ We calculate the value of the CHECKbyt checksum in elite-checksum.py, so this
@@ -2118,9 +2096,8 @@ ORG LE%
 
 \ ******************************************************************************
 \
-\ Variable: MAINSUM
-\ Category: Copy protection
-\
+\ Variable name:    MAINSUM
+\ Category:         Copy protection
 \ One-line summary: Two checksums for the decryption header and text token table
 \
 \ Contains two checksum values, one for the header code at LBL, and the other
@@ -2141,9 +2118,8 @@ ORG LE%
 
 \ ******************************************************************************
 \
-\ Variable: FOOLV
-\ Category: Copy protection
-\
+\ Variable name:    FOOLV
+\ Category:         Copy protection
 \ One-line summary: Part of the AFOOL roundabout obfuscation routine
 \
 \ FOOLV contains the address of FOOL. This is part of the JSR AFOOL obfuscation
@@ -2159,9 +2135,8 @@ ORG LE%
 
 \ ******************************************************************************
 \
-\ Variable: CHECKV
-\ Category: Copy protection
-\
+\ Variable name:    CHECKV
+\ Category:         Copy protection
 \ One-line summary: The address of the LBL routine in the decryption header
 \
 \ CHECKV contains the address of the LBL routine at the very start of the main
@@ -2176,9 +2151,8 @@ ORG LE%
 
 \ ******************************************************************************
 \
-\ Variable: block1
-\ Category: Screen mode
-\
+\ Variable name:    block1
+\ Category:         Screen mode
 \ One-line summary: Palette data for the two dashboard colour scheme
 \
 \ Palette bytes for use with the split-screen mode 5. See TVT1 in the main game
@@ -2197,9 +2171,8 @@ ORG LE%
 
 \ ******************************************************************************
 \
-\ Variable: block2
-\ Category: Screen mode
-\
+\ Variable name:    block2
+\ Category:         Screen mode
 \ One-line summary: Palette data for the space part of the screen
 \
 \ Palette bytes for use with the split-screen mode 4. See TVT1 in the main game
@@ -2218,9 +2191,8 @@ ORG LE%
 
 \ ******************************************************************************
 \
-\ Subroutine: TT26
-\ Category: Text
-\
+\ Subroutine name:  TT26
+\ Category:         Text
 \ One-line summary: Print a character at the text cursor (WRCHV points here)
 \
 \ This routine prints a character at the text cursor (XC, YC). It is very
@@ -2434,9 +2406,8 @@ ORG LE%
 
 \ ******************************************************************************
 \
-\ Subroutine: osprint
-\ Category: Utility routines
-\
+\ Subroutine name:  osprint
+\ Category:         Utility routines
 \ One-line summary: Print a character
 \
 \ Arguments:
@@ -2456,9 +2427,8 @@ ORG LE%
 
 \ ******************************************************************************
 \
-\ Subroutine: command
-\ Category: Utility routines
-\
+\ Subroutine name:  command
+\ Category:         Utility routines
 \ One-line summary: Execute an OS command
 \
 \ Arguments:
@@ -2474,9 +2444,8 @@ ORG LE%
 
 \ ******************************************************************************
 \
-\ Variable: MESS1
-\ Category: Utility routines
-\
+\ Variable name:    MESS1
+\ Category:         Utility routines
 \ One-line summary: Contains an OS command string for loading the main game code
 \
 \ ******************************************************************************
@@ -2493,8 +2462,9 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 5 of 6)
-\ Category: Loader
+\ Subroutine name:  Elite loader (Part 5 of 6)
+\ Category:         Loader
+\ One-line summary: Elite loader, which loads, decrypts and runs the main game
 \
 \ This part loads the main game code, decrypts it and moves it to the correct
 \ location for it to run.
@@ -2642,9 +2612,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variable: M2
-\ Category: Utility routines
-\
+\ Variable name:    M2
+\ Category:         Utility routines
 \ One-line summary: Used for testing the 6522 System VIA status byte in IRQ1
 \
 \ Used for testing bit 1 of the 6522 System VIA status byte in the IRQ1 routine,
@@ -2659,9 +2628,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine: IRQ1
-\ Category: Screen mode
-\
+\ Subroutine name:  IRQ1
+\ Category:         Screen mode
 \ One-line summary: The main screen-mode interrupt handler (IRQ1V points here)
 \
 \ The main interrupt handler, which implements Elite's split-screen mode.
@@ -2827,9 +2795,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variable: BLOCK
-\ Category: Copy protection
-\
+\ Variable name:    BLOCK
+\ Category:         Copy protection
 \ One-line summary: Addresses for the obfuscated jumps that use RTS not JMP
 \
 \ These two addresses get pushed onto the stack in part 4. The first EQUW is the
@@ -2853,8 +2820,9 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Elite loader (Part 6 of 6)
-\ Category: Loader
+\ Subroutine name:  Elite loader (Part 6 of 6)
+\ Category:         Loader
+\ One-line summary: Elite loader, which loads, decrypts and runs the main game
 \
 \ This is the final part of the loader. It sets up some of the main game's
 \ interrupt vectors and calculates various checksums, before finally handing
@@ -2988,9 +2956,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine: CHECKER
-\ Category: Copy protection
-\
+\ Subroutine name:  CHECKER
+\ Category:         Copy protection
 \ One-line summary: Run checksum checks on tokens, loader and tape block count
 \
 \ This routine runs checksum checks on the recursive token table and the loader
@@ -3118,9 +3085,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variable: XC
-\ Category: Text
-\
+\ Variable name:    XC
+\ Category:         Text
 \ One-line summary: The x-coordinate of the text cursor
 \
 \ Contains the x-coordinate of the text cursor (i.e. the text column) with an
@@ -3135,9 +3101,8 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variable: YC
-\ Category: Text
-\
+\ Variable name:    YC
+\ Category:         Text
 \ One-line summary: The y-coordinate of the text cursor
 \
 \ Contains the y-coordinate of the text cursor (i.e. the text row) with an
