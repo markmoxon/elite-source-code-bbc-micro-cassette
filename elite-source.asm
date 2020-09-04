@@ -1351,7 +1351,7 @@ ENDMACRO
 \ Variable: QQ18
 \ Category: Text
 \
-\ Recursive token table for tokens 0-148.
+\ One-line summary: Recursive token table for tokens 0-148
 \
 \ ******************************************************************************
 \
@@ -7571,7 +7571,7 @@ Q% = _ENABLE_MAX_COMMANDER
 \ Variable: NA%
 \ Category: Save and load
 \
-\ One-line summary: The data block for the last-saved commander
+\ One-line summary: The data block for the last saved commander
 \
 \ Contains the last saved commander data, with the name at NA% and the data at
 \ NA%+8 onwards. The size of the data block is given in NT% (which also includes
@@ -21524,6 +21524,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT111
 \ Category: Universe
 \
+\ One-line summary: Set the current system to the nearest system to a point
+\
 \ Given a set of galactic coordinates in (QQ9, QQ10), find the nearest system
 \ to this point in the galaxy, and set this as the currently selected system.
 \
@@ -21802,6 +21804,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: hy6
 \ Category: Flight
 \
+\ One-line summary: Print a message to say no hyperspacing inside the station
+\
 \ Print "Docked" at the bottom of the screen to indicate we can't hyperspace
 \ when docked.
 \
@@ -21827,8 +21831,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: hyp
 \ Category: Flight
 \
-\ Start the hyperspace process. Called when "H" or CTRL-H is pressed during
-\ flight. Checks the following:
+\ One-line summary: Start the hyperspace process
+\
+\ Called when "H" or CTRL-H is pressed during flight. Checks the following:
 \
 \   * We are in space
 \
@@ -21911,6 +21916,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: wW
 \ Category: Flight
 \
+\ One-line summary: Start a hyperspace countdown
+\
 \ Start the hyperspace countdown (for both inter-system hyperspace and the
 \ galactic hyperdrive).
 \
@@ -21948,6 +21955,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: Ghy
 \ Category: Flight
+\
+\ One-line summary: Perform a galactic hyperspace jump
 \
 \ Engage the galactic hyperdrive. Called from the hyp routine above if CTRL-H is
 \ being pressed.
@@ -22044,7 +22053,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: jmp
 \ Category: Universe
 \
-\ Set the current system to the selected system.
+\ One-line summary: Set the current system to the selected system
 \
 \ Returns:
 \
@@ -22074,6 +22083,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: ee3
 \ Category: Text
 \
+\ One-line summary: Print the hyperspace countdown in the top-left of the screen
+\
 \ Print the 8-bit number in X at text location (0, 1). Print the number to
 \ 5 digits, left-padding with spaces for numbers with fewer than 3 digits (so
 \ numbers < 10000 are right-aligned), with no decimal point.
@@ -22100,6 +22111,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: pr6
 \ Category: Text
 \
+\ One-line summary: Print 16-bit number, left-padded to 5 digits, no point
+\
 \ Print the 16-bit number in (Y X) to 5 digits, left-padding with spaces for
 \ numbers with fewer than 3 digits (so numbers < 10000 are right-aligned),
 \ with no decimal point.
@@ -22123,6 +22136,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: pr5
 \ Category: Text
+\
+\ One-line summary: Print 16-bit number, left-padded to 5 digits, optional point
 \
 \ Print the 16-bit number in (Y X) to 5 digits, left-padding with spaces for
 \ numbers with fewer than 3 digits (so numbers < 10000 are right-aligned).
@@ -22151,7 +22166,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT147
 \ Category: Text
 \
-\ Print "RANGE?" for when the hyperspace distance is too far.
+\ One-line summary: Print an error when a system is out of hyperspace range
+\
+\ Print "RANGE?" for when the hyperspace distance is too far
 \
 \ ******************************************************************************
 
@@ -22166,7 +22183,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: prq
 \ Category: Text
 \
-\ Print a text token followed by a question mark.
+\ One-line summary: Print a text token followed by a question mark
 \
 \ Arguments:
 \
@@ -22187,7 +22204,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT151
 \ Category: Market
 \
-\ Print the item name, market price and availability for a market item.
+\ One-line summary: Print the name, price and availability of a market item
 \
 \ Arguments:
 \
@@ -22379,6 +22396,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT152
 \ Category: Market
 \
+\ One-line summary: Print the unit ("t", "kg" or "g") for a market item
+\
 \ Print the unit ("t", "kg" or "g") for the market item whose byte #1 from the
 \ market prices table is in QQ19+1, right-padded with spaces to a width of two
 \ characters (so that's "t ", "kg" or "g ").
@@ -22407,7 +22426,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT162
 \ Category: Text
 \
-\ Print a space.
+\ One-line summary:  Print a space
 \
 \ ******************************************************************************
 
@@ -22424,7 +22443,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT160
 \ Category: Market
 \
-\ Print "t" (for tonne) and a space.
+\ One-line summary:  Print "t" (for tonne) and a space
 \
 \ ******************************************************************************
 
@@ -22445,7 +22464,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT161
 \ Category: Market
 \
-\ Print "kg" (for kilograms).
+\ One-line summary: Print "kg" (for kilograms)
 \
 \ ******************************************************************************
 
@@ -22463,7 +22482,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT16a
 \ Category: Market
 \
-\ Print "g" (for grams).
+\ One-line summary: Print "g" (for grams)
 \
 \ ******************************************************************************
 
@@ -22480,6 +22499,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: TT163
 \ Category: Market
+\
+\ One-line summary: Print the headers for the table of market prices
 \
 \ Print the column headers for the prices table in the Buy Cargo and Market
 \ Price screens.
@@ -22503,7 +22524,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT167
 \ Category: Market
 \
-\ Show the Market Price screen (red key f7).
+\ One-line summary: Show the Market Price screen (red key f7)
 \
 \ ******************************************************************************
 
@@ -22555,6 +22576,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: var
 \ Category: Market
+\
+\ One-line summary: Calculate QQ19+3 = economy * |economic_factor|
 \
 \ Set QQ19+3 = economy * |economic_factor|, given byte #1 of the market prices
 \ table for an item. Also sets the availability of Alien Items to 0.
@@ -22614,6 +22637,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: hyp1
 \ Category: Universe
+\
+\ One-line summary: Process a jump to the system closest to (QQ9, QQ10)
 \
 \ Do a hyperspace jump to the system closest to galactic coordinates
 \ (QQ9, QQ10), and set up the current system's state to those of the new system.
@@ -22684,6 +22709,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: GVL
 \ Category: Universe
+\
+\ One-line summary: Calculate the availability of a market item
 \
 \ Calculate the availability for each market item and store it in AVL. This is
 \ called on arrival in a new system.
@@ -22800,7 +22827,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: GTHG
 \ Category: Universe
 \
-\ Spawn a Thargoid ship and a Thargon companion.
+\ One-line summary: Spawn a Thargoid ship and a Thargon companion
 \
 \ ******************************************************************************
 
@@ -22823,6 +22850,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: MJP
 \ Category: Flight
+\
+\ One-line summary: Process a mis-jump into witchspace
 \
 \ Process a mis-jump into witchspace (which happens very rarely). Witchspace has
 \ a strange, almost dust-free aspect to it, and it is populated by hostile
@@ -22896,6 +22925,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: TT18
 \ Category: Flight
+\
+\ One-line summary: Try to initiate a jump into hyperspace
 \
 \ Try to go through hyperspace. Called from TT102 in the main loop when the
 \ hyperspace countdown has finished.
@@ -22978,6 +23009,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT110
 \ Category: Flight
 \
+\ One-line summary: Launch from a station or show the forward space view
+\
 \ Launch the ship (if we are docked), or show the forward space view (if we are
 \ already in space).
 \
@@ -23044,6 +23077,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: TT114
 \ Category: Charts
 \
+\ One-line summary: Display either the Long-range or Short-range Chart
+\
 \ Display either the Long-range or Short-range Chart, depending on the current
 \ view setting. Called from TT18 once we know the current view is one of the
 \ charts.
@@ -23072,6 +23107,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: LCASH
 \ Category: Maths
+\
+\ One-line summary: Subtract an amount of cash from the cash pot
 \
 \ Subtract (Y X) cash from the cash pot in CASH, but only if there is enough
 \ cash in the pot. As CASH is a four-byte number, this calculates:
@@ -23125,6 +23162,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: MCASH
 \ Category: Maths
 \
+\ One-line summary: Add an amount of cash to the cash pot
+\
 \ Add (Y X) cash to the cash pot in CASH. As CASH is a four-byte number, this
 \ calculates:
 \
@@ -23169,6 +23208,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: GCASH
 \ Category: Maths
 \
+\ One-line summary: Calculate (Y X) = P * Q * 4
+\
 \ Calculate the following multiplication of unsigned 8-bit numbers:
 \
 \   (Y X) = P * Q * 4
@@ -23184,6 +23225,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: GC2
 \ Category: Maths
+\
+\ One-line summary: Calculate (Y X) = (A P) * 4
 \
 \ Calculate the following multiplication of unsigned 16-bit numbers:
 \
@@ -23209,7 +23252,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: EQSHP
 \ Category: Equipment
 \
-\ Show the Equip Ship screen (red key f3).
+\ One-line summary: Show the Equip Ship screen (red key f3)
 \
 \ Other entry points:
 \
@@ -23641,6 +23684,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: dn
 \ Category: Text
 \
+\ One-line summary: Print the amount of cash and beep
+\
 \ Print the amount of money in the cash pot, then make a short, high beep and
 \ delay for 1 second.
 \
@@ -23662,7 +23707,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: dn2
 \ Category: Text
 \
-\ Make a short, high beep and delay for 1 second.
+\ One-line summary: Make a short, high beep and delay for 1 second
 \
 \ ******************************************************************************
 
@@ -23678,6 +23723,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: eq
 \ Category: Equipment
+\
+\ One-line summary: Subtract the price of equipment from the cash pot
 \
 \ If we have enough cash, subtract the price of a specified piece of equipment
 \ from our cash pot and return from the subroutine. If we don't have enough
@@ -23715,7 +23762,9 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Subroutine: prx
 \ Category: Equipment
 \
-\ Return the price of a piece of equipment, as listed in the table at PRXS.
+\ One-line summary: Return the price of a piece of equipment
+\
+\ This routine returns the price of equipment as listed in the table at PRXS.
 \
 \ Arguments:
 \
@@ -23755,6 +23804,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Subroutine: qv
 \ Category: Equipment
+\
+\ One-line summary: Print a menu of the four laser mounts, for buying lasers
 \
 \ Print a menu in the bottom-middle of the screen, at row 16, column 12, that
 \ lists the four available laser mounts, like this:
@@ -23858,6 +23909,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Variable: BDOLLAR
 \ Category: Utility routines
 \
+\ One-line summary: A copyright notice, buried in the code
+\
 \ This copyright notice is not used anywhere and it is obfuscated by EOR'ing
 \ each character with 164, but presumably the authors wanted their names buried
 \ in the code somewhere. Though they do also have recursive token 94, which
@@ -23894,6 +23947,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: cpl
 \ Category: Text
+\
+\ One-line summary: Print the selected system name
 \
 \ Print control code 3 (the selected system name, i.e. the one in the crosshairs
 \ in the short range chart).
@@ -23998,6 +24053,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: cmn
 \ Category: Text
 \
+\ One-line summary: Print the commander's name
+\
 \ Print control code 4 (the commander's name).
 \
 \ ******************************************************************************
@@ -24027,6 +24084,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: ypl
 \ Category: Text
+\
+\ One-line summary: Print the current system name
 \
 \ Print control code 2 (the current system name).
 \
@@ -24077,6 +24136,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: tal
 \ Category: Text
 \
+\ One-line summary: Print the current galaxy numbe
+\
 \ Print control code 1 (the current galaxy number, right-aligned to width 3).
 \
 \ ******************************************************************************
@@ -24103,6 +24164,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: fwl
 \ Category: Text
+\
+\ One-line summary: Print fuel and cash levels
 \
 \ Print control code 5 ("FUEL: ", fuel level, " LIGHT YEARS", newline, "CASH:",
 \ control code 0).
@@ -24136,6 +24199,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: csh
 \ Category: Text
+\
+\ One-line summary: Print the current amount of cash
 \
 \ Print control code 0 (the current amount of cash, right-aligned to width 9,
 \ followed by " CR" and a newline).
@@ -24180,7 +24245,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: plf
 \ Category: Text
 \
-\ Print a text token followed by a newline.
+\ One-line summary: Print a text token followed by a newline
 \
 \ Arguments:
 \
@@ -24201,7 +24266,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: TT68
 \ Category: Text
 \
-\ Print a text token followed by a colon.
+\ One-line summary: Print a text token followed by a colon
 \
 \ Arguments:
 \
@@ -24220,7 +24285,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: TT73
 \ Category: Text
 \
-\ Print a colon.
+\ One-line summary: Print a colon
 \
 \ ******************************************************************************
 
@@ -24234,6 +24299,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: TT27
 \ Category: Text
+\
+\ One-line summary: Print a text token
 \
 \ Print a text token (i.e. a character, control code, two-letter token or
 \ recursive token). See variable QQ18 for a discussion of the token system
@@ -24349,7 +24416,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: TT42
 \ Category: Text
 \
-\ Print a letter in lower case.
+\ One-line summary: Print a letter in lower case
 \
 \ Arguments:
 \
@@ -24394,7 +24461,9 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: TT41
 \ Category: Text
 \
-\ Print a letter according to Sentence Case. The rules are as follows:
+\ One-line summary: Print a letter according to Sentence Case
+\
+\ The rules for printing in Sentence Case are as follows:
 \
 \   * If QQ17 bit 6 is set, print lower case (via TT45)
 \
@@ -24456,6 +24525,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: qw
 \ Category: Text
 \
+\ One-line summary: Print a recursive token in the range 128-145
+\
 \ Print a recursive token where the token number is in 128-145 (so the value
 \ passed to TT27 is in the range 14-31).
 \
@@ -24478,6 +24549,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: crlf
 \ Category: Text
 \
+\ One-line summary: Tab to column 21 and print a colon
+\
 \ Print control code 9 (tab to column 21 and print a colon). The subroutine
 \ name is pretty misleading, as it doesn't have anything to do with carriage
 \ returns or line feeds.
@@ -24498,7 +24571,9 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: TT45
 \ Category: Text
 \
-\ Print a letter in lower case. Specifically:
+\ One-line summary: Print a letter in lower case
+\
+\ This routine prints a letter in lower case. Specifically:
 \
 \   * If QQ17 = 255, abort printing this character as printing is disabled
 \
@@ -24547,7 +24622,9 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: TT46
 \ Category: Text
 \
-\ Print character and clear bit 6 in QQ17, so that the next letter that gets
+\ One-line summary: Print a character and switch to capitals
+\
+\ Print a character and clear bit 6 in QQ17, so that the next letter that gets
 \ printed after this will start with a capital letter.
 \
 \ Arguments:
@@ -24586,7 +24663,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: TT74
 \ Category: Text
 \
-\ Print a character.
+\ One-line summary: Print a character
 \
 \ Arguments:
 \
@@ -24603,6 +24680,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: TT43
 \ Category: Text
+\
+\ One-line summary: Print a two-letter token or recursive token 0-95
 \
 \ Print a two-letter token, or a recursive token where the token number is in
 \ 0-95 (so the value passed to TT27 is in the range 160-255).
@@ -24658,7 +24737,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: ex
 \ Category: Text
 \
-\ Print a recursive token.
+\ One-line summary: Print a recursive token
 \
 \ This routine works its way through the recursive tokens that are stored in
 \ tokenised form in memory at &0400 - &06FF, and when it finds token number A,
@@ -24794,7 +24873,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: DOEXP
 \ Category: Drawing ships
 \
-\ Draw an exploding ship.
+\ One-line summary: Draw an exploding ship
 \
 \ ******************************************************************************
 \
@@ -25225,6 +25304,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: SOS1
 \ Category: Universe
 \
+\ One-line summary: Update the missile indicators, set up the planet data block
+\
 \ Update the missile indicators, and set up a data block for the planet, but
 \ only setting the roll and pitch counters to 127 (no damping).
 \
@@ -25253,6 +25334,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: SOLAR
 \ Category: Universe
+\
+\ One-line summary: Set up various aspects of arriving in a new system
 \
 \ Halve our legal status, update the missile indicators, and set up data blocks
 \ and slots for the planet and sun.
@@ -25311,8 +25394,9 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: NWSTARS
 \ Category: Stardust
 \
-\ Initialise the stardust field. Called when the space view is initialised in
-\ routine LOOK1.
+\ One-line summary: Initialise the stardust field
+\
+\ This routine is called when the space view is initialised in routine LOOK1.
 \
 \ ******************************************************************************
 
@@ -25329,6 +25413,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: nWq
 \ Category: Stardust
+\
+\ One-line summary: Create a random cloud of stardust
 \
 \ Create a random cloud of stardust containing the maximum number of dust
 \ particles, i.e. NOSTM of them, which is 3 in witchspace and #NOST (18) in
@@ -25385,7 +25471,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: WPSHPS
 \ Category: Dashboard
 \
-\ Remove all ships from the scanner and reset the LSO block and variables.
+\ One-line summary: Clear the scanner, reset the ball line and sun line heaps
+\
+\ Remove all ships from the scanner, reset the sun line heap at LSO, and reset
+\ the ball line heap at LSX2 and LSY2.
 \
 \ ******************************************************************************
 
@@ -25458,6 +25547,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: FLFLLS
 \ Category: Drawing suns
 \
+\ One-line summary: Reset the sun line heap
+\
 \ Reset the sun line heap at LSO by zero-filling it and setting the first byte
 \ to &FF.
 \
@@ -25499,6 +25590,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: DET1
 \ Category: Screen mode
 \
+\ One-line summary: Hide the dashboard (for when we die)
+\
 \ Set the screen to show the number of text rows given in X. This is used when
 \ we are killed, as reducing the number of rows from the usual 31 to 24 has the
 \ effect of hiding the dashboard, leaving a monochrome image of ship debris and
@@ -25537,6 +25630,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: SHD
 \ Category: Flight
 \
+\ One-line summary: Charge a shield and drain some energy from the energy banks
+\
 \ Charge up a shield, and if it needs charging, drain some energy from the
 \ energy banks.
 \
@@ -25569,7 +25664,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: DENGY
 \ Category: Flight
 \
-\ Drain some energy from the energy banks.
+\ One-line summary: Drain some energy from the energy banks
 \
 \ Returns:
 \
@@ -25600,7 +25695,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: COMPAS
 \ Category: Dashboard
 \
-\ Update the compass.
+\ One-line summary: Update the compass
 \
 \ ******************************************************************************
 
@@ -25624,6 +25719,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: SPS2
 \ Category: Dashboard
+\
+\ One-line summary: Calculate (Y X) = A / 10
 \
 \ Calculate the following, where A is a signed 8-bit integer and the result is a
 \ signed 16-bit integer:
@@ -25683,7 +25780,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: SPS4
 \ Category: Dashboard
 \
-\ Calculate the vector to the space station and store it in XX15.
+\ One-line summary: Calculate the vector to the space station
+\
+\ Calculate the vector between our ship and the space station and store it in
+\ XX15.
 \
 \ ******************************************************************************
 
@@ -25712,7 +25812,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: SP1
 \ Category: Dashboard
 \
-\ Draw the space station on the compass.
+\ One-line summary: Draw the space station on the compass
 \
 \ ******************************************************************************
 
@@ -25728,6 +25828,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: SP2
 \ Category: Dashboard
+\
+\ One-line summary: Draw a dot on the compass, given the planet/station vector
 \
 \ Draw a dot on the compass to represent the planet or station, whose normalised
 \ vector is in XX15.
@@ -25796,6 +25898,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: DOT
 \ Category: Dashboard
 \
+\ One-line summary: Draw a dot on the compass
+\
 \ Draw a dot on the compass.
 \
 \ Arguments:
@@ -25838,6 +25942,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: CPIX4
 \ Category: Drawing pixels
 \
+\ One-line summary: Draw a double-height dot on the dashboard
+\
 \ Draw a double-height mode 5 dot (2 pixels high, 2 pixels wide).
 \
 \ Arguments:
@@ -25867,6 +25973,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: CPIX2
 \ Category: Drawing pixels
+\
+\ One-line summary: Draw a single-height dot on the dashboard
 \
 \ Draw a single-height mode 5 dash (1 pixel high, 2 pixels wide).
 \
@@ -26076,6 +26184,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: OOPS
 \ Category: Flight
 \
+\ One-line summary: Take some damage
+\
 \ We just took some damage, so reduce the shields if we have any, or reduce the
 \ energy levels and potentially take some damage to the cargo if we don't.
 \
@@ -26177,6 +26287,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: SPS3
 \ Category: Dashboard
 \
+\ One-line summary: Copy a space coordinate from the K% block into K3
+\
 \ Copy one of the planet's coordinates into the corresponding location in the
 \ temporary variable K3. The high byte and absolute value of the sign byte are
 \ copied into the first two K3 bytes, and the sign of the sign byte is copied
@@ -26219,6 +26331,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: GINF
 \ Category: Universe
 \
+\ One-line summary: Fetch the address of a ship's data block into INF
+\
 \ Get the address of the data block for ship slot X and store it in INF. This
 \ address is fetched from the UNIV table, which stores the addresses of the 13
 \ ship data blocks in workspace K%.
@@ -26250,7 +26364,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: NWSPS
 \ Category: Universe
 \
-\ Add a new space station to our little bubble of universe.
+\ One-line summary: Add a new space station to our little bubble of universe
 \
 \ ******************************************************************************
 
@@ -26297,11 +26411,12 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: NWSHP
 \ Category: Universe
 \
-\ Add a new ship to our local bubble of universe. This creates a new block of
-\ ship data in the K% workspace, allocates a new block in the ship line heap
-\ at WP, adds the new ship's type into the first empty slot in FRIN, and adds a
-\ pointer to the ship data into UNIV. If there isn't enough free memory for the
-\ new ship, it isn't added.
+\ One-line summary: Add a new ship to our local bubble of universe
+\
+\ This creates a new block of ship data in the K% workspace, allocates a new
+\ block in the ship line heap at WP, adds the new ship's type into the first
+\ empty slot in FRIN, and adds a pointer to the ship data into UNIV. If there
+\ isn't enough free memory for the new ship, it isn't added.
 \
 \ Arguments:
 \
@@ -26543,6 +26658,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: NwS1
 \ Category: Universe
 \
+\ One-line summary: Flip the sign and double an INWK byte
+\
 \ Flip the sign of the INWK byte at offset X, and increment X by 2. This is
 \ is used by the space station creation routine at NWSPS.
 \
@@ -26573,7 +26690,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: ABORT
 \ Category: Dashboard
 \
-\ Disarm missiles and update the dashboard.
+\ One-line summary: Disarm missiles and update the dashboard indicators
 \
 \ ******************************************************************************
 
@@ -26590,6 +26707,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: ABORT2
 \ Category: Dashboard
+\
+\ One-line summary: Lock a missile onto a target and update the dashboard
 \
 \ Set the lock target for the leftmost missile and update the dashboard.
 \
@@ -26628,6 +26747,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: ECBLB2
 \ Category: Dashboard
 \
+\ One-line summary: Start up the E.C.M. (indicator, countdown and sound)
+\
 \ Light up the E.C.M. indicator bulb on the dashboard, set the E.C.M. countdown
 \ timer to 32, and start making the E.C.M. sound.
 \
@@ -26649,7 +26770,9 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: ECBLB
 \ Category: Dashboard
 \
-\ Light up the E.C.M. indicator bulb ("E") on the dashboard.
+\ One-line summary: Light up the E.C.M. indicator bulb ("E") on the dashboard
+\
+\ This draws (or erases) the E.C.M. indicator bulb ("S") on the dashboard.
 \
 \ ******************************************************************************
 
@@ -26678,7 +26801,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: SPBLB
 \ Category: Dashboard
 \
-\ Draw (or erase) the space station indicator bulb ("S") on the dashboard.
+\ One-line summary: Light up the space station indicator ("S") on the dashboard
+\
+\ This draws (or erases) the space station indicator bulb ("S") on the
+\ dashboard.
 \
 \ Other entry points:
 \
@@ -26702,7 +26828,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: BULB
 \ Category: Dashboard
 \
-\ Draw an indicator bulb on the dashboard.
+\ One-line summary: Draw an indicator bulb on the dashboard
 \
 \ Arguments:
 \
@@ -26737,6 +26863,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Variable: ECBT
 \ Category: Dashboard
 \
+\ One-line summary: The character definition for the E.C.M. indicator
+\
 \ The character definition for the E.C.M. indicator's "E" bulb that gets
 \ displayed on the dashboard. The E.C.M. indicator uses the first 5 rows of the
 \ space station's "S" bulb below, as the bottom 5 rows of the "E" match the top
@@ -26756,6 +26884,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Variable: SPBT
 \ Category: Dashboard
+\
+\ One-line summary: The character definition for the space station indicator
 \
 \ The character definition for the space station indicator's "S" bulb that gets
 \ displayed on the dashboard. Each pixel is in mode 5 colour 2 (%10), which is
@@ -26780,9 +26910,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: MSBAR
 \ Category: Dashboard
 \
-\ Draw a specific indicator in the dashboard's missile bar. Each indicator is
-\ a rectangle that's 3 pixels wide and 5 pixels high. If the indicator is set to
-\ black, this effectively removes a missile.
+\ One-line summary: Draw a specific indicator in the dashboard's missile bar
+\
+\ Each indicator is a rectangle that's 3 pixels wide and 5 pixels high. If the
+\ indicator is set to black, this effectively removes a missile.
 \
 \ Arguments:
 \
@@ -26862,6 +26993,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: PROJ
 \ Category: Drawing ships
+\
+\ One-line summary: Project the current ship onto the screen
 \
 \ Project the current ship's location onto the screen, either returning the
 \ screen coordinates of the projection (if it's on-screen), or returning an
@@ -26968,7 +27101,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: PL2
 \ Category: Drawing planets
 \
-\ Remove the sun or planet from screen.
+\ One-line summary: Remove the planet or sun from the screen
 \
 \ Other entry points:
 \
@@ -26997,7 +27130,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: PLANET
 \ Category: Drawing planets
 \
-\ Draw the planet or sun.
+\ One-line summary: Draw the planet or sun
 \
 \ Arguments:
 \
@@ -27072,6 +27205,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: PL9 (Part 1 of 3)
 \ Category: Drawing planets
+\
+\ One-line summary: Draw the planet
 \
 \ Draw a planet with radius K at pixel coordinate (K3, K4), and with either an
 \ equator and meridian, or a crater.
@@ -27419,6 +27554,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: PLS1
 \ Category: Drawing planets
 \
+\ One-line summary: Calculate (Y A) = nosev_x / z
+\
 \ Calculate the following division of a specified value from one of the
 \ orientation vectors (in this example, nosev_x):
 \
@@ -27495,6 +27632,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: PLS2
 \ Category: Drawing planets
 \
+\ One-line summary: Draw a half-circle
+\
 \ Draw a half-circle, used for the planet's equator and meridian.
 \
 \ ******************************************************************************
@@ -27511,6 +27650,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: PLS22
 \ Category: Drawing planets
+\
+\ One-line summary: Draw a circle or half-circle
 \
 \ Draw a circle or half-circle, used for the planet's equator and meridian, or
 \ crater.
@@ -27714,6 +27855,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: SUN (Part 1 of 4)
 \ Category: Drawing suns
+\
+\ One-line summary: Draw the sun, or a system on the Short-range Chart
 \
 \ Draw a new sun with radius K at pixel coordinate (K3, K4), removing the old
 \ sun if there is one. This routine is used to draw the sun, as well as the
@@ -28365,6 +28508,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: CIRCLE
 \ Category: Drawing circles
 \
+\ One-line summary: Draw a circle for the planet
+\
 \ Draw a circle with the centre at (K3, K4) and radius K. Used to draw the
 \ planet's main outline.
 \
@@ -28416,6 +28561,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: CIRCLE2
 \ Category: Drawing circles
+\
+\ One-line summary: Draw a circle (for the planet or chart)
 \
 \ Draw a circle with the centre at (K3, K4) and radius K. Used to draw the
 \ planet and the chart circles.
@@ -28620,9 +28767,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: WPLS2
 \ Category: Drawing planets
 \
-\ Remove the planet from the screen. We do this by redrawing it using the lines
-\ stored in the ball line heap when the planet was originally drawn by the BLINE
-\ routine.
+\ One-line summary: Remove the planet from the screen
+\
+\ We do this by redrawing it using the lines stored in the ball line heap when
+\ the planet was originally drawn by the BLINE routine.
 \
 \ Other entry points:
 \
@@ -28702,9 +28850,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: WPLS
 \ Category: Drawing suns
 \
-\ Remove the sun from the screen. We do this by redrawing it using the lines
-\ stored in the sun line heap when the sun was originally drawn by the SUN
-\ routine.
+\ One-line summary: Remove the sun from the screen
+\
+\ We do this by redrawing it using the lines stored in the sun line heap when
+\ the sun was originally drawn by the SUN routine.
 \
 \ Arguments:
 \
@@ -28756,6 +28905,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: EDGES
 \ Category: Drawing lines
+\
+\ One-line summary: Draw a horizontal line given a centre and a half-width
 \
 \ Set X1 and X2 to the x-coordinates of the ends of the horizontal line with
 \ centre x-coordinate YY(1 0), and length A in either direction from the centre
@@ -28861,7 +29012,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: CHKON
 \ Category: Drawing circles
 \
-\ Check whether a circle will fit on-screen.
+\ One-line summary: Check whether a circle will fit on-screen
 \
 \ Arguments:
 \
@@ -28967,6 +29118,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: PL21
 \ Category: Drawing planets
 \
+\ One-line summary: Return from a planet/sun drawing routine with a failure flag
+\
 \ Set the C flag and return from the subroutine. This is used to return from a
 \ planet or sun drawing routine with the C flag indicating an overflow in the
 \ calculation.
@@ -28984,6 +29137,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: PLS3
 \ Category: Drawing planets
+\
+\ One-line summary: Calculate (Y A P) = 222 * roofv_x / z
 \
 \ Calculate the following, with X determining the vector to use:
 \
@@ -29061,6 +29216,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: PLS4
 \ Category: Drawing planets
 \
+\ One-line summary: Calculate CNT2 = arctan(P / A) / 4
+\
 \ Calculate the following:
 \
 \   CNT2 = arctan(P / A) / 4
@@ -29102,6 +29259,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: PLS5
 \ Category: Drawing planets
+\
+\ One-line summary: Calculate roofv_x / z and roofv_y / z
 \
 \ Calculate the following divisions of a specified value from one of the
 \ orientation vectors (in this example, roofv):
@@ -29150,6 +29309,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Subroutine: PLS6
 \ Category: Drawing planets
+\
+\ One-line summary: Calculate (X K) = (A P) / (z_sign z_hi z_lo)
 \
 \ Calculate the following:
 \
@@ -29232,6 +29393,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: TT17
 \ Category: Keyboard
 \
+\ One-line summary: Scan the keyboard for cursor key or joystick movement
+\
 \ Scan the keyboard and joystick for cursor key or stick movement, and return
 \ the result as deltas (changes) in x- and y-coordinates as follows:
 \
@@ -29247,7 +29410,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \   X                   Change in the x-coordinate according to the cursor keys
 \                       being pressed or joystick movement, as an integer (see
-\                        above)
+\                       above)
 \
 \   Y                   Change in the y-coordinate according to the cursor keys
 \                       being pressed or joystick movement, as an integer (see
@@ -29345,7 +29508,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Subroutine: ping
 \ Category: Universe
 \
-\ Set the selected system to the current system.
+\ One-line summary: Set the selected system to the current system
 \
 \ ******************************************************************************
 
@@ -29401,6 +29564,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: KS3
 \ Category: Universe
 \
+\ One-line summary: Set the SLSP ship heap pointer after shuffling ship slots
+\
 \ The final part of the KILLSHP routine, called after we have shuffled the ship
 \ slots and sorted out our missiles. This simply sets SLSP to the new bottom of
 \ the ship heap space.
@@ -29427,6 +29592,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Subroutine: KS1
 \ Category: Universe
+\
+\ One-line summary: Remove the current ship from our local bubble of universe
 \
 \ Part 12 of the main flight loop calls this routine to remove the ship that is
 \ currently being analysed by the flight loop. Once the ship is removed, it
@@ -29460,6 +29627,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Subroutine: KS4
 \ Category: Universe
+\
+\ One-line summary: Remove the space station and replace it with the sun
 \
 \ Remove the space station from our local bubble of universe, and replace it
 \ with the sun.
@@ -29497,6 +29666,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Subroutine: KS2
 \ Category: Universe
+\
+\ One-line summary: Check the local bubble for missiles with target lock
 \
 \ Check the local bubble of universe to see if there are any missiles with
 \ target lock in the vicinity. If there are, then check their targets; if we
@@ -29591,6 +29762,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Subroutine: KILLSHP
 \ Category: Universe
+\
+\ One-line summary: Remove a ship from our little bubble of universe
 \
 \ Remove the ship in slot X from our little bubble of universe. This happens
 \ when we kill a ship, collide with a ship and destroy it, or when a ship moves
@@ -29873,6 +30046,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Variable: SFX
 \ Category: Sound
 \
+\ One-line summary: Sound data
+\
 \ Sound data. To make a sound, the NOS1 routine copies the four relevant sound
 \ bytes to XX16, and NO3 then makes the sound. The sound numbers are shown in
 \ the table, and are always multiples of 8. Generally, sounds are made by
@@ -29926,6 +30101,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: RESET
 \ Category: Start and end
 \
+\ One-line summary: Reset most variables
+\
 \ Reset our ship and various controls, then fall through into RES4 to restore
 \ shields and energy, and reset the stardust and the ship workspace at INWK.
 \
@@ -29974,6 +30151,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: RES4
 \ Category: Start and end
 \
+\ One-line summary: Reset shields and energy banks and lots of flight variables
+\
 \ Reset the shields and energy banks, then fall through into RES2 to reset the
 \ stardust and the ship workspace at INWK.
 \
@@ -30005,7 +30184,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: RES2
 \ Category: Start and end
 \
-\ Reset a number of flight variables and workspaces.
+\ One-line summary: Reset a number of flight variables and workspaces
 \
 \ This is called after we launch from a space station, arrive in a new system
 \ after hyperspace, launch an escape pod, or die a cold, lonely death in the
@@ -30080,6 +30259,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: ZINF
 \ Category: Utility routines
 \
+\ One-line summary: Reset the INWK workspace
+\
 \ Zero-fill the INWK ship workspace and reset the orientation vectors.
 \
 \ Returns:
@@ -30134,6 +30315,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: msblob
 \ Category: Dashboard
 \
+\ One-line summary: Display the dashboard's missile indicators in green
+\
 \ Display the dashboard's missile indicators, with all the missiles reset to
 \ green/cyan (i.e. not armed or locked).
 \
@@ -30177,7 +30360,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: me2
 \ Category: Text
 \
-\ Remove an in-flight message from the space view.
+\ One-line summary: Remove an in-flight message from the space view
 \
 \ ******************************************************************************
 
@@ -30199,7 +30382,9 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: Ze
 \ Category: Utility routines
 \
-\ Initialise INWK to a hostile ship. Specifically:
+\ One-line summary: Initialise the INWK workspace to a hostile ship
+\
+\ Specifically:
 \
 \   * Reset the INWK ship workspace
 \
@@ -30251,6 +30436,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Subroutine: DORND
 \ Category: Utility routines
+\
+\ One-line summary: Generate random numbers
 \
 \ Set A and X to random numbers. Carry flag is also set randomly. Overflow flag
 \ will be have a 50% probability of being 0 or 1.
@@ -30345,6 +30532,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Subroutine: Main game loop (Part 1 of 6)
 \ Category: Main loop
+\
+\ One-line summary: The main game loop
 \
 \ This is part of the main game loop. This section covers the following:
 \
@@ -30788,7 +30977,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: tha
 \ Category: Main loop
 \
-\ Consider spawning a Thargoid (22% chance).
+\ One-line summary: Consider spawning a Thargoid (22% chance)
 \
 \ ******************************************************************************
 
@@ -30809,6 +30998,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Subroutine: TT102
 \ Category: Keyboard
+\
+\ One-line summary: Process function key, save, hyperspace and chart key presses
 \
 \ Process function key presses, plus "@" (save commander), "H" (hyperspace),
 \ "D" (show distance to system) and "O" (move chart cursor back to current
@@ -31026,6 +31217,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: BAD
 \ Category: Status
 \
+\ One-line summary: Calculate how bad we have been
+\
 \ Work out how bad we are from the amount of contraband in our hold. The
 \ formula is:
 \
@@ -31059,6 +31252,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: FAROF
 \ Category: Maths
 \
+\ One-line summary: Compare x_hi, y_hi and z_hi with 224
+\
 \ Compare x_hi, y_hi and z_hi with 224, and set the C flag if all three <= 224,
 \ otherwise clear the C flag.
 \
@@ -31081,6 +31276,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Subroutine: FAROF2
 \ Category: Maths
+\
+\ One-line summary: Compare x_hi, y_hi and z_hi with A
 \
 \ Compare x_hi, y_hi and z_hi with A, and set the C flag if all three <= A,
 \ otherwise clear the C flag.
@@ -31116,6 +31313,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: MAS4
 \ Category: Maths
 \
+\ One-line summary: Calculate a cap on the maximum distance to a ship
+\
 \ Logical OR the value in A with the high bytes of the ship's position (x_hi,
 \ y_hi and z_hi).
 \
@@ -31138,6 +31337,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Subroutine: DEATH
 \ Category: Start and end
+\
+\ One-line summary: Display the death screen
 \
 \ We have been killed, so display the chaos of our destruction above a "GAME
 \ OVER" sign, and clean up the mess ready for the next attempt.
@@ -31266,7 +31467,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: DEATH2
 \ Category: Start and end
 \
-\ Reset most of the game and restart from the title screen.
+\ One-line summary: Reset most of the game and restart from the title screen
 \
 \ ******************************************************************************
 
@@ -31282,8 +31483,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Subroutine: TT170
 \ Category: Start and end
 \
-\ Entry point for Elite game code. Also called following death or quitting a
-\ game (by pressing Escape when paused).
+\ One-line summary: Main entry point for the Elite game code
+\
+\ Also called following death or quitting a game (by pressing Escape when
+\ paused).
 \
 \ BRKV is set to point to BR1 by elite-loader.asm.
 \
@@ -31314,7 +31517,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \   * Show "load commander?" title screen (TITLE)
 \   * Process loading of commander file, if selected
-\   * Copy last-saved commander NA% to current commander TP
+\   * Copy last saved commander NA% to current commander TP
 \   * Show "press space or fire" title screen (TITLE)
 \   * Set target system to home system
 \   * Process arrival in system closest to target
@@ -31760,7 +31963,7 @@ ENDIF
 \ Subroutine: BAY
 \ Category: Status
 \
-\ Go to the docking bay (i.e. show the Status Mode screen).
+\ One-line summary: Go to the docking bay (i.e. show the Status Mode screen)
 \
 \ We end up here after the start-up process (load commander etc.), as well as
 \ after a successful save, an escape pod launch, a successful docking, the end
@@ -31785,8 +31988,10 @@ ENDIF
 \ Subroutine: TITLE
 \ Category: Start and end
 \
-\ Display the title screen, with a rotating ship and a recursive text token at
-\ the bottom of the screen.
+\ One-line summary: Display a title screen with a rotating ship and prompt
+\
+\ Display a title screen, with a rotating ship and a recursive text token at the
+\ bottom of the screen.
 \
 \ Arguments:
 \
@@ -31935,6 +32140,8 @@ ENDIF
 \ Subroutine: CHECK
 \ Category: Save and load
 \
+\ One-line summary: Calculate the checksum for the last saved commander data block
+\
 \ Calculate the checksum for the last saved commander data block, to protect
 \ against corruption and tampering. The checksum is returned in A.
 \
@@ -31978,7 +32185,7 @@ ENDIF
 \ Subroutine: TRNME
 \ Category: Save and load
 \
-\ Copy the last saved commander's name from INWK to NA%.
+\ One-line summary: Copy the last saved commander's name from INWK to NA%
 \
 \ ******************************************************************************
 
@@ -32008,7 +32215,7 @@ ENDIF
 \ Subroutine: TR1
 \ Category: Save and load
 \
-\ Copy the last saved commander's name from NA% to INWK.
+\ One-line summary: Copy the last saved commander's name from NA% to INWK
 \
 \ ******************************************************************************
 
@@ -32034,6 +32241,8 @@ ENDIF
 \
 \ Subroutine: GTNME
 \ Category: Save and load
+\
+\ One-line summary: Get the commander's name
 \
 \ Get the commander's name for loading or saving a commander file. The name is
 \ stored at INWK, terminated by a return character (13).
@@ -32104,7 +32313,7 @@ ENDIF
 \ Subroutine: ZERO
 \ Category: Utility routines
 \
-\ Zero-fill pages &9, &A, &B, &C and &D.
+\ One-line summary: Zero-fill pages &9, &A, &B, &C and &D
 \
 \ ******************************************************************************
 
@@ -32130,7 +32339,7 @@ ENDIF
 \ Subroutine: ZES1
 \ Category: Utility routines
 \
-\ Zero-fill the page whose number is in X.
+\ One-line summary: Zero-fill the page whose number is in X
 \
 \ Arguments:
 \
@@ -32150,6 +32359,8 @@ ENDIF
 \
 \ Subroutine: ZES2
 \ Category: Utility routines
+\
+\ One-line summary: Zero-fill a specific page
 \
 \ Zero-fill the page whose number is in X, from position SC to SC + Y.
 \
@@ -32195,7 +32406,7 @@ ENDIF
 \ Subroutine: SVE
 \ Category: Save and load
 \
-\ Save the commander file.
+\ One-line summary: Save the commander file
 \
 \ ******************************************************************************
 
@@ -32316,9 +32527,10 @@ ENDIF
 \ Subroutine: QUS1
 \ Category: Save and load
 \
-\ Save or load the commander file. The filename should be stored at INWK,
-\ terminated with a carriage return (13), and the routine should be called with
-\ Y set to &C.
+\ One-line summary: Save or load the commander file
+\
+\ The filename should be stored at INWK, terminated with a carriage return (13),
+\ and the routine should be called with Y set to &C.
 \
 \ Arguments:
 \
@@ -32354,8 +32566,9 @@ ENDIF
 \ Subroutine: LOD
 \ Category: Save and load
 \
-\ Load a commander file. The filename should be stored at INWK, terminated with
-\ a carriage return (13).
+\ One-line summary: Load a commander file
+\
+\ The filename should be stored at INWK, terminated with a carriage return (13).
 \
 \ ******************************************************************************
 
@@ -32411,6 +32624,8 @@ ENDIF
 \ Subroutine: FX200
 \ Category: Utility routines
 \
+\ One-line summary: Set the behaviour of the Escape and Break keys
+\
 \ Performs a *FX 200,X command, which controls the behaviour of the Escape and
 \ Break keys.
 \
@@ -32430,7 +32645,7 @@ ENDIF
 \ Subroutine: SPS1
 \ Category: Dashboard
 \
-\ Calculate the vector to the planet and store it in XX15.
+\ One-line summary: Calculate the vector to the planet and store it in XX15
 \
 \ ******************************************************************************
 
@@ -32452,6 +32667,8 @@ ENDIF
 \
 \ Subroutine: TAS2
 \ Category: Maths
+\
+\ One-line summary: Normalise the three-coordinate vector in K3
 \
 \ Normalise the vector in K3, which has 16-bit values and separate sign bits,
 \ and store the normalised version in XX15 as a signed 8-bit vector.
@@ -32555,7 +32772,7 @@ ENDIF
 \ Subroutine: NORM
 \ Category: Maths
 \
-\ Normalise the three-coordinate vector in XX15.
+\ One-line summary: Normalise the three-coordinate vector in XX15
 \
 \ We do this by dividing each of the three coordinates by the length of the
 \ vector, which we can calculate using Pythagoras. Once normalised, 96 (&E0) is
@@ -32658,6 +32875,8 @@ ENDIF
 \ Subroutine: RDKEY
 \ Category: Keyboard
 \
+\ One-line summary: Scan the keyboard for a specific key
+\
 \ Scan the keyboard, starting with internal key number 16 (Q) and working
 \ through the set of internal key numbers (see p.142 of the Advanced User Guide
 \ for a list of internal key numbers).
@@ -32711,6 +32930,8 @@ ENDIF
 \ Subroutine: ECMOF
 \ Category: Sound
 \
+\ One-line summary: Switch off the E.C.M.
+\
 \ Switch the E.C.M. off, turn off the dashboard bulb and make the sound of the
 \ E.C.M. switching off).
 \
@@ -32734,6 +32955,8 @@ ENDIF
 \
 \ Subroutine: EXNO3
 \ Category: Sound
+\
+\ One-line summary: Make an explosion sound
 \
 \ Make the sound of death in the cold, hard vacuum of space. Apparently, in
 \ Elite space, everyone can hear you scream.
@@ -32759,6 +32982,8 @@ ENDIF
 \
 \ Subroutine: SFRMIS
 \ Category: Tactics
+\
+\ One-line summary: Add an enemy missile to our local bubble of universe
 \
 \ An enemy has fired a missile, so add the missile to our universe if there is
 \ room, and if there is, make the appropriate warnings and noises.
@@ -32789,6 +33014,8 @@ ENDIF
 \ Subroutine: EXNO2
 \ Category: Sound
 \
+\ One-line summary: Process us making a kill
+\
 \ We have killed a ship, so increase the kill tally, displaying an iconic
 \ message of encouragement if the kill total is a multiple of 256, and then
 \ make a nearby explosion sound.
@@ -32816,6 +33043,8 @@ ENDIF
 \
 \ Subroutine: EXNO
 \ Category: Sound
+\
+\ One-line summary: Make the sound of a laser strike or ship explosion
 \
 \ Make the two-part explosion sound of us making a laser strike, or of another
 \ ship exploding.
@@ -32888,7 +33117,7 @@ ENDIF
 \ Subroutine: BEEP
 \ Category: Sound
 \
-\ Make a short, high beep.
+\ One-line summary: Make a short, high beep
 \
 \ ******************************************************************************
 
@@ -32903,7 +33132,7 @@ ENDIF
 \ Subroutine: NOISE
 \ Category: Sound
 \
-\ Make the sound whose number is in A.
+\ One-line summary: Make the sound whose number is in A
 \
 \ Arguments:
 \
@@ -32923,6 +33152,8 @@ ENDIF
 \
 \ Subroutine: NO3
 \ Category: Sound
+\
+\ One-line summary: Make a sound from a prepared sound block
 \
 \ Make a sound from a prepared sound block in XX16 (if sound is enabled). See
 \ routine NOS1 for details of preparing the XX16 sound block.
@@ -32944,6 +33175,8 @@ ENDIF
 \
 \ Subroutine: NOS1
 \ Category: Sound
+\
+\ One-line summary: Prepare a sound block
 \
 \ Copy four sound bytes from SFX into XX16, interspersing them with null bytes,
 \ with Y indicating the sound number to copy (from the values in the sound
@@ -33003,6 +33236,8 @@ ENDIF
 \ Variable: KYTB
 \ Category: Keyboard
 \
+\ One-line summary: Lookup table for in-flight keyboard controls
+\
 \ Keyboard table for in-flight controls. This table contains the internal key
 \ codes for the flight keys (see p.142 of the Advanced User Guide for a list of
 \ internal key numbers).
@@ -33046,6 +33281,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Subroutine: DKS1
 \ Category: Keyboard
 \
+\ One-line summary: Scan the keyboard for a flight key
+\
 \ Scan the keyboard for the flight key given in register Y, where Y is the
 \ offset into the KYTB table above (so we can scan for Space by setting Y to
 \ 2, for example). If the key is pressed, set the corresponding byte in the
@@ -33080,7 +33317,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Subroutine: CTRL
 \ Category: Keyboard
 \
-\ Scan the keyboard to see if CTRL is currently pressed.
+\ One-line summary: Scan the keyboard to see if CTRL is currently pressed
 \
 \ Returns:
 \
@@ -33103,6 +33340,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \
 \ Subroutine: DKS4
 \ Category: Keyboard
+\
+\ One-line summary: Scan the keyboard to see if a specific key is being pressed
 \
 \ Scan the keyboard to see if the key specified in X is currently being
 \ pressed.
@@ -33169,6 +33408,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Subroutine: DKS2
 \ Category: Keyboard
 \
+\ One-line summary: Read the joystick position
+\
 \ Return the value of ADC channel in X (used to read the joystick). The value
 \ will be inverted if the game has been configured to reverse both joystick
 \ channels (which can be done by pausing the game and pressing J).
@@ -33211,8 +33452,10 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Subroutine: DKS3
 \ Category: Keyboard
 \
-\ Toggle a configuration setting and emit a beep. This is called when the game
-\ is paused and a key is pressed that changes the game's configuration.
+\ One-line summary: Toggle a configuration setting and emit a beep
+\
+\ This is called when the game is paused and a key is pressed that changes the
+\ game's configuration.
 \
 \ Specifically, this routine toggles the configuration settings for the
 \ following keys:
@@ -33283,9 +33526,11 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Subroutine: DKJ1
 \ Category: Keyboard
 \
-\ Read joystick flight controls. Specifically, scan the keyboard for the speed
-\ up and slow down keys, and read the joystick's fire button and X and Y axes,
-\ storing the results in the key logger and the joystick position variables.
+\ One-line summary: Read joystick and flight controls
+\
+\ Specifically, scan the keyboard for the speed up and slow down keys, and read
+\ the joystick's fire button and X and Y axes, storing the results in the key
+\ logger and the joystick position variables.
 \
 \ This routine is only called if joysticks are enabled (JSTK = non-zero).
 \
@@ -33339,7 +33584,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Subroutine: U%
 \ Category: Keyboard
 \
-\ Clear the key logger (from KY1 through KY19).
+\ One-line summary: Clear the key logger (from KY1 through KY19)
 \
 \ Returns:
 \
@@ -33376,6 +33621,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \
 \ Subroutine: DOKEY
 \ Category: Keyboard
+\
+\ One-line summary: Scan for the seven primary flight controls
 \
 \ Scan for the seven primary flight controls (or the equivalent on joystick),
 \ pause and configuration keys, and secondary flight controls, and update the
@@ -33455,6 +33702,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \
 \ Subroutine: DK4
 \ Category: Keyboard
+\
+\ One-line summary: Scan for pause, configuration and secondary flight keys
 \
 \ Scan for pause and configuration keys, and if this is a space view, also scan
 \ for secondary flight controls.
@@ -33588,6 +33837,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Subroutine: TT217
 \ Category: Keyboard
 \
+\ One-line summary: Scan the keyboard until a key is pressed
+\
 \ Scan the keyboard until a key is pressed, and return the key's ASCII code.
 \ If, on entry, a key is already being held down, then wait until that key is
 \ released first (so this routine detects the first key down event following
@@ -33652,7 +33903,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Subroutine: me1
 \ Category: Text
 \
-\ Erase an old in-flight message and display a new one.
+\ One-line summary: Erase an old in-flight message and display a new one
 \
 \ Arguments:
 \
@@ -33687,7 +33938,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Subroutine: ou2
 \ Category: Text
 \
-\ Display "E.C.M.SYSTEM DESTROYED" as an in-flight message.
+\ One-line summary: Display "E.C.M.SYSTEM DESTROYED" as an in-flight message
 \
 \ ******************************************************************************
 
@@ -33706,7 +33957,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Subroutine: ou3
 \ Category: Text
 \
-\ Display "FUEL SCOOPS DESTROYED" as an in-flight message.
+\ One-line summary: Display "FUEL SCOOPS DESTROYED" as an in-flight message
 \
 \ ******************************************************************************
 
@@ -33719,6 +33970,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \
 \ Subroutine: MESS
 \ Category: Text
+\
+\ One-line summary: Display an in-flight message
 \
 \ Display an in-flight message in capitals at the bottom of the space view,
 \ erasing any existing in-flight message first.
@@ -33754,6 +34007,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Subroutine: mes9
 \ Category: Text
 \
+\ One-line summary: Print a text token, possibly followed by " DESTROYED"
+\
 \ Print a text token, followed by " DESTROYED" if the destruction flag is set
 \ (for when a piece of equipment is destroyed).
 \
@@ -33774,6 +34029,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \
 \ Subroutine: OUCH
 \ Category: Flight
+\
+\ One-line summary: Potentially lose cargo or equipment following damage
 \
 \ Our shields are dead and we are taking damage, so there is a small chance of
 \ losing cargo or equipment.
@@ -33845,6 +34102,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \
 \ Variable: QQ16
 \ Category: Text
+\
+\ One-line summary: The two-letter token lookup table
 \
 \ Two-letter token lookup table for tokens 128-159. See variable QQ18 for
 \ details of how the two-letter token system works.
@@ -33934,7 +34193,9 @@ ENDMACRO
 \ Variable: QQ23
 \ Category: Market
 \
-\ Market prices table. Each item has four bytes of data, like this:
+\ One-line summary: Market prices table
+\
+\ Each item has four bytes of data, like this:
 \
 \   Byte #0 = Base price
 \   Byte #1 = Economic factor in bits 0-4, with the sign in bit 7
@@ -33999,9 +34260,11 @@ ENDMACRO
 \ Subroutine: TIDY
 \ Category: Maths
 \
-\ Orthonormalize the orientation vectors for a ship. This means making the three
-\ orientation vectors orthogonal (perpendicular to each other), and normal (so
-\ each of the vectors has length 1).
+\ One-line summary: Orthonormalise the orientation vectors for a ship
+\
+\ This routine orthonormalises the orientation vectors for a ship. This means
+\ making the three orientation vectors orthogonal (perpendicular to each other),
+\ and normal (so each of the vectors has length 1).
 \
 \ We do this because we use the small angle approximation to rotate these
 \ vectors in space. It is not completely accurate, so the three vectors tend
@@ -34291,6 +34554,8 @@ ENDMACRO
 \ Subroutine: TIS2
 \ Category: Maths
 \
+\ One-line summary: Calculate A = A / Q
+\
 \ Calculate the following division, where A is a sign-magnitude number and Q is
 \ a positive integer:
 \
@@ -34409,6 +34674,8 @@ ENDMACRO
 \ Subroutine: TIS3
 \ Category: Maths
 \
+\ One-line summary: Calculate -(nosev_1 * roofv_1 + nosev_2 * roofv_2) / nosev_3
+\
 \ Calculate the following expression:
 \
 \   A = -(nosev_1 * roofv_1 + nosev_2 * roofv_2) / nosev_3
@@ -34478,6 +34745,8 @@ ENDMACRO
 \
 \ Subroutine: DVIDT
 \ Category: Maths
+\
+\ One-line summary: Calculate (P+1 A) = (A P) / Q
 \
 \ Calculate the following integer division between sign-magnitude numbers:
 \
@@ -34568,7 +34837,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Subroutine: SHPPT
 \ Category: Drawing ships
 \
-\ Draw a distant ship as a point rather than a full wireframe.
+\ One-line summary: Draw a distant ship as a point rather than a full wireframe
 \
 \ ******************************************************************************
 
@@ -34674,6 +34943,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL5
 \ Category: Maths
+\
+\ One-line summary: Calculate Q = SQRT(R Q)
 \
 \ Calculate the following square root:
 \
@@ -34784,6 +35055,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Subroutine: LL28
 \ Category: Maths
 \
+\ One-line summary: Calculate R = 256 * A / Q
+\
 \ Calculate the following, where A < Q:
 \
 \   R = 256 * A / Q
@@ -34877,6 +35150,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Subroutine: LL38
 \ Category: Maths
 \
+\ One-line summary: Calculate (S A) = (S R) + (A Q)
+\
 \ Calculate the following between sign-magnitude numbers:
 \
 \   (S A) = (S R) + (A Q)
@@ -34936,6 +35211,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL51
 \ Category: Maths
+\
+\ One-line summary: Calculate the dot product of XX15 and XX16
 \
 \ Calculate following dot products:
 \
@@ -35083,10 +35360,12 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Subroutine: LL9 (Part 1 of 10)
 \ Category: Drawing ships
 \
-\ Draw the current ship on the screen. This part checks to see if the ship is
-\ exploding, or if it should start exploding, and if it does it sets things up
-\ accordingly. It also does some basic checks to see if we can see the ship, and
-\ if not it removes it from the screen.
+\ One-line summary: Draw the current ship on the screen
+\
+\ This routine draws the current ship on the screen. This part checks to see if
+\ the ship is exploding, or if it should start exploding, and if it does it sets
+\ things up accordingly. It also does some basic checks to see if we can see the
+\ ship, and if not it removes it from the screen.
 \
 \ In this code, XX1 is used to point to the current ship's data block at INWK
 \ (the two labels are interchangeable).
@@ -36866,6 +37145,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Subroutine: LL61
 \ Category: Maths
 \
+\ One-line summary: Calculate (U R) = 256 * A / Q
+\
 \ Calculate the following, where A >= Q:
 \
 \   (U R) = 256 * A / Q
@@ -36940,6 +37221,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL62
 \ Category: Maths
+\
+\ One-line summary: Calculate 128 - (U R)
 \
 \ Calculate the following for a positive sign-magnitude number (U R):
 \
@@ -37721,6 +38004,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Subroutine: LL118
 \ Category: Maths
 \
+\ One-line summary: Move a point along a line until it is on-screen
+\
 \ Given a point (x1, y1), a gradient and a direction of slope, move the point
 \ along the line until it is on-screen, so this effectively clips the (x1, y1)
 \ end of a line to be on the screen.
@@ -37933,6 +38218,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Subroutine: LL120
 \ Category: Maths
 \
+\ One-line summary: Calculate (Y X) = (S x1_lo) * XX12+2 or (S x1_lo) / XX12+2
+\
 \ Calculate the following:
 \
 \   * If T = 0  (more vertical than horizontal), (Y X) = (S x1_lo) * XX12+2
@@ -38036,6 +38323,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL123
 \ Category: Maths
+\
+\ One-line summary: Calculate (Y X) = (S R) / XX12+2 or (S R) * XX12+2
 \
 \ Calculate the following:
 \
@@ -38179,6 +38468,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Subroutine: LL129
 \ Category: Maths
 \
+\ One-line summary: Calculate Q = XX12+2, A = S EOR XX12+3 and (S R) = |S R|
+\
 \ Do the following, in this order:
 \
 \   Q = XX12+2
@@ -38225,6 +38516,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Subroutine: LL145 (Part 1 of 4)
 \ Category: Drawing lines
+\
+\ One-line summary: Clip the line from (x1, y1) to (x2, y2) so it fits on-screen 
 \
 \ Clip the line from (x1, y1) to (x2, y2) so it fits on-screen, or return an
 \ error if it can't be clipped to fit. The arguments are 16-bit coordinates,
@@ -38782,8 +39075,10 @@ SAVE "output/ELTG.bin", CODE_G%, P%, LOAD%
 \ Variable: checksum0
 \ Category: Copy protection
 \
-\ This byte contains a checksum for the entire source file. It is populated by
-\ elite-checksum.py and is used by the encryption checks in elite-loader.asm
+\ One-line summary: Checksum for the entire main game code
+\
+\ This byte contains a checksum for the entire main game code. It is populated
+\ by elite-checksum.py and is used by the encryption checks in elite-loader.asm
 \ (see the CHK routine in the loader for more details).
 \
 \ ******************************************************************************
@@ -38875,7 +39170,7 @@ ENDMACRO
 \ Variable: XX21
 \ Category: Drawing ships
 \
-\ Ship blueprints lookup table.
+\ One-line summary: Ship blueprints lookup table
 \
 \ The following lookup table points to the individual ship blueprints below.
 \
@@ -39028,7 +39323,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Ship blueprint: Sidewinder
+\ Variable: SHIP1
+\ Category: Drawing ships
+\
+\ One-line summary: Ship blueprint for  a Sidewinder
 \
 \ ******************************************************************************
 
@@ -39094,7 +39392,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Ship blueprint: Viper
+\ Variable: SHIP2
+\ Category: Drawing ships
+\
+\ One-line summary: Ship blueprint for  a Viper
 \
 \ ******************************************************************************
 
@@ -39170,7 +39471,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Ship blueprint: Mamba
+\ Variable: SHIP3
+\ Category: Drawing ships
+\
+\ One-line summary: Ship blueprint for  a Mamba
 \
 \ ******************************************************************************
 
@@ -39262,7 +39566,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Ship blueprint: Cobra Mk III
+\ Variable: SHIP5
+\ Category: Drawing ships
+\
+\ One-line summary: Ship blueprint for  a Cobra Mk III
 \
 \ ******************************************************************************
 
@@ -39375,7 +39682,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Ship blueprint: Thargoid
+\ Variable: SHIP6
+\ Category: Drawing ships
+\
+\ One-line summary: Ship blueprint for  a Thargoid mothership
 \
 \ ******************************************************************************
 
@@ -39466,7 +39776,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Ship blueprint: Coriolis space station
+\ Variable: SHIP8
+\ Category: Drawing ships
+\
+\ One-line summary: Ship blueprint for  a Coriolis space station
 \
 \ ******************************************************************************
 
@@ -39558,7 +39871,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Ship blueprint: Missile
+\ Variable: SHIP9
+\ Category: Drawing ships
+\
+\ One-line summary: Ship blueprint for  a missile
 \
 \ ******************************************************************************
 
@@ -39642,7 +39958,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Ship blueprint: Asteroid
+\ Variable: SHIP10
+\ Category: Drawing ships
+\
+\ One-line summary: Ship blueprint for an asteroid
 \
 \ ******************************************************************************
 
@@ -39720,7 +40039,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Ship blueprint: Cargo canister
+\ Variable: SHIP11
+\ Category: Drawing ships
+\
+\ One-line summary: Ship blueprint for  a cargo canister
 \
 \ ******************************************************************************
 
@@ -39786,7 +40108,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Ship blueprint: Thargon
+\ Variable: SHIP12
+\ Category: Drawing ships
+\
+\ One-line summary: Ship blueprint for  a Thargon
 \
 \ ******************************************************************************
 
@@ -39835,7 +40160,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Ship blueprint: Escape pod
+\ Variable: SHIP13
+\ Category: Drawing ships
+\
+\ One-line summary: Ship blueprint for an escape pod
 \
 \ ******************************************************************************
 
@@ -39914,7 +40242,10 @@ ORG CODE_PYTHON%
 
 \ ******************************************************************************
 \
-\ Ship blueprint: Python
+\ Variable: SHIP4
+\ Category: Drawing ships
+\
+\ One-line summary: Ship blueprint for a Python
 \
 \ ******************************************************************************
 
@@ -39998,11 +40329,29 @@ ORG CODE_PYTHON%
 
  SKIP 11                \ This space is unused
 
+\ ******************************************************************************
+\
+\ Variable: SVN
+\ Category: Save and load
+\
+\ One-line summary: The "saving in progress" flag
+\
+\ ******************************************************************************
+
 .SVN
 
  EQUB 0                 \ SVN = &7FFD
                         \
                         \ Set to 1 while we are saving a commander, 0 otherwise
+
+\ ******************************************************************************
+\
+\ Variable: VEC
+\ Category: Screen mode
+\
+\ One-line summary: The original value of the IRQ1 vector
+\
+\ ******************************************************************************
 
 .VEC
 
