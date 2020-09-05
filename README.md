@@ -2,7 +2,7 @@
 
 This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained.
 
-The [annotated source](elite-source.asm) can be assembled on modern computers to produce a working game disc that can be loaded into a BBC Micro or an emulator.
+The [annotated source](sources/elite-source.asm) can be assembled on modern computers to produce a working game disc that can be loaded into a BBC Micro or an emulator.
 
 See the [quick start](#quick-start) guide to find out how this all works.
 
@@ -51,19 +51,19 @@ Hopefully this repository will be useful for those who want to learn more about 
 
 If you want to jump straight in, here's a _tl;dr_ for you.
 
-* The most interesting files are these ones:
+* The most interesting files are in the [sources](sources) folder:
 
-  * The main game's source code is in the [elite-source.asm](elite-source.asm) file - this is the motherlode and probably contains all the stuff you're interested in
+  * The main game's source code is in the [elite-source.asm](sources/elite-source.asm) file - this is the motherlode and probably contains all the stuff you're interested in
 
-  * The game's loader is in the [elite-loader.asm](elite-loader.asm) file - this is mainly concerned with setup and copy protection
+  * The game's loader is in the [elite-loader.asm](sources/elite-loader.asm) file - this is mainly concerned with setup and copy protection
 
-* It's probably worth skimming through the notes on terminology at the start of the [elite-loader.asm](elite-loader.asm) file, as this explains a number of terms used in the commentary, without which it might be a bit tricky to follow at times (in particular, you should understand the terminology I use for multi-byte numbers)
+* It's probably worth skimming through the notes on terminology at the start of the [elite-loader.asm](sources/elite-loader.asm) file, as this explains a number of terms used in the commentary, without which it might be a bit tricky to follow at times (in particular, you should understand the terminology I use for multi-byte numbers)
 
 * The source code is peppered with a number of "deep dives", each of which goes into an aspect of the game in more detail. You find deep dives in the source files by simply searching for `Deep dive:`
 
 * There are loads of routines in Elite - literally hundreds. I will be adding more information on these soon, but for now you can find them in the source files by searching for `Type: Subroutine`
 
-* The entry point for the [main game code](elite-source.asm) is routine `TT170`, which you can find by searching for `Name: TT170`. If you want to follow the program flow all the way from the title screen around the main game loop, then you can find a deep dive in the `TT170` routine that has you covered
+* The entry point for the [main game code](sources/elite-source.asm) is routine `TT170`, which you can find by searching for `Name: TT170`. If you want to follow the program flow all the way from the title screen around the main game loop, then you can find a deep dive in the `TT170` routine that has you covered
 
 * The source code is designed to be read at an 80-column width and with a monospaced font, just like in the good old days
 
@@ -91,7 +91,7 @@ Here's a bit more on how this project came to be.
 
 When I first saw that the sources to Elite had been released by the authors, I couldn't believe it. I'd always wanted to understand how this astonishing technical feat had been achieved, ever since I'd sat wide-mouthed as a 14-year-old when I first launched from the space station and saw the planet Lave hanging in space, right in front of my eyes. Which, of course, was shortly before dying for the first time, but that didn't matter. It was love at first sight.
 
-So I excitedly opened one of the source files at random... and was greeted by page after page of this kind of thing:
+So I excitedly opened [one of the source files](original_sources/ELITEG.TXT) at random... and was greeted by page after page of this kind of thing:
 
 ```
  9310LDAXX15+5:.LL147 LDX#Y*2-1:ORAXX12+1:BNELL107:CPXXX12
@@ -246,7 +246,7 @@ Note that the build ends with a warning that there is no `SAVE` command in the s
 
 ### Windows
 
-For Windows users, there is a batch file called `make.bat` to which you can pass one of the three build targets above. Before this will work, you should edit the batch file and change the values of the `BEEBASM` and `PYTHON` variables to point to the locations of your `beebasm.exe` and `python.exe` executables.
+For Windows users, there is a batch file called `make.bat` to which you can pass one of the three build targets above. Before this will work, you should edit the batch file and change the values of the `BEEBASM` and `PYTHON` variables to point to the locations of your `beebasm.exe` and `python.exe` executables. You also need to change directory to the repository folder (i.e. the same folder as `make.exe`).
 
 All being well, doing one of the following:
 
@@ -262,7 +262,7 @@ will produce a file called `elite.ssd`, which you can then load into an emulator
 
 ### Mac and Linux
 
-The build process uses a standard GNU `Makefile`, so you just need to install `make` if your system doesn't already have it. If BeebAsm or Python are not on your path, then you can either fix this, or you can edit the `Makefile` and change the `BEEBASM` and `PYTHON` variables in the first two lines to point to their locations.
+The build process uses a standard GNU `Makefile`, so you just need to install `make` if your system doesn't already have it. If BeebAsm or Python are not on your path, then you can either fix this, or you can edit the `Makefile` and change the `BEEBASM` and `PYTHON` variables in the first two lines to point to their locations. You also need to change directory to the repository folder (i.e. the same folder as `Makefile`).
 
 All being well, doing one of the following:
 
@@ -476,7 +476,7 @@ The disc image is called `elite.ssd`, and you can load it into an emulator, or i
 
 ### Log files
 
-During compilation, details of every step are output in a file called `compile.txt`. If you have problems, it might come in handy, and it's a great reference if you need to know the addresses of labels and variables for debugging (or just snooping around).
+During compilation, details of every step are output in a file called `compile.txt` in the `output` folder. If you have problems, it might come in handy, and it's a great reference if you need to know the addresses of labels and variables for debugging (or just snooping around).
 
 ## Differences between the various source files
 
