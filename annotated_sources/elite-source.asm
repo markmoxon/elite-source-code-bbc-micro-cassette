@@ -29,7 +29,7 @@
 \
 \ ******************************************************************************
 
-INCLUDE "sources/elite-header.h.asm"
+INCLUDE "annotated_sources/elite-header.h.asm"
 
 _REMOVE_COMMANDER_CHECK = TRUE AND _REMOVE_CHECKSUMS
 _ENABLE_MAX_COMMANDER   = TRUE AND _REMOVE_CHECKSUMS
