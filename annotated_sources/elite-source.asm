@@ -244,11 +244,12 @@ f9 = &77
 \   * In the main game code:
 \
 \     * There are six unused bytes in the last saved commander data at NA%. Two
-\       of them are between LASER and CRGO, just after the four laser powers, so
-\       perhaps they were reserved for up and down lasers at one point? And
-\       there and four more between the escape pod at ESCP and the cargo bay
-\       capacity at CRGO, which might have been for additional equipment that
-\       didn't get implemented... who knows?
+\       of them are between LASER and CRGO, just after the four laser powers;
+\       they were originally used for up and down lasers, but those views were
+\       dropped and the space never reclaimed. There are four more unused bytes
+\       between the escape pod at ESCP and the cargo bay capacity at CRGO, which
+\       might have been for additional equipment that didn't get implemented...
+\       who knows?
 \
 \     * There's an unused and unlabelled duplicate of the multiplication routine
 \       MULTU sandwiched between FMLTU and MLTU2 that takes up 24 bytes
@@ -1153,8 +1154,8 @@ ORG &0300
                         \   Bit 7 determines whether or not the laser pulses
                         \   (pulse laser) or is always on (beam laser)
 
- SKIP 2                 \ These bytes are unused (originally reserved for
-                        \ up/down lasers, perhaps?)
+ SKIP 2                 \ These bytes are unused (they were originally used for
+                        \ up/down lasers, but they were dropped)
 
 .CRGO
 
@@ -7794,8 +7795,8 @@ ENDIF
 
  EQUB 0                 \ LASER+3 = Right laser
 
- EQUW 0                 \ These two bytes are unused (reserved for up/down
-                        \ lasers, maybe?)
+ EQUW 0                 \ These bytes are unused (they were originally used for
+                        \ up/down lasers, but they were dropped)
 
  EQUB 22+(15 AND Q%)    \ CRGO = Cargo capacity
 
