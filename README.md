@@ -534,4 +534,4 @@ The `ELTcode` executable produced by this build target is different to the relea
 
 Right on, Commanders!
 
-_Mark Moxon_ | August 2020
+_Mark Moxon_
