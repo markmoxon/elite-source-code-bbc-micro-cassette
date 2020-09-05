@@ -51,7 +51,7 @@ Hopefully this repository will be useful for those who want to learn more about 
 
 If you want to jump straight in, here's a _tl;dr_ for you.
 
-* The most interesting files are in the [sources](sources) folder:
+* The most interesting files are in the [annotated_sources](annotated_sources) folder:
 
   * The main game's source code is in the [elite-source.asm](annotated_sources/elite-source.asm) file in the `annotated_sources` folder - this is the motherlode and probably contains all the stuff you're interested in
 
@@ -91,7 +91,7 @@ Here's a bit more on how this project came to be.
 
 When I first saw that the sources to Elite had been released by the authors, I couldn't believe it. I'd always wanted to understand how this astonishing technical feat had been achieved, ever since I'd sat wide-mouthed as a 14-year-old when I first launched from the space station and saw the planet Lave hanging in space, right in front of my eyes. Which, of course, was shortly before dying for the first time, but that didn't matter. It was love at first sight.
 
-So I excitedly opened [one of the source files](original_annotated_sources/ELITEG.TXT) at random... and was greeted by page after page of this kind of thing:
+So I excitedly opened [one of the source files](original_sources/ELITEG.TXT) at random... and was greeted by page after page of this kind of thing:
 
 ```
  9310LDAXX15+5:.LL147 LDX#Y*2-1:ORAXX12+1:BNELL107:CPXXX12
@@ -337,7 +337,7 @@ The build process described above uses a five-stage pipeline. This pipeline is b
 
 The end product is an SSD disc image file that can be loaded by a BBC Micro with DFS, or an emulator like JSBeeb or BeebEm. The code produced is identical to the released version of the game (see the section on [verifying the output](#Verifying-the-output) for more details).
 
-Each stage of the build pipeline uses one of the source files, so let's look at what's involved.
+Each stage of the build pipeline uses one of the source files from the `annotated_sources` folder, so let's look at what's involved.
 
 ### 1. Compile the main game with `elite-source.asm`
 
