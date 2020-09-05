@@ -53,15 +53,15 @@ If you want to jump straight in, here's a _tl;dr_ for you.
 
 * The most interesting files are in the [annotated_sources](annotated_sources) folder:
 
-  * The main game's source code is in the [elite-source.asm](annotated_sources/elite-source.asm) file in the `annotated_sources` folder - this is the motherlode and probably contains all the stuff you're interested in
+  * The main game's source code is in the [elite-source.asm](annotated_sources/elite-source.asm) file - this is the motherlode and probably contains all the stuff you're interested in
 
-  * The game's loader is in the [elite-loader.asm](annotated_sources/elite-loader.asm) file in the `annotated_sources` folder - this is mainly concerned with setup and copy protection
+  * The game's loader is in the [elite-loader.asm](annotated_sources/elite-loader.asm) file - this is mainly concerned with setup and copy protection
 
 * It's probably worth skimming through the notes on terminology at the start of the [elite-loader.asm](annotated_sources/elite-loader.asm) file, as this explains a number of terms used in the commentary, without which it might be a bit tricky to follow at times (in particular, you should understand the terminology I use for multi-byte numbers)
 
 * The source code is peppered with a number of "deep dives", each of which goes into an aspect of the game in more detail. You find deep dives in the source files by simply searching for `Deep dive:`
 
-* There are loads of routines in Elite - literally hundreds. I will be adding more information on these soon, but for now you can find them in the source files by searching for `Type: Subroutine`
+* There are loads of routines in Elite - literally hundreds. I will be adding more information on these soon, but for now you can find them in the source files by searching for `Type: Subroutine` (and you can also search for `Type: Variable`, `Type: Workspace` and `Type: Macro`)
 
 * The entry point for the [main game code](annotated_sources/elite-source.asm) is routine `TT170`, which you can find by searching for `Name: TT170`. If you want to follow the program flow all the way from the title screen around the main game loop, then you can find a deep dive in the `TT170` routine that has you covered
 
