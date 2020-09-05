@@ -29,16 +29,17 @@ def main():
         print('------------------------------------------')
 
         for name in names:
-            full_name = os.path.join(folder, name)
-            if not os.path.isfile(full_name):
-                continue
-            with open(full_name, 'rb') as f:
-                data = f.read()
-            print('%08x  %5d  %s' % (
-                  zlib.crc32(data) & 0xffffffff,
-                  len(data),
-                  full_name)
-                  )
+            if name.endswith(".bin"):
+                full_name = os.path.join(folder, name)
+                if not os.path.isfile(full_name):
+                    continue
+                with open(full_name, 'rb') as f:
+                    data = f.read()
+                print('%08x  %5d  %s' % (
+                    zlib.crc32(data) & 0xffffffff,
+                    len(data),
+                    full_name)
+                    )
         print()
     else:
         # Do CRC on two folders
@@ -58,47 +59,48 @@ def main():
         print('-----------------------------------------------------------')
 
         for name in names:
-            full_name1 = os.path.join(folder1, name)
-            full_name2 = os.path.join(folder2, name)
+            if name.endswith(".bin"):
+                full_name1 = os.path.join(folder1, name)
+                full_name2 = os.path.join(folder2, name)
 
-            if name in names1 and name in names2 and os.path.isfile(full_name1) and os.path.isfile(full_name2):
-                with open(full_name1, 'rb') as f:
-                    data1 = f.read()
-                with open(full_name2, 'rb') as f:
-                    data2 = f.read()
-                crc1 = zlib.crc32(data1) & 0xffffffff
-                crc2 = zlib.crc32(data2) & 0xffffffff
-                match = ' Yes ' if crc1 == crc2 and len(data1) == len(data2) else ' No  '
-                print('%08x  %5d  %08x  %5d  %s  %s' % (
-                      crc1,
-                      len(data1),
-                      crc2,
-                      len(data2),
-                      match,
-                      name)
-                      )
-            elif name in names1 and os.path.isfile(full_name1):
-                with open(full_name1, 'rb') as f:
-                    data = f.read()
-                print('%08x  %5d  %s  %s  %s  %s' % (
-                      zlib.crc32(data) & 0xffffffff,
-                      len(data),
-                      '-       ',
-                      '    -',
-                      '  -  ',
-                      name)
-                      )
-            elif name in names2 and os.path.isfile(full_name2):
-                with open(full_name2, 'rb') as f:
-                    data = f.read()
-                print('%s  %s  %08x  %5d  %s  %s' % (
-                      '-       ',
-                      '    -',
-                      zlib.crc32(data) & 0xffffffff,
-                      len(data),
-                      '  -  ',
-                      name)
-                      )
+                if name in names1 and name in names2 and os.path.isfile(full_name1) and os.path.isfile(full_name2):
+                    with open(full_name1, 'rb') as f:
+                        data1 = f.read()
+                    with open(full_name2, 'rb') as f:
+                        data2 = f.read()
+                    crc1 = zlib.crc32(data1) & 0xffffffff
+                    crc2 = zlib.crc32(data2) & 0xffffffff
+                    match = ' Yes ' if crc1 == crc2 and len(data1) == len(data2) else ' No  '
+                    print('%08x  %5d  %08x  %5d  %s  %s' % (
+                        crc1,
+                        len(data1),
+                        crc2,
+                        len(data2),
+                        match,
+                        name)
+                        )
+                elif name in names1 and os.path.isfile(full_name1):
+                    with open(full_name1, 'rb') as f:
+                        data = f.read()
+                    print('%08x  %5d  %s  %s  %s  %s' % (
+                        zlib.crc32(data) & 0xffffffff,
+                        len(data),
+                        '-       ',
+                        '    -',
+                        '  -  ',
+                        name)
+                        )
+                elif name in names2 and os.path.isfile(full_name2):
+                    with open(full_name2, 'rb') as f:
+                        data = f.read()
+                    print('%s  %s  %08x  %5d  %s  %s' % (
+                        '-       ',
+                        '    -',
+                        zlib.crc32(data) & 0xffffffff,
+                        len(data),
+                        '  -  ',
+                        name)
+                        )
         print()
 
 
