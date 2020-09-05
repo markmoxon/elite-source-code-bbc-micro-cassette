@@ -378,10 +378,11 @@ f9 = &77
 
 \ ******************************************************************************
 \
-\ Workspace name:   ZP
-\ Address range:    &0000 - &00B0
-\ Category:         Workspace
-\ One-line summary: Lots of really important variables
+\       Name: ZP
+\       Type: Workspace
+\    Address: &0000 to &00B0
+\   Category: Workspace
+\    Summary: Lots of really important variables
 \
 \ ******************************************************************************
 
@@ -1030,10 +1031,13 @@ PRINT "Zero page variables from ", ~ZP, " to ", ~P%
 
 \ ******************************************************************************
 \
-\ Workspace name:   XX3
-\ Address range:    &0100 and up
-\ Category:         Workspace
-\ One-line summary: Temporary storage space for complex calculations
+\       Name: XX3
+\       Type: Workspace
+\    Address: &0100 to the top of the descending stack
+\   Category: Workspace
+\    Summary: Temporary storage space for complex calculations
+\
+\ ------------------------------------------------------------------------------
 \
 \ Used as heap space for storing temporary data during calculations. Shared with
 \ the descending 6502 stack, which works down from &01FF.
@@ -1050,10 +1054,13 @@ ORG &0100
 
 \ ******************************************************************************
 \
-\ Workspace name:   T%
-\ Address range:    &0300 - &035F
-\ Category:         Workspace
-\ One-line summary: Current commander data and stardust data blocks
+\       Name: T%
+\       Type: Workspace
+\    Address: &0300 to &035F
+\   Category: Workspace
+\    Summary: Current commander data and stardust data blocks
+\
+\ ------------------------------------------------------------------------------
 \
 \ Contains the current commander data (NT% bytes at location TP), and the
 \ stardust data blocks (NOST bytes at location SX)
@@ -1299,12 +1306,12 @@ PRINT "T% workspace from  ", ~T%, " to ", ~P%
 
 \ ******************************************************************************
 \
-\ ELITE WORDS9 at &0400 - &07FF
+\ ELITE RECURSIVE TEXT TOKEN FILE
 \
 \ Produces the binary file WORDS9.bin that gets loaded by elite-loader.asm.
 \
 \ The recursive token table is loaded at &1100 and is moved down to &0400 as
-\ part of elite-loader.asm.
+\ part of elite-loader.asm, so it ends up at &0400 to &07FF.
 \
 \ ******************************************************************************
 
@@ -1315,7 +1322,14 @@ ORG CODE_WORDS%
 
 \ ******************************************************************************
 \
-\ Macro definitions for recursive tokens
+\       Name: CHAR, TWOK, CTRL, RTOK
+\       Type: Macro
+\   Category: Text
+\    Summary: Macro definitions for the recursive tokens table
+\
+\ ------------------------------------------------------------------------------
+\
+\ The following macros are used to build the recursive token table:
 \
 \   CHAR x              Insert ASCII character "x"
 \
@@ -1330,6 +1344,7 @@ ORG CODE_WORDS%
 \                         * Tokens 128-145 get stored as n - 114
 \
 \                         * Tokens 96-127 get stored as n
+\
 \ ******************************************************************************
 
 MACRO CHAR x
@@ -1357,9 +1372,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Variable name:    QQ18
-\ Category:         Text
-\ One-line summary: Recursive token table for tokens 0-148
+\       Name: QQ18
+\       Type: Variable
+\   Category: Text
+\    Summary: Recursive token table for tokens 0-148
 \
 \ ******************************************************************************
 \
@@ -2884,10 +2900,13 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 
 \ ******************************************************************************
 \
-\ Workspace name:   K%
-\ Address range:    &0900 - &0D40
-\ Category:         Workspace
-\ One-line summary: Ship data blocks and ship line heaps
+\       Name: K%
+\       Type: Workspace
+\    Address: &0900 to &0D40
+\   Category: Workspace
+\    Summary: Ship data blocks and ship line heaps
+\
+\ ------------------------------------------------------------------------------
 \
 \ Contains ship data for all the ships, planets, suns and space stations in our
 \ local bubble of universe, along with their corresponding ship line heap.
@@ -3230,10 +3249,11 @@ ORG &0900
 
 \ ******************************************************************************
 \
-\ Workspace name:   WP
-\ Address range:    &0D40 - &0F34
-\ Category:         Workspace
-\ One-line summary: Ship slots, variables
+\       Name: WP
+\       Type: Workspace
+\    Address: &0D40 to &0F34
+\   Category: Workspace
+\    Summary: Ship slots, variables
 \
 \ ******************************************************************************
 
@@ -3640,7 +3660,7 @@ PRINT "WP workspace from  ", ~WP," to ", ~P%
 
 \ ******************************************************************************
 \
-\ ELITE A
+\ ELITE A FILE
 \
 \ Produces the binary file ELTA.bin that gets loaded by elite-bcfs.asm.
 \
@@ -3658,10 +3678,13 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Workspace name:   S%
-\ Address range:    &0F40 - &0F50
-\ Category:         Workspace
-\ One-line summary: Vector addresses, compass colour and configuration settings
+\       Name: S%
+\       Type: Workspace
+\    Address: &0F40 to &0F50
+\   Category: Workspace
+\    Summary: Vector addresses, compass colour and configuration settings
+\
+\ ------------------------------------------------------------------------------
 \
 \ Contains addresses that are used by the loader to set up vectors, the current
 \ compass colour, and the game's configuration settings.
@@ -3771,9 +3794,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 1 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 1 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -3790,9 +3816,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 2 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 2 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -3910,9 +3939,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 3 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 3 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4150,9 +4182,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 4 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 4 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4227,9 +4262,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 5 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 5 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4263,9 +4301,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 6 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 6 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4298,9 +4339,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 7 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 7 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4364,9 +4408,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 8 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 8 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4442,9 +4489,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 9 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 9 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4684,9 +4734,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 10 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 10 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4761,9 +4814,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 11 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 11 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4878,9 +4934,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 12 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 12 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -4980,9 +5039,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 13 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 13 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -5048,9 +5110,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 14 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 14 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -5166,9 +5231,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 15 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 15 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -5294,12 +5362,12 @@ LOAD_A% = LOAD%
  ADC #30                \ Add the minimum cabin temperature of 30, so we get
                         \ one of the following:
                         \
-                        \ If the C flag is clear, A contains the cabin
-                        \ temperature, ranging from 30 to 255, that's hotter
-                        \ the closer we are to the sun
+                        \   * If the C flag is clear, A contains the cabin
+                        \     temperature, ranging from 30 to 255, that's hotter
+                        \     the closer we are to the sun
                         \
-                        \ If the C flag is set, the addition has rolled over
-                        \ and the cabin temperature is over 255
+                        \   * If the C flag is set, the addition has rolled over
+                        \     and the cabin temperature is over 255
 
  STA CABTMP             \ Store the updated cabin temperature
 
@@ -5338,9 +5406,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main flight loop (Part 16 of 16)
-\ Category:         Main loop
-\ One-line summary: The main flight loop, which runs when we are in space
+\       Name: Main flight loop (Part 16 of 16)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main flight loop, which runs when we are in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
@@ -5423,9 +5494,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MAS1
-\ Category:         Maths
-\ One-line summary: Add an orientation vector coordinate to an INWK coordinate
+\       Name: MAS1
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Add an orientation vector coordinate to an INWK coordinate
+\
+\ ------------------------------------------------------------------------------
 \
 \ Add a doubled nosev vector coordinate, e.g. (nosev_y_hi nosev_y_lo) * 2, to
 \ an INWK coordinate, e.g. (x_sign x_hi x_lo), storing the result in the INWK
@@ -5496,9 +5570,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MAS2
-\ Category:         Maths
-\ One-line summary: Calculate a cap on the maximum distance to the planet or sun
+\       Name: MAS2
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate a cap on the maximum distance to the planet or sun
+\
+\ ------------------------------------------------------------------------------
 \
 \ Given a value in Y that points to the start of a ship data block as an offset
 \ from K%, calculate the following:
@@ -5550,9 +5627,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MAS3
-\ Category:         Maths
-\ One-line summary: Calculate A = x_hi^2 + y_hi^2 + z_hi^2 in the K% block
+\       Name: MAS3
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate A = x_hi^2 + y_hi^2 + z_hi^2 in the K% block
+\
+\ ------------------------------------------------------------------------------
 \
 \ Given a value in Y that points to the start of a ship data block as an offset
 \ from K%, calculate the following:
@@ -5611,9 +5691,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MVEIT (Part 1 of 9)
-\ Category:         Moving
-\ One-line summary: Move the current ship, planet or sun in space
+\       Name: MVEIT (Part 1 of 9)
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Move the current ship, planet or sun in space
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine has multiple stages. This stage does the following:
 \
@@ -5664,12 +5747,14 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MVEIT (Part 2 of 9)
-\ Category:         Moving
-\ One-line summary: Move the current ship, planet or sun in space
+\       Name: MVEIT (Part 2 of 9)
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Move the current ship, planet or sun in space
 \
-\ Move the current ship, planet or sun in space. This routine has multiple
-\ stages. This stage does the following:
+\ ------------------------------------------------------------------------------
+\
+\ This routine has multiple stages. This stage does the following:
 \
 \   * Apply tactics to ships with AI enabled
 \
@@ -5733,12 +5818,14 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MVEIT (Part 3 of 9)
-\ Category:         Moving
-\ One-line summary: Move the current ship, planet or sun in space
+\       Name: MVEIT (Part 3 of 9)
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Move the current ship, planet or sun in space
 \
-\ Move the current ship, planet or sun in space. This routine has multiple
-\ stages. This stage does the following:
+\ ------------------------------------------------------------------------------
+\
+\ This routine has multiple stages. This stage does the following:
 \
 \   * Move the ship forward (along the vector pointing in the direction of
 \     travel) according to its speed:
@@ -5808,12 +5895,14 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MVEIT (Part 4 of 9)
-\ Category:         Moving
-\ One-line summary: Move the current ship, planet or sun in space
+\       Name: MVEIT (Part 4 of 9)
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Move the current ship, planet or sun in space
 \
-\ Move the current ship, planet or sun in space. This routine has multiple
-\ stages. This stage does the following:
+\ ------------------------------------------------------------------------------
+\
+\ This routine has multiple stages. This stage does the following:
 \
 \   * Apply acceleration to the ship's speed (if acceleration is non-zero),
 \     and then zero the acceleration as it's a one-off change
@@ -5846,12 +5935,14 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MVEIT (Part 5 of 9)
-\ Category:         Moving
-\ One-line summary: Move the current ship, planet or sun in space
+\       Name: MVEIT (Part 5 of 9)
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Move the current ship, planet or sun in space
 \
-\ Move the current ship, planet or sun in space. This routine has multiple
-\ stages. This stage does the following:
+\ ------------------------------------------------------------------------------
+\
+\ This routine has multiple stages. This stage does the following:
 \
 \   * Rotate the ship's location in space by the amount of pitch and roll of
 \     our ship. See below for a deeper explanation of this routine
@@ -6082,12 +6173,14 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MVEIT (Part 6 of 9)
-\ Category:         Moving
-\ One-line summary: Move the current ship, planet or sun in space
+\       Name: MVEIT (Part 6 of 9)
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Move the current ship, planet or sun in space
 \
-\ Move the current ship, planet or sun in space. This routine has multiple
-\ stages. This stage does the following:
+\ ------------------------------------------------------------------------------
+\
+\ This routine has multiple stages. This stage does the following:
 \
 \   * Move the ship in space according to our speed (we already moved it
 \     according to its own speed in part 3).
@@ -6125,12 +6218,14 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MVEIT (Part 7 of 9)
-\ Category:         Moving
-\ One-line summary: Move the current ship, planet or sun in space
+\       Name: MVEIT (Part 7 of 9)
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Move the current ship, planet or sun in space
 \
-\ Move the current ship, planet or sun in space. This routine has multiple
-\ stages. This stage does the following:
+\ ------------------------------------------------------------------------------
+\
+\ This routine has multiple stages. This stage does the following:
 \
 \   * Rotate the ship's orientation vectors according to our pitch and roll
 \
@@ -6153,12 +6248,14 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MVEIT (Part 8 of 9)
-\ Category:         Moving
-\ One-line summary: Move the current ship, planet or sun in space
+\       Name: MVEIT (Part 8 of 9)
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Move the current ship, planet or sun in space
 \
-\ Move the current ship, planet or sun in space. This routine has multiple
-\ stages. This stage does the following:
+\ ------------------------------------------------------------------------------
+\
+\ This routine has multiple stages. This stage does the following:
 \
 \   * If the ship we are processing is rolling or pitching itself, rotate it and
 \     apply damping if required
@@ -6237,12 +6334,14 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MVEIT (Part 9 of 9)
-\ Category:         Moving
-\ One-line summary: Move the current ship, planet or sun in space
+\       Name: MVEIT (Part 9 of 9)
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Move the current ship, planet or sun in space
 \
-\ Move the current ship, planet or sun in space. This routine has multiple
-\ stages. This stage does the following:
+\ ------------------------------------------------------------------------------
+\
+\ This routine has multiple stages. This stage does the following:
 \
 \   * If the ship is exploding or being removed, hide it on the scanner
 \
@@ -6275,9 +6374,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MVT1
-\ Category:         Moving
-\ One-line summary: Calculate (x_sign x_hi x_lo) = (x_sign x_hi x_lo) + (A R)
+\       Name: MVT1
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Calculate (x_sign x_hi x_lo) = (x_sign x_hi x_lo) + (A R)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Add the signed delta (A R) to a ship's coordinate, along the axis given in X.
 \ Mathematically speaking, this routine translates the ship along a single axis
@@ -6428,9 +6530,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MVT3
-\ Category:         Moving
-\ One-line summary: Calculate K(3 2 1) = (x_sign x_hi x_lo) + K(3 2 1)
+\       Name: MVT3
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Calculate K(3 2 1) = (x_sign x_hi x_lo) + K(3 2 1)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Add an INWK position coordinate - i.e. x, y or z - to K(3 2 1), like this:
 \
@@ -6539,9 +6644,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MVS4
-\ Category:         Moving
-\ One-line summary: Apply pitch and roll to an orientation vector
+\       Name: MVS4
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Apply pitch and roll to an orientation vector
+\
+\ ------------------------------------------------------------------------------
 \
 \ Apply pitch and roll angles alpha and beta to the orientation vector in Y.
 \
@@ -6930,9 +7038,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MVS5
-\ Category:         Moving
-\ One-line summary: Apply a 3.6 degree pitch or roll to an orientation vector
+\       Name: MVS5
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Apply a 3.6 degree pitch or roll to an orientation vector
+\
+\ ------------------------------------------------------------------------------
 \
 \ Pitch or roll a ship by a small, fixed amount (1/16 radians, or 3.6 degrees),
 \ in a specified direction, by rotating the orientation vectors. The vectors to
@@ -7207,9 +7318,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MVT6
-\ Category:         Moving
-\ One-line summary: Calculate (A P+2 P+1) = (x_sign x_hi x_lo) + (A P+2 P+1)
+\       Name: MVT6
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Calculate (A P+2 P+1) = (x_sign x_hi x_lo) + (A P+2 P+1)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Do the following calculation, for the coordinate given by X (so this is what
 \ it does for the x-coordinate):
@@ -7311,9 +7425,12 @@ LOAD_A% = LOAD%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MV40
-\ Category:         Moving
-\ One-line summary: Rotate the planet or sun by our ship's pitch and roll
+\       Name: MV40
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Rotate the planet or sun by our ship's pitch and roll
+\
+\ ------------------------------------------------------------------------------
 \
 \ Rotate the planet or sun's location in space by the amount of pitch and roll
 \ of our ship.
@@ -7332,7 +7449,7 @@ LOAD_A% = LOAD%
 \   3. y = K2 - beta * z        y = y - alpha * x - beta * z
 \   4. x = x + alpha * y        x = x + alpha * y
 \
-\ See MVEIT (Part 5) for more details of this calculation.
+\ See part 5 pf MVEIT for more details of this calculation.
 \
 \ ******************************************************************************
 
@@ -7585,7 +7702,7 @@ SAVE "output/ELTA.bin", CODE%, P%, LOAD%
 
 \ ******************************************************************************
 \
-\ ELITE B
+\ ELITE B FILE
 \
 \ Produces the binary file ELTB.bin that gets loaded by elite-bcfs.asm.
 \
@@ -7597,9 +7714,12 @@ Q% = _ENABLE_MAX_COMMANDER
 
 \ ******************************************************************************
 \
-\ Variable name:    NA%
-\ Category:         Save and load
-\ One-line summary: The data block for the last saved commander
+\       Name: NA%
+\       Type: Variable
+\   Category: Save and load
+\    Summary: The data block for the last saved commander
+\
+\ ------------------------------------------------------------------------------
 \
 \ Contains the last saved commander data, with the name at NA% and the data at
 \ NA%+8 onwards. The size of the data block is given in NT% (which also includes
@@ -7733,9 +7853,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variable name:    CHK2
-\ Category:         Save and load
-\ One-line summary: Second checksum byte for the saved commander data file
+\       Name: CHK2
+\       Type: Variable
+\   Category: Save and load
+\    Summary: Second checksum byte for the saved commander data file
+\
+\ ------------------------------------------------------------------------------
 \
 \ Second checksum byte, see elite-checksum.py for more details.
 \
@@ -7755,9 +7878,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variable name:    CHK
-\ Category:         Save and load
-\ One-line summary: First cchecksum byte for the saved commander data file
+\       Name: CHK
+\       Type: Variable
+\   Category: Save and load
+\    Summary: First cchecksum byte for the saved commander data file
+\
+\ ------------------------------------------------------------------------------
 \
 \ Commander checksum byte, see elite-checksum.py for more details.
 \
@@ -7772,9 +7898,12 @@ PRINT "CH% = ", ~CH%
 
 \ ******************************************************************************
 \
-\ Variable name:    UNIV
-\ Category:         Universe
-\ One-line summary: Table of pointers to local universe's ship data blocks
+\       Name: UNIV
+\       Type: Variable
+\   Category: Universe
+\    Summary: Table of pointers to local universe's ship data blocks
+\
+\ ------------------------------------------------------------------------------
 \
 \ The little bubble of the universe that we simulate in Elite can contain up to
 \ NOSH + 1 (13) ships. Each of those ships has its own block of 36 (NI%) bytes
@@ -7809,9 +7938,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Variable name:    TWOS
-\ Category:         Drawing pixels
-\ One-line summary: Ready-made single-pixel character row bytes for mode 4
+\       Name: TWOS
+\       Type: Variable
+\   Category: Drawing pixels
+\    Summary: Ready-made single-pixel character row bytes for mode 4
+\
+\ ------------------------------------------------------------------------------
 \
 \ Ready-made bytes for plotting one-pixel points in mode 4 (the top part of the
 \ split screen). See the PIXEL routine for details.
@@ -7832,9 +7964,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Variable name:    TWOS2
-\ Category:         Drawing pixels
-\ One-line summary: Ready-made double-pixel character row bytes for mode 4
+\       Name: TWOS2
+\       Type: Variable
+\   Category: Drawing pixels
+\    Summary: Ready-made double-pixel character row bytes for mode 4
+\
+\ ------------------------------------------------------------------------------
 \
 \ Ready-made bytes for plotting two-pixel dashes in mode 4 (the top part of the
 \ split screen). See the PIXEL routine for details.
@@ -7855,9 +7990,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Variable name:    CTWOS
-\ Category:         Drawing pixels
-\ One-line summary: Ready-made single-pixel character row bytes for mode 5
+\       Name: CTWOS
+\       Type: Variable
+\   Category: Drawing pixels
+\    Summary: Ready-made single-pixel character row bytes for mode 5
+\
+\ ------------------------------------------------------------------------------
 \
 \ Ready-made bytes for plotting one-pixel points in mode 5 (the bottom part of
 \ the split screen). See the dashboard routines SCAN, DIL2 and CPIX2 for
@@ -7882,12 +8020,14 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL30, LOIN (Part 1 of 7)
-\ Category:         Drawing lines
-\ One-line summary: Draw a line from (X1, Y1) to (X2, Y2)
+\       Name: LL30, LOIN (Part 1 of 7)
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw a line from (X1, Y1) to (X2, Y2)
 \
-\ Draw a line from (X1, Y1) to (X2, Y2). We do not draw a pixel at the end
-\ point.
+\ ------------------------------------------------------------------------------
+\
+\ This routine has multiple stages. This stage calculates the line deltas.
 \
 \ Returns:
 \
@@ -8157,11 +8297,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL30, LOIN (Part 2 of 7)
-\ Category:         Drawing lines
-\ One-line summary: Draw a line from (X1, Y1) to (X2, Y2)
+\       Name: LL30, LOIN (Part 2 of 7)
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw a line from (X1, Y1) to (X2, Y2)
 \
-\ Draw a line from (X1, Y1) to (X2, Y2).
+\ ------------------------------------------------------------------------------
 \
 \ If we get here, then:
 \
@@ -8297,11 +8438,14 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL30, LOIN (Part 3 of 7)
-\ Category:         Drawing lines
-\ One-line summary: Draw a line from (X1, Y1) to (X2, Y2)
+\       Name: LL30, LOIN (Part 3 of 7)
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw a line from (X1, Y1) to (X2, Y2)
 \
-\ Draw a line from (X1, Y1) to (X2, Y2). If we get here then:
+\ ------------------------------------------------------------------------------
+\
+\ If we get here, then:
 \
 \   * The line is going right and up (no swap) or left and down (swap)
 \
@@ -8377,11 +8521,14 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL30, LOIN (Part 4 of 7)
-\ Category:         Drawing lines
-\ One-line summary: Draw a line from (X1, Y1) to (X2, Y2)
+\       Name: LL30, LOIN (Part 4 of 7)
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw a line from (X1, Y1) to (X2, Y2)
 \
-\ Draw a line from (X1, Y1) to (X2, Y2). If we get here then:
+\ ------------------------------------------------------------------------------
+\
+\ If we get here, then:
 \
 \   * The line is going right and down (no swap) or left and up (swap)
 \
@@ -8459,11 +8606,14 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL30, LOIN (Part 5 of 7)
-\ Category:         Drawing lines
-\ One-line summary: Draw a line from (X1, Y1) to (X2, Y2)
+\       Name: LL30, LOIN (Part 5 of 7)
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw a line from (X1, Y1) to (X2, Y2)
 \
-\ Draw a line from (X1, Y1) to (X2, Y2). If we get here, then:
+\ ------------------------------------------------------------------------------
+\
+\ If we get here, then:
 \
 \   * |delta_y| >= |delta_x|
 \
@@ -8601,11 +8751,14 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL30, LOIN (Part 6 of 7)
-\ Category:         Drawing lines
-\ One-line summary: Draw a line from (X1, Y1) to (X2, Y2)
+\       Name: LL30, LOIN (Part 6 of 7)
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw a line from (X1, Y1) to (X2, Y2)
 \
-\ Draw a line from (X1, Y1) to (X2, Y2). If we get here then:
+\ ------------------------------------------------------------------------------
+\
+\ If we get here, then:
 \
 \   * The line is going up and left (no swap) or down and right (swap)
 \
@@ -8682,11 +8835,14 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL30, LOIN (Part 7 of 7)
-\ Category:         Drawing lines
-\ One-line summary: Draw a line from (X1, Y1) to (X2, Y2)
+\       Name: LL30, LOIN (Part 7 of 7)
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw a line from (X1, Y1) to (X2, Y2)
 \
-\ Draw a line from (X1, Y1) to (X2, Y2). If we get here then:
+\ ------------------------------------------------------------------------------
+\
+\ If we get here, then:
 \
 \   * The line is going up and right (no swap) or down and left (swap)
 \
@@ -8764,9 +8920,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  NLIN3
-\ Category:         Drawing lines
-\ One-line summary: Print a title and a horizontal line at row 19 to box it in
+\       Name: NLIN3
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Print a title and a horizontal line at row 19 to box it in
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine print a text token at the cursor position and draws a horizontal
 \ line at pixel row 19. It is used for the Status Mode screen, the Short-range
@@ -8784,9 +8943,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  NLIN4
-\ Category:         Drawing lines
-\ One-line summary: Draw a horizontal line at pixel row 19 to box in a title
+\       Name: NLIN4
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw a horizontal line at pixel row 19 to box in a title
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine is used on the Inventory scren to draw a horizontal line at pixel
 \ row 19 to box in the title.
@@ -8803,9 +8965,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  NLIN
-\ Category:         Drawing lines
-\ One-line summary: Draw a horizontal line at pixel row 23 to box in a title
+\       Name: NLIN
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw a horizontal line at pixel row 23 to box in a title
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a horizontal line at pixel row 23 and move the text cursor down one
 \ line.
@@ -8825,9 +8990,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  NLIN2
-\ Category:         Drawing lines
-\ One-line summary: Draw a screen-wide horizontal line at the pixel row in A
+\       Name: NLIN2
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw a screen-wide horizontal line at the pixel row in A
+\
+\ ------------------------------------------------------------------------------
 \
 \ This draws a line from (2, A) to (254, A), which is almost screen-wide and
 \ fits in nicely between the white borders without clashing with it.
@@ -8855,9 +9023,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  HLOIN2
-\ Category:         Drawing lines
-\ One-line summary: Remove a line from the sun line heap and draw it on-screen
+\       Name: HLOIN2
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Remove a line from the sun line heap and draw it on-screen
+\
+\ ------------------------------------------------------------------------------
 \
 \ Specifically, this does the following:
 \
@@ -8901,9 +9072,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  HLOIN
-\ Category:         Drawing lines
-\ One-line summary: Draw a horizontal line from (X1, Y1) to (X2, Y1)
+\       Name: HLOIN
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw a horizontal line from (X1, Y1) to (X2, Y1)
+\
+\ ------------------------------------------------------------------------------
 \
 \ We do not draw a pixel at the end point (X2, X1).
 \
@@ -9104,9 +9278,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Variable name:    TWFL
-\ Category:         Drawing lines
-\ One-line summary: Ready-made character rows for left end of horizontal line
+\       Name: TWFL
+\       Type: Variable
+\   Category: Drawing lines
+\    Summary: Ready-made character rows for left end of horizontal line
+\
+\ ------------------------------------------------------------------------------
 \
 \ Ready-made bytes for plotting horizontal line end caps in mode 4 (the top part
 \ of the split screen). This table provides a byte with pixels at the left end,
@@ -9129,9 +9306,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Variable name:    TWFR
-\ Category:         Drawing lines
-\ One-line summary: Ready-made character rows for right end of horizontal line
+\       Name: TWFR
+\       Type: Variable
+\   Category: Drawing lines
+\    Summary: Ready-made character rows for right end of horizontal line
+\
+\ ------------------------------------------------------------------------------
 \
 \ Ready-made bytes for plotting horizontal line end caps in mode 4 (the top part
 \ of the split screen). This table provides a byte with pixels at the right end,
@@ -9155,9 +9335,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PX3
-\ Category:         Drawing pixels
-\ One-line summary: Plot a single pixel at (X, Y) within a character block
+\       Name: PX3
+\       Type: Subroutine
+\   Category: Drawing pixels
+\    Summary: Plot a single pixel at (X, Y) within a character block
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine is called from PIXEL to set 1 pixel within a character block for
 \ a distant point (i.e. where the distance ZZ >= &90). See the PIXEL routine for
@@ -9189,9 +9372,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PIX1
-\ Category:         Drawing pixels
-\ One-line summary: Calculate (YY+1 SYL+Y) = (A P) + (S R) for drawing stardust
+\       Name: PIX1
+\       Type: Subroutine
+\   Category: Drawing pixels
+\    Summary: Calculate (YY+1 SYL+Y) = (A P) + (S R) for drawing stardust
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following:
 \
@@ -9230,9 +9416,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PIXEL2
-\ Category:         Drawing pixels
-\ One-line summary: Draw a stardust particle relative to the screen centre
+\       Name: PIXEL2
+\       Type: Subroutine
+\   Category: Drawing pixels
+\    Summary: Draw a stardust particle relative to the screen centre
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a point (X1, Y1) from the middle of the screen with a size determined by
 \ a distance value. Used to draw stardust particles.
@@ -9294,9 +9483,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PIXEL
-\ Category:         Drawing pixels
-\ One-line summary: Draw a 1-pixel dot, 2-pixel dash or 4-pixel square
+\       Name: PIXEL
+\       Type: Subroutine
+\   Category: Drawing pixels
+\    Summary: Draw a 1-pixel dot, 2-pixel dash or 4-pixel square
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a point at screen coordinate (X, A) with the point size determined by the
 \ distance in ZZ. This applies to the top part of the screen (the monochrome
@@ -9678,9 +9870,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  BLINE
-\ Category:         Drawing circles
-\ One-line summary: Draw a circle segment and add it to the ball line heap
+\       Name: BLINE
+\       Type: Subroutine
+\   Category: Drawing circles
+\    Summary: Draw a circle segment and add it to the ball line heap
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a single segment of a circle, adding the point to the ball line heap.
 \
@@ -9954,9 +10149,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  FLIP
-\ Category:         Stardust
-\ One-line summary: Reflect the stardust particles in the screen diagonal
+\       Name: FLIP
+\       Type: Subroutine
+\   Category: Stardust
+\    Summary: Reflect the stardust particles in the screen diagonal
+\
+\ ------------------------------------------------------------------------------
 \
 \ Swap the x- and y-coordinates of all the stardust particles and draw the new
 \ set of particles. Called by LOOK1 when we switch views.
@@ -10009,9 +10207,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  STARS
-\ Category:         Stardust
-\ One-line summary: The main routine for processing the stardust
+\       Name: STARS
+\       Type: Subroutine
+\   Category: Stardust
+\    Summary: The main routine for processing the stardust
+\
+\ ------------------------------------------------------------------------------
 \
 \ Called at the very end of the main flight loop.
 \
@@ -10050,9 +10251,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  STARS1
-\ Category:         Stardust
-\ One-line summary: Process the stardust for the forward view
+\       Name: STARS1
+\       Type: Subroutine
+\   Category: Stardust
+\    Summary: Process the stardust for the forward view
+\
+\ ------------------------------------------------------------------------------
 \
 \ This moves the stardust towards us according to our speed (so the dust rushes
 \ past us), and applies our current pitch and roll to each particle of dust, so
@@ -10483,9 +10687,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  STARS6
-\ Category:         Stardust
-\ One-line summary: Process the stardust for the rear view
+\       Name: STARS6
+\       Type: Subroutine
+\   Category: Stardust
+\    Summary: Process the stardust for the rear view
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine is very similar to STARS1, which processes stardust for the
 \ forward view. The main difference is that the direction of travel is reversed,
@@ -10841,9 +11048,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Variable name:    PRXS
-\ Category:         Equipment
-\ One-line summary: Equipment prices
+\       Name: PRXS
+\       Type: Variable
+\   Category: Equipment
+\    Summary: Equipment prices
+\
+\ ------------------------------------------------------------------------------
 \
 \ Equipment prices are stored as 10 * the actual value, so we can support prices
 \ with fractions of credits (0.1 Cr). This is used for the price of fuel only.
@@ -10868,9 +11078,10 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  STATUS
-\ Category:         Status
-\ One-line summary: Show the Status Mode screen (red key f8)
+\       Name: STATUS
+\       Type: Subroutine
+\   Category: Status
+\    Summary: Show the Status Mode screen (red key f8)
 \
 \ ******************************************************************************
 
@@ -11165,9 +11376,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  plf2
-\ Category:         Text
-\ One-line summary: Print text followed by a newline and indent of 6 characters
+\       Name: plf2
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print text followed by a newline and indent of 6 characters
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print a text token followed by a newline, and indent the next line to text
 \ column 6.
@@ -11191,9 +11405,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Variable name:    TENS
-\ Category:         Text
-\ One-line summary: A constant used when printing large numbers in BPRNT
+\       Name: TENS
+\       Type: Variable
+\   Category: Text
+\    Summary: A constant used when printing large numbers in BPRNT
+\
+\ ------------------------------------------------------------------------------
 \
 \ Contains the four low bytes of the value 100,000,000,000 (100 billion).
 \
@@ -11217,9 +11434,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  pr2
-\ Category:         Text
-\ One-line summary: Print 8-bit number, left-padded to 3 digits, optional point
+\       Name: pr2
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print 8-bit number, left-padded to 3 digits, optional point
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print the 8-bit number in X to 3 digits, left-padding with spaces for numbers
 \ with fewer than 3 digits (so numbers < 100 are right-aligned). Optionally
@@ -11245,9 +11465,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT11
-\ Category:         Text
-\ One-line summary: Print 16-bit number, left-padded to n digits, optional point
+\       Name: TT11
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print 16-bit number, left-padded to n digits, optional point
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print the 16-bit number in (Y X) to a specific number of digits, left-padding
 \ with spaces for numbers with fewer digits (so lower numbers will be right-
@@ -11286,9 +11509,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  BPRNT
-\ Category:         Text
-\ One-line summary: Print 32-bit number, left-padded to n digits, optional point
+\       Name: BPRNT
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print 32-bit number, left-padded to n digits, optional point
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print the 32-bit number stored in K(0 1 2 3) to a specific number of digits,
 \ left-padding with spaces for numbers with fewer digits (so lower numbers are
@@ -11688,9 +11914,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  BELL
-\ Category:         Sound
-\ One-line summary:  Make a beep sound
+\       Name: BELL
+\       Type: Subroutine
+\   Category: Sound
+\    Summary:  Make a beep sound
+\
+\ ------------------------------------------------------------------------------
 \
 \ This is the standard system beep as made bu VDU 7.
 \
@@ -11705,9 +11934,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT26
-\ Category:         Text
-\ One-line summary: Print a character at the text cursor (WRCHV points here)
+\       Name: TT26
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a character at the text cursor (WRCHV points here)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print a character at the text cursor (XC, YC), do a beep, print a newline,
 \ or delete left (backspace).
@@ -12074,9 +12306,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DIALS (Part 1 of 4)
-\ Category:         Dashboard
-\ One-line summary: Update the dashboard
+\       Name: DIALS (Part 1 of 4)
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Update the dashboard
+\
+\ ------------------------------------------------------------------------------
 \
 \ This section draws the speed indicator.
 \
@@ -12119,11 +12354,14 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DIALS (Part 2 of 4)
-\ Category:         Dashboard
-\ One-line summary: Update the dashboard
+\       Name: DIALS (Part 2 of 4)
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Update the dashboard
 \
-\ Update the dashboard. This section draws the roll and pitch indicators.
+\ ------------------------------------------------------------------------------
+\
+\ This section draws the roll and pitch indicators.
 \
 \ ******************************************************************************
 
@@ -12184,11 +12422,14 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DIALS (Part 3 of 4)
-\ Category:         Dashboard
-\ One-line summary: Update the dashboard
+\       Name: DIALS (Part 3 of 4)
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Update the dashboard
 \
-\ Update the dashboard. This section draws the four energy banks.
+\ ------------------------------------------------------------------------------
+\
+\ This section draws the four energy banks.
 \
 \ This and the next section only run once every four iterations of the main
 \ loop, so while the speed, roll and pitch indicators update every iteration,
@@ -12306,12 +12547,14 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DIALS (Part 4 of 4)
-\ Category:         Dashboard
-\ One-line summary: Update the dashboard
+\       Name: DIALS (Part 4 of 4)
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Update the dashboard
 \
-\ Update the dashboard. This section draws the indicators in the left part of
-\ the dashboard.
+\ ------------------------------------------------------------------------------
+\
+\ This section draws the indicators in the left part of the dashboard.
 \
 \ ******************************************************************************
 
@@ -12376,9 +12619,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PZW
-\ Category:         Dashboard
-\ One-line summary: Fetch the current dashboard colours, to support flashing
+\       Name: PZW
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Fetch the current dashboard colours, to support flashing
+\
+\ ------------------------------------------------------------------------------
 \
 \ Set A and X to the colours we should use for indicators showing dangerous and
 \ safe values respectively. This enables us to implement flashing indicators,
@@ -12431,9 +12677,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DILX
-\ Category:         Dashboard
-\ One-line summary: Update a bar-based indicator on the dashboard
+\       Name: DILX
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Update a bar-based indicator on the dashboard
+\
+\ ------------------------------------------------------------------------------
 \
 \ The range of values shown on the indicator depends on which entry point is
 \ called. For the default entry point of DILX, the range is 0-255 (as the value
@@ -12689,9 +12938,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DIL2
-\ Category:         Dashboard
-\ One-line summary: Update the roll or pitch indicator on the dashboard
+\       Name: DIL2
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Update the roll or pitch indicator on the dashboard
+\
+\ ------------------------------------------------------------------------------
 \
 \ The indicator can show a vertical bar in 16 positions, with a value of 8
 \ showing the bar in the middle of the indicator.
@@ -12812,9 +13064,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Variable name:    TVT1
-\ Category:         Screen mode
-\ One-line summary: Palette data for space and the two dashboard colour schemes
+\       Name: TVT1
+\       Type: Variable
+\   Category: Screen mode
+\    Summary: Palette data for space and the two dashboard colour schemes
+\
+\ ------------------------------------------------------------------------------
 \
 \ Palette bytes for use with the split-screen mode (see IRQ1 below for more
 \ details).
@@ -12877,9 +13132,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  IRQ1
-\ Category:         Screen mode
-\ One-line summary: The main screen-mode interrupt handler (IRQ1V points here)
+\       Name: IRQ1
+\       Type: Subroutine
+\   Category: Screen mode
+\    Summary: The main screen-mode interrupt handler (IRQ1V points here)
+\
+\ ------------------------------------------------------------------------------
 \
 \ The main interrupt handler, which implements Elite's split-screen mode.
 \
@@ -13137,9 +13395,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ESCAPE
-\ Category:         Flight
-\ One-line summary: Launch our escape pod
+\       Name: ESCAPE
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Launch our escape pod
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine displays our doomed Cobra Mk III disappearing off into the ether
 \ before arranging our replacement ship. Called when we press Escape during
@@ -13242,7 +13503,7 @@ SAVE "output/ELTB.bin", CODE_B%, P%, LOAD%
 
 \ ******************************************************************************
 \
-\ ELITE C
+\ ELITE C FILE
 \
 \ Produces the binary file ELTC.bin that gets loaded by elite-bcfs.asm.
 \
@@ -13253,13 +13514,15 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TACTICS (Part 1 of 7)
-\ Category:         Tactics
-\ One-line summary: Apply AI tactics to ships, missiles, escape pods & stations
+\       Name: TACTICS (Part 1 of 7)
+\       Type: Subroutine
+\   Category: Tactics
+\    Summary: Apply AI tactics to the current ship
 \
-\ This routine applies tactics to the current ship. This section implements
-\ missile tactics and is entered at TA18 from the main entry point below, of the
-\ current ship is a missile. Specifically:
+\ ------------------------------------------------------------------------------
+\
+\ This section implements missile tactics and is entered at TA18 from the main
+\ entry point below, if the current ship is a missile. Specifically:
 \
 \   * If E.C.M. is active, destroy the missile
 \
@@ -13425,13 +13688,16 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TACTICS (Part 2 of 7)
-\ Category:         Tactics
-\ One-line summary: Apply AI tactics to ships, missiles, escape pods & stations
+\       Name: TACTICS (Part 2 of 7)
+\       Type: Subroutine
+\   Category: Tactics
+\    Summary: Apply AI tactics to the current ship
 \
-\ Apply tactics to the current ship. This section contains the main entry point
-\ at TACTICS, which is called from MVEIT (part 2) for ships that have the AI
-\ flag set (i.e. bit 7 of byte #32). This part does the following:
+\ ------------------------------------------------------------------------------
+\
+\ This section contains the main entry point at TACTICS, which is called from
+\ part 2 of MVEIT for ships that have the AI flag set (i.e. bit 7 of byte #32).
+\ This part does the following:
 \
 \   * If this is a missile, jump up to the missile code in part 1
 \
@@ -13529,12 +13795,14 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TACTICS (Part 3 of 7)
-\ Category:         Tactics
-\ One-line summary: Apply AI tactics to ships, missiles, escape pods & stations
+\       Name: TACTICS (Part 3 of 7)
+\       Type: Subroutine
+\   Category: Tactics
+\    Summary: Apply AI tactics to the current ship
 \
-\ Apply tactics to the current ship. This section sets up some vectors and
-\ calculates dot products. Specifically:
+\ ------------------------------------------------------------------------------
+\
+\ This section sets up some vectors and calculates dot products. Specifically:
 \
 \   * Calculate the dot product of the ship's nose vector (i.e. the direction it
 \     is pointing) with the vector between us and the ship. This value will help
@@ -13583,12 +13851,14 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TACTICS (Part 4 of 7)
-\ Category:         Tactics
-\ One-line summary: Apply AI tactics to ships, missiles, escape pods & stations
+\       Name: TACTICS (Part 4 of 7)
+\       Type: Subroutine
+\   Category: Tactics
+\    Summary: Apply AI tactics to the current ship
 \
-\ Apply tactics to the current ship. This section works out what kind of
-\ condition the ship is in. Specifically:
+\ ------------------------------------------------------------------------------
+\
+\ This section works out what kind of condition the ship is in. Specifically:
 \
 \   * Rarely (2.5% chance) roll the ship by a noticeable amount
 \
@@ -13655,12 +13925,14 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TACTICS (Part 5 of 7)
-\ Category:         Tactics
-\ One-line summary: Apply AI tactics to ships, missiles, escape pods & stations
+\       Name: TACTICS (Part 5 of 7)
+\       Type: Subroutine
+\   Category: Tactics
+\    Summary: Apply AI tactics to the current ship
 \
-\ Apply tactics to the current ship. This section considers whether to launch a
-\ missile. Specifically:
+\ ------------------------------------------------------------------------------
+\
+\ This section considers whether to launch a missile. Specifically:
 \
 \   * If the ship doesn't have any missiles, skip to the next part
 \
@@ -13715,12 +13987,14 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TACTICS (Part 6 of 7)
-\ Category:         Tactics
-\ One-line summary: Apply AI tactics to ships, missiles, escape pods & stations
+\       Name: TACTICS (Part 6 of 7)
+\       Type: Subroutine
+\   Category: Tactics
+\    Summary: Apply AI tactics to the current ship
 \
-\ Apply tactics to the current ship. This section looks at potentially firing
-\ the ship's laser at us. Specifically:
+\ ------------------------------------------------------------------------------
+\
+\ This section looks at potentially firing the ship's laser at us. Specifically:
 \
 \   * If the ship is not pointing at us, skip to the next part
 \
@@ -13802,12 +14076,14 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TACTICS (Part 7 of 7)
-\ Category:         Tactics
-\ One-line summary: Apply AI tactics to ships, missiles, escape pods & stations
+\       Name: TACTICS (Part 7 of 7)
+\       Type: Subroutine
+\   Category: Tactics
+\    Summary: Apply AI tactics to the current ship
 \
-\ Apply tactics to the current ship. This section looks at manoeuvring the
-\ ship. Specifically:
+\ ------------------------------------------------------------------------------
+\
+\ This section looks at manoeuvring the ship. Specifically:
 \
 \   * Work out which direction the ship should be moving, depending on whether
 \     it's an escape pod, where it is, which direction it is pointing, and how
@@ -13971,9 +14247,12 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TAS1
-\ Category:         Maths
-\ One-line summary: Calculate K3 = (x_sign x_hi x_lo) - V(1 0)
+\       Name: TAS1
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate K3 = (x_sign x_hi x_lo) - V(1 0)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate one of the following, depending on the value in Y:
 \
@@ -14046,9 +14325,12 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  HITCH
-\ Category:         Tactics
-\ One-line summary: Work out if the ship in INWK is in our crosshairs
+\       Name: HITCH
+\       Type: Subroutine
+\   Category: Tactics
+\    Summary: Work out if the ship in INWK is in our crosshairs
+\
+\ ------------------------------------------------------------------------------
 \
 \ This is called by the main flight loop to see if we have laser or missile lock
 \ on an enemy ship.
@@ -14198,9 +14480,12 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  FRS1
-\ Category:         Tactics
-\ One-line summary: Launch a ship straight ahead of us, below the laser sights
+\       Name: FRS1
+\       Type: Subroutine
+\   Category: Tactics
+\    Summary: Launch a ship straight ahead of us, below the laser sights
+\
+\ ------------------------------------------------------------------------------
 \
 \ This is used in two places:
 \
@@ -14277,9 +14562,12 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  FRMIS
-\ Category:         Tactics
-\ One-line summary: Fire a missile from our ship
+\       Name: FRMIS
+\       Type: Subroutine
+\   Category: Tactics
+\    Summary: Fire a missile from our ship
+\
+\ ------------------------------------------------------------------------------
 \
 \ We fired a missile, so send it streaking away from us to unleash mayhem and
 \ destruction on our sworn enemies.
@@ -14317,9 +14605,12 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ANGRY
-\ Category:         Tactics
-\ One-line summary: Make a ship hostile
+\       Name: ANGRY
+\       Type: Subroutine
+\   Category: Tactics
+\    Summary: Make a ship hostile
+\
+\ ------------------------------------------------------------------------------
 \
 \ All this actually does is set the ship's hostile flag, start it turning and
 \ give it a kick of acceleration - later calls to TACTICS will make the ship
@@ -14384,9 +14675,12 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  FR1
-\ Category:         Tactics
-\ One-line summary: Display the "missile jammed" message
+\       Name: FR1
+\       Type: Subroutine
+\   Category: Tactics
+\    Summary: Display the "missile jammed" message
+\
+\ ------------------------------------------------------------------------------
 \
 \ This is shown if there isn't room in the local bubble of universe for a new
 \ missile.
@@ -14406,9 +14700,12 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SESCP
-\ Category:         Flight
-\ One-line summary: Spawn an escape pod from the current (parent) ship
+\       Name: SESCP
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Spawn an escape pod from the current (parent) ship
+\
+\ ------------------------------------------------------------------------------
 \
 \ This is called when an enemy ship has run out of both energy and luck, so it's
 \ time to bail.
@@ -14427,9 +14724,12 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SFS1
-\ Category:         Universe
-\ One-line summary: Spawn a child ship from the current (parent) ship
+\       Name: SFS1
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Spawn a child ship from the current (parent) ship
+\
+\ ------------------------------------------------------------------------------
 \
 \ If the parent is a space station then the child ship is spawned coming out of
 \ the slot, and if the child is a cargo canister, it is sent tumbling through
@@ -14605,9 +14905,12 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SFS2
-\ Category:         Moving
-\ One-line summary: Move a ship in space along one of the coordinate axes
+\       Name: SFS2
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Move a ship in space along one of the coordinate axes
+\
+\ ------------------------------------------------------------------------------
 \
 \ Move a ship's coordinates by a certain amount in the direction of one of the
 \ axes, where X determines the axis. Mathematically speaking, this routine
@@ -14642,9 +14945,12 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL164
-\ Category:         Drawing circles
-\ One-line summary: Make the hyperspace sound and draw the hyperspace tunnel
+\       Name: LL164
+\       Type: Subroutine
+\   Category: Drawing circles
+\    Summary: Make the hyperspace sound and draw the hyperspace tunnel
+\
+\ ------------------------------------------------------------------------------
 \
 \ See the IRQ1 routine for details on the multi-coloured effect that's used.
 \
@@ -14675,9 +14981,12 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LAUN
-\ Category:         Drawing circles
-\ One-line summary: Make the launch sound and draw the launch tunnel
+\       Name: LAUN
+\       Type: Subroutine
+\   Category: Drawing circles
+\    Summary: Make the launch sound and draw the launch tunnel
+\
+\ ------------------------------------------------------------------------------
 \
 \ This is shown when launching from or docking with the space station.
 \
@@ -14698,9 +15007,12 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  HFS2
-\ Category:         Drawing circles
-\ One-line summary: Draw the launch or hyperspace tunnel
+\       Name: HFS2
+\       Type: Subroutine
+\   Category: Drawing circles
+\    Summary: Draw the launch or hyperspace tunnel
+\
+\ ------------------------------------------------------------------------------
 \
 \ The animation gets drawn like this. First, we draw a circle of radius 8 at the
 \ centre, and then double the radius, draw another circle, double the radius
@@ -14799,9 +15111,12 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  STARS2
-\ Category:         Stardust
-\ One-line summary: Process the stardust for the left or right view
+\       Name: STARS2
+\       Type: Subroutine
+\   Category: Stardust
+\    Summary: Process the stardust for the left or right view
+\
+\ ------------------------------------------------------------------------------
 \
 \ This moves the stardust sideways according to our speed and which side we are
 \ looking out of, and applies our current pitch and roll to each particle of
@@ -15174,9 +15489,12 @@ LOAD_C% = LOAD% +P% - CODE%
 
 \ ******************************************************************************
 \
-\ Variable name:    SNE
-\ Category:         Maths
-\ One-line summary: Sine/cosine table
+\       Name: SNE
+\       Type: Variable
+\   Category: Maths
+\    Summary: Sine/cosine table
+\
+\ ------------------------------------------------------------------------------
 \
 \ To calculate the following:
 \
@@ -15251,9 +15569,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MU5
-\ Category:         Maths
-\ One-line summary: Set K(3 2 1 0) = (A A A A) and clear the C flGag
+\       Name: MU5
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Set K(3 2 1 0) = (A A A A) and clear the C flGag
+\
+\ ------------------------------------------------------------------------------
 \
 \ In practice this is only called via a BEQ following an AND instruction, in
 \ which case A = 0, so this routine effectively does this:
@@ -15276,9 +15597,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MULT3
-\ Category:         Maths
-\ One-line summary: Calculate K(3 2 1 0) = (A P+1 P) * Q
+\       Name: MULT3
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate K(3 2 1 0) = (A P+1 P) * Q
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following multiplication between a signed 24-bit number and a
 \ signed 8-bit number, returning the result as a signed 32-bit number:
@@ -15394,9 +15718,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MLS2
-\ Category:         Maths
-\ One-line summary: Calculate (S R) = XX(1 0) and (A P) = A * ALP1
+\       Name: MLS2
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (S R) = XX(1 0) and (A P) = A * ALP1
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following:
 \
@@ -15422,9 +15749,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MLS1
-\ Category:         Maths
-\ One-line summary: Calculate (A P) = ALP1 * A
+\       Name: MLS1
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (A P) = ALP1 * A
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following:
 \
@@ -15534,9 +15864,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SQUA
-\ Category:         Maths
-\ One-line summary: Clear bit 7 of A and calculate (A P) = A * A
+\       Name: SQUA
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Clear bit 7 of A and calculate (A P) = A * A
+\
+\ ------------------------------------------------------------------------------
 \
 \ Do the following multiplication of unsigned 8-bit numbers, after first
 \ clearing bit 7 of A:
@@ -15553,9 +15886,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SQUA2
-\ Category:         Maths
-\ One-line summary: Calculate (A P) = A * A
+\       Name: SQUA2
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (A P) = A * A
+\
+\ ------------------------------------------------------------------------------
 \
 \ Do the following multiplication of unsigned 8-bit numbers:
 \
@@ -15574,9 +15910,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MU1
-\ Category:         Maths
-\ One-line summary: Copy X into P and A, and clear the C flag
+\       Name: MU1
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Copy X into P and A, and clear the C flag
+\
+\ ------------------------------------------------------------------------------
 \
 \ Used to return a 0 result quickly from MULTU below.
 \
@@ -15594,9 +15933,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MLU1
-\ Category:         Maths
-\ One-line summary: Calculate Y1 = y_hi and (A P) = |y_hi| * Q for Y-th stardust
+\       Name: MLU1
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate Y1 = y_hi and (A P) = |y_hi| * Q for Y-th stardust
+\
+\ ------------------------------------------------------------------------------
 \
 \ Do the following assignment, and multiply the Y-th stardust particle's
 \ y-coordinate with an unsigned number Q:
@@ -15619,9 +15961,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MLU2
-\ Category:         Maths
-\ One-line summary: Calculate (A P) = |A| * Q
+\       Name: MLU2
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (A P) = |A| * Q
+\
+\ ------------------------------------------------------------------------------
 \
 \ Do the following multiplication of a sign-magnitude 8-bit number P with an
 \ unsigned number Q:
@@ -15643,9 +15988,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MULTU
-\ Category:         Maths
-\ One-line summary: Calculate (A P) = P * Q
+\       Name: MULTU
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (A P) = P * Q
+\
+\ ------------------------------------------------------------------------------
 \
 \ Do the following multiplication of unsigned 8-bit numbers:
 \
@@ -15666,9 +16014,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MU11
-\ Category:         Maths
-\ One-line summary: Calculate (A P) = P * X
+\       Name: MU11
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (A P) = P * X
+\
+\ ------------------------------------------------------------------------------
 \
 \ Do the following multiplication of two unsigned 8-bit numbers:
 \
@@ -15727,9 +16078,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MU6
-\ Category:         Maths
-\ One-line summary: Set P(1 0) = (A A)
+\       Name: MU6
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Set P(1 0) = (A A)
+\
+\ ------------------------------------------------------------------------------
 \
 \ In practice this is only called via a BEQ following an AND instruction, in
 \ which case A = 0, so this routine effectively does this:
@@ -15748,9 +16102,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  FMLTU2
-\ Category:         Maths
-\ One-line summary: Calculate A = K * sin(A)
+\       Name: FMLTU2
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate A = K * sin(A)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following:
 \
@@ -15786,9 +16143,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  FMLTU
-\ Category:         Maths
-\ One-line summary: Calculate A = A * Q / 256
+\       Name: FMLTU
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate A = A * Q / 256
+\
+\ ------------------------------------------------------------------------------
 \
 \ Do the following multiplication of two unsigned 8-bit numbers, returning only
 \ the high byte of the result:
@@ -15879,9 +16239,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Unused duplicate of MULTU
-\ Category:         Maths
-\ One-line summary: Unused duplicate of the MULTU routine
+\       Name: Unused duplicate of MULTU
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Unused duplicate of the MULTU routine
+\
+\ ------------------------------------------------------------------------------
 \
 \ This is a duplicate of the MULTU routine, but with no entry label, so it can't
 \ be called by name. It is unused, and could have been culled to save a few
@@ -15914,9 +16277,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MLTU2
-\ Category:         Maths
-\ One-line summary: Calculate (A P+1 P) = (A ~P) * Q
+\       Name: MLTU2
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (A P+1 P) = (A ~P) * Q
+\
+\ ------------------------------------------------------------------------------
 \
 \ Do the following multiplication of an unsigned 16-bit number and an unsigned
 \ 8-bit number:
@@ -16003,9 +16369,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MUT3
-\ Category:         Maths
-\ One-line summary: Unused routine that does the same as MUT2
+\       Name: MUT3
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Unused routine that does the same as MUT2
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine is never actually called, but it is identical to MUT2, as the
 \ extra instructions have no effect.
@@ -16025,9 +16394,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MUT2
-\ Category:         Maths
-\ One-line summary: Calculate (S R) = XX(1 0) and (A P) = Q * A
+\       Name: MUT2
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (S R) = XX(1 0) and (A P) = Q * A
+\
+\ ------------------------------------------------------------------------------
 \
 \ Do the following assignment, and multiplication of two signed 8-bit numbers:
 \
@@ -16049,9 +16421,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MUT1
-\ Category:         Maths
-\ One-line summary: Calculate R = XX and (A P) = Q * A
+\       Name: MUT1
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate R = XX and (A P) = Q * A
+\
+\ ------------------------------------------------------------------------------
 \
 \ Do the following assignment, and multiplication of two signed 8-bit numbers:
 \
@@ -16072,9 +16447,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MULT1
-\ Category:         Maths
-\ One-line summary: Calculate (A P) = Q * A
+\       Name: MULT1
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (A P) = Q * A
+\
+\ ------------------------------------------------------------------------------
 \
 \ Do the following multiplication of two 8-bit sign-magnitude numbers:
 \
@@ -16232,9 +16610,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MULT12
-\ Category:         Maths
-\ One-line summary: Calculate (S R) = Q * A
+\       Name: MULT12
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (S R) = Q * A
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate:
 \
@@ -16255,9 +16636,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TAS3
-\ Category:         Maths
-\ One-line summary: Calculate the dot product of XX15 and an orientation vector
+\       Name: TAS3
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate the dot product of XX15 and an orientation vector
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the dot product of the vector in XX15 and one of the orientation
 \ vectors, as determined by the value of Y. If vect is the orientation vector,
@@ -16316,9 +16700,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MAD
-\ Category:         Maths
-\ One-line summary: Calculate (A X) = Q * A + (S R)
+\       Name: MAD
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (A X) = Q * A + (S R)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate
 \
@@ -16338,9 +16725,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ADD
-\ Category:         Maths
-\ One-line summary: Calculate (A X) = (A P) + (S R)
+\       Name: ADD
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (A X) = (A P) + (S R)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Add two signed 16-bit numbers together, making sure the result has the
 \ correct sign. Specifically:
@@ -16512,9 +16902,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TIS1
-\ Category:         Maths
-\ One-line summary: Calculate (A ?) = (-X * A + (S R)) / 96
+\       Name: TIS1
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (A ?) = (-X * A + (S R)) / 96
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following expression between sign-magnitude numbers, ignoring
 \ the low byte of the result:
@@ -16588,9 +16981,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DV42
-\ Category:         Maths
-\ One-line summary: Calculate (P R) = 256 * DELTA / z_hi
+\       Name: DV42
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (P R) = 256 * DELTA / z_hi
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following division and remainder:
 \
@@ -16626,9 +17022,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DV41
-\ Category:         Maths
-\ One-line summary: Calculate (P R) = 256 * DELTA / A
+\       Name: DV41
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (P R) = 256 * DELTA / A
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following division and remainder:
 \
@@ -16658,9 +17057,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DVID4
-\ Category:         Maths
-\ One-line summary: Calculate (P R) = 256 * A / Q
+\       Name: DVID4
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (P R) = 256 * A / Q
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following division and remainder:
 \
@@ -16724,9 +17126,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DVID3B2
-\ Category:         Maths
-\ One-line summary: Calculate K(3 2 1 0) = (A P+1 P) / (z_sign z_hi z_lo)
+\       Name: DVID3B2
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate K(3 2 1 0) = (A P+1 P) / (z_sign z_hi z_lo)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following:
 \
@@ -16955,9 +17360,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  cntr
-\ Category:         Dashboard
-\ One-line summary: Apply damping to the pitch or roll dashboard indicator
+\       Name: cntr
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Apply damping to the pitch or roll dashboard indicator
+\
+\ ------------------------------------------------------------------------------
 \
 \ Apply damping to the value in X, where X ranges from 1 to 255 with 128 as the
 \ centre point (so X represents a position on a centre-based dashboard slider,
@@ -17003,9 +17411,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  BUMP2
-\ Category:         Dashboard
-\ One-line summary: Bump up the value of the pitch or roll dashboard indicator
+\       Name: BUMP2
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Bump up the value of the pitch or roll dashboard indicator
+\
+\ ------------------------------------------------------------------------------
 \
 \ Increase ("bump up") X by A, where X is either the current rate of pitch or
 \ the current rate of roll.
@@ -17065,9 +17476,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  REDU2
-\ Category:         Dashboard
-\ One-line summary: Reduce the value of the pitch or roll dashboard indicator
+\       Name: REDU2
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Reduce the value of the pitch or roll dashboard indicator
+\
+\ ------------------------------------------------------------------------------
 \
 \ Reduce X by A, where X is either the current rate of pitch or the current
 \ rate of roll.
@@ -17133,9 +17547,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ARCTAN
-\ Category:         Maths
-\ One-line summary: Calculate A = arctan(P / Q)
+\       Name: ARCTAN
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate A = arctan(P / Q)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following:
 \
@@ -17263,9 +17680,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Variable name:    ACT
-\ Category:         Maths
-\ One-line summary: Arctan table
+\       Name: ACT
+\       Type: Variable
+\   Category: Maths
+\    Summary: Arctan table
+\
+\ ------------------------------------------------------------------------------
 \
 \ To calculate the following:
 \
@@ -17311,9 +17731,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  WARP
-\ Category:         Flight
-\ One-line summary: Perform an in-system jump
+\       Name: WARP
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Perform an in-system jump
+\
+\ ------------------------------------------------------------------------------
 \
 \ This is called when we press "J" during flight. The following checks are
 \ performed:
@@ -17506,9 +17929,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LASLI
-\ Category:         Drawing lines
-\ One-line summary: Draw the laser lines for when we fire our lasers
+\       Name: LASLI
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw the laser lines for when we fire our lasers
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw the laser lines, aiming them to slightly different place each time so
 \ they appear to flicker and dance. Also heat up the laser temperature and drain
@@ -17602,9 +18028,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PLUT
-\ Category:         Flight
-\ One-line summary: Flip the coordinate axes for the four different views
+\       Name: PLUT
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Flip the coordinate axes for the four different views
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine flips the relevant geometric axes in INWK depending on which
 \ view we are looking through (forward, rear, left, right).
@@ -17916,9 +18345,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LOOK1
-\ Category:         Flight
-\ One-line summary: Initialise the space view
+\       Name: LOOK1
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Initialise the space view
+\
+\ ------------------------------------------------------------------------------
 \
 \ Initialise the space view, with the direction of view given in X. This clears
 \ the upper screen and draws the laser crosshairs, if the view in X has lasers
@@ -18011,9 +18443,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT66
-\ Category:         Utility routines
-\ One-line summary: Clear the screen and set the current view type
+\       Name: TT66
+\       Type: Subroutine
+\   Category: Utility routines
+\    Summary: Clear the screen and set the current view type
+\
+\ ------------------------------------------------------------------------------
 \
 \ Clear the top part of the screen (mode 4), draw a white border, and set the
 \ current view type in QQ11 to A.
@@ -18042,9 +18477,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TTX66
-\ Category:         Utility routines
-\ One-line summary: Clear the top part of the screen and draw a white border
+\       Name: TTX66
+\       Type: Subroutine
+\   Category: Utility routines
+\    Summary: Clear the top part of the screen and draw a white border
+\
+\ ------------------------------------------------------------------------------
 \
 \ Clear the top part of the screen (the mode 4 part) and draw a white border
 \ along the top and sides.
@@ -18187,9 +18625,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DELAY
-\ Category:         Utility routines
-\ One-line summary: Wait for a specified time, in 1/50s of a second
+\       Name: DELAY
+\       Type: Subroutine
+\   Category: Utility routines
+\    Summary: Wait for a specified time, in 1/50s of a second
+\
+\ ------------------------------------------------------------------------------
 \
 \ Wait for the number of vertical syncs given in Y, so this effectively waits
 \ for Y/50 of a second (as the vertical sync occurs 50 times a second).
@@ -18233,9 +18674,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  hm
-\ Category:         Charts
-\ One-line summary: Select the closest system and redraw the chart crosshairs
+\       Name: hm
+\       Type: Subroutine
+\   Category: Charts
+\    Summary: Select the closest system and redraw the chart crosshairs
+\
+\ ------------------------------------------------------------------------------
 \
 \ Set the system closest to galactic coordinates (QQ9, QQ10) as the selected
 \ system, redraw the crosshairs on the chart accordingly (if they are being
@@ -18265,9 +18709,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  CLYNS
-\ Category:         Utility routines
-\ One-line summary: Clear the bottom three text rows of the mode 4 screen
+\       Name: CLYNS
+\       Type: Subroutine
+\   Category: Utility routines
+\    Summary: Clear the bottom three text rows of the mode 4 screen
+\
+\ ------------------------------------------------------------------------------
 \
 \ Clear some space at the bottom of the screen and move the text cursor to
 \ column 1, row 21. Specifically, this zeroes the following screen locations:
@@ -18319,9 +18766,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LYN
-\ Category:         Utility routines
-\ One-line summary: Clear most of a row of pixels
+\       Name: LYN
+\       Type: Subroutine
+\   Category: Utility routines
+\    Summary: Clear most of a row of pixels
+\
+\ ------------------------------------------------------------------------------
 \
 \ Set pixels 0-233 to the value in A, starting at the pixel pointed to by SC.
 \
@@ -18360,9 +18810,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SCAN
-\ Category:         Dashboard
-\ One-line summary: Display the current ship on the scanner
+\       Name: SCAN
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Display the current ship on the scanner
+\
+\ ------------------------------------------------------------------------------
 \
 \ This is used both to display a ship on the scanner, and to erase it again.
 \
@@ -18937,9 +19390,12 @@ NEXT
 
 \ ******************************************************************************
 \
-\ Subroutine name:  WSCAN
-\ Category:         Screen mode
-\ One-line summary: Wait for the vertical sync
+\       Name: WSCAN
+\       Type: Subroutine
+\   Category: Screen mode
+\    Summary: Wait for the vertical sync
+\
+\ ------------------------------------------------------------------------------
 \
 \ Wait for vertical sync to occur on the video system - in other words, wait
 \ for the screen to start its refresh cycle, which it does 50 times a second
@@ -18979,7 +19435,7 @@ SAVE "output/ELTC.bin", CODE_C%, P%, LOAD%
 
 \ ******************************************************************************
 \
-\ ELITE D
+\ ELITE D FILE
 \
 \ Produces the binary file ELTD.bin that gets loaded by elite-bcfs.asm.
 \
@@ -18990,9 +19446,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  tnpr
-\ Category:         Market
-\ One-line summary: Work out if we have space for a specific amount of cargo
+\       Name: tnpr
+\       Type: Subroutine
+\   Category: Market
+\    Summary: Work out if we have space for a specific amount of cargo
+\
+\ ------------------------------------------------------------------------------
 \
 \ Given a market item and an amount, work out whether there is room in the
 \ cargo hold for this item.
@@ -19101,9 +19560,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT20
-\ Category:         Universe
-\ One-line summary: Twist the selected system's seeds four times
+\       Name: TT20
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Twist the selected system's seeds four times
+\
+\ ------------------------------------------------------------------------------
 \
 \ Twist the three 16-bit seeds in QQ15 (selected system) four times, to
 \ generate the next system.
@@ -19126,9 +19588,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT54
-\ Category:         Universe
-\ One-line summary: Twist the selected system's seeds
+\       Name: TT54
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Twist the selected system's seeds
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine twists the three 16-bit seeds in QQ15 once.
 \
@@ -19263,9 +19728,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT146
-\ Category:         Text
-\ One-line summary: Print the distance to the selected system in light years
+\       Name: TT146
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print the distance to the selected system in light years
+\
+\ ------------------------------------------------------------------------------
 \
 \ If it is non-zero, print the distance to the selected system in light years.
 \ If it is zero, just move the text cursor down a line.
@@ -19307,9 +19775,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT60
-\ Category:         Text
-\ One-line summary: Print a text token and a paragraph break
+\       Name: TT60
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a text token and a paragraph break
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print a text token (i.e. a character, control code, two-letter token or
 \ recursive token). Then print a paragraph break (a blank line between
@@ -19330,9 +19801,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TTX69
-\ Category:         Text
-\ One-line summary: Print a paragraph break
+\       Name: TTX69
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a paragraph break
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print a paragraph break (a blank line between paragraphs) by moving the cursor
 \ down a line, setting Sentence Case, and then printing a newline.
@@ -19349,9 +19823,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT69
-\ Category:         Text
-\ One-line summary: Set Sentence Case and print a newline
+\       Name: TT69
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Set Sentence Case and print a newline
 \
 \ ******************************************************************************
 
@@ -19365,9 +19840,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT67
-\ Category:         Text
-\ One-line summary: Print a newline
+\       Name: TT67
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a newline
 \
 \ ******************************************************************************
 
@@ -19381,9 +19857,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT70
-\ Category:         Text
-\ One-line summary: Display "MAINLY " and jump to TT72
+\       Name: TT70
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Display "MAINLY " and jump to TT72
+\
+\ ------------------------------------------------------------------------------
 \
 \ This subroutine is called by TT25 when displaying a system's economy.
 \
@@ -19400,9 +19879,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  spc
-\ Category:         Text
-\ One-line summary: Print a text token followed by a space
+\       Name: spc
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a text token followed by a space
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print a text token (i.e. a character, control code, two-letter token or
 \ recursive token) followed by a space.
@@ -19423,9 +19905,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT25
-\ Category:         Universe
-\ One-line summary: Show the Data on System screen (red key f6)
+\       Name: TT25
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Show the Data on System screen (red key f6)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Other entry points:
 \
@@ -19799,9 +20284,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT24
-\ Category:         Universe
-\ One-line summary: Calculate system data from the system seeds
+\       Name: TT24
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Calculate system data from the system seeds
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate system data from the seeds in QQ15 and store them in the relevant
 \ locations. Specifically, this routine calculates the following from the three
@@ -20026,9 +20514,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT22
-\ Category:         Charts
-\ One-line summary: Show the Long-range Chart (red key f4)
+\       Name: TT22
+\       Type: Subroutine
+\   Category: Charts
+\    Summary: Show the Long-range Chart (red key f4)
 \
 \ ******************************************************************************
 
@@ -20122,9 +20611,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT15
-\ Category:         Drawing lines
-\ One-line summary: Draw a set of crosshairs
+\       Name: TT15
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw a set of crosshairs
+\
+\ ------------------------------------------------------------------------------
 \
 \ For all views except the Short-range Chart, the centre is drawn 24 pixels to
 \ the right of the y-coordinate given.
@@ -20261,9 +20753,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT14
-\ Category:         Drawing circles
-\ One-line summary: Draw a circle with crosshairs on a chart
+\       Name: TT14
+\       Type: Subroutine
+\   Category: Drawing circles
+\    Summary: Draw a circle with crosshairs on a chart
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a circle with crosshairs at the current system's galactic coordinates.
 \
@@ -20334,9 +20829,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT128
-\ Category:         Drawing circles
-\ One-line summary: Draw a circle on a chart
+\       Name: TT128
+\       Type: Subroutine
+\   Category: Drawing circles
+\    Summary: Draw a circle on a chart
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a circle with the centre at (QQ19, QQ19+1) and radius K.
 \
@@ -20382,9 +20880,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT219
-\ Category:         Market
-\ One-line summary: Show the Buy Cargo screen (red key f1)
+\       Name: TT219
+\       Type: Subroutine
+\   Category: Market
+\    Summary: Show the Buy Cargo screen (red key f1)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Other entry points:
 \
@@ -20580,9 +21081,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  gnum
-\ Category:         Market
-\ One-line summary: Get a number from the keyboard
+\       Name: gnum
+\       Type: Subroutine
+\   Category: Market
+\    Summary: Get a number from the keyboard
+\
+\ ------------------------------------------------------------------------------
 \
 \ Get a number from the keyboard, up to the maximum number in QQ25. Pressing a
 \ key with an ASCII code less than ASCII "0" will return a 0 in A (so that
@@ -20675,9 +21179,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT208
-\ Category:         Market
-\ One-line summary: Show the Sell Cargo screen (red key f2)
+\       Name: TT208
+\       Type: Subroutine
+\   Category: Market
+\    Summary: Show the Sell Cargo screen (red key f2)
 \
 \ ******************************************************************************
 
@@ -20708,9 +21213,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT210
-\ Category:         Inventory
-\ One-line summary: Show a list of current cargo in our hold, optionally to sell
+\       Name: TT210
+\       Type: Subroutine
+\   Category: Inventory
+\    Summary: Show a list of current cargo in our hold, optionally to sell
+\
+\ ------------------------------------------------------------------------------
 \
 \ Show a list of current cargo in our hold, either with the ability to sell (the
 \ Sell Cargo screen) or without (the Inventory screen), depending on the current
@@ -20846,9 +21354,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT213
-\ Category:         Inventory
-\ One-line summary: Show the Inventory screen (red key f9)
+\       Name: TT213
+\       Type: Subroutine
+\   Category: Inventory
+\    Summary: Show the Inventory screen (red key f9)
 \
 \ ******************************************************************************
 
@@ -20886,9 +21395,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT214
-\ Category:         Inventory
-\ One-line summary: Ask a question with a "Y/N?" prompt and return the response
+\       Name: TT214
+\       Type: Subroutine
+\   Category: Inventory
+\    Summary: Ask a question with a "Y/N?" prompt and return the response
+\
+\ ------------------------------------------------------------------------------
 \
 \ Arguments:
 \
@@ -20937,9 +21449,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT16
-\ Category:         Charts
-\ One-line summary: Move the crosshairs on a chart
+\       Name: TT16
+\       Type: Subroutine
+\   Category: Charts
+\    Summary: Move the crosshairs on a chart
+\
+\ ------------------------------------------------------------------------------
 \
 \ Move the chart crosshairs by the amount in X and Y.
 \
@@ -21003,9 +21518,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT103
-\ Category:         Charts
-\ One-line summary: Draw a small set of crosshairs on a chart
+\       Name: TT103
+\       Type: Subroutine
+\   Category: Charts
+\    Summary: Draw a small set of crosshairs on a chart
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a small set of crosshairs on a galactic chart at the coordinates in
 \ (QQ9, QQ10).
@@ -21037,9 +21555,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT123
-\ Category:         Charts
-\ One-line summary: Move galactic coordinates by a signed delta
+\       Name: TT123
+\       Type: Subroutine
+\   Category: Charts
+\    Summary: Move galactic coordinates by a signed delta
+\
+\ ------------------------------------------------------------------------------
 \
 \ Move an 8-bit galactic coordinate by a certain distance in either direction
 \ (i.e. a signed 8-bit delta), but only if it doesn't cause the coordinate to
@@ -21099,9 +21620,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT105
-\ Category:         Charts
-\ One-line summary: Draw crosshairs on the Short-range Chart, with clipping
+\       Name: TT105
+\       Type: Subroutine
+\   Category: Charts
+\    Summary: Draw crosshairs on the Short-range Chart, with clipping
+\
+\ ------------------------------------------------------------------------------
 \
 \ Check whether the crosshairs are close enough to the current system to appear
 \ on the Short-range Chart, and if so, draw them.
@@ -21163,9 +21687,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT23
-\ Category:         Charts
-\ One-line summary: Show the Short-range Chart (red key f5)
+\       Name: TT23
+\       Type: Subroutine
+\   Category: Charts
+\    Summary: Show the Short-range Chart (red key f5)
 \
 \ ******************************************************************************
 
@@ -21407,9 +21932,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT81
-\ Category:         Universe
-\ One-line summary: Set the selected system's seeds to those of system 0
+\       Name: TT81
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Set the selected system's seeds to those of system 0
+\
+\ ------------------------------------------------------------------------------
 \
 \ Copy the three 16-bit seeds for the current galaxy's system 0 (QQ21) into the
 \ seeds for the selected system (QQ15) - in other words, set the selected
@@ -21435,9 +21963,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT111
-\ Category:         Universe
-\ One-line summary: Set the current system to the nearest system to a point
+\       Name: TT111
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Set the current system to the nearest system to a point
+\
+\ ------------------------------------------------------------------------------
 \
 \ Given a set of galactic coordinates in (QQ9, QQ10), find the nearest system
 \ to this point in the galaxy, and set this as the currently selected system.
@@ -21714,9 +22245,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  hy6
-\ Category:         Flight
-\ One-line summary: Print a message to say no hyperspacing inside the station
+\       Name: hy6
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Print a message to say no hyperspacing inside the station
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print "Docked" at the bottom of the screen to indicate we can't hyperspace
 \ when docked.
@@ -21740,9 +22274,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  hyp
-\ Category:         Flight
-\ One-line summary: Start the hyperspace process
+\       Name: hyp
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Start the hyperspace process
+\
+\ ------------------------------------------------------------------------------
 \
 \ Called when "H" or CTRL-H is pressed during flight. Checks the following:
 \
@@ -21824,9 +22361,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  wW
-\ Category:         Flight
-\ One-line summary: Start a hyperspace countdown
+\       Name: wW
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Start a hyperspace countdown
+\
+\ ------------------------------------------------------------------------------
 \
 \ Start the hyperspace countdown (for both inter-system hyperspace and the
 \ galactic hyperdrive).
@@ -21863,9 +22403,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Ghy
-\ Category:         Flight
-\ One-line summary: Perform a galactic hyperspace jump
+\       Name: Ghy
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Perform a galactic hyperspace jump
+\
+\ ------------------------------------------------------------------------------
 \
 \ Engage the galactic hyperdrive. Called from the hyp routine above if CTRL-H is
 \ being pressed.
@@ -21959,9 +22502,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  jmp
-\ Category:         Universe
-\ One-line summary: Set the current system to the selected system
+\       Name: jmp
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Set the current system to the selected system
+\
+\ ------------------------------------------------------------------------------
 \
 \ Returns:
 \
@@ -21988,9 +22534,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ee3
-\ Category:         Text
-\ One-line summary: Print the hyperspace countdown in the top-left of the screen
+\       Name: ee3
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print the hyperspace countdown in the top-left of the screen
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print the 8-bit number in X at text location (0, 1). Print the number to
 \ 5 digits, left-padding with spaces for numbers with fewer than 3 digits (so
@@ -22015,9 +22564,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  pr6
-\ Category:         Text
-\ One-line summary: Print 16-bit number, left-padded to 5 digits, no point
+\       Name: pr6
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print 16-bit number, left-padded to 5 digits, no point
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print the 16-bit number in (Y X) to 5 digits, left-padding with spaces for
 \ numbers with fewer than 3 digits (so numbers < 10000 are right-aligned),
@@ -22040,9 +22592,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  pr5
-\ Category:         Text
-\ One-line summary: Print 16-bit number, left-padded to 5 digits, optional point
+\       Name: pr5
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print 16-bit number, left-padded to 5 digits, optional point
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print the 16-bit number in (Y X) to 5 digits, left-padding with spaces for
 \ numbers with fewer than 3 digits (so numbers < 10000 are right-aligned).
@@ -22068,9 +22623,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT147
-\ Category:         Text
-\ One-line summary: Print an error when a system is out of hyperspace range
+\       Name: TT147
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print an error when a system is out of hyperspace range
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print "RANGE?" for when the hyperspace distance is too far
 \
@@ -22084,9 +22642,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  prq
-\ Category:         Text
-\ One-line summary: Print a text token followed by a question mark
+\       Name: prq
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a text token followed by a question mark
+\
+\ ------------------------------------------------------------------------------
 \
 \ Arguments:
 \
@@ -22104,9 +22665,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT151
-\ Category:         Market
-\ One-line summary: Print the name, price and availability of a market item
+\       Name: TT151
+\       Type: Subroutine
+\   Category: Market
+\    Summary: Print the name, price and availability of a market item
+\
+\ ------------------------------------------------------------------------------
 \
 \ Arguments:
 \
@@ -22295,9 +22859,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT152
-\ Category:         Market
-\ One-line summary: Print the unit ("t", "kg" or "g") for a market item
+\       Name: TT152
+\       Type: Subroutine
+\   Category: Market
+\    Summary: Print the unit ("t", "kg" or "g") for a market item
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print the unit ("t", "kg" or "g") for the market item whose byte #1 from the
 \ market prices table is in QQ19+1, right-padded with spaces to a width of two
@@ -22324,9 +22891,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT162
-\ Category:         Text
-\ One-line summary:  Print a space
+\       Name: TT162
+\       Type: Subroutine
+\   Category: Text
+\    Summary:  Print a space
 \
 \ ******************************************************************************
 
@@ -22340,9 +22908,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT160
-\ Category:         Market
-\ One-line summary:  Print "t" (for tonne) and a space
+\       Name: TT160
+\       Type: Subroutine
+\   Category: Market
+\    Summary:  Print "t" (for tonne) and a space
 \
 \ ******************************************************************************
 
@@ -22360,9 +22929,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT161
-\ Category:         Market
-\ One-line summary: Print "kg" (for kilograms)
+\       Name: TT161
+\       Type: Subroutine
+\   Category: Market
+\    Summary: Print "kg" (for kilograms)
 \
 \ ******************************************************************************
 
@@ -22377,9 +22947,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT16a
-\ Category:         Market
-\ One-line summary: Print "g" (for grams)
+\       Name: TT16a
+\       Type: Subroutine
+\   Category: Market
+\    Summary: Print "g" (for grams)
 \
 \ ******************************************************************************
 
@@ -22394,9 +22965,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT163
-\ Category:         Market
-\ One-line summary: Print the headers for the table of market prices
+\       Name: TT163
+\       Type: Subroutine
+\   Category: Market
+\    Summary: Print the headers for the table of market prices
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print the column headers for the prices table in the Buy Cargo and Market
 \ Price screens.
@@ -22417,9 +22991,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT167
-\ Category:         Market
-\ One-line summary: Show the Market Price screen (red key f7)
+\       Name: TT167
+\       Type: Subroutine
+\   Category: Market
+\    Summary: Show the Market Price screen (red key f7)
 \
 \ ******************************************************************************
 
@@ -22469,9 +23044,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  var
-\ Category:         Market
-\ One-line summary: Calculate QQ19+3 = economy * |economic_factor|
+\       Name: var
+\       Type: Subroutine
+\   Category: Market
+\    Summary: Calculate QQ19+3 = economy * |economic_factor|
+\
+\ ------------------------------------------------------------------------------
 \
 \ Set QQ19+3 = economy * |economic_factor|, given byte #1 of the market prices
 \ table for an item. Also sets the availability of Alien Items to 0.
@@ -22529,9 +23107,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  hyp1
-\ Category:         Universe
-\ One-line summary: Process a jump to the system closest to (QQ9, QQ10)
+\       Name: hyp1
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Process a jump to the system closest to (QQ9, QQ10)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Do a hyperspace jump to the system closest to galactic coordinates
 \ (QQ9, QQ10), and set up the current system's state to those of the new system.
@@ -22600,9 +23181,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  GVL
-\ Category:         Universe
-\ One-line summary: Calculate the availability of a market item
+\       Name: GVL
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Calculate the availability of a market item
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the availability for each market item and store it in AVL. This is
 \ called on arrival in a new system.
@@ -22716,9 +23300,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  GTHG
-\ Category:         Universe
-\ One-line summary: Spawn a Thargoid ship and a Thargon companion
+\       Name: GTHG
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Spawn a Thargoid ship and a Thargon companion
 \
 \ ******************************************************************************
 
@@ -22739,9 +23324,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MJP
-\ Category:         Flight
-\ One-line summary: Process a mis-jump into witchspace
+\       Name: MJP
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Process a mis-jump into witchspace
+\
+\ ------------------------------------------------------------------------------
 \
 \ Process a mis-jump into witchspace (which happens very rarely). Witchspace has
 \ a strange, almost dust-free aspect to it, and it is populated by hostile
@@ -22813,9 +23401,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT18
-\ Category:         Flight
-\ One-line summary: Try to initiate a jump into hyperspace
+\       Name: TT18
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Try to initiate a jump into hyperspace
+\
+\ ------------------------------------------------------------------------------
 \
 \ Try to go through hyperspace. Called from TT102 in the main loop when the
 \ hyperspace countdown has finished.
@@ -22895,9 +23486,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT110
-\ Category:         Flight
-\ One-line summary: Launch from a station or show the forward space view
+\       Name: TT110
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Launch from a station or show the forward space view
+\
+\ ------------------------------------------------------------------------------
 \
 \ Launch the ship (if we are docked), or show the forward space view (if we are
 \ already in space).
@@ -22962,9 +23556,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT114
-\ Category:         Charts
-\ One-line summary: Display either the Long-range or Short-range Chart
+\       Name: TT114
+\       Type: Subroutine
+\   Category: Charts
+\    Summary: Display either the Long-range or Short-range Chart
+\
+\ ------------------------------------------------------------------------------
 \
 \ Display either the Long-range or Short-range Chart, depending on the current
 \ view setting. Called from TT18 once we know the current view is one of the
@@ -22992,9 +23589,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LCASH
-\ Category:         Maths
-\ One-line summary: Subtract an amount of cash from the cash pot
+\       Name: LCASH
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Subtract an amount of cash from the cash pot
+\
+\ ------------------------------------------------------------------------------
 \
 \ Subtract (Y X) cash from the cash pot in CASH, but only if there is enough
 \ cash in the pot. As CASH is a four-byte number, this calculates:
@@ -23045,9 +23645,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MCASH
-\ Category:         Maths
-\ One-line summary: Add an amount of cash to the cash pot
+\       Name: MCASH
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Add an amount of cash to the cash pot
+\
+\ ------------------------------------------------------------------------------
 \
 \ Add (Y X) cash to the cash pot in CASH. As CASH is a four-byte number, this
 \ calculates:
@@ -23090,9 +23693,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  GCASH
-\ Category:         Maths
-\ One-line summary: Calculate (Y X) = P * Q * 4
+\       Name: GCASH
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (Y X) = P * Q * 4
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following multiplication of unsigned 8-bit numbers:
 \
@@ -23107,9 +23713,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  GC2
-\ Category:         Maths
-\ One-line summary: Calculate (Y X) = (A P) * 4
+\       Name: GC2
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (Y X) = (A P) * 4
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following multiplication of unsigned 16-bit numbers:
 \
@@ -23132,9 +23741,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  EQSHP
-\ Category:         Equipment
-\ One-line summary: Show the Equip Ship screen (red key f3)
+\       Name: EQSHP
+\       Type: Subroutine
+\   Category: Equipment
+\    Summary: Show the Equip Ship screen (red key f3)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Other entry points:
 \
@@ -23563,9 +24175,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  dn
-\ Category:         Text
-\ One-line summary: Print the amount of cash and beep
+\       Name: dn
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print the amount of cash and beep
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print the amount of money in the cash pot, then make a short, high beep and
 \ delay for 1 second.
@@ -23585,9 +24200,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  dn2
-\ Category:         Text
-\ One-line summary: Make a short, high beep and delay for 1 second
+\       Name: dn2
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Make a short, high beep and delay for 1 second
 \
 \ ******************************************************************************
 
@@ -23601,9 +24217,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  eq
-\ Category:         Equipment
-\ One-line summary: Subtract the price of equipment from the cash pot
+\       Name: eq
+\       Type: Subroutine
+\   Category: Equipment
+\    Summary: Subtract the price of equipment from the cash pot
+\
+\ ------------------------------------------------------------------------------
 \
 \ If we have enough cash, subtract the price of a specified piece of equipment
 \ from our cash pot and return from the subroutine. If we don't have enough
@@ -23638,9 +24257,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  prx
-\ Category:         Equipment
-\ One-line summary: Return the price of a piece of equipment
+\       Name: prx
+\       Type: Subroutine
+\   Category: Equipment
+\    Summary: Return the price of a piece of equipment
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine returns the price of equipment as listed in the table at PRXS.
 \
@@ -23680,9 +24302,12 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  qv
-\ Category:         Equipment
-\ One-line summary: Print a menu of the four laser mounts, for buying lasers
+\       Name: qv
+\       Type: Subroutine
+\   Category: Equipment
+\    Summary: Print a menu of the four laser mounts, for buying lasers
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print a menu in the bottom-middle of the screen, at row 16, column 12, that
 \ lists the four available laser mounts, like this:
@@ -23772,7 +24397,7 @@ SAVE "output/ELTD.bin", CODE_D%, P%, LOAD%
 
 \ ******************************************************************************
 \
-\ ELITE E
+\ ELITE E FILE
 \
 \ Produces the binary file ELTE.bin that gets loaded by elite-bcfs.asm.
 \
@@ -23783,9 +24408,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Variable name:    BDOLLAR
-\ Category:         Utility routines
-\ One-line summary: A copyright notice, buried in the code
+\       Name: BDOLLAR
+\       Type: Variable
+\   Category: Utility routines
+\    Summary: A copyright notice, buried in the code
+\
+\ ------------------------------------------------------------------------------
 \
 \ This copyright notice is not used anywhere and it is obfuscated by EOR'ing
 \ each character with 164, but presumably the authors wanted their names buried
@@ -23821,9 +24449,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  cpl
-\ Category:         Text
-\ One-line summary: Print the selected system name
+\       Name: cpl
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print the selected system name
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print control code 3 (the selected system name, i.e. the one in the crosshairs
 \ in the short range chart).
@@ -23925,9 +24556,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  cmn
-\ Category:         Text
-\ One-line summary: Print the commander's name
+\       Name: cmn
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print the commander's name
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print control code 4 (the commander's name).
 \
@@ -23956,9 +24590,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ypl
-\ Category:         Text
-\ One-line summary: Print the current system name
+\       Name: ypl
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print the current system name
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print control code 2 (the current system name).
 \
@@ -24006,9 +24643,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  tal
-\ Category:         Text
-\ One-line summary: Print the current galaxy numbe
+\       Name: tal
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print the current galaxy numbe
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print control code 1 (the current galaxy number, right-aligned to width 3).
 \
@@ -24034,9 +24674,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  fwl
-\ Category:         Text
-\ One-line summary: Print fuel and cash levels
+\       Name: fwl
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print fuel and cash levels
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print control code 5 ("FUEL: ", fuel level, " LIGHT YEARS", newline, "CASH:",
 \ control code 0).
@@ -24068,9 +24711,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  csh
-\ Category:         Text
-\ One-line summary: Print the current amount of cash
+\       Name: csh
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print the current amount of cash
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print control code 0 (the current amount of cash, right-aligned to width 9,
 \ followed by " CR" and a newline).
@@ -24112,9 +24758,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  plf
-\ Category:         Text
-\ One-line summary: Print a text token followed by a newline
+\       Name: plf
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a text token followed by a newline
+\
+\ ------------------------------------------------------------------------------
 \
 \ Arguments:
 \
@@ -24132,9 +24781,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT68
-\ Category:         Text
-\ One-line summary: Print a text token followed by a colon
+\       Name: TT68
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a text token followed by a colon
+\
+\ ------------------------------------------------------------------------------
 \
 \ Arguments:
 \
@@ -24150,9 +24802,10 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT73
-\ Category:         Text
-\ One-line summary: Print a colon
+\       Name: TT73
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a colon
 \
 \ ******************************************************************************
 
@@ -24164,9 +24817,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT27
-\ Category:         Text
-\ One-line summary: Print a text token
+\       Name: TT27
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a text token
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print a text token (i.e. a character, control code, two-letter token or
 \ recursive token). See variable QQ18 for a discussion of the token system
@@ -24279,9 +24935,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT42
-\ Category:         Text
-\ One-line summary: Print a letter in lower case
+\       Name: TT42
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a letter in lower case
+\
+\ ------------------------------------------------------------------------------
 \
 \ Arguments:
 \
@@ -24323,9 +24982,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT41
-\ Category:         Text
-\ One-line summary: Print a letter according to Sentence Case
+\       Name: TT41
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a letter according to Sentence Case
+\
+\ ------------------------------------------------------------------------------
 \
 \ The rules for printing in Sentence Case are as follows:
 \
@@ -24386,9 +25048,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  qw
-\ Category:         Text
-\ One-line summary: Print a recursive token in the range 128-145
+\       Name: qw
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a recursive token in the range 128-145
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print a recursive token where the token number is in 128-145 (so the value
 \ passed to TT27 is in the range 14-31).
@@ -24409,9 +25074,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  crlf
-\ Category:         Text
-\ One-line summary: Tab to column 21 and print a colon
+\       Name: crlf
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Tab to column 21 and print a colon
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print control code 9 (tab to column 21 and print a colon). The subroutine
 \ name is pretty misleading, as it doesn't have anything to do with carriage
@@ -24430,9 +25098,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT45
-\ Category:         Text
-\ One-line summary: Print a letter in lower case
+\       Name: TT45
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a letter in lower case
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine prints a letter in lower case. Specifically:
 \
@@ -24480,9 +25151,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT46
-\ Category:         Text
-\ One-line summary: Print a character and switch to capitals
+\       Name: TT46
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a character and switch to capitals
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print a character and clear bit 6 in QQ17, so that the next letter that gets
 \ printed after this will start with a capital letter.
@@ -24520,9 +25194,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT74
-\ Category:         Text
-\ One-line summary: Print a character
+\       Name: TT74
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a character
+\
+\ ------------------------------------------------------------------------------
 \
 \ Arguments:
 \
@@ -24537,9 +25214,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT43
-\ Category:         Text
-\ One-line summary: Print a two-letter token or recursive token 0-95
+\       Name: TT43
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a two-letter token or recursive token 0-95
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print a two-letter token, or a recursive token where the token number is in
 \ 0-95 (so the value passed to TT27 is in the range 160-255).
@@ -24592,12 +25272,15 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ex
-\ Category:         Text
-\ One-line summary: Print a recursive token
+\       Name: ex
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a recursive token
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine works its way through the recursive tokens that are stored in
-\ tokenised form in memory at &0400 - &06FF, and when it finds token number A,
+\ tokenised form in memory at &0400 to &06FF, and when it finds token number A,
 \ it prints it. Tokens are null-terminated in memory and fill three pages,
 \ but there is no lookup table as that would consume too much memory, so the
 \ only way to find the correct token is to start at the beginning and look
@@ -24727,9 +25410,10 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DOEXP
-\ Category:         Drawing ships
-\ One-line summary: Draw an exploding ship
+\       Name: DOEXP
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Draw an exploding ship
 \
 \ ******************************************************************************
 \
@@ -25157,9 +25841,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SOS1
-\ Category:         Universe
-\ One-line summary: Update the missile indicators, set up the planet data block
+\       Name: SOS1
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Update the missile indicators, set up the planet data block
+\
+\ ------------------------------------------------------------------------------
 \
 \ Update the missile indicators, and set up a data block for the planet, but
 \ only setting the roll and pitch counters to 127 (no damping).
@@ -25187,9 +25874,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SOLAR
-\ Category:         Universe
-\ One-line summary: Set up various aspects of arriving in a new system
+\       Name: SOLAR
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Set up various aspects of arriving in a new system
+\
+\ ------------------------------------------------------------------------------
 \
 \ Halve our legal status, update the missile indicators, and set up data blocks
 \ and slots for the planet and sun.
@@ -25245,9 +25935,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  NWSTARS
-\ Category:         Stardust
-\ One-line summary: Initialise the stardust field
+\       Name: NWSTARS
+\       Type: Subroutine
+\   Category: Stardust
+\    Summary: Initialise the stardust field
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine is called when the space view is initialised in routine LOOK1.
 \
@@ -25264,9 +25957,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  nWq
-\ Category:         Stardust
-\ One-line summary: Create a random cloud of stardust
+\       Name: nWq
+\       Type: Subroutine
+\   Category: Stardust
+\    Summary: Create a random cloud of stardust
+\
+\ ------------------------------------------------------------------------------
 \
 \ Create a random cloud of stardust containing the maximum number of dust
 \ particles, i.e. NOSTM of them, which is 3 in witchspace and #NOST (18) in
@@ -25320,9 +26016,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  WPSHPS
-\ Category:         Dashboard
-\ One-line summary: Clear the scanner, reset the ball line and sun line heaps
+\       Name: WPSHPS
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Clear the scanner, reset the ball line and sun line heaps
+\
+\ ------------------------------------------------------------------------------
 \
 \ Remove all ships from the scanner, reset the sun line heap at LSO, and reset
 \ the ball line heap at LSX2 and LSY2.
@@ -25395,16 +26094,19 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  FLFLLS
-\ Category:         Drawing suns
-\ One-line summary: Reset the sun line heap
+\       Name: FLFLLS
+\       Type: Subroutine
+\   Category: Drawing suns
+\    Summary: Reset the sun line heap
+\
+\ ------------------------------------------------------------------------------
 \
 \ Reset the sun line heap at LSO by zero-filling it and setting the first byte
 \ to &FF.
 \
 \ Returns:
 \
-\   A                   Set to 0
+\   A                   A is set to 0
 \
 \ ******************************************************************************
 
@@ -25437,9 +26139,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DET1
-\ Category:         Screen mode
-\ One-line summary: Hide the dashboard (for when we die)
+\       Name: DET1
+\       Type: Subroutine
+\   Category: Screen mode
+\    Summary: Hide the dashboard (for when we die)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Set the screen to show the number of text rows given in X. This is used when
 \ we are killed, as reducing the number of rows from the usual 31 to 24 has the
@@ -25476,9 +26181,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SHD
-\ Category:         Flight
-\ One-line summary: Charge a shield and drain some energy from the energy banks
+\       Name: SHD
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Charge a shield and drain some energy from the energy banks
+\
+\ ------------------------------------------------------------------------------
 \
 \ Charge up a shield, and if it needs charging, drain some energy from the
 \ energy banks.
@@ -25509,9 +26217,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DENGY
-\ Category:         Flight
-\ One-line summary: Drain some energy from the energy banks
+\       Name: DENGY
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Drain some energy from the energy banks
+\
+\ ------------------------------------------------------------------------------
 \
 \ Returns:
 \
@@ -25539,9 +26250,10 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  COMPAS
-\ Category:         Dashboard
-\ One-line summary: Update the compass
+\       Name: COMPAS
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Update the compass
 \
 \ ******************************************************************************
 
@@ -25563,9 +26275,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SPS2
-\ Category:         Dashboard
-\ One-line summary: Calculate (Y X) = A / 10
+\       Name: SPS2
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Calculate (Y X) = A / 10
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following, where A is a signed 8-bit integer and the result is a
 \ signed 16-bit integer:
@@ -25622,9 +26337,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SPS4
-\ Category:         Dashboard
-\ One-line summary: Calculate the vector to the space station
+\       Name: SPS4
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Calculate the vector to the space station
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the vector between our ship and the space station and store it in
 \ XX15.
@@ -25653,9 +26371,10 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SP1
-\ Category:         Dashboard
-\ One-line summary: Draw the space station on the compass
+\       Name: SP1
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Draw the space station on the compass
 \
 \ ******************************************************************************
 
@@ -25669,9 +26388,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SP2
-\ Category:         Dashboard
-\ One-line summary: Draw a dot on the compass, given the planet/station vector
+\       Name: SP2
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Draw a dot on the compass, given the planet/station vector
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a dot on the compass to represent the planet or station, whose normalised
 \ vector is in XX15.
@@ -25737,9 +26459,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DOT
-\ Category:         Dashboard
-\ One-line summary: Draw a dot on the compass
+\       Name: DOT
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Draw a dot on the compass
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a dot on the compass.
 \
@@ -25780,9 +26505,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  CPIX4
-\ Category:         Drawing pixels
-\ One-line summary: Draw a double-height dot on the dashboard
+\       Name: CPIX4
+\       Type: Subroutine
+\   Category: Drawing pixels
+\    Summary: Draw a double-height dot on the dashboard
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a double-height mode 5 dot (2 pixels high, 2 pixels wide).
 \
@@ -25811,9 +26539,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  CPIX2
-\ Category:         Drawing pixels
-\ One-line summary: Draw a single-height dot on the dashboard
+\       Name: CPIX2
+\       Type: Subroutine
+\   Category: Drawing pixels
+\    Summary: Draw a single-height dot on the dashboard
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a single-height mode 5 dash (1 pixel high, 2 pixels wide).
 \
@@ -26020,9 +26751,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  OOPS
-\ Category:         Flight
-\ One-line summary: Take some damage
+\       Name: OOPS
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Take some damage
+\
+\ ------------------------------------------------------------------------------
 \
 \ We just took some damage, so reduce the shields if we have any, or reduce the
 \ energy levels and potentially take some damage to the cargo if we don't.
@@ -26122,9 +26856,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SPS3
-\ Category:         Dashboard
-\ One-line summary: Copy a space coordinate from the K% block into K3
+\       Name: SPS3
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Copy a space coordinate from the K% block into K3
+\
+\ ------------------------------------------------------------------------------
 \
 \ Copy one of the planet's coordinates into the corresponding location in the
 \ temporary variable K3. The high byte and absolute value of the sign byte are
@@ -26165,9 +26902,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  GINF
-\ Category:         Universe
-\ One-line summary: Fetch the address of a ship's data block into INF
+\       Name: GINF
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Fetch the address of a ship's data block into INF
+\
+\ ------------------------------------------------------------------------------
 \
 \ Get the address of the data block for ship slot X and store it in INF. This
 \ address is fetched from the UNIV table, which stores the addresses of the 13
@@ -26197,9 +26937,10 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  NWSPS
-\ Category:         Universe
-\ One-line summary: Add a new space station to our little bubble of universe
+\       Name: NWSPS
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Add a new space station to our little bubble of universe
 \
 \ ******************************************************************************
 
@@ -26243,9 +26984,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  NWSHP
-\ Category:         Universe
-\ One-line summary: Add a new ship to our local bubble of universe
+\       Name: NWSHP
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Add a new ship to our local bubble of universe
+\
+\ ------------------------------------------------------------------------------
 \
 \ This creates a new block of ship data in the K% workspace, allocates a new
 \ block in the ship line heap at WP, adds the new ship's type into the first
@@ -26489,9 +27233,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  NwS1
-\ Category:         Universe
-\ One-line summary: Flip the sign and double an INWK byte
+\       Name: NwS1
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Flip the sign and double an INWK byte
+\
+\ ------------------------------------------------------------------------------
 \
 \ Flip the sign of the INWK byte at offset X, and increment X by 2. This is
 \ is used by the space station creation routine at NWSPS.
@@ -26520,9 +27267,10 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ABORT
-\ Category:         Dashboard
-\ One-line summary: Disarm missiles and update the dashboard indicators
+\       Name: ABORT
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Disarm missiles and update the dashboard indicators
 \
 \ ******************************************************************************
 
@@ -26537,9 +27285,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ABORT2
-\ Category:         Dashboard
-\ One-line summary: Lock a missile onto a target and update the dashboard
+\       Name: ABORT2
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Lock a missile onto a target and update the dashboard
+\
+\ ------------------------------------------------------------------------------
 \
 \ Set the lock target for the leftmost missile and update the dashboard.
 \
@@ -26575,9 +27326,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ECBLB2
-\ Category:         Dashboard
-\ One-line summary: Start up the E.C.M. (indicator, countdown and sound)
+\       Name: ECBLB2
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Start up the E.C.M. (indicator, countdown and sound)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Light up the E.C.M. indicator bulb on the dashboard, set the E.C.M. countdown
 \ timer to 32, and start making the E.C.M. sound.
@@ -26597,9 +27351,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ECBLB
-\ Category:         Dashboard
-\ One-line summary: Light up the E.C.M. indicator bulb ("E") on the dashboard
+\       Name: ECBLB
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Light up the E.C.M. indicator bulb ("E") on the dashboard
+\
+\ ------------------------------------------------------------------------------
 \
 \ This draws (or erases) the E.C.M. indicator bulb ("S") on the dashboard.
 \
@@ -26627,9 +27384,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SPBLB
-\ Category:         Dashboard
-\ One-line summary: Light up the space station indicator ("S") on the dashboard
+\       Name: SPBLB
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Light up the space station indicator ("S") on the dashboard
+\
+\ ------------------------------------------------------------------------------
 \
 \ This draws (or erases) the space station indicator bulb ("S") on the
 \ dashboard.
@@ -26653,9 +27413,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  BULB
-\ Category:         Dashboard
-\ One-line summary: Draw an indicator bulb on the dashboard
+\       Name: BULB
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Draw an indicator bulb on the dashboard
+\
+\ ------------------------------------------------------------------------------
 \
 \ Arguments:
 \
@@ -26687,9 +27450,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Variable name:    ECBT
-\ Category:         Dashboard
-\ One-line summary: The character definition for the E.C.M. indicator
+\       Name: ECBT
+\       Type: Variable
+\   Category: Dashboard
+\    Summary: The character definition for the E.C.M. indicator
+\
+\ ------------------------------------------------------------------------------
 \
 \ The character definition for the E.C.M. indicator's "E" bulb that gets
 \ displayed on the dashboard. The E.C.M. indicator uses the first 5 rows of the
@@ -26708,9 +27474,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Variable name:    SPBT
-\ Category:         Dashboard
-\ One-line summary: The character definition for the space station indicator
+\       Name: SPBT
+\       Type: Variable
+\   Category: Dashboard
+\    Summary: The character definition for the space station indicator
+\
+\ ------------------------------------------------------------------------------
 \
 \ The character definition for the space station indicator's "S" bulb that gets
 \ displayed on the dashboard. Each pixel is in mode 5 colour 2 (%10), which is
@@ -26732,9 +27501,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MSBAR
-\ Category:         Dashboard
-\ One-line summary: Draw a specific indicator in the dashboard's missile bar
+\       Name: MSBAR
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Draw a specific indicator in the dashboard's missile bar
+\
+\ ------------------------------------------------------------------------------
 \
 \ Each indicator is a rectangle that's 3 pixels wide and 5 pixels high. If the
 \ indicator is set to black, this effectively removes a missile.
@@ -26815,9 +27587,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PROJ
-\ Category:         Drawing ships
-\ One-line summary: Project the current ship onto the screen
+\       Name: PROJ
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Project the current ship onto the screen
+\
+\ ------------------------------------------------------------------------------
 \
 \ Project the current ship's location onto the screen, either returning the
 \ screen coordinates of the projection (if it's on-screen), or returning an
@@ -26921,9 +27696,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PL2
-\ Category:         Drawing planets
-\ One-line summary: Remove the planet or sun from the screen
+\       Name: PL2
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Remove the planet or sun from the screen
+\
+\ ------------------------------------------------------------------------------
 \
 \ Other entry points:
 \
@@ -26949,9 +27727,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PLANET
-\ Category:         Drawing planets
-\ One-line summary: Draw the planet or sun
+\       Name: PLANET
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Draw the planet or sun
+\
+\ ------------------------------------------------------------------------------
 \
 \ Arguments:
 \
@@ -27024,9 +27805,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PL9 (Part 1 of 3)
-\ Category:         Drawing planets
-\ One-line summary: Draw the planet
+\       Name: PL9 (Part 1 of 3)
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Draw the planet
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a planet with radius K at pixel coordinate (K3, K4), and with either an
 \ equator and meridian, or a crater.
@@ -27074,9 +27858,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PL9 (Part 2 of 3)
-\ Category:         Drawing planets
-\ One-line summary: Draw the planet
+\       Name: PL9 (Part 2 of 3)
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Draw the planet
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw the planet's equator and meridian.
 \
@@ -27216,9 +28003,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PL9 (Part 3 of 3)
-\ Category:         Drawing planets
-\ One-line summary: Draw the planet
+\       Name: PL9 (Part 3 of 3)
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Draw the planet
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw the planet's crater.
 \
@@ -27373,9 +28163,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PLS1
-\ Category:         Drawing planets
-\ One-line summary: Calculate (Y A) = nosev_x / z
+\       Name: PLS1
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Calculate (Y A) = nosev_x / z
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following division of a specified value from one of the
 \ orientation vectors (in this example, nosev_x):
@@ -27450,9 +28243,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PLS2
-\ Category:         Drawing planets
-\ One-line summary: Draw a half-circle
+\       Name: PLS2
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Draw a half-circle
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a half-circle, used for the planet's equator and meridian.
 \
@@ -27468,9 +28264,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PLS22
-\ Category:         Drawing planets
-\ One-line summary: Draw a circle or half-circle
+\       Name: PLS22
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Draw a circle or half-circle
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a circle or half-circle, used for the planet's equator and meridian, or
 \ crater.
@@ -27672,9 +28471,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SUN (Part 1 of 4)
-\ Category:         Drawing suns
-\ One-line summary: Draw the sun, or a system on the Short-range Chart
+\       Name: SUN (Part 1 of 4)
+\       Type: Subroutine
+\   Category: Drawing suns
+\    Summary: Draw the sun, or a system on the Short-range Chart
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a new sun with radius K at pixel coordinate (K3, K4), removing the old
 \ sun if there is one. This routine is used to draw the sun, as well as the
@@ -27971,11 +28773,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SUN (Part 2 of 4)
-\ Category:         Drawing suns
-\ One-line summary: Draw the sun, or a system on the Short-range Chart
+\       Name: SUN (Part 2 of 4)
+\       Type: Subroutine
+\   Category: Drawing suns
+\    Summary: Draw the sun, or a system on the Short-range Chart
 \
-\ Draw a sun with radius K at pixel coordinate (K3, K4).
+\ ------------------------------------------------------------------------------
 \
 \ This part erases the old sun, starting at the bottom of the screen and working
 \ upwards until we reach the bottom of the new sun.
@@ -28018,11 +28821,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SUN (Part 3 of 4)
-\ Category:         Drawing suns
-\ One-line summary: Draw the sun, or a system on the Short-range Chart
+\       Name: SUN (Part 3 of 4)
+\       Type: Subroutine
+\   Category: Drawing suns
+\    Summary: Draw the sun, or a system on the Short-range Chart
 \
-\ Draw a sun with radius K at pixel coordinate (K3, K4).
+\ ------------------------------------------------------------------------------
 \
 \ This part draws the new sun. By the time we get to this point, the following
 \ variables should have been set up by parts 1 and 2:
@@ -28269,13 +29073,15 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SUN (Part 4 of 4)
-\ Category:         Drawing suns
-\ One-line summary: Draw the sun, or a system on the Short-range Chart
+\       Name: SUN (Part 4 of 4)
+\       Type: Subroutine
+\   Category: Drawing suns
+\    Summary: Draw the sun, or a system on the Short-range Chart
 \
-\ Draw a sun with radius K at pixel coordinate (K3, K4). This part erases any
-\ remaining traces of the old sun, now that we have drawn all the way to the top
-\ of the new sun.
+\ ------------------------------------------------------------------------------
+\
+\ This part erases any remaining traces of the old sun, now that we have drawn
+\ all the way to the top of the new sun.
 \
 \ ******************************************************************************
 
@@ -28326,9 +29132,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  CIRCLE
-\ Category:         Drawing circles
-\ One-line summary: Draw a circle for the planet
+\       Name: CIRCLE
+\       Type: Subroutine
+\   Category: Drawing circles
+\    Summary: Draw a circle for the planet
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a circle with the centre at (K3, K4) and radius K. Used to draw the
 \ planet's main outline.
@@ -28379,9 +29188,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  CIRCLE2
-\ Category:         Drawing circles
-\ One-line summary: Draw a circle (for the planet or chart)
+\       Name: CIRCLE2
+\       Type: Subroutine
+\   Category: Drawing circles
+\    Summary: Draw a circle (for the planet or chart)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Draw a circle with the centre at (K3, K4) and radius K. Used to draw the
 \ planet and the chart circles.
@@ -28583,9 +29395,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  WPLS2
-\ Category:         Drawing planets
-\ One-line summary: Remove the planet from the screen
+\       Name: WPLS2
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Remove the planet from the screen
+\
+\ ------------------------------------------------------------------------------
 \
 \ We do this by redrawing it using the lines stored in the ball line heap when
 \ the planet was originally drawn by the BLINE routine.
@@ -28665,9 +29480,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  WPLS
-\ Category:         Drawing suns
-\ One-line summary: Remove the sun from the screen
+\       Name: WPLS
+\       Type: Subroutine
+\   Category: Drawing suns
+\    Summary: Remove the sun from the screen
+\
+\ ------------------------------------------------------------------------------
 \
 \ We do this by redrawing it using the lines stored in the sun line heap when
 \ the sun was originally drawn by the SUN routine.
@@ -28720,9 +29538,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  EDGES
-\ Category:         Drawing lines
-\ One-line summary: Draw a horizontal line given a centre and a half-width
+\       Name: EDGES
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw a horizontal line given a centre and a half-width
+\
+\ ------------------------------------------------------------------------------
 \
 \ Set X1 and X2 to the x-coordinates of the ends of the horizontal line with
 \ centre x-coordinate YY(1 0), and length A in either direction from the centre
@@ -28825,9 +29646,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  CHKON
-\ Category:         Drawing circles
-\ One-line summary: Check whether a circle will fit on-screen
+\       Name: CHKON
+\       Type: Subroutine
+\   Category: Drawing circles
+\    Summary: Check whether a circle will fit on-screen
+\
+\ ------------------------------------------------------------------------------
 \
 \ Arguments:
 \
@@ -28930,9 +29754,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PL21
-\ Category:         Drawing planets
-\ One-line summary: Return from a planet/sun drawing routine with a failure flag
+\       Name: PL21
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Return from a planet/sun drawing routine with a failure flag
+\
+\ ------------------------------------------------------------------------------
 \
 \ Set the C flag and return from the subroutine. This is used to return from a
 \ planet or sun drawing routine with the C flag indicating an overflow in the
@@ -28949,9 +29776,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PLS3
-\ Category:         Drawing planets
-\ One-line summary: Calculate (Y A P) = 222 * roofv_x / z
+\       Name: PLS3
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Calculate (Y A P) = 222 * roofv_x / z
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following, with X determining the vector to use:
 \
@@ -29026,9 +29856,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PLS4
-\ Category:         Drawing planets
-\ One-line summary: Calculate CNT2 = arctan(P / A) / 4
+\       Name: PLS4
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Calculate CNT2 = arctan(P / A) / 4
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following:
 \
@@ -29069,9 +29902,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PLS5
-\ Category:         Drawing planets
-\ One-line summary: Calculate roofv_x / z and roofv_y / z
+\       Name: PLS5
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Calculate roofv_x / z and roofv_y / z
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following divisions of a specified value from one of the
 \ orientation vectors (in this example, roofv):
@@ -29118,9 +29954,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  PLS6
-\ Category:         Drawing planets
-\ One-line summary: Calculate (X K) = (A P) / (z_sign z_hi z_lo)
+\       Name: PLS6
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Calculate (X K) = (A P) / (z_sign z_hi z_lo)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following:
 \
@@ -29200,9 +30039,12 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT17
-\ Category:         Keyboard
-\ One-line summary: Scan the keyboard for cursor key or joystick movement
+\       Name: TT17
+\       Type: Subroutine
+\   Category: Keyboard
+\    Summary: Scan the keyboard for cursor key or joystick movement
+\
+\ ------------------------------------------------------------------------------
 \
 \ Scan the keyboard and joystick for cursor key or stick movement, and return
 \ the result as deltas (changes) in x- and y-coordinates as follows:
@@ -29314,9 +30156,10 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ping
-\ Category:         Universe
-\ One-line summary: Set the selected system to the current system
+\       Name: ping
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Set the selected system to the current system
 \
 \ ******************************************************************************
 
@@ -29358,7 +30201,7 @@ SAVE "output/ELTE.bin", CODE_E%, P%, LOAD%
 
 \ ******************************************************************************
 \
-\ ELITE F
+\ ELITE F FILE
 \
 \ Produces the binary file ELTF.bin that gets loaded by elite-bcfs.asm.
 \
@@ -29369,9 +30212,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  KS3
-\ Category:         Universe
-\ One-line summary: Set the SLSP ship heap pointer after shuffling ship slots
+\       Name: KS3
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Set the SLSP ship heap pointer after shuffling ship slots
+\
+\ ------------------------------------------------------------------------------
 \
 \ The final part of the KILLSHP routine, called after we have shuffled the ship
 \ slots and sorted out our missiles. This simply sets SLSP to the new bottom of
@@ -29397,9 +30243,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  KS1
-\ Category:         Universe
-\ One-line summary: Remove the current ship from our local bubble of universe
+\       Name: KS1
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Remove the current ship from our local bubble of universe
+\
+\ ------------------------------------------------------------------------------
 \
 \ Part 12 of the main flight loop calls this routine to remove the ship that is
 \ currently being analysed by the flight loop. Once the ship is removed, it
@@ -29431,9 +30280,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  KS4
-\ Category:         Universe
-\ One-line summary: Remove the space station and replace it with the sun
+\       Name: KS4
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Remove the space station and replace it with the sun
+\
+\ ------------------------------------------------------------------------------
 \
 \ Remove the space station from our local bubble of universe, and replace it
 \ with the sun.
@@ -29469,9 +30321,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  KS2
-\ Category:         Universe
-\ One-line summary: Check the local bubble for missiles with target lock
+\       Name: KS2
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Check the local bubble for missiles with target lock
+\
+\ ------------------------------------------------------------------------------
 \
 \ Check the local bubble of universe to see if there are any missiles with
 \ target lock in the vicinity. If there are, then check their targets; if we
@@ -29564,9 +30419,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  KILLSHP
-\ Category:         Universe
-\ One-line summary: Remove a ship from our little bubble of universe
+\       Name: KILLSHP
+\       Type: Subroutine
+\   Category: Universe
+\    Summary: Remove a ship from our little bubble of universe
+\
+\ ------------------------------------------------------------------------------
 \
 \ Remove the ship in slot X from our little bubble of universe. This happens
 \ when we kill a ship, collide with a ship and destroy it, or when a ship moves
@@ -29846,9 +30704,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Variable name:    SFX
-\ Category:         Sound
-\ One-line summary: Sound data
+\       Name: SFX
+\       Type: Variable
+\   Category: Sound
+\    Summary: Sound data
+\
+\ ------------------------------------------------------------------------------
 \
 \ Sound data. To make a sound, the NOS1 routine copies the four relevant sound
 \ bytes to XX16, and NO3 then makes the sound. The sound numbers are shown in
@@ -29900,9 +30761,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  RESET
-\ Category:         Start and end
-\ One-line summary: Reset most variables
+\       Name: RESET
+\       Type: Subroutine
+\   Category: Start and end
+\    Summary: Reset most variables
+\
+\ ------------------------------------------------------------------------------
 \
 \ Reset our ship and various controls, then fall through into RES4 to restore
 \ shields and energy, and reset the stardust and the ship workspace at INWK.
@@ -29949,9 +30813,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  RES4
-\ Category:         Start and end
-\ One-line summary: Reset shields and energy banks and lots of flight variables
+\       Name: RES4
+\       Type: Subroutine
+\   Category: Start and end
+\    Summary: Reset shields and energy banks and lots of flight variables
+\
+\ ------------------------------------------------------------------------------
 \
 \ Reset the shields and energy banks, then fall through into RES2 to reset the
 \ stardust and the ship workspace at INWK.
@@ -29981,9 +30848,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  RES2
-\ Category:         Start and end
-\ One-line summary: Reset a number of flight variables and workspaces
+\       Name: RES2
+\       Type: Subroutine
+\   Category: Start and end
+\    Summary: Reset a number of flight variables and workspaces
+\
+\ ------------------------------------------------------------------------------
 \
 \ This is called after we launch from a space station, arrive in a new system
 \ after hyperspace, launch an escape pod, or die a cold, lonely death in the
@@ -30055,9 +30925,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ZINF
-\ Category:         Utility routines
-\ One-line summary: Reset the INWK workspace
+\       Name: ZINF
+\       Type: Subroutine
+\   Category: Utility routines
+\    Summary: Reset the INWK workspace
+\
+\ ------------------------------------------------------------------------------
 \
 \ Zero-fill the INWK ship workspace and reset the orientation vectors.
 \
@@ -30110,9 +30983,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  msblob
-\ Category:         Dashboard
-\ One-line summary: Display the dashboard's missile indicators in green
+\       Name: msblob
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Display the dashboard's missile indicators in green
+\
+\ ------------------------------------------------------------------------------
 \
 \ Display the dashboard's missile indicators, with all the missiles reset to
 \ green/cyan (i.e. not armed or locked).
@@ -30154,9 +31030,10 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  me2
-\ Category:         Text
-\ One-line summary: Remove an in-flight message from the space view
+\       Name: me2
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Remove an in-flight message from the space view
 \
 \ ******************************************************************************
 
@@ -30175,9 +31052,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Ze
-\ Category:         Utility routines
-\ One-line summary: Initialise the INWK workspace to a hostile ship
+\       Name: Ze
+\       Type: Subroutine
+\   Category: Utility routines
+\    Summary: Initialise the INWK workspace to a hostile ship
+\
+\ ------------------------------------------------------------------------------
 \
 \ Specifically:
 \
@@ -30229,9 +31109,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DORND
-\ Category:         Utility routines
-\ One-line summary: Generate random numbers
+\       Name: DORND
+\       Type: Subroutine
+\   Category: Utility routines
+\    Summary: Generate random numbers
+\
+\ ------------------------------------------------------------------------------
 \
 \ Set A and X to random numbers. Carry flag is also set randomly. Overflow flag
 \ will be have a 50% probability of being 0 or 1.
@@ -30324,11 +31207,19 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main game loop (Part 1 of 6)
-\ Category:         Main loop
-\ One-line summary: The main game loop
+\       Name: Main game loop (Part 1 of 6)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main game loop
 \
-\ This is part of the main game loop. This section covers the following:
+\ ------------------------------------------------------------------------------
+\
+\ This is part of the main game loop. This is where the core loop of the game
+\ lives, and it's in two parts. The shorter loop (just parts 5 and 6) is
+\ iterated when we are docked, while the entire loop from part 1 to 6 iterates
+\ if we are in space.
+\
+\ This section covers the following:
 \
 \   * Spawn a trader, i.e. a Cobra Mk III that isn't attacking anyone, with one
 \     missile and a 50% chance of having an E.C.M., a speed between 16 and 31,
@@ -30363,11 +31254,14 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main game loop (Part 2 of 6)
-\ Category:         Main loop
-\ One-line summary: The main game loop
+\       Name: Main game loop (Part 2 of 6)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main game loop
 \
-\ This is part of the main game loop. This section covers the following:
+\ ------------------------------------------------------------------------------
+\
+\ This section covers the following:
 \
 \   * Call M% to do the main flight loop
 \
@@ -30513,11 +31407,14 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main game loop (Part 3 of 6)
-\ Category:         Main loop
-\ One-line summary: The main game loop
+\       Name: Main game loop (Part 3 of 6)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main game loop
 \
-\ This is part of the main game loop. This section covers the following:
+\ ------------------------------------------------------------------------------
+\
+\ This section covers the following:
 \
 \   * Potentially spawn a cop (in a Viper), very rarely if we have been good,
 \     more often if have been naughty, and very often if we have been properly
@@ -30568,11 +31465,14 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main game loop (Part 4 of 6)
-\ Category:         Main loop
-\ One-line summary: The main game loop
+\       Name: Main game loop (Part 4 of 6)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main game loop
 \
-\ This is part of the main game loop. This section covers the following:
+\ ------------------------------------------------------------------------------
+\
+\ This section covers the following:
 \
 \   * Potentially spawn (35% chance) either a lone bounty hunter (a Mamba,
 \     Python or Cobra Mk III), a Thargoid, or a group of up to 4 pirates
@@ -30678,13 +31578,15 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main game loop (Part 5 of 6)
-\ Category:         Main loop
-\ One-line summary: The main game loop
+\       Name: Main game loop (Part 5 of 6)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main game loop
 \
-\ Other entry points: MLOOP
+\ ------------------------------------------------------------------------------
 \
-\ This is part of the main game loop. This section covers the following:
+\ This is the first half of the minimal game loop, which we iterate when we are
+\ docked. This section covers the following:
 \
 \   * Cool down lasers
 \
@@ -30733,19 +31635,23 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  Main game loop (Part 6 of 6)
-\ Category:         Main loop
-\ One-line summary: The main game loop
+\       Name: Main game loop (Part 6 of 6)
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: The main game loop
 \
-\ This is part of the main game loop. This section covers the following:
+\ ------------------------------------------------------------------------------
+\
+\ This is the second half of the minimal game loop, which we iterate when we are
+\ docked. This section covers the following:
 \
 \   * Process more keypresses (red function keys, docked keys etc.)
 \
-\   * Support joining the main loop with a key already "pressed", so we can
-\     jump into the main game loop to perform a specific action. In practice,
-\     this is used when we enter the docking bay in BAY to display Status Mode
-\     (red key f8), and when we finish buying or selling cargo in BAY2 to jump
-\     to the Inventory (red key f9).
+\ It also support joining the main loop with a key already "pressed", so we can
+\ jump into the main game loop to perform a specific action. In practice, this
+\ is used when we enter the docking bay in BAY to display Status Mode (red key
+\ f8), and when we finish buying or selling cargo in BAY2 to jump to the
+\ Inventory (red key f9).
 \
 \ Other entry points:
 \
@@ -30772,9 +31678,10 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  tha
-\ Category:         Main loop
-\ One-line summary: Consider spawning a Thargoid (22% chance)
+\       Name: tha
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: Consider spawning a Thargoid (22% chance)
 \
 \ ******************************************************************************
 
@@ -30793,9 +31700,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT102
-\ Category:         Keyboard
-\ One-line summary: Process function key, save, hyperspace and chart key presses
+\       Name: TT102
+\       Type: Subroutine
+\   Category: Keyboard
+\    Summary: Process function key, save, hyperspace and chart key presses
+\
+\ ------------------------------------------------------------------------------
 \
 \ Process function key presses, plus "@" (save commander), "H" (hyperspace),
 \ "D" (show distance to system) and "O" (move chart cursor back to current
@@ -31010,9 +31920,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  BAD
-\ Category:         Status
-\ One-line summary: Calculate how bad we have been
+\       Name: BAD
+\       Type: Subroutine
+\   Category: Status
+\    Summary: Calculate how bad we have been
+\
+\ ------------------------------------------------------------------------------
 \
 \ Work out how bad we are from the amount of contraband in our hold. The
 \ formula is:
@@ -31044,9 +31957,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  FAROF
-\ Category:         Maths
-\ One-line summary: Compare x_hi, y_hi and z_hi with 224
+\       Name: FAROF
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Compare x_hi, y_hi and z_hi with 224
+\
+\ ------------------------------------------------------------------------------
 \
 \ Compare x_hi, y_hi and z_hi with 224, and set the C flag if all three <= 224,
 \ otherwise clear the C flag.
@@ -31068,9 +31984,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  FAROF2
-\ Category:         Maths
-\ One-line summary: Compare x_hi, y_hi and z_hi with A
+\       Name: FAROF2
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Compare x_hi, y_hi and z_hi with A
+\
+\ ------------------------------------------------------------------------------
 \
 \ Compare x_hi, y_hi and z_hi with A, and set the C flag if all three <= A,
 \ otherwise clear the C flag.
@@ -31103,9 +32022,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MAS4
-\ Category:         Maths
-\ One-line summary: Calculate a cap on the maximum distance to a ship
+\       Name: MAS4
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate a cap on the maximum distance to a ship
+\
+\ ------------------------------------------------------------------------------
 \
 \ Logical OR the value in A with the high bytes of the ship's position (x_hi,
 \ y_hi and z_hi).
@@ -31127,9 +32049,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DEATH
-\ Category:         Start and end
-\ One-line summary: Display the death screen
+\       Name: DEATH
+\       Type: Subroutine
+\   Category: Start and end
+\    Summary: Display the death screen
+\
+\ ------------------------------------------------------------------------------
 \
 \ We have been killed, so display the chaos of our destruction above a "GAME
 \ OVER" sign, and clean up the mess ready for the next attempt.
@@ -31255,9 +32180,10 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DEATH2
-\ Category:         Start and end
-\ One-line summary: Reset most of the game and restart from the title screen
+\       Name: DEATH2
+\       Type: Subroutine
+\   Category: Start and end
+\    Summary: Reset most of the game and restart from the title screen
 \
 \ ******************************************************************************
 
@@ -31270,9 +32196,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT170
-\ Category:         Start and end
-\ One-line summary: Main entry point for the Elite game code
+\       Name: TT170
+\       Type: Subroutine
+\   Category: Start and end
+\    Summary: Main entry point for the Elite game code
+\
+\ ------------------------------------------------------------------------------
 \
 \ Also called following death or quitting a game (by pressing Escape when
 \ paused).
@@ -31749,9 +32678,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  BAY
-\ Category:         Status
-\ One-line summary: Go to the docking bay (i.e. show the Status Mode screen)
+\       Name: BAY
+\       Type: Subroutine
+\   Category: Status
+\    Summary: Go to the docking bay (i.e. show the Status Mode screen)
+\
+\ ------------------------------------------------------------------------------
 \
 \ We end up here after the start-up process (load commander etc.), as well as
 \ after a successful save, an escape pod launch, a successful docking, the end
@@ -31773,9 +32705,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TITLE
-\ Category:         Start and end
-\ One-line summary: Display a title screen with a rotating ship and prompt
+\       Name: TITLE
+\       Type: Subroutine
+\   Category: Start and end
+\    Summary: Display a title screen with a rotating ship and prompt
+\
+\ ------------------------------------------------------------------------------
 \
 \ Display a title screen, with a rotating ship and a recursive text token at the
 \ bottom of the screen.
@@ -31924,9 +32859,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  CHECK
-\ Category:         Save and load
-\ One-line summary: Calculate the checksum for the last saved commander data block
+\       Name: CHECK
+\       Type: Subroutine
+\   Category: Save and load
+\    Summary: Calculate the checksum for the last saved commander data block
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the checksum for the last saved commander data block, to protect
 \ against corruption and tampering. The checksum is returned in A.
@@ -31968,9 +32906,10 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TRNME
-\ Category:         Save and load
-\ One-line summary: Copy the last saved commander's name from INWK to NA%
+\       Name: TRNME
+\       Type: Subroutine
+\   Category: Save and load
+\    Summary: Copy the last saved commander's name from INWK to NA%
 \
 \ ******************************************************************************
 
@@ -31997,9 +32936,10 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TR1
-\ Category:         Save and load
-\ One-line summary: Copy the last saved commander's name from NA% to INWK
+\       Name: TR1
+\       Type: Subroutine
+\   Category: Save and load
+\    Summary: Copy the last saved commander's name from NA% to INWK
 \
 \ ******************************************************************************
 
@@ -32023,9 +32963,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  GTNME
-\ Category:         Save and load
-\ One-line summary: Get the commander's name
+\       Name: GTNME
+\       Type: Subroutine
+\   Category: Save and load
+\    Summary: Get the commander's name
+\
+\ ------------------------------------------------------------------------------
 \
 \ Get the commander's name for loading or saving a commander file. The name is
 \ stored at INWK, terminated by a return character (13).
@@ -32093,9 +33036,10 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ZERO
-\ Category:         Utility routines
-\ One-line summary: Zero-fill pages &9, &A, &B, &C and &D
+\       Name: ZERO
+\       Type: Subroutine
+\   Category: Utility routines
+\    Summary: Zero-fill pages &9, &A, &B, &C and &D
 \
 \ ******************************************************************************
 
@@ -32118,9 +33062,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ZES1
-\ Category:         Utility routines
-\ One-line summary: Zero-fill the page whose number is in X
+\       Name: ZES1
+\       Type: Subroutine
+\   Category: Utility routines
+\    Summary: Zero-fill the page whose number is in X
+\
+\ ------------------------------------------------------------------------------
 \
 \ Arguments:
 \
@@ -32138,9 +33085,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ZES2
-\ Category:         Utility routines
-\ One-line summary: Zero-fill a specific page
+\       Name: ZES2
+\       Type: Subroutine
+\   Category: Utility routines
+\    Summary: Zero-fill a specific page
+\
+\ ------------------------------------------------------------------------------
 \
 \ Zero-fill the page whose number is in X, from position SC to SC + Y.
 \
@@ -32183,9 +33133,10 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SVE
-\ Category:         Save and load
-\ One-line summary: Save the commander file
+\       Name: SVE
+\       Type: Subroutine
+\   Category: Save and load
+\    Summary: Save the commander file
 \
 \ ******************************************************************************
 
@@ -32303,9 +33254,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  QUS1
-\ Category:         Save and load
-\ One-line summary: Save or load the commander file
+\       Name: QUS1
+\       Type: Subroutine
+\   Category: Save and load
+\    Summary: Save or load the commander file
+\
+\ ------------------------------------------------------------------------------
 \
 \ The filename should be stored at INWK, terminated with a carriage return (13),
 \ and the routine should be called with Y set to &C.
@@ -32341,9 +33295,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LOD
-\ Category:         Save and load
-\ One-line summary: Load a commander file
+\       Name: LOD
+\       Type: Subroutine
+\   Category: Save and load
+\    Summary: Load a commander file
+\
+\ ------------------------------------------------------------------------------
 \
 \ The filename should be stored at INWK, terminated with a carriage return (13).
 \
@@ -32398,9 +33355,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  FX200
-\ Category:         Utility routines
-\ One-line summary: Set the behaviour of the Escape and Break keys
+\       Name: FX200
+\       Type: Subroutine
+\   Category: Utility routines
+\    Summary: Set the behaviour of the Escape and Break keys
+\
+\ ------------------------------------------------------------------------------
 \
 \ Performs a *FX 200,X command, which controls the behaviour of the Escape and
 \ Break keys.
@@ -32418,9 +33378,10 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SPS1
-\ Category:         Dashboard
-\ One-line summary: Calculate the vector to the planet and store it in XX15
+\       Name: SPS1
+\       Type: Subroutine
+\   Category: Dashboard
+\    Summary: Calculate the vector to the planet and store it in XX15
 \
 \ ******************************************************************************
 
@@ -32440,9 +33401,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TAS2
-\ Category:         Maths
-\ One-line summary: Normalise the three-coordinate vector in K3
+\       Name: TAS2
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Normalise the three-coordinate vector in K3
+\
+\ ------------------------------------------------------------------------------
 \
 \ Normalise the vector in K3, which has 16-bit values and separate sign bits,
 \ and store the normalised version in XX15 as a signed 8-bit vector.
@@ -32543,9 +33507,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  NORM
-\ Category:         Maths
-\ One-line summary: Normalise the three-coordinate vector in XX15
+\       Name: NORM
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Normalise the three-coordinate vector in XX15
+\
+\ ------------------------------------------------------------------------------
 \
 \ We do this by dividing each of the three coordinates by the length of the
 \ vector, which we can calculate using Pythagoras. Once normalised, 96 (&E0) is
@@ -32645,9 +33612,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  RDKEY
-\ Category:         Keyboard
-\ One-line summary: Scan the keyboard for a specific key
+\       Name: RDKEY
+\       Type: Subroutine
+\   Category: Keyboard
+\    Summary: Scan the keyboard for a specific key
+\
+\ ------------------------------------------------------------------------------
 \
 \ Scan the keyboard, starting with internal key number 16 (Q) and working
 \ through the set of internal key numbers (see p.142 of the Advanced User Guide
@@ -32699,9 +33669,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ECMOF
-\ Category:         Sound
-\ One-line summary: Switch off the E.C.M.
+\       Name: ECMOF
+\       Type: Subroutine
+\   Category: Sound
+\    Summary: Switch off the E.C.M.
+\
+\ ------------------------------------------------------------------------------
 \
 \ Switch the E.C.M. off, turn off the dashboard bulb and make the sound of the
 \ E.C.M. switching off).
@@ -32724,9 +33697,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  EXNO3
-\ Category:         Sound
-\ One-line summary: Make an explosion sound
+\       Name: EXNO3
+\       Type: Subroutine
+\   Category: Sound
+\    Summary: Make an explosion sound
+\
+\ ------------------------------------------------------------------------------
 \
 \ Make the sound of death in the cold, hard vacuum of space. Apparently, in
 \ Elite space, everyone can hear you scream.
@@ -32750,9 +33726,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SFRMIS
-\ Category:         Tactics
-\ One-line summary: Add an enemy missile to our local bubble of universe
+\       Name: SFRMIS
+\       Type: Subroutine
+\   Category: Tactics
+\    Summary: Add an enemy missile to our local bubble of universe
+\
+\ ------------------------------------------------------------------------------
 \
 \ An enemy has fired a missile, so add the missile to our universe if there is
 \ room, and if there is, make the appropriate warnings and noises.
@@ -32780,9 +33759,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  EXNO2
-\ Category:         Sound
-\ One-line summary: Process us making a kill
+\       Name: EXNO2
+\       Type: Subroutine
+\   Category: Sound
+\    Summary: Process us making a kill
+\
+\ ------------------------------------------------------------------------------
 \
 \ We have killed a ship, so increase the kill tally, displaying an iconic
 \ message of encouragement if the kill total is a multiple of 256, and then
@@ -32809,9 +33791,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  EXNO
-\ Category:         Sound
-\ One-line summary: Make the sound of a laser strike or ship explosion
+\       Name: EXNO
+\       Type: Subroutine
+\   Category: Sound
+\    Summary: Make the sound of a laser strike or ship explosion
+\
+\ ------------------------------------------------------------------------------
 \
 \ Make the two-part explosion sound of us making a laser strike, or of another
 \ ship exploding.
@@ -32839,8 +33824,8 @@ ENDIF
  STX T                  \ Store the distance in T
 
  LDA #24                \ Set A = 24 to denote the sound of us making a hit or
- JSR NOS1               \ kill (part 1), and call NOS1 to set up the sound
-                        \ block in XX16
+ JSR NOS1               \ kill (part 1 of the explosion), and call NOS1 to set
+                        \ up the sound block in XX16
 
  LDA INWK+7             \ Fetch z_hi, the distance of the ship being hit in
  LSR A                  \ terms of the z-axis (in and out of the screen), and
@@ -32871,8 +33856,8 @@ ENDIF
  JSR NO3                \ Make the sound from our updated sound block in XX16
 
  LDA #16                \ Set A = 16 to denote we have made a hit or kill
-                        \ (part 2), and fall through into NOISE to make the
-                        \ sound
+                        \ (part 2 of the explosion), and fall through into NOISE
+                        \ to make the sound
 
  EQUB &2C               \ Skip the next instruction by turning it into
                         \ &2C &A9 &20, or BIT &20A9, which does nothing bar
@@ -32881,9 +33866,10 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  BEEP
-\ Category:         Sound
-\ One-line summary: Make a short, high beep
+\       Name: BEEP
+\       Type: Subroutine
+\   Category: Sound
+\    Summary: Make a short, high beep
 \
 \ ******************************************************************************
 
@@ -32895,9 +33881,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  NOISE
-\ Category:         Sound
-\ One-line summary: Make the sound whose number is in A
+\       Name: NOISE
+\       Type: Subroutine
+\   Category: Sound
+\    Summary: Make the sound whose number is in A
+\
+\ ------------------------------------------------------------------------------
 \
 \ Arguments:
 \
@@ -32915,9 +33904,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  NO3
-\ Category:         Sound
-\ One-line summary: Make a sound from a prepared sound block
+\       Name: NO3
+\       Type: Subroutine
+\   Category: Sound
+\    Summary: Make a sound from a prepared sound block
+\
+\ ------------------------------------------------------------------------------
 \
 \ Make a sound from a prepared sound block in XX16 (if sound is enabled). See
 \ routine NOS1 for details of preparing the XX16 sound block.
@@ -32937,9 +33929,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Subroutine name:  NOS1
-\ Category:         Sound
-\ One-line summary: Prepare a sound block
+\       Name: NOS1
+\       Type: Subroutine
+\   Category: Sound
+\    Summary: Prepare a sound block
+\
+\ ------------------------------------------------------------------------------
 \
 \ Copy four sound bytes from SFX into XX16, interspersing them with null bytes,
 \ with Y indicating the sound number to copy (from the values in the sound
@@ -32996,9 +33991,12 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Variable name:    KYTB
-\ Category:         Keyboard
-\ One-line summary: Lookup table for in-flight keyboard controls
+\       Name: KYTB
+\       Type: Variable
+\   Category: Keyboard
+\    Summary: Lookup table for in-flight keyboard controls
+\
+\ ------------------------------------------------------------------------------
 \
 \ Keyboard table for in-flight controls. This table contains the internal key
 \ codes for the flight keys (see p.142 of the Advanced User Guide for a list of
@@ -33040,9 +34038,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DKS1
-\ Category:         Keyboard
-\ One-line summary: Scan the keyboard for a flight key
+\       Name: DKS1
+\       Type: Subroutine
+\   Category: Keyboard
+\    Summary: Scan the keyboard for a flight key
+\
+\ ------------------------------------------------------------------------------
 \
 \ Scan the keyboard for the flight key given in register Y, where Y is the
 \ offset into the KYTB table above (so we can scan for Space by setting Y to
@@ -33075,9 +34076,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  CTRL
-\ Category:         Keyboard
-\ One-line summary: Scan the keyboard to see if CTRL is currently pressed
+\       Name: CTRL
+\       Type: Subroutine
+\   Category: Keyboard
+\    Summary: Scan the keyboard to see if CTRL is currently pressed
+\
+\ ------------------------------------------------------------------------------
 \
 \ Returns:
 \
@@ -33098,9 +34102,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DKS4
-\ Category:         Keyboard
-\ One-line summary: Scan the keyboard to see if a specific key is being pressed
+\       Name: DKS4
+\       Type: Subroutine
+\   Category: Keyboard
+\    Summary: Scan the keyboard to see if a specific key is being pressed
+\
+\ ------------------------------------------------------------------------------
 \
 \ Scan the keyboard to see if the key specified in X is currently being
 \ pressed.
@@ -33164,9 +34171,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DKS2
-\ Category:         Keyboard
-\ One-line summary: Read the joystick position
+\       Name: DKS2
+\       Type: Subroutine
+\   Category: Keyboard
+\    Summary: Read the joystick position
+\
+\ ------------------------------------------------------------------------------
 \
 \ Return the value of ADC channel in X (used to read the joystick). The value
 \ will be inverted if the game has been configured to reverse both joystick
@@ -33207,9 +34217,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DKS3
-\ Category:         Keyboard
-\ One-line summary: Toggle a configuration setting and emit a beep
+\       Name: DKS3
+\       Type: Subroutine
+\   Category: Keyboard
+\    Summary: Toggle a configuration setting and emit a beep
+\
+\ ------------------------------------------------------------------------------
 \
 \ This is called when the game is paused and a key is pressed that changes the
 \ game's configuration.
@@ -33280,9 +34293,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DKJ1
-\ Category:         Keyboard
-\ One-line summary: Read joystick and flight controls
+\       Name: DKJ1
+\       Type: Subroutine
+\   Category: Keyboard
+\    Summary: Read joystick and flight controls
+\
+\ ------------------------------------------------------------------------------
 \
 \ Specifically, scan the keyboard for the speed up and slow down keys, and read
 \ the joystick's fire button and X and Y axes, storing the results in the key
@@ -33337,9 +34353,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  U%
-\ Category:         Keyboard
-\ One-line summary: Clear the key logger (from KY1 through KY19)
+\       Name: U%
+\       Type: Subroutine
+\   Category: Keyboard
+\    Summary: Clear the key logger (from KY1 through KY19)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Returns:
 \
@@ -33374,9 +34393,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DOKEY
-\ Category:         Keyboard
-\ One-line summary: Scan for the seven primary flight controls
+\       Name: DOKEY
+\       Type: Subroutine
+\   Category: Keyboard
+\    Summary: Scan for the seven primary flight controls
+\
+\ ------------------------------------------------------------------------------
 \
 \ Scan for the seven primary flight controls (or the equivalent on joystick),
 \ pause and configuration keys, and secondary flight controls, and update the
@@ -33454,9 +34476,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DK4
-\ Category:         Keyboard
-\ One-line summary: Scan for pause, configuration and secondary flight keys
+\       Name: DK4
+\       Type: Subroutine
+\   Category: Keyboard
+\    Summary: Scan for pause, configuration and secondary flight keys
+\
+\ ------------------------------------------------------------------------------
 \
 \ Scan for pause and configuration keys, and if this is a space view, also scan
 \ for secondary flight controls.
@@ -33587,9 +34612,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TT217
-\ Category:         Keyboard
-\ One-line summary: Scan the keyboard until a key is pressed
+\       Name: TT217
+\       Type: Subroutine
+\   Category: Keyboard
+\    Summary: Scan the keyboard until a key is pressed
+\
+\ ------------------------------------------------------------------------------
 \
 \ Scan the keyboard until a key is pressed, and return the key's ASCII code.
 \ If, on entry, a key is already being held down, then wait until that key is
@@ -33652,9 +34680,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  me1
-\ Category:         Text
-\ One-line summary: Erase an old in-flight message and display a new one
+\       Name: me1
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Erase an old in-flight message and display a new one
+\
+\ ------------------------------------------------------------------------------
 \
 \ Arguments:
 \
@@ -33686,9 +34717,10 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ou2
-\ Category:         Text
-\ One-line summary: Display "E.C.M.SYSTEM DESTROYED" as an in-flight message
+\       Name: ou2
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Display "E.C.M.SYSTEM DESTROYED" as an in-flight message
 \
 \ ******************************************************************************
 
@@ -33704,9 +34736,10 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  ou3
-\ Category:         Text
-\ One-line summary: Display "FUEL SCOOPS DESTROYED" as an in-flight message
+\       Name: ou3
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Display "FUEL SCOOPS DESTROYED" as an in-flight message
 \
 \ ******************************************************************************
 
@@ -33717,9 +34750,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  MESS
-\ Category:         Text
-\ One-line summary: Display an in-flight message
+\       Name: MESS
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Display an in-flight message
+\
+\ ------------------------------------------------------------------------------
 \
 \ Display an in-flight message in capitals at the bottom of the space view,
 \ erasing any existing in-flight message first.
@@ -33752,9 +34788,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  mes9
-\ Category:         Text
-\ One-line summary: Print a text token, possibly followed by " DESTROYED"
+\       Name: mes9
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Print a text token, possibly followed by " DESTROYED"
+\
+\ ------------------------------------------------------------------------------
 \
 \ Print a text token, followed by " DESTROYED" if the destruction flag is set
 \ (for when a piece of equipment is destroyed).
@@ -33774,9 +34813,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Subroutine name:  OUCH
-\ Category:         Flight
-\ One-line summary: Potentially lose cargo or equipment following damage
+\       Name: OUCH
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Potentially lose cargo or equipment following damage
+\
+\ ------------------------------------------------------------------------------
 \
 \ Our shields are dead and we are taking damage, so there is a small chance of
 \ losing cargo or equipment.
@@ -33846,9 +34888,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Variable name:    QQ16
-\ Category:         Text
-\ One-line summary: The two-letter token lookup table
+\       Name: QQ16
+\       Type: Variable
+\   Category: Text
+\    Summary: The two-letter token lookup table
+\
+\ ------------------------------------------------------------------------------
 \
 \ Two-letter token lookup table for tokens 128-159. See variable QQ18 for
 \ details of how the two-letter token system works.
@@ -33893,11 +34938,19 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 \ ******************************************************************************
 \
-\ Macro definition for market prices table
+\       Name: ITEM
+\       Type: Macro
+\   Category: Market
+\    Summary: Macro definition for the market prices table
+\
+\ ------------------------------------------------------------------------------
+\
+\ The following macro is used to build the market prices table:
 \
 \   ITEM price, factor, units, quantity, mask
 \
-\ Inserts an item into the market prices table at QQ23.
+\ It inserts an item into the market prices table at QQ23, with the following
+\ attributes:
 \
 \ Arguments:
 \
@@ -33935,9 +34988,12 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Variable name:    QQ23
-\ Category:         Market
-\ One-line summary: Market prices table
+\       Name: QQ23
+\       Type: Variable
+\   Category: Market
+\    Summary: Market prices table
+\
+\ ------------------------------------------------------------------------------
 \
 \ Each item has four bytes of data, like this:
 \
@@ -34001,9 +35057,12 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TIDY
-\ Category:         Maths
-\ One-line summary: Orthonormalise the orientation vectors for a ship
+\       Name: TIDY
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Orthonormalise the orientation vectors for a ship
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine orthonormalises the orientation vectors for a ship. This means
 \ making the three orientation vectors orthogonal (perpendicular to each other),
@@ -34294,9 +35353,12 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TIS2
-\ Category:         Maths
-\ One-line summary: Calculate A = A / Q
+\       Name: TIS2
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate A = A / Q
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following division, where A is a sign-magnitude number and Q is
 \ a positive integer:
@@ -34413,9 +35475,12 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Subroutine name:  TIS3
-\ Category:         Maths
-\ One-line summary: Calculate -(nosev_1 * roofv_1 + nosev_2 * roofv_2) / nosev_3
+\       Name: TIS3
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate -(nosev_1 * roofv_1 + nosev_2 * roofv_2) / nosev_3
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following expression:
 \
@@ -34484,9 +35549,12 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Subroutine name:  DVIDT
-\ Category:         Maths
-\ One-line summary: Calculate (P+1 A) = (A P) / Q
+\       Name: DVIDT
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (P+1 A) = (A P) / Q
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following integer division between sign-magnitude numbers:
 \
@@ -34563,7 +35631,7 @@ SAVE "output/ELTF.bin", CODE_F%, P%, LOAD%
 
 \ ******************************************************************************
 \
-\ ELITE G
+\ ELITE G FILE
 \
 \ Produces the binary file ELTG.bin that gets loaded by elite-bcfs.asm.
 \
@@ -34574,9 +35642,10 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  SHPPT
-\ Category:         Drawing ships
-\ One-line summary: Draw a distant ship as a point rather than a full wireframe
+\       Name: SHPPT
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Draw a distant ship as a point rather than a full wireframe
 \
 \ ******************************************************************************
 
@@ -34680,9 +35749,12 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL5
-\ Category:         Maths
-\ One-line summary: Calculate Q = SQRT(R Q)
+\       Name: LL5
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate Q = SQRT(R Q)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following square root:
 \
@@ -34790,9 +35862,12 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL28
-\ Category:         Maths
-\ One-line summary: Calculate R = 256 * A / Q
+\       Name: LL28
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate R = 256 * A / Q
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following, where A < Q:
 \
@@ -34884,9 +35959,12 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL38
-\ Category:         Maths
-\ One-line summary: Calculate (S A) = (S R) + (A Q)
+\       Name: LL38
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (S A) = (S R) + (A Q)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following between sign-magnitude numbers:
 \
@@ -34945,9 +36023,12 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL51
-\ Category:         Maths
-\ One-line summary: Calculate the dot product of XX15 and XX16
+\       Name: LL51
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate the dot product of XX15 and XX16
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate following dot products:
 \
@@ -35092,9 +36173,12 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL9 (Part 1 of 10)
-\ Category:         Drawing ships
-\ One-line summary: Draw the current ship on the screen
+\       Name: LL9 (Part 1 of 10)
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Draw the current ship on the screen
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine draws the current ship on the screen. This part checks to see if
 \ the ship is exploding, or if it should start exploding, and if it does it sets
@@ -35444,13 +36528,15 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL9 (Part 2 of 10)
-\ Category:         Drawing ships
-\ One-line summary: Draw the current ship on the screen
+\       Name: LL9 (Part 2 of 10)
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Draw the current ship on the screen
 \
-\ Draw the current ship on the screen. This part checks whether the ship is in
-\ our field of view, and whether it is close enough to be fully drawn (if not,
-\ we jump to SHPPT to draw it as a dot).
+\ ------------------------------------------------------------------------------
+\
+\ This part checks whether the ship is in our field of view, and whether it is
+\ close enough to be fully drawn (if not, we jump to SHPPT to draw it as a dot).
 \
 \ ******************************************************************************
 
@@ -35548,12 +36634,14 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL9 (Part 3 of 10)
-\ Category:         Drawing ships
-\ One-line summary: Draw the current ship on the screen
+\       Name: LL9 (Part 3 of 10)
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Draw the current ship on the screen
 \
-\ Draw the current ship on the screen. This part sets up the following variable
-\ blocks:
+\ ------------------------------------------------------------------------------
+\
+\ This part sets up the following variable blocks:
 \
 \   * XX16 contains the orientation vectors, divided to normalise them
 \
@@ -35691,12 +36779,14 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL9 (Part 4 of 10)
-\ Category:         Drawing ships
-\ One-line summary: Draw the current ship on the screen
+\       Name: LL9 (Part 4 of 10)
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Draw the current ship on the screen
 \
-\ Draw the current ship on the screen. This part sets up the visibility block in
-\ XX2 for a ship that is exploding.
+\ ------------------------------------------------------------------------------
+\
+\ This part sets up the visibility block in XX2 for a ship that is exploding.
 \
 \ The XX2 block consists of one byte for each face in the ship's blueprint,
 \ which holds the visibility of that face. Because the ship is exploding, we
@@ -35736,12 +36826,14 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL9 (Part 5 of 10)
-\ Category:         Drawing ships
-\ One-line summary: Draw the current ship on the screen
+\       Name: LL9 (Part 5 of 10)
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Draw the current ship on the screen
 \
-\ Draw the current ship on the screen. This section calculates the visibility of
-\ each of the ship's faces.
+\ ------------------------------------------------------------------------------
+\
+\ This section calculates the visibility of each of the ship's faces.
 \
 \ ******************************************************************************
 \
@@ -36420,13 +37512,16 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL9 (Part 6 of 10)
-\ Category:         Drawing ships
-\ One-line summary: Draw the current ship on the screen
+\       Name: LL9 (Part 6 of 10)
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Draw the current ship on the screen
 \
-\ Draw the current ship on the screen. This section calculates the visibility of
-\ each of the ship's vertices, and for those that are visible, it starts the
-\ process of calculating the screen coordinates of each vertex
+\ ------------------------------------------------------------------------------
+\
+\ This section calculates the visibility of each of the ship's vertices, and for
+\ those that are visible, it starts the process of calculating the screen
+\ coordinates of each vertex
 \
 \ ******************************************************************************
 \
@@ -36881,9 +37976,12 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL61
-\ Category:         Maths
-\ One-line summary: Calculate (U R) = 256 * A / Q
+\       Name: LL61
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (U R) = 256 * A / Q
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following, where A >= Q:
 \
@@ -36957,9 +38055,12 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL62
-\ Category:         Maths
-\ One-line summary: Calculate 128 - (U R)
+\       Name: LL62
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate 128 - (U R)
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following for a positive sign-magnitude number (U R):
 \
@@ -36997,12 +38098,15 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL9 (Part 7 of 10)
-\ Category:         Drawing ships
-\ One-line summary: Draw the current ship on the screen
+\       Name: LL9 (Part 7 of 10)
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Draw the current ship on the screen
 \
-\ Draw the current ship on the screen. This section continues the coordinate
-\ adding from part 6 by finishing off the calculation that we started above:
+\ ------------------------------------------------------------------------------
+\
+\ This section continues the coordinate adding from part 6 by finishing off the
+\ calculation that we started above:
 \
 \                      [ sidev_x roofv_x nosev_x ]   [ x ]   [ x ]
 \   vector to vertex = [ sidev_y roofv_y nosev_y ] . [ y ] + [ y ]
@@ -37080,15 +38184,17 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL9 (Part 8 of 10)
-\ Category:         Drawing ships
-\ One-line summary: Draw the current ship on the screen
+\       Name: LL9 (Part 8 of 10)
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Draw the current ship on the screen
 \
-\ Draw the current ship on the screen. This section projects the coordinate of
-\ the vertex into screen coordinates and stores them on the XX3 heap. By
-\ the end of this part, the XX3 heap contains four bytes containing the
-\ 16-bit screen coordinates of the current vertex, in the order: x_lo, x_hi,
-\ y_lo, y_hi.
+\ ------------------------------------------------------------------------------
+\
+\ This section projects the coordinate of the vertex into screen coordinates and
+\ stores them on the XX3 heap. By the end of this part, the XX3 heap contains
+\ four bytes containing the 16-bit screen coordinates of the current vertex, in
+\ the order: x_lo, x_hi, y_lo, y_hi.
 \
 \ When we reach here, we are looping through the vertices, and we've just worked
 \ out the coordinates of the vertex in our normal coordinate system, as follows
@@ -37319,13 +38425,15 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL9 (Part 9 of 10)
-\ Category:         Drawing ships
-\ One-line summary: Draw the current ship on the screen
+\       Name: LL9 (Part 9 of 10)
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Draw the current ship on the screen
 \
-\ Draw the current ship on the screen. This part calculates which edges are
-\ visible - in other words, which lines we should draw. It also adds a line for
-\ laser fire, if the ship is firing at us.
+\ ------------------------------------------------------------------------------
+\
+\ This part calculates which edges are visible - in other words, which lines we
+\ should draw. It also adds a line for laser fire, if the ship is firing at us.
 \
 \ When we get here, the heap at XX3 contains all the visible vertex screen
 \ coordinates.
@@ -37683,13 +38791,15 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL9 (Part 10 of 10)
-\ Category:         Drawing ships
-\ One-line summary: Draw the current ship on the screen
+\       Name: LL9 (Part 10 of 10)
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Draw the current ship on the screen
 \
-\ Draw the current ship on the screen. This part draws the lines in the ship
-\ line heap, which is used both to draw the ship, and to remove it from the
-\ screen.
+\ ------------------------------------------------------------------------------
+\
+\ This part draws the lines in the ship line heap, which is used both to draw
+\ the ship, and to remove it from the screen.
 \
 \ ******************************************************************************
 
@@ -37742,9 +38852,12 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL118
-\ Category:         Maths
-\ One-line summary: Move a point along a line until it is on-screen
+\       Name: LL118
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Move a point along a line until it is on-screen
+\
+\ ------------------------------------------------------------------------------
 \
 \ Given a point (x1, y1), a gradient and a direction of slope, move the point
 \ along the line until it is on-screen, so this effectively clips the (x1, y1)
@@ -37955,9 +39068,12 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL120
-\ Category:         Maths
-\ One-line summary: Calculate (Y X) = (S x1_lo) * XX12+2 or (S x1_lo) / XX12+2
+\       Name: LL120
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (Y X) = (S x1_lo) * XX12+2 or (S x1_lo) / XX12+2
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following:
 \
@@ -38060,9 +39176,12 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL123
-\ Category:         Maths
-\ One-line summary: Calculate (Y X) = (S R) / XX12+2 or (S R) * XX12+2
+\       Name: LL123
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate (Y X) = (S R) / XX12+2 or (S R) * XX12+2
+\
+\ ------------------------------------------------------------------------------
 \
 \ Calculate the following:
 \
@@ -38203,9 +39322,12 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL129
-\ Category:         Maths
-\ One-line summary: Calculate Q = XX12+2, A = S EOR XX12+3 and (S R) = |S R|
+\       Name: LL129
+\       Type: Subroutine
+\   Category: Maths
+\    Summary: Calculate Q = XX12+2, A = S EOR XX12+3 and (S R) = |S R|
+\
+\ ------------------------------------------------------------------------------
 \
 \ Do the following, in this order:
 \
@@ -38251,13 +39373,16 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL145 (Part 1 of 4)
-\ Category:         Drawing lines
-\ One-line summary: Clip the line from (x1, y1) to (x2, y2) so it fits on-screen 
+\       Name: LL145 (Part 1 of 4)
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Clip the line from (x1, y1) to (x2, y2) so it fits on-screen 
 \
-\ Clip the line from (x1, y1) to (x2, y2) so it fits on-screen, or return an
-\ error if it can't be clipped to fit. The arguments are 16-bit coordinates,
-\ and the clipped line is returned as 8-bit screen coordinates.
+\ ------------------------------------------------------------------------------
+\
+\ This routine clips the line from (x1, y1) to (x2, y2) so it fits on-screen, or
+\ returns an error if it can't be clipped to fit. The arguments are 16-bit
+\ coordinates, and the clipped line is returned using 8-bit screen coordinates.
 \
 \ Arguments:
 \
@@ -38459,12 +39584,14 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL145 (Part 2 of 4)
-\ Category:         Drawing lines
-\ One-line summary: Clip the line from (x1, y1) to (x2, y2) so it fits on-screen 
+\       Name: LL145 (Part 2 of 4)
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Clip the line from (x1, y1) to (x2, y2) so it fits on-screen 
 \
-\ Clip the line from (x1, y1) to (x2, y2) so it fits on-screen. This part does
-\ a number of tests to see if the line is on or off the screen.
+\ ------------------------------------------------------------------------------
+\
+\ This part does a number of tests to see if the line is on or off the screen.
 \
 \ If we get here then at least one of (x1, y1) and (x2, y2) is off-screen, with
 \ XX13 set as follows:
@@ -38542,12 +39669,14 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL145 (Part 3 of 4)
-\ Category:         Drawing lines
-\ One-line summary: Clip the line from (x1, y1) to (x2, y2) so it fits on-screen 
+\       Name: LL145 (Part 3 of 4)
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Clip the line from (x1, y1) to (x2, y2) so it fits on-screen 
 \
-\ Clip the line from (x1, y1) to (x2, y2) so it fits on-screen. This part
-\ calculates the line's gradient.
+\ ------------------------------------------------------------------------------
+\
+\ This part calculates the line's gradient.
 \
 \ ******************************************************************************
 
@@ -38669,12 +39798,15 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  LL145 (Part 4 of 4)
-\ Category:         Drawing lines
-\ One-line summary: Clip the line from (x1, y1) to (x2, y2) so it fits on-screen 
+\       Name: LL145 (Part 4 of 4)
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Clip the line from (x1, y1) to (x2, y2) so it fits on-screen 
 \
-\ Clip the line from (x1, y1) to (x2, y2) so it fits on-screen. This part sets
-\ things up to call the routine in LL188, which does the actual clipping.
+\ ------------------------------------------------------------------------------
+\
+\ This part sets things up to call the routine in LL188, which does the actual
+\ clipping.
 \
 \ If we get here, then R has been set to the gradient of the line (x1, y1) to
 \ (x2, y2), with T indicating the type of slope:
@@ -38811,9 +39943,12 @@ SAVE "output/ELTG.bin", CODE_G%, P%, LOAD%
 
 \ ******************************************************************************
 \
-\ Variable name:    checksum0
-\ Category:         Copy protection
-\ One-line summary: Checksum for the entire main game code
+\       Name: checksum0
+\       Type: Variable
+\   Category: Copy protection
+\    Summary: Checksum for the entire main game code
+\
+\ ------------------------------------------------------------------------------
 \
 \ This byte contains a checksum for the entire main game code. It is populated
 \ by elite-checksum.py and is used by the encryption checks in elite-loader.asm
@@ -38829,7 +39964,7 @@ SAVE "output/ELTG.bin", CODE_G%, P%, LOAD%
 
 \ ******************************************************************************
 \
-\ ELITE SHIP BLUEPRINTS
+\ ELITE SHIP BLUEPRINTS FILE
 \
 \ Produces the binary file SHIPS.bin that gets loaded by elite-bcfs.asm.
 \
@@ -38840,7 +39975,14 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\ Macro definitions for ship blueprints
+\       Name: VERTEX, EDGE, FACE
+\       Type: Macro
+\   Category: Drawing ships
+\    Summary: Macro definition for ship blueprints
+\
+\ ------------------------------------------------------------------------------
+\
+\ The following macros are used to build the ship blueprints:
 \
 \   VERTEX x, y, z, face1, face2, face3, face4, visibility
 \
@@ -38905,33 +40047,19 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Variable name:    XX21
-\ Category:         Drawing ships
-\ One-line summary: Ship blueprints lookup table
+\       Name: XX21
+\       Type: Variable
+\   Category: Drawing ships
+\    Summary: Ship blueprints lookup table
+\
+\ ------------------------------------------------------------------------------
 \
 \ The following lookup table points to the individual ship blueprints below.
 \
 \ ******************************************************************************
-
-.XX21
-
- EQUW SHIP1             \         1 = Sidewinder
- EQUW SHIP2             \ COPS =  2 = Viper
- EQUW SHIP3             \ MAM  =  3 = Mamba
- EQUW SHIP4             \         4 = Python
- EQUW SHIP5             \         5 = Cobra Mk III (bounty hunter)
- EQUW SHIP6             \ THG  =  6 = Thargoid
- EQUW SHIP5             \ CYL  =  7 = Cobra Mk III (trader)
- EQUW SHIP8             \ SST  =  8 = Coriolis space station
- EQUW SHIP9             \ MSL  =  9 = Missile
- EQUW SHIP10            \ AST  = 10 = Asteroid
- EQUW SHIP11            \ OIL  = 11 = Cargo
- EQUW SHIP12            \ TGL  = 12 = Thargon
- EQUW SHIP13            \ ESC  = 13 = Escape pod
-
-\ ******************************************************************************
 \
-\ Ship blueprints
+\ Deep dive: Ship blueprints
+\ ==========================
 \
 \ For each ship blueprint below, the first 20 bytes define this ship type's
 \ characteristics, as follows:
@@ -38989,7 +40117,9 @@ ENDMACRO
 \
 \                         * Bits 3-5 = laser power
 \
-\ Then come the vertex definitions. Each vertex is made up of eight values
+\ Vertex definitions
+\ ------------------
+\ Next come the vertex definitions. Each vertex is made up of eight values
 \ stored in six bytes, as follows:
 \
 \   * Byte #0           Magnitude of the vertex's x-coordinate, with the origin
@@ -39018,8 +40148,10 @@ ENDMACRO
 \
 \                          * Bits 4-7 = the number of face 4
 \
-\ Next are the edge definitions. Each edge is made up of five values stored in
-\ four bytes, as follows:
+\ Edge definitions
+\ ----------------
+\ Then we have the edge definitions. Each edge is made up of five values stored
+\ in four bytes, as follows:
 \
 \   * Byte #0           Visibility distance, beyond which the edge is not shown
 \
@@ -39033,6 +40165,8 @@ ENDMACRO
 \
 \   * Byte #3           The number of the vertex at the end of the edge
 \
+\ Face definitions
+\ ----------------
 \ Finally we have the face definitions. Each face is made up of four values
 \ stored in four bytes, as follows. Note that the visibility distance works in
 \ the opposite way for faces than for the ship, vertices and edges, in that the
@@ -39052,17 +40186,34 @@ ENDMACRO
 \
 \   * Byte #3           Magnitude of the face normal's z-coordinate, normal_z
 \
-\ To make the source code easier to follow, we use three macros (for vertices,
-\ edges and faces) that let us separate out the different values, and which
+\ To make the source code easier to follow, we use three macros (called VERTEX,
+\ EDGE and FACE) that let us separate out the different values, and which
 \ squash the data into the above bytes at compile time.
 \
 \ ******************************************************************************
 
+.XX21
+
+ EQUW SHIP1             \         1 = Sidewinder
+ EQUW SHIP2             \ COPS =  2 = Viper
+ EQUW SHIP3             \ MAM  =  3 = Mamba
+ EQUW SHIP4             \         4 = Python
+ EQUW SHIP5             \         5 = Cobra Mk III (bounty hunter)
+ EQUW SHIP6             \ THG  =  6 = Thargoid
+ EQUW SHIP5             \ CYL  =  7 = Cobra Mk III (trader)
+ EQUW SHIP8             \ SST  =  8 = Coriolis space station
+ EQUW SHIP9             \ MSL  =  9 = Missile
+ EQUW SHIP10            \ AST  = 10 = Asteroid
+ EQUW SHIP11            \ OIL  = 11 = Cargo
+ EQUW SHIP12            \ TGL  = 12 = Thargon
+ EQUW SHIP13            \ ESC  = 13 = Escape pod
+
 \ ******************************************************************************
 \
-\ Variable name:    SHIP1
-\ Category:         Drawing ships
-\ One-line summary: Ship blueprint for  a Sidewinder
+\       Name: SHIP1
+\       Type: Variable
+\   Category: Drawing ships
+\    Summary: Ship blueprint for a Sidewinder
 \
 \ ******************************************************************************
 
@@ -39128,9 +40279,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Variable name:    SHIP2
-\ Category:         Drawing ships
-\ One-line summary: Ship blueprint for  a Viper
+\       Name: SHIP2
+\       Type: Variable
+\   Category: Drawing ships
+\    Summary: Ship blueprint for a Viper
 \
 \ ******************************************************************************
 
@@ -39206,9 +40358,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Variable name:    SHIP3
-\ Category:         Drawing ships
-\ One-line summary: Ship blueprint for  a Mamba
+\       Name: SHIP3
+\       Type: Variable
+\   Category: Drawing ships
+\    Summary: Ship blueprint for a Mamba
 \
 \ ******************************************************************************
 
@@ -39300,9 +40453,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Variable name:    SHIP5
-\ Category:         Drawing ships
-\ One-line summary: Ship blueprint for  a Cobra Mk III
+\       Name: SHIP5
+\       Type: Variable
+\   Category: Drawing ships
+\    Summary: Ship blueprint for a Cobra Mk III
 \
 \ ******************************************************************************
 
@@ -39415,9 +40569,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Variable name:    SHIP6
-\ Category:         Drawing ships
-\ One-line summary: Ship blueprint for  a Thargoid mothership
+\       Name: SHIP6
+\       Type: Variable
+\   Category: Drawing ships
+\    Summary: Ship blueprint for a Thargoid mothership
 \
 \ ******************************************************************************
 
@@ -39508,9 +40663,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Variable name:    SHIP8
-\ Category:         Drawing ships
-\ One-line summary: Ship blueprint for  a Coriolis space station
+\       Name: SHIP8
+\       Type: Variable
+\   Category: Drawing ships
+\    Summary: Ship blueprint for a Coriolis space station
 \
 \ ******************************************************************************
 
@@ -39602,9 +40758,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Variable name:    SHIP9
-\ Category:         Drawing ships
-\ One-line summary: Ship blueprint for  a missile
+\       Name: SHIP9
+\       Type: Variable
+\   Category: Drawing ships
+\    Summary: Ship blueprint for a missile
 \
 \ ******************************************************************************
 
@@ -39688,9 +40845,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Variable name:    SHIP10
-\ Category:         Drawing ships
-\ One-line summary: Ship blueprint for an asteroid
+\       Name: SHIP10
+\       Type: Variable
+\   Category: Drawing ships
+\    Summary: Ship blueprint for an asteroid
 \
 \ ******************************************************************************
 
@@ -39768,9 +40926,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Variable name:    SHIP11
-\ Category:         Drawing ships
-\ One-line summary: Ship blueprint for  a cargo canister
+\       Name: SHIP11
+\       Type: Variable
+\   Category: Drawing ships
+\    Summary: Ship blueprint for a cargo canister
 \
 \ ******************************************************************************
 
@@ -39836,9 +40995,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Variable name:    SHIP12
-\ Category:         Drawing ships
-\ One-line summary: Ship blueprint for  a Thargon
+\       Name: SHIP12
+\       Type: Variable
+\   Category: Drawing ships
+\    Summary: Ship blueprint for a Thargon
 \
 \ ******************************************************************************
 
@@ -39887,9 +41047,10 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\ Variable name:    SHIP13
-\ Category:         Drawing ships
-\ One-line summary: Ship blueprint for an escape pod
+\       Name: SHIP13
+\       Type: Variable
+\   Category: Drawing ships
+\    Summary: Ship blueprint for an escape pod
 \
 \ ******************************************************************************
 
@@ -39953,7 +41114,7 @@ SAVE "output/SHIPS.bin", CODE_SHIPS%, P%, LOAD%
 
 \ ******************************************************************************
 \
-\ PYTHON SHIP BLUEPRINT
+\ ELITE PYTHON SHIP BLUEPRINT FILE
 \
 \ Produces the binary file PYTHON.bin that gets loaded by elite-bcfs.asm.
 \
@@ -39968,9 +41129,10 @@ ORG CODE_PYTHON%
 
 \ ******************************************************************************
 \
-\ Variable name:    SHIP4
-\ Category:         Drawing ships
-\ One-line summary: Ship blueprint for a Python
+\       Name: SHIP4
+\       Type: Variable
+\   Category: Drawing ships
+\    Summary: Ship blueprint for a Python
 \
 \ ******************************************************************************
 
@@ -40056,9 +41218,10 @@ ORG CODE_PYTHON%
 
 \ ******************************************************************************
 \
-\ Variable name:    SVN
-\ Category:         Save and load
-\ One-line summary: The "saving in progress" flag
+\       Name: SVN
+\       Type: Variable
+\   Category: Save and load
+\    Summary: The "saving in progress" flag
 \
 \ ******************************************************************************
 
@@ -40070,9 +41233,10 @@ ORG CODE_PYTHON%
 
 \ ******************************************************************************
 \
-\ Variable name:    VEC
-\ Category:         Screen mode
-\ One-line summary: The original value of the IRQ1 vector
+\       Name: VEC
+\       Type: Variable
+\   Category: Screen mode
+\    Summary: The original value of the IRQ1 vector
 \
 \ ******************************************************************************
 

@@ -48,8 +48,12 @@ ORG &1100               \ The load address of the main game code file ("ELTcode"
 
 \ ******************************************************************************
 \
-\ Subroutine: LBL
-\ Category: Copy protection
+\       Name: LBL
+\       Type: Subroutine
+\   Category: Copy protection
+\    Summary: Checksum the two pages of code that were copied from UU% to LE%
+\
+\ ------------------------------------------------------------------------------
 \
 \ This routine is called at LBL+1 from the CHECKER routine in the loader code in
 \ elite-loader.asm. It calculates the checksum of the first two pages of the
