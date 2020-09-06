@@ -2,7 +2,7 @@
 
 This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained.
 
-The [annotated source](annotated_sources/elite-source.asm) can be assembled on modern computers to produce a working game disc that can be loaded into a BBC Micro or an emulator.
+The [annotated source](sources/elite-source.asm) can be assembled on modern computers to produce a working game disc that can be loaded into a BBC Micro or an emulator.
 
 See the [quick start](#quick-start) guide to find out how this all works.
 
@@ -51,19 +51,19 @@ Hopefully this repository will be useful for those who want to learn more about 
 
 If you want to jump straight in, here's a _tl;dr_ for you.
 
-* The most interesting files are in the [annotated_sources](annotated_sources) folder:
+* The most interesting files are in the [sources](sources) folder:
 
-  * The main game's source code is in the [elite-source.asm](annotated_sources/elite-source.asm) file - this is the motherlode and probably contains all the stuff you're interested in
+  * The main game's source code is in the [elite-source.asm](sources/elite-source.asm) file - this is the motherlode and probably contains all the stuff you're interested in
 
-  * The game's loader is in the [elite-loader.asm](annotated_sources/elite-loader.asm) file - this is mainly concerned with setup and copy protection
+  * The game's loader is in the [elite-loader.asm](sources/elite-loader.asm) file - this is mainly concerned with setup and copy protection
 
-* It's probably worth skimming through the notes on terminology at the start of the [elite-loader.asm](annotated_sources/elite-loader.asm) file, as this explains a number of terms used in the commentary, without which it might be a bit tricky to follow at times (in particular, you should understand the terminology I use for multi-byte numbers)
+* It's probably worth skimming through the notes on terminology at the start of the [elite-loader.asm](sources/elite-loader.asm) file, as this explains a number of terms used in the commentary, without which it might be a bit tricky to follow at times (in particular, you should understand the terminology I use for multi-byte numbers)
 
 * The source code is peppered with a number of "deep dives", each of which goes into an aspect of the game in more detail. You find deep dives in the source files by simply searching for `Deep dive:`
 
 * There are loads of routines in Elite - literally hundreds. I will be adding more information on these soon, but for now you can find them in the source files by searching for `Type: Subroutine` (and you can also search for `Type: Variable`, `Type: Workspace` and `Type: Macro`)
 
-* The entry point for the [main game code](annotated_sources/elite-source.asm) is routine `TT170`, which you can find by searching for `Name: TT170`. If you want to follow the program flow all the way from the title screen around the main game loop, then you can find a deep dive in the `TT170` routine that has you covered
+* The entry point for the [main game code](sources/elite-source.asm) is routine `TT170`, which you can find by searching for `Name: TT170`. If you want to follow the program flow all the way from the title screen around the main game loop, then you can find a deep dive in the `TT170` routine that has you covered
 
 * The source code is designed to be read at an 80-column width and with a monospaced font, just like in the good old days
 
@@ -91,7 +91,7 @@ Here's a bit more on how this project came to be.
 
 When I first saw that the sources to Elite had been released by the authors, I couldn't believe it. I'd always wanted to understand how this astonishing technical feat had been achieved, ever since I'd sat wide-mouthed as a 14-year-old when I first launched from the space station and saw the planet Lave hanging in space, right in front of my eyes. Which, of course, was shortly before dying for the first time, but that didn't matter. It was love at first sight.
 
-So I excitedly opened [one of the source files](original_sources/ELITEG.TXT) at random... and was greeted by page after page of this kind of thing:
+So I excitedly opened [one of the source files](sources/original_sources/ELITEG.TXT) at random... and was greeted by page after page of this kind of thing:
 
 ```
  9310LDAXX15+5:.LL147 LDX#Y*2-1:ORAXX12+1:BNELL107:CPXXX12
@@ -337,7 +337,7 @@ The build process described above uses a five-stage pipeline. This pipeline is b
 
 The end product is an SSD disc image file that can be loaded by a BBC Micro with DFS, or an emulator like JSBeeb or BeebEm. The code produced is identical to the released version of the game (see the section on [verifying the output](#Verifying-the-output) for more details).
 
-Each stage of the build pipeline uses one of the source files from the `annotated_sources` folder, so let's look at what's involved.
+Each stage of the build pipeline uses one of the source files from the `sources` folder, so let's look at what's involved.
 
 ### 1. Compile the main game with `elite-source.asm`
 

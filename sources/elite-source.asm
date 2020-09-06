@@ -29,7 +29,7 @@
 \
 \ ******************************************************************************
 
-INCLUDE "annotated_sources/elite-header.h.asm"
+INCLUDE "sources/elite-header.h.asm"
 
 _REMOVE_COMMANDER_CHECK = TRUE AND _REMOVE_CHECKSUMS
 _ENABLE_MAX_COMMANDER   = TRUE AND _REMOVE_CHECKSUMS
@@ -12761,7 +12761,7 @@ NEXT
 \ available in their bar-based indicators. Here's why:
 \
 \   * The maximum value for fuel is 70 (for 7.0 light years), so when this
-\     this routine is called via DILX+2 to show the fuel reserves, the fuel
+\     routine is called via DILX+2 to show the fuel reserves, the fuel
 \     level in A is reduced down to a maximum of 17 (70 >> 2), which is one
 \     bigger than the maximum of 16 that each bar can show. You never really
 \     notice this as it's only the first 0.6 light years that fall off the end
@@ -15550,7 +15550,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ So to get the cosine, we look up the following value, applying mod 32 so the
 \ table lookup wraps around correctly if the index falls over the end:
 \
-\  SNE + ((theta * 10) + 16) mod 32
+\   SNE + ((theta * 10) + 16) mod 32
 \
 \ It's not 100% accurate, but it's easily good enough for our needs.
 \
@@ -26617,7 +26617,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ giving %10, or 2, so this defines four pixels in a row of colour 2. And this
 \ one:
 \
-\  1010 0011
+\   1010 0011
 \
 \ contains the following pixels: %10, %00, %11 and %01, so this is a four-pixel
 \ row consisting of pixel colours 2, 0, 3 and 1.
@@ -27242,7 +27242,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ------------------------------------------------------------------------------
 \
 \ Flip the sign of the INWK byte at offset X, and increment X by 2. This is
-\ is used by the space station creation routine at NWSPS.
+\ used by the space station creation routine at NWSPS.
 \
 \ Arguments:
 \
@@ -27289,7 +27289,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: ABORT2
 \       Type: Subroutine
 \   Category: Dashboard
-\    Summary: Lock a missile onto a target and update the dashboard
+\    Summary: Set/unset the lock target for a missile and update the dashboard
 \
 \ ------------------------------------------------------------------------------
 \
@@ -27330,7 +27330,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: ECBLB2
 \       Type: Subroutine
 \   Category: Dashboard
-\    Summary: Start up the E.C.M. (indicator, countdown and sound)
+\    Summary: Start up the E.C.M. (indicator, start countdown and make sound)
 \
 \ ------------------------------------------------------------------------------
 \
@@ -27359,7 +27359,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ This draws (or erases) the E.C.M. indicator bulb ("S") on the dashboard.
+\ This draws (or erases) the E.C.M. indicator bulb ("E") on the dashboard.
 \
 \ ******************************************************************************
 
@@ -27896,7 +27896,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \   (XX16+2 K2+2) = roofv_x / z
 \   (XX16+3 K2+3) = roofv_y / z
 \
-\ Then PLS22 does this, with CNT2 stepping through a half circle from the
+\ Then PLS2 does this, with CNT2 stepping through a half circle from the
 \ starting point set above:
 \
 \   K6(1 0) = K3(1 0) + (XX16 K2) * cos(CNT2) + (XX16+2 K2+2) * sin(CNT2)
@@ -27921,7 +27921,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \   (XX16+2 K2+2) = sidev_x / z
 \   (XX16+3 K2+3) = sidev_y / z
 \
-\ Then PLS22 does this, with CNT2 stepping through a half circle from the
+\ Then PLS2 does this, with CNT2 stepping through a half circle from the
 \ starting point set above:
 \
 \   K6(1 0) = K3(1 0) + (XX16 K2) * cos(CNT2) + (XX16+2 K2+2) * sin(CNT2)
@@ -28275,6 +28275,14 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Draw a circle or half-circle, used for the planet's equator and meridian, or
 \ crater.
 \
+\ This routine is called from parts 2 and 3 of PL9, and does the following:
+\
+\   K6(1 0) = K3(1 0) + (XX16 K2) * cos(CNT2) + (XX16+2 K2+2) * sin(CNT2)
+\
+\   (T X) = - |XX16+1 K2+1| * cos(CNT2) - |XX16+3 K2+3| * sin(CNT2)
+\
+\ before calling BLINE to draw a circle segment to these coordinates.
+\
 \ Arguments:
 \
 \   K(1 0)              The planet's radius
@@ -28288,19 +28296,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \                         * 64 for a half circle (a crater)
 \
 \   CNT2                The starting segment for drawing the half-circle
-\
-\ ******************************************************************************
-\
-\ Deep dive: Drawing meridians and craters
-\ ========================================
-\
-\ This routine does the following:
-\
-\   K6(1 0) = K3(1 0) + (XX16 K2) * cos(CNT2) + (XX16+2 K2+2) * sin(CNT2)
-\
-\   (T X) = - |XX16+1 K2+1| * cos(CNT2) - |XX16+3 K2+3| * sin(CNT2)
-\
-\ and calls BLINE. I'm still working on exactly why this does what it does...
 \
 \ ******************************************************************************
 
@@ -31145,13 +31140,13 @@ LOAD_F% = LOAD% + P% - CODE%
 \     with Y = 2, 3, 4, 5 (so this points the write to zero page location &00,
 \     which is where RAND is located, in the first four bytes of memory).
 \
-\  * r0 is written to at the start of M% in the main loop, to seed the random
-\    number generator. Here, r0 is set to the first byte of the ship data block
-\    at K% (x_lo for the first ship at K%).
+\   * r0 is written to at the start of M% in the main loop, to seed the random
+\     number generator. Here, r0 is set to the first byte of the ship data block
+\     at K% (x_lo for the first ship at K%).
 \
-\  * r3 is written to in EX4 as part of the explosion routine, with r3 being
-\    set to the seventh byte of the ship data block at K%+6 (z_lo for the
-\    first ship at K%).
+\   * r3 is written to in EX4 as part of the explosion routine, with r3 being
+\     set to the seventh byte of the ship data block at K%+6 (z_lo for the
+\     first ship at K%).
 \
 \ r0 and r2 follow the following sequence through successive calls to DORND,
 \ going from r0 and r2 to r0´ and r2´ with each call:
