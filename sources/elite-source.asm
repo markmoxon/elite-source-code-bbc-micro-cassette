@@ -330,63 +330,6 @@ f9 = &77
 
 \ ******************************************************************************
 \
-\ Deep dive: Galaxy and system seeds
-\ ==================================
-\
-\ Famously, Elite's galaxy and system data is generated procedurally, using a
-\ set of three 16-bit seed numbers and the Tribonnaci series. You can read all
-\ about this process in the individual documentation for the routines mentioned
-\ in the table below, as well as the system twisting routine at TT54 and galaxy
-\ twisting process in Ghy.
-\
-\ The three seeds are stored as little-endian 16-bit numbers, so the low (least
-\ significant) byte is first followed by the high (most significant) byte. That
-\ means if the seeds are w0, w1 and w2, they are stored like this:
-\
-\       low byte  high byte
-\   w0  QQ15      QQ15+1
-\   w1  QQ15+2    QQ15+3
-\   w2  QQ15+4    QQ15+5
-\
-\ In this documentation, we denote the low byte of w0 as w0_lo and the high byte
-\ as w0_hi, and so on for w1_lo, w1_hi, w2_lo and w2_hi.
-\
-\ The seeds for the selected system are stored at QQ15, while the seeds for the
-\ current galaxy are in QQ21.
-\
-\ Here's a summary of which bits in which seeds are used to generate the various
-\ bits of data in the universe. The routine names where these data are generated
-\ are shown at the end (TT25 etc.).
-\
-\    w0_hi    w0_lo    w1_hi    w1_lo    w2_hi    w2_lo
-\ 76543210 76543210 76543210 76543210 76543210 76543210
-\
-\                                        ^^^----------- Species adjective 1 TT25
-\                                     ^^^-------------- Species adjective 2 TT25
-\       ^^----------------^^--------------------------- Species adjective 3 TT25
-\                                           ^^--------- Species type        TT25
-\                   ^^^^^^^^--------------^^^^--------- Average radius      TT25
-\                              ^^^--------------------- Government type     TT24
-\       ^^--------------------------------------------- Prosperity level    TT24
-\       ^---------------------------------------------- Economy type        TT24
-\                         ^^--------------------------- Tech level          TT24
-\                   ^^^^^^^^--------------------------- Galactic x-coord    TT24
-\ ^^^^^^^^--------------------------------------------- Galactic y-coord    TT24
-\                                               ^-^---- Long-range dot size TT22
-\                                                     ^ Short-range size    TT23
-\           ^------------------------------------------ Name length          cpl
-\                                        ^^^^^--------- Name token (x4)      cpl
-\      ^^^--------------------------------------------- Planet distance    SOLAR
-\                        ^^^--------------------------- Sun distance       SOLAR
-\                                           ^^--------- Sun x-y offset     SOLAR
-\
-\ 76543210 76543210 76543210 76543210 76543210 76543210
-\    w0_hi    w0_lo    w1_hi    w1_lo    w2_hi    w2_lo
-\
-\ ******************************************************************************
-
-\ ******************************************************************************
-\
 \       Name: ZP
 \       Type: Workspace
 \    Address: &0000 to &00B0
@@ -19649,6 +19592,61 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Twist the three 16-bit seeds in QQ15 (selected system) four times, to
 \ generate the next system.
+\
+\ ******************************************************************************
+\
+\ Deep dive: Galaxy and system seeds
+\ ==================================
+\
+\ Famously, Elite's galaxy and system data is generated procedurally, using a
+\ set of three 16-bit seed numbers and the Tribonnaci series. You can read all
+\ about this process in the individual documentation for the routines mentioned
+\ in the table below, as well as the system twisting routine at TT54 and galaxy
+\ twisting process in Ghy.
+\
+\ The three seeds are stored as little-endian 16-bit numbers, so the low (least
+\ significant) byte is first followed by the high (most significant) byte. That
+\ means if the seeds are w0, w1 and w2, they are stored like this:
+\
+\       low byte  high byte
+\   w0  QQ15      QQ15+1
+\   w1  QQ15+2    QQ15+3
+\   w2  QQ15+4    QQ15+5
+\
+\ In this documentation, we denote the low byte of w0 as w0_lo and the high byte
+\ as w0_hi, and so on for w1_lo, w1_hi, w2_lo and w2_hi.
+\
+\ The seeds for the selected system are stored at QQ15, while the seeds for the
+\ current galaxy are in QQ21.
+\
+\ Here's a summary of which bits in which seeds are used to generate the various
+\ bits of data in the universe. The routine names where these data are generated
+\ are shown at the end (TT25 etc.).
+\
+\    w0_hi    w0_lo    w1_hi    w1_lo    w2_hi    w2_lo
+\ 76543210 76543210 76543210 76543210 76543210 76543210
+\
+\                                        ^^^----------- Species adjective 1 TT25
+\                                     ^^^-------------- Species adjective 2 TT25
+\       ^^----------------^^--------------------------- Species adjective 3 TT25
+\                                           ^^--------- Species type        TT25
+\                   ^^^^^^^^--------------^^^^--------- Average radius      TT25
+\                              ^^^--------------------- Government type     TT24
+\       ^^--------------------------------------------- Prosperity level    TT24
+\       ^---------------------------------------------- Economy type        TT24
+\                         ^^--------------------------- Tech level          TT24
+\                   ^^^^^^^^--------------------------- Galactic x-coord    TT24
+\ ^^^^^^^^--------------------------------------------- Galactic y-coord    TT24
+\                                               ^-^---- Long-range dot size TT22
+\                                                     ^ Short-range size    TT23
+\           ^------------------------------------------ Name length          cpl
+\                                        ^^^^^--------- Name token (x4)      cpl
+\      ^^^--------------------------------------------- Planet distance    SOLAR
+\                        ^^^--------------------------- Sun distance       SOLAR
+\                                           ^^--------- Sun x-y offset     SOLAR
+\
+\ 76543210 76543210 76543210 76543210 76543210 76543210
+\    w0_hi    w0_lo    w1_hi    w1_lo    w2_hi    w2_lo
 \
 \ ******************************************************************************
 
