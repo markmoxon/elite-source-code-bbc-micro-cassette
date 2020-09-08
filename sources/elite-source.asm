@@ -95,10 +95,14 @@ f9 = &77
 \
 \ The tape version of Elite uses almost every nook and cranny of the BBC Micro,
 \ which isn't surprising when you consider just how much the authors managed to
-\ squeeze into this 32K micro, without the disc version's luxury of being able
-\ to switch out the codebase when docking and launching.
+\ squeeze into this 32K micro. Sure, the disc version of the game has more
+\ features, but that's because the main game code is split into two different
+\ programs, one that's loaded when you're docked and another that's loaded for
+\ spaceflight. The tape version that's documented here doesn't have the luxury
+\ of fast loading - quite the opposite, in fact - so it has to cram the whole
+\ game into memory, all at once. It's an absolute marvel of efficiency.
 \
-\ When Elite is loaded, this is how the memory map of the BBC Micro looks.
+\ When tape Elite is loaded, this is how the memory map of the BBC Micro looks.
 \
 \     +-----------------------------------+   &FFFF
 \     |                                   |
@@ -112,7 +116,7 @@ f9 = &77
 \     |                                   |
 \     | Python blueprint (PYTHON.bin)     |
 \     |                                   |
-\     +-----------------------------------+   &7F00
+\     +-----------------------------------+   &7F00 = SHIP4
 \     |                                   |
 \     | Memory for the split-screen mode  |
 \     |                                   |
@@ -124,7 +128,7 @@ f9 = &77
 \     |                                   |
 \     | Main game code (ELTcode.bin)      |
 \     |                                   |
-\     +-----------------------------------+   &0F40
+\     +-----------------------------------+   &0F40 = S%
 \     |                                   |
 \     | &0F34-&0F40 unused                |
 \     |                                   |
@@ -190,20 +194,21 @@ f9 = &77
 \     |                                   |
 \     +-----------------------------------+   &0000 = ZP
 \
-\ Of the 64K of addressable memory shown above that the BBC's 6502 supports,
-\ only the bottom 32K is writable, and hence usable by Elite. This 32K includes
-\ screen memory and operating system workspace, so let's take a look at how the
-\ authors managed to shoehorn their game into such a small amount of memory.
+\ This memory map shows the full 64K of addressable memory that's supported by
+\ the BBC's 6502 processor, but only the bottom 32K is writable RAM, and hence
+\ usable by Elite. The top 16K is mapped to the MOS (Machine operating system)
+\ ROM, and the next 16K is mapped to the currently selected paged ROM, which
+\ might be anything from BBC Basic to the VIEW word processor.
+\
+\ This 32K of RAM includes both screen memory and the various operating system
+\ workspaces, which can leave a pretty small amount for programs (especially in
+\ high resolution screen modes). Let's take a look at how the authors managed to
+\ shoehorn their game into such a small amount of memory.
 \
 \ Memory usage
 \ ------------
-\ Elite on a BBC Micro is a tight squeeze, particularly in the tape version
-\ where everything has to fit into the machine - there's no loading a whole new
-\ program from disc when you launch or dock, and as a result, usable memory is
-\ at a premium.
-\
-\ Here's a full breakdown of memory usage in bytes, once Elite is loaded and
-\ running:
+\ Here's a full breakdown of memory usage in bytes, once the tape version of
+\ Elite is loaded and running:
 \
 \                                                                Used     Unused
 \
@@ -213,14 +218,15 @@ f9 = &77
 \   MOS sound and printer workspace in page 8                     256          -
 \   MOS tape filing system workspace in page 3                    142          -
 \   MOS zero page locations, &B0-&D0 and &E2-&FF inclusive         63          -
-\
+\                                                              ------     ------
 \                               Total MOS and ROM memory       33,485          -
 \
 \
 \   Memory for the split-screen mode (31 rows of 256 bytes)     7,936          -
 \   6502 stack and XX3 heap space (at opposite ends of page 1)    256          -
-\
+\                                                              ------     ------
 \                               Total shared memory             8,192          -
+\
 \
 \   Main game code                                             18,136         34
 \   Ship blueprints (11 different designs, all except Python)   2,502          -
@@ -230,8 +236,9 @@ f9 = &77
 \   Python ship blueprint and SVN, VEC variables                  245         11
 \   Zero page workspace (INWK workspace, variables)               192          1
 \   T% workspace (current commander data, stardust data)          108          6
-\
+\                                                              ------     ------
 \                               Total game code memory         23,793         66
+\
 \
 \                               Total memory                   65,536
 \
@@ -257,7 +264,7 @@ f9 = &77
 \     * The MUT3 routine is never called and would be identical to MUT2 even if
 \       it were, so that's another four bytes that aren't used
 \
-\   * In the recursive token table at QQ18
+\   * In the recursive token table at QQ18:
 \
 \     * There is one unused byte at &07FF, right at the end of the table
 \
@@ -279,9 +286,9 @@ f9 = &77
 \
 \   * In the T% workspace:
 \
-\     * There are six unused bytes in the current commander data at T% that
-\       correspond with the unused bytes in the last saved commander data at NA%
-\       (see above).
+\     * There are six unused bytes in the current commander data block at T%,
+\       which correspond with the unused bytes in the last saved commander data
+\       block at NA% (see above)
 \
 \ On top of this, there are quite a few instructions in the main game code that
 \ have no effect and could have been culled without impact; I've identified 20
@@ -296,24 +303,25 @@ f9 = &77
 \ ----------------
 \ Some locations have two names in the source code. This is partly because some
 \ of the code was developed on an Acorn Atom, which restricts the names you can
-\ use for labels to two letters followed by numbers. Presumably when this code
-\ was merged with code on the BBC Micro, where label naming is more flexible,
-\ it was easier just to share label names than refactor the Atom code.
+\ use for labels to two letters followed by one or more numbers. Presumably when
+\ this code was merged with the code that was developed on a BBC Micro, where
+\ label naming is more flexible, it was easier just to share label names than
+\ refactor the Atom code.
 \
 \ The following label names point to the same locations in memory, and are
 \ therefore interchangeable:
 \
-\   LOIN        LL30
-\   INWK        XX1
-\   INWK(34 33) XX19(1 0)
-\   X1          XX15
-\   Y1          XX15+1
-\   X2          XX15+2
-\   Y2          XX15+3
-\   K5          XX18        QQ17
-\   K3          XX2
-\   LSO         LSX
-\   CABTMP      MANY
+\   LOIN        = LL30
+\   INWK        = XX1
+\   INWK(34 33) = XX19(1 0)
+\   X1          = XX15
+\   Y1          = XX15+1
+\   X2          = XX15+2
+\   Y2          = XX15+3
+\   K5          = XX18         = QQ17
+\   K3          = XX2
+\   LSO         = LSX
+\   CABTMP      = MANY
 \
 \ The last one is slightly different, in that the first byte of the MANY table
 \ is unused, so CABTMP simply makes the most of the otherwise unused location.
@@ -391,25 +399,31 @@ ORG &0000
 
 .ZP
 
- SKIP 0                 \ Start of zero page workspace
+ SKIP 0                 \ The start of the zero page workspace
 
 .RAND
 
- SKIP 4                 \ Random number seeds, four 8-bit numbers
+ SKIP 4                 \ Four 8-bit seeds for the random number generation
+                        \ system implemented in the DORND routine
 
 .TRTB%
 
- SKIP 2                 \ Set by elite-loader.asm to point to the MOS key
-                        \ translation table, used to translate internal key
-                        \ values to ASCII
+ SKIP 2                 \ This is set by elite-loader.asm to point to the MOS
+                        \ keyboard translation table, which is used by the TT217
+                        \ routine to translate internal key values to ASCII
 
 .T1
 
- SKIP 1                 \ Temporary storage, used quite a lot
+ SKIP 1                 \ Temporary storage, used all over the place
 
 .SC
 
  SKIP 1                 \ Screen address (low byte)
+                        \
+                        \ Elite draws on-screen by poking bytes directly into
+                        \ screen memory, and SC(1 0) is typically set to point
+                        \ to the location in screen memory for the pixel we want
+                        \ to draw (or erase)
 
 .SCH
 
@@ -419,23 +433,26 @@ ORG &0000
 
  SKIP 18                \ Temporary storage for a block of values (e.g. used in
                         \ the sound routines for sound blocks, and in the
-                        \ plotting routines for sets of coordinates)
+                        \ plotting routines for storing sets of coordinates)
 
 .P
 
- SKIP 3                 \ Temporary storage for a memory pointer (e.g. used in
-                        \ TT26 to store the address of character definitions)
+ SKIP 3                 \ Temporary storage, used all over the place
 
 .XX0
 
- SKIP 2                 \ Stores the address of the ship blueprint in NWSHP,
-                        \ and the blueprint of the current ship being analysed
-                        \ in the main flight loop
+ SKIP 2                 \ Temporary storage, used to store the address of a ship
+                        \ blueprint. For example, it is used when we add a new
+                        \ ship to the local bubble in routine NWSHP, and it
+                        \ contains the address of the current ship's blueprint
+                        \ as we loop through all the nearby ships in the main
+                        \ flight loop
 
 .INF
 
- SKIP 2                 \ Stores address of new ship data block when adding a
-                        \ new ship
+ SKIP 2                 \ Temporary storage, typically used for storing the
+                        \ address of a ship's data block, so it can be copied
+                        \ to and from the internal workspace at INWK
 
 .V
 
@@ -454,40 +471,47 @@ ORG &0000
 
 .SUNX
 
- SKIP 2                 \ The x-coordinate of the vertical central axis of the
-                        \ sun
+ SKIP 2                 \ The 16-bit x-coordinate of the vertical centre axis
+                        \ of the sun (which might be off-screen)
 
 .BETA
 
- SKIP 1                 \ Pitch angle beta, reduced from JSTY to a value between
-                        \ -8 and +8, with same sign as BET2 (the correct sign)
+ SKIP 1                 \ The current pitch angle beta, which is reduced from
+                        \ JSTY to a sign-magnitude value between -8 and +8
+                        \
+                        \ This describes how fast we are pitching our ship, and
+                        \ determines how fast the universe pitches around us
+                        \
+                        \ The sign bit is also stored in BET2, while the
+                        \ opposite sign is stored in BET2+1
 
 .BET1
 
- SKIP 1                 \ Magnitude of the pitch angle beta, i.e. |beta|,
-                        \ reduced from JSTY to a positive value between 0 and 8
+ SKIP 1                 \ The magnitude of the pitch angle beta, i.e. |beta|,
+                        \ which is a positive value between 0 and 8
 
 .XC
 
- SKIP 1                 \ Contains the x-coordinate of the text cursor (i.e.
-                        \ the text column), from 0 to 32
+ SKIP 1                 \ The x-coordinate of the text cursor (i.e. the text
+                        \ column), which can be from 0 to 32
                         \
                         \ A value of 0 denotes the leftmost column and 32 the
                         \ rightmost column, but because the top part of the
                         \ screen (the mode 4 part) has a white border that
                         \ clashes with columns 0 and 32, text is only shown
-                        \ at columns 1-31
+                        \ in columns 1-31
 
 
 .YC
 
- SKIP 1                 \ Contains the y-coordinate of the text cursor (i.e.
-                        \ the text row), from 0 to 23. The screen actually has
-                        \ 31 character rows if you include the mode 5 dashboard,
-                        \ but the text printing routines only work on the mode 4
-                        \ part (the space view), so the text cursor only goes up
-                        \ to a maximum of 23, the row just before the screen
-                        \ split
+ SKIP 1                 \ The y-coordinate of the text cursor (i.e. the text
+                        \ row), which can be from 0 to 23
+                        \
+                        \ The screen actually has 31 character rows if you
+                        \ include the mode 5 dashboard, but the text printing
+                        \ routines only work on the mode 4 part (the space
+                        \ view), so the text cursor only goes up to a maximum of
+                        \ 23, the row just before the screen split
                         \
                         \ A value of 0 denotes the top row, but because the
                         \ top part of the screen has a white border that clashes
@@ -495,7 +519,7 @@ ORG &0000
 
 .QQ22
 
- SKIP 2                 \ Hyperspace countdown counters
+ SKIP 2                 \ The two hyperspace countdown counters
                         \
                         \ Before a hyperspace jump, both QQ22 and QQ22+1 are
                         \ set to 15
@@ -510,67 +534,74 @@ ORG &0000
                         \ take 5 iterations each)
                         \
                         \ QQ22+1 contains the number that's shown on-screen
-                        \ during countdown. It counts down from 15 to 1, and
+                        \ during the countdown. It counts down from 15 to 1, and
                         \ when it hits 0, the hyperspace engines kick in
 
 .ECMA
 
- SKIP 1                 \ E.C.M. countdown timer (can be either our E.C.M.
-                        \ or an opponent's)
+ SKIP 1                 \ The E.C.M. countdown timer, which determines whether
+                        \ an E.C.M. system is currently operating:
                         \
-                        \   0 = E.C.M. is off
-                        \   non-zero = E.C.M. is on and counting down
+                        \   * 0 = E.C.M. is off
+                        \
+                        \   * non-zero = E.C.M. is on and is counting down
+                        \
+                        \ The counter starts at 32 when an E.C.M. is activated,
+                        \ either by us or by an opponent, and it decreases by 1
+                        \ in each iteration of the main flight loop until it
+                        \ reaches zero, at which point the E.C.M. switches off.
+                        \ Only one E.C.M. can be active at any one time, so
+                        \ there is only one counter
 
 .XX15
 
- SKIP 0                 \ 6-byte storage from XX15 TO XX15+5
+ SKIP 0                 \ Temporary storage, typically used for storing screen
+                        \ coordinates in line-drawing routines
                         \
-                        \ Shares the first four bytes with X1, X2, Y1 and Y2:
+                        \ There are six bytes of storage, from XX15 TO XX15+5.
+                        \ The first four bytes have the following aliases:
                         \
                         \   X1 = XX15
                         \   Y1 = XX15+1
                         \   X2 = XX15+2
                         \   Y2 = XX15+3
                         \
+                        \ These are typically used for describing lines in terms
+                        \ of screen coordinates, i.e. (X1, Y1) to (X2, Y2)
+                        \
                         \ The last two bytes of XX15 do not have aliases
 
 .X1
 
- SKIP 1                 \ Temporary storage for coordinates in line-drawing
-                        \ routines
+ SKIP 1                 \ Temporary storage, typically used for x-coordinates in
+                        \ line-drawing routines
 
 .Y1
 
- SKIP 1                 \ Temporary storage for coordinates in line-drawing
-                        \ routines
+ SKIP 1                 \ Temporary storage, typically used for y-coordinates in
+                        \ line-drawing routines
 
 .X2
 
- SKIP 1                 \ Temporary storage for coordinates in line-drawing
-                        \ routines
+ SKIP 1                 \ Temporary storage, typically used for x-coordinates in
+                        \ line-drawing routines
 
 .Y2
 
- SKIP 1                 \ Temporary storage for coordinates in line-drawing
-                        \ routines
+ SKIP 1                 \ Temporary storage, typically used for y-coordinates in
+                        \ line-drawing routines
 
- SKIP 2                 \ Last 2 bytes of XX15
+ SKIP 2                 \ The last 2 bytes of the XX15 block
 
 .XX12
 
  SKIP 6                 \ Temporary storage for a block of values (e.g. used to
                         \ store the energy bank values when updating the
-                        \ dashboard)
+                        \ dashboard, or for gradients when drawing lines)
 
 .K
 
  SKIP 4                 \ Temporary storage, used all over the place
-
-.KL
-
- SKIP 1                 \ If a key is being pressed that is not in the keyboard
-                        \ table at KYTB, it can be stored here (as seen in
-                        \ routine DK4, for example)
 
                         \ The following bytes implement a key logger that
                         \ enables Elite to scan for concurrent key presses of
@@ -580,158 +611,201 @@ ORG &0000
                         \ pitch, change speed and fire lasers at the same, all
                         \ while targeting missiles and setting off their E.C.M.
                         \ and energy bomb, without the keyboard ignoring them).
-                        \ The various keyboard canning routines, such as the one
-                        \ at DKS1, can set the relevant byte in this table to
-                        \ &FF to denote that that particular key is being
+                        \ The various keyboard scanning routines, such as the
+                        \ one at DKS1, can set the relevant byte in this table
+                        \ to &FF to denote that that particular key is being
                         \ pressed. The logger is cleared to zero (no keys are
                         \ being pressed) by the U% routine
 
+.KL
+
+ SKIP 1                 \ If a key is being pressed that is not in the keyboard
+                        \ table at KYTB, it can be stored here (as seen in
+                        \ routine DK4, for example)
+
 .KY1
 
- SKIP 1                 \ "?" key has been pressed
+ SKIP 1                 \ "?" has been pressed
                         \
-                        \   0 = no
-                        \   non-zero = yes
+                        \   * 0 = no
+                        \
+                        \   * non-zero = yes
 
 .KY2
 
- SKIP 1                 \ Space key has been pressed
+ SKIP 1                 \ The space bar has been pressed
                         \
-                        \   0 = no
-                        \   non-zero = yes
+                        \   * 0 = no
+                        \
+                        \   * non-zero = yes
 
 .KY3
 
- SKIP 1                 \ "<" key has been pressed
+ SKIP 1                 \ "<" has been pressed
                         \
-                        \   0 = no
-                        \   non-zero = yes
+                        \   * 0 = no
+                        \
+                        \   * non-zero = yes
 
 .KY4
 
- SKIP 1                 \ ">" key has been pressed
+ SKIP 1                 \ ">" has been pressed
                         \
-                        \   0 = no
-                        \   non-zero = yes
+                        \   * 0 = no
+                        \
+                        \   * non-zero = yes
 
 .KY5
 
- SKIP 1                 \ "X" key has been pressed
+ SKIP 1                 \ "X" has been pressed
                         \
-                        \   0 = no
-                        \   non-zero = yes
+                        \   * 0 = no
+                        \
+                        \   * non-zero = yes
 
 .KY6
 
- SKIP 1                 \ "S" key has been pressed
+ SKIP 1                 \ "S" has been pressed
                         \
-                        \   0 = no
-                        \   non-zero = yes
+                        \   * 0 = no
+                        \
+                        \   * non-zero = yes
 
 .KY7
 
- SKIP 1                 \ "A" key has been pressed
+ SKIP 1                 \ "A" has been pressed
                         \
-                        \   0 = no
-                        \   non-zero = yes
+                        \   * 0 = no
                         \
-                        \ Also set when the joystick fire button has been
-                        \ pressed
+                        \   * non-zero = yes
+                        \
+                        \ This is also set when the joystick fire button has
+                        \ been pressed
 
 .KY12
 
  SKIP 1                 \ Tab key has been pressed
                         \
-                        \   0 = no
-                        \   non-zero = yes
+                        \   * 0 = no
+                        \
+                        \   * non-zero = yes
 
 .KY13
 
  SKIP 1                 \ Escape key has been pressed
                         \
-                        \   0 = no
-                        \   non-zero = yes
+                        \   * 0 = no
+                        \
+                        \   * non-zero = yes
 
 .KY14
 
- SKIP 1                 \ T key has been pressed
+ SKIP 1                 \ "T" has been pressed
                         \
-                        \   0 = no
-                        \   non-zero = yes
+                        \   * 0 = no
+                        \
+                        \   * non-zero = yes
 
 .KY15
 
- SKIP 1                 \ U key has been pressed
+ SKIP 1                 \ "U" has been pressed
                         \
-                        \   0 = no
-                        \   non-zero = yes
+                        \   * 0 = no
+                        \
+                        \   * non-zero = yes
 
 .KY16
 
- SKIP 1                 \ M key has been pressed
+ SKIP 1                 \ "M" has been pressed
                         \
-                        \   0 = no
-                        \   non-zero = yes
+                        \   * 0 = no
+                        \
+                        \   * non-zero = yes
 
 .KY17
 
- SKIP 1                 \ E key has been pressed
+ SKIP 1                 \ "E" has been pressed
                         \
-                        \   0 = no
-                        \   non-zero = yes
+                        \   * 0 = no
+                        \
+                        \   * non-zero = yes
 
 .KY18
 
- SKIP 1                 \ J key has been pressed
+ SKIP 1                 \ "J" has been pressed
                         \
-                        \   0 = no
-                        \   non-zero = yes
+                        \   * 0 = no
+                        \
+                        \   * non-zero = yes
 
 .KY19
 
- SKIP 1                 \ C key has been pressed
+ SKIP 1                 \ "C" has been pressed
                         \
-                        \   0 = no
-                        \   non-zero = yes
+                        \   * 0 = no
+                        \
+                        \   * non-zero = yes
 
 .LAS
 
- SKIP 1                 \ Bits 0-6 of the laser power of the current space view
-                        \ (bit 7 doesn't denote laser power, just whether or
-                        \ not the laser pulses)
+ SKIP 1                 \ Contains the laser power of the laser fitted to the
+                        \ current space view (or 0 if there is no laser fitted
+                        \ to the current view)
+                        \
+                        \ This gets set to bits 0-6 of the laser power byte from
+                        \ the commander data block, which contains the laser's
+                        \ power (bit 7 doesn't denote laser power, just whether
+                        \ or not the laser pulses, so that is not stored here)
 
 .MSTG
 
- SKIP 1                 \ Missile lock target
+ SKIP 1                 \ The current missile lock target
                         \
-                        \ &FF = no target, otherwise contains the slot number of
-                        \ the ship that our missile is locked onto
+                        \   * &FF = no target
+                        \
+                        \   * 1-13 = the slot number of the ship that our
+                        \            missile is locked onto
 
 .XX1
 
- SKIP 0                 \ An alias for INWK that is used in the ship-drawing
-                        \ routine at LL9
+ SKIP 0                 \ This is an alias for INWK that is used in the main
+                        \ ship-drawing routine at LL9
 
 .INWK
 
- SKIP 33                \ Workspace for the current ship data block. See the
-                        \ documentation for workspace K% for details of what
-                        \ each of the bytes in the data block represents
+ SKIP 33                \ The zero-page internal workspace for the current ship
+                        \ data block
+                        \
+                        \ As operations on zero page locations are faster and
+                        \ have smaller opcodes than operations on the rest of
+                        \ the addressable memory, Elite tends to store oft-used
+                        \ data here. A lot of the routines in Elite need to
+                        \ access and manipulate ship data, so to make this an
+                        \ efficient exercise, the ship data is first copied from
+                        \ the ship data blocks at K% into INWK (or, when new
+                        \ ships are spawned, from the blueprints at XX21). See
+                        \ the deep dive on ship data blocks for details of what
+                        \ each of the bytes in the INWK data block represents
 
 .XX19
 
- SKIP NI% - 33          \ XX19(1 0) shares location with INWK(34 33), which
-                        \ contains the ship line heap address pointer
+ SKIP NI% - 33          \ XX19(1 0) shares its location with INWK(34 33), which
+                        \ contains the address of the ship line heap
 
 .LSP
 
- SKIP 1                 \ The ball line heap pointer (see BLINE for details)
+ SKIP 1                 \ The ball line heap pointer, which contains the number
+                        \ of the first free byte after the end of the LSX2 and
+                        \ LSY2 heaps (see the deep dive on the ball line heap
+                        \ for details)
 
 .QQ15
 
- SKIP 6                 \ Contains the three 16-bit seeds (6 bytes) for the
-                        \ selected system, i.e. the one in the crosshairs in
-                        \ the short range chart
+ SKIP 6                 \ The three 16-bit seeds for the selected system, i.e.
+                        \ the one in the crosshairs in the Short-range Chart
+                        \
+                        \ See the deep dives on "Galaxy and system seeds" and
+                        \ "Twisting the system seeds" for more details
 
 .K5
 
@@ -746,14 +820,14 @@ ORG &0000
 
 .QQ17
 
- SKIP 1                 \ Stores flags that affect how text tokens are printed,
-                        \ particularly the capitalisation setting
+ SKIP 1                 \ Contains a number of flags that affect how text tokens
+                        \ are printed, particularly capitalisation:
                         \
                         \   * If all bits are set (255) then text printing is
                         \     disabled
                         \
                         \   * Bit 7: 0 = ALL CAPS
-                        \            1 = Sentence Case, and bit 6 determines the
+                        \            1 = Sentence Case, bit 6 determines the
                         \                case of the next letter to print
                         \
                         \   * Bit 6: 0 = print the next letter in upper case
@@ -776,17 +850,12 @@ ORG &0000
 
 .QQ19
 
- SKIP 3                 \ Temporary storage (e.g. used in TT25 to store results
-                        \ when calculating adjectives to show for system species
-                        \ names, and in TT151 when printing market prices, and
-                        \ in TT111 when working out which system is nearest to
-                        \ the crosshairs in the system charts)
+ SKIP 3                 \ Temporary storage, used all over the place
 
 .K6
 
- SKIP 5                 \ Temporary storage for seed pairs (e.g. used in cpl
-                        \ as a temporary backup when twisting three 16-bit
-                        \ seeds, and in TT151 when printing market prices)
+ SKIP 5                 \ Temporary storage, typically used for storing
+                        \ coordinates during vector calculations
 
 .ALP1
 
@@ -920,8 +989,14 @@ ORG &0000
 
 .ALPHA
 
- SKIP 1                 \ Roll angle alpha, reduced from JSTX to a value between
-                        \ -31 and +31, with same sign as ALP2 (the correct sign)
+ SKIP 1                 \ The current roll angle alpha, which is reduced from
+                        \ JSTX to a sign-magnitude value between -31 and +31
+                        \
+                        \ This describes how fast we are rolling our ship, and
+                        \ determines how fast the universe rolls around us
+                        \
+                        \ The sign bit is also stored in ALP2, while the
+                        \ opposite sign is stored in ALP2+1
 
 .QQ12
 
@@ -1098,7 +1173,9 @@ ORG &0300
                         \ left (rolling each byte within itself) to get the
                         \ seeds for the next galaxy, so after 8 galactic jumps,
                         \ the seeds roll round to the first galaxy again
-
+                        \
+                        \ See the deep dives on "Galaxy and system seeds" and
+                        \ "Twisting the system seeds" for more details
 .CASH
 
  SKIP 4                 \ Cash as a 32-bit unsigned integer, stored with the
@@ -3604,9 +3681,11 @@ ORG &0D40
 
 .QQ2
 
- SKIP 6                 \ Contains the three 16-bit seeds for the current system
-                        \ (see QQ15 above for details of how the three seeds are
-                        \ stored in memory)
+ SKIP 6                 \ The three 16-bit seeds for the current system, i.e.
+                        \ the one we are currently in
+                        \
+                        \ See the deep dives on "Galaxy and system seeds" and
+                        \ "Twisting the system seeds" for more details
 
 .QQ3
 
@@ -3958,7 +4037,7 @@ LOAD_A% = LOAD%
 \
 \ The keypresses that are processed are as follows:
 \
-\   * Space and "?" to speed up and slow down
+\   * The space bar and "?" to speed up and slow down
 \   * "U", "T" and "M" for disarming, arming and firing missiles
 \   * Tab for firing an energy bomb
 \   * Escape for launching an escape pod
@@ -9895,7 +9974,7 @@ NEXT
 \   FLAG                Set to &FF for the first call, so it sets up the first
 \                       point in the heap but waits until the second call before
 \                       drawing anything (as we need two points, i.e. two calls,
-\                        before we can draw a line)
+\                       before we can draw a line)
 \
 \   K                   The circle's radius
 \
@@ -28488,7 +28567,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \   K4(1 0)             Pixel y-coordinate of the centre of the new sun
 \
-\   SUNX(1 0)           The x-coordinate of the vertical central axis of the old
+\   SUNX(1 0)           The x-coordinate of the vertical centre axis of the old
 \                       sun (the one currently on-screen)
 \
 \ Other entry points:
@@ -28623,7 +28702,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  TXA                    \ Negate X using two's complement, so X = ~X + 1
  EOR #%11111111         \
- CLC                    \ We so this because X is negative at this point, as it
+ CLC                    \ We do this because X is negative at this point, as it
  ADC #1                 \ is calculated as 191 - the y-coordinate of the sun's
  TAX                    \ centre, and the centre is off the bottom of the
                         \ screen, past 191. So we negate it to make it positive
@@ -28786,7 +28865,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ redraw the old sun
 
  LDA SUNX               \ Set YY(1 0) = SUNX(1 0), the x-coordinate of the
- STA YY                 \ vertical central axis of the old sun that's currently
+ STA YY                 \ vertical centre axis of the old sun that's currently
  LDA SUNX+1             \ on-screen
  STA YY+1
 
@@ -28917,7 +28996,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ jump to PLF11
 
  LDA SUNX               \ Set YY(1 0) = SUNX(1 0), the x-coordinate of the
- STA YY                 \ vertical central axis of the old sun that's currently
+ STA YY                 \ vertical centre axis of the old sun that's currently
  LDA SUNX+1             \ on-screen
  STA YY+1
 
@@ -29082,7 +29161,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ******************************************************************************
 
  LDA SUNX               \ Set YY(1 0) = SUNX(1 0), the x-coordinate of the
- STA YY                 \ vertical central axis of the old sun that's currently
+ STA YY                 \ vertical centre axis of the old sun that's currently
  LDA SUNX+1             \ on-screen
  STA YY+1
 
@@ -29488,7 +29567,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   SUNX(1 0)           The x-coordinate of the vertical central axis of the sun
+\   SUNX(1 0)           The x-coordinate of the vertical centre axis of the sun
 \
 \ ******************************************************************************
 
@@ -29498,7 +29577,7 @@ LOAD_E% = LOAD% + P% - CODE%
  BMI WPLS-1             \ the subroutine (as WPLS-1 contains an RTS)
 
  LDA SUNX               \ Set YY(1 0) = SUNX(1 0), the x-coordinate of the
- STA YY                 \ vertical central axis of the sun that's currently on
+ STA YY                 \ vertical centre axis of the sun that's currently on
  LDA SUNX+1             \ screen
  STA YY+1
 
@@ -32232,7 +32311,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \   * Show "load commander?" title screen (TITLE)
 \   * Process loading of commander file, if selected
 \   * Copy last saved commander NA% to current commander TP
-\   * Show "press space or fire" title screen (TITLE)
+\   * Show "press fire or space" title screen (TITLE)
 \   * Set target system to home system
 \   * Process arrival in system closest to target
 \
