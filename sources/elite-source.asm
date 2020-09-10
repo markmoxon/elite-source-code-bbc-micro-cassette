@@ -803,28 +803,30 @@ ORG &0000
 .ALP1
 
  SKIP 1                 \ Magnitude of the roll angle alpha, i.e. |alpha|,
-                        \ reduced from JSTX to a positive value between 0 and 31
+                        \ which is a positive value between 0 and 31
 
 .ALP2
 
- SKIP 2                 \ ALP2   = correct sign of the roll angle alpha
-                        \ ALP2+1 = flipped sign of the roll alpha angle
+ SKIP 2                 \ Bit 7 of ALP2 = sign of the roll angle in ALPHA
+                        \
+                        \ Bit 7 of ALP2+1 = opposite sign to ALP2 and ALPHA
 
 .BET2
 
- SKIP 2                 \ BET2   = correct sign of the pitch angle beta
-                        \ BET2+1 = flipped sign of the pitch angle beta
+ SKIP 2                 \ Bit 7 of BET2 = sign of the pitch angle in BETA
+                        \
+                        \ Bit 7 of BET2+1 = opposite sign to BET2 and BETA
 
 .DELTA
 
- SKIP 1                 \ Current speed, 1-40
+ SKIP 1                 \ Our current speed, in the range 1-40
 
 .DELT4
 
- SKIP 2                 \ The current speed * 64
+ SKIP 2                 \ Our current speed * 64 as a 16-bit value
                         \
                         \ This is stored as DELT4(1 0), so the high byte in
-                        \ DELT4+1 therefore contains the current speed / 4
+                        \ DELT4+1 therefore contains our current speed / 4
 
 .U
 
@@ -845,20 +847,23 @@ ORG &0000
 
 .XSAV
 
- SKIP 1                 \ Temporary storage for X, used all over the place
+ SKIP 1                 \ Temporary storage for saving the value of the X
+                        \ register, used all over the place
 
 .YSAV
 
- SKIP 1                 \ Temporary storage for Y, used all over the place
+ SKIP 1                 \ Temporary storage for saving the value of the Y
+                        \ register, used all over the place
 
 .XX17
 
  SKIP 1                 \ Temporary storage (e.g. used in BPRNT to store the
-                        \ number of characters to print)
+                        \ number of characters to print, and as the edge counter
+                        \ in the ship-drawing routine)
 
 .QQ11
 
- SKIP 1                 \ Current view
+ SKIP 1                 \ The number of the current view:
                         \
                         \   0   = Space view
                         \   1   = Title screen
@@ -875,6 +880,8 @@ ORG &0000
                         \   32  = Equip Ship screen (red key f3)
                         \   64  = Long-range Chart (red key f4)
                         \   128 = Short-range Chart (red key f5)
+                        \
+                        \ This value is typically set by calling routine TT66
 
 .ZZ
 
@@ -882,53 +889,100 @@ ORG &0000
 
 .XX13
 
- SKIP 1                 \ Number of pirates currently spawned
+ SKIP 1                 \ Temporary storage, typically used in the line-drawing
+                        \ routines
 
 .MCNT
 
- SKIP 1                 \ Main loop counter
+ SKIP 1                 \ The main loop counter
                         \
-                        \ Gets set to 0 when we buy fuel
+                        \ This counter, which starts at 255 and gets decremented
+                        \ every iteration of the main loop in TT100, is used to
+                        \ determine when to do certain actions within the main
+                        \ loop. So, for example:
                         \
-                        \ Gets set to &FF on death and in-system jump
+                        \   * Ship energy and shields are bumped up every 8
+                        \     loops
                         \
-                        \ Gets decremented every time the main loop at TT100 is
-                        \ entered
+                        \   * We check whether we are near a space station every
+                        \     32 loops
                         \
-                        \ Used to determine when to do certain actions within
-                        \ the main loop, so ship energy and shields are bumped
-                        \ up every 8 loops, we check whether we are near a
-                        \ space station every 32 loops, we check the ship's
-                        \ altitude every 10 loops, and so on
+                        \   * We check the ship's altitude every 10 loops
+                        \
+                        \   * We consider spawning a ship every 256 iterations
+                        \
+                        \   * We tidy one ship's orientation vectors for 13 out
+                        \     of 16 iterations
+                        \
+                        \ and so on. The counter is reset in various ways:
+                        \
+                        \   * It gets set to 0 when we buy fuel, launch from a
+                        \     space station, arrive in a new system, or launch
+                        \     an escape pod
+                        \
+                        \   * It gets set to 1 after completing an in-system
+                        \     jump, so the next iteration through the main loop
+                        \     will potentially spawn ships
+                        \
+                        \   * It gets set to 255 while the death screen is
+                        \     showing, and then set to 0 once it's finished
 
 .DL
 
- SKIP 1                 \ Line scan counter
+ SKIP 1                 \ Vertical sync flag
                         \
-                        \ Gets set to 30 every vertical sync on the video
-                        \ system, which happens 50 times a second (50Hz)
+                        \ DL gets set to 30 every time we reach vertical sync on
+                        \ the video system, which happens 50 times a second
+                        \ (50Hz). The WSCAN routine uses this to pause until the
+                        \ vertical sync, by setting DL to 0 and then monitoring
+                        \ its value until it changes to 30
 
 .TYPE
 
- SKIP 1                 \ Temporary storage, used to store the current ship type
-                        \ in places like the main flight loop (see FRIN for
-                        \ information about ship types)
+ SKIP 1                 \ The current ship type
+                        \
+                        \ This is where we store the current ship type for when
+                        \ we are iterating through the ships in the local bubble
+                        \ as part of the main flight loop. See the table at XX21
+                        \ for information about ship types
 
 .JSTX
 
- SKIP 1                 \ Current rate of roll (as shown in the dashboard's RL
-                        \ indicator), ranging from 1 to 255 with 128 as the
-                        \ centre point (so 1 means roll is decreasing at the
+ SKIP 1                 \ Our current roll rate
+                        \
+                        \ This value is shown in the dashboard's RL indicator,
+                        \ and determines the rate at which we are rolling
+                        \
+                        \ The value ranges from from 1 to 255 with 128 as the
+                        \ centre point, so 1 means roll is decreasing at the
                         \ maximum rate, 128 means roll is not changing, and
-                        \ 255 means roll is increasing at the maximum rate)
+                        \ 255 means roll is increasing at the maximum rate
+                        \
+                        \ This value is updated by "<" and ">" key presses, or
+                        \ if joysticks are enabled, from the joystick. If
+                        \ keyboard damping is enabled (which it is by default),
+                        \ the value is slowly moved towards the centre value of
+                        \ 128 (no roll) if there are no keypresses or joystick
+                        \ movement
 
 .JSTY
 
- SKIP 1                 \ Current rate of pitch (as shown in the dashboard's DC
-                        \ indicator), ranging from 1 to 255 with 128 as the
-                        \ centre point (so 1 means pitch is decreasing at the
+ SKIP 1                 \ Our current pitch rate
+                        \
+                        \ This value is shown in the dashboard's DC indicator,
+                        \ and determines the rate at which we are pitching
+                        \
+                        \ The value ranges from from 1 to 255 with 128 as the
+                        \ centre point, so 1 means pitch is decreasing at the
                         \ maximum rate, 128 means pitch is not changing, and
-                        \ 255 means pitch is increasing at the maximum rate)
+                        \ 255 means pitch is increasing at the maximum rate
+                        \
+                        \ This value is updated by "S" and "X" key presses, or
+                        \ if joysticks are enabled, from the joystick. If
+                        \ keyboard damping is enabled (which it is by default),
+                        \ the value is slowly moved towards the centre value of
+                        \ 128 (no pitch) if there are no keypresses or joystick
+                        \ movement
 
 .ALPHA
 
@@ -943,67 +997,73 @@ ORG &0000
 
 .QQ12
 
- SKIP 1                 \ Docked status
+ SKIP 1                 \ Our "docked" status
                         \
-                        \   0 = not docked
-                        \   &FF = docked
+                        \   * 0 = we are not docked
+                        \
+                        \   * &FF = we are docked
 
 .TGT
 
- SKIP 1                 \ Used as a target for counters when drawing explosion
-                        \ clouds and partial circles
+ SKIP 1                 \ Temporary storage, typically used as a target value
+                        \ for counters when drawing explosion clouds and partial
+                        \ circles
 
 .SWAP
 
- SKIP 1                 \ Determines whether we had to swap a point's
-                        \ coordinates when drawing a line using BLINE
+ SKIP 1                 \ Temporary storage, used to store a flag that records
+                        \ whether or not we had to swap a line's start and end
+                        \ coordinates around when clipping the line in routine
+                        \ LL145 (the flag is used in places like BLINE to swap
+                        \ them back)
 
 .COL
 
- SKIP 1                 \ Used to store colour information when drawing pixels
-                        \ in the mode 5 dashboard screen
+ SKIP 1                 \ Temporary storage, used to store colour information
+                        \ when drawing pixels in the mode 5 dashboard screen
 
 .FLAG
 
- SKIP 1                 \ Used to define the first call to the ball line routine
-                        \ in BLINE, so it knows to wait for the second call
-                        \ before storing segment data in the ball line heap
+ SKIP 1                 \ A flag that's used to define whether this is the first
+                        \ call to the ball line routine in BLINE, so it knows
+                        \ whether to wait for the second call before storing
+                        \ segment data in the ball line heap
 
 .CNT
 
- SKIP 1                 \ Used as temporary storage (e.g. stores the number of
-                        \ bits of debris shown on destruction when a ship is
-                        \ blown up, and the point count when drawing circles)
+ SKIP 1                 \ Temporary storage, typically used for storing the
+                        \ number of iterations required when looping
 
 .CNT2
 
- SKIP 1                 \ Used as a secondary counter when drawing partial
-                        \ circles to denote when the arc should start
+ SKIP 1                 \ Temporary storage, used in the planet-drawing routine
+                        \ to store the segment number where the arc of a partial
+                        \ circle should start
 
 .STP
 
- SKIP 1                 \ The step size for drawing circles. Circles are made up
-                        \ of 64 points, and the step size determines how many
-                        \ points to skip with each straight-line segment, so the
-                        \ smaller the step size, the smoother the circle. Values
-                        \ used are:
+ SKIP 1                 \ The step size for drawing circles
+                        \
+                        \ Circles in Elite are split up into 64 points, and the
+                        \ step size determines how many points to skip with each
+                        \ straight-line segment, so the smaller the step size,
+                        \ the smoother the circle. The values used are:
                         \
                         \   * 2 for big planets and the circles on the charts
                         \   * 4 for medium planets and the launch tunnel
                         \   * 8 for small planets and the hyperspace tunnel
                         \
-                        \ from smoother circles at the top to more polygonal at
-                        \ the bottom
+                        \ As the step size increases we move from smoother
+                        \ circles at the top to more polygonal at the bottom.
+                        \ See the CIRCLE2 routine for more details
 
 .XX4
 
- SKIP 1                 \ Used as temporary storage (e.g. used in STATUS as a
-                        \ loop counter)
+ SKIP 1                 \ Temporary storage, used all over the place
 
 .XX20
 
- SKIP 1                 \ Used as temporary storage (e.g. used as a counter for
-                        \ the edges loop in the main drawing routine at LL9)
+ SKIP 1                 \ Temporary storage, used all over the place
 
 .XX14
 
@@ -1016,35 +1076,31 @@ ORG &0000
 
 .RAT2
 
- SKIP 1                 \ Used to store the pitch and roll signs when moving
-                        \ objects and stardust
+ SKIP 1                 \ Temporary storage, used to store the pitch and roll
+                        \ signs when moving objects and stardust
 
 .K2
 
- SKIP 4                 \ Used as temporary storage (e.g. used in MVEIT for
-                        \ storing interim rotation calculations)
+ SKIP 4                 \ Temporary storage, used all over the place
 
 ORG &D1
 
 .T
 
- SKIP 1                 \ Used as temporary storage (e.g. used in cpl for the
-                        \ loop counter)
+ SKIP 1                 \ Temporary storage, used all over the place
 
 .K3
 
- SKIP 0                 \ Used as temporary storage (e.g. used in TT27 for the
-                        \ character to print)
+ SKIP 0                 \ Temporary storage, used all over the place
 
 .XX2
 
- SKIP 14                \ Stores the visibility of the ship's faces during the
-                        \ ship drawing routine at LL9
+ SKIP 14                \ Temporary storage, used to store the visibility of the
+                        \ ship's faces during the ship-drawing routine at LL9
 
 .K4
 
- SKIP 2                 \ Used as temporary storage (e.g. used in TT27 for the
-                        \ character to print)
+ SKIP 2                 \ Temporary storage, used all over the place
 
 PRINT "Zero page variables from ", ~ZP, " to ", ~P%
 
@@ -1067,9 +1123,8 @@ ORG &0100
 
 .XX3
 
- SKIP 0                 \ Used as temporary heap space (e.g. used in the main
-                        \ ship drawing routine at LL9 for storing the screen
-                        \ coordinates of the ship's visible vertices)
+ SKIP 0                 \ Temporary storage, typically used for storing tables
+                        \ of values such as screen coordinates or ship data
 
 \ ******************************************************************************
 \
@@ -1090,19 +1145,20 @@ ORG &0300
 
 .T%
 
- SKIP 0                 \ Start of workspace T%
+ SKIP 0                 \ The start of the T% workspace
 
 .TP
 
- SKIP 1                 \ Mission status, always 0 for the tape version of Elite
+ SKIP 1                 \ The current mission status, which is always 0 for the
+                        \ tape version of Elite as there are no missions
 
 .QQ0
 
- SKIP 1                 \ Current system's galactic x-coordinate
+ SKIP 1                 \ The current system's galactic x-coordinate (0-256)
 
 .QQ1
 
- SKIP 1                 \ Current system's galactic y-coordinate
+ SKIP 1                 \ The current system's galactic y-coordinate (0-256)
 
 .QQ21
 
@@ -1110,181 +1166,238 @@ ORG &0300
                         \
                         \ These seeds define system 0 in the current galaxy, so
                         \ they can be used as a starting point to generate all
-                        \ 256 systems in this galaxy
+                        \ 256 systems in the galaxy
                         \
                         \ Using a galactic hyperdrive rotates each byte to the
                         \ left (rolling each byte within itself) to get the
-                        \ seeds for the next galaxy, so after 8 galactic jumps,
-                        \ the seeds roll round to the first galaxy again
+                        \ seeds for the next galaxy, so after eight galactic
+                        \ jumps, the seeds roll around to the first galaxy again
                         \
                         \ See the deep dives on "Galaxy and system seeds" and
                         \ "Twisting the system seeds" for more details
 .CASH
 
- SKIP 4                 \ Cash as a 32-bit unsigned integer, stored with the
-                        \ most significant byte in CASH and the least
-                        \ significant in CASH+3 (big-endian, which is not the
-                        \ same way that 6502 assembler stores addresses) -
-                        \ or, to use our notation, it's CASH(0 1 2 3)
+ SKIP 4                 \ Our current cash pot
+                        \
+                        \ The cash stash is stored as a 32-bit unsigned integer,
+                        \ with the most significant byte in CASH and the least
+                        \ significant in CASH+3. This is big-endian, which is
+                        \ the opposite way round to most of the numbers used in
+                        \ Elite - to use our notation for multi-byte numbers,
+                        \ the amount of cash is CASH(0 1 2 3)
 
 .QQ14
 
- SKIP 1                 \ Contains the current fuel level * 10 (so a 1 in QQ14
-                        \ represents 0.1 light years)
+ SKIP 1                 \ Our current fuel level (0-70)
                         \
-                        \ Maximum value is 70 (7.0 light years)
+                        \ The fuel level is stored as the number of light years
+                        \ multiplied by 10, so QQ14 = 1 represents 0.1 light
+                        \ years, and the maximum possible value is 70, for 7.0
+                        \ light years
 
 .COK
 
- SKIP 1                 \ Competition code flags
+ SKIP 1                 \ Flags for the competition code
                         \
-                        \ Bit 7 is set on start-up if CHK and CHK2 do not match,
-                        \ which presumably indicates that there may have been
-                        \ some cheating going on
+                        \ Encoded within the competition code are various bits
+                        \ of information about how you have played the game, so
+                        \ Acornsoft would be alerted to possible cheating. The
+                        \ information is as follows:
                         \
-                        \ Bit 1 is set on start-up
+                        \   * Bit 7 is set on start-up if the CHK and CHK2
+                        \     checksums do not match, indicating that the
+                        \     commander data has been tampered with
                         \
-                        \ Bit 0 is set in routine ptg if we hold X during
-                        \ hyperspace to force a mis-jump (having first paused
-                        \ the game and toggled on the author credits with X)
+                        \   * Bit 1 is set on start-up just after bit 7, so if
+                        \     this is not set, there's probably something dodgy
+                        \     going on
+                        \
+                        \   * Bit 0 is set in routine ptg if we hold X during
+                        \     hyperspace to force a mis-jump into witchspace
+                        \     (having first paused the game and toggled on the
+                        \     author credits with X). It's not clear whether
+                        \     this was regarded as cheating by Acornsoft, but it
+                        \     seems possible, given that the competition code
+                        \     acts like a smoking gun
+                        \
+                        \ The competition code itself is calculated in the SVE
+                        \ routine
 
 .GCNT
 
- SKIP 1                 \ Contains the current galaxy number, 0-7
+ SKIP 1                 \ The number of the current galaxy (0-7)
                         \
                         \ When this is displayed in-game, 1 is added to the
-                        \ number (so we start in galaxy 1 in-game, but it's
-                        \ stored as galaxy 0 internally)
+                        \ number, so we start in galaxy 1 in-game, but it's
+                        \ stored as galaxy 0 internally
+                        \
+                        \ The galaxy number increases by one every time a
+                        \ galactic hyperdrive is used, and wraps back round to
+                        \ the start after eight galaxies
 
 .LASER
 
- SKIP 4                 \ Laser power
+ SKIP 4                 \ The specifications of the lasers fitted to each of the
+                        \ four space views:
                         \
-                        \   Byte #0 = front
-                        \   Byte #1 = rear
-                        \   Byte #2 = left
-                        \   Byte #3 = right
+                        \   * Byte #0 = front view (red key f0)
+                        \   * Byte #1 = rear view (red key f1)
+                        \   * Byte #2 = left view (red key f2)
+                        \   * Byte #3 = right view (red key f3)
                         \
-                        \   0 means no laser
+                        \ For each of the views:
                         \
-                        \   non-zero denotes the following:
+                        \   * 0 = no laser is fitted to this view
                         \
-                        \   Bits 0-6 contain the laser's power
+                        \   * non-zero = a laser is fitted to this view, with
+                        \     the following specification:
                         \
-                        \   Bit 7 determines whether or not the laser pulses
-                        \   (pulse laser) or is always on (beam laser)
+                        \     * Bits 0-6 contain the laser's power
+                        \
+                        \     * Bit 7 determines whether or not the laser pulses
+                        \       (pulse laser) or is always on (beam laser)
 
  SKIP 2                 \ These bytes are unused (they were originally used for
                         \ up/down lasers, but they were dropped)
 
 .CRGO
 
- SKIP 1                 \ Cargo capacity
+ SKIP 1                 \ Our ship's cargo capacity
                         \
-                        \   22 = standard cargo bay of 20 tonnes
+                        \   * 22 = standard cargo bay of 20 tonnes
                         \
-                        \   37 = large cargo bay of 35 tonnes
+                        \   * 37 = large cargo bay of 35 tonnes
+                        \
+                        \ The value is two greater than the actual capacity to
+                        \ male the maths in tnpr slightly more efficient
 
 .QQ20
 
- SKIP 17                \ Contents of cargo hold
+ SKIP 17                \ The contents of our cargo hold
                         \
-                        \ The amount of market item X in the hold is in QQ20+X,
-                        \ so QQ20 contains the amount of food (item 0) while
-                        \ QQ20+7 contains the amount of computers (item 7). See
-                        \ QQ23 for a list of market item numbers
+                        \ The amount of market item X that we have in our hold
+                        \ can be found in the X-th byte of QQ20. For example:
+                        \
+                        \   * QQ20 contains the amount of food (item 0)
+                        \
+                        \   * QQ20+7 contains the amount of computers (item 7)
+                        \
+                        \ See QQ23 for a list of market item numbers and their
+                        \ storage units
 
 .ECM
 
  SKIP 1                 \ E.C.M. system
                         \
-                        \   0 = not fitted
-                        \   &FF = fitted
+                        \   * 0 = not fitted
+                        \
+                        \   * &FF = fitted
 
 .BST
 
- SKIP 1                 \ Fuel scoops ("barrel status")
+ SKIP 1                 \ Fuel scoops (BST stands for "barrel status")
                         \
-                        \   0 = not fitted
-                        \   &FF = fitted
+                        \   * 0 = not fitted
+                        \
+                        \   * &FF = fitted
 
 .BOMB
 
  SKIP 1                 \ Energy bomb
                         \
-                        \   0 = not fitted
-                        \   &7F = fitted
+                        \   * 0 = not fitted
+                        \
+                        \   * &7F = fitted
 
 .ENGY
 
  SKIP 1                 \ Energy unit
                         \
-                        \   0 = not fitted
-                        \   1 = fitted
+                        \   * 0 = not fitted
+                        \
+                        \   * 1 = fitted
 
 .DKCMP
 
  SKIP 1                 \ Docking computer
                         \
-                        \   0 = not fitted
-                        \   &FF = fitted
+                        \   * 0 = not fitted
+                        \
+                        \   * &FF = fitted
 
 .GHYP
 
  SKIP 1                 \ Galactic hyperdrive
                         \
-                        \   0 = not fitted
-                        \   &FF = fitted
+                        \   * 0 = not fitted
+                        \
+                        \   * &FF = fitted
 
 .ESCP
 
  SKIP 1                 \ Escape pod
                         \
-                        \   0 = not fitted
-                        \   &FF = fitted
+                        \   * 0 = not fitted
+                        \
+                        \   * &FF = fitted
 
  SKIP 4                 \ These bytes are unused
 
 .NOMSL
 
- SKIP 1                 \ Number of missiles
+ SKIP 1                 \ The number of missiles we have fitted (0-4)
 
 .FIST
 
- SKIP 1                 \ Legal status ("fugitive/innocent status")
+ SKIP 1                 \ Our legal status (FIST stands for "fugitive/innocent
+                        \ status"):
                         \
-                        \   0    = Clean
-                        \   1-49 = Offender
-                        \   50+  = Fugitive
+                        \   * 0 = Clean
                         \
-                        \ You get 64 points if you kill a cop, so that's
-                        \ straight to fugitive
+                        \   * 1-49 = Offender
+                        \
+                        \   * 50+ = Fugitive
+                        \
+                        \ You get 64 points if you kill a cop, so that's a fast
+                        \ ticket to fugitive status
 
 .AVL
 
- SKIP 17                \ Market availability
+ SKIP 17                \ Market availability in the current system
                         \
-                        \ The available amount of market item X is in AVL+X, so
-                        \ AVL contains the amount of food (item 0) while AVL+7
-                        \ contains the amount of computers (item 7). See QQ23
-                        \ for a list of market item numbers, and GVL for the
-                        \ algorithm for calculating item availability
+                        \ The available amount of market item X is stored in
+                        \ the X-th byte of AVL, so for example:
+                        \
+                        \   * AVL contains the amount of food (item 0)
+                        \
+                        \   * AVL+7 contains the amount of computers (item 7)
+                        \
+                        \ See QQ23 for a list of market item numbers and their
+                        \ storage units, and the deep dive on "Market item
+                        \ availability" for details of the algorithm used for
+                        \ calculating each item's availability
 
 .QQ26
 
- SKIP 1                 \ A random value that changes for each visit to a
-                        \ system, for randomising market prices (see TT151 for
-                        \ details of the market price calculation)
+ SKIP 1                 \ A random value used to randomise market data
+                        \
+                        \ This value is set to a new random number for each
+                        \ change of system, so we can add a random factor into
+                        \ the calculations for market prices (see the deep dive
+                        \ on "Market prices" for details of how this is used)
 
 .TALLY
 
- SKIP 2                 \ Number of kills as a 16-bit number, stored as
-                        \ TALLY(1 0) - so the high byte is in TALLY+1 and the
-                        \ low in TALLY
+ SKIP 2                 \ Our combat rank
                         \
-                        \ If the high byte in TALLY+1 = 0 then we are Harmless,
-                        \ Mostly Harmless, Poor, Average or Above Average,
-                        \ according to the value of the low byte in TALLY:
+                        \ The combat rank is stored as the number of kills, in a
+                        \ 16-bit number TALLY(1 0) - so the high byte is in
+                        \ TALLY+1 and the low byte in TALLY
+                        \
+                        \ If the high byte in TALLY+1 is 0 then we have between
+                        \ 0 and 255 kills, so our rank is Harmless, Mostly
+                        \ Harmless, Poor, Average or Above Average, according to
+                        \ the value of the low byte in TALLY:
                         \
                         \   Harmless        = %00000000 to %00000011 = 0 to 3
                         \   Mostly Harmless = %00000100 to %00000111 = 4 to 7
@@ -1305,23 +1418,35 @@ ORG &0300
 
 .SVC
 
- SKIP 1                 \ Save count, gets halved with each save
+ SKIP 1                 \ The save count
+                        \
+                        \ When a new commander is created, the save count gets
+                        \ set to 128. This value gets halved each time the
+                        \ commander file is saved, but it is otherwise unused.
+                        \ It is presumably part of the security system for the
+                        \ competition, possibly another flag to catch out
+                        \ entries with manually altered commander files
 
- SKIP 2                 \ Reserve two bytes for the commander checksum, so when
-                        \ the current commander block is copied to the last
-                        \ saved commander block at NA%, CHK and CHK2 get
-                        \ overwritten
+ SKIP 2                 \ The commander file checksum
+                        \
+                        \ These two bytes are reserved for the commander file
+                        \ checksum, so when the current commander block is
+                        \ copied from here to the last saved commander block at
+                        \ NA%, CHK and CHK2 get overwritten
 
-NT% = SVC + 2 - TP      \ Set to the size of the commander block, which starts
-                        \ at T% (&300) and goes to SVC+3
+NT% = SVC + 2 - TP      \ This sets the variable NT% to the size of the current
+                        \ commander data block, which starts at TP and ends at
+                        \ SVC+2 (inclusive)
 
 .SX
 
- SKIP NOST + 1          \ Storage for x_hi coordinates for stardust particles
+ SKIP NOST + 1          \ This is where we store the x_hi coordinates for all
+                        \ the stardust particles
 
 .SXL
 
- SKIP NOST + 1          \ Storage for x_lo coordinates for stardust particles
+ SKIP NOST + 1          \ This is where we store the x_lo coordinates for all
+                        \ the stardust particles
 
 PRINT "T% workspace from  ", ~T%, " to ", ~P%
 
@@ -3282,7 +3407,7 @@ ORG &0D40
 
 .WP
 
- SKIP 0                 \ Start of workspace WP
+ SKIP 0                 \ The start of the WP workspace
 
 .FRIN
 
@@ -3502,19 +3627,23 @@ ORG &0D40
 
 .SY
 
- SKIP NOST + 1          \ Storage for y_hi coordinates for stardust particles
+ SKIP NOST + 1          \ This is where we store the y_hi coordinates for all
+                        \ the stardust particles
 
 .SYL
 
- SKIP NOST + 1          \ Storage for y_lo coordinates for stardust particles
+ SKIP NOST + 1          \ This is where we store the y_lo coordinates for all
+                        \ the stardust particles
 
 .SZ
 
- SKIP NOST + 1          \ Storage for z_hi coordinates for stardust particles
+ SKIP NOST + 1          \ This is where we store the z_hi coordinates for all
+                        \ the stardust particles
 
 .SZL
 
- SKIP NOST + 1          \ Storage for z_lo coordinates for stardust particles
+ SKIP NOST + 1          \ This is where we store the z_lo coordinates for all
+                        \ the stardust particles
 
 .XSAV2
 
@@ -4862,7 +4991,7 @@ LOAD_A% = LOAD%
  BNE MA15               \ missile and laser locking
 
  JSR PLUT               \ Call PLUT to update the geometric axes in INWK to
-                        \ match the view (forward, rear, left, right)
+                        \ match the view (fronr, rear, left, right)
 
  JSR HITCH              \ Call HITCH to see if this ship is in the crosshairs,
  BCC MA8                \ in which case carry will be set (so if there is no
@@ -8218,7 +8347,7 @@ NEXT
 \
 \ Summary of the routine
 \ ----------------------
-\ To help with understanding the 7 parts of the line drawing routine, here's a
+\ To help with understanding the 7 parts of the line-drawing routine, here's a
 \ summary of what each part does.
 \
 \   1. Calculate delta_x, delta_y
@@ -10252,13 +10381,13 @@ NEXT
 
  LDX VIEW               \ Load the current view into X:
                         \
-                        \   0 = forward
+                        \   0 = front
                         \   1 = rear
                         \   2 = left
                         \   3 = right
 
  BEQ STARS1             \ If this 0, jump to STARS1 to process the stardust for
-                        \ the forward view
+                        \ the front view
 
  DEX                    \ If this is view 2 or 3, jump to STARS2 (via ST11) to
  BNE ST11               \ process the stardust for the left or right views
@@ -10277,7 +10406,7 @@ NEXT
 \       Name: STARS1
 \       Type: Subroutine
 \   Category: Stardust
-\    Summary: Process the stardust for the forward view
+\    Summary: Process the stardust for the front view
 \
 \ ------------------------------------------------------------------------------
 \
@@ -10290,8 +10419,8 @@ NEXT
 \
 \ ******************************************************************************
 \
-\ Deep dive: Stardust in the forward view
-\ =======================================
+\ Deep dive: Stardust in the front view
+\ =====================================
 \
 \ Let's look at this process in more detail. It breaks down into three stages:
 \
@@ -10717,10 +10846,10 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
-\ This routine is very similar to STARS1, which processes stardust for the
-\ forward view. The main difference is that the direction of travel is reversed,
-\ so the signs in the calculations are different, as well as the order of the
-\ first batch of calculations.
+\ This routine is very similar to STARS1, which processes stardust for the front
+\ view. The main difference is that the direction of travel is reversed, so the
+\ signs in the calculations are different, as well as the order of the first
+\ batch of calculations.
 \
 \ When a stardust particle falls away into the far distance, it is removed from
 \ the screen and its memory is recycled as a new particle, positioned randomly
@@ -11358,16 +11487,16 @@ NEXT
  BCC stqv               \ piece of equipment
 
  LDX #0                 \ Now to print our ship's lasers, so set a counter in X
-                        \ to count through the four laser mounts (0 = front,
-                        \ 1 = rear, 2 = left, 3 = right)
+                        \ to count through the four views (0 = front, 1 = rear,
+                        \ 2 = left, 3 = right)
 
 .st
 
- STX CNT                \ Store the laser mount number in CNT
+ STX CNT                \ Store the view number in CNT
 
- LDY LASER,X            \ Fetch the laser power for laser mount X, and if we do
- BEQ st1                \ not have a laser fitted to that view, jump to st1 to
-                        \ move on to the next one
+ LDY LASER,X            \ Fetch the laser power for view X, and if we do not
+ BEQ st1                \ have a laser fitted to that view, jump to st1 to move
+                        \ on to the next one
 
  TXA                    \ Print recursive token 96 + X, which will print from 96
  CLC                    \ ("FRONT") through to 99 ("RIGHT"), followed by a space
@@ -11376,8 +11505,8 @@ NEXT
 
  LDA #103               \ Set A to token 103 ("PULSE LASER")
 
- LDX CNT                \ If the laser power for laser mount X has bit 7 clear,
- LDY LASER,X            \ it is a pulse laser, so skip the following instruction
+ LDX CNT                \ If the laser power for view X has bit 7 clear, then it
+ LDY LASER,X            \ is a pulse laser, so skip the following instruction
  BPL P%+4
 
  LDA #104               \ Set A to token 104 ("BEAM LASER")
@@ -11389,10 +11518,10 @@ NEXT
 .st1
 
  LDX CNT                \ Increment the counter in X and CNT to point to the
- INX                    \ next laser mount
+ INX                    \ next view
 
- CPX #4                 \ If this isn't the last of the four laser mounts, jump
- BCC st                 \ back up to st to print out the next one
+ CPX #4                 \ If this isn't the last of the four views, jump back up
+ BCC st                 \ to st to print out the next one
 
  RTS                    \ Return from the subroutine
 }
@@ -15191,7 +15320,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ These are essentially the same as the roll equations from MVS4, just using the
 \ pitch angle beta, because when we are looking out of the side views, when the
-\ ship pitches, the side views rotate around the middle, just like the forward
+\ ship pitches, the side views rotate around the middle, just like the front
 \ view does when we roll.
 \
 \ Applying roll to the stardust (up/down)
@@ -17939,9 +18068,9 @@ NEXT
  LSR A                  \ Set EV, the extra vessels spawning counter, to 0
  STA EV                 \ (the LSR produces a 0 as A was previously 1)
 
- LDX VIEW               \ Set X to the current view (forward, rear, left or
- JMP LOOK1              \ right) and jump to LOOK1 to initialise that view,
-                        \ returning from the subroutine with a tail call
+ LDX VIEW               \ Set X to the current view (front, rear, left or right)
+ JMP LOOK1              \ and jump to LOOK1 to initialise that view, returning
+                        \ from the subroutine with a tail call
 
 .WA1
 
@@ -18059,7 +18188,7 @@ NEXT
 \ ------------------------------------------------------------------------------
 \
 \ This routine flips the relevant geometric axes in INWK depending on which
-\ view we are looking through (forward, rear, left, right).
+\ view we are looking through (front, rear, left, right).
 \
 \ Other entry points:
 \
@@ -18245,14 +18374,13 @@ NEXT
 {
  LDX VIEW               \ Load the current view into X:
                         \
-                        \   0 = forward
+                        \   0 = front
                         \   1 = rear
                         \   2 = left
                         \   3 = right
 
- BNE PU1                \ If the current view is forward, return from the
- RTS                    \ subroutine, as the geometry in INWK is already
-                        \ correct
+ BNE PU1                \ If the current view is the front view, return from the
+ RTS                    \ subroutine, as the geometry in INWK is already correct
 
 .^PU1
 
@@ -18384,7 +18512,7 @@ NEXT
 \
 \   X                   The space view to set:
 \
-\                         * 0 = forward
+\                         * 0 = front
 \
 \                         * 1 = rear
 \
@@ -19525,7 +19653,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ of market item number X. Note that the first time we
                         \ go round this loop, the C flag is set (as we didn't
                         \ branch with the BCC above, so the effect of this loop
-                        \ is count the number of tonne canisters in the hold,
+                        \ is to count the number of tonne canisters in the hold,
                         \ and add 1
 
  DEX                    \ Decrement the loop counter
@@ -20748,7 +20876,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \   XX15+3 is the same as Y2
                         \
                         \ Presumably this routine was written at a different
-                        \ time to the line drawing routine, before the two
+                        \ time to the line-drawing routine, before the two
                         \ workspaces were merged to save space
 
  STA XX15               \ Set XX15 (X1) = A (the x-coordinate of the left edge
@@ -22569,7 +22697,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STA QQ9                \ arrive in a new galaxy (the selected system will be
  STA QQ10               \ set to the nearest actual system later on)
 
- JSR TT110              \ Call TT110 to show the forward space view
+ JSR TT110              \ Call TT110 to show the front space view
 
  LDA #116               \ Print recursive token 116 (GALACTIC HYPERSPACE ")
  JSR MESS               \ as an in-flight message
@@ -23466,7 +23594,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ to 3, so there are fewer bits of stardust in
                         \ witchspace (normal space has a maximum of 18)
 
- LDX #0                 \ Initialise the forward space view
+ LDX #0                 \ Initialise the front space view
  JSR LOOK1
 
  LDA QQ1                \ Fetch the current system's galactic y-coordinate in
@@ -23559,7 +23687,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  INC QQ11               \ This is a space view, so increment QQ11 to 1
 
-                        \ Fall through into TT110 to show the forward space view
+                        \ Fall through into TT110 to show the front space view
 }
 
 \ ******************************************************************************
@@ -23567,11 +23695,11 @@ LOAD_D% = LOAD% + P% - CODE%
 \       Name: TT110
 \       Type: Subroutine
 \   Category: Flight
-\    Summary: Launch from a station or show the forward space view
+\    Summary: Launch from a station or show the front space view
 \
 \ ------------------------------------------------------------------------------
 \
-\ Launch the ship (if we are docked), or show the forward space view (if we are
+\ Launch the ship (if we are docked), or show the front space view (if we are
 \ already in space).
 \
 \ Called when red key f0 is pressed while docked (launch), after we arrive in a
@@ -24034,17 +24162,17 @@ LOAD_D% = LOAD% + P% - CODE%
  CMP #4                 \ If A is not 4 (i.e. the item we've just bought is not
  BNE et4                \ an extra pulse laser), skip to et4
 
- JSR qv                 \ Print a menu listing the four available laser mounts,
-                        \ with a "View ?" prompt, and ask for a view number,
-                        \ returned in X (which now contains 0-3)
+ JSR qv                 \ Print a menu listing the four views, with a "View ?"
+                        \ prompt, and ask for a view number, which is returned
+                        \ in X (which now contains 0-3)
 
  LDA #4                 \ This instruction doesn't appear to do anything, as we
                         \ either don't need it (if we already have this laser)
                         \ or we set A to 4 below (if we buy it)
 
  LDY LASER,X            \ If there is no laser mounted in the chosen view (i.e.
- BEQ ed4                \ LASER+X, which contains the laser power for mount X,
-                        \ is zero), jump to ed4 to buy a pulse laser
+ BEQ ed4                \ LASER+X, which contains the laser power for view X, is
+                        \ zero), jump to ed4 to buy a pulse laser
 
 .ed7
 
@@ -24057,8 +24185,8 @@ LOAD_D% = LOAD% + P% - CODE%
 .ed4
 
  LDA #POW               \ We just bought a pulse laser for view X, so we need
- STA LASER,X            \ to mount it by storing the laser power for a pulse
-                        \ laser (given in POW) in LASER+X
+ STA LASER,X            \ to fit it by storing the laser power for a pulse laser
+                        \ (given in POW) in LASER+X
 
  LDA #4                 \ Set A to 4 as we just overwrote the original value,
                         \ and we still need it set correctly so we can continue
@@ -24070,9 +24198,9 @@ LOAD_D% = LOAD% + P% - CODE%
  CMP #5                 \ If A is not 5 (i.e. the item we've just bought is not
  BNE et5                \ an extra beam laser), skip to et5
 
- JSR qv                 \ Print a menu listing the four available laser mounts,
-                        \ with a "View ?" prompt, and ask for a view number,
-                        \ returned in X (which now contains 0-3)
+ JSR qv                 \ Print a menu listing the four views, with a "View ?"
+                        \ prompt, and ask for a view number, which is returned
+                        \ in X (which now contains 0-3)
 
  STX T1                 \ Store the view in T1 so we can retrieve it below
 
@@ -24383,12 +24511,12 @@ LOAD_D% = LOAD% + P% - CODE%
 \       Name: qv
 \       Type: Subroutine
 \   Category: Equipment
-\    Summary: Print a menu of the four laser mounts, for buying lasers
+\    Summary: Print a menu of the four space views, for buying lasers
 \
 \ ------------------------------------------------------------------------------
 \
 \ Print a menu in the bottom-middle of the screen, at row 16, column 12, that
-\ lists the four available laser mounts, like this:
+\ lists the four available space views, like this:
 \
 \                 0 Front
 \                 1 Rear
@@ -25045,7 +25173,7 @@ LOAD_E% = LOAD% + P% - CODE%
  BCC TT44               \ to TT26 (via TT44) to print the character as is, as
                         \ we don't care about the character's case
 
- CMP #'Z' + 1           \ If A >= (ASCII "Z" + 1), then this is also
+ CMP #'Z'+1             \ If A >= (ASCII "Z" + 1), then this is also
  BCS TT44               \ punctuation, so jump to TT26 (via TT44) to print the
                         \ character as is, as we don't care about the
                         \ character's case
@@ -29830,12 +29958,12 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: PL21
 \       Type: Subroutine
 \   Category: Drawing planets
-\    Summary: Return from a planet/sun drawing routine with a failure flag
+\    Summary: Return from a planet/sun-drawing routine with a failure flag
 \
 \ ------------------------------------------------------------------------------
 \
 \ Set the C flag and return from the subroutine. This is used to return from a
-\ planet or sun drawing routine with the C flag indicating an overflow in the
+\ planet- or sun-drawing routine with the C flag indicating an overflow in the
 \ calculation.
 \
 \ ******************************************************************************
@@ -30865,7 +30993,10 @@ LOAD_F% = LOAD% + P% - CODE%
 
 .RESET
 {
- JSR ZERO               \ Zero-fill pages &9, &A, &B, &C and &D
+ JSR ZERO               \ Zero-fill pages &9, &A, &B, &C and &D, which clears
+                        \ the ship data blocks, the ship line heap, the ship
+                        \ slots for the local bubble of universe, and various
+                        \ flight and ship status variables
 
  LDX #6                 \ Set up a counter for zeroing BETA through BETA+6
 
@@ -30960,7 +31091,7 @@ LOAD_F% = LOAD% + P% - CODE%
  STA ALP2+1             \ Reset ALP2+1 (flipped roll sign) and BET2+1 (flipped
  STA BET2+1             \ pitch sign) to positive, i.e. roll and pitch negative
 
- STA MCNT               \ Reset MCNT (move count) to 0
+ STA MCNT               \ Reset MCNT (the main loop counter) to 0
 
  LDA #3                 \ Reset DELTA (speed) to 3
  STA DELTA
@@ -30983,11 +31114,14 @@ LOAD_F% = LOAD% + P% - CODE%
 
  JSR WPSHPS             \ Wipe all ships from the scanner
 
- JSR ZERO               \ Zero-fill pages &9, &A, &B, &C and &D
+ JSR ZERO               \ Zero-fill pages &9, &A, &B, &C and &D, which clears
+                        \ the ship data blocks, the ship line heap, the ship
+                        \ slots for the local bubble of universe, and various
+                        \ flight and ship status variables
 
- LDA #LO(WP-1)          \ Reset the ship lines pointer to be empty, so point
- STA SLSP               \ SLSP to the byte before the WP workspace
- LDA #HI(WP-1)
+ LDA #LO(WP-1)          \ We have reset the ship line heap, so we now point
+ STA SLSP               \ SLSP to the byte before the WP workspace to indicate
+ LDA #HI(WP-1)          \ that the heap is empty
  STA SLSP+1
 
  JSR DIALS              \ Update the dashboard
@@ -33114,6 +33248,18 @@ ENDIF
 \   Category: Utility routines
 \    Summary: Zero-fill pages &9, &A, &B, &C and &D
 \
+\ ------------------------------------------------------------------------------
+\
+\ This resets the following workspaces to zero:
+\
+\   * The ship data blocks ascending from K% at &0900
+\
+\   * The ship line heap descending from WP at &0D40
+\
+\   * WP workspace variables from FRIN to de, which include the ship slots for
+\     the local bubble of universe, and various flight and ship status variables
+\     (only a portion of the LSX/LSO sun line heap is cleared)
+\
 \ ******************************************************************************
 
 .ZERO
@@ -33220,7 +33366,10 @@ ENDIF
 
  JSR TRNME              \ Transfer the commander filename from INWK to NA%
 
- JSR ZERO               \ Zero-fill pages &9, &A, &B, &C and &D
+ JSR ZERO               \ Zero-fill pages &9, &A, &B, &C and &D, which clears
+                        \ the ship data blocks, the ship line heap, the ship
+                        \ slots for the local bubble of universe, and various
+                        \ flight and ship status variables
 
  LSR SVC                \ Halve the save count value in SVC
 
@@ -33310,13 +33459,13 @@ ENDIF
 
  LDX #0                 \ Set X = 0 for storing in SVN below
 
- \STX SHEILA+&4E        \ This instruction is commented out in the original
+\STX SHEILA+&4E         \ This instruction is commented out in the original
                         \ source. It would affect the 6522 System VIA interrupt
                         \ enable register IER (SHEILA &4E) if any of bits 0-6
                         \ of X were set, but they aren't, so this instruction
                         \ would have no effect anyway
 
- \DEX                   \ This instruction is commented out in the original
+\DEX                    \ This instruction is commented out in the original
                         \ source. It would end up setting SVN to &FF, which
                         \ affects the logic in the IRQ1 handler
 
@@ -33384,7 +33533,10 @@ ENDIF
  LDX #2                 \ Enable the Escape key and clear memory if the Break
  JSR FX200              \ key is pressed (*FX 200,2)
 
- JSR ZERO               \ Zero-fill pages &9, &A, &B, &C and &D
+ JSR ZERO               \ Zero-fill pages &9, &A, &B, &C and &D, which clears
+                        \ the ship data blocks, the ship line heap, the ship
+                        \ slots for the local bubble of universe, and various
+                        \ flight and ship status variables
 
  LDY #&B                \ Set up an OSFILE block at &0C00, containing:
  STY &0C03              \
