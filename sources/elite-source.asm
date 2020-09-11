@@ -1525,42 +1525,53 @@ ENDMACRO
 \
 \ ******************************************************************************
 \
-\ Deep dive: Game text in Elite
-\ =============================
+\ Deep dive: Printing text tokens
+\ ===============================
 \
-\ This table contains data for the recursive token system used in Elite. There
-\ are actually three types of token used by Elite - recursive, two-letter and
-\ control codes - so let's look at all of them in one go.
+\ There are an awful lot of routines for printing text in Elite, covering
+\ everything from the formatting of huge decimal numbers to printing individual
+\ spaces, but under the hood they all boil down to three core routines:
+\
+\   * BPRNT, which prints numbers (see the deep dive "Printing huge numbers")
+\
+\   * TT26, which pokes individual characters into screen memory
+\
+\   * TT27, which prints text tokens
+\
+\ This deep dive looks at the last of these three routines, which forms the
+\ heart of Elite's text tokenisation system. There are three types of text token
+\ used by Elite - recursive tokens, two-letter tokens and control codes - so
+\ let's look at how they all work.
 \
 \ Tokenisation
 \ ------------
-\ Elite uses a tokenisation system to store the text it displays during the
-\ game. This enables the game to store strings more efficiently than would be
-\ the case if they were simply inserted into the source code using EQUS, and it
-\ also makes it possible to create things like system names using procedural
-\ generation.
+\ Elite uses a tokenisation system to store most of the the text that it
+\ displays in the game. This enables the game to store strings more efficiently
+\ than would be the case if they were simply inserted into the source code using
+\ EQUS, and it also makes it possible to build text strings, like system names,
+\ using procedural generation.
 \
 \ To support tokenisation, characters are printed to the screen using a special
-\ subroutine (TT27), which not only supports the usual range of letters,
-\ numbers and punctuation, but also three different types of token. When
-\ printed, these tokens get expanded into longer strings, which enables the
-\ game to squeeze a lot of text into a small amount of storage.
+\ subroutine, TT27, which not only supports the usual range of letters, numbers
+\ and punctuation, but also three different types of token. When printed, these
+\ tokens get expanded into longer strings, which enables the game to squeeze a
+\ lot of text into a small amount of storage.
 \
-\ To print something, you pass a byte through to the printing routine at TT27.
-\ The value of that byte determines what gets printed, as follows:
+\ To print something, you pass a character code in A to the printing routine at
+\ TT27. The character code determines what gets printed, as follows:
 \
-\   Value (n)     Type
-\   ---------     -------------------------------------------------------
+\   Code in A     Text or token that gets printed
+\   ---------     -------------------------------------------------------------
 \   0-13          Control codes 0-13
-\   14-31         Recursive tokens 128-145 (i.e. token number = n + 114)
+\   14-31         Recursive tokens 128-145 (i.e. print token number A + 114)
 \   32-95         Normal ASCII characters 32-95 (0-9, A-Z and most punctuation)
-\   96-127        Recursive tokens 96-127 (i.e. token number = n)
+\   96-127        Recursive tokens 96-127 (i.e. print token number A)
 \   128-159       Two-letter tokens 128-159
-\   160-255       Recursive tokens 0-95 (i.e. token number = n - 160)
+\   160-255       Recursive tokens 0-95 (i.e. print token number A - 160)
 \
-\ Characters with codes 32-95 represent the normal ASCII characters from " " to
-\ "_", so a value of 65 in an Elite string represents the letter A (as "A" has
-\ character code 65 in the BBC Micro's character set).
+\ Codes 32-95 represent the normal ASCII characters from " " to "_", so a value
+\ of 65 represents the letter A (as "A" has character code 65 in the BBC Micro's
+\ character set).
 \
 \ All other character codes (0-31 and 96-255) represent tokens, and they can
 \ print anything from single characters to entire sentences. In the case of
@@ -1571,7 +1582,7 @@ ENDMACRO
 \ To make things easier to follow in the discussion and comments below, let's
 \ refer to the three token types like this, where n is the character code:
 \
-\   {n}           Control codes             n = 0 to 13
+\   {n}           Control code              n = 0 to 13
 \   <n>           Two-letter token          n = 128 to 159
 \   [n]           Recursive token           n = 0 to 148
 \
@@ -1582,15 +1593,14 @@ ENDMACRO
 \ in memory and passed to subroutines is confusing, to say the least.
 \
 \ We'll take a look at each of the three token types in more detail below, but
-\ first a word about how characters get printed in Elite.
+\ first a word about the two routines for printing characters in Elite.
 \
 \ The TT27 print subroutine
 \ -------------------------
-\ Elite contains a subroutine at TT27 that prints out the character given in
-\ the accumulator, and if that number refers to a token, then the token is
-\ expanded before being printed. Whole strings can be printed by calling this
-\ subroutine on one character at a time, and this is how almost all of the text
-\ in the game gets put on the screen. For example, the following code:
+\ As mentioned above, Elite contains a subroutine at TT27 that prints out the
+\ character code given in the accumulator, and if that number refers to a token,
+\ then the token is expanded before being printed. This is how almost all of the
+\ text in the game gets put on the screen. For example, the following code:
 \
 \   LDA #65
 \   JSR TT27
@@ -1600,31 +1610,35 @@ ENDMACRO
 \   LDA #163
 \   JSR TT27
 \
-\ prints recursive token number 3 (see below for more on why we pass #163
-\ instead of #3). This would produce the following if we were currently
-\ visiting Tionisla:
+\ prints recursive token number 3 (see below for more on why we pass a value of
+\ 163 instead of 3). This would produce the following if we were currently
+\ visiting the lore-heavy system of Tionisla:
 \
 \   DATA ON TIONISLA
 \
 \ This is because token 3 expands to the string "DATA ON {current system}". You
-\ can see this very call being used in TT25, which displays data on the
-\ selected system when F6 is pressed (this particular call is what prints the
+\ can see this very call being used in routine TT25, which displays data on the
+\ selected system when red key f6 is pressed (this particular call prints the
 \ title at the top of the screen).
 \
 \ The ex print subroutine
 \ -----------------------
-\ You may have noticed that in the table above, there are character codes for
-\ all our ASCII characters and tokens, except for recursive tokens 146, 147 and
-\ 148. How do we print these?
+\ There are 149 recursive tokens in all, numbered from 0 to 148, but the TT27
+\ routine can only print tokens 0 to 145. So how do we print recursive tokens
+\ 146, 147 and 148?
 \
-\ To print these tokens, there is another subroutine at ex that always prints
-\ the recursive token number in the accumulator, so we can use that to print
-\ these tokens.
+\ Luckily there is another subroutine at ex that always prints the recursive
+\ token number given in the accumulator, so we can use that to print these
+\ tokens. So this, for example, is how we print "GAME OVER":
 \
-\ (Incidentally, the ex subroutine is what TT27 calls when it has analysed the
+\   LDA #146
+\   JSR ex
+\
+\ Incidentally, the ex subroutine is what TT27 calls when it has analysed the
 \ character code, determined that it is a recursive token, and subtracted 160
-\ or added 114 as appropriate to get the token number, so calling it directly
-\ with 146-148 in the accumulator is acceptable.)
+\ or added 114 as appropriate to get the token number, so calling ex directly
+\ with 146-148 in the accumulator is doing exactly the same thing, just without
+\ all the preamble.
 \
 \ Control codes: {n}
 \ ------------------
@@ -1634,7 +1648,7 @@ ENDMACRO
 \   0   Current cash, right-aligned to width 9, then " CR", newline
 \   1   Current galaxy number, right-aligned to width 3
 \   2   Current system name
-\   3   Selected system name (the crosshairs in the short range chart)
+\   3   Selected system name (the crosshairs in the Short-range Chart)
 \   4   Commander's name
 \   5   "FUEL: ", fuel level, " LIGHT YEARS", newline, "CASH:", {0}, newline
 \   6   Switch case to Sentence Case
@@ -1649,10 +1663,10 @@ ENDMACRO
 \ So a value of 4 in a tokenised string will be expanded to the current
 \ commander's name, while a value of 5 will print the current fuel level in the
 \ format "FUEL: 5.3 LIGHT YEARS", followed by a newline, followed by "CASH: ",
-\ and then followed by control code 0, which shows the amount of cash to one
-\ significant figure, right-aligned to a width of 9 characters, and finished
-\ off with " CR" and another newline. The result is something like this, when
-\ displayed in Sentence Case:
+\ and then control code 0 - which shows the amount of cash to one significant
+\ figure, right-aligned to a width of 9 characters - before finishing off with
+\ " CR" and another newline. The result is something like this, when displayed
+\ in Sentence Case:
 \
 \   Fuel: 6.7 Light Years
 \   Cash:    1234.5 Cr
@@ -1670,8 +1684,8 @@ ENDMACRO
 \ (so it acts like Caps Lock), and {6} can be used to switch back to Sentence
 \ Case. You can see this in action on the Status Mode screen, where the title
 \ and equipment headers are in ALL CAPS, while everything else is in Sentence
-\ Case. Tokens are stored in capital letters only, and each letter's case is
-\ set by the logic in TT27.
+\ Case. Tokens are stored using capital letters only, and each letter's case is
+\ determined by the logic in TT27 before it is printed.
 \
 \ Two-letter tokens: <n>
 \ ----------------------
@@ -1710,24 +1724,25 @@ ENDMACRO
 \   158     RI
 \   159     ON
 \
-\ So a value of 150 in the tokenised string would expand to VE, for example.
-\ When talking about encoded strings in the code comments below, two-letter
-\ tokens are shown as <n>, so <150> expands to VE.
+\ So a value of 150 in a tokenised string would expand to VE, for example. When
+\ talking about encoded strings in the code comments below, two-letter tokens
+\ are shown as <n>, so <150> expands to VE.
 \
 \ The set of two-letter tokens is stored at location QQ16, in a two-byte lookup
 \ table. This table is also used to generate system names procedurally, as
-\ described in routine cpl.
+\ described in the deep dive on "Generating system names".
 \
-\ Note that question marks are not printed, so token <143> expands to A. This
-\ allows names with an odd number of characters to be generated from sequences
-\ of two-letter tokens, though only if they contain the letter A.
+\ Note that question marks in two-letter tokens are not printed, so token <143>
+\ expands to "A" rather than "A?". This allows names with an odd number of
+\ characters to be generated from sequences of two-letter tokens, though they do
+\ have to contain the letter A, as token <143> is the only one of its type.
 \
 \ Recursive tokens: [n]
 \ ---------------------
-\ The binary file that is assembled by this source file (WORDS9.bin) contains
-\ 149 recursive tokens, numbered from 0 to 148, which are stored from &0400 to
-\ &06FF in a tokenised form. These tokenised strings can include references to
-\ other tokens, hence "recursive".
+\ The binary file that is generated by this part of the main source file
+\ (WORDS9.bin) contains 149 recursive tokens, numbered from 0 to 148, which are
+\ stored from &0400 to &06FF in a tokenised form. These tokenised strings can
+\ include references to other tokens, hence "recursive".
 \
 \ When talking about encoded strings in the code comments below, recursive
 \ tokens are shown as [n], so [111] expands to "FUEL SCOOPS", for example, and
@@ -1738,17 +1753,17 @@ ENDMACRO
 \ reserved codes 0-13 for control characters, 32-95 for ASCII characters and
 \ 128-159 for two-letter tokens, we can't just send the token number straight
 \ to TT27 to print it out (sending 65 to TT27 prints "A", for example, and not
-\ recursive token 65). So instead, we use the table above to work out what to
-\ send to TT27; here are the relevant lines:
+\ recursive token 65). So instead, we use the following from the table above to
+\ work out what to send to TT27:
 \
-\   Value (n)     Type
-\   ---------     -------------------------------------------------------
-\   14-31         Recursive tokens 128-145 (i.e. token number = n + 114)
-\   96-127        Recursive tokens 96-127 (i.e. token number = n)
-\   160-255       Recursive tokens 0-95 (i.e. token number = n - 160)
+\   Code in A     Text or token that gets printed
+\   ---------     -------------------------------------------------------------
+\   14-31         Recursive tokens 128-145 (i.e. print token number A + 114)
+\   96-127        Recursive tokens 96-127 (i.e. print token number A)
+\   160-255       Recursive tokens 0-95 (i.e. print token number A - 160)
 \
-\ The first column is the number we need to send to TT27 to print the token
-\ mentioned in the second column.
+\ The first column is the number we need to send to TT27 in the accumulator to
+\ print the token described in the second column.
 \
 \ So, if we want to print recursive token 132, then according to the first row
 \ in this table, we need to subtract 114 to get 18, and send that to TT27.
@@ -1759,9 +1774,9 @@ ENDMACRO
 \ Finally, if we want to print token 3, then according to the third row, we
 \ need to add 160 to get 163.
 \
-\ Note that, as described in the section above, you can't use TT27 to print
-\ recursive tokens 146-148, but instead you need to call the ex subroutine, so
-\ the method described here only applies to recursive tokens 0-145.
+\ Note that, as described in the section on the ex routine above, you can't use
+\ TT27 to print recursive tokens 146-148, but instead you need to call the ex
+\ subroutine. The method described here only applies to recursive tokens 0-145.
 \
 \ How recursive tokens are stored in memory
 \ -----------------------------------------
@@ -1796,14 +1811,14 @@ ENDMACRO
 \ encoded string for a specific recursive token, the print routine runs through
 \ the entire list of tokens, character by character, counting all the nulls
 \ until it reaches the right spot. This might not be fast, but it is much more
-\ space-efficient than a lookup table; you can see this loop in the subroutine
-\ at ex, which is where recursive tokens are printed.
+\ space-efficient than a lookup table would be. You can see this loop in the
+\ subroutine at ex, which is where recursive tokens are printed.
 \
 \ An example
 \ ----------
 \ Given all this, let's consider recursive token 3 again, which is printed
-\ using the following code (remember, we have to add 160 to 3 to pass through
-\ to TT27):
+\ using the following code (remember, we have to add 160 to 3 to get the value
+\ to pass through to TT27):
 \
 \   LDA #163
 \   JSR TT27
@@ -1843,14 +1858,15 @@ ENDMACRO
 \ Now that the token is stored in memory, we can call TT27 with the accumulator
 \ set to 163, and the token will be printed as follows:
 \
-\   D             The letter D                      "D"
-\   <145>         Two-letter token 145              "AT"
-\   A             The letter A                      "A"
-\   [131]         Recursive token 131               " ON "
-\   {3}           Control character 3               The selected system name
+\   D             The letter D                  "D"
+\   <145>         Two-letter token 145          "AT"
+\   A             The letter A                  "A"
+\   [131]         Recursive token 131           " ON "
+\   {3}           Control character 3           The selected system name
 \
-\ So if the system under the crosshairs in the short range chart is Tionisla,
-\ this expands into "DATA ON TIONISLA".
+\ So if the system under the crosshairs in the Short-range Chart is Tionisla,
+\ this expands into "DATA ON TIONISLA", all of which is stored in just six
+\ bytes.
 \
 \ ******************************************************************************
 
@@ -24663,7 +24679,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ------------------------------------------------------------------------------
 \
 \ Print control code 3 (the selected system name, i.e. the one in the crosshairs
-\ in the short range chart).
+\ in the Short-range Chart).
 \
 \ ******************************************************************************
 \
@@ -32295,7 +32311,7 @@ LOAD_F% = LOAD% + P% - CODE%
  STA YC
  STA XC
 
- LDA #146               \ Print recursive token 13 ("{switch to all caps}GAME
+ LDA #146               \ Print recursive token 146 ("{switch to all caps}GAME
  JSR ex                 \ OVER"
 
 .D1
