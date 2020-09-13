@@ -3996,7 +3996,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 1 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: Seed the random number generator
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4018,7 +4018,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 2 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: Calculate alpha and beta angles from the current roll and pitch
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4141,7 +4141,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 3 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: Scan for flight keys and process the results
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4384,7 +4384,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 4 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: For each nearby ship: Copy the ship's data block from K% to INWK
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4464,7 +4464,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 5 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: For each nearby ship: Process the detonation of an energy bomb
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4503,7 +4503,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 6 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: For each nearby ship: Move the ship in space and update K% block
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4541,7 +4541,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 7 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: For each nearby ship: Check for us docking, scooping or colliding
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4610,7 +4610,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 8 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: For each nearby ship: Process the scooping of items
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4620,7 +4620,7 @@ LOAD_A% = LOAD%
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
 \
-\     * Process scooping of items
+\     * Process the scooping of items
 \
 \ ******************************************************************************
 
@@ -4691,14 +4691,14 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 9 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: If nearby ship is a space station, process us docking with it
 \
 \ ------------------------------------------------------------------------------
 \
 \ M% is called as part of the main game loop at TT100, and covers most of the
 \ flight-specific aspects of Elite. This section of M% covers the following:
 \
-\   * Process docking with space station
+\   * Process docking with a space station
 \
 \ Other entry points:
 \
@@ -4936,7 +4936,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 10 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: For each nearby ship: Remove if scooped, or process collisions
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5016,7 +5016,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 11 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: For each nearby ship: Process missile lock and firing our laser
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5136,7 +5136,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 12 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: For each nearby ship: Draw the ship, remove if killed, loop back
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5241,7 +5241,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 13 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: Show energy bomb effect, charge shields and energy banks
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5312,7 +5312,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 14 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: Spawn a space station if we are close enough to the planet
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5433,7 +5433,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 15 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: Perform altitude checks with planet and sun, process fuel scooping
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5608,7 +5608,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 16 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main flight loop, which runs when we are in space
+\    Summary: Process laser pulsing, E.C.M. energy drain, call stardust routine
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5893,7 +5893,7 @@ LOAD_A% = LOAD%
 \       Name: MVEIT (Part 1 of 9)
 \       Type: Subroutine
 \   Category: Moving
-\    Summary: Move the current ship, planet or sun in space
+\    Summary: Move current ship: Tidy the orientation vectors
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5949,7 +5949,7 @@ LOAD_A% = LOAD%
 \       Name: MVEIT (Part 2 of 9)
 \       Type: Subroutine
 \   Category: Moving
-\    Summary: Move the current ship, planet or sun in space
+\    Summary: Move current ship: Call tactics routine, remove ship from scanner
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6020,7 +6020,7 @@ LOAD_A% = LOAD%
 \       Name: MVEIT (Part 3 of 9)
 \       Type: Subroutine
 \   Category: Moving
-\    Summary: Move the current ship, planet or sun in space
+\    Summary: Move current ship: Move ship forward according to its speed
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6097,7 +6097,7 @@ LOAD_A% = LOAD%
 \       Name: MVEIT (Part 4 of 9)
 \       Type: Subroutine
 \   Category: Moving
-\    Summary: Move the current ship, planet or sun in space
+\    Summary: Move current ship: Apply acceleration to ship's speed as a one-off
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6137,7 +6137,7 @@ LOAD_A% = LOAD%
 \       Name: MVEIT (Part 5 of 9)
 \       Type: Subroutine
 \   Category: Moving
-\    Summary: Move the current ship, planet or sun in space
+\    Summary: Move current ship: Rotate ship's location by our roll and pitch
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6375,7 +6375,7 @@ LOAD_A% = LOAD%
 \       Name: MVEIT (Part 6 of 9)
 \       Type: Subroutine
 \   Category: Moving
-\    Summary: Move the current ship, planet or sun in space
+\    Summary: Move current ship: Move the ship in space according to our speed
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6420,7 +6420,7 @@ LOAD_A% = LOAD%
 \       Name: MVEIT (Part 7 of 9)
 \       Type: Subroutine
 \   Category: Moving
-\    Summary: Move the current ship, planet or sun in space
+\    Summary: Move current ship: Rotate ship's orientation vectors by pitch/roll
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6450,7 +6450,7 @@ LOAD_A% = LOAD%
 \       Name: MVEIT (Part 8 of 9)
 \       Type: Subroutine
 \   Category: Moving
-\    Summary: Move the current ship, planet or sun in space
+\    Summary: Move current ship: Rotate ship about itself by its own pitch/roll
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6536,7 +6536,7 @@ LOAD_A% = LOAD%
 \       Name: MVEIT (Part 9 of 9)
 \       Type: Subroutine
 \   Category: Moving
-\    Summary: Move the current ship, planet or sun in space
+\    Summary: Move current ship: Redraw on scanner, if it hasn't been destroyed
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6858,7 +6858,8 @@ LOAD_A% = LOAD%
 \ rotation more stable (though more elliptic).
 \
 \ If that paragraph makes sense to you, then you should probably be writing
-\ this commentary! For the rest of us, there's an explanation below.
+\ this commentary! For the rest of us, there's an explanation in the deep dive
+\ on "Rolling and pitching".
 \
 \ Arguments:
 \
@@ -8090,7 +8091,7 @@ ENDIF
 
 .CHK
 {
-EQUB CH%
+ EQUB CH%
 }
 
 PRINT "CH% = ", ~CH%
@@ -8222,7 +8223,7 @@ NEXT
 \       Name: LL30, LOIN (Part 1 of 7)
 \       Type: Subroutine
 \   Category: Drawing lines
-\    Summary: Draw a line from (X1, Y1) to (X2, Y2)
+\    Summary: Draw a line: Calculate the line gradient in the form of deltas
 \
 \ ------------------------------------------------------------------------------
 \
@@ -8499,7 +8500,7 @@ NEXT
 \       Name: LL30, LOIN (Part 2 of 7)
 \       Type: Subroutine
 \   Category: Drawing lines
-\    Summary: Draw a line from (X1, Y1) to (X2, Y2)
+\    Summary: Draw a line: Line has a shallow gradient, step right along x-axis
 \
 \ ------------------------------------------------------------------------------
 \
@@ -8640,7 +8641,7 @@ NEXT
 \       Name: LL30, LOIN (Part 3 of 7)
 \       Type: Subroutine
 \   Category: Drawing lines
-\    Summary: Draw a line from (X1, Y1) to (X2, Y2)
+\    Summary: Draw a shallow line going right and up or left and down
 \
 \ ------------------------------------------------------------------------------
 \
@@ -8723,7 +8724,7 @@ NEXT
 \       Name: LL30, LOIN (Part 4 of 7)
 \       Type: Subroutine
 \   Category: Drawing lines
-\    Summary: Draw a line from (X1, Y1) to (X2, Y2)
+\    Summary: Draw a shallow line going right and down or left and up
 \
 \ ------------------------------------------------------------------------------
 \
@@ -8808,7 +8809,7 @@ NEXT
 \       Name: LL30, LOIN (Part 5 of 7)
 \       Type: Subroutine
 \   Category: Drawing lines
-\    Summary: Draw a line from (X1, Y1) to (X2, Y2)
+\    Summary: Draw a line: Line has a steep gradient, step up along y-axis
 \
 \ ------------------------------------------------------------------------------
 \
@@ -8953,7 +8954,7 @@ NEXT
 \       Name: LL30, LOIN (Part 6 of 7)
 \       Type: Subroutine
 \   Category: Drawing lines
-\    Summary: Draw a line from (X1, Y1) to (X2, Y2)
+\    Summary: Draw a steep line going up and left or down and right
 \
 \ ------------------------------------------------------------------------------
 \
@@ -9037,7 +9038,7 @@ NEXT
 \       Name: LL30, LOIN (Part 7 of 7)
 \       Type: Subroutine
 \   Category: Drawing lines
-\    Summary: Draw a line from (X1, Y1) to (X2, Y2)
+\    Summary: Draw a steep line going up and right or down and left
 \
 \ ------------------------------------------------------------------------------
 \
@@ -12508,16 +12509,16 @@ NEXT
 \       Name: DIALS (Part 1 of 4)
 \       Type: Subroutine
 \   Category: Dashboard
-\    Summary: Update the dashboard
+\    Summary: Update the dashboard: speed indicator
 \
 \ ------------------------------------------------------------------------------
 \
-\ This section draws the speed indicator.
+\ This routine updates the dashboard. First we draw all the indicators in the
+\ right part of the dashboard, from top (speed) to bottom (energy banks), and
+\ then we move on to the left part, again drawing from top (forward shield) to
+\ bottom (altitude).
 \
-\ First we draw all the indicators in the right part of the dashboard, from top
-\ (speed) to bottom (energy banks), and then we move on to the left part, again
-\ drawing from top (forward shield) to bottom (altitude). This first section
-\ us off with the speedometer in the top right.
+\ This first section starts us off with the speedometer in the top right.
 \
 \ ******************************************************************************
 
@@ -12556,11 +12557,7 @@ NEXT
 \       Name: DIALS (Part 2 of 4)
 \       Type: Subroutine
 \   Category: Dashboard
-\    Summary: Update the dashboard
-\
-\ ------------------------------------------------------------------------------
-\
-\ This section draws the roll and pitch indicators.
+\    Summary: Update the dashboard: roll and pitch indicators
 \
 \ ******************************************************************************
 
@@ -12624,11 +12621,9 @@ NEXT
 \       Name: DIALS (Part 3 of 4)
 \       Type: Subroutine
 \   Category: Dashboard
-\    Summary: Update the dashboard
+\    Summary: Update the dashboard: four energy banks
 \
 \ ------------------------------------------------------------------------------
-\
-\ This section draws the four energy banks.
 \
 \ This and the next section only run once every four iterations of the main
 \ loop, so while the speed, roll and pitch indicators update every iteration,
@@ -12749,11 +12744,7 @@ NEXT
 \       Name: DIALS (Part 4 of 4)
 \       Type: Subroutine
 \   Category: Dashboard
-\    Summary: Update the dashboard
-\
-\ ------------------------------------------------------------------------------
-\
-\ This section draws the indicators in the left part of the dashboard.
+\    Summary: Update the dashboard: shields, fuel, laser & cabin temp, altitude
 \
 \ ******************************************************************************
 
@@ -13716,7 +13707,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Name: TACTICS (Part 1 of 7)
 \       Type: Subroutine
 \   Category: Tactics
-\    Summary: Apply AI tactics to the current ship
+\    Summary: Apply tactics: Process missiles, both enemy missiles and our own
 \
 \ ------------------------------------------------------------------------------
 \
@@ -13890,7 +13881,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Name: TACTICS (Part 2 of 7)
 \       Type: Subroutine
 \   Category: Tactics
-\    Summary: Apply AI tactics to the current ship
+\    Summary: Apply tactics: Escape pod, station, lone Thargon, safe-zone pirate
 \
 \ ------------------------------------------------------------------------------
 \
@@ -13997,7 +13988,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Name: TACTICS (Part 3 of 7)
 \       Type: Subroutine
 \   Category: Tactics
-\    Summary: Apply AI tactics to the current ship
+\    Summary: Apply tactics: Calculate dot product to determine ship's aim
 \
 \ ------------------------------------------------------------------------------
 \
@@ -14053,7 +14044,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Name: TACTICS (Part 4 of 7)
 \       Type: Subroutine
 \   Category: Tactics
-\    Summary: Apply AI tactics to the current ship
+\    Summary: Apply tactics: Check energy levels, maybe launch escape pod if low
 \
 \ ------------------------------------------------------------------------------
 \
@@ -14127,7 +14118,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Name: TACTICS (Part 5 of 7)
 \       Type: Subroutine
 \   Category: Tactics
-\    Summary: Apply AI tactics to the current ship
+\    Summary: Apply tactics: Consider whether to launch a missile at us
 \
 \ ------------------------------------------------------------------------------
 \
@@ -14189,7 +14180,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Name: TACTICS (Part 6 of 7)
 \       Type: Subroutine
 \   Category: Tactics
-\    Summary: Apply AI tactics to the current ship
+\    Summary: Apply tactics: Consider firing a laser at us, if aim is true
 \
 \ ------------------------------------------------------------------------------
 \
@@ -14278,7 +14269,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Name: TACTICS (Part 7 of 7)
 \       Type: Subroutine
 \   Category: Tactics
-\    Summary: Apply AI tactics to the current ship
+\    Summary: Apply tactics: Set pitch, roll, and acceleration
 \
 \ ------------------------------------------------------------------------------
 \
@@ -28061,11 +28052,11 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: PL9 (Part 1 of 3)
 \       Type: Subroutine
 \   Category: Drawing planets
-\    Summary: Draw the planet
+\    Summary: Draw the planet, with either an equator and meridian, or a crater
 \
 \ ------------------------------------------------------------------------------
 \
-\ Draw a planet with radius K at pixel coordinate (K3, K4), and with either an
+\ Draw the planet with radius K at pixel coordinate (K3, K4), and with either an
 \ equator and meridian, or a crater.
 \
 \ Arguments:
@@ -28114,7 +28105,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: PL9 (Part 2 of 3)
 \       Type: Subroutine
 \   Category: Drawing planets
-\    Summary: Draw the planet
+\    Summary: Draw the planet's equator and meridian
 \
 \ ------------------------------------------------------------------------------
 \
@@ -28259,7 +28250,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: PL9 (Part 3 of 3)
 \       Type: Subroutine
 \   Category: Drawing planets
-\    Summary: Draw the planet
+\    Summary: Draw the planet's crater
 \
 \ ------------------------------------------------------------------------------
 \
@@ -28722,7 +28713,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: SUN (Part 1 of 4)
 \       Type: Subroutine
 \   Category: Drawing suns
-\    Summary: Draw the sun, or a system on the Short-range Chart
+\    Summary: Draw the sun: Set up all the variables needed
 \
 \ ------------------------------------------------------------------------------
 \
@@ -29024,7 +29015,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: SUN (Part 2 of 4)
 \       Type: Subroutine
 \   Category: Drawing suns
-\    Summary: Draw the sun, or a system on the Short-range Chart
+\    Summary: Draw the sun: Start from bottom of screen and erase the old sun
 \
 \ ------------------------------------------------------------------------------
 \
@@ -29072,7 +29063,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: SUN (Part 3 of 4)
 \       Type: Subroutine
 \   Category: Drawing suns
-\    Summary: Draw the sun, or a system on the Short-range Chart
+\    Summary: Draw the sun: Continue to move up the screen, drawing the new sun
 \
 \ ------------------------------------------------------------------------------
 \
@@ -29324,7 +29315,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: SUN (Part 4 of 4)
 \       Type: Subroutine
 \   Category: Drawing suns
-\    Summary: Draw the sun, or a system on the Short-range Chart
+\    Summary: Draw the sun: Continue to the top of the screen, erasing old sun
 \
 \ ------------------------------------------------------------------------------
 \
@@ -31464,7 +31455,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Name: Main game loop (Part 1 of 6)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main game loop
+\    Summary: Spawn a trader (a peaceful Cobra Mk III)
 \
 \ ------------------------------------------------------------------------------
 \
@@ -31511,7 +31502,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Name: Main game loop (Part 2 of 6)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main game loop
+\    Summary: Call main flight loop, potentially spawn trader, asteroid, cargo
 \
 \ ------------------------------------------------------------------------------
 \
@@ -31664,7 +31655,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Name: Main game loop (Part 3 of 6)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main game loop
+\    Summary: Potentially spawn a cop, particularly if we've been bad
 \
 \ ------------------------------------------------------------------------------
 \
@@ -31722,7 +31713,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Name: Main game loop (Part 4 of 6)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main game loop
+\    Summary: Potentially spawn lone bounty hunter, Thargoid, or up to 4 pirates
 \
 \ ------------------------------------------------------------------------------
 \
@@ -31835,7 +31826,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Name: Main game loop (Part 5 of 6)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main game loop
+\    Summary: Cool down lasers, make calls to update the dashboard
 \
 \ ------------------------------------------------------------------------------
 \
@@ -31892,7 +31883,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Name: Main game loop (Part 6 of 6)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: The main game loop
+\    Summary: Process non-flight keypresses (red function keys, docked keys)
 \
 \ ------------------------------------------------------------------------------
 \
@@ -36445,10 +36436,10 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 1 of 10)
+\       Name: LL9 (Part 1 of 11)
 \       Type: Subroutine
 \   Category: Drawing ships
-\    Summary: Draw the current ship on the screen
+\    Summary: Draw ship: Check if ship is exploding, check if ship is in front
 \
 \ ------------------------------------------------------------------------------
 \
@@ -36570,7 +36561,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ part numbers match the breakdown of the source code, so you can refer to the
 \ code as you go.
 \ 
-\ 1/10 LL9
+\ 1/11 LL9
 \ 
 \   * If the ship is a planet or sun, jump to PLANET to draw it
 \ 
@@ -36578,10 +36569,10 @@ LOAD_G% = LOAD% + P% - CODE%
 \     explosion cloud
 \ 
 \   * If the ship is behind us, then it isn't visible, so remove it from the
-\     screen (by calling part 10 below to redraw it using EOR logic) and we're
+\     screen (by calling part 11 below to redraw it using EOR logic) and we're
 \     done
 \ 
-\ 2/10
+\ 2/11
 \ 
 \   * If the ship is outside of our field of view, remove it from the screen and
 \     we're done
@@ -36598,18 +36589,18 @@ LOAD_G% = LOAD% + P% - CODE%
 \   * If the ship is further away than the ship blueprint's visibility distance,
 \     jump to SHPPT to remove it from the screen and redraw it as a dot
 \ 
-\ 3/10
+\ 3/11
 \ 
 \   * Fetch the ship's orientation vectors and normalise them
 \ 
 \   * Fetch the ship's x, y and z coordinates in space
 \ 
-\ 4/10
+\ 4/11
 \ 
 \   * If the ship is exploding, set all the faces to be visible and skip down to
 \     part 6
 \ 
-\ 5/10
+\ 5/11
 \ 
 \   * Work out the scale factor for the face normals so we can make them as big
 \     as possible while not overflowing, incorporating the scale factor from the
@@ -36623,7 +36614,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \     * Otherwise work out if the face is pointing towards us or away from us
 \       using the dot product (see the deep dive on back-face culling)
 \ 
-\ 6/10
+\ 6/11
 \ 
 \   * Process the ship's vertices and work out which ones are visible:
 \   
@@ -36638,16 +36629,16 @@ LOAD_G% = LOAD% + P% - CODE%
 \     * Calculate the space coordinates of that vertex (see the deep dive on
 \       calculating vertex coordinates), starting the calculation in part 6...
 \ 
-\ 7/10
+\ 7/11
 \ 
 \     * ...and finishing it in part 7, before moving on to part 8...
 \ 
-\ 8/10
+\ 8/11
 \ 
 \     * ...to convert the visible vertex's space coordinates into screen
 \       coordinates
 \   
-\ 9/10
+\ 9/11
 \ 
 \   * If the ship is exploding, jump to DOEXP to display the explosion cloud
 \  
@@ -36657,6 +36648,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \     2) is visible, then calculate the laser beam line coordinates and add them
 \     to the ship line heap
 \  
+\ 10/11
+\
 \   * Process the ship's edges and work out which ones are visible:
 \   
 \     * If the ship is further away than the edge's visibility distance, it is
@@ -36668,7 +36661,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \   * For visible edges, add this edge to the ship line heap (i.e. add the
 \     screen coordinates of the start and end vertices)
 \ 
-\ 10/10
+\ 11/11
 \ 
 \   * Draw the lines in the ship line heap, which draws the ship on screen (or
 \     removes it, if the ship is already on screen)
@@ -36800,10 +36793,10 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 2 of 10)
+\       Name: LL9 (Part 2 of 11)
 \       Type: Subroutine
 \   Category: Drawing ships
-\    Summary: Draw the current ship on the screen
+\    Summary: Draw ship: Check if ship is in field of view, close enough to draw
 \
 \ ------------------------------------------------------------------------------
 \
@@ -36906,10 +36899,10 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 3 of 10)
+\       Name: LL9 (Part 3 of 11)
 \       Type: Subroutine
 \   Category: Drawing ships
-\    Summary: Draw the current ship on the screen
+\    Summary: Draw ship: Set up orientation vector, ship coordinate variables
 \
 \ ------------------------------------------------------------------------------
 \
@@ -37051,10 +37044,10 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 4 of 10)
+\       Name: LL9 (Part 4 of 11)
 \       Type: Subroutine
 \   Category: Drawing ships
-\    Summary: Draw the current ship on the screen
+\    Summary: Draw ship: Set visibility for exploding ship (all faces visible)
 \
 \ ------------------------------------------------------------------------------
 \
@@ -37098,14 +37091,10 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 5 of 10)
+\       Name: LL9 (Part 5 of 11)
 \       Type: Subroutine
 \   Category: Drawing ships
-\    Summary: Draw the current ship on the screen
-\
-\ ------------------------------------------------------------------------------
-\
-\ This section calculates the visibility of each of the ship's faces.
+\    Summary: Draw ship: Calculate the visibility of each of the ship's faces
 \
 \ ******************************************************************************
 \
@@ -37784,10 +37773,10 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 6 of 10)
+\       Name: LL9 (Part 6 of 11)
 \       Type: Subroutine
 \   Category: Drawing ships
-\    Summary: Draw the current ship on the screen
+\    Summary: Draw ship: Calculate the visibility of each of the ship's vertices
 \
 \ ------------------------------------------------------------------------------
 \
@@ -38370,10 +38359,10 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 7 of 10)
+\       Name: LL9 (Part 7 of 11)
 \       Type: Subroutine
 \   Category: Drawing ships
-\    Summary: Draw the current ship on the screen
+\    Summary: Draw ship: Calculate the visibility of each of the ship's vertices
 \
 \ ------------------------------------------------------------------------------
 \
@@ -38456,10 +38445,10 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 8 of 10)
+\       Name: LL9 (Part 8 of 11)
 \       Type: Subroutine
 \   Category: Drawing ships
-\    Summary: Draw the current ship on the screen
+\    Summary: Draw ship: Calculate the screen coordinates of visible vertices
 \
 \ ------------------------------------------------------------------------------
 \
@@ -38697,15 +38686,15 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 9 of 10)
+\       Name: LL9 (Part 9 of 11)
 \       Type: Subroutine
 \   Category: Drawing ships
-\    Summary: Draw the current ship on the screen
+\    Summary: Draw ship: Draw laser beams if the ship is firing its laser at us
 \
 \ ------------------------------------------------------------------------------
 \
-\ This part calculates which edges are visible - in other words, which lines we
-\ should draw. It also adds a line for laser fire, if the ship is firing at us.
+\ This part sets things up so we can loop through the edges in the next part. It
+\ also adds a line to the ship line heap, if the ship is firing at us.
 \
 \ When we get here, the heap at XX3 contains all the visible vertex screen
 \ coordinates.
@@ -38866,6 +38855,23 @@ LOAD_G% = LOAD% + P% - CODE%
  INY                    \ Increment the heap pointer
 
  STY U                  \ Store the updated ship line heap pointer in U
+
+\ ******************************************************************************
+\
+\       Name: LL9 (Part 10 of 11)
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Draw ship: Calculate the visibility of each of the ship's edges
+\
+\ ------------------------------------------------------------------------------
+\
+\ This part calculates which edges are visible - in other words, which lines we
+\ should draw - and adds them to the ship line heap.
+\
+\ When we get here, the heap at XX3 contains all the visible vertex screen
+\ coordinates.
+\
+\ ******************************************************************************
 
 .LL170
 
@@ -39063,10 +39069,10 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 10 of 10)
+\       Name: LL9 (Part 11 of 11)
 \       Type: Subroutine
 \   Category: Drawing ships
-\    Summary: Draw the current ship on the screen
+\    Summary: Draw ship: Draw all the visible edges from the ship line heap
 \
 \ ------------------------------------------------------------------------------
 \
@@ -39648,13 +39654,16 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Name: LL145 (Part 1 of 4)
 \       Type: Subroutine
 \   Category: Drawing lines
-\    Summary: Clip the line from (x1, y1) to (x2, y2) so it fits on-screen 
+\    Summary: Clip line: Work out which end-points are on-screen, if any
 \
 \ ------------------------------------------------------------------------------
 \
 \ This routine clips the line from (x1, y1) to (x2, y2) so it fits on-screen, or
 \ returns an error if it can't be clipped to fit. The arguments are 16-bit
 \ coordinates, and the clipped line is returned using 8-bit screen coordinates.
+\
+\ This part sets XX13 to reflect which of the two points are on-screen and
+\ off-screen.
 \
 \ Arguments:
 \
@@ -39859,7 +39868,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Name: LL145 (Part 2 of 4)
 \       Type: Subroutine
 \   Category: Drawing lines
-\    Summary: Clip the line from (x1, y1) to (x2, y2) so it fits on-screen 
+\    Summary: Clip line: Work out if any part of the line is on-screen
 \
 \ ------------------------------------------------------------------------------
 \
@@ -39944,11 +39953,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Name: LL145 (Part 3 of 4)
 \       Type: Subroutine
 \   Category: Drawing lines
-\    Summary: Clip the line from (x1, y1) to (x2, y2) so it fits on-screen 
-\
-\ ------------------------------------------------------------------------------
-\
-\ This part calculates the line's gradient.
+\    Summary: Clip line: Calculate the line's gradient
 \
 \ ******************************************************************************
 
@@ -40073,7 +40078,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Name: LL145 (Part 4 of 4)
 \       Type: Subroutine
 \   Category: Drawing lines
-\    Summary: Clip the line from (x1, y1) to (x2, y2) so it fits on-screen 
+\    Summary: Clip line: Call the routine in LL188 to do the actual clipping
 \
 \ ------------------------------------------------------------------------------
 \
