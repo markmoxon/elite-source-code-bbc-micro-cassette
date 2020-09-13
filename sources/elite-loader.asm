@@ -302,7 +302,7 @@ EXCN = &85
 \       Name: Elite loader (Part 1 of 6)
 \       Type: Subroutine
 \   Category: Loader
-\    Summary: Elite loader, which loads, decrypts and runs the main game
+\    Summary: Include binaries for recursive tokens, Python blueprint and images
 \
 \ ------------------------------------------------------------------------------
 \
@@ -676,7 +676,7 @@ ORG O%
 \       Name: Elite loader (Part 2 of 6)
 \       Type: Subroutine
 \   Category: Loader
-\    Summary: Elite loader, which loads, decrypts and runs the main game
+\    Summary: Perform a number of OS calls, set up sound, push routines on stack
 \
 \ ------------------------------------------------------------------------------
 \
@@ -977,7 +977,7 @@ ENDMACRO
 \       Name: Elite loader (Part 3 of 6)
 \       Type: Subroutine
 \   Category: Loader
-\    Summary: Elite loader, which loads, decrypts and runs the main game
+\    Summary: Move and decrypt recursive tokens, Python blueprint and images
 \
 \ ------------------------------------------------------------------------------
 \
@@ -1086,7 +1086,7 @@ ENDMACRO
 \       Name: Elite loader (Part 4 of 6)
 \       Type: Subroutine
 \   Category: Loader
-\    Summary: Elite loader, which loads, decrypts and runs the main game
+\    Summary: Copy more code onto stack, decrypt TUT block, set up IRQ1 handler
 \
 \ ------------------------------------------------------------------------------
 \
@@ -2568,7 +2568,7 @@ ENDIF
 \       Name: Elite loader (Part 5 of 6)
 \       Type: Subroutine
 \   Category: Loader
-\    Summary: Elite loader, which loads, decrypts and runs the main game
+\    Summary: Load main game code, decrypt it, move it to the correct location
 \
 \ ------------------------------------------------------------------------------
 \
@@ -2938,7 +2938,7 @@ ENDIF
 \       Name: Elite loader (Part 6 of 6)
 \       Type: Subroutine
 \   Category: Loader
-\    Summary: Elite loader, which loads, decrypts and runs the main game
+\    Summary: Set up interrupt vectors, calculate checksums, run main game code
 \
 \ ------------------------------------------------------------------------------
 \
