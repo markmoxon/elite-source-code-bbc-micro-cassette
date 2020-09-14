@@ -6182,23 +6182,71 @@ LOAD_A% = LOAD%
 \ Deep dive: Rotating the universe
 \ ================================
 \
-\ When we rotate our ship with the keyboard or joystick, we actually just rotate
-\ the whole universe around our Cobra, as everything is drawn from the
-\ perspective of our cockpit. This routine therefore applies the rotation
-\ equations, which are described in MVS4, to the (x, y, z) coordinate of the
-\ ship we are processing, so the ship moves as we pitch and roll. Specifically,
-\ the calculation is as follows:
+\ When we rotate our ship with the keyboard or joystick, it turns out that it's
+\ a lot easier to rotate the whole universe around our Cobra, rather than
+\ rotating our ship and ending up having to include our orientation into every
+\ other calculation. Because there is no up or down in space, rotating the whole
+\ universe  has the same effect, as everything is drawn from the perspective of
+\ our cockpit.
 \
-\   x -> x + alpha * (y - alpha * x - beta * z)
+\ Part 5 of the MVEIT routine is responsible for performing this act of seeming
+\ omnipotence, and it does this by rotating the (x, y, z) coordinate of the
+\ ship we are processing, by the roll and pitch angles alpha and beta, so the
+\ ship moves as we pitch and roll.
+\
+\ It does this using the exact same rotation equations that MVS4 uses in part 7
+\ to rotate the ship's orientation vectors (see the deep dive "Rolling and
+\ pitching" for details of the maths behind the following). But just as with
+\ part 7, there is a twist, and yet again, the twist is all about Minsky.
+\
+\ The twist is that, this time, the pitch and roll calculations are done in a
+\ mixed-up order. In MVS4, we do the roll calculations first:
+\
+\   y = y - alpha * x
+\   x = x + alpha * y
+\
+\ and then we do the pitch calculations:
+\
+\   y = y - beta * z
+\   z = z + beta * y
+\
+\ and because we use the updated y in the x and z calculations, we get to enjoy
+\ a more accurate result because of the Minsky effect, like this:
+\
+\   x -> x + alpha * (y - alpha * x)
 \   y -> y - alpha * x - beta * z
+\   z -> z + beta * (y - alpha * x - beta * z)
+\
+\ The calculation used here is very similar, but we switch the order of the x
+\ and z calculations, by doing these two first:
+\
+\   y = y - alpha * x
+\   z = z + beta * y
+\
+\ and then these two:
+\
+\   y = y - beta * z
+\   x = x + alpha * y
+\
+\ The result is this really complex set of transformations:
+\
+\   x -> x + alpha * (y - alpha * x - beta * (z + beta * (y - alpha * x)))
+\   y -> y - alpha * x - beta * (z + beta * (y - alpha * x))
 \   z -> z + beta * (y - alpha * x)
 \
-\ which we implement like this:
+\ This is a pretty hard-to-follow variation on the classic Minsky equations
+\ implemented in MVS4, but it still encapsulates the essence of the Minsky
+\ approach, which is to use the updated values when calculating. It's just that
+\ this time we use the updated values of both y and z in the calculation, and
+\ that leads to a different result.
+\
+\ We implement this variation like this, using K2 to store the updated value of
+\ Y as we progress through the above stages:
 \
 \   1. K2 = y - alpha * x
-\   2. z = z + beta * K2        z = z + beta * (y - alpha * x)
-\   3. y = K2 - beta * z        y = y - alpha * x - beta * z
-\   4. x = x + alpha * y        x = x + alpha * y
+\   2. z = z + beta * K2
+\   3. y = K2 - beta * z
+\   4. x = x + alpha * y
 \
 \ We also discard the low bytes from the angle multiplications, so all of the
 \ above multiplications get divided by 256. This effectively converts the values
@@ -7666,21 +7714,16 @@ LOAD_A% = LOAD%
 \ Rotate the planet or sun's location in space by the amount of pitch and roll
 \ of our ship.
 \
-\ We implement this using the same equations as in part 5 of MVEIT.
-\ Specifically, the calculation is as follows:
-\
-\   x -> x + alpha * (y - alpha * x)
-\   y -> y - alpha * x - beta * z
-\   z -> z + beta * (y - alpha * x - beta * z)
-\
-\ which we implement like this:
+\ We implement this using the same equations as in part 5 of MVEIT, where we
+\ rotated the current ship's location by our pitch and roll. Specifically, the
+\ calculation is as follows:
 \
 \   1. K2 = y - alpha * x
-\   2. z = z + beta * K2        z = z + beta * (y - alpha * x)
-\   3. y = K2 - beta * z        y = y - alpha * x - beta * z
-\   4. x = x + alpha * y        x = x + alpha * y
+\   2. z = z + beta * K2
+\   3. y = K2 - beta * z
+\   4. x = x + alpha * y
 \
-\ See part 5 pf MVEIT for more details of this calculation.
+\ See the deep dive "Rotating the universe" for more details on the above.
 \
 \ ******************************************************************************
 
