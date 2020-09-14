@@ -4710,23 +4710,45 @@ LOAD_A% = LOAD%
 \ Deep dive: Docking
 \ ==================
 \
-\ The following routine does five tests to confirm whether we are docking
-\ safely, as opposed to slamming into the sides of the space station, leaving
-\ a trail of sparks and dented pride. They are:
+\ Docking is difficult, there's no doubt about it. The challenge of slotting
+\ into one of Elite's rotating Coriolis space stations is absolutely iconic, and
+\ for almost everyone, the first few attempts to match the station's rotation
+\ while heading into the middle of the slot end in messy failure. It is one of
+\ the biggest hurdles to overcome in the early game, but to progress you have to
+\ master the art to the point where it's almost a shame when you can afford a
+\ docking computer to handle things for you. Almost.
 \
-\   1. Make sure the station isn't hostile.
+\ But how does the game know when we successfully snake into the docking bay,
+\ rather than crashing into the station walls, leaving nothing but a trail of
+\ sparks and dented pride? The routine at ISDK houses the heart of the docking
+\ algorithm, which watches us nervously line up with the planet-facing side of
+\ the station, and judges whether our approach is nominal or abominable.
 \
-\   2. Make sure our ship is pointed in the right direction, by checking that
-\      our angle of approach is less than 26 degrees off the perfect, head-on
-\      approach.
+\ Specifically, the ISDK routine does five tests to confirm whether we are
+\ docking safely. They are:
 \
-\   3. Confirm that we are moving towards the centre of the space station.
+\   1. Friend or foe: Confirm that the station isn't hostile, because stations
+\      have feelings too - feelings and whole nests of Vipers
 \
-\   4. Confirm that we are within a small "cone" of safe approach.
+\   2. Orientation: Confirm that our ship is pointing in the right direction, by
+\      checking that the angle that we are facing is within 26 degrees of the
+\      perfect, head-on approach
 \
-\   5. Confirm that the slot is less than 33.6 degrees off the horizontal.
+\   3. Heading: Confirm that we are facing towards the space station
 \
-\ Here's a further look at the more complicated of these tests.
+\   4. Location: Confirm that we are within a small "cone" of safe approach
+\
+\   5. Rotation: Confirm that the slot is less than 33.6 degrees off the
+\      horizontal
+\
+\ Here's a further look at how these tests work.
+\
+\ 1. Check how friendly the station is
+\ ------------------------------------
+\ This is the easiest check to do. The station is hostile if bit 7 of byte #32
+\ of the station's ship data is set, so all we do is fetch that byte and check
+\ to see of it is negative. If it is, then the station is hostile, so docking
+\ ends badly.
 \
 \ 2. Check the angle of approach
 \ ------------------------------
@@ -4834,6 +4856,15 @@ LOAD_A% = LOAD%
 \
 \ And that's the check we make below to make sure our docking angle is correct.
 \
+\ 3. Heading in the right direction
+\ ---------------------------------
+\ Before we can work out whether we are facing towards the space station, we
+\ need to get the vector from us to the space station. Once this is done, it's
+\ an easy check to see whether the sign of the z-coordinate of that vector is
+\ positive or negative. Negative means the space station is behind us, so if
+\ that's the case, we're falling into the station backwards, which doesn't end
+\ well.
+\
 \ 4. Cone of safe approach
 \ ------------------------
 \ This is similar to the angle-of-approach check, but where check 2 only looked
@@ -4877,10 +4908,10 @@ LOAD_A% = LOAD%
  LDA K%+NI%+32          \ 1. Fetch the AI counter (byte #32) of the second ship
  BMI MA62               \ in the ship data workspace at K%, which is reserved
                         \ for the sun or the space station (in this case it's
-                        \ the latter), and if it's negative, meaning the
-                        \ station is hostile, jump down to MA62 to fail docking
-                        \ (so trying to dock at a station that we have annoyed
-                        \ does not end well)
+                        \ the latter), and if it's negative, i.e. bit 7 is set,
+                        \ meaning the station is hostile, jump down to MA62 to
+                        \ fail docking (so trying to dock at a station that we
+                        \ have annoyed does not end well)
 
  LDA INWK+14            \ 2. If nosev_z_hi < 214, jump down to MA62 to fail
  CMP #214               \ docking, as the angle of approach is greater than 26
