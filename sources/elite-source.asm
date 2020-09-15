@@ -65,28 +65,34 @@ POW = 15                \ Pulse laser power
 NI% = 36                \ Number of bytes in each ship's data block (as stored
                         \ in INWK and K% and pointed to by the UNIV table)
 
-OSBYTE = &FFF4          \ The OS routines used in Elite. OSBYTE is used three
-OSWORD = &FFF1          \ times, OSWORD is used twice, and OSFILE is used just
-OSFILE = &FFDD          \ once
+OSBYTE = &FFF4          \ The address for the OSBYTE routine, which is used
+                        \ three times in the main game code
+
+OSWORD = &FFF1          \ The address for the OSWORD routine, which is used
+                        \ twice in the main game code
+
+OSFILE = &FFDD          \ The address for the OSFILE routine, which is used
+                        \ once in the main game code
 
 SHEILA = &FE00          \ Memory-mapped space for accessing internal hardware,
                         \ such as the video ULA, 6845 CRTC and 6522 VIAs
 
 VSCAN = 57              \ Defines the split position in the split-screen mode
 
-X = 128                 \ The centre coordinates of the 256 x 192 mode 4 space
-Y = 96                  \ view
+X = 128                 \ The centre x-coordinate of the 256 x 192 space view
 
-f0 = &20                \ The internal key numbers of the function keys (see
-f1 = &71                \ the Advanced User Guide for a list of internal key
-f2 = &72                \ numbers)
-f3 = &73
-f4 = &14
-f5 = &74
-f6 = &75
-f7 = &16
-f8 = &76
-f9 = &77
+Y = 96                  \ The centre y-coordinate of the 256 x 192 space view
+
+f0 = &20                \ Internal key number for red key f0 (Launch, Front)
+f1 = &71                \ Internal key number for red key f1 (Buy Cargo, Rear)
+f2 = &72                \ Internal key number for red key f2 (Sell Cargo, Left)
+f3 = &73                \ Internal key number for red key f3 (Equip Ship, Right)
+f4 = &14                \ Internal key number for red key f4 (Long-range Chart)
+f5 = &74                \ Internal key number for red key f5 (Short-range Chart)
+f6 = &75                \ Internal key number for red key f6 (Data on System)
+f7 = &16                \ Internal key number for red key f7 (Market Price)
+f8 = &76                \ Internal key number for red key f8 (Status Mode)
+f9 = &77                \ Internal key number for red key f9 (Inventory)
 
 \ ******************************************************************************
 \
@@ -8316,10 +8322,19 @@ NEXT
 \ Deep dive: Bresenham's line algorithm
 \ =====================================
 \
-\ Non-horizontal lines in Elite are drawn using Bresenham's line algorithm
-\ (horizontal lines use a much simpler routine at HLOIN). Let's look at how that
-\ works.
+\ Most of what you see in the space view in Elite is composed of straight lines.
+\ The ships are drawn using wireframes that are made up of straight lines, the
+\ planets are made from circles and arcs that consist of lots of small, straight
+\ lines, and the sun is no more than a sequence of horizontal lines, drawn along
+\ a vertical axis. Having a fast line-drawing algorithm is essential in a game
+\ like Elite.
 \
+\ Horizontal lines are a special case and have their own optimised routine at
+\ HLOIN, but all non-horizontal lines in Elite are drawn using Bresenham's line
+\ algorithm. Let's look at how that works.
+\
+\ The core algorithm
+\ ------------------
 \ The basic idea is quite simple. Let's consider a line from (X1, Y1) to (X2,
 \ Y2), where that line slopes down and right at a reasonably shallow angle, like
 \ this:
@@ -9789,11 +9804,25 @@ NEXT
 \ Deep dive: Drawing monochrome pixels in mode 4
 \ ==============================================
 \
-\ The top part of Elite's split-screen mode - the monochrome mode 4 part -
-\ consists of 192 rows of pixels, with 256 pixels in each row. That sounds nice
-\ and simple... except the way the BBC Micro stores its screen memory isn't
-\ completely straightforward, and to understand Elite's drawing routines, an
-\ understanding of this memory structure is essential.
+\ Everything boils down to pixels in the end. Even the most complicated ship
+\ battle, with ship hulls glinting in the glow of the distant sun and sparkling
+\ clouds of explosive dust dissipating into the cold vacuum of space... even
+\ this scene of destruction and mayhem is made up of pixels, each of them either
+\ black or white. We are all made of stars, and the stars are all made of
+\ pixels.
+\
+\ Clearly, then, plotting pixels is a vital part of simulating the universe, and
+\ the space view in Elite - the monochrome mode 4 part - is designed to make the
+\ process as efficient as possible. The mode definition is set up by the loader
+\ code in elite-loader.asm, where the 6845 CRTC chip is programmed to show a
+\ screen mode with exactly 256 pixels in each row. Each pixel takes up one bit
+\ in the space view, so that means the top part of Elite's split-screen mode
+\ consists of 192 rows of pixels, with 256 bits in in each row.
+\
+\ So can we just plot a pixel by setting that bit on the relevant row in screen
+\ memory? Unfortunately not, as the way the BBC Micro stores its screen memory
+\ isn't completely straightforward, and to understand Elite's drawing routines,
+\ an understanding of this memory structure is essential.
 \
 \ Screen memory
 \ -------------
@@ -10191,24 +10220,33 @@ NEXT
 \ Deep dive: The ball line heap
 \ =============================
 \
-\ The planet and sun are complex shapes that use plenty of maths to calculate
-\ their shapes, and that takes up time. We remove shapes from the screen by
-\ drawing the same shape again in exactly the same place (which erases them
-\ because it's all done with EOR logic), so instead of doing the calculations
-\ all over again for the second drawing, Elite has a set of line heaps where
-\ all the information is stored, ready for the second redrawing.
+\ The planet, the sun and ships in our local bubble of universe are complicated
+\ things, and we have to use an awful lot of maths to calculate their shapes
+\ on-screen. Not surprisingly, all that maths takes up quite a bit of processor
+\ time. We can remove shapes from the screen by drawing the same shapes again in
+\ exactly the same place (which erases them because it's all done with EOR
+\ logic), so if we can avoid having to repeat all those intensive calculations
+\ for that second drawing, that would save a lot of time and effort.
+\
+\ Not surprisingly, Elite has a solution - three of them, to be precise. Instead
+\ of repeating the calculations for the second drawing, Elite has a set of three
+\ "line heaps" where all the drawing information gets stored, so it's a simple
+\ process to redraw, and therefore erase, any shape on-screen.
 \
 \ There are three types of line heap used in Elite:
 \
 \   * The ball line heap, which is used by BLINE when drawing circles (as well
 \     as polygonal rings like the launch and hyperspace tunnel)
 \
-\   * The sun line heap, which is used by SUN when drawing the sun
+\   * The sun line heap, which is used by SUN when drawing the sun (see the deep
+\     dive "Drawing the sun" for details)
 \
 \   * The ship line heap, one per ship in the local bubble of universe, which
-\     is used by LL9 when drawing ships
+\     is used by LL9 when drawing ships (see the deep dive "Drawing ships" for
+\     details)
 \
-\ Here we take a look at the ball line heap at LSX2 and LSY2, with pointer LSP.
+\ Here we take a look at the ball line heap that's stored at LSX2 and LSY2, and
+\ with the pointer in LSP.
 \
 \ Drawing and storing circles with BLINE
 \ --------------------------------------
@@ -12987,13 +13025,17 @@ NEXT
 \ Deep dive: The dashboard indicators
 \ ===================================
 \
-\ Using one routine to display all the different bar indicators in the dashboard
-\ leads to some interesting behaviour. Each bar indicator is 16 pixels long, and
-\ the default entry point at DILX can show values from 0-255, with each pixel in
-\ the bar representing 16 units (so in the default mode, the last pixel, the
-\ 16th, is not used). For comparison, if the routine is called via the entry
-\ point at DIL, then the bar's range is 0-16, with each pixel representing 1
-\ unit (and in this case, the 16th pixel can be used).
+\ The dashboard shows an awful lot of information, and the vast majority of the
+\ indicators are bar-based (there are 11 bar indicators in all). The game uses
+\ one routine to display all 11 indicators - routine DILX - and that can lead to
+\ some interesting behaviour.
+\
+\ Each bar indicator is 16 pixels long, and the default entry point at DILX can
+\ show values from 0-255, with each pixel in the bar representing 16 units (so
+\ in the default mode, the last pixel, the 16th, is not used). For comparison,
+\ if the routine is called via the entry point at DIL, then the bar's range is
+\ 0-16, with each pixel representing 1 unit (and in this case, the 16th pixel
+\ can be used).
 \
 \ The dashboard's bar-based indicators are as follows, along with the range of
 \ values shown by the bar, plus the range of that particular measurement in the
@@ -13044,8 +13086,9 @@ NEXT
 \     indicator starts to drop again. I guess there just wasn't room to let this
 \     particular control knob go up to 11...
 \
-\ The only other dashboard indicators are missiles, pitch and roll, the compass
-\ and the scanner, all of which have their own routines.
+\ The only other dashboard indicators are the missile indicators, the pitch and
+\ roll bars, the compass, the 3D scanner, and the space station and E.C.M.
+\ bulbs, all of which have their own individual routines.
 \
 \ ******************************************************************************
 
@@ -19091,8 +19134,26 @@ NEXT
 \ Deep dive: The 3D scanner
 \ =========================
 \
-\ To display a ship on the iconic 3D scanner in Elite, there are six main hoops
-\ we have to jump through.
+\ The elliptical 3D scanner in the centre of the dashboard is one of Elite's
+\ most celebrated features, but it almost didn't make it into the game. For
+\ almost all of the game's life the scanner consisted of two two-dimensional
+\ radars, one showing a top-down view of the area around the ship and the other
+\ showing a side-on view, but it never really worked that well. Then, at the
+\ very last minute, after the manual had been written and the game's code had
+\ been polished until it shone, David Braben hit upon the idea of the 3D
+\ ellipse, and it was so good it just had to go in, so while Braben created the
+\ elliptical background image, Ian Bell coded it up, all in time to update the
+\ manual and hit the publishing deadline.
+\
+\ It was worth the effort, as the scanner is a thing of beauty, not only in
+\ terms of Braben's fantastic idea, which transforms the gaming experience, but
+\ also in the elegant simplicity of Bell's code. This is the last bit of code
+\ the pair wrote as anonymous undergraduates; after this, they would become rock
+\ stars, and their worlds would change forever.
+\
+\ So how does it work, this spark of genius that is so essential in making the
+\ 3D world of Elite feel so immersive? Well, to display a ship on the scanner,
+\ there are six main hoops we have to jump through.
 \
 \ We start with the ship's coordinates in space, given relative to our position
 \ (and therefore relative to the centre of the ellipse in the scanner, which
@@ -19307,7 +19368,9 @@ NEXT
 \
 \   A = - (y_sign y_hi) / 2
 \
-\ and clip the result so that it's in the range 193 to 246.
+\ and clip the result so that it's in the range 193 to 246. So now we have all
+\ the information required to draw the ship on the scanner, and to erase it
+\ later (which we do by drawing it a second time).
 \
 \ ******************************************************************************
 
@@ -25735,11 +25798,17 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 \
-\ Deep dive: Explosion clouds
-\ ===========================
+\ Deep dive: Drawing explosion clouds
+\ ===================================
 \
-\ Instead of storing lines on the ship line heap, we store details of the ship's
-\ explosion cloud on the heap. This is the heap structure:
+\ Like the ships, planet and sun, explosion clouds take a lot of maths to draw,
+\ and like them, we store the results of all this maths in a heap. For explosion
+\ clouds, we use the same ship line heap that we use for lines, but instead of
+\ storing lines on the ship line heap, we store details of the ship's explosion
+\ cloud on the heap. (We can use the same space as a ship is either a wireframe
+\ or an explosion cloud, but is never both.)
+\
+\ This is the heap structure:
 \
 \   * Byte #0 = cloud size
 \
@@ -26879,11 +26948,14 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Deep dive: Drawing colour pixels in mode 5
 \ ==========================================
 \
-\ Drawing pixels in the four-colour mode 5 screen that Elite uses for the
-\ dashboard is not as straightforward as you might think. It's slightly simpler
-\ in the two-colour mode 4 screen that Elite uses for the space view, and I
-\ highly recommend you first read the documentation in the PIXEL routine, where
-\ we discuss screen addresses and plotting techniques for this simpler mode.
+\ Drawing four-colour pixels in the dashboard is not as straightforward as you
+\ might think. It's complicated enough drawing monochrome pixels in the
+\ two-colour mode 4 screen that Elite uses for the space view, but it's even
+\ more mind-bending in mode 5, so before you read the following, I highly
+\ recommend you take a look at the deep dive "Drawing monochrome pixels in mode
+\ 4", where we discuss screen addresses and plotting techniques for this simpler
+\ mode, all in plain black and white. If monochrome plotting already makes
+\ sense to you, then let's move on to four colours.
 \
 \ As with mode 4, the mode 5 screen is laid out in memory using character
 \ blocks. Indeed, the character blocks are the same size and height in terms of
@@ -28200,8 +28272,11 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Deep dive: Drawing meridians and equators
 \ =========================================
 \
-\ This routine calculates the following and, for each meridian, calls PLS2 to do
-\ the actual plotting.
+\ This deep dive is a work in progress. It covers part 2 of the PL9 routine,
+\ which draws meridians and equators on planets.
+\
+\ Part 2 of PL9 calculates the following and, for each meridian, calls PLS2 to
+\ do the actual plotting.
 \
 \ For meridian 1, we calculate the following
 \
@@ -28345,7 +28420,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Deep dive: Drawing craters
 \ ==========================
 \
-\ This routine calculates the following and calls PLS22 to do the actual
+\ This deep dive is a work in progress. It covers part 3 of the PL9 routine,
+\ which draws craters on planets.
+\
+\ Part 3 of PL9 calculates the following and calls PLS22 to do the actual
 \ plotting.
 \
 \ First, the calculations:
@@ -29530,12 +29608,20 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Deep dive: Drawing circles
 \ ==========================
 \
-\ This routine draws a circle by starting at the bottom of the circle - or at
-\ 6 o'clock if you think of it as a clock face - and moving anti-clockwise in
-\ steps defined by the size of the step size in STP. The whole circle is divided
-\ into 64 steps and the step number is stored in CNT, so if STP were 2, CNT
-\ would be 0, 2, 4 and so on up to and including 64. So we work our way around
-\ the circle like this:
+\ You never forget your first journey in Elite, and a lot of that is down to the
+\ circle routine. The launch tunnel rushing past as you punch your way out of
+\ the station - that's the circle routine. The planet Lave, hanging in space in
+\ front of you in all its rotating glory - that's the circle routine. The nearby
+\ systems you can choose to visit on the Short-range Chart are all those inside
+\ a circle drawn by the circle routine. And the hyperspace tunnel? You guessed
+\ it. It's the circle routine again.
+\
+\ Circles are drawn by the CIRCLE2 routine. This routine draws a circle by
+\ starting at the bottom of the circle - or at 6 o'clock if you think of it as a
+\ clock face - and moving anti-clockwise in steps defined by the size of the
+\ step size in STP. The whole circle is divided into 64 steps and the step
+\ number is stored in CNT, so if STP were 2, CNT would be 0, 2, 4 and so on up
+\ to and including 64. So we work our way around the circle like this:
 \
 \   CNT = 0-16  is the bottom-right quadrant (6 o'clock to 3 o'clock)
 \   CNT = 16-32 is the top-right quadrant    (3 o'clock to 12 o'clock)
@@ -32542,7 +32628,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ moving and tactics.
 \
 \ This is mainly about the flight aspects of the game, as the docked screens
-\ don't really have mich of a flow, they just get shown when the relevant keys
+\ don't really have much of a flow, they just get shown when the relevant keys
 \ are pressed.
 \
 \ Each section is broken down into parts that mirror the structure of the source
@@ -36553,8 +36639,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \ ========================
 \ 
 \ The ship-drawing routine is one of the most celebrated aspects of Elite. The
-\ 3D graphics were groundbreaking and breathtaking in equal measure, at least as
-\ far as 8-bit gome computers were concerned, and even today the way that the
+\ 3D graphics are groundbreaking and breathtaking in equal measure, at least as
+\ far as 8-bit gome computers are concerned, and even today the way that the
 \ ships and space stations move through space is impressive. Without its slick
 \ 3D graphics engine, Elite wouldn't have been nearly as immersive, and without
 \ its immersion, it just wouldn't have been Elite.
@@ -37394,10 +37480,12 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ If the result is negative the face is visible, otherwise it is not visible.
 \
-\ This is exactly what happens in the following code. We set the block of memory
-\ at XX15 to the left-hand side of the final calculation and the block at XX12
-\ block to the right-hand side, and calculate the dot product XX12 . XX15 to
-\ tell us whether or not this face is visible.
+\ This is exactly what happens in part 5 of the LL9 routine. We set the block of
+\ memory at XX15 to the left-hand side of the final calculation and the block at
+\ XX12 block to the right-hand side, and calculate the dot product XX12 . XX15
+\ to tell us whether or not this face is visible, which we store in the table at
+\ XX2. This gets repeated for all the faces until XX2 contains the visibilities
+\ of all the faces for this ship.
 \
 \ ******************************************************************************
 
@@ -37863,7 +37951,12 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Deep dive: Calculating vertex coordinates
 \ =========================================
 \
-\ We projected [x y z] onto the orientation vector space like this:
+\ To understand the following, you'll first need to take a look at the deep dive
+\ on "Back-face culling", which describes how we can work out whether or not a
+\ ship's face is visible.
+\
+\ As part of the back-face cull, we projected the vector [x y z] onto the
+\ orientation vector space like this:
 \
 \   [x y z] projected onto sidev = [x y z] . sidev
 \   [x y z] projected onto roofv = [x y z] . roofv
@@ -37882,7 +37975,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \                       [ nosev_x nosev_y nosev_z ]   [ z ]
 \
 \ This is just a different way of expressing the exact same equation as we used
-\ in part 5, just with a matrix instead of individual dot products.
+\ in part 5 of LL9, just with a matrix instead of individual dot products.
 \
 \ Transposing the rotation matrix
 \ -------------------------------
@@ -37906,10 +37999,10 @@ LOAD_G% = LOAD% + P% - CODE%
 \   vector to vertex = [ sidev_y roofv_y nosev_y ] . [ y ] + [ y ]
 \                      [ sidev_z roofv_z nosev_z ]   [ z ]   [ z ]
 \
-\ The code to calculate this equation takes up parts 6 and 7. It's in two parts
-\ because there are two small subroutines that have rudely inserted themselves
-\ just before the big reveal. These are is used by part 8 and don't play a part
-\ in this calculation (except to make it harder to follow).
+\ The code to calculate this equation takes up parts 6 and 7 of LL9. It's in two
+\ parts because there are two small subroutines that have rudely inserted
+\ themselves just before the big reveal. These are used by part 8 and don't play
+\ a part in this calculation (except to make it harder to follow).
 \
 \ ******************************************************************************
 
@@ -39787,8 +39880,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Deep dive: Line clipping
 \ ========================
-\
-\ This routine checks whether the line is worth clipping in other words, whether
+\ This routine checks whether a line is worth clipping - in other words, whether
 \ the line passes through the screen at any point. The actual clipping is done
 \ in part 4 by calling the LL118 routine, which is quite an involved process, so
 \ it's worth spending time checking whether we need to call it at all.
@@ -39842,7 +39934,6 @@ LOAD_G% = LOAD% + P% - CODE%
 
 .LL145
 {
-
  LDA #0                 \ Set SWAP = 0
  STA SWAP
 
@@ -40403,17 +40494,33 @@ ENDMACRO
 \   Category: Drawing ships
 \    Summary: Ship blueprints lookup table
 \
-\ ------------------------------------------------------------------------------
-\
-\ The following lookup table points to the individual ship blueprints below.
-\
 \ ******************************************************************************
 \
 \ Deep dive: Ship blueprints
 \ ==========================
 \
-\ For each ship blueprint below, the first 20 bytes define this ship type's
-\ characteristics, as follows:
+\ Every ship in Elite has a blueprint that defines that ship's characteristics
+\ (note that in this context, "ship" refers not only to ships, but also cargo
+\ canisters, space stations, escape pods, missiles and asteroids). These
+\ blueprints are the in-game equivalent of the last section of the Space Traders
+\ Flight Training Manual - a real life version of "Jane's Galactic Ships and
+\ Remote Colonial Construction, 5th Edition, 3205" (pub. Trantor House).
+\
+\ The ship blueprint defines a whole range of attributes, such as the ship's
+\ maximum speed, the number of missiles it can carry, and the size of the target
+\ area we need to hit with our laser. It also contains data that's used when
+\ managing the ship once its spawned inside our little bubble of universe, like
+\ the maximum size of the ship line heap.
+\
+\ The blueprint also contains all the data we need to draw the ship on-screen.
+\ This includes the ship's vertices, edges and faces, the visibility distances,
+\ and the face normal scale factor, all of which are used in the ship drawing
+\ routine at LL9. See the deep dive "Drawing ships" for more details.
+\
+\ Ship characteristics
+\ --------------------
+\ For each ship blueprint, the first 20 bytes define the main characteristics of
+\ this ship type. They are as follows:
 \
 \   * Byte #0           Maximum number of cargo canisters released when
 \                       destroyed
