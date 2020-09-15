@@ -29806,7 +29806,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   WPLS-1              \ Contains an RTS
+\   WPLS-1              Contains an RTS
 \
 \ ******************************************************************************
 

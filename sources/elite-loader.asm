@@ -273,29 +273,44 @@ ENDIF
 NETV = &224             \ MOS vectors that we want to intercept
 IRQ1V = &204
 
-OSWRCH = &FFEE          \ The OS routines used in the loader
-OSBYTE = &FFF4
-OSWORD = &FFF1
-OSPRNT = &234
+OSWRCH = &FFEE          \ The address for the OSWRCH routine
+OSBYTE = &FFF4          \ The address for the OSBYTE routine
+OSWORD = &FFF1          \ The address for the OSWORD routine
 
-VIA = &FE40             \ Memory-mapped space for accessing internal hardware,
-USVIA = VIA             \ such as the video ULA, 6845 CRTC and 6522 VIAs
+OSPRNT = &234           \ The address for the OSPRNT vector
+
+VIA = &FE40             \ Memory-mapped space for accessing the 6845 CRTC
+
+USVIA = VIA             \ Memory-mapped space for accessing the 6845 CRTC
 
 VSCAN = 57-1            \ Defines the split position in the split-screen mode
 
-TRTB% = &04             \ Zero page variables
-ZP = &70
-P = &72
-Q = &73
-YY = &74
-T = &75
-SC = &76
-BLPTR = &78
-V219 = &7A
-K3 = &80
-BLCNT = &81
-BLN = &83
-EXCN = &85
+TRTB% = &04             \ TRTB%(1 0) points to the keyboard translation table
+
+ZP = &70                \ Temporary storage, used all over the place
+
+P = &72                 \ Temporary storage, used all over the place
+
+Q = &73                 \ Temporary storage, used all over the place
+
+YY = &74                \ Temporary storage, used when drawing Saturn
+
+T = &75                 \ Temporary storage, used all over the place
+
+SC = &76                \ Used to store the screen address while plotting pixels
+
+BLPTR = &78             \ Gets set to &03CA as part of the obfuscation code
+
+V219 = &7A              \ Gets set to &0218 as part of the obfuscation code
+
+K3 = &80                \ Temporary storage, used for preserving the A register
+
+BLCNT = &81             \ Stores the tape loader block count as part of the copy
+                        \ protection code in IRQ1
+
+BLN = &83               \ Gets set to &03C6 as part of the obfuscation code
+
+EXCN = &85              \ Gets set to &03C2 as part of the obfuscation code
 
 \ ******************************************************************************
 \
@@ -1307,7 +1322,7 @@ ENDIF
 \
 \ Part 3 (PLL3) x 1280 - rings
 \
-\   *Draw pixels at (x, y) where:
+\   * Draw pixels at (x, y) where:
 \
 \     r5 = random number from 0 to 255
 \     r6 = random number from 0 to 255
@@ -2740,7 +2755,7 @@ ENDIF
 \       Name: IRQ1
 \       Type: Subroutine
 \   Category: Screen mode
-\    Summary: The main screen-mode interrupt handler (IRQ1V points here)
+\    Summary: The loader's screen-mode interrupt handler (IRQ1V points here)
 \
 \ ------------------------------------------------------------------------------
 \
