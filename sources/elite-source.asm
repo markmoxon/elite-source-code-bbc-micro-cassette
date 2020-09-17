@@ -1483,7 +1483,7 @@ ORG CODE_WORDS%
 \
 \ The following macros are used to build the recursive token table:
 \
-\   CHAR x              Insert ASCII character "x"
+\   CHAR 'x'            Insert ASCII character "x"
 \
 \   TWOK 'x', 'y'       Insert two-letter token "xy"
 \
@@ -1536,7 +1536,7 @@ MACRO TWOK t, k
   IF t = 'I' AND k = 'S' : EQUB 157 EOR 35 : ENDIF
   IF t = 'R' AND k = 'I' : EQUB 158 EOR 35 : ENDIF
   IF t = 'O' AND k = 'N' : EQUB 159 EOR 35 : ENDIF
- ENDMACRO
+ENDMACRO
  
 MACRO CTRL n
   EQUB n EOR 35
@@ -3350,7 +3350,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \
 \   * Byte #27 = Speed
 \
-\     * 31 = fast
+\     * In the range 1-40
 \
 \   * Byte #28 = Acceleration
 \
@@ -4006,10 +4006,14 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Seed the random number generator
+\
+\ Other entry points:
+\
+\   M%                The entry point for the main flight loop
 \
 \ ******************************************************************************
 
@@ -4028,8 +4032,8 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Calculate the alpha and beta angles from the current roll and pitch
 \
@@ -4151,8 +4155,8 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Scan for flight keys and process the results
 \
@@ -4394,8 +4398,8 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Start looping through all the ships in the local bubble, and for each
 \     one:
@@ -4474,8 +4478,8 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
@@ -4513,8 +4517,8 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
@@ -4551,8 +4555,8 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
@@ -4620,8 +4624,8 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
@@ -4701,8 +4705,8 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Process docking with a space station
 \
@@ -4977,8 +4981,8 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
@@ -5057,8 +5061,8 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
@@ -5177,8 +5181,8 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
@@ -5282,8 +5286,8 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Show energy bomb effect (if applicable)
 \
@@ -5353,8 +5357,8 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Spawn a space station if we are close enough to the planet (every 32
 \     iterations of the main loop)
@@ -5474,8 +5478,8 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Perform an altitude check with the planet (every 32 iterations of the main
 \     loop, on iteration 10 of each 32)
@@ -5649,8 +5653,8 @@ LOAD_A% = LOAD%
 \
 \ ------------------------------------------------------------------------------
 \
-\ M% is called as part of the main game loop at TT100, and covers most of the
-\ flight-specific aspects of Elite. This section of M% covers the following:
+\ The main flight loop covers most of the flight-specific aspects of Elite. This
+\ section covers the following:
 \
 \   * Process laser pulsing
 \
@@ -8161,7 +8165,7 @@ ENDIF
 \       Name: CHK
 \       Type: Variable
 \   Category: Save and load
-\    Summary: First cchecksum byte for the saved commander data file
+\    Summary: First checksum byte for the saved commander data file
 \
 \ ------------------------------------------------------------------------------
 \
@@ -8300,7 +8304,7 @@ NEXT
 
 \ ******************************************************************************
 \
-\       Name: LL30, LOIN (Part 1 of 7)
+\       Name: LOIN (Part 1 of 7)
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a line: Calculate the line gradient in the form of deltas
@@ -8314,6 +8318,9 @@ NEXT
 \   Y                   Y is preserved
 \
 \ Other entry points:
+\
+\   LL30                LL30 is a synonym for LOIN and draws a line from
+\                       (X1, Y1) to (X2, Y2)
 \
 \   HL6                 Contains an RTS
 \
@@ -8586,7 +8593,7 @@ NEXT
 
 \ ******************************************************************************
 \
-\       Name: LL30, LOIN (Part 2 of 7)
+\       Name: LOIN (Part 2 of 7)
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a line: Line has a shallow gradient, step right along x-axis
@@ -8727,7 +8734,7 @@ NEXT
 
 \ ******************************************************************************
 \
-\       Name: LL30, LOIN (Part 3 of 7)
+\       Name: LOIN (Part 3 of 7)
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a shallow line going right and up or left and down
@@ -8810,7 +8817,7 @@ NEXT
 
 \ ******************************************************************************
 \
-\       Name: LL30, LOIN (Part 4 of 7)
+\       Name: LOIN (Part 4 of 7)
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a shallow line going right and down or left and up
@@ -8895,7 +8902,7 @@ NEXT
 
 \ ******************************************************************************
 \
-\       Name: LL30, LOIN (Part 5 of 7)
+\       Name: LOIN (Part 5 of 7)
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a line: Line has a steep gradient, step up along y-axis
@@ -9040,7 +9047,7 @@ NEXT
 
 \ ******************************************************************************
 \
-\       Name: LL30, LOIN (Part 6 of 7)
+\       Name: LOIN (Part 6 of 7)
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a steep line going up and left or down and right
@@ -9124,7 +9131,7 @@ NEXT
 
 \ ******************************************************************************
 \
-\       Name: LL30, LOIN (Part 7 of 7)
+\       Name: LOIN (Part 7 of 7)
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a steep line going up and right or down and left
@@ -11749,7 +11756,7 @@ NEXT
 \       Name: pr2
 \       Type: Subroutine
 \   Category: Text
-\    Summary: Print 8-bit number, left-padded to 3 digits, optional point
+\    Summary: Print an 8-bit number, left-padded to 3 digits, and optional point
 \
 \ ------------------------------------------------------------------------------
 \
@@ -11762,6 +11769,10 @@ NEXT
 \   X                   The number to print
 \
 \   C flag              If set, include a decimal point
+\
+\ Other entry points:
+\
+\   pr2+2               Print the 8-bit number in X to the number of digits in A
 \
 \ ******************************************************************************
 
@@ -11780,7 +11791,7 @@ NEXT
 \       Name: TT11
 \       Type: Subroutine
 \   Category: Text
-\    Summary: Print 16-bit number, left-padded to n digits, optional point
+\    Summary: Print a 16-bit number, left-padded to n digits, and optional point
 \
 \ ------------------------------------------------------------------------------
 \
@@ -11824,7 +11835,7 @@ NEXT
 \       Name: BPRNT
 \       Type: Subroutine
 \   Category: Text
-\    Summary: Print 32-bit number, left-padded to n digits, optional point
+\    Summary: Print a 32-bit number, left-padded to n digits, and optional point
 \
 \ ------------------------------------------------------------------------------
 \
@@ -12229,7 +12240,7 @@ NEXT
 \       Name: BELL
 \       Type: Subroutine
 \   Category: Sound
-\    Summary:  Make a beep sound
+\    Summary: Make a beep sound
 \
 \ ------------------------------------------------------------------------------
 \
@@ -22976,7 +22987,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \       Name: pr5
 \       Type: Subroutine
 \   Category: Text
-\    Summary: Print 16-bit number, left-padded to 5 digits, optional point
+\    Summary: Print a 16-bit number, left-padded to 5 digits, and optional point
 \
 \ ------------------------------------------------------------------------------
 \
@@ -23275,7 +23286,11 @@ LOAD_D% = LOAD% + P% - CODE%
 \       Name: TT162
 \       Type: Subroutine
 \   Category: Text
-\    Summary:  Print a space
+\    Summary: Print a space
+\
+\ Other entry points:
+\
+\   TT162+2             Jump to TT27 to print the text token in A
 \
 \ ******************************************************************************
 
@@ -23292,7 +23307,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \       Name: TT160
 \       Type: Subroutine
 \   Category: Market
-\    Summary:  Print "t" (for tonne) and a space
+\    Summary: Print "t" (for tonne) and a space
 \
 \ ******************************************************************************
 
@@ -25677,7 +25692,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   TT148               Contains an RTS
+\   TT48                Contains an RTS
 \
 \ ******************************************************************************
 
