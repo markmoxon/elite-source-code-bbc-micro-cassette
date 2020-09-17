@@ -733,8 +733,9 @@ ORG &0000
                         \ efficient exercise, the ship data is first copied from
                         \ the ship data blocks at K% into INWK (or, when new
                         \ ships are spawned, from the blueprints at XX21). See
-                        \ the deep dive on ship data blocks for details of what
-                        \ each of the bytes in the INWK data block represents
+                        \ the deep dive on "Ship data blocks" for details of
+                        \ what each of the bytes in the INWK data block
+                        \ represents
 
 .XX19
 
@@ -745,7 +746,7 @@ ORG &0000
 
  SKIP 1                 \ The ball line heap pointer, which contains the number
                         \ of the first free byte after the end of the LSX2 and
-                        \ LSY2 heaps (see the deep dive on the ball line heap
+                        \ LSY2 heaps (see the deep dive on "The ball line heap"
                         \ for details)
 
 .QQ15
@@ -1569,7 +1570,7 @@ ENDMACRO
 \ everything from the formatting of huge decimal numbers to printing individual
 \ spaces, but under the hood they all boil down to three core routines:
 \
-\   * BPRNT, which prints numbers (see the deep dive "Printing huge numbers")
+\   * BPRNT, which prints numbers (see the deep dive on "Printing huge numbers")
 \
 \   * TT26, which pokes individual characters into screen memory
 \
@@ -5067,6 +5068,9 @@ LOAD_A% = LOAD%
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
 \
+\     * If this is not the front space view, flip the axes of the ship's
+\        coordinates in INWK
+\
 \     * Process missile lock
 \
 \     * Process our laser firing
@@ -5079,7 +5083,7 @@ LOAD_A% = LOAD%
  BNE MA15               \ missile and laser locking
 
  JSR PLUT               \ Call PLUT to update the geometric axes in INWK to
-                        \ match the view (fronr, rear, left, right)
+                        \ match the view (front, rear, left, right)
 
  JSR HITCH              \ Call HITCH to see if this ship is in the crosshairs,
  BCC MA8                \ in which case carry will be set (so if there is no
@@ -6205,7 +6209,7 @@ LOAD_A% = LOAD%
 \ ship moves as we pitch and roll.
 \
 \ It does this using the exact same rotation equations that MVS4 uses in part 7
-\ to rotate the ship's orientation vectors (see the deep dive "Rolling and
+\ to rotate the ship's orientation vectors (see the deep dive on "Rolling and
 \ pitching" for details of the maths behind the following). But just as with
 \ part 7, there is a twist, and yet again, the twist is all about Minsky.
 \
@@ -7733,7 +7737,7 @@ LOAD_A% = LOAD%
 \   3. y = K2 - beta * z
 \   4. x = x + alpha * y
 \
-\ See the deep dive "Rotating the universe" for more details on the above.
+\ See the deep dive on "Rotating the universe" for more details on the above.
 \
 \ ******************************************************************************
 
@@ -9378,7 +9382,7 @@ NEXT
 \ We do not draw a pixel at the end point (X2, X1).
 \
 \ To understand this routine, you might find it helpful to read the deep dive
-\ on drawing monochrome pixels in mode 4 in the PIXEL routine.
+\ on "Drawing monochrome pixels in mode 4".
 \
 \ Returns:
 \
@@ -10249,7 +10253,7 @@ NEXT
 \     dive "Drawing the sun" for details)
 \
 \   * The ship line heap, one per ship in the local bubble of universe, which
-\     is used by LL9 when drawing ships (see the deep dive "Drawing ships" for
+\     is used by LL9 when drawing ships (see the deep dive on "Drawing ships" for
 \     details)
 \
 \ Here we take a look at the ball line heap that's stored at LSX2 and LSY2, and
@@ -13038,8 +13042,8 @@ NEXT
 \
 \ The dashboard shows an awful lot of information, and the vast majority of the
 \ indicators are bar-based (there are 11 bar indicators in all). The game uses
-\ one routine to display all 11 indicators - routine DILX - and that can lead to
-\ some interesting behaviour.
+\ one routine to display all 11 of these indicators - routine DILX - and that
+\ can lead to some interesting behaviour.
 \
 \ Each bar indicator is 16 pixels long, and the default entry point at DILX can
 \ show values from 0-255, with each pixel in the bar representing 16 units (so
@@ -18367,9 +18371,41 @@ NEXT
 \ Deep dive: Flipping axes between space views
 \ ============================================
 \
-\ The easiest way to think about this is that the z-axis always points into the
-\ screen, the y-axis always points up, and the x-axis always points to the
-\ right, like this:
+\ Switching space views in Elite is one of those seemingly simple ideas that
+\ ends up adding so much to the believability of the game universe. When you're
+\ in deep space and an asteroid or a peaceful trader appears in the distance up
+\ ahead, the ability to flick to the side view and then the rear view to watch
+\ it speed past your windows is truly immersive; you really feel you're inside
+\ a spaceship powering through space. And docking without being able to use the
+\ side views to line up for your approach run? Forget it. Those space views are
+\ an essential aspect of the game.
+\
+\ But do we really have to write four different display routines for the four
+\ views? Luckily we don't, as the authors came up with a mathematical solution
+\ that is both wonderfully elegant and extremely efficient. Indeed, there were
+\ originally six views, with up and down thrown into the mix, but they ended up
+\ being dropped to save space - not because they couldn't be displayed, but
+\ because there wasn't enough room on the outfitting screen to show all those
+\ laser mounts.
+\
+\ The solution is to flip the axes when we switch views. Let's see what that
+\ actually means.
+\
+\ Flipping the axes
+\ -----------------
+\ The solution to having multiple views is similar in concept to the way we
+\ process pitch and roll. When we rotate our ship, we don't actually move our
+\ ship at all - instead, we rotate the entire universe around us, in the
+\ opposite direction to our movement (see the deep dives on "Rolling and
+\ pitching" and "Rotating the universe" for more details on this process). We do
+\ a similar kind of thing when we switch views, but instead of rotating all the
+\ other ships and planets around us, we flip the axes instead, which is a much
+\ quicker process.
+\
+\ How do we do this? First, we need to talk about the three axes. In terms of
+\ our relationship to the universe, the z-axis always points into the screen,
+\ the y-axis always points up, and the x-axis always points to the right, like
+\ this:
 \
 \     y
 \     ^
@@ -18379,24 +18415,41 @@ NEXT
 \     |/
 \     +---------> x
 \
-\ This rule applies, whichever view we are looking through. So when we're
-\ looking through the front view, z is into the screen - in the direction of
-\ travel - but if we switch, then the direction of travel is now to our right.
+\ This rule always applies, whichever view we are looking through. So when we're
+\ looking through the front view, the z-axis is into the screen, which is also
+\ the direction of travel - but if we switch to the left view, then the z-axis
+\ is still into the screen, but the direction of travel is now to our right,
+\ along the x-axis. So what was the z-axis is now the x-axis... so the axes just
+\ flipped. That flipping process is essentially what the PLUT routine does.
 \
-\ The local universe is stored as if we are looking forward, so the z-axis is
-\ in the direction of travel. This routine takes those stored coordinates and
-\ switches the axes around if we are looking behind us or to the sides, so that
-\ we can use the same maths to display what's in that view - in other words, to
-\ switch the axes so that the value of the z-coordinate that we've stored in
-\ our universe - the direction of travel - is translated into the correct axis
-\ for the view we are looking at (for the z-axis, which points into the screen
-\ for the front view, we move it to point out of the screen if we are looking
-\ backwards, to the right if we're looking out of the left view, or to the left
-\ if we are looking out of the right view).
+\ It's important to note that the local universe is stored in the ship data
+\ blocks at K% as if we are looking forward, so as far as the stored coordinates
+\ are concerned, the z-axis is always in the direction of travel. As part of the
+\ main flight loop, each ship data block is copied on turn into the INWK
+\ workspace, where the movement routines in MVEIT are applied, before the block
+\ is copied back into K% with the position of the ship updated.
 \
-\ For the front view, then we change nothing as the default universe is set up
-\ for this view (so the coordinates and vectors in K%, UNIV, INWK etc. are
-\ already correct for this view). Let's look at the other views in more detail.
+\ It's after all the data has been copied back to K% that we start flipping
+\ axes to fit the current space view, but this flipped version of the ship
+\ doesn't get stored anywhere - the flipped data is only used for working out
+\ missile and laser lock, and for drawing the ship, as these are the parts that
+\ are affected by the view we're looking through.
+\
+\ Anyway, back to the process of flipping axes. If we are looking through the
+\ front view then there is no flipping to be done, as the ship coordinates in
+\ INWK are already using the correct axes, as mentioned above. If, however, we
+\ are looking to the sides or rear, then the PLUT routine takes the ship
+\ coordinates from INWK and switches the axes around, so that we can use the
+\ same routines to display what's in that view.
+\
+\ For example, take the z-axis, which points into the screen for the front view.
+\ We move it to point out of the screen if we are looking backwards, to the
+\ right if we're looking out of the left view, or to the left if we are looking
+\ out of the right view.
+\
+\ For the front view, then, we change nothing. Let's look at the other views in
+\ more detail, because this is one of those concepts that makes a lot more sense
+\ when you draw pretty diagrams.
 \
 \ Rear view
 \ ---------
@@ -18434,7 +18487,7 @@ NEXT
 \   * roofv_x_hi, roofv_z_hi
 \   * sidev_x_hi, sidev_z_hi
 \
-\ so that's what we do below.
+\ So this is what we do in the PLUT routine for the rear view.
 \
 \ Left view
 \ ---------
@@ -18485,7 +18538,7 @@ NEXT
 \   * roofv_z_hi
 \   * sidev_z_hi
 \
-\ So this is what we do below.
+\ So this is what we do in the PLUT routine for the left view.
 \
 \ Right view
 \ ---------
@@ -18532,7 +18585,7 @@ NEXT
 \   * roofv_x_hi
 \   * sidev_x_hi
 \
-\ So this is what we do below.
+\ So this is what we do in the PLUT routine for the right view.
 \
 \ ******************************************************************************
 
@@ -20306,91 +20359,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\ TT72                  Used by TT70 to re-enter the routine after displaying
+\   TT72                Used by TT70 to re-enter the routine after displaying
 \                       "MAINLY" for the economy type
-\
-\ ******************************************************************************
-\
-\ Deep dive: Generating system data (TT25)
-\ ========================================
-\
-\ Although most system data is calculated in TT24 below and stored in locations
-\ QQ3 to QQ7, the species type and average radius are not. Here's how they are
-\ calculated.
-\
-\ Species type
-\ ------------
-\ The species type is either Human Colonials, or it's an alien species that
-\ consists of up to three adjectives and a species name (so you can get
-\ anything from "Rodents" and "Fierce Frogs" to "Black Fat Felines" and "Small
-\ Yellow Bony Lobsters").
-\
-\ As with the rest of the system data, the species is built from various bits
-\ in the seeds. Specifically, all the bits in w2_hi are used, along with bits
-\ 0-2 of w0_hi and w1_hi, and bit 7 of w2_lo.
-\
-\ First, we check bit 7 of w2_lo. If it is clear, print "Human Colonials" and
-\ stop, otherwise this is an alien species, so we move onto the following
-\ steps. (In the following steps, the potential range of the calculated value
-\ of A is 0-7, and if a match isn't made, nothing is printed for that step.)
-\
-\   1. Set A = bits 2-4 of w2_hi
-\
-\     * If A = 0,  print "Large "
-\     * If A = 1,  print "Fierce "
-\     * If A = 2,  print "Small "
-\
-\   2. Set A = bits 5-7 of w2_hi
-\
-\     * If A = 0,  print "Green "
-\     * If A = 1,  print "Red "
-\     * If A = 2,  print "Yellow "
-\     * If A = 3,  print "Blue "
-\     * If A = 4,  print "Black "
-\     * If A = 5,  print "Harmless "
-\
-\   3. Set A = bits 0-2 of (w0_hi EOR w1_hi)
-\
-\     * If A = 0,  print "Slimy "
-\     * If A = 1,  print "Bug-Eyed "
-\     * If A = 2,  print "Horned "
-\     * If A = 3,  print "Bony "
-\     * If A = 4,  print "Fat "
-\     * If A = 5,  print "Furry "
-\
-\   4. Add bits 0-1 of w2_hi to A from step 3, and take bits 0-2 of the result
-\
-\     * If A = 0,  print "Rodents"
-\     * If A = 1,  print "Frogs"
-\     * If A = 2,  print "Lizards"
-\     * If A = 3,  print "Lobsters"
-\     * If A = 4,  print "Birds"
-\     * If A = 5,  print "Humanoids"
-\     * If A = 6,  print "Felines"
-\     * If A = 7,  print "Insects"
-\
-\ So if we print an adjective at step 3, then the only options for the species
-\ name are from A to A + 3 (because we add a 2-bit number) in step 4. So only
-\ certain combinations are possible:
-\
-\   * Only rodents, frogs, lizards and lobsters can be slimy
-\   * Only frogs, lizards, lobsters and birds can be bug-eyed
-\   * Only lizards, lobsters, birds and humanoids can be horned
-\   * Only lobsters, birds, humanoids and felines can be bony
-\   * Only birds, humanoids, felines and insects can be fat
-\   * Only humanoids, felines, insects and rodents can be furry
-\
-\ So however hard you look, you will never find slimy humanoids, bony insects,
-\ fat rodents or furry frogs, which is probably for the best.
-\
-\ Average radius
-\ --------------
-\ The average radius is calculated as follows:
-\
-\   ((w2_hi AND %1111) + 11) * 256 + w1_hi
-\
-\ The highest average radius is (15 + 11) * 256 + 255 = 6911 km, and the lowest
-\ is 11 * 256 = 2816 km.
 \
 \ ******************************************************************************
 
@@ -20699,11 +20669,27 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 \
-\ Deep dive: Generating system data (TT24)
-\ ========================================
+\ Deep dive: Generating system data
+\ =================================
 \
-\ The above system statistics are generated from the system seeds, specifically
-\ from parts of w0_hi, w1_hi and w1_lo. Here's how it all works.
+\ The Data on System screen is, under the hood, a work of mathematical art.
+\ Every bit of data on that screen is procedurally generated from the system
+\ seeds, specifically from parts of w0_hi, w1_hi and w1_lo. For more details on
+\ the system seeds see the deep dive on "Galaxy and system seeds".
+\
+\ The following bits of data are generated in routine TT24 and are stored in
+\ locations QQ3 to QQ7:
+\
+\   QQ3 = economy (0-7)
+\   QQ4 = government (0-7)
+\   QQ5 = technology level (0-14)
+\   QQ6 = population * 10 (1-71)
+\   QQ7 = productivity (96-62480)
+\
+\ The species type and average radius aren't stored anywhere, but are generated
+\ on-the-fly in routine TT25 when displaying the system data.
+\
+\ Let's look at how these bits of data are all generated.
 \
 \ Government
 \ ----------
@@ -20761,12 +20747,12 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ----------------
 \ The tech level is calculated as follows:
 \
-\   flipped economy + (w1_hi AND %11) + (government / 2)
+\   flipped_economy + (w1_hi AND %11) + (government / 2)
 \
-\ where "flipped economy" is the economy value with its bits inverted (keeping
-\ it as a 3-bit value, so if the economy is %001, the flipped economy is %110).
-\ The division is done using LSR and the addition uses ADC, so this rounds up
-\ the division for odd-numbered government types.
+\ where flipped_economy is the economy value with its bits inverted (keeping
+\ it as a 3-bit value, so if the economy is %001, flipped_economy is %110). The
+\ division is done using LSR and the addition uses ADC, so this rounds up the
+\ division for odd-numbered government types.
 \
 \ Flipping the three economy bits gives the following spread of numbers:
 \
@@ -20802,13 +20788,87 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ------------
 \ The productivity is calculated as follows:
 \
-\   (flipped economy + 3) * (government + 4) * population * 8
+\   (flipped_economy + 3) * (government + 4) * population * 8
 \
 \ Productivity is measured in millions of credits, so a productivity of 23740
 \ would be displayed as "23740 M CR".
 \
 \ The highest productivity is 10 * 11 * 71 * 8 = 62480, while the lowest is 3 *
 \ 4 * 1 * 8 = 96 (so the range is between 96 and 62480 million credits).
+\
+\ Species type
+\ ------------
+\ The species type is either Human Colonials, or it's an alien species that
+\ consists of up to three adjectives and a species name (so you can get
+\ anything from "Rodents" and "Fierce Frogs" to "Black Fat Felines" and "Small
+\ Yellow Bony Lobsters").
+\
+\ As with the rest of the system data, the species is built from various bits
+\ in the seeds. Specifically, all the bits in w2_hi are used, along with bits
+\ 0-2 of w0_hi and w1_hi, and bit 7 of w2_lo.
+\
+\ First, we check bit 7 of w2_lo. If it is clear, print "Human Colonials" and
+\ stop, otherwise this is an alien species, so we move onto the following
+\ steps. (In the following steps, the potential range of the calculated value
+\ of A is 0-7, and if a match isn't made, nothing is printed for that step.)
+\
+\   1. Set A = bits 2-4 of w2_hi
+\
+\     * If A = 0,  print "Large "
+\     * If A = 1,  print "Fierce "
+\     * If A = 2,  print "Small "
+\
+\   2. Set A = bits 5-7 of w2_hi
+\
+\     * If A = 0,  print "Green "
+\     * If A = 1,  print "Red "
+\     * If A = 2,  print "Yellow "
+\     * If A = 3,  print "Blue "
+\     * If A = 4,  print "Black "
+\     * If A = 5,  print "Harmless "
+\
+\   3. Set A = bits 0-2 of (w0_hi EOR w1_hi)
+\
+\     * If A = 0,  print "Slimy "
+\     * If A = 1,  print "Bug-Eyed "
+\     * If A = 2,  print "Horned "
+\     * If A = 3,  print "Bony "
+\     * If A = 4,  print "Fat "
+\     * If A = 5,  print "Furry "
+\
+\   4. Add bits 0-1 of w2_hi to A from step 3, and take bits 0-2 of the result
+\
+\     * If A = 0,  print "Rodents"
+\     * If A = 1,  print "Frogs"
+\     * If A = 2,  print "Lizards"
+\     * If A = 3,  print "Lobsters"
+\     * If A = 4,  print "Birds"
+\     * If A = 5,  print "Humanoids"
+\     * If A = 6,  print "Felines"
+\     * If A = 7,  print "Insects"
+\
+\ So if we print an adjective at step 3, then the only options for the species
+\ name are from A to A + 3 (because we add a 2-bit number) in step 4. So only
+\ certain combinations are possible:
+\
+\   * Only rodents, frogs, lizards and lobsters can be slimy
+\   * Only frogs, lizards, lobsters and birds can be bug-eyed
+\   * Only lizards, lobsters, birds and humanoids can be horned
+\   * Only lobsters, birds, humanoids and felines can be bony
+\   * Only birds, humanoids, felines and insects can be fat
+\   * Only humanoids, felines, insects and rodents can be furry
+\
+\ So however hard you look, you will never find slimy humanoids, bony insects,
+\ fat rodents or furry frogs, which is probably for the best.
+\
+\ Average radius
+\ --------------
+\ The average radius is calculated as follows:
+\
+\   ((w2_hi AND %1111) + 11) * 256 + w1_hi
+\
+\ The highest average radius is (15 + 11) * 256 + 255 = 6911 km, and the lowest
+\ is 11 * 256 = 2816 km.
 \
 \ ******************************************************************************
 
@@ -20837,7 +20897,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  LDA QQ3                \ Now to work out the tech level, which we do like this:
  EOR #%00000111         \
- CLC                    \   flipped economy + (w1_hi AND %11) + (government / 2)
+ CLC                    \   flipped_economy + (w1_hi AND %11) + (government / 2)
  STA QQ5                \
                         \ or, in terms of memory locations:
                         \
@@ -20865,7 +20925,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  LDA QQ3                \ Finally, we work out productivity, like this:
  EOR #%00000111         \
- ADC #3                 \  (flipped economy + 3) * (government + 4)
+ ADC #3                 \  (flipped_economy + 3) * (government + 4)
  STA P                  \                        * population
  LDA QQ4                \                        * 8
  ADC #4                 \
@@ -20881,7 +20941,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ will always be 0, so we actually have:
                         \
                         \   P = P * Q
-                        \     = (flipped economy + 3) * (government + 4)
+                        \     = (flipped_economy + 3) * (government + 4)
 
  LDA QQ6                \ We now take the result in P and multiply by the
  STA Q                  \ population to get the productivity, by setting Q to
@@ -23079,14 +23139,24 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 \
-\ Deep dive: Market prices
-\ ========================
+\ Deep dive: Market item prices and availability
+\ ==============================================
 \
-\ Item prices are calculated using a formula that takes a number of variables
-\ into consideration, and mixes in a bit of random behaviour to boot. This is
-\ the formula, which is performed as an 8-bit calculation:
+\ The prices and availability of the market items on display in the Buy Cargo
+\ screen are calculated using a couple of complex formulae, which take a base
+\ value for each item, mix in a couple of economic variables, and blend it all
+\ with a bit of random behaviour. The result is the heart of Elite's trading
+\ system, where canny traders can make a killing (while the rest of us can't
+\ seem to get a break).
 \
-\   price = ((base_price + (random AND mask) + economy * economic_factor)) * 4
+\ Let's start by looking at the formula for prices, and then availability.
+\
+\ Market item prices
+\ ------------------
+\ This is the formula for an item's price, which is performed as an 8-bit
+\ calculation:
+\
+\   price = (base_price + (random AND mask) + economy * economic_factor) * 4
 \
 \ The resulting price is 10 times the displayed price, so we can show it to one
 \ decimal place. The individual items in the calculation are as follows:
@@ -23130,6 +23200,21 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \   * The units for this item (i.e. tonnes, grams or kilograms) are given by
 \     bits 5-6 of byte #1 in the market prices table at QQ23.
+\
+\ Market item availability
+\ ------------------------
+\ The availability of each item is also calculated using a formula, which is
+\ again performed as an 8-bit calculation:
+\
+\   quantity = (base_quantity + (random AND mask) - economy * economic_factor)
+\              mod 64
+\
+\ If the result of the above is less than 0, then the available quantity is set
+\ to 0.
+\
+\ The item's base_availability is byte #2 in the market prices table at QQ23, so
+\ it's 6 for food, 10 for textiles, 8 for narcotics and so on. The other
+\ variables are described above.
 \
 \ ******************************************************************************
 
@@ -23590,23 +23675,6 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Other entry points:
 \
 \   hyR                 Contains an RTS
-\
-\ ******************************************************************************
-\
-\ Deep dive: Market item availability
-\ ===================================
-\
-\ Item availability is calculated using a formula that takes a number of
-\ variables into consideration, and mixes in a bit of random behaviour to boot.
-\ This is the formula, which is performed as an 8-bit calculation:
-\
-\   availability =
-\       ((base_availability + (random AND mask) - economy * economic_factor))
-\       mod 64
-\
-\ If the result of the above is less than 0, then availability is set to 0. See
-\ the documentation for routine TT151 for more details of the values in the
-\ above calculation.
 \
 \ ******************************************************************************
 
@@ -24960,6 +25028,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ------------------------------------------------------------------------------
 \
 \ Print control code 4 (the commander's name).
+\
+\ Other entry points:
+\
+\   ypl-1               Contains an RTS
 \
 \ ******************************************************************************
 
@@ -26969,10 +27041,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ might think. It's complicated enough drawing monochrome pixels in the
 \ two-colour mode 4 screen that Elite uses for the space view, but it's even
 \ more mind-bending in mode 5, so before you read the following, I highly
-\ recommend you take a look at the deep dive "Drawing monochrome pixels in mode
-\ 4", where we discuss screen addresses and plotting techniques for this simpler
-\ mode, all in plain black and white. If monochrome plotting already makes
-\ sense to you, then let's move on to four colours.
+\ recommend you take a look at the deep dive on "Drawing monochrome pixels in
+\ mode 4", which looks at screen addresses and plotting techniques for this
+\ simpler black-and-white mode. If monochrome plotting already makes sense to
+\ you, then let's move on to four colours.
 \
 \ As with mode 4, the mode 5 screen is laid out in memory using character
 \ blocks. Indeed, the character blocks are the same size and height in terms of
@@ -29243,8 +29315,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \                       vertical distance between the line we're drawing and the
 \                       centre of the new sun. As we draw lines and move up the
 \                       screen, we either decrement (bottom half) or increment
-\                       (top half) this value. See the deep dive on drawing the
-\                       sun to see V in a diagram
+\                       (top half) this value. See the deep dive on "Drawing the
+\                       sun" to see V in a diagram
 \
 \   V+1                 This determines which half of the new sun we are drawing
 \                       as we work our way up the screen, line by line:
@@ -32754,6 +32826,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ 
 \ 11/16
 \
+\   * If this isn't the front space view, flip the ship coordinates' axes (PLUT)
 \   * Process missile lock
 \   * Process our laser firing
 \ 
@@ -36789,7 +36862,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       as visible (this is the opposite to the other visibility distance tests)
 \     
 \     * Otherwise work out if the face is pointing towards us or away from us
-\       using the dot product (see the deep dive on back-face culling)
+\       using the dot product (see the deep dive on "Back-face culling")
 \ 
 \ 6/11
 \ 
@@ -36804,7 +36877,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \   * For visible vertices only:
 \   
 \     * Calculate the space coordinates of that vertex (see the deep dive on
-\       calculating vertex coordinates), starting the calculation in part 6...
+\       "Calculating vertex coordinates"), starting the calculation in part 6...
 \ 
 \ 7/11
 \ 
@@ -39895,14 +39968,37 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 \
-\ Deep dive: Line clipping
+\ Deep dive: Line-clipping
 \ ========================
-\ This routine checks whether a line is worth clipping - in other words, whether
-\ the line passes through the screen at any point. The actual clipping is done
-\ in part 4 by calling the LL118 routine, which is quite an involved process, so
-\ it's worth spending time checking whether we need to call it at all.
 \
-\ That's where this routine comes in, and here's what each part of it does.
+\ When simulating its universe of ships, stars and space stations, Elite uses
+\ large numbers - space is big, after all. The ship coordinates are stored as
+\ sign-magnitude numbers with 16 bits for the magnitudes, while the planet and
+\ sun coordinates go all the way up to 23-bit magnitudes (as they can be a lot
+\ further away from us than ships and stations).
+\
+\ To maintain accuracy when projecting these shapes onto the screen, Elite uses
+\ 16-bit screen coordinates for the calculations. The screen is only 256 pixels
+\ across, which fits into 8 bits, so this means during the projection, ships
+\ often project onto coordinates that are off-screen.
+\
+\ This is completely intentional, and happens all the time when you're speeding
+\ past enemy ships or slamming into the walls of a space station. But when the
+\ game actually comes to draw these objects on-screen, it needs to work out
+\ exactly which lines to draw on-screen, and that's where the line-clipping
+\ routines come in. They take lines with 16-bit coordinates and work out whether
+\ any of that line is on-screen, and return the portion that's visible. In a
+\ sense, the screen is a small portal onto the wider universe, and line-clipping
+\ is the process of working out what we can see through that portal.
+\
+\ The main line-clipping routine is LL145, which checks whether a line is worth
+\ clipping - in other words, whether the line passes through the screen at any
+\ point. The actual clipping is done in part 4 by calling the LL118 routine,
+\ which is quite an involved process, so it's worth spending time checking
+\ whether we need to call it at all.
+\
+\ Here's a breakdown of how LL145 determines whether a line is partly or wholly
+\ on screen, and therefore whether it's worth sending to be clipped.
 \
 \ Part 1
 \
@@ -40532,7 +40628,7 @@ ENDMACRO
 \ The blueprint also contains all the data we need to draw the ship on-screen.
 \ This includes the ship's vertices, edges and faces, the visibility distances,
 \ and the face normal scale factor, all of which are used in the ship drawing
-\ routine at LL9. See the deep dive "Drawing ships" for more details.
+\ routine at LL9. See the deep dive on "Drawing ships" for more details.
 \
 \ Ship characteristics
 \ --------------------
