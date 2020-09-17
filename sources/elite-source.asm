@@ -17426,9 +17426,9 @@ NEXT
 
  JMP LL28+4             \ Jump to LL28+4 to convert the remainder in A into an
                         \ integer representation of the fractional value A / Q,
-                        \ where 1.0 = 255. LL28+4 always returns with the C flag
-                        \ cleared, and we return from the subroutine using a
-                        \ tail call
+                        \ in R, where 1.0 = 255. LL28+4 always returns with the
+                        \ C flag cleared, and we return from the subroutine
+                        \ using a tail call
 }
 
 \ ******************************************************************************
@@ -25919,8 +25919,8 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JSR DVID4              \ Calculate the following:
                         \
-                        \   (R P) = A / Q
-                        \         = cloud counter / distance
+                        \   (P R) = 256 * A / Q
+                        \         = 256 * cloud counter / distance
                         \
                         \ We are going to use this as our cloud size, so the
                         \ further away the cloud, the smaller it is, and as the
@@ -25928,7 +25928,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  LDA P                  \ Set A = P, so we now have:
                         \
-                        \   (R A) = cloud counter / distance
+                        \   (A R) = 256 * cloud counter / distance
 
  CMP #&1C               \ If A < 28, skip the next two instructions
  BCC P%+6
@@ -25936,15 +25936,17 @@ LOAD_E% = LOAD% + P% - CODE%
  LDA #&FE               \ Set A = 254 and skip the following (this BNE is
  BNE LABEL_1            \ effectively a JMP as A is never zero)
 
- ASL R                  \ Shift (R A) left three times to multiply by 8
+ ASL R                  \ Shift (A R) left three times to multiply by 8
  ROL A
  ASL R
  ROL A
  ASL R
  ROL A
 
-                        \ Overall, the above multiplies A by 8 to leave a
-                        \ one-byte cloud size in A
+                        \ Overall, the above multiplies (A R) by 8 to leave a
+                        \ one-byte cloud size in A, given by the following:
+                        \
+                        \   A = 8 * cloud counter / distance
 
 .LABEL_1
 
@@ -26696,11 +26698,11 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JSR DVID4              \ Calculate the following:
                         \
-                        \   (R P) = A / Q
-                        \         = |argument A| * 2 / 20
-                        \         = |argument A| / 10
+                        \   P = A / Q
+                        \     = |argument A| * 2 / 20
+                        \     = |argument A| / 10
 
- LDX P                  \ Set X to P, the low byte of the result
+ LDX P                  \ Set X to the result
 
  TYA                    \ If the sign of the original argument A is negative,
  BMI LL163              \ jump to LL163 to flip the sign of the result
