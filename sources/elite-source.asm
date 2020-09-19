@@ -8152,10 +8152,10 @@ ENDIF
 \
 \ ******************************************************************************
 
-IF _FIX_REAR_LASER
- CH% = &3
+IF NOT(_FIX_REAR_LASER)
+ CH% = &92              \ The correct value for the released game
 ELSE
- CH% = &92
+ CH% = &3               \ The figure in the ELTB binary on the source disc
 ENDIF
 
 .CHK2
@@ -8684,7 +8684,7 @@ NEXT
                         \   Q = A / P
                         \     = |delta_y| / |delta_x|
                         \
-                        \ using the same "shift and subtract" algorithm that's
+                        \ using the same shift-and-subtract algorithm that's
                         \ documented in TIS2
 
  LDX #%11111110         \ Set Q to have bits 1-7 set, so we can rotate through 7
@@ -8997,7 +8997,7 @@ NEXT
                         \   P = A / Q
                         \     = |delta_x| / |delta_y|
                         \
-                        \ using the same "shift and subtract" algorithm
+                        \ using the same shift-and-subtract algorithm
                         \ documented in TIS2
 
  LDX #1                 \ Set Q to have bits 1-7 clear, so we can rotate through
@@ -15032,6 +15032,11 @@ LOAD_C% = LOAD% +P% - CODE%
 \ This is called when an enemy ship has run out of both energy and luck, so it's
 \ time to bail.
 \
+\ Other entry points:
+\
+\   SFS1-2              Add a missile to the local bubble that has AI enabled,
+\                       is hostile, but has no E.C.M.
+\
 \ ******************************************************************************
 
 .SESCP
@@ -15931,7 +15936,7 @@ NEXT
 \
 \   K(3 2 1 0) = (A P+1 P) * Q
 \
-\ The algorithm is the same "shift and add" algorithm as in routine MULT1, but
+\ The algorithm is the same shift-and-add algorithm as in routine MULT1, but
 \ extended to cope with more bits.
 \
 \ Returns:
@@ -15957,7 +15962,7 @@ NEXT
  SBC #1
  STA T
 
-                        \ We now use the same "shift and add" algorithm as MULT1
+                        \ We now use the same shift-and-add algorithm as MULT1
                         \ to calculate the following:
                         \
                         \ K(2 1 0) = K(2 1 0) * |Q|
@@ -15980,7 +15985,7 @@ NEXT
  ROR A                  \ K, so K(2 1 0) now contains (|A| P+1 P) shifted right
  STA K
 
-                        \ We now use the same "shift and add" algorithm as MULT1
+                        \ We now use the same shift-and-add algorithm as MULT1
                         \ to calculate the following:
                         \
                         \ K(2 1 0) = K(2 1 0) * |Q|
@@ -16149,22 +16154,22 @@ NEXT
                         \ the start of P, and shift P right to fetch the next
                         \ bit for the calculation into the C flag
 
- BCC P%+4               \ Repeat the "shift and add" loop for bit 1
+ BCC P%+4               \ Repeat the shift-and-add loop for bit 1
  ADC T1
  ROR A
  ROR P
 
- BCC P%+4               \ Repeat the "shift and add" loop for bit 2
+ BCC P%+4               \ Repeat the shift-and-add loop for bit 2
  ADC T1
  ROR A
  ROR P
 
- BCC P%+4               \ Repeat the "shift and add" loop for bit 3
+ BCC P%+4               \ Repeat the shift-and-add loop for bit 3
  ADC T1
  ROR A
  ROR P
 
- BCC P%+4               \ Repeat the "shift and add" loop for bit 4
+ BCC P%+4               \ Repeat the shift-and-add loop for bit 4
  ADC T1
  ROR A
  ROR P
@@ -16347,9 +16352,9 @@ NEXT
 \
 \   (A P) = P * X
 \
-\ This uses the same "shift and add" approach as MULT1, but it's simpler as we
-\ are dealing with unsigned numbers in P and X. See the MULT1 routine for a
-\ discussion of how this algorithm works.
+\ This uses the same shift-and-add approach as MULT1, but it's simpler as we
+\ are dealing with unsigned numbers in P and X. See the deep dive on
+\ "Shift-and-add multiplication" for a discussion of how this algorithm works.
 \
 \ ******************************************************************************
 
@@ -16482,30 +16487,6 @@ NEXT
 \   A = A * Q / 256
 \
 \ ******************************************************************************
-\
-\ Deep dive: Optimised multiplication
-\ ===================================
-\
-\ This routine uses the same basic algorithm as MU11, but because we are only
-\ interested in the high byte of the result, we can optimise away a few
-\ instructions. Instead of having a loop counter to count the 8 bits in the
-\ multiplication, we can instead invert one of the arguments (A in this case,
-\ which we then store in P to pull bits off), and then reverse the logic so that
-\ ones get skipped and zeroes cause an addition. Also, when we do the first
-\ shift right, we can stick a one into bit 7, so we can keep looping and
-\ shifting right until we run out of ones, which is an easy BNE test. This works
-\ because we don't have to store the low byte of the result anywhere, so we can
-\ just shift P to the right, rather than ROR'ing it as we did in MULT1 - and
-\ that lets us do the BNE test, saving few precious instructions in the process.
-\
-\ The result is a really slick, optimised multiplication routine that does a
-\ specialised job, at the expense of clarity. To understand this routine, first
-\ try to understand MULT1, then look at MU11, and finally try this one (I have
-\ kept the comments similar so they are easier to compare). And if your eyes
-\ aren't crossed by that point, then hats off to you, because this is properly
-\ gnarly stuff.
-\
-\ ******************************************************************************
 
 .FMLTU
 {
@@ -16624,7 +16605,7 @@ NEXT
 \ inverted argument trick to work out whether or not to do an addition, and like
 \ MU11 it sets up a counter in X to extract bits from (P+1 P). But this time we
 \ extract 16 bits from (P+1 P), so the result is a 24-bit number. The core of
-\ the algorithm is still the "shift and add" approach explained in MULT1, just
+\ the algorithm is still the shift-and-add approach explained in MULT1, just
 \ with more bits.
 \
 \ Returns:
@@ -16782,13 +16763,16 @@ NEXT
 \
 \ ******************************************************************************
 \
-\ Deep dive: "Shift-and-add" multiplication
-\ =========================================
+\ Deep dive: Shift-and-add multiplication
+\ =======================================
 \
-\ This routine implements simple multiplication of two 8-bit numbers into a
-\ 16-bit result using the "shift and add" algorithm. Consider multiplying two
-\ example numbers, which we'll call p and a (as this makes it easier to map the
-\ following to the code below):
+\ Elite implements multiplication using the shift-and-add algorithm. One such
+\ example is the MULT1 routine, which multiplies two 8-bit numbers to give a
+\ 16-bit result). Let's take a look at how it does it, as this same technique is
+\ used in lots of different multiplication routines throughout the game code.
+\
+\ Consider multiplying two example numbers, which we'll call p and a (as this
+\ makes it easier to map the following explanation to the code in MULT1):
 \
 \   p * a = %00101001 * a
 \
@@ -16846,12 +16830,42 @@ NEXT
 \ in the final result, and every time there's a 1 in p, we add another a to the
 \ sum.
 \
-\ This is essentially what Elite does in this routine, but there is one more
-\ tweak that makes the process even more efficient (and even more confusing,
-\ especially when you first read through the code). Instead of saving the
-\ result bits out into a separate location, we can stick them onto the left end
-\ of p, because every time we shift p to the right, we gain a spare bit on the
-\ left end of p that we no longer use.
+\ This is essentially what Elite does in the MULT1 routine, but there is one
+\ more tweak that makes the process even more efficient (and even more
+\ confusing, especially when you first read through the code). Instead of saving
+\ the result bits out into a separate location, we can stick them onto the left
+\ end of p, because every time we shift p to the right, we gain a spare bit on
+\ the left end of p that we no longer use.
+\
+\ For a simpler version of the above algorithm, take a look at MU11, which
+\ multiplies two unsigned numbers.
+\
+\ Optimised multiplication
+\ ------------------------
+\ The above approach is used in all the multiplication routines in Elite, though
+\ sometimes it can be a bit hard to follow. Let look at a particularly knotty
+\ example.
+\
+\ The FMLTU routine uses the same basic algorithm as MU11, but because we are
+\ only interested in the high byte of the result, we can optimise away a few
+\ instructions. Instead of having a loop counter to count the 8 bits in the
+\ multiplication, we can instead invert one of the arguments (A in this case,
+\ which we then store in P to pull bits off), and then reverse the logic so that
+\ ones get skipped and zeroes cause an addition.
+\
+\ Also, when we do the first shift right, we can stick a one into bit 7, so we
+\ can keep looping and shifting right until we run out of ones, which is an easy
+\ BNE test. This works because we don't have to store the low byte of the result
+\ anywhere, so we can just shift P to the right, rather than ROR'ing it as we do
+\ in MULT1 - and that lets us do the BNE test, saving few precious instructions
+\ in the process.
+\
+\ The result is a really slick, optimised multiplication routine that does a
+\ specialised job, at the expense of clarity. To understand the FMLTU routine,
+\ first try to understand MULT1, then look at MU11, and finally try FMLTU (I
+\ have kept the comments similar so they are easier to compare). And if your
+\ eyes aren't crossed by that point, then hats off to you, because this is
+\ properly gnarly stuff.
 \
 \ ******************************************************************************
 
@@ -17064,25 +17078,34 @@ NEXT
 \ Deep dive: Adding sign-magnitude numbers
 \ ========================================
 \
-\ When adding two signed numbers using two's complement, the result can have
-\ the wrong sign when an overflow occurs. The classic example in 8-bit signed
-\ arithmetic is 127 + 1, which doesn't give the expected 128, but instead gives
-\ -128. In binary the sum looks like this:
+\ Elite uses a lot of sign-magnitude numbers, where the sign bit is stored
+\ separately from an unsigned magnitude. The classic examples are the ship
+\ coordinates at INWK, which are stored in 24 bits as as (x_sign x_hi x_lo),
+\ where bit 7 of x_sign is the sign, and (x_hi x_lo) is the coordinate value.
 \
-\   01111111 + 00000001 = 10000000
+\ This means that when we come to do arithmetic on sign-magnitude numbers, we
+\ have to write our own routines for everything from addition and subtraction
+\ to multiplication and division, as the standard two's complement maths that
+\ the 6502 supports won't work.
 \
-\ The result has bit 7 set, so it is a negative number, 127 + 1 gives -128.
-\ This is where the overflow flag V comes in - V would be set by the above sum
-\ - but this means that every time you do a sum, you have to check the overflow
-\ flag and deal with the overflow.
+\ For example, let's try adding 127 and -1 as sign-magnitude numbers, first
+\ using sign-magnitude arithmetic. 127 is 01111111 as a sign-magnitude number,
+\ while -1  is 10000001, and:
 \
-\ Elite doesn't want to have to bother with this overhead, so the ADD
-\ subroutine, which adds two sign-magnitude 16-bit numbers, instead ensures that
-\ the result always has the correct sign, even in the event of an overflow,
-\ though if the addition does overflow, the result still won't be correct. It
-\ will have the right sign, though.
+\   127 + -1 = 0 1111111 + 1 0000001
+\            = 0 1111111 - 0 0000001
+\            = 0 1111110
+\            = 126
 \
-\ To implement this, the algorithm goes as follows. We want to add A and S, so:
+\ However, if we use the built-in ADC instruction, we get the following:
+\
+\   127 + -1 = 01111111 + 10000001
+\            = 00000000
+\
+\ which is a completely different result.
+\
+\ Elite's ADD routine implements sign-magnitude addition using the following
+\ algorithm. We want to add A and S, so:
 \
 \   * If both A and S are positive, just add them as normal
 \
@@ -17117,8 +17140,10 @@ NEXT
 \   * If |S| > |A|, then the result is |S| - |A|, with the sign set to the same
 \     sign as S
 \
-\ So that's what we do below to implement 16-bit signed addition that produces
-\ results with the correct sign.
+\ So that's what we do in the ADD routine to implement 16-bit sign-magnitude
+\ addition. The same basic approach can be found in lots of Elite's arithmetic
+\ routines: check the signs of the two operands, then add, subtract, divide or
+\ multiply as appropriate, and finally set the sign bit correctly.
 \
 \ ******************************************************************************
 
@@ -17126,7 +17151,7 @@ NEXT
 {
  STA T1                 \ Store argument A in T1
 
- AND #128               \ Extract the sign (bit 7) of A and store it in T
+ AND #%10000000         \ Extract the sign (bit 7) of A and store it in T
  STA T
 
  EOR S                  \ EOR bit 7 of A with S. If they have different bit 7s
@@ -17164,7 +17189,7 @@ NEXT
                         \ sign to get the result
 
  LDA S                  \ Clear the sign (bit 7) in S and store the result in
- AND #127               \ U, so U now contains |S|
+ AND #%01111111         \ U, so U now contains |S|
  STA U
 
  LDA P                  \ Subtract the least significant bytes into X, so
@@ -17173,7 +17198,7 @@ NEXT
  TAX
 
  LDA T1                 \ Restore the A of the argument (A P) from T1 and
- AND #127               \ clear the sign (bit 7), so A now contains |A|
+ AND #%01111111         \ clear the sign (bit 7), so A now contains |A|
 
  SBC U                  \ Set A = |A| - |S|
 
@@ -17203,7 +17228,7 @@ NEXT
  LDA #0                 \ Set A = 0 - A, which we can do this time using a
  SBC U                  \ a subtraction with carry clear
 
- ORA #128               \ We now set the sign bit of A, so that the EOR on the
+ ORA #%10000000         \ We now set the sign bit of A, so that the EOR on the
                         \ next line will give the result the opposite sign to
                         \ argument A (as T contains the sign bit of argument
                         \ A). This is the same as giving the result the same
@@ -17236,7 +17261,7 @@ NEXT
 \
 \   (A ?) = (-X * A + (S R)) / 96
 \
-\ This uses the same "shift and subtract" algorithm as TIS2, just with the
+\ This uses the same shift-and-subtract algorithm as TIS2, just with the
 \ quotient A hard-coded to 96.
 \
 \ Returns:
@@ -17324,7 +17349,7 @@ NEXT
 \ are removed at lower values than this), so this means P is between 0 and 2
 \ (as 40 / 16 = 2.5, so the maximum result is P = 2 and R = 128.
 \
-\ This uses the same "shift and subtract" algorithm as TIS2, but this time we
+\ This uses the same shift-and-subtract algorithm as TIS2, but this time we
 \ keep the remainder.
 \
 \ Arguments:
@@ -17361,7 +17386,7 @@ NEXT
 \
 \   (P R) = 256 * DELTA / A
 \
-\ This uses the same "shift and subtract" algorithm as TIS2, but this time we
+\ This uses the same shift-and-subtract algorithm as TIS2, but this time we
 \ keep the remainder.
 \
 \ Returns:
@@ -17396,7 +17421,7 @@ NEXT
 \
 \   (P R) = 256 * A / Q
 \
-\ This uses the same "shift and subtract" algorithm as TIS2, but this time we
+\ This uses the same shift-and-subtract algorithm as TIS2, but this time we
 \ keep the remainder.
 \
 \ Returns:
@@ -18382,14 +18407,18 @@ NEXT
 \
 \ But do we really have to write four different display routines for the four
 \ views? Luckily we don't, as the authors came up with a mathematical solution
-\ that is both wonderfully elegant and extremely efficient. Indeed, there were
-\ originally six views, with up and down thrown into the mix, but they ended up
-\ being dropped to save space - not because they couldn't be displayed, but
-\ because there wasn't enough room on the outfitting screen to show all those
-\ laser mounts.
+\ that is both wonderfully elegant and extremely efficient. The solution is to
+\ flip the axes for everything we want to display in the space view, so the axes
+\ used in the drawing routines will still work.
 \
-\ The solution is to flip the axes when we switch views. Let's see what that
-\ actually means.
+\ The axis-flipping is quite q quick process. Indeed, there were originally six
+\ views, with up and down thrown into the mix, but they ended up being dropped
+\ to save space. It would only have taken a few extra instructions to implement
+\ their flipped axes and stardust views, so the space would most likely have
+\ been saved by removing the code supporting the extra laser mounts in the Equip
+\ Ship screen).
+\
+\ Let's see what axis-flipping actually means.
 \
 \ Flipping the axes
 \ -----------------
@@ -19967,8 +19996,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Famously, Elite's galaxy and system data is generated procedurally, using a
 \ set of three 16-bit seed numbers and the Tribonnaci series. You can read all
-\ about this process in the individual documentation for the routines mentioned
-\ in the table below, as well as the system twisting routine at TT54 and galaxy
+\ about this process in the deep dives on "Generating system data", "Generating
+\ system seeds" and "Twisting the system seeds", as well as the galaxy
 \ twisting process in Ghy.
 \
 \ The three seeds are stored as little-endian 16-bit numbers, so the low (least
@@ -20047,12 +20076,11 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Deep dive: Twisting the system seeds
 \ ====================================
 \
-\ Famously, the universe in Elite is generated procedurally, and the core of
-\ this process is the set of three 16-bit seeds that describe each system in
-\ the universe. Each of the eight galaxies in the game is generated in the same
-\ way, by taking an initial set of seeds and "twisting" them to generate 256
-\ systems, one after the other (the actual twisting process is described
-\ below).
+\ Data on each star system in Elite's galaxies is generated procedurally, and
+\ the core of this process is the set of three 16-bit seeds that describe each
+\ system in the universe. Each of the eight galaxies in the game is generated in
+\ the same way, by taking an initial set of seeds and "twisting" them to
+\ generate 256 systems, one after the other.
 \
 \ Specifically, given the initial set of seeds, we can generate the next system
 \ in the sequence by twisting that system's seeds four times. As we do these
@@ -20130,9 +20158,20 @@ LOAD_D% = LOAD% + P% - CODE%
 \   w2_lo  = tmp_lo + w1_lo         (w2 = tmp + w1)
 \   w2_hi  = tmp_hi + w1_hi
 \
-\ And that's exactly what this subroutine does to twist our three 16-bit
+\ And that's exactly what the TT54 subroutine does to twist our three 16-bit
 \ seeds to the next values in the sequence, using X to store tmp_lo and Y to
 \ store tmp_hi.
+\
+\ Twisting the galaxy seeds
+\ -------------------------
+\ The Ghy routine updates the galaxy seeds to point to the next galaxy. Using
+\ a galactic hyperdrive rotates each seed byte to the left, rolling each byte
+\ left within itself like this:
+\
+\   01234567 -> 12345670
+\
+\ to get the seeds for the next galaxy. So after 8 galactic jumps, the seeds
+\ roll round to those of the first galaxy again.
 \
 \ ******************************************************************************
 
@@ -24874,7 +24913,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \       Name: BDOLLAR
 \       Type: Variable
-\   Category: Utility routines
+\   Category: Copy protection
 \    Summary: A copyright notice, buried in the code
 \
 \ ------------------------------------------------------------------------------
@@ -24922,6 +24961,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Print control code 3 (the selected system name, i.e. the one in the crosshairs
 \ in the Short-range Chart).
+\
+\ Other entry points:
+\
+\   cmn-1               Contains an RTS
 \
 \ ******************************************************************************
 \
@@ -25072,8 +25115,9 @@ LOAD_E% = LOAD% + P% - CODE%
 .ypl
 {
  LDA MJ                 \ Check the mis-jump flag at MJ, and if it is non-zero
- BNE cmn-1              \ then return from the subroutine, as we are in
-                        \ witchspace, and witchspace doesn't have a system name
+ BNE cmn-1              \ then we are in witchspace, and witchspace doesn't have
+                        \ a system name, so return from the subroutine (cmn-1
+                        \ contains an RTS)
 
  JSR TT62               \ Call TT62 below to swap the three 16-bit seeds in
                         \ QQ2 and QQ15 (before the swap, QQ2 contains the seeds
@@ -27916,7 +27960,7 @@ LOAD_E% = LOAD% + P% - CODE%
  STA SC                 \ Store the low byte of the screen address in SC
 
  STX P+1                \ Set P(2 1) = (Y X)
- STY P+2                \ font pointer hi
+ STY P+2
 
  LDA #&7D               \ Set A to the high byte of the screen address, which is
                         \ &7D as the bulbs are both in the character row from
@@ -29132,9 +29176,9 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ of the new sun on-screen
 
  BCS PLF3-3             \ If CHKON set the C flag then the circle does not fit
-                        \ on-screen, so jump to WPLS to remove the sun from the
-                        \ screen, returning from the subroutine using a tail
-                        \ call
+                        \ on-screen, so jump to WPLS (via the JMP at the top of
+                        \ this routine) to remove the sun from the screen,
+                        \ returning from the subroutine using a tail call
 
  LDA #0                 \ Set A = 0
 
@@ -33896,6 +33940,12 @@ ENDIF
 \   Category: Dashboard
 \    Summary: Calculate the vector to the planet and store it in XX15
 \
+\ ------------------------------------------------------------------------------
+\
+\ Other entry points:
+\
+\   SPS1+1              A BRK instruction
+\
 \ ******************************************************************************
 
 .SPS1
@@ -34283,6 +34333,11 @@ ENDIF
 \ message of encouragement if the kill total is a multiple of 256, and then
 \ make a nearby explosion sound.
 \
+\ Other entry points:
+\
+\   EXNO-2              Set X = 7 and fall through into EXNO to make the sound
+\                       of a ship exploding
+\
 \ ******************************************************************************
 
 .EXNO2
@@ -34639,6 +34694,10 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \                       unchanged
 \
 \   A                   Contains the same as X
+\
+\ Other entry points:
+\
+\   DKS2-1              Contains an RTS
 \
 \ ******************************************************************************
 
@@ -35885,16 +35944,16 @@ ENDMACRO
 \
 \ ******************************************************************************
 \
-\ Deep dive: "Shift-and-subtract" division
-\ ========================================
+\ Deep dive: Shift-and-subtract division
+\ ======================================
 \
-\ This routine implements integer division using the "shift and subtract"
-\ algorithm. This is similar in concept to the "shift and add" algorithm used to
+\ Elite implements division in routines like TIS2 using the shift-and-subtract
+\ algorithm. This is similar in concept to the shift-and-add algorithm used to
 \ implement multiplication in routines like MULT1, but it's essentially the
 \ reverse of that algorithm.
 \
-\ In the same way that "shift and add" implements a binary version of the manual
-\ long multiplication process, "shift and subtract" implements long division. We
+\ In the same way that shift-and-add implements a binary version of the manual
+\ long multiplication process, shift-and-subtract implements long division. We
 \ shift bits out of the left end of the number being divided (A), subtracting
 \ the largest possible multiple of the divisor (Q) after each shift; each bit of
 \ A where we can subtract Q gives a 1 the answer to the division, otherwise it
@@ -35912,11 +35971,11 @@ ENDMACRO
 \       A = A − Q
 \       T(bit x) = 1
 \
-\ This is the algorithm implemented below, except we save space (and make things
-\ much more confusing) by using A for both the number being divided and the
-\ remainder, building the answer in T instead of P, and using set bits in T to
-\ implement the loop counter. The basic idea of shifting and subtracting is the
-\ same, though.
+\ This is the algorithm implemented in TIS2, except we save space (and make
+\ things much more confusing) by using A for both the number being divided and
+\ the remainder, building the answer in T instead of P, and using set bits in T
+\ to implement the loop counter. The basic idea of shifting and subtracting is
+\ the same, though.
 \
 \ ******************************************************************************
 
@@ -36073,7 +36132,7 @@ ENDMACRO
 \
 \   (P+1 A) = (A P) / Q
 \
-\ This uses the same "shift and subtract" algorithm as TIS2.
+\ This uses the same shift-and-subtract algorithm as TIS2.
 \
 \ ******************************************************************************
 
@@ -36273,7 +36332,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \   Q = SQRT(R Q)
 \
-\ This algorithm is related to the "shift and subtract" algorithm for division
+\ This algorithm is related to the shift-and-subtract algorithm for division
 \ as described in TIS2, though with a couple of twists. If you think about the
 \ division algorithm, it calculates the quotient and remainder from a given
 \ dividend and divisor, and the following holds:
@@ -36287,7 +36346,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \   number = (root * root) + remainder
 \
 \ So the number we want to find the root of is equivalent to the dividend in the
-\ "shift and subtract" algorithm, and instead of the divisor being fixed, we
+\ shift-and-subtract algorithm, and instead of the divisor being fixed, we
 \ instead build up the root bit by bit and use that in place of the divisor.
 \
 \ When generalised to calculate the n-th root, this approach is called the
@@ -36394,7 +36453,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ The result is returned in one byte as the result of the division multiplied
 \ by 256, so we can return fractional results using integers.
 \
-\ This routine uses the same "shift and subtract" algorithm that's documented in
+\ This routine uses the same shift-and-subtract algorithm that's documented in
 \ TIS2, but it leaves the fractional result in the integer range 0-255.
 \
 \ Returns:
@@ -36722,6 +36781,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \   LL81+2              Draw the contents of the ship lone heap, used to draw
 \                       the ship as a dot from SHPPT
+\
+\   LL10-1              Contains an RTS
 \
 \ ******************************************************************************
 \
@@ -39658,7 +39719,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \
                         \   (Y X) = (S R) * Q
                         \
-                        \ using the same "shift and add" algorithm that's
+                        \ using the same shift-and-add algorithm that's
                         \ documented in MULT1
 
  LDA #0                 \ Set A = 0
@@ -39697,7 +39758,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ LL125 to do the addition for this bit of Q
 
  BNE LL126              \ If Q has not yet run out of set bits, loop back to
-                        \ LL126 to do the "shift" part of "shift and add" until
+                        \ LL126 to do the "shift" part of shift-and-add until
                         \ we have done additions for all the set bits in Q, to
                         \ give us our multiplication result
 
@@ -39774,7 +39835,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \
                         \   (Y X) = (S R) / Q
                         \
-                        \ using the same "shift and subtract" algorithm that's
+                        \ using the same shift-and-subtract algorithm that's
                         \ documented in TIS2
 
  LDA #%11111111         \ Set Y = %11111111

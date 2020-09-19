@@ -195,7 +195,7 @@
 \
 \ There are also sign-magnitude numbers where the sign byte is only ever used
 \ for storing the sign bit, and that's it, and there are others where we only
-\ ever care about the top byte (a planet<s distance, for example, is determined
+\ ever care about the top byte (a planet's distance, for example, is determined
 \ by the value of x_sign, y_sign and z_sign, for example). But they all work in
 \ exactly the same way.
 \
@@ -264,8 +264,9 @@ LE% = &0B00             \ LE% is the address to which the code from UU% onwards
                         \
                         \   * The variables used by the above
 
-IF DISC                 \ CODE% is set to the assembly address of the loader
- CODE% = &E00+&300      \ code file that we assemble in this file ("ELITE")
+IF DISC
+ CODE% = &E00+&300      \ CODE% is set to the assembly address of the loader
+                        \ code file that we assemble in this file ("ELITE")
 ELSE
  CODE% = &E00
 ENDIF
@@ -617,9 +618,10 @@ ORG O%
 
 \ ******************************************************************************
 \
-\ Subroutine name:  
-\ Category:         Copy protection
-\ One-line summary: Routine to self-modify the loader code
+\       Name: doPROT1
+\       Type: Subroutine
+\   Category: Copy protection
+\    Summary: Routine to self-modify the loader code
 \
 \ ------------------------------------------------------------------------------
 \
