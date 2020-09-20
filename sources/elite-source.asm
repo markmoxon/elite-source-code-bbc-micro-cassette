@@ -1570,7 +1570,8 @@ ENDMACRO
 \ everything from the formatting of huge decimal numbers to printing individual
 \ spaces, but under the hood they all boil down to three core routines:
 \
-\   * BPRNT, which prints numbers (see the deep dive on "Printing huge numbers")
+\   * BPRNT, which prints numbers (see the deep dive on "Printing decimal
+\     numbers")
 \
 \   * TT26, which pokes individual characters into screen memory
 \
@@ -4029,16 +4030,16 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 2 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: Calculate alpha and beta angles from the current roll and pitch
+\    Summary: Calculate alpha and beta angles from the current pitch and roll
 \
 \ ------------------------------------------------------------------------------
 \
 \ The main flight loop covers most of the flight-specific aspects of Elite. This
 \ section covers the following:
 \
-\   * Calculate the alpha and beta angles from the current roll and pitch
+\   * Calculate the alpha and beta angles from the current pitch and roll
 \
-\ Here we take the current rate of roll and pitch, as set by the joystick or
+\ Here we take the current rate of pitch and roll, as set by the joystick or
 \ keyboard, and convert them into alpha and beta angles that we can use in the
 \ matrix functions to rotate space around our ship. The alpha angle covers
 \ roll, while the beta angle covers pitch (there is no yaw in this version of
@@ -4718,8 +4719,8 @@ LOAD_A% = LOAD%
 \
 \ ******************************************************************************
 \
-\ Deep dive: Docking
-\ ==================
+\ Deep dive: Docking checks
+\ =========================
 \
 \ Docking is difficult, there's no doubt about it. The challenge of slotting
 \ into one of Elite's rotating Coriolis space stations is absolutely iconic, and
@@ -6182,7 +6183,7 @@ LOAD_A% = LOAD%
 \       Name: MVEIT (Part 5 of 9)
 \       Type: Subroutine
 \   Category: Moving
-\    Summary: Move current ship: Rotate ship's location by our roll and pitch
+\    Summary: Move current ship: Rotate ship's location by our pitch and roll
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6200,13 +6201,13 @@ LOAD_A% = LOAD%
 \ a lot easier to rotate the whole universe around our Cobra, rather than
 \ rotating our ship and ending up having to include our orientation into every
 \ other calculation. Because there is no up or down in space, rotating the whole
-\ universe  has the same effect, as everything is drawn from the perspective of
+\ universe has the same effect, as everything is drawn from the perspective of
 \ our cockpit.
 \
 \ Part 5 of the MVEIT routine is responsible for performing this act of seeming
 \ omnipotence, and it does this by rotating the (x, y, z) coordinate of the
-\ ship we are processing, by the roll and pitch angles alpha and beta, so the
-\ ship moves as we pitch and roll.
+\ ship we are processing, by the pitch and roll angles alpha (roll) and beta
+\ (pitch), so the ship moves as we pitch and roll.
 \
 \ It does this using the exact same rotation equations that MVS4 uses in part 7
 \ to rotate the ship's orientation vectors (see the deep dive on "Rolling and
@@ -6952,7 +6953,7 @@ LOAD_A% = LOAD%
 \
 \ If that paragraph makes sense to you, then you should probably be writing
 \ this commentary! For the rest of us, there's an explanation in the deep dive
-\ on "Rolling and pitching".
+\ on "Pitching and rolling".
 \
 \ Arguments:
 \
@@ -6967,7 +6968,7 @@ LOAD_A% = LOAD%
 \
 \ ******************************************************************************
 \
-\ Deep dive: Rolling and pitching
+\ Deep dive: Pitching and rolling
 \ ===============================
 \
 \ In order to understand this routine, we need first to understand what it's
@@ -6978,7 +6979,7 @@ LOAD_A% = LOAD%
 \ (x, y, z), where the x-axis is to our right, the y-axis is up, and the z-axis
 \ is in the direction our Cobra is pointing in.
 \
-\ Of course, our first thought is to roll and pitch our Cobra to get the new
+\ Of course, our first thought is to pitch and roll our Cobra to get the new
 \ arrival firmly into the crosshairs, and in doing this the enemy ship will
 \ appear to move in space, relative to us. For example, if we do a pitch by
 \ pulling back on the joystick or pressing "X", this will pull the nose of our
@@ -6990,7 +6991,7 @@ LOAD_A% = LOAD%
 \ whether our lasers are pointing in the correct direction to unleash fiery
 \ death on the pirate/cop/innocent trader in our sights.
 \
-\ Roll and pitch
+\ Pitch and roll
 \ --------------
 \ To make it easier to work with the 3D rotations of pitching and rolling, we
 \ break down the movement into two separate rotations, the roll and the pitch,
@@ -7388,14 +7389,29 @@ LOAD_A% = LOAD%
 \
 \ ******************************************************************************
 \
-\ Deep dive: Rolling and pitching by a fixed angle
+\ Deep dive: Pitching and rolling by a fixed angle
 \ ================================================
 \
-\ This routine applies the same trigonometry as described in routine MVS4, but
-\ this time the angle is fixed at a very small 1/16 radians (around 3.6 degrees)
-\ so the maths is rather simpler. If you refer to the documentation for MVS4,
-\ you can see that the equations for rolling a point (x, y, z) through an angle
-\ a to (x´, y´, z´) are:
+\ We can pitch and roll our ship by varying amounts, as shown by the dashboard's
+\ DC and RL indicators, but enemy ships don't have such a luxury - it turns out
+\ they can only orientate themselves at a fixed speed. Specifically, they can
+\ only pitch or roll by a fixed amount each iteration of the main loop - by an
+\ angle of 1/16 radians, or 3.6 degrees.
+\
+\ This fixed rotation speed makes life simpler for the game code, not only
+\ because the angle is small enough to apply the small angle approximation, but
+\ also because 1/16 is a power of 2. Let's see how this helps by looking at the
+\ calculation in MVS5 in more detail.
+\
+\ Fixed angle calculations
+\ ------------------------
+\ The MVS5 routine applies the same trigonometry as described in routine MVS4
+\ (see the deep dive on "Rotating the universe" for details). In MVS5 we rotated
+\ the ship's orientation vectors by our own pitch and roll, but this time the
+\ angle is fixed at a very small 1/16 radians (around 3.6 degrees) so the maths
+\ is rather simpler. If you refer to the documentation for MVS4, you can see
+\ that the equations for rolling a point (x, y, z) through an angle a to
+\ (x´, y´, z´) are:
 \
 \   x´ = x * cos(a) - y * sin(a)
 \   y´ = y * cos(a) + x * sin(a)
@@ -7422,7 +7438,7 @@ LOAD_A% = LOAD%
 \
 \   z´ = z
 \
-\ so this is what this routine implements.
+\ so this is what routine MVS5 implements.
 \
 \ To clarify further, let's consider the example when X = 15 (roofv_x) and
 \ Y = 21 (sidev_x), which applies roll to the ship. If we consider the
@@ -7474,7 +7490,7 @@ LOAD_A% = LOAD%
 \   sidev_x = sidev_x * (1 - 1/512) + roofv_x / 16
 \
 \ Subsequent calls with X = 17, Y = 23 and X = 19, Y = 25 cover the y and z
-\ coordinates, so that's exactly what the roll section of this routine does,
+\ coordinates, so that's exactly what the roll section of routine MVS5 does,
 \ with the pitch section doing the same maths, but on roofv and nosev.
 \
 \ ******************************************************************************
@@ -7711,7 +7727,7 @@ LOAD_A% = LOAD%
  TYA                    \ Restore the original A argument that we stored earlier
                         \ as this is the correct sign for the result. This is
                         \ because x_hi < P+2, so we want to return the same sign
-                        \ as P+2, the dominant side. P+2 and
+                        \ as P+2, the dominant side
 
  RTS                    \ Return from the subroutine
 }
@@ -10593,7 +10609,25 @@ NEXT
 \ Deep dive: Stardust in the front view
 \ =====================================
 \
-\ Let's look at this process in more detail. It breaks down into three stages:
+\ The small particles of dust out there in space - which I've called "stardust"
+\ in this commentary, though I'm not sure what the official term is - is an
+\ essential way of making us feel like we are flying through space in our Cobra.
+\ Pulling back on the joystick and watching the stardust fly down and backwards
+\ is still a seriously immersive feeling. You really feel like those particles
+\ are slamming into your windshield as you shoot through space and into the
+\ ether.
+\
+\ The STARS1 routine looks after stardust in the front view. It is responsible
+\ for moving the stardust towards us according to our speed (so the dust rushes
+\ past us), and applying our current pitch and roll to each particle of dust, so
+\ the stardust moves correctly when we steer our ship.
+\
+\ The STARS6 routine processes stardust in the rear view, and is essentially the
+\ reverse of STARS1. Let's take a look at how STARS1 works.
+\
+\ Processing stardust
+\ -------------------
+\ The process in STARS1 breaks down into three stages:
 \
 \  * Moving the stardust towards us
 \
@@ -10603,7 +10637,7 @@ NEXT
 \
 \ Let's look at these three stages in more detail. Throughout the calculations
 \ below, we disregard the low bytes from the angle calculations, just like in
-\ MVEIT part 5.
+\ part 5 of MVEIT.
 \
 \ Note that each particle of stardust has its own (x, y, z) coordinate. Stardust
 \ coordinates are not true 3D space coordinates - when stardust is drawn, the z
@@ -11868,9 +11902,22 @@ NEXT
 \
 \ ******************************************************************************
 \
-\ Deep dive: Printing huge numbers
-\ ================================
+\ Deep dive: Printing decimal numbers
+\ ===================================
 \
+\ Elite prints out a lot of numbers, all of them in decimal (hexadecimal and
+\ binary numbers are used internally, but we never see them displayed). The
+\ BPRNT routine can print out numbers from 0.1 to 4,294,967,295 (32 set bits),
+\ though as the highest figure in the game is the cash pot and that stores the
+\ cash amount * 10, the highest figure BPRNT might ever be asked to display is
+\ 429,496,729.5 - the biggest cash pot we can have.
+\
+\ Let's first look at the algorithm for printing decimal numbers, as all our
+\ numbers are stored in binary, and then we'll look at the BPRNT implementation
+\ of it.
+\
+\ Printing decimal numbers
+\ ------------------------
 \ The algorithm is relatively simple, but it looks fairly complicated because
 \ we're dealing with 32-bit numbers.
 \
@@ -11896,7 +11943,9 @@ NEXT
 \
 \ So the third digit is 7 and we are done.
 \
-\ The BPRNT subroutine code does exactly this in its main loop at TT36, except
+\ The BPRNT routine
+\ -----------------
+\ The BPRNT subroutine does exactly this in its main loop at TT36, except that
 \ instead of having a three-digit number and subtracting 100, we have up to an
 \ 11-digit number and subtract 10 billion each time (as 10 billion has 11
 \ digits), using 32-bit arithmetic and an overflow byte, and that's where
@@ -12038,13 +12087,13 @@ NEXT
 
  ASL K+3                \ Now to calculate the (K * 2 * 2 * 2) part. We still
  ROL K+2                \ have (K * 2) in K(S 0 1 2 3), so we just need to
- ROL K+1                \ it twice. This is the first one, so we do
- ROL K                  \ K(S 0 1 2 3) = K(S 0 1 2 3) * 2 (i.e. K * 4)
- ROL S
+ ROL K+1                \ it twice. This is the first one, so we do this:
+ ROL K                  \
+ ROL S                  \   K(S 0 1 2 3) = K(S 0 1 2 3) * 2 = K * 4
 
- ASL K+3                \ And then we do it again, so that means
- ROL K+2                \ K(S 0 1 2 3) = K(S 0 1 2 3) * 2 (i.e. K * 8)
- ROL K+1
+ ASL K+3                \ And then we do it again, so that means:
+ ROL K+2                \
+ ROL K+1                \   K(S 0 1 2 3) = K(S 0 1 2 3) * 2 = K * 8
  ROL K
  ROL S
 
@@ -12102,7 +12151,7 @@ NEXT
 
                         \ Now we loop thorough each byte in turn to do this:
                         \
-                        \ XX15(4 0 1 2 3) = K(S 0 1 2 3) - 100,000,000,000
+                        \   XX15(4 0 1 2 3) = K(S 0 1 2 3) - 100,000,000,000
 
  LDA K,X                \ Subtract the X-th byte of TENS (i.e. 10 billion) from
  SBC TENS,X             \ the X-th byte of K
@@ -12168,8 +12217,9 @@ NEXT
                         \ that tells us whether we have already started
                         \ printing digits:
                         \
-                        \   If T <> 0 we haven't printed anything yet
-                        \   If T = 0 then we have started printing digits
+                        \   * If T <> 0 we haven't printed anything yet
+                        \
+                        \   * If T = 0 then we have started printing digits
                         \
                         \ We initially set T to the maximum number of
                         \ characters allowed at, less 1 if we are printing a
@@ -12684,7 +12734,7 @@ NEXT
 \       Name: DIALS (Part 2 of 4)
 \       Type: Subroutine
 \   Category: Dashboard
-\    Summary: Update the dashboard: roll and pitch indicators
+\    Summary: Update the dashboard: pitch and roll indicators
 \
 \ ******************************************************************************
 
@@ -12753,7 +12803,7 @@ NEXT
 \ ------------------------------------------------------------------------------
 \
 \ This and the next section only run once every four iterations of the main
-\ loop, so while the speed, roll and pitch indicators update every iteration,
+\ loop, so while the speed, pitch and roll indicators update every iteration,
 \ the other indicators update less often.
 \
 \ ******************************************************************************
@@ -14411,7 +14461,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \     it's an escape pod, where it is, which direction it is pointing, and how
 \     aggressive it is
 \
-\   * Set the roll and pitch counters to head in that direction
+\   * Set the pitch and roll counters to head in that direction
 \
 \   * Speed up or slow down, depending on where the ship is in relation to us
 \
@@ -14670,6 +14720,13 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Deep dive: In the crosshairs
 \ ============================
 \
+\ During combat, one of the most important calculations is working out whether
+\ we have another ship in our sights. We need to calculate this when we're
+\ trying to hit another ship with our lasers, and when we're trying to get the
+\ enemy in our sights so we can lock a missile onto the target. In both cases,
+\ we use the HITCH routine to work out just how close to the crosshairs that
+\ ship really is. Let's take a look at how the HITCH routine works.
+\
 \ There are a number of steps we have to take to work out whether a ship is in
 \ our crosshairs. They are as follows.
 \
@@ -14685,9 +14742,9 @@ LOAD_C% = LOAD% +P% - CODE%
 \   * Test whether our crosshairs are within the targetable area for this ship
 \
 \ This last one needs further explanation. Each ship type has, as part of its
-\ blueprint, a 16-bit value that defines the area of the ship that can be locked
-\ onto by a missile or hit by laser fire. The bigger this value, the easier the
-\ ship is to hit.
+\ blueprint, a 16-bits value that defines the area of the ship that can be
+\ locked onto by a missile or hit by laser fire. The bigger this value, the
+\ easier the ship is to hit.
 \
 \ The key to the calculation is the observation that the ship's x- and
 \ y-coordinates give the horizontal and vertical distances between our line of
@@ -15462,6 +15519,10 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Deep dive: Stardust in the side views
 \ =====================================
 \
+\ The STARS2 routine moves the stardust sideways according to our speed and
+\ which side we are looking out of, and applies our current pitch and roll to
+\ each particle of dust, so the stardust moves correctly when we steer our ship.
+\
 \ Let's look at this process in more detail. It breaks down into three stages:
 \
 \  * Moving the stardust sideways
@@ -15843,8 +15904,31 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ ******************************************************************************
 \
-\ Deep dive: Sine/cosine table
-\ ============================
+\ Deep dive: The sine, cosine and arctan tables
+\ =============================================
+\
+\ The SNE table contains lookup values for sine and cosine. These values are
+\ used when drawing circles and suns, as the small angle approximation that we
+\ use when rotating ships in space isn't accurate enough for describing entire
+\ circles. For this, we need to be able to look up the sine and cosine of any
+\ angle, not just small ones, and for that we need a lookup table.
+\
+\ The ACT table, meanwhile, contains lookup values for arctan. This is used when
+\ drawing the meridians and equators on planets in part 2 of PL9.
+\
+\ Let's have a look at how these tables work (see the deep dives on "Drawing
+\ circles" and "Drawing suns" for more details on how the sine and cosine tables
+\ are actually used.)
+\
+\ Sine table
+\ ----------
+\ We use the sine table like this. To calculate the following:
+\
+\   sin(theta) * 256
+\
+\ where theta is in radians, we look up the value in:
+\
+\   SNE + (theta * 10)
 \
 \ Here's how this works. The value at byte number (theta * 10) is:
 \
@@ -15861,9 +15945,20 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \   256 * ABS(SIN(theta))
 \
-\ So that's the sine lookup, but what about the cosine? Well, because of the way
-\ sine and cosine work in terms of right-angled triangles, the following holds
-\ true (using degrees for a second as it's easier to picture):
+\ Cosine table
+\ ------------
+\ So that's the sine lookup, but what about the cosine? To calculate the
+\ following:
+\
+\   cos(theta) * 256
+\
+\ where theta is in radians, we look up the value in:
+\
+\   SNE + ((theta * 10) + 16) mod 32
+\
+\ How does this work? Well, because of the way sine and cosine work in terms of
+\ right-angled triangles, the following holds true (using degrees for a second
+\ as it's easier to picture):
 \
 \   cos(theta) = sin(90 − theta) = sin(90 + theta)
 \
@@ -15879,6 +15974,41 @@ LOAD_C% = LOAD% +P% - CODE%
 \   SNE + ((theta * 10) + 16) mod 32
 \
 \ It's not 100% accurate, but it's easily good enough for our needs.
+\
+\ Arctan table
+\ ------------
+\ To calculate the following:
+\
+\   theta = arctan(t)
+\
+\ where 0 <= t < 1, we look up the value in:
+\
+\   ACT + (t * 32)
+\
+\ The result will be an integer representing the angle in radians, with 256
+\ representing a full circle of 2 * PI radians.
+\
+\ The ACT table contains arctan values for arguments less than one - in other
+\ words, it contains values for arctan(0) through arctan(31/32), or angles
+\ in triangles where the length of the opposite is less than the length of the
+\ adjacent, so the angle is less than 45 degrees. This means the table contains
+\ values in the range 0 to 31.
+\
+\ The table does not support values of t >= 1 or t < 0 directly, but we can use
+\ the following calculations instead:
+\
+\   * For t > 1, arctan(t) = 64 - arctan(1 / t)
+\
+\   * For t < 0, arctan(-t) = 128 - arctan(t)
+\
+\ If t < -1, we can do the first one to get arctan(|t|), then the second to get
+\ arctan(-|t|).
+\
+\ The first one follows from the fact that arctan(t) + arctan(1 / t) = PI / 2,
+\ and we represent PI / 2 by 64 in our model.
+\
+\ The second one follows from the fact that arctan(-t) = PI - arctan(t) for the
+\ range 0 < arctan(t) < PI, and we represent PI by 128 in our model.
 \
 \ ******************************************************************************
 
@@ -18045,12 +18175,6 @@ NEXT
 \ The result will be an integer representing the angle in radians, with 256
 \ representing a full circle of 2 * PI radians.
 \
-\ This table contains arctan values for arguments less than one - in other
-\ words, it contains values for arctan(0) through arctan(31/32), or angles
-\ in triangles where the length of the opposite is less than the length of the
-\ adjacent, so the angle is less than 45 degrees. This means the table contains
-\ values in the range 0 to 31.
-\
 \ The table does not support values of t >= 1 or t < 0 directly, but we can use
 \ the following calculations instead:
 \
@@ -18060,12 +18184,6 @@ NEXT
 \
 \ If t < -1, we can do the first one to get arctan(|t|), then the second to get
 \ arctan(-|t|).
-\
-\ The first one follows from the fact that arctan(t) + arctan(1 / t) = PI / 2,
-\ and we represent PI / 2 by 64 in our model.
-\
-\ The second one follows from the fact that arctan(-t) = PI - arctan(t) for the
-\ range 0 < arctan(t) < PI, and we represent PI by 128 in our model.
 \
 \ ******************************************************************************
 
@@ -24158,7 +24276,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Add (Y X) cash to the cash pot in CASH. As CASH is a four-byte number, this
 \ calculates:
 \
-\   CASH(0 1 2 3) = CASH(0 1 2 3) + (0 0 Y X)
+\   CASH(0 1 2 3) = CASH(0 1 2 3) + (Y X)
 \
 \ Other entry points:
 \
@@ -26369,7 +26487,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ------------------------------------------------------------------------------
 \
 \ Update the missile indicators, and set up a data block for the planet, but
-\ only setting the roll and pitch counters to 127 (no damping).
+\ only setting the pitch and roll counters to 127 (no damping).
 \
 \ ******************************************************************************
 
@@ -26378,7 +26496,7 @@ LOAD_E% = LOAD% + P% - CODE%
  JSR msblob             \ Update the dashboard's missile indicators to all be
                         \ green/cyan
 
- LDA #127               \ Set the roll and pitch counters to 127 (no damping
+ LDA #127               \ Set the pitch and roll counters to 127 (no damping
  STA INWK+29            \ so the planet's rotation doesn't slow down)
  STA INWK+30
 
@@ -26441,7 +26559,7 @@ LOAD_E% = LOAD% + P% - CODE%
  STA INWK+2             \ crosshairs, or off to the top left by a distance of 1
  STA INWK+1             \ or 2 when we look out the back
 
- LDA #0                 \ Set the roll and pitch counters to 0 (no rotation)
+ LDA #0                 \ Set the pitch and roll counters to 0 (no rotation)
  STA INWK+29
  STA INWK+30
 
@@ -31415,12 +31533,12 @@ LOAD_F% = LOAD% + P% - CODE%
  STA JSTY
 
  STA ALP2               \ Reset ALP2 (roll sign) and BET2 (pitch sign)
- STA BET2               \ to negative, i.e. roll and pitch negative
+ STA BET2               \ to negative, i.e. pitch and roll negative
 
  ASL A                  \ This sets A to 0
 
  STA ALP2+1             \ Reset ALP2+1 (flipped roll sign) and BET2+1 (flipped
- STA BET2+1             \ pitch sign) to positive, i.e. roll and pitch negative
+ STA BET2+1             \ pitch sign) to positive, i.e. pitch and roll negative
 
  STA MCNT               \ Reset MCNT (the main loop counter) to 0
 
@@ -31665,6 +31783,20 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Deep dive: Generating random numbers
 \ ====================================
+\
+\ Games like Elite need a steady stream of random numbers. They are used all
+\ over the place to add an element of chance to gameplay, whether it's in the
+\ main flight loop when deciding whether or not to spawn an angry Thargoid in
+\ the depths of space, or on arrival in a new system where the market prices
+\ have a random element mixed into the procedural generation, so they are never
+\ exactly the same.
+\
+\ Random numbers on Elite ar generated by the DORND and DORND2 routines. These
+\ routines use the four seed bytes at RAND to RAND+3 to generate random numbers,
+\ though I am still trying to work out how this works, and the difference
+\ between the two different entry points, one of which clears the C flag first.
+\
+\ Let's look at the algorithm, anyway.
 \
 \ There are two calculations of two 8-bit numbers in the DORND routine. The
 \ first pair is at RAND and RAND+2 (let's call them r0 and r2) and the second
@@ -32753,8 +32885,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 \
-\ Deep dive: Program flow
-\ =======================
+\ Deep dive: Program flow of the main game loop
+\ =============================================
 \
 \ Here is a high-level look at the main program flow, from the title screen to
 \ the end of life as we know it, via the main game loop, the main flight loop,
@@ -32827,7 +32959,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ 
 \ 2/16
 \
-\   * Calculate the alpha and beta angles from the current roll and pitch
+\   * Calculate the alpha and beta angles from the current pitch and roll
 \ 
 \ 3/16
 \
@@ -33031,7 +33163,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \     it's an escape pod, where it is, which direction it is pointing, and how
 \     aggressive it is
 \
-\   * Set the roll and pitch counters to head in that direction
+\   * Set the pitch and roll counters to head in that direction
 \
 \   * Speed up or slow down, depending on where the ship is in relation to us
 \ 
@@ -34977,7 +35109,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ key logger accordingly. Specifically:
 \
 \   * If we are on keyboard configuration, clear the key logger and update it
-\     for the seven primary flight controls, and update the roll and pitch
+\     for the seven primary flight controls, and update the pitch and roll
 \     rates accordingly.
 \
 \   * If we are on joystick configuration, clear the key logger and jump to
@@ -35650,10 +35782,30 @@ ENDMACRO
 \ Deep dive: Tidying orthonormal vectors
 \ ======================================
 \
-\ The challenge here is to take the three orientation vectors, nosev, roofv and
-\ sidev, and tweak then so that they are orthogonal and normal once again. Let's
-\ call these new, tweaked vectors nosev´, roofv´ and sidev´, and let's look at
-\ how we can calculate them.
+\ There are an awful lot of rotations in Elite. When we pitch or roll, we rotate
+\ the entire universe around our ship, so every ship in our local bubble of
+\ universe gets rotated in space every time we tap our controls. Not only do we
+\ rotate the ship's position in space by our pitch and roll in part 5 of MVEIT,
+\ but we also rotate the ship's orientation vectors by our pitch and roll in
+\ MVS4, and we rotate the orientation vectors again, this time around the ship's
+\ centre, when we apply the ship's own pitch and roll in part 8 of MVEIT.
+\
+\ One of the problems with all this rotating is that we use the small angle
+\ approximation to rotate all these vectors in space. This is not completely
+\ accurate, so the three orientation vectors tend to get stretched over time, so
+\ periodically we have to tidy the vectors with the TIDY routine.
+\
+\ Elite's calculations rely on having orthonormal orientation vectors, which
+\ means the three orientation vectors are both orthogonal (perpendicular to each
+\ and normal (so each of the vectors has length 1). The TIDY routine therefore
+\ tidies up the vectors by making them orthonormal, and Elite tidies one ship
+\ on most iterations of the main flight loop (it tidies one ship slot on 13 out
+\ of every 16 iterations).
+\
+\ The challenge, then, is to take the three orientation vectors - nosev, roofv
+\ and sidev - and tweak them so that they are orthogonal and normal once again.
+\ Let's call these new, tweaked vectors nosev´, roofv´ and sidev´, and let's
+\ look at how we can calculate them.
 \
 \ The first vector, nosev´
 \ ------------------------
@@ -35771,6 +35923,10 @@ ENDMACRO
 \ of nosev and roofv internally is actually 96, so the length of the
 \ cross-product would be 96 96. We want the length of sidev to be 96 (so it
 \ represents 1), so we divide by 96 to get the correct result.
+\
+\ This leaves us with orthonormal vectors, and this is how the TIDY routine
+\ tidies the orientation vectors, so the ships don't stretch and warp in space
+\ when they are rotated.
 \
 \ ******************************************************************************
 
@@ -37536,7 +37692,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ The problem is that the vector from our position to the ship we're displaying
 \ uses a different set of axes to the ship's blueprint. As we cavort through
-\ space, rolling and pitching away, the x-axis is always pointing to the right
+\ space, pitching and rolling away, the x-axis is always pointing to the right
 \ on screen, the y-axis always points up, and the z-axis always points into the
 \ screen. This is always the case, even if we switch views (this is where the
 \ PLUT routine comes in, as it switches the axes around to maintain this

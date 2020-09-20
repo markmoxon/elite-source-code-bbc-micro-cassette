@@ -1307,7 +1307,7 @@ ENDIF
 \   * Draw pixels at (x, y) where:
 \
 \     r1 = random number from 0 to 255
-\     r1 = random number from 0 to 255
+\     r2 = random number from 0 to 255
 \     (r1^2 + r1^2) < 128^2
 \
 \     y = r2, squished into 64 to 191 by negation
