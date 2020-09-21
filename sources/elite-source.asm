@@ -339,7 +339,7 @@ f9 = &77                \ Internal key number for red key f9 (Inventory)
 \       Name: ZP
 \       Type: Workspace
 \    Address: &0000 to &00B0
-\   Category: Workspace
+\   Category: Workspaces
 \    Summary: Lots of really important variables
 \
 \ ******************************************************************************
@@ -1116,7 +1116,7 @@ PRINT "Zero page variables from ", ~ZP, " to ", ~P%
 \       Name: XX3
 \       Type: Workspace
 \    Address: &0100 to the top of the descending stack
-\   Category: Workspace
+\   Category: Workspaces
 \    Summary: Temporary storage space for complex calculations
 \
 \ ------------------------------------------------------------------------------
@@ -1138,7 +1138,7 @@ ORG &0100
 \       Name: T%
 \       Type: Workspace
 \    Address: &0300 to &035F
-\   Category: Workspace
+\   Category: Workspaces
 \    Summary: Current commander data and stardust data blocks
 \
 \ ------------------------------------------------------------------------------
@@ -3104,7 +3104,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \       Name: K%
 \       Type: Workspace
 \    Address: &0900 to &0D40
-\   Category: Workspace
+\   Category: Workspaces
 \    Summary: Ship data blocks and ship line heaps
 \
 \ ------------------------------------------------------------------------------
@@ -3171,19 +3171,19 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \
 \   * Bytes #9-26       Orientation vectors:
 \
-\                         * Bytes #9-14 = nosev = [nosev_x nosev_y nosev_z]
+\                         * Bytes #9-14 = nosev = [ nosev_x nosev_y nosev_z] 
 \
 \                           * nosev_x = INWK(10 9)
 \                           * nosev_y = INWK(12 11)
 \                           * nosev_z = INWK(14 13)
 \
-\                         * Bytes #15-19 = roofv = [roofv_x roofv_y roofv_z]
+\                         * Bytes #15-19 = roofv = [ roofv_x roofv_y roofv_z ]
 \
 \                           * roofv_x = INWK(16 15)
 \                           * roofv_y = INWK(18 17)
 \                           * roofv_z = INWK(20 19)
 \
-\                         * Bytes #21-26 = sidev = [sidev_x sidev_y sidev_z]
+\                         * Bytes #21-26 = sidev = [ sidev_x sidev_y sidev_z ]
 \
 \                           * sidev_x = INWK(22 21)
 \                           * sidev_y = INWK(24 23)
@@ -3246,7 +3246,8 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ Orientation vectors (bytes #9-26)
 \ ---------------------------------
 \ The ship's orientation vectors determine its orientation in space. There are
-\ three vectors, named according to the direction they point in.
+\ three vectors, each named according to the direction it points in (i.e. out of
+\ the ship's nose, the ship's roof, or the ship's right side):
 \
 \   * Byte #9  = nosev_x_lo
 \   * Byte #10 = nosev_x_hi
@@ -3269,82 +3270,9 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \   * Byte #25 = sidev_z_lo
 \   * Byte #26 = sidev_z_hi
 \
-\ The vectors in bytes #9-26 are stored as 24-bit sign-magnitude numbers, where
-\ the sign of the number is stored in bit 7 of the high byte. See above for more
-\ on this number format.
-\
-\ The ship's orientation vectors determine its orientation in space. There are
-\ three different vectors, nosev, roofv and sidev, with each of them pointing
-\ along one of the ship's main axes, like this:
-\
-\   roofv (points up out of the ship's sunroof...
-\   ^       or it would if it had one)
-\   |
-\   |
-\   |
-\   |    nosev (points forward out of the ship's nose
-\   |   /        and into the screen)
-\   |  /
-\   | /
-\   |/
-\   +-----------------------> sidev (points out of the
-\                                    ship's right view)
-\
-\ These vectors are orthonormal, which means they are orthogonal (i.e. they are
-\ perpendicular to each other), and normal (i.e. each of the vectors has length
-\ 1). We can rotate a ship in space by rotating these vectors, as in the MVS4
-\ and MVS5 routines. Because we use the small angle approximation to rotate in
-\ space, and it is not completely accurate, the three vectors tend to get
-\ stretched over time, so periodically we tidy the vectors in the TIDY routine
-\ to ensure they remain as orthonormal as possible.
-\
-\ We can refer to these three vectors in various ways, such as these variations
-\ for the nosev vector:
-\
-\   nosev = (nosev_x, nosev_y, nosev_z)
-\
-\           [ nosev_x ]
-\         = [ nosev_y ]
-\           [ nosev_z ]
-\
-\           [ (nosev_x_hi nosev_x_lo) ]
-\         = [ (nosev_y_hi nosev_y_lo) ]
-\           [ (nosev_z_hi nosev_z_lo) ]
-\
-\           [ INWK(10 9) ]
-\         = [ INWK(12 11) ]
-\           [ INWK(14 13) ]
-\
-\ The vectors are initialised in ZINF as follows:
-\
-\   sidev = (1,  0,  0)
-\   roofv = (0,  1,  0)
-\   nosev = (0,  0, -1)
-\
-\ so new ships are spawned facing out of the screen, as their nosev vectors
-\ point in a negative direction along the z-axis, which is positive into the
-\ screen and negative out of the screen.
-\
-\ Internally, we store a vector value of 1 as 96, to support fractional values,
-\ and the orientation vectors are stored as 16-bit sign-magnitude numbers. 96 is
-\ &60, and &60 with bit 7 set is &E0, so we store the above vectors like this:
-\
-\   sidev = (&6000, 0, 0)
-\   roofv = (0, &6000, 0)
-\   nosev = (0, 0, &E000)
-\
-\ so nosev_z_hi = &E0, sidev_x_hi = &60 and so on.
-\
-\ Sometimes we might refer to the orientation vectors as a matrix, with sidev
-\ as the first row, roofv as the second row, and nosev as the third row, like
-\ this:
-\
-\   [sidev_x sidev_y sidev_z]
-\   [roofv_x roofv_y roofv_z]
-\   [nosev_x nosev_y nosev_z]
-\
-\ though generally we talk about the individual vectors, because that's easier
-\ to understand.
+\ The vector coordinates in bytes #9-26 are stored as 16-bit sign-magnitude
+\ numbers, where the sign of the number is stored in bit 7 of the high byte. See
+\ the deep dive on "Orientation vectors" for more information.
 \
 \ Ship movement (bytes #27-30)
 \ ----------------------------
@@ -3453,7 +3381,7 @@ ORG &0900
 \       Name: WP
 \       Type: Workspace
 \    Address: &0D40 to &0F34
-\   Category: Workspace
+\   Category: Workspaces
 \    Summary: Ship slots, variables
 \
 \ ******************************************************************************
@@ -3888,7 +3816,7 @@ LOAD_A% = LOAD%
 \       Name: S%
 \       Type: Workspace
 \    Address: &0F40 to &0F50
-\   Category: Workspace
+\   Category: Workspaces
 \    Summary: Vector addresses, compass colour and configuration settings
 \
 \ ------------------------------------------------------------------------------
@@ -5954,6 +5882,145 @@ LOAD_A% = LOAD%
 \   XSAV                The slot number of the current ship/planet/sun
 \
 \   TYPE                The type of the current ship/planet/sun
+\
+\ ******************************************************************************
+\
+\ Deep dive: Orientation vectors
+\ ==============================
+\
+\ Each ship in the Elite universe has its own set of three orientation vectors,
+\ which determine its orientation in space. There are three different vectors -
+\ nosev, roofv and sidev - with each of them pointing along one of the ship's
+\ main axes, like this:
+\
+\   * nosev points forward out of the nose of the ship
+\
+\   * roofv points up out of the ship's sunroof... or it would if it had one
+\
+\   * sidev points out of the ship's right view
+\
+\ It might help to think of these vectors from the point of view of the ship's
+\ cockpit. From this perspective, the orientation vectors always look like this,
+\ with our ship at the origin:
+\
+\   roofv
+\   ^
+\   |
+\   |
+\   |
+\   |    nosev
+\   |   /
+\   |  /
+\   | /
+\   |/
+\   +-----------------------> sidev
+\
+\ Every ship out there has its own set of orientation vectors, with nosev
+\ pointing out of that ship's nose, roofv pointing out of that ship's roof, and
+\ sidev out of that ship's right side. The orientation vectors are used in lots
+\ of places, for example:
+\
+\   * When we draw the ship on screen, we take the shape as defined by its
+\     blueprint, and rotate it so that it aligns with its orientation vectors,
+\     so the ship we draw on screen points the right way
+\
+\   * If an enemy ship is firing its lasers at us, we use that ship's nosev
+\     vector to work out whether it is pointing towards us, and therefore
+\     whether it can hit us
+\
+\   * When enemy ships pitch or roll, we can apply these movements by rotating
+\     their orientation vectors
+\
+\ Our ship doesn't have its own set of orientation vectors - at least, not
+\ explicitly. This is because our own ship's orientation vectors always align
+\ with the main coordinate axes: sidev aligns with the x-axis, which always
+\ points to the right from the point of view of our cockpit, while roofv aligns
+\ with the y-axis and points up, and nosev aligns with the z-axis, which always
+\ points into the screen.
+\
+\ Storing the vectors in the ship data block
+\ ------------------------------------------
+\ The three vectors are stored in bytes #9-26 of the ship's data block, so when
+\ we copy a ship's data into the internal workspace INWK, the vectors live in
+\ INWK+9 to INWK+26. Each vector coordinate is stored as a 16-bit sign-magnitude
+\ number, like this:
+\
+\           [ INWK(10 9)  ]           [ INWK(16 15) ]           [ INWK(22 21) ]
+\   nosev = [ INWK(12 11) ]   roofv = [ INWK(18 17) ]   sidev = [ INWK(24 23) ]
+\           [ INWK(14 13) ]           [ INWK(20 19) ]           [ INWK(26 25) ]
+\
+\ We can refer to these three vectors in various ways, such as these variations
+\ for the nosev vector:
+\
+\   nosev = (nosev_x, nosev_y, nosev_z)
+\
+\         = [ nosev_x nosev_y nosev_z ]
+\
+\           [ nosev_x ]
+\         = [ nosev_y ]
+\           [ nosev_z ]
+\
+\           [ (nosev_x_hi nosev_x_lo) ]
+\         = [ (nosev_y_hi nosev_y_lo) ]
+\           [ (nosev_z_hi nosev_z_lo) ]
+\
+\ Orthonormal vectors
+\ -------------------
+\ The three orientation vectors are orthonormal, which means they are orthogonal
+\ (i.e. they are perpendicular to each other), and normal (i.e. each of the
+\ vectors has length 1).
+\
+\ We can rotate a ship about its centre by rotating these vectors, as in the
+\ MVS4 routine (see the deep dive on "Pitching and rolling" for more about
+\ this). However, because we use the small angle approximation to rotate in
+\ space, and it is not completely accurate, the three vectors tend to get a bit
+\ stretched over time, so periodically we have to tidy the vectors with the TIDY
+\ routine to ensure they remain as orthonormal as possible.
+\
+\ Initialisation
+\ --------------
+\ When a new ship is spawned, its vectors are initialised in ZINF as follows:
+\
+\   sidev = (1,  0,  0)
+\   roofv = (0,  1,  0)
+\   nosev = (0,  0, -1)
+\
+\ So new ships are spawned facing out of the screen, as their nosev vectors
+\ point in a negative direction along the z-axis, which is positive into the
+\ screen and negative out of the screen.
+\
+\ Internally, we store a vector value of 1 as 96, to support fractional values,
+\ and the orientation vectors are stored as 16-bit sign-magnitude numbers. 96 is
+\ &60, and &60 with bit 7 set is &E0, so we store the above vectors like this:
+\
+\   sidev = (&6000, 0, 0)
+\   roofv = (0, &6000, 0)
+\   nosev = (0, 0, &E000)
+\
+\ so nosev_z_hi = &E0 = -96, sidev_x_hi = &60 = 96 and so on.
+\
+\ Rotation matrices and axes
+\ --------------------------
+\ Sometimes we might refer to the orientation vectors as a matrix, with sidev
+\ as the first row, roofv as the second row, and nosev as the third row, like
+\ this:
+\
+\   [ sidev_x sidev_y sidev_z ]
+\   [ roofv_x roofv_y roofv_z ]
+\   [ nosev_x nosev_y nosev_z ]
+\
+\ though generally we talk about the individual vectors, because that's easier
+\ to understand. See the deep dive on "Calculating vertex coordinates" for an
+\ example of the above matrix in use.
+\
+\ For the mathematically inclined, the three orientation vectors can be thought
+\ of as axes that define the 3D coordinate space orientated around the other
+\ ship - they form the basis for this space. To put it yet another way, the
+\ matrix above is a rotation matrix that transforms the axes of our ship into
+\ the axes of the other ship.
+\
+\ Finally, the orientation vectors define a left-handed universe, with the thumb
+\ as roofv, index finger as nosev, and middle finger as sidev.
 \
 \ ******************************************************************************
 
@@ -35896,13 +35963,13 @@ ENDMACRO
 \
 \ which we can do by breaking it down into axes:
 \
-\   [sidev_x]   [nosev_x´]   [roofv_x´]
-\   [sidev_y] = [nosev_y´] x [roofv_y´]
-\   [sidev_z]   [nosev_z´]   [roofv_z´]
+\   [ sidev_x ]   [ nosev_x´ ]   [ roofv_x´ ]
+\   [ sidev_y ] = [ nosev_y´ ] x [ roofv_y´ ]
+\   [ sidev_z ]   [ nosev_z´ ]   [ roofv_z´ ]
 \
-\               [nosev_z´ * roofv_y´ - nosev_y´ * roofv_z´]
-\             = [nosev_x´ * roofv_z´ - nosev_z´ * roofv_x´]
-\               [nosev_y´ * roofv_x´ - nosev_x´ * roofv_y´]
+\                 [ nosev_z´ * roofv_y´ - nosev_y´ * roofv_z´ ]
+\               = [ nosev_x´ * roofv_z´ - nosev_z´ * roofv_x´ ]
+\                 [ nosev_y´ * roofv_x´ - nosev_x´ * roofv_y´ ]
 \
 \ then this sets sidev to a vector that is perpendicular to the others, and
 \ which has length |nosev´| * |roofv´| * sin(theta). We know that because
@@ -36769,18 +36836,18 @@ LOAD_G% = LOAD% + P% - CODE%
 \ When called from part 5 of LL9, XX12 contains the vector [x y z] to the ship
 \ we're drawing, and XX16 contains the orientation vectors, so it returns:
 \
-\   [x]   [sidev_x]         [x]   [roofv_x]         [x]   [nosev_x]
-\   [y] . [sidev_y]         [y] . [roofv_y]         [y] . [nosev_y]
-\   [z]   [sidev_z]         [z]   [roofv_z]         [z]   [nosev_z]
+\   [ x ]   [ sidev_x ]         [ x ]   [ roofv_x ]         [ x ]   [ nosev_x ]
+\   [ y ] . [ sidev_y ]         [ y ] . [ roofv_y ]         [ y ] . [ nosev_y ]
+\   [ z ]   [ sidev_z ]         [ z ]   [ roofv_z ]         [ z ]   [ nosev_z ]
 \
 \ When called from part 6 of LL9, XX12 contains the vector [x y z] of the vertex
 \ we're analysing, and XX16 contains the transposed orientation vectors with
 \ each of them containing the x, y and z elements of the original vectors, so it
 \ returns:
 \
-\   [x]   [sidev_x]         [x]   [sidev_y]         [x]   [sidev_z]
-\   [y] . [roofv_x]         [y] . [roofv_y]         [y] . [roofv_z]
-\   [z]   [nosev_x]         [z]   [nosev_y]         [z]   [nosev_z]
+\   [ x ]   [ sidev_x ]         [ x ]   [ sidev_y ]         [ x ]   [ sidev_z ]
+\   [ y ] . [ roofv_x ]         [ y ] . [ roofv_y ]         [ y ] . [ roofv_z ]
+\   [ z ]   [ nosev_x ]         [ z ]   [ nosev_y ]         [ z ]   [ nosev_z ]
 \
 \ Arguments:
 \
@@ -38553,11 +38620,11 @@ LOAD_G% = LOAD% + P% - CODE%
  JSR LL51               \ Call LL51 to set XX12 to the dot products of XX15 and
                         \ XX16, as follows:
                         \
-                        \   XX12(1 0) = [x y z] . [sidev_x roofv_x nosev_x]
+                        \   XX12(1 0) = [ x y z ] . [ sidev_x roofv_x nosev_x ]
                         \
-                        \   XX12(3 2) = [x y z] . [sidev_y roofv_y nosev_y]
+                        \   XX12(3 2) = [ x y z ] . [ sidev_y roofv_y nosev_y ]
                         \
-                        \   XX12(5 4) = [x y z] . [sidev_z roofv_z nosev_z]
+                        \   XX12(5 4) = [ x y z ] . [ sidev_z roofv_z nosev_z ]
                         \
                         \ XX12 contains the vector from the ship's centre to
                         \ the vertex, transformed from the orientation vector
@@ -38565,15 +38632,15 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ we can refer to this vector below, let's call it
                         \ vertv, so:
                         \
-                        \   vertv_x = [x y z] . [sidev_x roofv_x nosev_x]
+                        \   vertv_x = [ x y z ] . [ sidev_x roofv_x nosev_x ]
                         \
-                        \   vertv_y = [x y z] . [sidev_y roofv_y nosev_y]
+                        \   vertv_y = [ x y z ] . [ sidev_y roofv_y nosev_y ]
                         \
-                        \   vertv_z = [x y z] . [sidev_z roofv_z nosev_z]
+                        \   vertv_z = [ x y z ] . [ sidev_z roofv_z nosev_z ]
                         \
                         \ To finish the calculation, we now want to calculate:
                         \
-                        \   vertv + [x y z]
+                        \   vertv + [ x y z ]
                         \
                         \ So let's start with the vertv_x + x
 
@@ -38850,11 +38917,11 @@ LOAD_G% = LOAD% + P% - CODE%
 \ The gets stored as follows, in sign-magnitude values with the magnitudes
 \ fitting into the low bytes:
 \
-\   XX15(2 0)           [x y z] . [sidev_x roofv_x nosev_x] + [x y z]
+\   XX15(2 0)           [ x y z ] . [ sidev_x roofv_x nosev_x ] + [ x y z ]
 \
-\   XX15(5 3)           [x y z] . [sidev_y roofv_y nosev_y] + [x y z]
+\   XX15(5 3)           [ x y z ] . [ sidev_y roofv_y nosev_y ] + [ x y z ]
 \
-\   (U T)               [x y z] . [sidev_z roofv_z nosev_z] + [x y z]
+\   (U T)               [ x y z ] . [ sidev_z roofv_z nosev_z ] + [ x y z ]
 \
 \ Finally, because this vector is from our ship to the vertex, and we are at the
 \ origin, this vector is the same as the coordinates of the vertex. In other

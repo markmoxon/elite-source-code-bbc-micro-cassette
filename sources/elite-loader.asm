@@ -76,7 +76,7 @@
 \   * Big-endian numbers store their most significant bytes first, then the
 \     least significant bytes. This is how humans tend to write numbers.
 \
-\   * Little-endian numbers store the least significance bytes first then the
+\   * Little-endian numbers store the least significant bytes first then the
 \     most significant ones. The 6502 stores its addresses in little-endian
 \     format, as do the EQUD and EQUW operatives, for example.
 \
@@ -119,7 +119,7 @@
 \ then the next most significant is in memory location S, and the least
 \ significant byte is in S+1.
 \
-\ Or we can even talk about numbers made up of registers, a memory locations and
+\ Or we can even talk about numbers made up of registers, memory locations and
 \ constants, like this 24-bit number:
 \
 \   (A P 0)
@@ -145,15 +145,15 @@
 \
 \   XX15(0 1 2 3)
 \
-\ where XX15 is the most significant byte and XX15+3 the least significant,
-\ while we can refer to the little-endian 16-bit number stored in the X-th byte
+\ where XX15 is the most significant byte and XX15+3 the least significant. We
+\ could also refer to the little-endian 16-bit number stored in the X-th byte
 \ of the block at XX3 with:
 \
 \   XX3+X(1 0)
 \
-\ To take this even further, if we want to add another significant byte to make
-\ this a five-byte, 40-bit number - an overflow byte in a memory location called
-\ S, say - then we might talk about:
+\ To take this even further, if we want to add another significant byte to the
+\ 32-bit number K(3 2 1 0) to make a five-byte, 40-bit number - an overflow byte
+\ in a memory location called S, say - then we might talk about:
 \
 \   K(S 3 2 1 0)
 \
@@ -194,10 +194,10 @@
 \   1 0010010      00110100      01010110
 \
 \ There are also sign-magnitude numbers where the sign byte is only ever used
-\ for storing the sign bit, and that's it, and there are others where we only
-\ ever care about the top byte (a planet's distance, for example, is determined
-\ by the value of x_sign, y_sign and z_sign, for example). But they all work in
-\ exactly the same way.
+\ for storing the sign bit, and bits 0-6 are ignored, and there are others where
+\ we only ever care about the top byte (a planet's distance, for example, is
+\ determined by the value of x_sign, y_sign and z_sign, for example). But they
+\ all work in exactly the same way.
 \
 \ ******************************************************************************
 
@@ -2154,7 +2154,7 @@ ENDIF
 \       Name: UU%
 \       Type: Workspace
 \    Address: &0B00
-\   Category: Workspace
+\   Category: Workspaces
 \    Summary: Marker for a block that is moved as part of the obfuscation
 \
 \ ------------------------------------------------------------------------------
