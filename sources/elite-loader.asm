@@ -33,8 +33,8 @@
 \ Terminology used in this commentary
 \ ===================================
 \
-\ There's a lot to explain in Elite, and some of it is pretty gnarly stuff. So
-\ before getting stuck in, it's probably wise to take a brief look at some of
+\ There's a lot to explain in Elite, and some of it is pretty challenging stuff.
+\ Before getting stuck in, it's probably wise to take a brief look at some of
 \ the terminology I've used in this commentary.
 \
 \ Let's start with some general terms.
@@ -1713,7 +1713,7 @@ ENDIF
 \
 \       Name: SQUA2
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (A P) = A * A
 \
 \ ------------------------------------------------------------------------------
@@ -1911,7 +1911,7 @@ ENDIF
 \
 \       Name: ROOT
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate ZP = SQRT(ZP(1 0))
 \
 \ ------------------------------------------------------------------------------

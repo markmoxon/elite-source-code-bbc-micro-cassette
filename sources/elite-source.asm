@@ -5673,7 +5673,7 @@ LOAD_A% = LOAD%
 \
 \       Name: MAS1
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Geometry)
 \    Summary: Add an orientation vector coordinate to an INWK coordinate
 \
 \ ------------------------------------------------------------------------------
@@ -5749,7 +5749,7 @@ LOAD_A% = LOAD%
 \
 \       Name: MAS2
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Geometry)
 \    Summary: Calculate a cap on the maximum distance to the planet or sun
 \
 \ ------------------------------------------------------------------------------
@@ -5806,7 +5806,7 @@ LOAD_A% = LOAD%
 \
 \       Name: MAS3
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate A = x_hi^2 + y_hi^2 + z_hi^2 in the K% block
 \
 \ ------------------------------------------------------------------------------
@@ -9761,8 +9761,8 @@ NEXT
 \
 \       Name: PIX1
 \       Type: Subroutine
-\   Category: Drawing pixels
-\    Summary: Calculate (YY+1 SYL+Y) = (A P) + (S R) for drawing stardust
+\   Category: Maths (Arithmetic)
+\    Summary: Calculate (YY+1 SYL+Y) = (A P) + (S R) and draw stardust particle
 \
 \ ------------------------------------------------------------------------------
 \
@@ -14692,7 +14692,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \       Name: TAS1
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate K3 = (x_sign x_hi x_lo) - V(1 0)
 \
 \ ------------------------------------------------------------------------------
@@ -15950,7 +15950,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \       Name: SNE
 \       Type: Variable
-\   Category: Maths
+\   Category: Maths (Geometry)
 \    Summary: Sine/cosine table
 \
 \ ------------------------------------------------------------------------------
@@ -16099,7 +16099,7 @@ NEXT
 \
 \       Name: MU5
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Set K(3 2 1 0) = (A A A A) and clear the C flGag
 \
 \ ------------------------------------------------------------------------------
@@ -16127,7 +16127,7 @@ NEXT
 \
 \       Name: MULT3
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate K(3 2 1 0) = (A P+1 P) * Q
 \
 \ ------------------------------------------------------------------------------
@@ -16248,7 +16248,7 @@ NEXT
 \
 \       Name: MLS2
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (S R) = XX(1 0) and (A P) = A * ALP1
 \
 \ ------------------------------------------------------------------------------
@@ -16279,7 +16279,7 @@ NEXT
 \
 \       Name: MLS1
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (A P) = ALP1 * A
 \
 \ ------------------------------------------------------------------------------
@@ -16394,7 +16394,7 @@ NEXT
 \
 \       Name: SQUA
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Clear bit 7 of A and calculate (A P) = A * A
 \
 \ ------------------------------------------------------------------------------
@@ -16416,7 +16416,7 @@ NEXT
 \
 \       Name: SQUA2
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (A P) = A * A
 \
 \ ------------------------------------------------------------------------------
@@ -16440,7 +16440,7 @@ NEXT
 \
 \       Name: MU1
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Copy X into P and A, and clear the C flag
 \
 \ ------------------------------------------------------------------------------
@@ -16463,7 +16463,7 @@ NEXT
 \
 \       Name: MLU1
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate Y1 = y_hi and (A P) = |y_hi| * Q for Y-th stardust
 \
 \ ------------------------------------------------------------------------------
@@ -16491,7 +16491,7 @@ NEXT
 \
 \       Name: MLU2
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (A P) = |A| * Q
 \
 \ ------------------------------------------------------------------------------
@@ -16518,7 +16518,7 @@ NEXT
 \
 \       Name: MULTU
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (A P) = P * Q
 \
 \ ------------------------------------------------------------------------------
@@ -16544,7 +16544,7 @@ NEXT
 \
 \       Name: MU11
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (A P) = P * X
 \
 \ ------------------------------------------------------------------------------
@@ -16608,7 +16608,7 @@ NEXT
 \
 \       Name: MU6
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Set P(1 0) = (A A)
 \
 \ ------------------------------------------------------------------------------
@@ -16632,7 +16632,7 @@ NEXT
 \
 \       Name: FMLTU2
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate A = K * sin(A)
 \
 \ ------------------------------------------------------------------------------
@@ -16673,7 +16673,7 @@ NEXT
 \
 \       Name: FMLTU
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate A = A * Q / 256
 \
 \ ------------------------------------------------------------------------------
@@ -16745,7 +16745,7 @@ NEXT
 \
 \       Name: Unused duplicate of MULTU
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Unused duplicate of the MULTU routine
 \
 \ ------------------------------------------------------------------------------
@@ -16783,7 +16783,7 @@ NEXT
 \
 \       Name: MLTU2
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (A P+1 P) = (A ~P) * Q
 \
 \ ------------------------------------------------------------------------------
@@ -16875,7 +16875,7 @@ NEXT
 \
 \       Name: MUT3
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Unused routine that does the same as MUT2
 \
 \ ------------------------------------------------------------------------------
@@ -16900,7 +16900,7 @@ NEXT
 \
 \       Name: MUT2
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (S R) = XX(1 0) and (A P) = Q * A
 \
 \ ------------------------------------------------------------------------------
@@ -16927,7 +16927,7 @@ NEXT
 \
 \       Name: MUT1
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate R = XX and (A P) = Q * A
 \
 \ ------------------------------------------------------------------------------
@@ -16953,7 +16953,7 @@ NEXT
 \
 \       Name: MULT1
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (A P) = Q * A
 \
 \ ------------------------------------------------------------------------------
@@ -17149,7 +17149,7 @@ NEXT
 \
 \       Name: MULT12
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (S R) = Q * A
 \
 \ ------------------------------------------------------------------------------
@@ -17175,7 +17175,7 @@ NEXT
 \
 \       Name: TAS3
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Geometry)
 \    Summary: Calculate the dot product of XX15 and an orientation vector
 \
 \ ------------------------------------------------------------------------------
@@ -17239,7 +17239,7 @@ NEXT
 \
 \       Name: MAD
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (A X) = Q * A + (S R)
 \
 \ ------------------------------------------------------------------------------
@@ -17264,7 +17264,7 @@ NEXT
 \
 \       Name: ADD
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (A X) = (A P) + (S R)
 \
 \ ------------------------------------------------------------------------------
@@ -17452,7 +17452,7 @@ NEXT
 \
 \       Name: TIS1
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (A ?) = (-X * A + (S R)) / 96
 \
 \ ------------------------------------------------------------------------------
@@ -17531,7 +17531,7 @@ NEXT
 \
 \       Name: DV42
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (P R) = 256 * DELTA / z_hi
 \
 \ ------------------------------------------------------------------------------
@@ -17572,7 +17572,7 @@ NEXT
 \
 \       Name: DV41
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (P R) = 256 * DELTA / A
 \
 \ ------------------------------------------------------------------------------
@@ -17607,7 +17607,7 @@ NEXT
 \
 \       Name: DVID4
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (P R) = 256 * A / Q
 \
 \ ------------------------------------------------------------------------------
@@ -17676,7 +17676,7 @@ NEXT
 \
 \       Name: DVID3B2
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate K(3 2 1 0) = (A P+1 P) / (z_sign z_hi z_lo)
 \
 \ ------------------------------------------------------------------------------
@@ -18097,7 +18097,7 @@ NEXT
 \
 \       Name: ARCTAN
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Geometry)
 \    Summary: Calculate A = arctan(P / Q)
 \
 \ ------------------------------------------------------------------------------
@@ -18230,7 +18230,7 @@ NEXT
 \
 \       Name: ACT
 \       Type: Variable
-\   Category: Maths
+\   Category: Maths (Geometry)
 \    Summary: Arctan table
 \
 \ ------------------------------------------------------------------------------
@@ -24283,7 +24283,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \       Name: LCASH
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Subtract an amount of cash from the cash pot
 \
 \ ------------------------------------------------------------------------------
@@ -24339,7 +24339,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \       Name: MCASH
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Add an amount of cash to the cash pot
 \
 \ ------------------------------------------------------------------------------
@@ -24387,7 +24387,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \       Name: GCASH
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (Y X) = P * Q * 4
 \
 \ ------------------------------------------------------------------------------
@@ -24407,7 +24407,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \       Name: GC2
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (Y X) = (A P) * 4
 \
 \ ------------------------------------------------------------------------------
@@ -26986,7 +26986,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \       Name: SPS2
 \       Type: Subroutine
-\   Category: Dashboard
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (Y X) = A / 10
 \
 \ ------------------------------------------------------------------------------
@@ -27048,7 +27048,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \       Name: SPS4
 \       Type: Subroutine
-\   Category: Dashboard
+\   Category: Maths (Geometry)
 \    Summary: Calculate the vector to the space station
 \
 \ ------------------------------------------------------------------------------
@@ -27570,7 +27570,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \       Name: SPS3
 \       Type: Subroutine
-\   Category: Dashboard
+\   Category: Maths (Geometry)
 \    Summary: Copy a space coordinate from the K% block into K3
 \
 \ ------------------------------------------------------------------------------
@@ -32700,7 +32700,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \       Name: FAROF
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Geometry)
 \    Summary: Compare x_hi, y_hi and z_hi with 224
 \
 \ ------------------------------------------------------------------------------
@@ -32727,7 +32727,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \       Name: FAROF2
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Geometry)
 \    Summary: Compare x_hi, y_hi and z_hi with A
 \
 \ ------------------------------------------------------------------------------
@@ -32765,7 +32765,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \       Name: MAS4
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Geometry)
 \    Summary: Calculate a cap on the maximum distance to a ship
 \
 \ ------------------------------------------------------------------------------
@@ -34140,7 +34140,7 @@ ENDIF
 \
 \       Name: SPS1
 \       Type: Subroutine
-\   Category: Dashboard
+\   Category: Maths (Geometry)
 \    Summary: Calculate the vector to the planet and store it in XX15
 \
 \ ------------------------------------------------------------------------------
@@ -34169,7 +34169,7 @@ ENDIF
 \
 \       Name: TAS2
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Geometry)
 \    Summary: Normalise the three-coordinate vector in K3
 \
 \ ------------------------------------------------------------------------------
@@ -34275,7 +34275,7 @@ ENDIF
 \
 \       Name: NORM
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Geometry)
 \    Summary: Normalise the three-coordinate vector in XX15
 \
 \ ------------------------------------------------------------------------------
@@ -35834,7 +35834,7 @@ ENDMACRO
 \
 \       Name: TIDY
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Geometry)
 \    Summary: Orthonormalise the orientation vectors for a ship
 \
 \ ------------------------------------------------------------------------------
@@ -36154,7 +36154,7 @@ ENDMACRO
 \
 \       Name: TIS2
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate A = A / Q
 \
 \ ------------------------------------------------------------------------------
@@ -36276,7 +36276,7 @@ ENDMACRO
 \
 \       Name: TIS3
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate -(nosev_1 * roofv_1 + nosev_2 * roofv_2) / nosev_3
 \
 \ ------------------------------------------------------------------------------
@@ -36350,7 +36350,7 @@ ENDMACRO
 \
 \       Name: DVIDT
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (P+1 A) = (A P) / Q
 \
 \ ------------------------------------------------------------------------------
@@ -36550,7 +36550,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \       Name: LL5
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate Q = SQRT(R Q)
 \
 \ ------------------------------------------------------------------------------
@@ -36663,7 +36663,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \       Name: LL28
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate R = 256 * A / Q
 \
 \ ------------------------------------------------------------------------------
@@ -36760,7 +36760,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \       Name: LL38
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (S A) = (S R) + (A Q)
 \
 \ ------------------------------------------------------------------------------
@@ -36824,7 +36824,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \       Name: LL51
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Geometry)
 \    Summary: Calculate the dot product of XX15 and XX16
 \
 \ ------------------------------------------------------------------------------
@@ -38784,7 +38784,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \       Name: LL61
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (U R) = 256 * A / Q
 \
 \ ------------------------------------------------------------------------------
@@ -38863,7 +38863,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \       Name: LL62
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate 128 - (U R)
 \
 \ ------------------------------------------------------------------------------
@@ -39677,7 +39677,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \       Name: LL118
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Drawing lines
 \    Summary: Move a point along a line until it is on-screen
 \
 \ ------------------------------------------------------------------------------
@@ -39893,7 +39893,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \       Name: LL120
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (Y X) = (S x1_lo) * XX12+2 or (S x1_lo) / XX12+2
 \
 \ ------------------------------------------------------------------------------
@@ -40001,7 +40001,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \       Name: LL123
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate (Y X) = (S R) / XX12+2 or (S R) * XX12+2
 \
 \ ------------------------------------------------------------------------------
@@ -40147,7 +40147,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \       Name: LL129
 \       Type: Subroutine
-\   Category: Maths
+\   Category: Maths (Arithmetic)
 \    Summary: Calculate Q = XX12+2, A = S EOR XX12+3 and (S R) = |S R|
 \
 \ ------------------------------------------------------------------------------
