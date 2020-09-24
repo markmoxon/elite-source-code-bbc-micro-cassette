@@ -11,7 +11,7 @@
 \
 \ The terminology used in this commentary is explained below
 \
-\ ******************************************************************************
+\ ------------------------------------------------------------------------------
 \
 \ This source file produces the following binary file:
 \
@@ -113,7 +113,7 @@
 \ So here X is the high byte and Y the low byte. Or here's a 24-bit number made
 \ up of a mix of registers and memory locations:
 \
-\  (A S S+1)
+\   (A S S+1)
 \
 \ Again, the most significant byte is on the left, so that's the accumulator A,
 \ then the next most significant is in memory location S, and the least
@@ -499,6 +499,18 @@ ORG O%
 \ up the sound envelopes in part 2 below. Refer to chapter 30 of the BBC Micro
 \ User Guide for details of sound envelopes.
 \
+\ The envelopes are as follows:
+\
+\   * Envelope 1 is the sound of our own laser firing
+\
+\   * Envelope 2 is the sound of lasers hitting us, or hyperspace
+\
+\   * Envelope 3 is the first sound in the two-part sound of us dying, or the
+\     second sound in the two-part sound of us making hitting or killing an
+\     enemy ship
+\
+\   * Envelope 4 is the sound of E.C.M. firing
+\
 \ ******************************************************************************
 
 .E%
@@ -610,6 +622,7 @@ ORG O%
 \ start of those bytes, which means we can push executable code onto the stack
 \ and run it by calling this address with a JMP (David23) instruction. Sneaky
 \ stuff!
+\
 \ ******************************************************************************
 
 .David23
@@ -687,6 +700,31 @@ ORG O%
 
  BCC Ian1               \ This instruction is part of the multi-jump obfuscation
                         \ in PROT1
+
+\ ******************************************************************************
+\
+\       Name: FNE
+\       Type: Macro
+\   Category: Sound
+\    Summary: Macro definition for defining a sound envelope
+\
+\ ------------------------------------------------------------------------------
+\
+\ The following macro is used to defining the four sound envelopes used in the
+\ game. It uses OSWORD 8 to create an envelope using the 14 parameters in the
+\ the I%-th block of 14 bytes at location E%. This does the same as BBC BASIC's
+\ ENVELOPE command.
+\
+\ See variable E% for more details of the envelopes themselves.
+\
+\ ******************************************************************************
+
+MACRO FNE I%
+  LDX #LO(E%+I%*14)     \ Call OSWORD with A = 8 and (Y X) pointing to the
+  LDY #HI(E%+I%*14)     \ I%-th set of envelope data in E%, to set up sound
+  LDA #8                \ envelope I%
+  JSR OSWORD
+ENDMACRO
 
 \ ******************************************************************************
 \
@@ -977,14 +1015,7 @@ ENDIF
  EOR crunchit           \ has no effect as crunchit contains a BRK instruction
  STA crunchit           \ with opcode 0), to change crunchit to an indirect JMP
 
-MACRO FNE I%
-  LDX #LO(E%+I%*14)     \ Call OSWORD with A = 8 and (Y X) pointing to the
-  LDY #HI(E%+I%*14)     \ I%-th set of envelope data in E%, to set up sound
-  LDA #8                \ envelope I%
-  JSR OSWORD
-ENDMACRO
-
- FNE 0                  \ Set up sound envelopes 0-3 using the macro above
+ FNE 0                  \ Set up sound envelopes 0-3 using the FNE macro
  FNE 1
  FNE 2
  FNE 3

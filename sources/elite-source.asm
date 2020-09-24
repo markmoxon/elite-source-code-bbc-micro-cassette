@@ -12,7 +12,7 @@
 \ The terminology used in this commentary is explained at the start of the
 \ elite-loader.asm file
 \
-\ ******************************************************************************
+\ ------------------------------------------------------------------------------
 \
 \ This source file produces the following binary files:
 \
@@ -1381,8 +1381,8 @@ ORG &0300
                         \
                         \ See QQ23 for a list of market item numbers and their
                         \ storage units, and the deep dive on "Market item
-                        \ availability" for details of the algorithm used for
-                        \ calculating each item's availability
+                        \ prices and availability" for details of the algorithm
+                        \ used for calculating each item's availability
 
 .QQ26
 
@@ -1390,8 +1390,8 @@ ORG &0300
                         \
                         \ This value is set to a new random number for each
                         \ change of system, so we can add a random factor into
-                        \ the calculations for market prices (see the deep dive
-                        \ on "Market prices" for details of how this is used)
+                        \ the calculations for market prices (for details of how
+                        \ this is used, see the deep dive on "Market prices")
 
 .TALLY
 
@@ -3110,11 +3110,14 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ ------------------------------------------------------------------------------
 \
 \ Contains ship data for all the ships, planets, suns and space stations in our
-\ local bubble of universe, along with their corresponding ship line heap.
+\ local bubble of universe, along with their corresponding ship line heaps.
 \
 \ The blocks are pointed to by the lookup table at location UNIV. The first 468
-\ bytes of the K% workspace holds data on up to 13 ships, with 36 (NI%) bytes
-\ per ship, and the heap grows downwards from WP at the end of the K% workspace.
+\ bytes of the K% workspace hold ship data on up to 13 ships, with 36 (NI%)
+\ bytes per ship, and the ship line heap grows downwards from WP at the end of
+\ the K% workspace.
+\
+\ See the deep dive on "Ship data blocks" for details on ship data blocks.
 \
 \ ******************************************************************************
 \
@@ -3122,95 +3125,88 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ ===========================
 \
 \ Every ship in our local bubble of universe has its own data block, stored in
-\ the K% workspace. The data block contains information about the ship's status,
-\ its location in space, its orientation and so on. Each ship in the local
-\ bubble has an entry in the lookup table at UNIV that points to its data block
-\ in K%, and along with the ship slots at FRIN and the ship blueprints at XX21,
-\ we have everything we need to simulate the world of Elite.
+\ the K% workspace. The ship data block contains information about the ship's
+\ status, its location in space, its orientation and so on. Each ship in the
+\ local bubble has an entry in the lookup table at UNIV that points to its data
+\ block in K%, and along with the ship slots at FRIN and the ship blueprints at
+\ XX21, we have everything we need to simulate the world of Elite.
 \
-\ (Before going any further, an important note. Throughout this documentation
-\ we're going to refer to "ships" and "ship data blocks" for all the different
-\ types of object in the vicinity, not just ships. The same blocks, pointers and
-\ data structures are used not only for ships, but also for cargo canisters,
-\ missiles, escape pods, asteroids, space stations, planets and suns, but that's
-\ a bit of a mouthful compared to "ships", so "ships" it is.)
+\ Before going any further, some important notes on how we're going to talk
+\ about ships and ship data blocks.
+\
+\ Ship data terminology
+\ ---------------------
+\ Throughout this documentation, we're going to refer to "ships" and "ship data
+\ blocks" for all the different object types in the vicinity, not just ships.
+\ The same blocks, pointers and data structures are used not only for ships, but
+\ also for cargo canisters, missiles, escape pods, asteroids, space stations,
+\ planets and suns, but that's a bit of a mouthful compared to "ships", so
+\ "ships" it is.
 \
 \ When working with a ship's data - such as when we move a ship in MVEIT, or
 \ spawn a child ship in SFS1 - we normally work with the data in the INWK
 \ workspace, as INWK is in zero page and is therefore faster and more memory
 \ efficient to manipulate. The ship data blocks in the K% workspace are
 \ therefore copied into INWK before they are worked on, and new ship blocks
-\ are created in INWK before being copied to K%, so the layout of the INWK data
-\ block is identical the layout of each blocks in K%.
+\ are created in INWK before being copied to K%. As a result, the layout of the
+\ INWK data block is identical the layout of each ship data block in K%.
 \
-\ To add to the confusion, INWK is known as XX1 in some parts of the codebase,
-\ namely those parts that were written by David Braben on his Acorn Atom, which
-\ forced you to start label names with AA to ZZ. Because we might end up talking
-\ about ship data at INWK, K% or XX1, this commentary refers to "ship byte #5"
-\ for byte #5 of the ship data (y_sign), or "ship byte #32" for byte #32 (the AI
-\ flag), and so on. Most of the time we will be working with INWK or XX1, but
-\ every now and then the bytes in the K% block are manipulated directly, which
-\ we will point out in the comments.
+\ It's also important to note that INWK is known as XX1 in some parts of the
+\ codebase, namely those parts that were written by David Braben on his Acorn
+\ Atom, where he was only allowed to use label names starting with two letters,
+\ followed by numbers (this is why the source code is full of catchy labels like
+\ TT26 and LL9). Because we might end up talking about ship data in INWK, K% or
+\ XX1, this commentary refers to "ship byte #5" for byte #5 of the ship data
+\ (y_sign), or "ship byte #32" for byte #32 (the AI flag), and so on. Most of
+\ the time we will be working with INWK or XX1, but every now and then the bytes
+\ in the K% block are manipulated directly, which we will point out in the
+\ comments.
 \
-\ There are 36 bytes of data in each ship's block, and as mentioned above, the
-\ same data structure is used to describe every type of object in the universe,
-\ not just ships (though we still refer to this as "ship data" for convenience).
-\ They all have the same format, though not all bytes are used for all ship
-\ types; planets, for example, don't have AI or missiles, though it would be fun
-\ if they did...
+\ There are 36 bytes of data in each ship's block, and as mentioned above, they
+\ all have the same format, though not all bytes are used for all ship types.
+\ Planets, for example, don't have AI or missiles, though it would be fun if
+\ they did...
+\
+\ Let's take a look at the format of a typical ship data block.
 \
 \ Summary of the ship data block format
 \ -------------------------------------
 \ The bytes in each ship data block are arranged as follows:
 \
-\   * Bytes #0-8        Ship coordinates:
+\   * Bytes #0-2        Ship's x-coordinate in space = (x_sign x_hi x_lo)
 \
-\                         * Bytes #0-2 = (x_sign x_hi x_lo) in INWK(2 1 0)
-\                         * Bytes #3-5 = (y_sign y_hi y_lo) in INWK(5 4 3)
-\                         * Bytes #6-8 = (z_sign z_hi z_lo) in INWK(8 7 6)
+\   * Bytes #3-5        Ship's y-coordinate in space = (y_sign y_hi y_lo)
 \
-\   * Bytes #9-26       Orientation vectors:
+\   * Bytes #6-8        Ship's z-coordinate in space = (z_sign z_hi z_lo)
 \
-\                         * Bytes #9-14 = nosev = [ nosev_x nosev_y nosev_z] 
+\   * Bytes #9-14       Orientation vector nosev = [ nosev_x nosev_y nosev_z ] 
 \
-\                           * nosev_x = INWK(10 9)
-\                           * nosev_y = INWK(12 11)
-\                           * nosev_z = INWK(14 13)
+\   * Bytes #15-19      Orientation vector roofv = [ roofv_x roofv_y roofv_z ]
 \
-\                         * Bytes #15-19 = roofv = [ roofv_x roofv_y roofv_z ]
+\   * Bytes #21-26      Orientation vector sidev = [ sidev_x sidev_y sidev_z ]
 \
-\                           * roofv_x = INWK(16 15)
-\                           * roofv_y = INWK(18 17)
-\                           * roofv_z = INWK(20 19)
+\   * Byte #27          Speed
 \
-\                         * Bytes #21-26 = sidev = [ sidev_x sidev_y sidev_z ]
+\   * Byte #28          Acceleration
 \
-\                           * sidev_x = INWK(22 21)
-\                           * sidev_y = INWK(24 23)
-\                           * sidev_z = INWK(26 25)
+\   * Byte #29          Roll counter
 \
-\   * Bytes #27-30      Ship movement:
+\   * Byte #30          Pitch counter
 \
-\                         * Byte #27 = Speed
-\                         * Byte #28 = Acceleration
-\                         * Byte #29 = Roll counter
-\                         * Byte #30 = Pitch counter
+\   * Byte #31          Exploding state
+\                       Killed state
+\                       "Is being drawn on-screen" flag
+\                       "Is visible on the scanner" flag
+\                       Missile count
 \
-\   * Bytes #31-32      Ship flags:
+\   * Byte #32          AI flag
+\                       Hostility flag
+\                       Aggression level
+\                       E.C.M. flag
 \
-\                         * Byte #31 = Exploding/killed state
-\                                      "Is being drawn on-screen" flag
-\                                      Scanner flag
-\                                      Missile count
+\   * Bytes #33-34      Ship line heap address pointer
 \
-\                         * Byte #32 = AI flag
-\                                      Hostility flag
-\                                      Aggression level
-\                                      E.C.M. flag
-\
-\   * Bytes #33-34      Ship line heap address pointer in INWK(34 33)
-\
-\   * Byte #35          Ship energy
+\   * Byte #35          Energy level
 \
 \ Let's look at these in more detail.
 \
@@ -3232,22 +3228,22 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \   * Byte #7 = z_hi
 \   * Byte #8 = z_sign
 \
-\ The x, y and z coordinates in bytes #0-8 are stored as 24-bit sign-magnitude
-\ numbers, where the sign of the number is stored in bit 7 of the sign byte, and
-\ the other 23 bits contain the magnitude of the number without any sign (i.e.
-\ the absolute value, |x|, |y| or |z|).
+\ The coordinates are stored as 24-bit sign-magnitude numbers, where the sign of
+\ the number is stored in bit 7 of the sign byte, and the other 23 bits contain
+\ the magnitude of the number without any sign (i.e. the absolute values |x|,
+\ |y| and |z|).
 \
 \ We can also write the coordinates like this:
 \
-\   x-coordinate = (x_sign x_hi x_lo) = INWK(2 1 0)
-\   y-coordinate = (y_sign y_hi y_lo) = INWK(5 4 3)
-\   z-coordinate = (z_sign z_hi z_lo) = INWK(8 7 6)
+\   * x-coordinate = (x_sign x_hi x_lo) = INWK(2 1 0)
+\   * y-coordinate = (y_sign y_hi y_lo) = INWK(5 4 3)
+\   * z-coordinate = (z_sign z_hi z_lo) = INWK(8 7 6)
 \
 \ Orientation vectors (bytes #9-26)
 \ ---------------------------------
 \ The ship's orientation vectors determine its orientation in space. There are
-\ three vectors, each named according to the direction it points in (i.e. out of
-\ the ship's nose, the ship's roof, or the ship's right side):
+\ three vectors, named according to the direction they point in (i.e. out of the
+\ ship's nose, the ship's roof, or the ship's right side):
 \
 \   * Byte #9  = nosev_x_lo
 \   * Byte #10 = nosev_x_hi
@@ -3270,43 +3266,49 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \   * Byte #25 = sidev_z_lo
 \   * Byte #26 = sidev_z_hi
 \
-\ The vector coordinates in bytes #9-26 are stored as 16-bit sign-magnitude
-\ numbers, where the sign of the number is stored in bit 7 of the high byte. See
-\ the deep dive on "Orientation vectors" for more information.
+\ The vector coordinates are stored as 16-bit sign-magnitude numbers, where the
+\ sign of the number is stored in bit 7 of the high byte. See the deep dive on
+\ "Orientation vectors" for more information.
 \
 \ Ship movement (bytes #27-30)
 \ ----------------------------
 \ This block controls the ship's movement in space.
 \
-\   * Byte #27 = Speed
+\   * Byte #27 = Speed, in the range 1-40
 \
-\     * In the range 1-40
-\
-\   * Byte #28 = Acceleration
-\
-\     * Gets added to the speed once, in MVEIT, before being zeroed again
+\   * Byte #28 = Acceleration, which gets added to the speed once, in MVEIT,
+\     before being zeroed again
 \
 \   * Byte #29 = Roll counter
 \
-\     * Bits 0-6 = counter, reduces by 1 every iteration of the main flight
-\       loop if damping is enabled, ship rolls when the counter in bits 0-6 > 0
+\     * Bits 0-6 = The counter. If this is 127 (%1111111) then damping is
+\       disabled and the ship keeps rolling forever, otherwise damping is
+\       enabled and the counter reduces by 1 for every iteration of the main
+\       flight loop. The ship rolls by a fixed amount (1/16 radians, or 3.6
+\       degrees) for every iteration where the counter is > 0
 \
-\     * Bit 7 = direction of roll (sign)
+\     * Bit 7 = The direction of roll
 \
 \   * Byte #30 = Pitch counter
 \
-\     * Bits 0-6 = counter, reduces by 1 every iteration of the main flight loop
-\       if damping is enabled, hip pitches when the counter in bits 0-6 > 0
+\     * Bits 0-6 = The counter. If this is 127 (%1111111) then damping is
+\       disabled and the ship keeps pitching forever, otherwise damping is
+\       enabled and the counter reduces by 1 for every iteration of the main
+\       flight loop. The ship pitches by a fixed amount (1/16 radians, or 3.6
+\       degrees) for every iteration where the counter is > 0
 \
-\     * Bit 7 = direction of pitch (sign)
+\     * Bit 7 = The direction of pitch
+\
+\ See the deep dive on "Pitching and rolling by a fixed angle" for more details
+\ on the pitch and roll that the above counters apply to a ship.
 \
 \ Ship flags (bytes #31-32)
 \ -------------------------
 \ These two flags contain a lot of information about the ship, and they are
 \ consulted often.
 \
-\   * Byte #31 = exploding/killed state, drawn flag, scanner flag, or missile
-\     count
+\   * Byte #31 = Exploding state, Killed state, "Is being drawn on-screen" flag,
+\     "Is visible on the scanner" flag, Missile count
 \
 \     * Bits 0-2: %nnn = number of missiles or Thargons (maximum 7)
 \
@@ -3327,7 +3329,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \     * Bit 7:    0 = ship has not been killed
 \                 1 = ship has been killed
 \
-\   * Byte #32 = AI, hostility and E.C.M. flags
+\   * Byte #32 = AI flag, Hostility flag, Aggression level, E.C.M. flag
 \
 \     * For ships:
 \
@@ -3364,7 +3366,9 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ --------------------------------------
 \ The final two bytes are as follows:
 \
-\   * Bytes #33-34 = ship line heap address pointer in INWK(34 33)
+\   * Byte #33 = low byte of ship line heap address pointer in INWK(34 33)
+\
+\   * Byte #34 = high byte of ship line heap address pointer in INWK(34 33)
 \
 \   * Byte #35 = ship energy
 \
@@ -6277,8 +6281,8 @@ LOAD_A% = LOAD%
 \ (pitch), so the ship moves as we pitch and roll.
 \
 \ It does this using the exact same rotation equations that MVS4 uses in part 7
-\ to rotate the ship's orientation vectors (see the deep dive on "Rolling and
-\ pitching" for details of the maths behind the following). But just as with
+\ to rotate the ship's orientation vectors (see the deep dive on "Pitching and
+\ rolling" for details of the maths behind the following). But just as with
 \ part 7, there is a twist, and yet again, the twist is all about Minsky.
 \
 \ The twist is that, this time, the pitch and roll calculations are done in a
@@ -7019,8 +7023,8 @@ LOAD_A% = LOAD%
 \ rotation more stable (though more elliptic).
 \
 \ If that paragraph makes sense to you, then you should probably be writing
-\ this commentary! For the rest of us, there's an explanation in the deep dive
-\ on "Pitching and rolling".
+\ this commentary! For the rest of us, there's a detailed explanation of all
+\ this in the deep dive on "Pitching and rolling".
 \
 \ Arguments:
 \
@@ -8303,7 +8307,7 @@ PRINT "CH% = ", ~CH%
 .UNIV
 {
 FOR I%, 0, NOSH
- EQUW K% + I% * NI%     \ Address of block no. I%, of size NI%, in workspace K%
+  EQUW K% + I% * NI%    \ Address of block no. I%, of size NI%, in workspace K%
 NEXT
 }
 
@@ -9464,8 +9468,8 @@ NEXT
 \
 \ We do not draw a pixel at the end point (X2, X1).
 \
-\ To understand this routine, you might find it helpful to read the deep dive
-\ on "Drawing monochrome pixels in mode 4".
+\ To understand how this routine works, you might find it helpful to read the
+\ deep dive on "Drawing monochrome pixels in mode 4".
 \
 \ Returns:
 \
@@ -10329,15 +10333,15 @@ NEXT
 \
 \ There are three types of line heap used in Elite:
 \
-\   * The ball line heap, which is used by BLINE when drawing circles (as well
-\     as polygonal rings like the launch and hyperspace tunnel)
+\   * The ball line heap, which is used by the BLINE routine when drawing
+\     circles (as well as polygonal rings like the launch and hyperspace tunnel)
 \
-\   * The sun line heap, which is used by SUN when drawing the sun (see the deep
-\     dive "Drawing the sun" for details)
+\   * The sun line heap, which is used by the SUN routine when drawing the sun
+\     (see the deep dive on "Drawing the sun" for details)
 \
 \   * The ship line heap, one per ship in the local bubble of universe, which
-\     is used by LL9 when drawing ships (see the deep dive on "Drawing ships" for
-\     details)
+\     is used by the LL9 routine when drawing ships (see the deep dive on
+\     "Drawing ships" for details)
 \
 \ Here we take a look at the ball line heap that's stored at LSX2 and LSY2, and
 \ with the pointer in LSP.
@@ -15984,8 +15988,8 @@ LOAD_C% = LOAD% +P% - CODE%
 \ drawing the meridians and equators on planets in part 2 of PL9.
 \
 \ Let's have a look at how these tables work (see the deep dives on "Drawing
-\ circles" and "Drawing suns" for more details on how the sine and cosine tables
-\ are actually used.)
+\ circles" and "Drawing the sun" for more details on how the sine and cosine
+\ tables are actually used.)
 \
 \ Sine table
 \ ----------
@@ -18610,8 +18614,8 @@ NEXT
 \ The solution to having multiple views is similar in concept to the way we
 \ process pitch and roll. When we rotate our ship, we don't actually move our
 \ ship at all - instead, we rotate the entire universe around us, in the
-\ opposite direction to our movement (see the deep dives on "Rolling and
-\ pitching" and "Rotating the universe" for more details on this process). We do
+\ opposite direction to our movement (see the deep dives on "Pitching and
+\ rolling" and "Rotating the universe" for more details on this process). We do
 \ a similar kind of thing when we switch views, but instead of rotating all the
 \ other ships and planets around us, we flip the axes instead, which is a much
 \ quicker process.
@@ -19935,7 +19939,7 @@ NEXT
 
  RTS                    \ Return from the subroutine
 
-\.SCRTS+1               \ If we get here then the stick length is negative (so
+                        \ If we get here then the stick length is negative (so
                         \ the dot is above the ellipse and the stick is below
                         \ the dot, and we need to draw the stick downwards from
                         \ the dot)
@@ -20181,7 +20185,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Famously, Elite's galaxy and system data is generated procedurally, using a
 \ set of three 16-bit seed numbers and the Tribonnaci series. You can read all
-\ about this process in the deep dives on "Generating system data", "Generating
+\ about this process in the deep dives on "Generating system data", "Galaxy and
 \ system seeds" and "Twisting the system seeds", as well as the galaxy
 \ twisting process in Ghy.
 \
@@ -26128,9 +26132,9 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \   * Byte #0 = cloud size
 \
-\   * Byte #1 = cloud counter, starts at 18,
-\     increases by 4 each time we redraw the cloud, cloud expands until 128,
-\     shrinks until it overflows, then the cloud disappears
+\   * Byte #1 = cloud counter, starts at 18, increases by 4 each time we redraw
+\     the cloud, cloud expands until 128, shrinks until it overflows, then the
+\     cloud disappears
 \
 \   * Byte #2 = explosion count for this ship from the blueprint (i.e. the
 \     number of vertices used as origins for explosion clouds)
@@ -29545,7 +29549,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \                       centre of the new sun. As we draw lines and move up the
 \                       screen, we either decrement (bottom half) or increment
 \                       (top half) this value. See the deep dive on "Drawing the
-\                       sun" to see V in a diagram
+\                       sun" to see a diagram that shows V in action
 \
 \   V+1                 This determines which half of the new sun we are drawing
 \                       as we work our way up the screen, line by line:
@@ -29941,10 +29945,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ number is stored in CNT, so if STP were 2, CNT would be 0, 2, 4 and so on up
 \ to and including 64. So we work our way around the circle like this:
 \
-\   CNT = 0-16  is the bottom-right quadrant (6 o'clock to 3 o'clock)
-\   CNT = 16-32 is the top-right quadrant    (3 o'clock to 12 o'clock)
-\   CNT = 32-48 is the top-left quadrant     (12 o'clock to 9 o'clock)
-\   CNT = 48-64 is the bottom-left quadrant  (9 o'clock to 6 o'clock)
+\   * CNT = 0-16  is the bottom-right quadrant (6 o'clock to 3 o'clock)
+\   * CNT = 16-32 is the top-right quadrant    (3 o'clock to 12 o'clock)
+\   * CNT = 32-48 is the top-left quadrant     (12 o'clock to 9 o'clock)
+\   * CNT = 48-64 is the bottom-left quadrant  (9 o'clock to 6 o'clock)
 \
 \ If we can work out the coordinates of the point on the circle at step CNT,
 \ then we can draw the circle by simply drawing lines between each point, with
@@ -29983,10 +29987,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Specifically, we need to do the following (as screen y-coordinates are
 \ positive down the screen and screen x-coordinates are positive to the right):
 \
-\   CNT = 0-16  is the bottom-right quadrant so x is +ve and y is +ve
-\   CNT = 16-32 is the top-right quadrant    so x is +ve and y is -ve
-\   CNT = 32-48 is the top-left quadrant     so x is -ve and y is -ve
-\   CNT = 48-64 is the bottom-left quadrant  so x is -ve and y is +ve
+\   * CNT = 0-16  is the bottom-right quadrant so x is +ve and y is +ve
+\   * CNT = 16-32 is the top-right quadrant    so x is +ve and y is -ve
+\   * CNT = 32-48 is the top-left quadrant     so x is -ve and y is -ve
+\   * CNT = 48-64 is the bottom-left quadrant  so x is -ve and y is +ve
 \
 \ To get the final screen coordinates of the point at count CNT, we have to add
 \ the results from above to the coordinates of the centre of the circle, as the
@@ -38325,9 +38329,9 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Deep dive: Calculating vertex coordinates
 \ =========================================
 \
-\ To understand the following, you'll first need to take a look at the deep dive
-\ on "Back-face culling", which describes how we can work out whether or not a
-\ ship's face is visible.
+\ To understand the following, you'll probably want to have a look through the
+\ deep dive on "Back-face culling", which describes how we can work out whether
+\ or not a ship's face is visible.
 \
 \ As part of the back-face cull, we projected the vector [x y z] onto the
 \ orientation vector space like this:

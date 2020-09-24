@@ -12,7 +12,7 @@
 \ The terminology used in this commentary is explained at the start of the
 \ elite-loader.asm file
 \
-\ ******************************************************************************
+\ ------------------------------------------------------------------------------
 \
 \ This source file produces the following SSD disc image:
 \
