@@ -4746,7 +4746,7 @@ LOAD_A% = LOAD%
 \ and out of the screen.
 \
 \ Or, to put it mathematically, the z-coordinate of the end of the stick, or
-\ nosev_z, is smaller when our approach angle is off. The routine below uses
+\ nosev_z, is smaller when our approach angle is off. The docking routine uses
 \ this method to see how well we are approaching the slot, by comparing nosev_z
 \ with 214, so what does that mean?
 \
@@ -7298,7 +7298,7 @@ LOAD_A% = LOAD%
 \ Anyway, the rotation in Minsky's method doesn't describe a perfect circle,
 \ but instead it follows a slightly sheared ellipse, but that's close enough
 \ for 8-bit space combat in 192 x 256 pixels. So, coming back to the Elite
-\ source code, the routine below implements the rotation like this (shown
+\ source code, the MVS4 routine implements the rotation like this (shown
 \ here for the nosev orientation vectors, i.e. nosev_x, nosev_y and nosev_z):
 \
 \ Roll calculations:
@@ -8551,7 +8551,7 @@ NEXT
 \       if C flag is set then
 \         y = y + 1
 \
-\ This is the algorithm that's implemented in part 4 of the routine below, for
+\ This is the algorithm that's implemented in part 4 of the LOIN routine, for
 \ gently sloping lines that go right and down. It uses Q, S, X and Y as follows:
 \
 \   Q = |delta_y| / |delta_x|
@@ -8563,7 +8563,7 @@ NEXT
 \     if C flag set then
 \       inc Y
 \
-\ The full routine below implements the same basic algorithm multiple times,
+\ The full LOIN routine implements the same basic algorithm multiple times,
 \ tweaked to cater for all the other variations of sloping line (such as more
 \ vertical lines that slope sharply up and to the left, for example). But the
 \ same principles apply, just with different signs.
@@ -11842,8 +11842,8 @@ NEXT
 \
 \ Contains the four low bytes of the value 100,000,000,000 (100 billion).
 \
-\ The maximum number of digits that we can print with the BPRNT routine below is
-\ 11, so the biggest number we can print is 99,999,999,999. This maximum number
+\ The maximum number of digits that we can print with the BPRNT routine is 11,
+\ so the biggest number we can print is 99,999,999,999. This maximum number
 \ plus 1 is 100,000,000,000, which in hexadecimal is:
 \
 \   & 17 48 76 E8 00
@@ -12033,7 +12033,7 @@ NEXT
 \          = (K * 2) + (K * 8)
 \          = (K * 2) + (K * 2 * 2 * 2)
 \
-\ And that's what we do in the TT35 subroutine below, just with 32-bit
+\ And that's essentially what we do in the TT35 subroutine, just with 32-bit
 \ numbers with an 8-bit overflow. This doubling process is used quite a few
 \ times in the following, so let's look at an example, in which we double the
 \ number in K(S 0 1 2 3):
@@ -29304,7 +29304,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ effort then a clean ball sun. It's remarkably elegant for such a complicated-
 \ looking graphical effect.
 \
-\ The routine below combines the drawing of the new sun and the removal of the
+\ The SUN routine combines the drawing of the new sun and the removal of the
 \ old one into one pass through the line heap, from the bottom of the screen
 \ to the top (so from the end of the heap to the start). We do this in part 2
 \ by starting at the bottom and plotting each sun line in turn from the line
@@ -35982,7 +35982,7 @@ ENDMACRO
 \
 \   |nosev´| * |roofv´| * sin(theta) = 1 * 1 * 1 = 1
 \
-\ So if we calculate the following in the routine below, this will set sidev to
+\ So if we calculate the following in the TIDY routine, this will set sidev to
 \ a vector of length 1 that's perpendicular to the other two, which is a third
 \ orthonormal vector - exactly what we want our third vector to be.
 \
@@ -36578,7 +36578,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ When generalised to calculate the n-th root, this approach is called the
 \ "shifting nth-root" algorithm, and it is explained in various places on the
-\ web by minds more devious than mine. The routine below is an application of
+\ web by minds more devious than mine. The LL5 routine is an application of
 \ the algorithm for n = 2, which is why the number ("dividend") and remainder
 \ get shifted by two places in each iteration.
 \
