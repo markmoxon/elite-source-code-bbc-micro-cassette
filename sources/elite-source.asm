@@ -1475,34 +1475,43 @@ ORG CODE_WORDS%
 
 \ ******************************************************************************
 \
-\       Name: CHAR, TWOK, CTRL, RTOK
+\       Name: CHAR
 \       Type: Macro
 \   Category: Text
-\    Summary: Macro definitions for the recursive tokens table
+\    Summary: Macro definition for characters in the recursive token table
 \
 \ ------------------------------------------------------------------------------
 \
-\ The following macros are used to build the recursive token table:
+\ The following macro is used when building the recursive token table:
 \
 \   CHAR 'x'            Insert ASCII character "x"
 \
-\   TWOK 'x', 'y'       Insert two-letter token "xy"
-\
-\   CTRL n              Insert control code token {n}
-\
-\   RTOK n              Insert recursive token [n]
-\
-\                         * Tokens 0-95 get stored as n + 160
-\
-\                         * Tokens 128-145 get stored as n - 114
-\
-\                         * Tokens 96-127 get stored as n
+\ See the deep dive on "Printing text tokens" for details on how characters are
+\ stored in the recursive token table.
 \
 \ ******************************************************************************
 
 MACRO CHAR x
   EQUB x EOR 35
 ENDMACRO
+
+\ ******************************************************************************
+\
+\       Name: TWOK
+\       Type: Macro
+\   Category: Text
+\    Summary: Macro definition for two-letter tokens in the token table
+\
+\ ------------------------------------------------------------------------------
+\
+\ The following macro is used when building the recursive token table:
+\
+\   TWOK 'x', 'y'       Insert two-letter token "xy"
+\
+\ See the deep dive on "Printing text tokens" for details on how two-letter
+\ tokens are stored in the recursive token table.
+\
+\ ******************************************************************************
 
 MACRO TWOK t, k
   IF t = 'A' AND k = 'L' : EQUB 128 EOR 35 : ENDIF
@@ -1538,10 +1547,52 @@ MACRO TWOK t, k
   IF t = 'R' AND k = 'I' : EQUB 158 EOR 35 : ENDIF
   IF t = 'O' AND k = 'N' : EQUB 159 EOR 35 : ENDIF
 ENDMACRO
- 
+
+\ ******************************************************************************
+\
+\       Name: CTRL
+\       Type: Macro
+\   Category: Text
+\    Summary: Macro definition for control codes in the recursive token table
+\
+\ ------------------------------------------------------------------------------
+\
+\ The following macro is used when building the recursive token table:
+\
+\   CTRL n              Insert control code token {n}
+\
+\ See the deep dive on "Printing text tokens" for details on how characters are
+\ stored in the recursive token table.
+\
+\ ******************************************************************************
+
 MACRO CTRL n
   EQUB n EOR 35
 ENDMACRO
+
+\ ******************************************************************************
+\
+\       Name: RTOK
+\       Type: Macro
+\   Category: Text
+\    Summary: Macro definition for recursive tokens in the recursive token table
+\
+\ ------------------------------------------------------------------------------
+\
+\ The following macro is used when building the recursive token table:
+\
+\   RTOK n              Insert recursive token [n]
+\
+\                         * Tokens 0-95 get stored as n + 160
+\
+\                         * Tokens 128-145 get stored as n - 114
+\
+\                         * Tokens 96-127 get stored as n
+\
+\ See the deep dive on "Printing text tokens" for details on how recursive
+\ tokens are stored in the recursive token table.
+\
+\ ******************************************************************************
 
 MACRO RTOK n
   IF n >= 0 AND n <= 95
@@ -7220,7 +7271,7 @@ LOAD_A% = LOAD%
 \ approximations hold true:
 \
 \   sin a ~= a
-\   cos a ~= 1 - (a * a) / 2 ~= 1
+\   cos a ~= 1 - (a^2 / 2) ~= 1
 \   tan a ~= a
 \
 \ These approximations make sense when you look at the triangle geometry that
@@ -7229,12 +7280,10 @@ LOAD_A% = LOAD%
 \ hypotenuse, and as the angle tends to 0, the hypotenuse "hinges" down on top
 \ of the adjacent, so it's intuitive that cos a tends to 1 for small angles.
 \
-\ (A quick aside: the approximations actually state that cos a approximates to
-\ 1 - a^2/2, but Elite uses 1 and corrects for this in the TIDY routine, so
-\ let's stick to the simpler version.)
-\
-\ So dropping the small angle approximations into our rotation calculation above
-\ gives the following, much simpler version:
+\ The approximations above state that cos a approximates to 1 - (a^2 / 2), but
+\ Elite actually uses cos a ~= 1 and corrects for the inaccuracy by regularly
+\ calling the TIDY routine to. So dropping the small angle approximations into
+\ our rotation calculation above gives the following, much simpler version:
 \
 \   [  1   a   0 ]     [ x ]     [    x + ay     ]
 \   [ -a   1  -b ]  x  [ y ]  =  [ y - ax  - bz  ]
@@ -7250,7 +7299,7 @@ LOAD_A% = LOAD%
 \
 \ There's a fascinating document on Ian Bell's Elite website that shows this
 \ exact calculation, in the author's own handwritten notes for the game. You
-\ can see it in the second image here:
+\ can see it in the third image here:
 \
 \   http://www.iancgbell.clara.net/elite/design/index.htm
 \
@@ -40818,20 +40867,19 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: VERTEX, EDGE, FACE
+\       Name: VERTEX
 \       Type: Macro
 \   Category: Drawing ships
-\    Summary: Macro definition for ship blueprints
+\    Summary: Macro definition for adding vertices to ship blueprints
 \
 \ ------------------------------------------------------------------------------
 \
-\ The following macros are used to build the ship blueprints:
+\ The following macro is used to build the ship blueprints:
 \
 \   VERTEX x, y, z, face1, face2, face3, face4, visibility
 \
-\   EDGE vertex1, vertex2, face1, face2, visibility
-\
-\   FACE normal_x, normal_y, normal_z, visibility
+\ See the deep dive on "Ship blueprints" for details of how vertices are stored
+\ in ship blueprints.
 \
 \ ******************************************************************************
 
@@ -40860,10 +40908,46 @@ MACRO VERTEX x, y, z, face1, face2, face3, face4, visibility
   EQUB ax, ay, az, s, f1, f2
 ENDMACRO
 
+\ ******************************************************************************
+\
+\       Name: EDGE
+\       Type: Macro
+\   Category: Drawing ships
+\    Summary: Macro definition for adding edges to ship blueprints
+\
+\ ------------------------------------------------------------------------------
+\
+\ The following macro is used to build the ship blueprints:
+\
+\   EDGE vertex1, vertex2, face1, face2, visibility
+\
+\ See the deep dive on "Ship blueprints" for details of how edges are stored
+\ in ship blueprints.
+\
+\ ******************************************************************************
+
 MACRO EDGE vertex1, vertex2, face1, face2, visibility
   f = face1 + (face2 << 4)
   EQUB visibility, f, vertex1 << 2, vertex2 << 2
 ENDMACRO
+
+\ ******************************************************************************
+\
+\       Name: FACE
+\       Type: Macro
+\   Category: Drawing ships
+\    Summary: Macro definition for adding faces to ship blueprints
+\
+\ ------------------------------------------------------------------------------
+\
+\ The following macro is used to build the ship blueprints:
+\
+\   FACE normal_x, normal_y, normal_z, visibility
+\
+\ See the deep dive on "Ship blueprints" for details of how faces are stored
+\ in ship blueprints.
+\
+\ ******************************************************************************
 
 MACRO FACE normal_x, normal_y, normal_z, visibility
   IF normal_x < 0

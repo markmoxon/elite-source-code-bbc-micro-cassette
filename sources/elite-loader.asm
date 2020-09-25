@@ -735,9 +735,9 @@ ENDMACRO
 \
 \ ------------------------------------------------------------------------------
 \
-\ This part of the loader does a number of calls to OS calls, sets up the sound
-\ envelopes, pushes 33 bytes onto the stack that will be used later, and sends
-\ us on a wild goose chase, just for kicks.
+\ This part of the loader does a number of calls to OS routines, sets up the
+\ sound envelopes, pushes 33 bytes onto the stack that will be used later, and
+\ sends us on a wild goose chase, just for kicks.
 \
 \ ******************************************************************************
 

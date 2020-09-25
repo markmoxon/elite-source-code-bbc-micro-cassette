@@ -181,7 +181,7 @@ INCBIN "output/ELTG.bin"
 
 PRINT "checksum0 = ", ~P%
 
-SKIP 1                  \ We skip this byte so we can insert the checksum later
+ SKIP 1                 \ We skip this byte so we can insert the checksum later
                         \ in elite-checksum.py
 
 .ships
