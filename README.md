@@ -47,7 +47,7 @@ The following archives from Ian Bell's site form the basis for this project:
 
 ## Browsing the source in an IDE
 
-If you want to browse the source in an IDE rather than the [bbcelite.com website](https://www.bbcelite.com), you might find the following useful.
+If you want to browse the source in an IDE, you might find the following useful.
 
 * The most interesting files are in the [sources](sources) folder:
 
@@ -57,9 +57,11 @@ If you want to browse the source in an IDE rather than the [bbcelite.com website
 
 * It's probably worth skimming through the notes on terminology at the start of the [elite-loader.asm](sources/elite-loader.asm) file, as this explains a number of terms used in the commentary, without which it might be a bit tricky to follow at times (in particular, you should understand the terminology I use for multi-byte numbers)
 
-* The source code is peppered with a number of "deep dives", each of which goes into an aspect of the game in more detail. You find deep dives in the source files by simply searching for `Deep dive:`
+* The source code is peppered with a number of "deep dives", each of which goes into an aspect of the game in more detail. You can find deep dives in the source files by simply searching for `Deep dive:`
 
-* There are loads of routines in Elite - literally hundreds. You can find them in the source files by searching for the type, from the following: `Type: Subroutine`, `Type: Variable`, `Type: Workspace` and `Type: Macro`
+* There are loads of routines and variables in Elite - literally hundreds. You can find them in the source files by searching for the following: `Type: Subroutine`, `Type: Variable`, `Type: Workspace` and `Type: Macro`
+
+* If you know the name of a routine, you can find it by searching for `Type: <name>`, as in `Name: SCAN` (for the 3D scanner routine) or `Name: LL9` (for the ship-drawing routine)
 
 * The entry point for the [main game code](sources/elite-source.asm) is routine `TT170`, which you can find by searching for `Name: TT170`. If you want to follow the program flow all the way from the title screen around the main game loop, then you can find a deep dive in the `TT170` routine that has you covered
 
@@ -71,7 +73,7 @@ I hope you enjoy exploring the inner-workings of BBC Elite as much as I have.
 
 ### Requirements
 
-You will need the following to build Elite from source:
+You will need the following to build Elite from the source:
 
 * BeebAsm, which can be downloaded from the [BeebAsm repository](https://github.com/stardot/beebasm). Mac and Linux users will have to build their own executable with `make code`, while Windows users can just download the `beebasm.exe` file.
 * Python. Both versions 2.7 and 3.x should work.
