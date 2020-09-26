@@ -9386,8 +9386,8 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
-\ This routine is used on the Inventory scren to draw a horizontal line at pixel
-\ row 19 to box in the title.
+\ This routine is used on the Inventory screen to draw a horizontal line at
+\ pixel row 19 to box in the title.
 \
 \ ******************************************************************************
 

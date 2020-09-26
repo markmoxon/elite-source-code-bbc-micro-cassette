@@ -2,17 +2,21 @@
 
 This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained.
 
-It is a companion to the [bbcelite.com website](https://www.bbcelite.com), which contains all the code from this repository, but laid out in a much more human-friendly fashion. If you want to browse the source and read about how Elite works under the hood, you will probably find the website is a better place to start than this repository.
+It is a companion to the [bbcelite.com website](https://www.bbcelite.com), which contains all the code from this repository, but laid out in a much more human-friendly fashion.
 
-If you would rather explore the source code in your favourite IDE, then the [annotated source](sources/elite-source.asm) is what you're looking for. It contains the exact same content as the website, so you won't be missing out (the website is generated from the source files, so they are identical).
+* If you want to browse the source and read about how Elite works under the hood, you will probably find [the website](https://www.bbcelite.com) is a better place to start than this repository.
 
-And if you want to build Elite from the source on a modern computer, to produce a working game disc that can be loaded into a BBC Micro or an emulator, then you're definitely in the right place.
+* If you would rather explore the source code in your favourite IDE, then the [annotated source](sources/elite-source.asm) is what you're looking for. It contains the exact same content as the website, so you won't be missing out (the website is generated from the source files, so they are guaranteed to be identical). You might also like to read the section on [Browsing the source in an IDE](#browsing-the-source-in-an-ide) for some tips.
+
+* If you want to build Elite from the source on a modern computer, to produce a working game disc that can be loaded into a BBC Micro or an emulator, then you want the section on [Building Elite from the source](#building-elite-from-the-source).
 
 My hope is that this repository and the [accompanying website](https://www.bbcelite.com) will be useful for those who want to learn more about Elite and what makes it tick. It is provided on an educational and non-profit basis, with the aim of helping people appreciate one of the most iconic games of the 8-bit era.
 
 ## Contents
 
 * [Acknowledgements](#acknowledgements)
+
+* [Browsing the source in an IDE](#browsing-the-source-in-an-ide)
 
 * [Building Elite from the source](#building-elite-from-the-source)
 
@@ -34,12 +38,34 @@ The original 1984 source code is copyright &copy; Ian Bell and David Braben, and
 
 The commentary is copyright &copy; Mark Moxon. Any misunderstandings or mistakes in the documentation are entirely my fault.
 
-Huge thanks are due to the original authors for not only creating such an important piece of my childhood, but also for releasing the source code for us to play with; to Paul Brink for his annotated disassembly; and to Kieran Connell for his BeebAsm version, which I forked as the original basis for this repository. You can find more information about this project in the the [accompanying website's project page](https://www.bbcelite.com/about_site/about_this_project.html).
+Huge thanks are due to the original authors for not only creating such an important piece of my childhood, but also for releasing the source code for us to play with; to Paul Brink for his annotated disassembly; and to Kieran Connell for his BeebAsm version, which I forked as the original basis for this repository. You can find more information about this project in the [accompanying website's project page](https://www.bbcelite.com/about_site/about_this_project.html).
 
 The following archives from Ian Bell's site form the basis for this project:
 
 * [Cassette sources as a disc image](http://www.elitehomepage.org/archive/a/a4080602.zip)
 * [Cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip)
+
+## Browsing the source in an IDE
+
+If you want to browse the source in an IDE rather than the [bbcelite.com website](https://www.bbcelite.com), you might find the following useful.
+
+* The most interesting files are in the [sources](sources) folder:
+
+  * The main game's source code is in the [elite-source.asm](sources/elite-source.asm) file - this is the motherlode and probably contains all the stuff you're interested in
+
+  * The game's loader is in the [elite-loader.asm](sources/elite-loader.asm) file - this is mainly concerned with setup and copy protection
+
+* It's probably worth skimming through the notes on terminology at the start of the [elite-loader.asm](sources/elite-loader.asm) file, as this explains a number of terms used in the commentary, without which it might be a bit tricky to follow at times (in particular, you should understand the terminology I use for multi-byte numbers)
+
+* The source code is peppered with a number of "deep dives", each of which goes into an aspect of the game in more detail. You find deep dives in the source files by simply searching for `Deep dive:`
+
+* There are loads of routines in Elite - literally hundreds. You can find them in the source files by searching for the type, from the following: `Type: Subroutine`, `Type: Variable`, `Type: Workspace` and `Type: Macro`
+
+* The entry point for the [main game code](sources/elite-source.asm) is routine `TT170`, which you can find by searching for `Name: TT170`. If you want to follow the program flow all the way from the title screen around the main game loop, then you can find a deep dive in the `TT170` routine that has you covered
+
+* The source code is designed to be read at an 80-column width and with a monospaced font, just like in the good old days
+
+I hope you enjoy exploring the inner-workings of BBC Elite as much as I have.
 
 ## Building Elite from the source
 
