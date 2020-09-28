@@ -7093,7 +7093,7 @@ LOAD_A% = LOAD%
 \ Deep dive: Pitching and rolling
 \ ===============================
 \
-\ In order to understand this routine, we need first to understand what it's
+\ In order to understand the MVS4 routine, we need first to understand what it's
 \ for, so consider our Cobra Mk III sitting in deep space, minding its own
 \ business, when an enemy ship appears in the distance. Inside the little
 \ bubble of universe that Elite creates to simulate this scenario, our ship is
