@@ -45,6 +45,18 @@ The following archives from Ian Bell's site form the basis for this project:
 * [Cassette sources as a disc image](http://www.elitehomepage.org/archive/a/a4080602.zip)
 * [Cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip)
 
+### A note on licences, copyright etc.
+
+This repository is _not_ provided with a licence, and there is intentionally no `LICENSE` file provided.
+
+According to [GitHub's licensing documentation](https://docs.github.com/en/free-pro-team@latest/github/creating-cloning-and-archiving-repositories/licensing-a-repository), this means that "the default copyright laws apply, meaning that you retain all rights to your source code and no one may reproduce, distribute, or create derivative works from your work".
+
+The reason for this is that my commentary is intertwined with the original Elite source code, and the original source code is copyright the original authors. The whole site is therefore covered by default copyright law, to ensure that their copyright is respected.
+
+Under GitHub's rules, you have the right to read and fork this repository... but that's it. No other use is permitted, I'm afraid.
+
+My hope is that the educational and non-profit intentions of this repository will enable it to stay hosted and available, but the original copyright holders do have the right to ask for it to be taken down, in which case I will comply without hesitation. I do hope, though, that along with the various other disassemblies and commentaries of this source, that it will remain viable.
+
 ## Browsing the source in an IDE
 
 If you want to browse the source in an IDE, you might find the following useful.
