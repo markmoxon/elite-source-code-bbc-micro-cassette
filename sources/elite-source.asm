@@ -45,7 +45,7 @@ GUARD &8000             \ Paged ROMS start here
 
 NOST = 18               \ Maximum number of stardust particles
 
-NOSH = 12               \ Maximum number of ships in our local bubble of the
+NOSH = 12               \ Maximum number of ships in our local bubble of
                         \ universe (counting from 0, so there are actually 13
                         \ ship slots)
 
@@ -3168,7 +3168,9 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ bytes per ship, and the ship line heap grows downwards from WP at the end of
 \ the K% workspace.
 \
-\ See the deep dive on "Ship data blocks" for details on ship data blocks.
+\ See the deep dive on "Ship data blocks" for details on ship data blocks, and
+\ the deep dive on "The local bubble of universe" for details of how Elite
+\ stores the local universe in K%, FRIN and UNIV.
 \
 \ ******************************************************************************
 \
@@ -3451,66 +3453,44 @@ ORG &0D40
 
  SKIP NOSH + 1          \ Slots for the 13 ships in the local bubble of universe
                         \
-                        \ Each slot contains one of the following:
-                        \
-                        \   * 0 if the slot is empty
-                        \
-                        \   * A ship type from 1-13 (see the list of ship types
-                        \     in location XX21)
-                        \
-                        \   * 129 if this is the sun
-                        \
-                        \   * 128 if this is the planet with an equator and
-                        \     meridian
-                        \
-                        \   * 130 if this is the planet with a crater
-                        \
-                        \ The corresponding address in the lookup table at UNIV
-                        \ points to the ship's data block, which in turn points
-                        \ to that ship's line heap
-                        \
-                        \ The first ship slot at location FRIN is always
-                        \ reserved for the planet, so it will always be 128 or
-                        \ 130, depending on the type of planet
-                        \
-                        \ The second ship slot at FRIN+1 is reserved for the
-                        \ sun or space station (we only ever have one of these
-                        \ in our local bubble of space). So it will always be
-                        \ either #SST (8) for the space station, or 129 for the
-                        \ sun
-                        \
-                        \ Ships in our local bubble start at FRIN+2 onwards
+                        \ See the deep dive on "The local bubble of universe"
+                        \ for details of how Elite stores the local universe in
+                        \ FRIN, UNIV and K%
 
 .CABTMP
 
  SKIP 0                 \ Cabin temperature
                         \
-                        \ 30 = cabin temperature in deep space (i.e. one notch
-                        \      on the dashboard bar)
+                        \ The ambient cabin temperature in deep space is 30,
+                        \ which is displayed as one notch on the dashboard bar
                         \
                         \ We get higher temperatures closer to the sun
                         \
-                        \ Shares a location with MANY, but that's OK because
-                        \ MANY would contain the number of ships of type 0, but
-                        \ IT isn't used because ship types start at 1
+                        \ CABTMP shares a location with MANY, but that's OK as
+                        \ MANY+0 would contain the number of ships of type 0,
+                        \ but as there is no ship type 0 (they start at 1), MANY
+                        \ is unused
 
 .MANY
 
- SKIP SST               \ Ship counts by type
+ SKIP SST               \ The number of ships of each type in the local bubble
+                        \ of universe
                         \
-                        \ Contains a count of how many ships there are of each
-                        \ type in our local bubble of universe, with the number
-                        \ of ships of type X being stored at offset X, so the
-                        \ current number of Sidewinders is at MANY+1, the number
-                        \ of Mambas is at MANY+2, and so on
+                        \ The number of ships of type X in the local bubble is
+                        \ stored at MANY+X, so the number of Sidewinders is at
+                        \ MANY+1, the number of Mambas is at MANY+2, and so on
+                        \
+                        \ See the deep dive on "Ship blueprints" for a list of
+                        \ ship types
 
 .SSPR
 
  SKIP 14 - SST          \ "Space station present" flag
                         \
-                        \ Non-zero if we are inside the space station safe zone
+                        \   * Non-zero if we are inside the space station's safe
+                        \     zone
                         \
-                        \ 0 if we aren't (in which case we can show the sun)
+                        \   * 0 if we aren't (in which case we can show the sun)
                         \
                         \ This flag is at MANY+SST, which is no coincidence, as
                         \ MANY+SST is a count of how many space stations there
@@ -4404,7 +4384,7 @@ LOAD_A% = LOAD%
 .MA3
 
  LDX #0                 \ We're about to work our way through all the ships in
-                        \ our little bubble of universe, so set a counter in X,
+                        \ our local bubble of universe, so set a counter in X,
                         \ starting from 0, to refer to each ship slot in turn
 
 .^MAL1
@@ -5449,7 +5429,7 @@ LOAD_A% = LOAD%
  BNE P%+5               \ remove the sun from the screen, as we can't have both
  JSR WPLS               \ the sun and the space station at the same time
 
- JSR NWSPS              \ Add a new space station to our little bubble of
+ JSR NWSPS              \ Add a new space station to our local bubble of
                         \ universe
 
 .MA23S
@@ -8325,31 +8305,198 @@ PRINT "CH% = ", ~CH%
 \       Name: UNIV
 \       Type: Variable
 \   Category: Universe
-\    Summary: Table of pointers to local universe's ship data blocks
+\    Summary: Table of pointers to the local universe's ship data blocks
 \
 \ ------------------------------------------------------------------------------
 \
-\ The little bubble of the universe that we simulate in Elite can contain up to
-\ NOSH + 1 (13) ships. Each of those ships has its own block of 36 (NI%) bytes
-\ that contains information such as the ship's position in space, speed,
-\ rotation, energy and so on, as well as a pointer to the line data for
-\ plotting it on-screen. These 13 blocks of ship data live in the first 468
-\ bytes of the workspace at K% (&0900 to &0AD4).
+\ See the deep dive on "Ship data blocks" for details on ship data blocks, and
+\ the deep dive on "The local bubble of universe" for details of how Elite
+\ stores the local universe in K%, FRIN and UNIV.
 \
-\ In order to update the ship data, the whole block is copied to the INWK ship
-\ workspace in zero page, as it's easier and quicker to work with zero page
-\ locations. See the INWK documentation for details of the 36 bytes and the
+\ ******************************************************************************
+\
+\ Deep dive: The local bubble of universe
+\ =======================================
+\
+\ One of the most impressive aspects of Elite is how expansive the universe
+\ feels. The eight galaxies and 2048 systems no doubt have something to do with
+\ this, but while they might make you feel like nothing more than a pale blue
+\ dot in the background of a cosmic snapshot, the experience of flying around in
+\ system space is a lot more visceral. That feeling in the pit of your stomach
+\ when a group of pirates pings into view on the scanner, while you're busy
+\ surfing the sun's rays for precious fuel while trying not to boil the outer
+\ hull into stardust... there's a real sense of being there, out in the black.
+\ Clearly a 32K micro from the early 1980s can't actually be home to an entire
+\ solar system, so how does Elite simulate things closer to home?
+\
+\ The answer is in the "local bubble of universe", which stores all the details
+\ of our immediate vicinity, along with the major bodies in the current system.
+\ The local bubble is made up of the following data structures:
+\
+\   * The ship slots at FRIN
+\   * The ship data block lookup table at UNIV
+\   * The ship data blocks at K%
+\   * The ship blueprints at XX21
+\
+\ Using these, the local bubble can store details on up to 13 (NOSH + 1) ships,
+\ including the planet, sun and space station. Note that to keep things simple,
+\ we call any object in the vicinity a "ship", whether it's a ship, or a space
+\ station, the planet, the sun, a missile, an escape pod, an asteroid or a
+\ cargo canister.
+\
+\ Let's look at these structures in more detail.
+\
+\ The ship slots at FRIN
+\ ----------------------
+\ Each ship in our local bubble of universe has its own "ship slot" in the table
+\ at FRIN. Ships get added to slots by the NWSHP routine, and when they get
+\ killed or fly too far away to be in the bubble, they get removed from the
+\ table by the KILLSHP routine, and the whole table gets shuffled down to close
+\ up the gap. This means that the next free gap is always at the end of the
+\ table, assuming it isn't full (if it is, NWSHP returns with a flag to say that
+\ no new ship was created).
+\
+\ The local bubble always contains the planet, plus either the sun or the space
+\ station (but not both). The first two slots are reserved for this purpose as
+\ follows.
+\
+\ The first ship slot at location FRIN is always reserved for the planet. It
+\ contains 128 or 130, depending on the type of planet:
+\
+\   * 128 for a planet with an equator and meridian
+\
+\   * 130 for a planet with a crater
+\
+\ The second ship slot at FRIN+1 is always reserved for the sun and the space
+\ station. They can share the same slot because we only ever have one of them in
+\ our local bubble of universe at any one time - the sun disappears when we
+\ enter the space station's safe zone, and it reappears when we leave it again.
+\ This slot always contains one of the following:
+\
+\   * 8 (#SST) for the space station
+\
+\   * 129 for the sun
+\
+\ Any actual ships in our local bubble start at slot FRIN+2. There can be up to
+\ 11 ships in the local bubble, and for each of these, there's a slot containing
+\ the ship type. Ship types correspond to the blueprint numbers in the lookup
+\ table at XX21, and as this table has 13 entries, the ship type will be a value
+\ from 1-13 (though this part of the slot table never contains an 8, as we have
+\ already reserved the second ship slot at FRIN+1 for the space station). Some
+\ ship types have corresponding configuration variables that make the source
+\ code a bit easier to follow - such as #COPS for the Viper - but not all of
+\ them do. There is also one ship, the Cobra Mk III, that comes in two flavours:
+\ a ship type of 5 is a bounty hunting Cobra, while a ship type of 7 is a more
+\ peaceful trader. Both ships use the same blueprint when drawn on-screen, but
+\ their tactical behaviour is quite different.
+\
+\ The 13 ship types are as follows, along with the configuration variables where
+\ they exist:
+\
+\   1.  Sidewinder
+\   2.  Viper (COPS)
+\   3.  Mamba
+\   4.  Python
+\   5.  Cobra Mk III bounty hunter
+\   6.  Thargoid (THG)
+\   7.  Cobra Mk III trader (CYL)
+\   9.  Missile (MSL)
+\   10. Asteroid (AST)
+\   11. Cargo (OIL)
+\   12. Thargon (TGL)
+\   13. Escape pod (ESC)
+\
+\ If a ship slot is empty, it contains 0.
+\
+\ The ship data block lookup table at UNIV
+\ ----------------------------------------
+\ For each occupied ship slot in Fthe table at FRIN, there is a corresponding
+\ address in the lookup table at UNIV that points to that ship's data block.
+\ The ship data blocks are stored in the K% workspace, and the addresses in
+\ UNIV map to the ship slots in FRIN just as you would expect:
+\
+\   * UNIV points to the ship data block for the planet in slot FRIN
+\
+\   * UNIV+1 points to the ship data block for the sun or space station in slot
+\     FRIN+1
+\
+\   * UNIV+2 points to the ship data block for the ship in slot FRIN+2
+\
+\   * UNIV+3 points to the ship data block for the ship in slot FRIN+3
+\
+\ ...and so on up to UNIV+12. Because each ship data block is always the same
+\ size (36 bytes), the addresses in the UNIV table are hard-coded and don't
+\ change.
+\
+\ The ship data blocks at K%
+\ --------------------------
+\ As noted above, the local bubble of universe can contain up to 13 (NOSH + 1)
+\ ships, one for each slot in FRIN and address in UNIV. Each of those ships has
+\ its own ship data block of 36 (NI%) bytes that contains information such as
+\ the ship's position in space, its speed, its rotation, its energy levels and
+\ so on. It also contains a pointer to that ship's ship line heap which is
+\ where we store details of all the lines that aee required to draw the ship
+\ on-screen, so that it's easy to remove the ship from the screen by redrawing
+\ the exact same shape again (see the deep dive on "Drawing ships" for more
+\ details).
+\
+\ These 13 blocks of ship data live in the first 468 bytes of the workspace at
+\ K% (&0900 to &0AD4), while the ship line heaps are stored in descending order
+\ from the start of the WP workspace. This is the layout of the ship data blocks
+\ and ship line heaps in memory, shown when we are in the process of adding a
+\ new ship to the local bubble in the NWSHP routine:
+\
+\   +-----------------------------------+   &0F34
+\   |                                   |
+\   | WP workspace                      |
+\   |                                   |
+\   +-----------------------------------+   &0D40 = WP
+\   |                                   |
+\   | Current ship line heap            |
+\   |                                   |
+\   +-----------------------------------+   SLSP
+\   |                                   |
+\   | Proposed heap for new ship        |
+\   |                                   |
+\   +-----------------------------------+   INWK(34 33)
+\   |                                   |
+\   .                                   .
+\   .                                   .
+\   .                                   .
+\   .                                   .
+\   .                                   .
+\   |                                   |
+\   +-----------------------------------+   INF + NI%
+\   |                                   |
+\   | Proposed data block for new ship  |
+\   |                                   |
+\   +-----------------------------------+   INF
+\   |                                   |
+\   | Existing ship data blocks         |
+\   |                                   |
+\   +-----------------------------------+   &0900 = K%
+\
+\ If we want to update a ship's data, which we want to do when moving the ship
+\ in space during the main flight loop, then instead of working with the data in
+\ the K% workspace, we first copy the whole block to the INWK workspace. This
+\ "inner workspace" is in zero page, where it is much quicker and more efficient
+\ to access mempory locations. When we are done updating the ship's data, we
+\ copy it back to the relevant location in K%, as pointed to by the UNIV table.
+\
+\ See the deep dive on "Ship data blocks" for details of the 36 bytes and the
 \ information that they contain.
 \
-\ UNIV contains a table of address pointers to these data blocks, one for each
-\ of the 13 ships. So if we want to read the data for ship number 3 in our
-\ little bubble of the universe, we would look at the address held in UNIV+3
-\ (ship numbers start at 0).
+\ The ship blueprints at XX21
+\ ---------------------------
+\ Each ship type has an associated ship blueprint that contains fixed data about
+\ that specific ship type, such as its maximum speed or the size of the target
+\ area we need to hit with our lasers to cause damage. The blueprints also
+\ contain data on the ship's vertices, faces and edges, which are used to draw
+\ the ship on-screen.
 \
-\ Along with FRIN, which has a slot for each of the ships in the local bubble
-\ containing the ship types (or 0 for an empty slot), UNIV and K% contain all
-\ the information about the 13 ships and objects that can populate local space
-\ in Elite.
+\ The table at XX21 contains the blueprint addresses for the various ship types.
+\ See the deep dive on "Ship blueprints" for more details of the blueprints and
+\ the information that they contain.
 \
 \ ******************************************************************************
 
@@ -11638,7 +11785,7 @@ NEXT
  LDA #230               \ Otherwise we are in space, so start off by setting A
                         \ to token 70 ("GREEN")
 
- LDY MANY+AST           \ Set Y to the number of asteroids in our little bubble
+ LDY MANY+AST           \ Set Y to the number of asteroids in our local bubble
                         \ of universe
 
  LDX FRIN+2,Y           \ The ship slots at FRIN are ordered with the first two
@@ -18442,7 +18589,7 @@ NEXT
                         \ jump towards it
                         \
                         \ We do an in-system jump by moving the sun and planet,
-                        \ rather than moving our own little bubble (this is why
+                        \ rather than moving our own local bubble (this is why
                         \ in-system jumps drag asteroids, cargo canisters and
                         \ escape pods along for the ride). Specifically, we move
                         \ them in the z-axis by a fixed amount in the opposite
@@ -24260,7 +24407,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  JSR SOS1               \ Call SOS1 to set up the planet's data block and add it
                         \ to FRIN, where it will get put in the first slot as
-                        \ it's the first one to be added to our little bubble of
+                        \ it's the first one to be added to our local bubble of
                         \ universe following the call to RES2 above
 
  LDA #128               \ For the space station, set z_sign to &80, so it's
@@ -24268,7 +24415,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  INC INWK+7             \ And increment z_hi, so it's only just behind us
 
- JSR NWSPS              \ Add a new space station to our little bubble of
+ JSR NWSPS              \ Add a new space station to our local bubble of
                         \ universe
 
  LDA #12                \ Set our launch speed in DELTA to 12
@@ -26624,7 +26771,7 @@ LOAD_E% = LOAD% + P% - CODE%
  AND #%00000010         \ tech level in tek
  ORA #%10000000
 
- JMP NWSHP              \ Add a new planet to our little bubble of universe,
+ JMP NWSHP              \ Add a new planet to our local bubble of universe,
                         \ with the planet type defined by A (128 is a planet
                         \ with an equator and meridian, 130 is a planet with
                         \ a crater)
@@ -26666,7 +26813,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JSR SOS1               \ Call SOS1 to set up the planet's data block and add it
                         \ to FRIN, where it will get put in the first slot as
-                        \ it's the first one to be added to our little bubble of
+                        \ it's the first one to be added to our local bubble of
                         \ this new system's universe
 
  LDA QQ15+3             \ Fetch w1_hi, extract bits 0-2, set bits 0 and 7 and
@@ -26687,7 +26834,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JSR NWSHP              \ Call NWSHP to set up the sun's data block and add it
                         \ to FRIN, where it will get put in the second slot as
-                        \ it's the second one to be added to our little bubble
+                        \ it's the second one to be added to our local bubble
                         \ of this new system's universe
 }
 
@@ -27701,7 +27848,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: NWSPS
 \       Type: Subroutine
 \   Category: Universe
-\    Summary: Add a new space station to our little bubble of universe
+\    Summary: Add a new space station to our local bubble of universe
 \
 \ ******************************************************************************
 
@@ -27868,7 +28015,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ We now need to check that there is enough free space
                         \ for both this new line heap and the new data block
                         \ for our ship. In memory, this is the layout of the
-                        \ ship data and heap space:
+                        \ ship data blocks and ship line heaps:
                         \
                         \   +-----------------------------------+   &0F34
                         \   |                                   |
@@ -31039,7 +31186,7 @@ LOAD_F% = LOAD% + P% - CODE%
  LDX XSAV               \ Store the current ship's slot number in XSAV
 
  JSR KILLSHP            \ Call KILLSHP to remove the ship in slot X from our
-                        \ little bubble of universe
+                        \ local bubble of universe
 
  LDX XSAV               \ Restore the current ship's slot number from XSAV,
                         \ which now points to the next ship in the bubble
@@ -31192,13 +31339,13 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Name: KILLSHP
 \       Type: Subroutine
 \   Category: Universe
-\    Summary: Remove a ship from our little bubble of universe
+\    Summary: Remove a ship from our local bubble of universe
 \
 \ ------------------------------------------------------------------------------
 \
-\ Remove the ship in slot X from our little bubble of universe. This happens
+\ Remove the ship in slot X from our local bubble of universe. This happens
 \ when we kill a ship, collide with a ship and destroy it, or when a ship moves
-\ outside our little bubble.
+\ outside our local bubble.
 \
 \ We also use this routine when we move out of range of the space station, in
 \ which case we replace it with the sun.
@@ -33452,10 +33599,11 @@ ENDIF
                         \ green/cyan
 
  LDA #147               \ Call the TITLE subroutine to show the rotating ship
- LDX #MAM               \ and fire/space prompt. The arguments sent to TITLE
+ LDX #3                 \ and fire/space prompt. The arguments sent to TITLE
  JSR TITLE              \ are:
                         \
-                        \   X = type of ship to show, MAM is Mamba
+                        \   X = type of ship to show, #3 is a Mamba
+                        \
                         \   A = text token to show below the rotating ship, 147
                         \       is "PRESS FIRE OR SPACE,COMMANDER.{crlf}{crlf}"
 
@@ -40991,10 +41139,33 @@ ENDMACRO
 \ Flight Training Manual - a real life version of "Jane's Galactic Ships and
 \ Remote Colonial Construction, 5th Edition, 3205" (pub. Trantor House).
 \
-\ The ship blueprint defines a whole range of attributes, such as the ship's
+\ There is a lookup table at XX21 that contains the addresses of all the ship
+\ blueprints used in the game. Ship type 1 (the Sidewinder at SHIP1) is first in
+\ the table, then ship type 2 (the Viper at SHIP2) is next, and so on up to ship
+\ type 13 (the escape pod at SHIP13). For all ships except the Python, the
+\ blueprints themselves are stored in sequence just after the table; the Python
+\ is stored at SHIP4, just above screen memory at &7F00.
+\
+\ The 13 ship types are as follows, along with the configuration variables where
+\ they exist:
+\
+\   1.  Sidewinder
+\   2.  Viper (COPS)
+\   3.  Mamba
+\   4.  Python
+\   5.  Cobra Mk III bounty hunter
+\   6.  Thargoid (THG)
+\   7.  Cobra Mk III trader (CYL)
+\   9.  Missile (MSL)
+\   10. Asteroid (AST)
+\   11. Cargo (OIL)
+\   12. Thargon (TGL)
+\   13. Escape pod (ESC)
+\
+\ Each ship blueprint defines a whole range of attributes, such as the ship's
 \ maximum speed, the number of missiles it can carry, and the size of the target
 \ area we need to hit with our laser. It also contains data that's used when
-\ managing the ship once its spawned inside our little bubble of universe, like
+\ managing the ship once its spawned inside our local bubble of universe, like
 \ the maximum size of the ship line heap.
 \
 \ The blueprint also contains all the data we need to draw the ship on-screen.
