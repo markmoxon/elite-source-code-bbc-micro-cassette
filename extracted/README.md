@@ -1,6 +1,6 @@
-# Extracted binaries
+# Extracted binaries for the tape version of Elite
 
-This folder contains the binaries extracted from the original sources on Ian Bell's personal website.
+This folder contains the binaries extracted from the original sources for the tape version of Elite on Ian Bell's personal website.
 
 ---
 

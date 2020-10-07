@@ -19,12 +19,6 @@
 
 from __future__ import print_function
 import sys
-from os.path import basename
-
-if (sys.version_info > (3, 0)):
-    from io import BytesIO as ByteBuffer
-else:
-    from StringIO import StringIO as ByteBuffer
 
 argv = sys.argv
 argc = len(argv)
@@ -41,7 +35,7 @@ eliteb_offset = 0
 
 # Append all assembled code files
 
-elite_names = ('ELThead','ELTA','ELTB','ELTC','ELTD','ELTE','ELTF','ELTG')
+elite_names = ('ELThead', 'ELTA', 'ELTB', 'ELTC', 'ELTD', 'ELTE', 'ELTF', 'ELTG')
 
 for file_name in elite_names:
     print(str(len(data_block)), file_name)
@@ -54,9 +48,9 @@ for file_name in elite_names:
 # Commander data checksum
 
 commander_offset = 0x52
-CH=0x4B - 2
-CY=0
-for i in range(CH,0,-1):
+CH = 0x4B - 2
+CY = 0
+for i in range(CH, 0, -1):
     CH = CH + CY + data_block[eliteb_offset + i + 7]
     CY = (CH > 255) & 1
     CH = CH % 256
@@ -66,7 +60,7 @@ print("Commander checksum = ", CH)
 
 # Must have Commander checksum otherwise game will lock:
 
-if Encrypt == True:
+if Encrypt:
     data_block[eliteb_offset + commander_offset] = CH ^ 0xA9
     data_block[eliteb_offset + commander_offset + 1] = CH
 else:
@@ -91,12 +85,12 @@ for n in range(0x0, 0x4600):
 
 print("checksum 0 = ", checksum0)
 
-if Encrypt == True:
+if Encrypt:
     data_block[checksum0_offset] = checksum0 % 256
 
 # Encrypt data block
 
-if Encrypt == True:
+if Encrypt:
     for n in range(0x0, len(data_block) - 0x28):
         data_block[n + 0x28] ^= (n % 256)
 
@@ -128,10 +122,10 @@ loader_file.close()
 
 # Reverse bytes between BLOCK and ENDBLOCK
 
-BLOCK_offset = 0x14B0 
-ENDBLOCK_offset = 0x1530 
+BLOCK_offset = 0x14B0
+ENDBLOCK_offset = 0x1530
 
-for i in range(0,int((ENDBLOCK_offset - BLOCK_offset)/2)):
+for i in range(0, int((ENDBLOCK_offset - BLOCK_offset) / 2)):
     temp = loader_block[BLOCK_offset + i]
     loader_block[BLOCK_offset + i] = loader_block[ENDBLOCK_offset - i - 1]
     loader_block[ENDBLOCK_offset - i - 1] = temp
@@ -141,45 +135,45 @@ for i in range(0,int((ENDBLOCK_offset - BLOCK_offset)/2)):
 MAINSUM_offset = 0x1335
 
 MAINSUM = 0
-for i in range(0,0x400):
+for i in range(0, 0x400):
     MAINSUM += loader_block[i]
 
 print("MAINSUM = ", MAINSUM)
 
-if Encrypt == True:
+if Encrypt:
     loader_block[MAINSUM_offset + 1] = MAINSUM % 256
 
 # Compute CHECKbyt
 
 CHECKbyt_offset = 0x1334
 CHECKbyt = 0
-for i in range(1,384):
+for i in range(1, 384):
     CHECKbyt += loader_block[CHECKbyt_offset + i]
 
 print("CHECKbyt = ", CHECKbyt)
 
-if Encrypt == True:
+if Encrypt:
     loader_block[CHECKbyt_offset] = CHECKbyt % 256
 
-if Encrypt == True:
+if Encrypt:
     print("Encypting...")
 
     #  EOR TUT BLOCK (offset = 0x13e1)
 
-    for i in range(0,ENDBLOCK_offset - BLOCK_offset):
+    for i in range(0, ENDBLOCK_offset - BLOCK_offset):
         loader_block[0x13e1 + i] ^= loader_block[BLOCK_offset + i]
 
     # EOR CODE words (offset = 0xf86)
 
-    for i in range(0,2):
-        for j in range(0,256):
+    for i in range(0, 2):
+        for j in range(0, 256):
             if (j + i * 256 + CHECKbyt_offset) < len(loader_block):
                 loader_block[j + i * 256 + CHECKbyt_offset] ^= loader_block[j + 0xf86]
 
     # EOR DATA block at beginning of loader
 
-    for i in range(0,0xf):
-        for j in range(0,256):
+    for i in range(0, 0xf):
+        for j in range(0, 256):
             loader_block[j + i * 256] ^= loader_block[j + 0xf86]
 
 # Write output file for 'ELITE'

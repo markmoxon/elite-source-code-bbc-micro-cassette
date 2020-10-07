@@ -1,6 +1,6 @@
-# Original source code
+# Original source code for the tape version of Elite
 
-This folder contains the original source code from Ian Bell's personal website.
+This folder contains the original source code for the tape version of Elite from Ian Bell's personal website.
 
 ---
 

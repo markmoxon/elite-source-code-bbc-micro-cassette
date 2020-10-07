@@ -1,6 +1,6 @@
-# Build output
+# Build output for the tape version of Elite
 
-This folder contains the output binaries from the build process.
+This folder contains the output binaries from the build process for the tape version of Elite.
 
 ---
 
