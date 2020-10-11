@@ -12824,21 +12824,30 @@ NEXT
 
  ADC #&5E               \ A contains YC (from above) and the carry flag is set
  TAX                    \ (from the CPY #127 above), so these instructions do
-                        \ this: X = YC + &5E + 1 = YC + &5F
+                        \ this:
                         \
-                        \ Because YC starts at 1 for the first text row, this
-                        \ means that X will be &60 for row 1, &61 for row 2
-                        \ and so on. In other words, X is now set to the page
-                        \ number for the relevant row in screen memory (see
-                        \ the comment above)
+                        \   X = YC + &5E + 1
+                        \     = YC + &5F
+                        \
+                        \ Because YC starts at 0 for the first text row, this
+                        \ means that X will be &5F for row 0, &60 for row 1 and
+                        \ so on. In other words, X is now set to the page number
+                        \ for the row before the one containing the text cursor,
+                        \ and given that we set SC above to point to the offset
+                        \ in memory of the text cursor within the row's page,
+                        \ this means that (X SC) now points to the character
+                        \ above the text cursor
 
- LDY #&F8               \ Set Y = -8
+ LDY #&F8               \ Set Y = &F8, so the following call to ZES2 will count
+                        \ Y upwards from &F8 to &FF
 
- JSR ZES2               \ Call ZES2, which zero-fills the page pointed to by X,
-                        \ from position SC + Y to SC - so that's the 8 bytes
-                        \ before SC. We set SC above to point to the current
-                        \ character, so this zero-fills the character before
-                        \ that, effectively deleting the character to the left
+ JSR ZES2               \ Call ZES2, which zero-fills from address (X SC) + Y to
+                        \ (X SC) + &FF. (X SC) points to the character above the
+                        \ text cursor, and adding &FF to this would point to the
+                        \ cursor, so adding &F8 points to the character before
+                        \ the cursor, which is the one we want to delete. So
+                        \ this call zero-fills the character to the left of the
+                        \ cursor, which erases it from the screen
 
  BEQ RR4                \ We are done deleting, so restore the registers and
                         \ return from the subroutine (this BNE is effectively
@@ -34043,27 +34052,24 @@ ENDIF
 \
 \ ------------------------------------------------------------------------------
 \
-\ Zero-fill the page whose number is in X, from position SC to SC + Y.
-\
-\ If Y is 0, this will zero-fill 255 bytes starting from SC
-\
-\ If Y is negative, this will zero-fill from SC + Y to SC - 1, i.e. the Y bytes
-\ before SC
+\ Zero-fill from address (X SC) + Y to (X SC) + &FF.
 \
 \ Arguments:
 \
-\   X                   The page where we want to zero-fill
+\   X                   The high byte (i.e. the page) of the starting point of
+\                       the zero-fill
 \
-\   Y                   A negative value denoting how many bytes before SC we
-\                       want to start zeroing
+\   Y                   The offset from (X SC) where we start zeroing, counting
+\                       up to to &FF
 \
-\   SC                  The position in the page where we should zero fill up to
+\   SC                  The low byte (i.e. the offset into the page) of the
+\                       starting point of the zero-fill
 \
 \ ******************************************************************************
 
 .ZES2
 {
- LDA #0                 \ Load X with the byte we want to fill the memory block
+ LDA #0                 \ Load A with the byte we want to fill the memory block
                         \ with - i.e. zero
 
  STX SC+1               \ We want to zero-fill page X, so store this in the
