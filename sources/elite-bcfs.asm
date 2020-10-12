@@ -139,7 +139,7 @@ ORG &1100               \ The load address of the main game code file ("ELTcode"
 
 \ ******************************************************************************
 \
-\ Load compiled binaries to create the Big Code File
+\ Load the compiled binaries to create the Big Code File
 \
 \ ******************************************************************************
 
