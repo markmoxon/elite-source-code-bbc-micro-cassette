@@ -99,6 +99,10 @@ f9 = &77                \ Internal key number for red key f9 (Inventory)
 \ Deep dive: The Elite memory map
 \ ===============================
 \
+\ Summary: Memory usage, unused memory locations and labelling conventions
+\
+\ References: ZP, XX3, T%, QQ18, K%, WP, S%, XX21, SHIP4
+\
 \ The tape version of Elite uses almost every nook and cranny of the BBC Micro,
 \ which isn't surprising when you consider just how much the authors managed to
 \ squeeze into this 32K micro. Sure, the disc version of the game has more
@@ -1616,6 +1620,10 @@ ENDMACRO
 \
 \ Deep dive: Printing text tokens
 \ ===============================
+\
+\ Summary: Printing recursive text tokens, two-letter tokens and control codes
+\
+\ References: TT27
 \
 \ There are an awful lot of routines for printing text in Elite, covering
 \ everything from the formatting of huge decimal numbers to printing individual
@@ -3177,6 +3185,10 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ Deep dive: Ship data blocks
 \ ===========================
 \
+\ Summary: Storing data for each of the ships in the local bubble of universe
+\
+\ References: K%, INWK
+\
 \ Every ship in our local bubble of universe has its own data block, stored in
 \ the K% workspace. The ship data block contains information about the ship's
 \ status, its location in space, its orientation and so on. Each ship in the
@@ -4685,6 +4697,10 @@ LOAD_A% = LOAD%
 \ Deep dive: Docking checks
 \ =========================
 \
+\ Summary: The checks that determine whether we are docking... or just crashing
+\
+\ References: ISDK, Main flight loop (Part 9 of 16)
+\
 \ Docking is difficult, there's no doubt about it. The challenge of slotting
 \ into one of Elite's rotating Coriolis space stations is absolutely iconic, and
 \ for almost everyone, the first few attempts to match the station's rotation
@@ -5923,6 +5939,10 @@ LOAD_A% = LOAD%
 \ Deep dive: Orientation vectors
 \ ==============================
 \
+\ Summary: The three vectors that determine a ship's orientation in space
+\
+\ References: MVEIT (Part 1 of 9), INWK, K%, TIDY, MVS4, MVS5
+\
 \ Each ship in the Elite universe has its own set of three orientation vectors,
 \ which determine its orientation in space. There are three different vectors -
 \ nosev, roofv and sidev - with each of them pointing along one of the ship's
@@ -6298,6 +6318,10 @@ LOAD_A% = LOAD%
 \
 \ Deep dive: Rotating the universe
 \ ================================
+\
+\ Summary: What happens to the rest of the universe when we rotate our ship?
+\
+\ References: MVEIT (Part 5 of 9)
 \
 \ When we rotate our ship with the keyboard or joystick, it turns out that it's
 \ a lot easier to rotate the whole universe around our Cobra, rather than
@@ -7073,6 +7097,10 @@ LOAD_A% = LOAD%
 \ Deep dive: Pitching and rolling
 \ ===============================
 \
+\ Summary: Applying our pitch and roll to another ship's orientation in space
+\
+\ References: MVS4
+\
 \ In order to understand the MVS4 routine, we need first to understand what it's
 \ for, so consider our Cobra Mk III sitting in deep space, minding its own
 \ business, when an enemy ship appears in the distance. Inside the little
@@ -7491,6 +7519,10 @@ LOAD_A% = LOAD%
 \
 \ Deep dive: Pitching and rolling by a fixed angle
 \ ================================================
+\
+\ Summary: How other ships manage to pitch and roll in space
+\
+\ References: MVS5
 \
 \ We can pitch and roll our ship by varying amounts, as shown by the dashboard's
 \ DC and RL indicators, but enemy ships don't have such a luxury - it turns out
@@ -8318,6 +8350,10 @@ PRINT "CH% = ", ~CH%
 \ Deep dive: The local bubble of universe
 \ =======================================
 \
+\ Summary: The data structures used to simulate the universe around our ship
+\
+\ References: UNIV, FRIN, K%, XX21
+\
 \ One of the most impressive aspects of Elite is how expansive the universe
 \ feels. The eight galaxies and 2048 systems no doubt have something to do with
 \ this, but while they might make you feel like nothing more than a pale blue
@@ -8615,6 +8651,10 @@ NEXT
 \
 \ Deep dive: Bresenham's line algorithm
 \ =====================================
+\
+\ Summary: The main line-drawing algorithm used to draw non-horizontal lines
+\
+\ References: LOIN
 \
 \ Most of what you see in the space view in Elite is composed of straight lines.
 \ The ships are drawn using wireframes that are made up of straight lines, the
@@ -10098,6 +10138,10 @@ NEXT
 \ Deep dive: Drawing monochrome pixels in mode 4
 \ ==============================================
 \
+\ Summary: Poking screen memory to display monochrome pixels in the space view
+\
+\ References: PIXEL, TWOS, TWOS2
+\
 \ Everything boils down to pixels in the end. Even the most complicated ship
 \ battle, with ship hulls glinting in the glow of the distant sun and sparkling
 \ clouds of explosive dust dissipating into the cold vacuum of space... even
@@ -10514,6 +10558,10 @@ NEXT
 \ Deep dive: The ball line heap
 \ =============================
 \
+\ Summary: How we remember the lines used to draw circles so they can be redrawn
+\
+\ References: BLINE, LSX2, LSY2
+\
 \ The planet, the sun and ships in our local bubble of universe are complicated
 \ things, and we have to use an awful lot of maths to calculate their shapes
 \ on-screen. Not surprisingly, all that maths takes up quite a bit of processor
@@ -10875,6 +10923,10 @@ NEXT
 \
 \ Deep dive: Stardust in the front view
 \ =====================================
+\
+\ Summary: The algorithms behind the stardust particles in the front view
+\
+\ References: STARS1
 \
 \ The small particles of dust out there in space - which I've called "stardust"
 \ in this commentary, though I'm not sure what the official term is - is an
@@ -12172,6 +12224,10 @@ NEXT
 \ Deep dive: Printing decimal numbers
 \ ===================================
 \
+\ Summary: How to print big decimal numbers with decimal points and padding
+\
+\ References: BPRNT
+\
 \ Elite prints out a lot of numbers, all of them in decimal (hexadecimal and
 \ binary numbers are used internally, but we never see them displayed). The
 \ BPRNT routine can print out numbers from 0.1 to 4,294,967,295 (32 set bits),
@@ -13366,6 +13422,10 @@ NEXT
 \ Deep dive: The dashboard indicators
 \ ===================================
 \
+\ Summary: How the bar-based dashboard indicators display their data
+\
+\ References: DILX, DIALS
+\
 \ The dashboard shows an awful lot of information, and the vast majority of the
 \ indicators are bar-based (there are 11 bar indicators in all). The game uses
 \ one routine to display all 11 of these indicators - routine DILX - and that
@@ -13795,6 +13855,10 @@ NEXT
 \
 \ Deep dive: The split-screen mode
 \ ================================
+\
+\ Summary: Elite's famous split-screen mode, dissected and explained in detail
+\
+\ References: IRQ1
 \
 \ Elite uses a unique split-screen mode that enables a high-resolution
 \ black-and-white space view to coexist with a lower resolution, colour ship
@@ -14996,6 +15060,10 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Deep dive: In the crosshairs
 \ ============================
 \
+\ Summary: How the game knows whether an enemy is being hit by our laser fire
+\
+\ References: HITCH
+\
 \ During combat, one of the most important calculations is working out whether
 \ we have another ship in our sights. We need to calculate this when we're
 \ trying to hit another ship with our lasers, and when we're trying to get the
@@ -15795,6 +15863,10 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Deep dive: Stardust in the side views
 \ =====================================
 \
+\ Summary: The algorithms behind the stardust particles in the side views
+\
+\ References: STARS2
+\
 \ The STARS2 routine moves the stardust sideways according to our speed and
 \ which side we are looking out of, and applies our current pitch and roll to
 \ each particle of dust, so the stardust moves correctly when we steer our ship.
@@ -16182,6 +16254,10 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ Deep dive: The sine, cosine and arctan tables
 \ =============================================
+\
+\ Summary: The lookup tables used for the planet-drawing trigonometric functions
+\
+\ References: SNE, ARCTAN, ACT
 \
 \ The SNE table contains lookup values for sine and cosine. These values are
 \ used when drawing circles and suns, as the small angle approximation that we
@@ -17172,6 +17248,10 @@ NEXT
 \ Deep dive: Shift-and-add multiplication
 \ =======================================
 \
+\ Summary: The main algorithm behind Elite's many multiplication routines
+\
+\ References: MULT1, MU11, FMLTU
+\
 \ Elite implements multiplication using the shift-and-add algorithm. One such
 \ example is the MULT1 routine, which multiplies two 8-bit numbers to give a
 \ 16-bit result). Let's take a look at how it does it, as this same technique is
@@ -17483,6 +17563,10 @@ NEXT
 \
 \ Deep dive: Adding sign-magnitude numbers
 \ ========================================
+\
+\ Summary: Doing basic arithmetic with sign-magnitude numbers
+\
+\ References: ADD
 \
 \ Elite uses a lot of sign-magnitude numbers, where the sign bit is stored
 \ separately from an unsigned magnitude. The classic examples are the ship
@@ -18790,6 +18874,10 @@ NEXT
 \ Deep dive: Flipping axes between space views
 \ ============================================
 \
+\ Summary: Details of how the different space views are implemented
+\
+\ References: PLUT
+\
 \ Switching space views in Elite is one of those seemingly simple ideas that
 \ ends up adding so much to the believability of the game universe. When you're
 \ in deep space and an asteroid or a peaceful trader appears in the distance up
@@ -19621,6 +19709,10 @@ NEXT
 \ Deep dive: The 3D scanner
 \ =========================
 \
+\ Summary: The maths behind Elite's famous 3D elliptical scanner
+\
+\ References: SCAN
+\
 \ The elliptical 3D scanner in the centre of the dashboard is one of Elite's
 \ most celebrated features, but it almost didn't make it into the game. For
 \ almost all of the game's life the scanner consisted of two two-dimensional
@@ -20388,6 +20480,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Deep dive: Galaxy and system seeds
 \ ==================================
 \
+\ Summary: How system data is extracted from the galaxy and system seeds
+\
+\ References: TT20, TT24, TT25, cpl, SOLAR, QQ15, QQ21
+\
 \ Famously, Elite's galaxy and system data is generated procedurally, using a
 \ set of three 16-bit seed numbers and the Tribonnaci series. You can read all
 \ about this process in the deep dives on "Generating system data", "Galaxy and
@@ -20469,6 +20565,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Deep dive: Twisting the system seeds
 \ ====================================
+\
+\ Summary: How the system seeds are twisted to produce entire galaxies of stars
+\
+\ References: TT54, TT20, Ghy
 \
 \ Data on each star system in Elite's galaxies is generated procedurally, and
 \ the core of this process is the set of three 16-bit seeds that describe each
@@ -21104,6 +21204,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Deep dive: Generating system data
 \ =================================
+\
+\ Summary: The algorithms behind the procedural generation of system data
+\
+\ References: TT24, TT25
 \
 \ The Data on System screen is, under the hood, a work of mathematical art.
 \ Every bit of data on that screen is procedurally generated from the system
@@ -23575,6 +23679,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Deep dive: Market item prices and availability
 \ ==============================================
 \
+\ Summary: The algorithms behind the generation of each system's cargo market
+\
+\ References: TT151, AVL, GVL
+\
 \ The prices and availability of the market items on display in the Buy Cargo
 \ screen are calculated using a couple of complex formulae, which take a base
 \ value for each item, mix in a couple of economic variables, and blend it all
@@ -25365,6 +25473,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Deep dive: Generating system names
 \ ==================================
 \
+\ Summary: Producing system names from twisted seeds and two-letter tokens
+\
+\ References: cpl, QQ15, QQ16
+\
 \ System names are generated from the three 16-bit seeds for that system. In
 \ the case of the selected system, those seeds live at QQ15. The process works
 \ as follows, where w0, w1, w2 are the seeds for the system in question
@@ -26325,6 +26437,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Deep dive: Drawing explosion clouds
 \ ===================================
+\
+\ Summary: Drawing and storing explosion clouds for ships whose luck runs out...
+\
+\ References: DOEXP
 \
 \ Like the ships, planet and sun, explosion clouds take a lot of maths to draw,
 \ and like them, we store the results of all this maths in a heap. For explosion
@@ -27474,6 +27590,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Deep dive: Drawing colour pixels in mode 5
 \ ==========================================
+\
+\ Summary: Poking screen memory to display colour pixels in the dashboard view
+\
+\ References: CPIX2, CTWOS
 \
 \ Drawing four-colour pixels in the dashboard is not as straightforward as you
 \ might think. It's complicated enough drawing monochrome pixels in the
@@ -28799,6 +28919,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Deep dive: Drawing meridians and equators
 \ =========================================
 \
+\ Summary: The algorithms behind the meridians and equators of planets like Lave
+\
+\ References: PL9 (Part 2 of 3)
+\
 \ This deep dive is a work in progress. It covers part 2 of the PL9 routine,
 \ which draws meridians and equators on planets.
 \
@@ -28946,6 +29070,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Deep dive: Drawing craters
 \ ==========================
+\
+\ Summary: The algorithms behind the huge craters of planets like Diso
+\
+\ References: PL9 (Part 3 of 3)
 \
 \ This deep dive is a work in progress. It covers part 3 of the PL9 routine,
 \ which draws craters on planets.
@@ -29421,6 +29549,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Deep dive: Drawing the sun
 \ ==========================
+\
+\ Summary: Drawing and storing the sun, and the systems on the Short-range Chart
+\
+\ References: SUN, WPLS
 \
 \ The sun in Elite is an absolute sight to behold, with its flickering fringes
 \ and bright, white glare that lights up even the darkest corners of space.
@@ -30134,6 +30266,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Deep dive: Drawing circles
 \ ==========================
+\
+\ Summary: The routines that draw planets and the hyperspace and docking tunnels
+\
+\ References: CIRCLE, CIRCLE2, TT128
 \
 \ You never forget your first journey in Elite, and a lot of that is down to the
 \ circle routine. The launch tunnel rushing past as you punch your way out of
@@ -32060,6 +32196,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \ Deep dive: Generating random numbers
 \ ====================================
 \
+\ Summary: The algorithm behind Elite's random number generation routines
+\
+\ References: DORND, DORND2
+\
 \ Games like Elite need a steady stream of random numbers. They are used all
 \ over the place to add an element of chance to gameplay, whether it's in the
 \ main flight loop when deciding whether or not to spawn an angry Thargoid in
@@ -33163,6 +33303,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Deep dive: Program flow of the main game loop
 \ =============================================
+\
+\ Summary: The sequence of events in the main game loop and the main flight loop
+\
+\ References: TT170, MLOOP, M%
 \
 \ Here is a high-level look at the main program flow, from the title screen to
 \ the end of life as we know it, via the main game loop, the main flight loop,
@@ -36056,6 +36200,10 @@ ENDMACRO
 \ Deep dive: Tidying orthonormal vectors
 \ ======================================
 \
+\ Summary: Making the orientation vectors orthonormal, and why this matters
+\
+\ References: TIDY, NORM
+\
 \ There are an awful lot of rotations in Elite. When we pitch or roll, we rotate
 \ the entire universe around our ship, so every ship in our local bubble of
 \ universe gets rotated in space every time we tap our controls. Not only do we
@@ -36376,6 +36524,10 @@ ENDMACRO
 \
 \ Deep dive: Shift-and-subtract division
 \ ======================================
+\
+\ Summary: The main algorithm behind Elite's many division routines
+\
+\ References: TIS1, TIS2, DVID4
 \
 \ Elite implements division in routines like TIS2 using the shift-and-subtract
 \ algorithm. This is similar in concept to the shift-and-add algorithm used to
@@ -37218,6 +37370,10 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Deep dive: Drawing ships
 \ ========================
+\
+\ Summary: The main routine for drawing 3D wiremesh ships in space
+\
+\ References: LL9
 \ 
 \ The ship-drawing routine is one of the most celebrated aspects of Elite. The
 \ 3D graphics are groundbreaking and breathtaking in equal measure, at least as
@@ -37841,6 +37997,10 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Deep dive: Back-face culling
 \ ============================
+\
+\ Summary: How Elite draws solid-looking 3D ships by only drawing visible faces
+\
+\ References: LL9 (Part 5 of 11)
 \
 \ One of the reasons that Elite's 3D wireframe ships look so good is because
 \ you can't see through them - they look genuinely solid. This is down to a
@@ -38531,6 +38691,10 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ Deep dive: Calculating vertex coordinates
 \ =========================================
+\
+\ Summary: Determining whether a ship's vertex is visible or hidden from us
+\
+\ References: LL9 (Part 6 of 11)
 \
 \ To understand the following, you'll probably want to have a look through the
 \ deep dive on "Back-face culling", which describes how we can work out whether
@@ -40462,6 +40626,10 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Deep dive: Line-clipping
 \ ========================
 \
+\ Summary: Working out whether any part of an extended line is visible on-screen
+\
+\ References: LL145
+\
 \ When simulating its universe of ships, stars and space stations, Elite uses
 \ large numbers - space is big, after all. The ship coordinates are stored as
 \ sign-magnitude numbers with 16 bits for the magnitudes, while the planet and
@@ -41137,6 +41305,10 @@ ENDMACRO
 \
 \ Deep dive: Ship blueprints
 \ ==========================
+\
+\ Summary: Specifications for all the different types of ship in the universe
+\
+\ References: XX21, SHIP1, SHIP4
 \
 \ Every ship in Elite has a blueprint that defines that ship's characteristics
 \ (note that in this context, "ship" refers not only to ships, but also cargo
