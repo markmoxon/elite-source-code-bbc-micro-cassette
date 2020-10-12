@@ -32,11 +32,12 @@
 \
 \ ******************************************************************************
 
-C% = &0F40              \ C% is set to the location that the main game code gets
-                        \ moved to after it is loaded
+CODE% = &0F40           \ CODE% is set to the location that the main game code
+                        \ gets moved to after it is loaded
 
-L% = &1128              \ L% points to the start of the actual game code, after
-                        \ the &28 bytes of header code that are inserted below
+LOAD% = &1128           \ LOAD% points to the start of the actual game code,
+                        \ after the &28 bytes of header code that are inserted
+                        \ below
 
 D% = &563A              \ D% is set to the size of the main game code
 
@@ -192,6 +193,6 @@ INCBIN "output/SHIPS.bin"
 .end
 
 PRINT "P% = ", ~P%
-PRINT "S.ELTcode 1100 ", ~(L% + &6000 - C%), " ", ~L%, ~L%
-SAVE "output/ELTcode.unprot.bin", &1100, (L% + &6000 - C%), L%
+PRINT "S.ELTcode 1100 ", ~(LOAD% + &6000 - CODE%), " ", ~LOAD%, ~LOAD%
+SAVE "output/ELTcode.unprot.bin", &1100, (LOAD% + &6000 - CODE%), LOAD%
 SAVE "output/ELThead.bin", &1100, elitea, &1100
