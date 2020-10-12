@@ -139,7 +139,7 @@ ORG &1100               \ The load address of the main game code file ("ELTcode"
 
 \ ******************************************************************************
 \
-\ Save output/ELTcode.unprot.bin and output/ELThead.bin
+\ Load compiled binaries to create the Big Code File
 \
 \ ******************************************************************************
 
@@ -191,6 +191,12 @@ PRINT "ships = ", ~P%
 INCBIN "output/SHIPS.bin"
 
 .end
+
+\ ******************************************************************************
+\
+\ Save output/ELTcode.unprot.bin and output/ELThead.bin
+\
+\ ******************************************************************************
 
 PRINT "P% = ", ~P%
 PRINT "S.ELTcode 1100 ", ~(LOAD% + &6000 - CODE%), " ", ~LOAD%, ~LOAD%
