@@ -556,23 +556,16 @@ ORG &0000
 
  SKIP 4                 \ Temporary storage, used in a number of places
 
-                        \ The following bytes implement a key logger that
-                        \ enables Elite to scan for concurrent key presses of
-                        \ all the flight keys (so this effectively implements
-                        \ a 15-key rollover for the flight keys listed in the
-                        \ keyboard table at KYTB, enabling players to roll,
-                        \ pitch, change speed and fire lasers at the same, all
-                        \ while targeting missiles and setting off their E.C.M.
-                        \ and energy bomb, without the keyboard ignoring them).
-                        \ The various keyboard scanning routines, such as the
-                        \ one at DKS1, can set the relevant byte in this table
-                        \ to &FF to denote that that particular key is being
-                        \ pressed. The logger is cleared to zero (no keys are
-                        \ being pressed) by the U% routine
-
 .KL
 
- SKIP 1                 \ If a key is being pressed that is not in the keyboard
+ SKIP 1                 \ The following bytes implement a key logger that
+                        \ enables Elite to scan for concurrent key presses of
+                        \ the primary flight keys, plus a secondary flight key
+                        \
+                        \ See the deep dive on "The keyboard logger" for more
+                        \ information
+                        \
+                        \ If a key is being pressed that is not in the keyboard
                         \ table at KYTB, it can be stored here (as seen in
                         \ routine DK4, for example)
 
@@ -35374,6 +35367,71 @@ ENDIF
 \ the offset of the first key value is 1 (i.e. KYTB+1), not 0.
 \
 \ ******************************************************************************
+\
+\ Deep dive: The keyboard logger
+\ ==============================
+\
+\ Summary: Supporting concurrent in-flight keypresses using a keyboard logger
+\
+\ References: KYTB, KL, DKS1, DK4, DOKEY
+\
+\ There's a lot to do when piloting a space ship. Pitching and rolling while
+\ slamming on the brakes to avoid missing the docking slot; firing lasers while
+\ activating the E.C.M. and slamming your foot on the accelerator; targeting a
+\ missile while switching between space views, trying to track down your foe...
+\ it's all in a day's work for your average Cobra Mk II pilot.
+\
+\ Unfortunately, most 8-bit micros weren't built to handle multiple concurrent
+\ keypresses. The Machine Operating System (MOS) in the BBC Micro can handle up
+\ to two concurrent keypresses, outside of modifier keys; this known as a
+\ "two-key rollover", and it's generally fine for typing, as you rarely intend
+\ to press more than two letter keys at the same time. However, for a game where
+\ you legitimately might want to pitch up, roll right, fire lasers, slow down
+\ and launch a missile all at the same time (by pressing "X", ">", "A", "?" and
+\ "M" concurrently), a simple two-key rollover just won't do.
+\
+\ Elite, therefore, implements its own key logger that listens for keypresses
+\ for all the important flight controls, and stores their details in a keyboard
+\ logger for the main loop to process at the right time. There are 15 main
+\ flight controls, which are split up into the seven primary controls (speed,
+\ pitch, roll and lasers) and eight secondary controls (energy bomb, escape pod,
+\ missile controls, E.C.M., in-system jump and the docking computer). The
+\ keyboard logger effectively implements an 8-key rollover for each of the
+\ primary controls, plus one secondary control, which is more than enough to
+\ make the game responsive to our every whim.
+\
+\ The heart of the key logger system is the table at location KL. This contains
+\ one byte for each of the 15 flight controls listed in the keyboard lookup
+\ table at KYTB, starting from KL+1 for "?" (slow down) and going through to
+\ KL+15 for "C" (which turns on the docking computer). Each key logger location
+\ has its own label, so KY1 = KL+1, KY2 = KL+2 up to KY15 = KL+15, where KY1
+\ corresponds to the internal key number in KYTB+1, KY2 to the key number in
+\ KYTB+2, and so on.
+\
+\ The various keyboard scanning routines can set the relevant byte in the KL
+\ table to &FF to denote that a particular key is being pressed. The logger is
+\ cleared to zero (to denote that no keys are being pressed) by the U% routine.
+\
+\ The main routines that populate the keyboard logger are:
+\
+\   * DKS4, which scans the keyboard for a specific key
+
+\   * DKS1, which calls DKS4 and updates the keyboard logger with the result
+\
+\   * DOKEY, which calls DKS1 for each of the primary flight controls
+\
+\   * DK4, which scans for the secondary flight controls
+\
+\ If a key is being pressed that is not in the keyboard table at KYTB, then it
+\ can be stored in the first location in the key logger, KL, as this isn't
+\ mapped to a KYTB key. This is done in routine DK4, for example, so we almost
+\ never miss a keypress.
+\
+\ In addition, the joystick fire button is checked, and if it is pressed, the
+\ keyboard logger entry for laser fire ("A") is set, so there is only one
+\ location to check when processing laser fire.
+\
+\ ******************************************************************************
 
 KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 {
@@ -35956,7 +36014,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  LDX KYTB,Y             \ Get the internal key value of the Y-th flight key
                         \ the KYTB keyboard table
 
- CPX KL                 \ We stored the key that's being pressed in Kl above,
+ CPX KL                 \ We stored the key that's being pressed in KL above,
                         \ so check to see if the Y-th flight key is being
                         \ pressed
 
