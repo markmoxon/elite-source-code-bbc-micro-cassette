@@ -43,9 +43,10 @@ GUARD &8000             \ Paged ROMS start here
 \
 \ ******************************************************************************
 
-NOST = 18               \ Maximum number of stardust particles
+NOST = 18               \ The number of stardust particles in normal space (this
+                        \ goes down to 3 in witchspace)
 
-NOSH = 12               \ Maximum number of ships in our local bubble of
+NOSH = 12               \ The maximum number of ships in our local bubble of
                         \ universe (counting from 0, so there are actually 13
                         \ ship slots)
 
@@ -62,8 +63,8 @@ ESC = 13                \ Ship type for an escape pod
 
 POW = 15                \ Pulse laser power
 
-NI% = 36                \ Number of bytes in each ship's data block (as stored
-                        \ in INWK and K% and pointed to by the UNIV table)
+NI% = 36                \ The number of bytes in each ship's data block (as
+                        \ stored in INWK and K%)
 
 OSBYTE = &FFF4          \ The address for the OSBYTE routine, which is used
                         \ three times in the main game code
@@ -367,16 +368,17 @@ ORG &0000
 
 .T1
 
- SKIP 1                 \ Temporary storage, used all over the place
+ SKIP 1                 \ Temporary storage, used in a number of places
 
 .SC
 
  SKIP 1                 \ Screen address (low byte)
                         \
                         \ Elite draws on-screen by poking bytes directly into
-                        \ screen memory, and SC(1 0) is typically set to point
-                        \ to the location in screen memory for the pixel we want
-                        \ to draw (or erase)
+                        \ screen memory, and SC(1 0) is typically set to the
+                        \ address of the character block containing the pixel
+                        \ we want to draw (see the deep dive on "Drawing
+                        \ monochrome pixels in mode 4" for more details)
 
 .SCH
 
@@ -384,13 +386,12 @@ ORG &0000
 
 .XX16
 
- SKIP 18                \ Temporary storage for a block of values (e.g. used in
-                        \ the sound routines for sound blocks, and in the
-                        \ plotting routines for storing sets of coordinates)
+ SKIP 18                \ Temporary storage for a block of values, used in a
+                        \ number of places
 
 .P
 
- SKIP 3                 \ Temporary storage, used all over the place
+ SKIP 3                 \ Temporary storage, used in a number of places
 
 .XX0
 
@@ -497,7 +498,7 @@ ORG &0000
                         \
                         \   * 0 = E.C.M. is off
                         \
-                        \   * non-zero = E.C.M. is on and is counting down
+                        \   * Non-zero = E.C.M. is on and is counting down
                         \
                         \ The counter starts at 32 when an E.C.M. is activated,
                         \ either by us or by an opponent, and it decreases by 1
@@ -548,13 +549,12 @@ ORG &0000
 
 .XX12
 
- SKIP 6                 \ Temporary storage for a block of values (e.g. used to
-                        \ store the energy bank values when updating the
-                        \ dashboard, or for gradients when drawing lines)
+ SKIP 6                 \ Temporary storage for a block of values, used in a
+                        \ number of places
 
 .K
 
- SKIP 4                 \ Temporary storage, used all over the place
+ SKIP 4                 \ Temporary storage, used in a number of places
 
                         \ The following bytes implement a key logger that
                         \ enables Elite to scan for concurrent key presses of
@@ -582,7 +582,7 @@ ORG &0000
                         \
                         \   * 0 = no
                         \
-                        \   * non-zero = yes
+                        \   * Non-zero = yes
 
 .KY2
 
@@ -590,7 +590,7 @@ ORG &0000
                         \
                         \   * 0 = no
                         \
-                        \   * non-zero = yes
+                        \   * Non-zero = yes
 
 .KY3
 
@@ -598,7 +598,7 @@ ORG &0000
                         \
                         \   * 0 = no
                         \
-                        \   * non-zero = yes
+                        \   * Non-zero = yes
 
 .KY4
 
@@ -606,7 +606,7 @@ ORG &0000
                         \
                         \   * 0 = no
                         \
-                        \   * non-zero = yes
+                        \   * Non-zero = yes
 
 .KY5
 
@@ -614,7 +614,7 @@ ORG &0000
                         \
                         \   * 0 = no
                         \
-                        \   * non-zero = yes
+                        \   * Non-zero = yes
 
 .KY6
 
@@ -622,7 +622,7 @@ ORG &0000
                         \
                         \   * 0 = no
                         \
-                        \   * non-zero = yes
+                        \   * Non-zero = yes
 
 .KY7
 
@@ -630,7 +630,7 @@ ORG &0000
                         \
                         \   * 0 = no
                         \
-                        \   * non-zero = yes
+                        \   * Non-zero = yes
                         \
                         \ This is also set when the joystick fire button has
                         \ been pressed
@@ -641,7 +641,7 @@ ORG &0000
                         \
                         \   * 0 = no
                         \
-                        \   * non-zero = yes
+                        \   * Non-zero = yes
 
 .KY13
 
@@ -649,7 +649,7 @@ ORG &0000
                         \
                         \   * 0 = no
                         \
-                        \   * non-zero = yes
+                        \   * Non-zero = yes
 
 .KY14
 
@@ -657,7 +657,7 @@ ORG &0000
                         \
                         \   * 0 = no
                         \
-                        \   * non-zero = yes
+                        \   * Non-zero = yes
 
 .KY15
 
@@ -665,7 +665,7 @@ ORG &0000
                         \
                         \   * 0 = no
                         \
-                        \   * non-zero = yes
+                        \   * Non-zero = yes
 
 .KY16
 
@@ -673,7 +673,7 @@ ORG &0000
                         \
                         \   * 0 = no
                         \
-                        \   * non-zero = yes
+                        \   * Non-zero = yes
 
 .KY17
 
@@ -681,7 +681,7 @@ ORG &0000
                         \
                         \   * 0 = no
                         \
-                        \   * non-zero = yes
+                        \   * Non-zero = yes
 
 .KY18
 
@@ -689,7 +689,7 @@ ORG &0000
                         \
                         \   * 0 = no
                         \
-                        \   * non-zero = yes
+                        \   * Non-zero = yes
 
 .KY19
 
@@ -697,7 +697,7 @@ ORG &0000
                         \
                         \   * 0 = no
                         \
-                        \   * non-zero = yes
+                        \   * Non-zero = yes
 
 .LAS
 
@@ -804,7 +804,7 @@ ORG &0000
 
 .QQ19
 
- SKIP 3                 \ Temporary storage, used all over the place
+ SKIP 3                 \ Temporary storage, used in a number of places
 
 .K6
 
@@ -841,36 +841,35 @@ ORG &0000
 
 .U
 
- SKIP 1                 \ Temporary storage (e.g. used in BPRNT to store the
-                        \ last position at which we must start printing digits)
+ SKIP 1                 \ Temporary storage, used in a number of places
 
 .Q
 
- SKIP 1                 \ Temporary storage, used all over the place
+ SKIP 1                 \ Temporary storage, used in a number of places
 
 .R
 
- SKIP 1                 \ Temporary storage, used all over the place
+ SKIP 1                 \ Temporary storage, used in a number of places
 
 .S
 
- SKIP 1                 \ Temporary storage, used all over the place
+ SKIP 1                 \ Temporary storage, used in a number of places
 
 .XSAV
 
  SKIP 1                 \ Temporary storage for saving the value of the X
-                        \ register, used all over the place
+                        \ register, used in a number of places
 
 .YSAV
 
  SKIP 1                 \ Temporary storage for saving the value of the Y
-                        \ register, used all over the place
+                        \ register, used in a number of places
 
 .XX17
 
- SKIP 1                 \ Temporary storage (e.g. used in BPRNT to store the
-                        \ number of characters to print, and as the edge counter
-                        \ in the ship-drawing routine)
+ SKIP 1                 \ Temporary storage, used in BPRNT to store the number
+                        \ of characters to print, and as the edge counter in the
+                        \ main ship-drawing routine
 
 .QQ11
 
@@ -1070,11 +1069,11 @@ ORG &0000
 
 .XX4
 
- SKIP 1                 \ Temporary storage, used all over the place
+ SKIP 1                 \ Temporary storage, used in a number of places
 
 .XX20
 
- SKIP 1                 \ Temporary storage, used all over the place
+ SKIP 1                 \ Temporary storage, used in a number of places
 
 .XX14
 
@@ -1092,17 +1091,17 @@ ORG &0000
 
 .K2
 
- SKIP 4                 \ Temporary storage, used all over the place
+ SKIP 4                 \ Temporary storage, used in a number of places
 
 ORG &D1
 
 .T
 
- SKIP 1                 \ Temporary storage, used all over the place
+ SKIP 1                 \ Temporary storage, used in a number of places
 
 .K3
 
- SKIP 0                 \ Temporary storage, used all over the place
+ SKIP 0                 \ Temporary storage, used in a number of places
 
 .XX2
 
@@ -1111,7 +1110,7 @@ ORG &D1
 
 .K4
 
- SKIP 2                 \ Temporary storage, used all over the place
+ SKIP 2                 \ Temporary storage, used in a number of places
 
 PRINT "Zero page variables from ", ~ZP, " to ", ~P%
 
@@ -1260,7 +1259,7 @@ ORG &0300
                         \
                         \   * 0 = no laser is fitted to this view
                         \
-                        \   * non-zero = a laser is fitted to this view, with
+                        \   * Non-zero = a laser is fitted to this view, with
                         \     the following specification:
                         \
                         \     * Bits 0-6 contain the laser's power
@@ -3513,67 +3512,77 @@ ORG &0D40
 
  SKIP 1                 \ Our E.C.M. status
                         \
-                        \   0 is off
-                        \   non-zero is on
+                        \   * 0 = E.C.M. is off
+                        \
+                        \   * Non-zero = E.C.M. is on
 
 .MJ
 
  SKIP 1                 \ Are we in witchspace (i.e. have we mis-jumped)?
                         \
-                        \   0 = no
-                        \   &FF = yes
+                        \   * 0 = no, we are in normal space
+                        \
+                        \   * &FF = yes, we are in witchspace
 
 .LAS2
 
  SKIP 1                 \ Laser power for the current laser
                         \
-                        \   Bits 0-6 contain the laser power of the current
-                        \   space view
+                        \   * Bits 0-6 contain the laser power of the current
+                        \     space view
                         \
-                        \   Bit 7 denotes whether or not the laser pulses, 0
-                        \   meaning a pulse laser, 1 meaning beam laser
+                        \   * Bit 7 denotes whether or not the laser pulses:
+                        \
+                        \     * 0 = pulsing laser
+                        \
+                        \     * 1 = beam laser (i.e. always on)
 
 .MSAR
 
- SKIP 1                 \ Leftmost missile is currently armed and seeking a
-                        \ target
+ SKIP 1                 \ The targeting state of our leftmost missile
                         \
-                        \   0 = missile is not looking for a target, or it
-                        \       already has a target lock (indicator is not
-                        \       yellow/white)
+                        \   * 0 = missile is not looking for a target, or it
+                        \     already has a target lock (indicator is not
+                        \     yellow/white)
                         \
-                        \   non-zero = missile is currently looking for a target
-                        \              (indicator is yellow/white)
+                        \   * Non-zero = missile is currently looking for a
+                        \     target (indicator is yellow/white)
 
 .VIEW
 
- SKIP 1                 \ Current space view
+ SKIP 1                 \ The number of the current space view
                         \
-                        \   0 = front
-                        \   1 = rear
-                        \   2 = left
-                        \   3 = right
+                        \   * 0 = front
+                        \   * 1 = rear
+                        \   * 2 = left
+                        \   * 3 = right
 
 .LASCT
 
- SKIP 1                 \ Laser pulse count for the current laser
+ SKIP 1                 \ The laser pulse count for the current laser
                         \
-                        \ Defines the gap between pulses of a pulse laser
+                        \ This is a counter that defines the gap between the
+                        \ pulses of a pulse laser. It is set as follows:
                         \
-                        \   0 for beam laser
-                        \   10 for pulse laser
+                        \   * 0 for a beam laser
                         \
-                        \ This gets decremented every vertical sync (in LINSCN),
-                        \ and is set to a non-zero value for pulse lasers only.
+                        \   * 10 for a pulse laser
+                        \
+                        \ It gets decremented every vertical sync (in the LINSCN
+                        \ routine, which is called 50 times a second) and is set
+                        \ to a non-zero value for pulse lasers only
+                        \
                         \ The laser only fires when the value of LASCT hits
                         \ zero, so for pulse lasers with a value of 10, that
-                        \ means it fires once every 10 vertical syncs (or 5
-                        \ times a second). In comparison, beam lasers fire
-                        \ continuously
+                        \ means the laser fires once every 10 vertical syncs (or
+                        \ 5 times a second)
+                        \
+                        \ In comparison, beam lasers fire continuously as the
+                        \ value of LASCT is always 0
 
 .GNTMP
 
- SKIP 1                 \ Laser ("gun") temperature
+ SKIP 1                 \ Laser temperature (or "gun temperature") 
                         \
                         \ If the laser temperature exceeds 242 then the laser
                         \ overheats and cannot be fired again until it has
@@ -3581,34 +3590,40 @@ ORG &0D40
 
 .HFX
 
- SKIP 1                 \ Toggle hyperspace colour effects
+ SKIP 1                 \ A flag that toggles the hyperspace colour effect
                         \
-                        \   0 = no colour effects
-                        \   non-zero = hyperspace colour effects
+                        \   * 0 = no colour effect
                         \
-                        \ When this is set to 1, the mode 4 screen that makes
-                        \ up the top part of the display is switched to mode 5
-                        \ (the same as the dashboard), which has the effect of
-                        \ blurring and colouring the hyperspace rings. The code
-                        \ to do this is in the LINSCN routine, where HFX is
-                        \ checked and the mode 4 code is skipped if it is 1,
-                        \ thus leaving the top part of the screen in mode 5
+                        \   * Non-zero = hyperspace colour effect enabled
+                        \
+                        \ When HFS is set to 1, the mode 4 screen that makes
+                        \ up the top part of the display is temporarily switched
+                        \ to mode 5 (the same screen mode as the dashboard),
+                        \ which has the effect of blurring and colouring the
+                        \ hyperspace rings in the top part of the screen. The
+                        \ code to do this is in the LINSCN routine, which is
+                        \ called as part of the screen mode routine at IRQ1.
+                        \ It's in LINSCN that HFX is checked, and if it is
+                        \ non-zero, the top part of the screen is not switched
+                        \ to mode 4, thus leaving the top part of the screen in
+                        \ the more colourful mode 5
 
 .EV
 
- SKIP 1                 \ Extra vessels spawning counter
+ SKIP 1                 \ The "extra vessels" spawning counter
                         \
                         \ This counter is set to 0 on arrival in a system and
                         \ following an in-system jump, and is bumped up when we
-                        \ spawn bounty hunters or pirates ("extra vessels")
+                        \ spawn bounty hunters or pirates (i.e. "extra vessels")
                         \
                         \ It decreases by 1 each time we consider spawning more
-                        \ "extra vessels" the main game loop (TT100 part 4), so
-                        \ increasing the value of EV delays their spawning
+                        \ "extra vessels" in part 4 of the main game loop, so
+                        \ increasing the value of EV has the effect of delaying
+                        \ the spawning of more vessels
                         \
                         \ In other words, this counter stops bounty hunters and
-                        \ pirates from continually appearing, and instead adds
-                        \ a delay between spawnings
+                        \ pirates from continually appearing, and ensures that
+                        \ there's a delay between spawnings
 
 .DLY
 
@@ -3616,22 +3631,31 @@ ORG &0D40
                         \
                         \ This counter is used to keep an in-flight message up
                         \ for a specified time before it gets removed. The value
-                        \ in DLY is decremented each time we enter the main
-                        \ loop at TT100
+                        \ in DLY is decremented each time we start another
+                        \ iteration of the main game loop at TT100
 
 .de
 
  SKIP 1                 \ Equipment destruction flag
                         \
-                        \ Bit 1 set means " DESTROYED" is appended to the
-                        \ in-flight message printed by MESS
+                        \   * Bit 1 denotes whether or not the in-flight message
+                        \     about to be shown by the MESS routine is about
+                        \     destroyed equipment:
+                        \
+                        \     * 0 = the message is shown normally
+                        \
+                        \     * 1 = the string " DESTROYED" gets added to the
+                        \       end of the message
 
 .LSX
 
  SKIP 0                 \ LSX is an alias that points to the first byte of the
-                        \ sun line heap at LSO. If LSX is &FF then the sun line
-                        \ heap is empty, otherwise it contains the line data for
-                        \ the sun
+                        \ sun line heap at LSO
+                        \
+                        \   * &FF indicates the sun line heap is empty
+                        \
+                        \   * Otherwise the LSO heap contains the line data for
+                        \     the sun, starting with this byte
 
 .LSO
 
@@ -3647,13 +3671,13 @@ ORG &0D40
                         \ station, but not both
 .LSX2
 
- SKIP 78                \ Ball line heap for x-coordinates (see BLINE for
-                        \ details)
+ SKIP 78                \ The ball line heap for storing x-coordinates (see the
+                        \ deep dive on "The ball line heap" for details)
 
 .LSY2
 
- SKIP 78                \ Ball line heap for y-coordinates (see BLINE for
-                        \ details)
+ SKIP 78                \ The ball line heap for storing y-coordinates (see the
+                        \ deep dive on "The ball line heap" for details)
 
 .SY
 
@@ -3677,40 +3701,43 @@ ORG &0D40
 
 .XSAV2
 
- SKIP 1                 \ Temporary storage for the X register (e.g. used in
-                        \ TT27 to store X while printing is performed)
+ SKIP 1                 \ Temporary storage, used for storing the value of the X
+                        \ register in the TT26 routine
 
 .YSAV2
 
- SKIP 1                 \ Temporary storage for the Y register (e.g. used in
-                        \ TT27 to store X while printing is performed)
+ SKIP 1                 \ Temporary storage, used for storing the value of the Y
+                        \ register in the TT26 routine
 
 .MCH
 
- SKIP 1                 \ The text token of the in-flight message that is
+ SKIP 1                 \ The text token number of the in-flight message that is
                         \ currently being shown, and which will be removed by
-                        \ me2 when the counter in DLY reaches zero
+                        \ the me2 routine when the counter in DLY reaches zero
 
 .FSH
 
  SKIP 1                 \ Forward shield status
                         \
-                        \   0 = empty
-                        \   &FF = full
+                        \   * 0 = empty
+                        \
+                        \   * &FF = full
 
 .ASH
 
  SKIP 1                 \ Aft shield status
                         \
-                        \   0 = empty
-                        \   &FF = full
+                        \   * 0 = empty
+                        \
+                        \   * &FF = full
 
 .ENERGY
 
  SKIP 1                 \ Energy bank status
                         \
-                        \   0 = empty
-                        \   &FF = full
+                        \   * 0 = empty
+                        \
+                        \   * &FF = full
 
 .LASX
 
@@ -3730,39 +3757,47 @@ ORG &0D40
 
 .QQ24
 
- SKIP 1                 \ Temporary storage (e.g. used in TT151 for the current
-                        \ market item's price)
+ SKIP 1                 \ Temporary storage, used to store the current market
+                        \ item's price in routine TT151
 
 .QQ25
 
- SKIP 1                 \ Temporary storage (e.g. used in TT151 for the current
-                        \ market item's availability)
+ SKIP 1                 \ Temporary storage, used to store the current market
+                        \ item's availability in routine TT151
 
 .QQ28
 
- SKIP 1                 \ Temporary storage (e.g. used in var for the economy
-                        \ byte of the current system)
+ SKIP 1                 \ Temporary storage, used to store the economy byte of
+                        \ the current system in routine var
 
 .QQ29
 
- SKIP 1                 \ Temporary storage (e.g. used in TT219 for the current
-                        \ market item)
+ SKIP 1                 \ Temporary storage, used in a number of places
 
 .gov
 
- SKIP 1                 \ Government of current system
+ SKIP 1                 \ The current system's government type (0-7)
+                        \
+                        \ See the deep dive on "Generating system data" for
+                        \ details of the various government types
 
 .tek
 
- SKIP 1                 \ Tech level of current system (0-14)
+ SKIP 1                 \ The current system's tech level (0-14)
+                        \
+                        \ See the deep dive on "Generating system data" for more
+                        \ information on tech levels
 
 .SLSP
 
- SKIP 2                 \ Points to the bottom of the ship line heap, which
-                        \ which is a descending block that starts at WP and
-                        \ descends down to SLSP, and which can be extended
-                        \ downwards by lowering SLSP if more heap space is
-                        \ required
+ SKIP 2                 \ The address of the bottom of the ship line heap
+                        \
+                        \ The ship line heap is a descending block of memory
+                        \ that starts at WP and descends down to SLSP. It can be
+                        \ extended downwards by the NWSHP routine when adding
+                        \ new ships (and their associated ship line heaps), in
+                        \ which case SLSP is lowered to provide more heap space,
+                        \ assuming there is enough free memory to do so
 
 .XX24
 
@@ -3770,16 +3805,19 @@ ORG &0D40
 
 .ALTIT
 
- SKIP 1                 \ Our altitude above the planet
+ SKIP 1                 \ Our altitude above the surface of the planet or sun
                         \
-                        \   &FF = maximum
+                        \   * 255 = we are a long way above the surface
                         \
-                        \ Otherwise this contains our altitude as the square
-                        \ root of x_hi^2 + y_hi^2 + z_hi^2 - 6^2, where our
-                        \ ship is at the origin, the centre of the planet is at
-                        \ (x_hi, y_hi, z_hi), and the radius of the planet is 6
+                        \   * 1-254 = our altitude as the square root of:
                         \
-                        \ If this value drops to zero, we have crashed
+                        \       x_hi^2 + y_hi^2 + z_hi^2 - 6^2
+                        \
+                        \     where our ship is at the origin, the centre of the
+                        \     planet/sun is at (x_hi, y_hi, z_hi), and the
+                        \     radius of the planet is 6
+                        \
+                        \   * 0 = we have crashed into the surface
 
 .QQ2
 
@@ -3791,35 +3829,52 @@ ORG &0D40
 
 .QQ3
 
- SKIP 1                 \ Selected system's economy (0-7)
+ SKIP 1                 \ The selected system's economy (0-7)
+                        \
+                        \ See the deep dive on "Generating system data" for more
+                        \ information on economies
 
 .QQ4
 
- SKIP 1                 \ Selected system's government (0-7)
+ SKIP 1                 \ The selected system's government (0-7)
+                        \
+                        \ See the deep dive on "Generating system data" for more
+                        \ details of the various government types
 
 .QQ5
 
- SKIP 1                 \ Selected system's tech level (0-14)
+ SKIP 1                 \ The selected system's tech level (0-14)
+                        \
+                        \ See the deep dive on "Generating system data" for more
+                        \ information on tech levels
 
 .QQ6
 
- SKIP 2                 \ Selected system's population * 10 in billions (1-71)
+ SKIP 2                 \ The selected system's population in billions * 10
+                        \ (1-71), so the maximum population is 7.1 billion
+                        \
+                        \ See the deep dive on "Generating system data" for more
+                        \ details on population levels
 
 .QQ7
 
- SKIP 2                 \ Selected system's productivity in M CR (96-62480)
+ SKIP 2                 \ The selected system's productivity in M CR (96-62480)
+                        \
+                        \ See the deep dive on "Generating system data" for more
+                        \ details about productivity levels
 
 .QQ8
 
- SKIP 2                 \ Distance to the selected system * 10 in light years,
-                        \ stored as a 16-bit number
+ SKIP 2                 \ The distance from the current system to the selected
+                        \ system in light years * 10, stored as a 16-bit number
                         \
-                        \ Will be 0 if this is the current system
+                        \ The distance will be 0 if the selected sysyem is the
+                        \ current system
                         \
                         \ The galaxy chart is 102.4 light years wide and 51.2
                         \ light years tall (see the intra-system distance
-                        \ calculations in TT111 for details), which would be
-                        \ 1024 x 512 in terms of QQ8
+                        \ calculations in routine TT111 for details), which
+                        \ equates to 1024 x 512 in terms of QQ8
 
 .QQ9
 
@@ -3835,8 +3890,9 @@ ORG &0D40
 
 .NOSTM
 
- SKIP 1                 \ Maximum number of stardust particles (18 for normal
-                        \ space, 3 for witchspace)
+ SKIP 1                 \ The number of stardust particles shown on screen,
+                        \ which is 18 (#NOST) for normal space, and 3 for
+                        \ witchspace
 
 PRINT "WP workspace from  ", ~WP," to ", ~P%
 
@@ -3875,11 +3931,11 @@ LOAD_A% = LOAD%
 
 .S%
 
- EQUW TT170             \ Entry point for Elite game; once the main code has
-                        \ been loaded, decrypted and moved to the right place
-                        \ by elite-loader.asm, the game is started by a
+ EQUW TT170             \ The entry point for the main game; once the main code
+                        \ has been loaded, decrypted and moved to the right
+                        \ place by elite-loader.asm, the game is started by a
                         \ JMP (S%) instruction, which jumps to the main entry
-                        \ point TT170 via this location
+                        \ point at TT170 via this location
 
  EQUW TT26              \ WRCHV is set to point here by elite-loader.asm
 
@@ -3889,90 +3945,109 @@ LOAD_A% = LOAD%
 
 .COMC
 
- EQUB 0                 \ Compass colour
+ EQUB 0                 \ The colour of the dot on the compass
                         \
-                        \   &F0 = in front
-                        \   &FF = behind
+                        \   * &F0 = the object in the compass is in front of us,
+                        \     so the dot is yellow/white
+                        \
+                        \   * &FF = the object in the compass is behind us, so
+                        \     the dot is green/cyan
 
 .DNOIZ
 
  EQUB 0                 \ Sound on/off configuration setting
                         \
-                        \   0 = on (default)
-                        \   &10 = off
+                        \   * 0 = sound is on (default)
                         \
-                        \ Toggled by pressing "S" when paused, see DK4
+                        \   * &10 = sound is off
+                        \
+                        \ Toggled by pressing "S" when paused, see the DK4
+                        \ routine for details
 
 .DAMP
 
  EQUB 0                 \ Keyboard damping configuration setting
                         \
-                        \   0 = enabled (default)
-                        \   &FF = disabled
+                        \   * 0 = damping is enabled (default)
                         \
-                        \ Toggled by pressing Caps Lock when paused, see DKS3
+                        \   * &FF = damping is disabled
+                        \
+                        \ Toggled by pressing Caps Lock when paused, see the
+                        \ DKS3 routine for details
 
 .DJD
 
  EQUB 0                 \ Keyboard auto-recentre configuration setting
                         \
-                        \   0 = enabled (default)
-                        \   &FF = disabled
+                        \   * 0 = auto-recentre is enabled (default)
                         \
-                        \ Toggled by pressing "A" when paused, see DKS3
+                        \   * &FF = auto-recentre is disabled
+                        \
+                        \ Toggled by pressing "A" when paused, see the DKS3
+                        \ routine for details
 
 .PATG
 
- EQUB 0                 \ Configuration setting to show author names on start-up
-                        \ screen and enable manual hyperspace mis-jumps
+ EQUB 0                 \ Configuration setting to show the author names on the
+                        \ start-up screen and enable manual hyperspace mis-jumps
                         \
-                        \   0 = off (default)
-                        \   &FF = on
+                        \   * 0 = no author names or manual mis-jumps (default)
                         \
-                        \ Toggled by pressing "X" when paused, see DKS3
+                        \   * &FF = show author names and allow manual mis-jumps
+                        \
+                        \ Toggled by pressing "X" when paused, see the DKS3
+                        \ routine for details
                         \
                         \ This needs to be turned on for manual mis-jumps to be
                         \ possible. To do a manual mis-jump, first toggle the
-                        \ author display by pausing the game (Copy) and pressing
-                        \ X, and during the next hyperspace, hold down CTRL to
-                        \ force a mis-jump; see routine ee5 for the "AND PATG"
-                        \ instruction that implements this
+                        \ author display by pausing the game (COPY) and pressing
+                        \ "X", and during the next hyperspace, hold down CTRL to
+                        \ force a mis-jump. See routine ee5 for the "AND PATG"
+                        \ instruction that implements this logic
 
 .FLH
 
  EQUB 0                 \ Flashing console bars configuration setting
                         \
-                        \   0 = static (default)
-                        \   &FF = flashing
+                        \   * 0 = static bars (default)
                         \
-                        \ Toggled by pressing "F" when paused, see DKS3
+                        \   * &FF = flashing bars
+                        \
+                        \ Toggled by pressing "F" when paused, see the DKS3
+                        \ routine for details
 
 .JSTGY
 
- EQUB 0                 \ Reverse joystick Y channel configuration setting
+ EQUB 0                 \ Reverse joystick Y-channel configuration setting
                         \
-                        \   0 = standard (default)
-                        \   &FF = reversed
+                        \   * 0 = standard Y-channel (default)
                         \
-                        \ Toggled by pressing "Y" when paused, see DKS3
+                        \   * &FF = reversed Y-channel
+                        \
+                        \ Toggled by pressing "Y" when paused, see the DKS3
+                        \ routine for details
 
 .JSTE
 
  EQUB 0                 \ Reverse both joystick channels configuration setting
                         \
-                        \   0 = standard (default)
-                        \   &FF = reversed
+                        \   * 0 = standard channels (default)
                         \
-                        \ Toggled by pressing "J" when paused, see DKS3
+                        \   * &FF = reversed channels
+                        \
+                        \ Toggled by pressing "J" when paused, see the DKS3
+                        \ routine for details
 
 .JSTK
 
  EQUB 0                 \ Keyboard or joystick configuration setting
                         \
-                        \   0 = keyboard (default)
-                        \   &FF = joystick
+                        \   * 0 = keyboard (default)
                         \
-                        \ Toggled by pressing "K" when paused, see DKS3
+                        \   * &FF = joystick
+                        \
+                        \ Toggled by pressing "K" when paused, see the DKS3
+                        \ routine for details
 
 \ ******************************************************************************
 \
@@ -26994,8 +27069,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ Create a random cloud of stardust containing the maximum number of dust
-\ particles, i.e. NOSTM of them, which is 3 in witchspace and #NOST (18) in
+\ Create a random cloud of stardust containing the correct number of dust
+\ particles, i.e. NOSTM of them, which is 3 in witchspace and 18 (#NOST) in
 \ normal space. Also clears the scanner and initialises the LSO block.
 \
 \ This is called by the DEATH routine when it displays our untimely demise.
@@ -33167,7 +33242,7 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ of TT66), which removes the border as it is drawn
                         \ using EOR logic
 
- JSR nWq                \ Create a cloud of stardust containing the maximum
+ JSR nWq                \ Create a cloud of stardust containing the correct
                         \ number of dust particles (i.e. NOSTM of them)
 
  LDA #12                \ Move the text cursor to column 12 on row 12
