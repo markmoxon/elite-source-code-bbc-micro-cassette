@@ -4058,15 +4058,20 @@ LOAD_A% = LOAD%
 \
 \ Other entry points:
 \
-\   M%                The entry point for the main flight loop
+\   M%                  The entry point for the main flight loop
 \
 \ ******************************************************************************
 
 .M%
 {
- LDA K%                 \ Seed the random number generator with whatever is in
- STA RAND               \ location K%, which will be fairly random as this is
-                        \ where we store the ship data blocks
+ LDA K%                 \ We want to seed the random number generator with a
+                        \ pretty random number, so fetch the contents of K%,
+                        \ which is the x_lo coordinate of the planet. This value
+                        \ will be fairly unpredictable, so it's a pretty good
+                        \ candidate
+
+ STA RAND               \ Store the seed in the first byte of the four-byte
+                        \ random number seed that's stored in RAND
 
 \ ******************************************************************************
 \
@@ -4104,8 +4109,8 @@ LOAD_A% = LOAD%
                         \ to the left (anticlockwise), so a positive roll rate
                         \ in JSTX translates to a negative roll angle alpha
 
- TXA                    \ Set A and Y to the roll rate but with the sign
- EOR #%10000000         \ bit flipped (i.e. the sign of alpha)
+ TXA                    \ Set A and Y to the roll rate but with the sign bit
+ EOR #%10000000         \ flipped (i.e. set them to the sign we want for alpha)
  TAY
 
  AND #%10000000         \ Extract the flipped sign of the roll rate and store
@@ -4118,13 +4123,14 @@ LOAD_A% = LOAD%
  STA ALP2+1             \ in ALP2+1 (so ALP2+1 contains the flipped sign of the
                         \ roll angle alpha)
 
- TYA                    \ If the roll rate but with the sign bit flipped is
- BPL P%+7               \ positive (i.e. if the current roll rate is negative),
-                        \ skip the following 3 instructions
+ TYA                    \ Set A to the roll rate but with the sign bit flipped
 
- EOR #%11111111         \ The current roll rate is negative, so change the sign
- CLC                    \ of A using two's complement, so A is now -A, or |A|
- ADC #1
+ BPL P%+7               \ If the value of A is positive, skip the following
+                        \ three instructions
+
+ EOR #%11111111         \ A is negative, so change the sign of A using two's
+ CLC                    \ complement so that A is now positive and contains
+ ADC #1                 \ the absolute value of the roll rate, i.e. |JSTX|
 
  LSR A                  \ Divide the (positive) roll rate in A by 4
  LSR A
@@ -4136,14 +4142,18 @@ LOAD_A% = LOAD%
  CLC                    \ so we can do addition later without the carry flag
                         \ affecting the result
 
- STA ALP1               \ Store A in ALP1, so:
+ STA ALP1               \ Store A in ALP1, so we now have:
                         \
-                        \   ALP1 = |JSTX| / 8    if |JSTX| <= 32
+                        \   ALP1 = |JSTX| / 8    if |JSTX| < 32
                         \
-                        \   ALP1 = |JSTX| / 4    if |JSTX| > 32
+                        \   ALP1 = |JSTX| / 4    if |JSTX| >= 32
                         \
-                        \ So higher roll rates are reduced closer to zero and
-                        \ because JSTX is in the range -127 to +127, ALP1 is
+                        \ This means that at lower roll rates, the roll angle is
+                        \ reduced closer to zero than at higher roll rates,
+                        \ which gives us finer control over the ship's roll at
+                        \ lower roll rates
+                        \
+                        \ Because JSTX is in the range -127 to +127, ALP1 is
                         \ in the range 0 to 31
 
  ORA ALP2               \ Store A in ALPHA, but with the sign set to ALP2 (so
@@ -4153,7 +4163,7 @@ LOAD_A% = LOAD%
  JSR cntr               \ apply keyboard damping so the pitch rate in X creeps
                         \ towards the centre by 1
 
- TXA                    \ Set A and Y to the pitch rate but with the sign
+ TXA                    \ Set A and Y to the pitch rate but with the sign bit
  EOR #%10000000         \ flipped
  TAY
 
@@ -4161,16 +4171,17 @@ LOAD_A% = LOAD%
 
  STX JSTY               \ Update JSTY with the damped value that's still in X
 
- STA BET2+1             \ Store the flipped sign of the pitch rate into BET2+1
+ STA BET2+1             \ Store the flipped sign of the pitch rate in BET2+1
 
  EOR #%10000000         \ Extract the correct sign of the pitch rate and store
- STA BET2               \ in BET2
+ STA BET2               \ it in BET2
 
- TYA                    \ If the pitch rate but with the sign bit flipped is
- BPL P%+4               \ positive (i.e. if the current pitch rate is
-                        \ negative), skip the following instruction
+ TYA                    \ Set A to the pitch rate but with the sign bit flipped
 
- EOR #%11111111         \ The current pitch rate is negative, so flip the bits
+ BPL P%+4               \ If the value of A is positive, skip the following
+                        \ instruction
+
+ EOR #%11111111         \ A is negative, so flip the bits
 
  ADC #4                 \ Add 4 to the (positive) pitch rate, so the maximum
                         \ value is now up to 131 (rather than 127)
@@ -4185,8 +4196,19 @@ LOAD_A% = LOAD%
 
  LSR A                  \ A < 3, so halve A again
 
- STA BET1               \ Store A in BET1, and because JSTY is in the range -131
-                        \ to +131, BET1 is in the range 0 to 8
+ STA BET1               \ Store A in BET1, so we now have:
+                        \
+                        \   BET1 = |JSTY| / 32    if |JSTY| < 48
+                        \
+                        \   BET1 = |JSTY| / 16    if |JSTY| >= 48
+                        \
+                        \ This means that at lower pitch rates, the pitch angle
+                        \ is reduced closer to zero than at higher pitch rates,
+                        \ which gives us finer control over the ship's pitch at
+                        \ lower pitch rates
+                        \
+                        \ Because JSTY is in the range -131 to +131, BET1 is in
+                        \ the range 0 to 8
 
  ORA BET2               \ Store A in BETA, but with the sign set to BET2 (so
  STA BETA               \ BETA has the same sign as the actual pitch rate)
@@ -4206,8 +4228,8 @@ LOAD_A% = LOAD%
 \   * Scan for flight keys and process the results
 \
 \ Flight keys are logged in the key logger at location KY1 onwards, with a
-\ non-zero value in the relevant location indicating a key press. See the KL
-\ and KY1 locations for more details.
+\ non-zero value in the relevant location indicating a key press. See the deep
+\ dive on "The keyboard logger" for more details.
 \
 \ The keypresses that are processed are as follows:
 \
@@ -26878,7 +26900,7 @@ LOAD_E% = LOAD% + P% - CODE%
  STA RAND+1             \ we stored at the start of the routine
 
  LDA K%+6               \ Store the z_lo coordinate for the planet (which will
- STA RAND+3             \ pretty random) in the RAND+3 seed
+ STA RAND+3             \ be pretty random) in the RAND+3 seed
 
  RTS                    \ Return from the subroutine
 
@@ -32471,11 +32493,11 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \   * r0 is written to at the start of M% in the main loop, to seed the random
 \     number generator. Here, r0 is set to the first byte of the ship data block
-\     at K% (x_lo for the first ship at K%).
+\     at K% (which is the x_lo coordinate for the planet).
 \
 \   * r3 is written to in EX4 as part of the explosion routine, with r3 being
-\     set to the seventh byte of the ship data block at K%+6 (z_lo for the
-\     first ship at K%).
+\     set to the seventh byte of the ship data block at K%+6 (which is the z_lo
+\     coordinate for the planet).
 \
 \ r0 and r2 follow the following sequence through successive calls to DORND,
 \ going from r0 and r2 to r0´ and r2´ with each call:
@@ -35379,20 +35401,20 @@ ENDIF
 \ slamming on the brakes to avoid missing the docking slot; firing lasers while
 \ activating the E.C.M. and slamming your foot on the accelerator; targeting a
 \ missile while switching between space views, trying to track down your foe...
-\ it's all in a day's work for your average Cobra Mk II pilot.
+\ it's all in a day's work for your average Cobra Mk III pilot.
 \
 \ Unfortunately, most 8-bit micros weren't built to handle multiple concurrent
 \ keypresses. The Machine Operating System (MOS) in the BBC Micro can handle up
-\ to two concurrent keypresses, outside of modifier keys; this known as a
+\ to two concurrent keypresses, on top of the modifier keys; this known as a
 \ "two-key rollover", and it's generally fine for typing, as you rarely intend
 \ to press more than two letter keys at the same time. However, for a game where
 \ you legitimately might want to pitch up, roll right, fire lasers, slow down
 \ and launch a missile all at the same time (by pressing "X", ">", "A", "?" and
 \ "M" concurrently), a simple two-key rollover just won't do.
 \
-\ Elite, therefore, implements its own key logger that listens for keypresses
+\ Elite therefore implements its own logging system that listens for keypresses
 \ for all the important flight controls, and stores their details in a keyboard
-\ logger for the main loop to process at the right time. There are 15 main
+\ logger for the main loop to process in its own time. There are 15 of these
 \ flight controls, which are split up into the seven primary controls (speed,
 \ pitch, roll and lasers) and eight secondary controls (energy bomb, escape pod,
 \ missile controls, E.C.M., in-system jump and the docking computer). The
@@ -35415,7 +35437,7 @@ ENDIF
 \ The main routines that populate the keyboard logger are:
 \
 \   * DKS4, which scans the keyboard for a specific key
-
+\
 \   * DKS1, which calls DKS4 and updates the keyboard logger with the result
 \
 \   * DOKEY, which calls DKS1 for each of the primary flight controls
