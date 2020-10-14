@@ -562,8 +562,7 @@ ORG &0000
                         \ enables Elite to scan for concurrent key presses of
                         \ the primary flight keys, plus a secondary flight key
                         \
-                        \ See the deep dive on "The keyboard logger" for more
-                        \ information
+                        \ See the deep dive on "The key logger" for more details
                         \
                         \ If a key is being pressed that is not in the keyboard
                         \ table at KYTB, it can be stored here (as seen in
@@ -4229,7 +4228,7 @@ LOAD_A% = LOAD%
 \
 \ Flight keys are logged in the key logger at location KY1 onwards, with a
 \ non-zero value in the relevant location indicating a key press. See the deep
-\ dive on "The keyboard logger" for more details.
+\ dive on "The key logger" for more details.
 \
 \ The keypresses that are processed are as follows:
 \
@@ -28786,8 +28785,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ The extended screen coordinate system is a key part of the simulation. The
 \ PROJ routine that projects space coordinates onto the screen produces 16-bit
 \ coordinates as a result of the projection, but the way these 16-bit
-\ coordinates relate to the screen is delightfully simple.
+\ coordinates relate to the screen is delightfully simple. Let's take a look.
 \
+\ A wall of screens
+\ -----------------
 \ First, let's consider a 256x256 screen (the space view in Elite is 256 pixels
 \ wide and 192 pixels high, but we'll come to that in a moment). The screen
 \ (x, y) coordinates would look like this, when expressed in hexadecimal:
@@ -28903,6 +28904,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ which is easily enough space to project 3D space coordinates onto the screen
 \ in the middle.
 \
+\ Checking whether a coordinate is on-screen
+\ ------------------------------------------
 \ The clever part about all this is how quickly we can check whether a screen
 \ coordinate is visible in the space view, and how easy it is to get the actual
 \ screen coordinate we need for drawing. Given an extended screen coordinate,
@@ -35390,10 +35393,10 @@ ENDIF
 \
 \ ******************************************************************************
 \
-\ Deep dive: The keyboard logger
-\ ==============================
+\ Deep dive: The key logger
+\ =========================
 \
-\ Summary: Supporting concurrent in-flight keypresses using a keyboard logger
+\ Summary: Supporting concurrent in-flight keypresses using a key logger
 \
 \ References: KYTB, KL, DKS1, DK4, DOKEY
 \
@@ -35417,11 +35420,13 @@ ENDIF
 \ logger for the main loop to process in its own time. There are 15 of these
 \ flight controls, which are split up into the seven primary controls (speed,
 \ pitch, roll and lasers) and eight secondary controls (energy bomb, escape pod,
-\ missile controls, E.C.M., in-system jump and the docking computer). The
-\ keyboard logger effectively implements an 8-key rollover for each of the
-\ primary controls, plus one secondary control, which is more than enough to
-\ make the game responsive to our every whim.
+\ missile controls, E.C.M., in-system jump and the docking computer). The key
+\ logger effectively implements an 8-key rollover for each of the primary
+\ controls, plus one secondary control, which is more than enough to make the
+\ game responsive to our every whim.
 \
+\ How the key logger works
+\ ------------------------
 \ The heart of the key logger system is the table at location KL. This contains
 \ one byte for each of the 15 flight controls listed in the keyboard lookup
 \ table at KYTB, starting from KL+1 for "?" (slow down) and going through to
@@ -35434,11 +35439,11 @@ ENDIF
 \ table to &FF to denote that a particular key is being pressed. The logger is
 \ cleared to zero (to denote that no keys are being pressed) by the U% routine.
 \
-\ The main routines that populate the keyboard logger are:
+\ The main routines that populate the key logger are:
 \
 \   * DKS4, which scans the keyboard for a specific key
 \
-\   * DKS1, which calls DKS4 and updates the keyboard logger with the result
+\   * DKS1, which calls DKS4 and updates the key logger with the result
 \
 \   * DOKEY, which calls DKS1 for each of the primary flight controls
 \
@@ -35450,8 +35455,8 @@ ENDIF
 \ never miss a keypress.
 \
 \ In addition, the joystick fire button is checked, and if it is pressed, the
-\ keyboard logger entry for laser fire ("A") is set, so there is only one
-\ location to check when processing laser fire.
+\ key logger entry for laser fire ("A") is set, so there is only one location
+\ to check when processing laser fire.
 \
 \ ******************************************************************************
 
