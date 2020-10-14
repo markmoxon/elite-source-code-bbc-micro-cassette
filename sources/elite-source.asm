@@ -578,7 +578,7 @@ ORG &0000
 
 .KY2
 
- SKIP 1                 \ The space bar has been pressed
+ SKIP 1                 \ Space has been pressed
                         \
                         \   * 0 = no
                         \
@@ -964,7 +964,7 @@ ORG &0000
                         \ if joysticks are enabled, from the joystick. If
                         \ keyboard damping is enabled (which it is by default),
                         \ the value is slowly moved towards the centre value of
-                        \ 128 (no roll) if there are no keypresses or joystick
+                        \ 128 (no roll) if there are no key presses or joystick
                         \ movement
 
 .JSTY
@@ -983,7 +983,7 @@ ORG &0000
                         \ if joysticks are enabled, from the joystick. If
                         \ keyboard damping is enabled (which it is by default),
                         \ the value is slowly moved towards the centre value of
-                        \ 128 (no pitch) if there are no keypresses or joystick
+                        \ 128 (no pitch) if there are no key presses or joystick
                         \ movement
 
 .ALPHA
@@ -4230,13 +4230,13 @@ LOAD_A% = LOAD%
 \ non-zero value in the relevant location indicating a key press. See the deep
 \ dive on "The key logger" for more details.
 \
-\ The keypresses that are processed are as follows:
+\ The key presses that are processed are as follows:
 \
-\   * The space bar and "?" to speed up and slow down
-\   * "U", "T" and "M" for disarming, arming and firing missiles
-\   * Tab for firing an energy bomb
-\   * Escape for launching an escape pod
-\   * "J" for initiating an in-system jump
+\   * Space and "?" to speed up and slow down
+\   * "U", "T" and "M" to disarm, arm and fire missiles
+\   * Tab to fire an energy bomb
+\   * Escape to launch an escape pod
+\   * "J" to initiate an in-system jump
 \   * "E" to deploy E.C.M. anti-missile countermeasures
 \   * "C" to use the docking computer
 \   * "A" to fire lasers
@@ -4287,12 +4287,12 @@ LOAD_A% = LOAD%
 
 .MA20
 
- LDA MSTG               \ If MSTG is positive (i.e. does not have bit 7 set),
+ LDA MSTG               \ If MSTG is positive (i.e. it does not have bit 7 set),
  BPL MA25               \ then it indicates we already have a missile locked on
                         \ a target (in which case MSTG contains the ship number
-                        \ of the target), so jump to MA25 to skip targeting (or
-                        \ put another way, if MSTG = &FF, which means there is
-                        \ no current target lock, keep going)
+                        \ of the target), so jump to MA25 to skip targeting. Or
+                        \ to put it another way, if MSTG = &FF, which means
+                        \ there is no current target lock, keep going
 
  LDA KY14               \ If "T" is being pressed, keep going, otherwise jump
  BEQ MA25               \ down to MA25 to skip the following
@@ -4307,7 +4307,7 @@ LOAD_A% = LOAD%
                         \ that it was negative)
 
  LDY #&E0               \ Change the leftmost missile indicator to yellow/white
- JSR MSBAR              \ on the missile bar (this changes the leftmost
+ JSR MSBAR              \ on the missile bar (this call changes the leftmost
                         \ indicator because we set X to the number of missiles
                         \ in NOMSL above, and the indicators are numbered from
                         \ right to left, so X is the number of the leftmost
@@ -4318,9 +4318,9 @@ LOAD_A% = LOAD%
  LDA KY16               \ If "M" is being pressed, keep going, otherwise jump
  BEQ MA24               \ down to MA24 to skip the following
 
- LDA MSTG               \ If MSTG = &FF there is no target lock, so jump to
- BMI MA64               \ MA64 to skip the following (skipping the checks for
-                        \ Tab, Escape, "J" and "E")
+ LDA MSTG               \ If MSTG = &FF then there is no target lock, so jump to
+ BMI MA64               \ MA64 to skip the following (also skipping the checks
+                        \ for Tab, Escape, "J" and "E")
 
  JSR FRMIS              \ The "fire missile" key is being pressed and we have
                         \ a missile lock, so call the FRMIS routine to fire
@@ -4332,11 +4332,13 @@ LOAD_A% = LOAD%
  BEQ MA76               \ jump down to MA76 to skip the following
 
  ASL BOMB               \ The "energy bomb" key is being pressed, so double
-                        \ the value in BOMB (so if we have an energy bomb
-                        \ fitted, BOMB now contains %11111110, or -2, otherwise
-                        \ it still contains 0). The bomb explosion is dealt
-                        \ with in the MAL1 routine below - this just registers
-                        \ the fact that we've set the bomb ticking
+                        \ the value in BOMB. If we have an energy bomb fitted,
+                        \ BOMB will contain &7F (%01111111) before this shift
+                        \ and will contain &FE (%11111110) after the shift; if
+                        \ we don't have an energy bomb fitted, BOMB will still
+                        \ contain 0. The bomb explosion is dealt with in the
+                        \ MAL1 routine below - this just registers the fact that
+                        \ we've set the bomb ticking
 
 .MA76
 
@@ -4346,7 +4348,8 @@ LOAD_A% = LOAD%
 
  JMP ESCAPE             \ The "launch escape pod" button is being pressed and
                         \ we have an escape pod fitted, so jump to ESCAPE to
-                        \ launch it
+                        \ launch it, and exit the main flight loop using a tail
+                        \ call
 
  LDA KY18               \ If "J" is being pressed, keep going, otherwise skip
  BEQ P%+5               \ the next instruction
@@ -4360,8 +4363,8 @@ LOAD_A% = LOAD%
  LDA ECMA               \ If ECMA is non-zero, that means an E.C.M. is already
  BNE MA64               \ operating and is counting down (this can be either
                         \ our E.C.M. or an opponent's), so jump down to MA64 to
-                        \ skip the following (as we can't have two E.C.M.s
-                        \ operating at the same time)
+                        \ skip the following (as we can't have two E.C.M.
+                        \ systems operating at the same time)
 
  DEC ECMP               \ The "E.C.M." button is being pressed and nobody else
                         \ is operating their E.C.M., so decrease the value of
@@ -4374,22 +4377,24 @@ LOAD_A% = LOAD%
 
 .MA64
 
- LDA KY19               \ If "C" is being pressed, we have a docking computer
- AND DKCMP              \ fitted, and we are inside the space station's safe
- AND SSPR               \ zone, keep going, otherwise jump down to MA68 to
+ LDA KY19               \ If "C" is being pressed, and we have a docking
+ AND DKCMP              \ computer fitted, and we are inside the space station's
+ AND SSPR               \ safe zone, keep going, otherwise jump down to MA68 to
  BEQ MA68               \ skip the following
 
  LDA K%+NI%+32          \ Fetch the AI counter (byte #32) of the second ship
  BMI MA68               \ from the ship data workspace at K%, which is reserved
                         \ for the sun or the space station (in this case it's
-                        \ the latter), and if it's negative, meaning the
-                        \ station is hostile, jump down to MA68 to skip the
-                        \ following (so we can't use the docking computer to
-                        \ dock at a station that has turned against us)
+                        \ the latter as we are in the safe zone). If byte #32 is
+                        \ negative, meaning the station is hostile, then jump
+                        \ down to MA68 to skip the following (so we can't use
+                        \ the docking computer to dock at a station that has
+                        \ turned against us)
 
  JMP GOIN               \ The "docking computer" button has been pressed and
                         \ we are allowed to dock at the station, so jump to
-                        \ GOIN to dock (or "go in")
+                        \ GOIN to dock (or "go in"), and exit the main flight
+                        \ loop using a tail call
 
 .MA68
 
@@ -4399,7 +4404,7 @@ LOAD_A% = LOAD%
  STA DELT4              \ Take the 16-bit value (DELTA 0) - i.e. a two-byte
  LDA DELTA              \ number with DELTA as the high byte and 0 as the low
  LSR A                  \ byte - and divide it by 4, storing the 16-bit result
- ROR DELT4              \ in DELT4(1 0). This is the same as storing the
+ ROR DELT4              \ in DELT4(1 0). This has the effect of storing the
  LSR A                  \ current speed * 64 in the 16-bit location DELT4(1 0)
  ROR DELT4
  STA DELT4+1
@@ -4415,16 +4420,16 @@ LOAD_A% = LOAD%
  CMP #242               \ overheated, so jump down to MA3 to skip the following
  BCS MA3
 
- LDX VIEW               \ If the current space has a laser fitted (i.e. the
- LDA LASER,X            \ laser power for this view is greater than zero),
- BEQ MA3                \ then keep going, otherwise jump down to MA3 to skip
-                        \ the following
+ LDX VIEW               \ If the current space view has a laser fitted (i.e. the
+ LDA LASER,X            \ laser power for this view is greater than zero), then
+ BEQ MA3                \ keep going, otherwise jump down to MA3 to skip the
+                        \ following
 
                         \ If we get here, then the "fire" button is being
-                        \ pressed, our laser hasn't overheated and isn't
-                        \ already being fired, and we actually have a laser
-                        \ fitted to the current space view, so it's time to hit
-                        \ me with those laser beams
+                        \ pressed, our laser hasn't overheated and isn't already
+                        \ being fired, and we actually have a laser fitted to
+                        \ the current space view, so it's time to hit me with
+                        \ those laser beams
 
  PHA                    \ Store the current view's laser power on the stack
 
@@ -4435,13 +4440,14 @@ LOAD_A% = LOAD%
  LDA #0                 \ Call the NOISE routine with A = 0 to make the sound
  JSR NOISE              \ of our laser firing
 
- JSR LASLI              \ Draw laser lines
+ JSR LASLI              \ Call LASLI to draw the laser lines
 
  PLA                    \ Restore the current view's laser power into A
 
- BPL ma1                \ If the laser power has bit 7 set, it's an "always
-                        \ on" laser, so keep going, otherwise jump down to ma1
-                        \ to skip the following instruction
+ BPL ma1                \ If the laser power has bit 7 set, then it's an "always
+                        \ on" laser rather than a pulsing laser, so keep going,
+                        \ otherwise jump down to ma1 to skip the following
+                        \ instruction
 
  LDA #0                 \ This is an "always on" laser (i.e. a beam laser,
                         \ as tape Elite doesn't have military lasers), so
@@ -4472,6 +4478,8 @@ LOAD_A% = LOAD%
 \
 \     * Copy the ship's data block from K% to INWK
 \
+\     * Set XX0 to point to the ship's blueprint (if this is a ship)
+\
 \ Other entry points:
 \
 \   MAL1                Marks the beginning of the ship analysis loop, so we
@@ -4490,24 +4498,28 @@ LOAD_A% = LOAD%
 
 .^MAL1
 
- STX XSAV               \ Store the slot number in XSAV
+ STX XSAV               \ Store the current slot number in XSAV
 
  LDA FRIN,X             \ Fetch the contents of this slot into A. If it is 0
  BNE P%+5               \ then this slot is empty and we have no more ships to
  JMP MA18               \ process, so jump to MA18 below, otherwise A contains
-                        \ the type of ship in this slot, so skip the JMP MA18
-                        \ and keep going
+                        \ the type of ship that's in this slot, so skip over the
+                        \ JMP MA18 instruction and keep going
 
  STA TYPE               \ Store the ship type in TYPE
 
- JSR GINF               \ Get the address of the data block for ship slot X
-                        \ and store it in INF
+ JSR GINF               \ Call GINF to fetch the address of the ship data block
+                        \ for the ship in slot X and store it in INF. The data
+                        \ block is in the K% workspace, which is where all the
+                        \ ship data blocks are stored
 
-                        \ Next we want to copy the ship data from INF to the
-                        \ local workspace at INWK, so we can process it
+                        \ Next we want to copy the ship data block from INF to
+                        \ the zero-page workspace at INWK, so we can process it
+                        \ more efficiently
 
- LDY #NI%-1             \ There are NI% bytes in the INWK workspace, so set a
-                        \ counter in Y so we can loop through them
+ LDY #NI%-1             \ There are NI% bytes in each ship data block (and in
+                        \ the INWK workspace, so we set a counter in Y so we can
+                        \ loop through them
 
 .MAL2
 
@@ -4516,12 +4528,13 @@ LOAD_A% = LOAD%
 
  DEY                    \ Decrement the loop counter
 
- BPL MAL2               \ Loop back for the next byte, ending when we have
-                        \ copied the last byte from INF to INWK
+ BPL MAL2               \ Loop back for the next byte until we have copied the
+                        \ last byte from INF to INWK
 
  LDA TYPE               \ If the ship type is negative then this indicates a
- BMI MA21               \ planet or sun, so jump down to MA21, as the next
-                        \ section sets up a ship data block, which doesn't
+ BMI MA21               \ planet or sun, so jump down to MA21, as the next bit
+                        \ sets up a pointer to the ship blueprint, and then
+                        \ checks for energy bomb damage, and neither of these
                         \ apply to planets and suns
 
  ASL A                  \ Set Y = ship type * 2
@@ -4562,24 +4575,24 @@ LOAD_A% = LOAD%
  CPY #2*SST             \ If the ship in Y is the space station, jump to BA21
  BEQ MA21               \ as energy bombs are useless against space stations
 
- LDA INWK+31            \ If the ship we are checking has bit 5 set in its
- AND #%00100000         \ ship byte #31, then it is already exploding, so jump
- BNE MA21               \ to BA21 as ships can't explode more than once
+ LDA INWK+31            \ If the ship we are checking has bit 5 set in its ship
+ AND #%00100000         \ byte #31, then it is already exploding, so jump to
+ BNE MA21               \ BA21 as ships can't explode more than once
 
- LDA INWK+31            \ The energy bomb is killing this ship, so set bit 7
- ORA #%10000000         \ of the ship byte #31 to indicate that it has now been
+ LDA INWK+31            \ The energy bomb is killing this ship, so set bit 7 of
+ ORA #%10000000         \ the ship byte #31 to indicate that it has now been
  STA INWK+31            \ killed
 
  JSR EXNO2              \ Call EXNO2 to process the fact that we have killed a
                         \ ship (so increase the kill tally, make an explosion
-                        \ sound and so on)
+                        \ sound and possibly display "RIGHT ON COMMANDER!")
 
 \ ******************************************************************************
 \
 \       Name: Main flight loop (Part 6 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: For each nearby ship: Move the ship in space and update K% block
+\    Summary: For each nearby ship: Move ship in space and copy INWK back to K%
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4589,18 +4602,25 @@ LOAD_A% = LOAD%
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
 \
-\     * Move the ship in space and update K% with the new data
+\     * Move the ship in space
+\
+\     * Copy the updated ship's data block from INWK back to K%
 \
 \ ******************************************************************************
 
 .MA21
 
- JSR MVEIT              \ Move the ship we are processing in space
+ JSR MVEIT              \ Call MVEIT to move the ship we are processing in space
 
- LDY #(NI%-1)           \ Now that we are done processing this ship, we need
-                        \ to copy the ship data back from INWK to INF, so set
-                        \ a counter in Y so we can loop through the NI% bytes
-                        \ once again
+                        \ Now that we are done processing this ship, we need to
+                        \ copy the ship data back from INWK to the correct place
+                        \ in the K% workspace. We already set INF in part 4 to
+                        \ point to the ship's data block in K%, so we can simply
+                        \ do the reverse of the copy we did before, this time
+                        \ copying from INWK to INF
+                        
+ LDY #(NI%-1)           \ Set a counter in Y so we can loop through the NI%
+                        \ bytes in the ship data block
 
 .MAL3
 
@@ -4609,8 +4629,8 @@ LOAD_A% = LOAD%
 
  DEY                    \ Decrement the loop counter
 
- BPL MAL3               \ Loop back for the next byte, ending when we have
-                        \ copied the last byte from INWK back to INF
+ BPL MAL3               \ Loop back for the next byte, until we have copied the
+                        \ last byte from INWK back to INF
 
 \ ******************************************************************************
 \
@@ -12451,7 +12471,7 @@ NEXT
                         \ print one digit)
 
  LDY #0                 \ In the main loop below, we use Y to count the number
-                        \ of times we subtract 10 billion to get the left-most
+                        \ of times we subtract 10 billion to get the leftmost
                         \ digit, so set this to zero (see below TT36 for an
                         \ of how this algorithm works)
 
@@ -12543,7 +12563,7 @@ NEXT
                         \ K(S 0 1 2 3) is now K(S 0 1 2 3) * 10
 
  LDY #0                 \ In the main loop below, we use Y to count the number
-                        \ of times we subtract 10 billion to get the left-most
+                        \ of times we subtract 10 billion to get the leftmost
                         \ digit, so set this to zero
 
 .TT36
@@ -32988,14 +33008,14 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Name: Main game loop (Part 6 of 6)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: Process non-flight keypresses (red function keys, docked keys)
+\    Summary: Process non-flight key presses (red function keys, docked keys)
 \
 \ ------------------------------------------------------------------------------
 \
 \ This is the second half of the minimal game loop, which we iterate when we are
 \ docked. This section covers the following:
 \
-\   * Process more keypresses (red function keys, docked keys etc.)
+\   * Process more key presses (red function keys, docked keys etc.)
 \
 \ It also support joining the main loop with a key already "pressed", so we can
 \ jump into the main game loop to perform a specific action. In practice, this
@@ -33014,7 +33034,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
 .^FRCE
 
- JSR TT102              \ Call TT102 to process the keypress in A
+ JSR TT102              \ Call TT102 to process the key pressed in A
 
  LDA QQ12               \ Fetch the docked flag from QQ12 into A
 
@@ -33113,7 +33133,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
  BIT QQ12               \ If bit 7 of QQ12 is clear (i.e. we are not docked, but
  BPL INSP               \ in space), jump to INSP to skip the following checks
-                        \ for f1-f3 and "@" (save commander file) keypresses
+                        \ for f1-f3 and "@" (save commander file) key presses
 
  CMP #f3                \ If red key f3 was pressed, jump to EQSHP to show the
  BNE P%+5               \ Equip Ship screen, returning from the subroutine using
@@ -33655,6 +33675,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \ 4/16
 \
 \   * Copy the ship's data block from K% to INWK
+\
+\   * Set XX0 to point to the ship's blueprint (if this is a ship)
 \ 
 \ 5/16
 \
@@ -33663,7 +33685,9 @@ LOAD_F% = LOAD% + P% - CODE%
 \ 
 \ 6/16
 \
-\   * Move the ship in space (MVEIT, see below) and update K% with the new data
+\   * Move the ship in space (MVEIT, see below)
+\
+\   * Copy the updated ship's data block from INWK back to K%
 \ 
 \ 7/16
 \
@@ -34197,7 +34221,7 @@ ENDIF
 
  BEQ TL2                \ If the joystick fire button is pressed, jump to BL2
 
- JSR RDKEY              \ Scan the keyboard for a keypress
+ JSR RDKEY              \ Scan the keyboard for a key press
 
  BEQ TLL2               \ If no key was pressed, loop back up to move/rotate
                         \ the ship and check again for a key press
@@ -35396,7 +35420,7 @@ ENDIF
 \ Deep dive: The key logger
 \ =========================
 \
-\ Summary: Supporting concurrent in-flight keypresses using a key logger
+\ Summary: Supporting concurrent in-flight key presses using a key logger
 \
 \ References: KYTB, KL, DKS1, DK4, DOKEY
 \
@@ -35407,15 +35431,15 @@ ENDIF
 \ it's all in a day's work for your average Cobra Mk III pilot.
 \
 \ Unfortunately, most 8-bit micros weren't built to handle multiple concurrent
-\ keypresses. The Machine Operating System (MOS) in the BBC Micro can handle up
-\ to two concurrent keypresses, on top of the modifier keys; this known as a
+\ key presses. The Machine Operating System (MOS) in the BBC Micro can handle up
+\ to two concurrent key presses, on top of the modifier keys; this known as a
 \ "two-key rollover", and it's generally fine for typing, as you rarely intend
 \ to press more than two letter keys at the same time. However, for a game where
 \ you legitimately might want to pitch up, roll right, fire lasers, slow down
 \ and launch a missile all at the same time (by pressing "X", ">", "A", "?" and
 \ "M" concurrently), a simple two-key rollover just won't do.
 \
-\ Elite therefore implements its own logging system that listens for keypresses
+\ Elite therefore implements its own logging system that listens for key presses
 \ for all the important flight controls, and stores their details in a keyboard
 \ logger for the main loop to process in its own time. There are 15 of these
 \ flight controls, which are split up into the seven primary controls (speed,
@@ -35452,7 +35476,7 @@ ENDIF
 \ If a key is being pressed that is not in the keyboard table at KYTB, then it
 \ can be stored in the first location in the key logger, KL, as this isn't
 \ mapped to a KYTB key. This is done in routine DK4, for example, so we almost
-\ never miss a keypress.
+\ never miss a key press.
 \
 \ In addition, the joystick fire button is checked, and if it is pressed, the
 \ key logger entry for laser fire ("A") is set, so there is only one location
@@ -35963,7 +35987,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
                         \ COPY is being pressed, so we enter a loop that
                         \ listens for configuration keys, and we keep looping
-                        \ until we detect a DELETE keypress. This effectively
+                        \ until we detect a DELETE key press. This effectively
                         \ pauses the game when COPY is pressed, and unpauses
                         \ it when DELETE is pressed
 
