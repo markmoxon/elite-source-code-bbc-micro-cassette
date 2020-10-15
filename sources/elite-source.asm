@@ -25522,7 +25522,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: BDOLLAR
+\       Name: Author names
 \       Type: Variable
 \   Category: Copy protection
 \    Summary: A copyright notice, buried in the code
@@ -25539,8 +25539,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \   (C)Bell/Braben1984
 \
 \ ******************************************************************************
-
-.BDOLLAR
 
  EQUB '(' EOR 164
  EQUB 'C' EOR 164
