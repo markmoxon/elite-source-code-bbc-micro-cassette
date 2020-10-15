@@ -554,7 +554,7 @@ ORG O%
 
 \ ******************************************************************************
 \
-\       Name: Author names
+\       Name: Authors' names
 \       Type: Variable
 \   Category: Copy protection
 \    Summary: The authors' names, buried in the code

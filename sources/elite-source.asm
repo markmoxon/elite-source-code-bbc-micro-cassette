@@ -25522,10 +25522,10 @@ LOAD_E% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: Author names
+\       Name: Authors' names
 \       Type: Variable
 \   Category: Copy protection
-\    Summary: A copyright notice, buried in the code
+\    Summary: The authors' names and a copyright notice, buried in the code
 \
 \ ------------------------------------------------------------------------------
 \
