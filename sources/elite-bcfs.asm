@@ -2,9 +2,10 @@
 \
 \ ELITE BIG CODE FILE SOURCE
 \
-\ The original 1984 source code is copyright Ian Bell and David Braben, and the
-\ code on this site is identical to the version released by the authors on Ian
-\ Bell's personal website at http://www.iancgbell.clara.net/elite/
+\ Elite was written by Ian Bell and David Braben and is copyright Acornsoft 1984
+\
+\ The code on this site is identical to the version released on Ian Bell's
+\ personal website at http://www.iancgbell.clara.net/elite/
 \
 \ The commentary is copyright Mark Moxon, and any misunderstandings or mistakes
 \ in the documentation are entirely my fault

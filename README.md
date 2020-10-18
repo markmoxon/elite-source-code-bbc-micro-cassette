@@ -34,7 +34,9 @@ My hope is that this repository and the [accompanying website](https://www.bbcel
 
 ## Acknowledgements
 
-The original 1984 source code is copyright &copy; Ian Bell and David Braben, and the code on this site is identical to the version released by the authors on [Ian Bell's personal website](http://www.iancgbell.clara.net/elite/) (it's just been reformatted to be more readable).
+Tube Elite was written by Ian Bell and David Braben and is copyright &copy; Acornsoft 1985.
+
+The code on this site is identical to the version released on [Ian Bell's personal website](http://www.iancgbell.clara.net/elite/) (it's just been reformatted to be more readable).
 
 The commentary is copyright &copy; Mark Moxon. Any misunderstandings or mistakes in the documentation are entirely my fault.
 
@@ -51,11 +53,11 @@ This repository is _not_ provided with a licence, and there is intentionally no 
 
 According to [GitHub's licensing documentation](https://docs.github.com/en/free-pro-team@latest/github/creating-cloning-and-archiving-repositories/licensing-a-repository), this means that "the default copyright laws apply, meaning that you retain all rights to your source code and no one may reproduce, distribute, or create derivative works from your work".
 
-The reason for this is that my commentary is intertwined with the original Elite source code, and the original source code is copyright the original authors. The whole site is therefore covered by default copyright law, to ensure that their copyright is respected.
+The reason for this is that my commentary is intertwined with the original Elite source code, and the original source code is copyright. The whole site is therefore covered by default copyright law, to ensure that this copyright is respected.
 
 Under GitHub's rules, you have the right to read and fork this repository... but that's it. No other use is permitted, I'm afraid.
 
-My hope is that the educational and non-profit intentions of this repository will enable it to stay hosted and available, but the original copyright holders do have the right to ask for it to be taken down, in which case I will comply without hesitation. I do hope, though, that along with the various other disassemblies and commentaries of this source, it will remain viable.
+My hope is that the non-profit intentions of this repository will enable it to stay hosted and available, but the original copyright holders do have the right to ask for it to be taken down, in which case I will comply without hesitation. I do hope, though, that along with the various other disassemblies and commentaries of this source, it will remain viable.
 
 ## Browsing the source in an IDE
 

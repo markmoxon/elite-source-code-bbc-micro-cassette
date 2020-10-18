@@ -4,10 +4,10 @@
 #
 # ELITE VERIFICATION SCRIPT
 #
-# Written by Kieran Connell, extended by Mark Moxon.
+# Written by Kieran Connell, extended by Mark Moxon
 #
 # This script performs checksums on the compiled files from the build process,
-# and checks them against the extracted files from the original source disc.
+# and checks them against the extracted files from the original source disc
 #
 # ******************************************************************************
 
