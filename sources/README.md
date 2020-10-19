@@ -2,7 +2,7 @@
 
 This folder contains the annotated source code.
 
-* `elite-source.asm` contains the main source code for Elite
+* `elite-source.asm` contains the main source code for the cassette version of Elite
 
 * `elite-loader.asm` contains the source for the loader
 

@@ -211,12 +211,13 @@ INCLUDE "sources/elite-header.h.asm"
 \ ******************************************************************************
 
 DISC = TRUE             \ Set to TRUE to load the code above DFS and relocate
-                        \ down, so we can load the tape version from disc
+                        \ down, so we can load the cassette version from disc
 
 PROT = FALSE            \ Set to TRUE to enable the tape protection code
 
 LOAD% = &1100           \ LOAD% is the load address of the main game code file
-                        \ ("ELTcode" for disc loading, "ELITEcode" for tape)
+                        \ ("ELTcode" for loading from disc, "ELITEcode" for
+                        \ loading from tape)
 
 C% = &0F40              \ C% is set to the location that the main game code gets
                         \ moved to after it is loaded
@@ -2345,7 +2346,7 @@ ORG LE%
 \ that routine for a more detailed description.
 \
 \ This routine, however, only works within a small 14x14 character text window,
-\ which we use for the tape-loading messages, so there is extra code for fitting
+\ which we use for the tape loading messages, so there is extra code for fitting
 \ the text into the window (and it also reverses the effect of line feeds and
 \ carriage returns).
 \

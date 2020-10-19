@@ -105,16 +105,18 @@ f9 = &77                \ Internal key number for red key f9 (Inventory)
 \
 \ References: ZP, XX3, T%, QQ18, K%, WP, S%, XX21, SHIP4
 \
-\ The tape version of Elite uses almost every nook and cranny of the BBC Micro,
-\ which isn't surprising when you consider just how much the authors managed to
-\ squeeze into this 32K micro. Sure, the disc version of the game has more
-\ features, but that's because the main game code is split into two different
-\ programs, one that's loaded when you're docked and another that's loaded for
-\ spaceflight. The tape version that's documented here doesn't have the luxury
-\ of fast loading - quite the opposite, in fact - so it has to cram the whole
-\ game into memory, all at once. It's an absolute marvel of efficiency.
+\ The cassette version of Elite uses almost every nook and cranny of the BBC
+\ Micro Model B, which isn't surprising when you consider just how much the
+\ authors managed to squeeze into this 32K micro. Sure, the disc version of the
+\ game has more features, but that's because the main game code is split into
+\ two different programs, one that's loaded when you're docked and another
+\ that's loaded for spaceflight. The cassette version that's documented here
+\ doesn't have the luxury of fast loading - quite the opposite, in fact - so it
+\ has to cram the whole game into memory, all at once. It's an absolute marvel
+\ of efficiency.
 \
-\ When tape Elite is loaded, this is how the memory map of the BBC Micro looks.
+\ When the cassette version of Elite is loaded, this is how the memory map of
+\ the BBC Micro Model B looks.
 \
 \     +-----------------------------------+   &FFFF
 \     |                                   |
@@ -219,7 +221,7 @@ f9 = &77                \ Internal key number for red key f9 (Inventory)
 \
 \ Memory usage
 \ ------------
-\ Here's a full breakdown of memory usage in bytes, once the tape version of
+\ Here's a full breakdown of memory usage in bytes, once the cassette version of
 \ Elite is loaded and running:
 \
 \                                                                Used     Unused
@@ -256,9 +258,9 @@ f9 = &77                \ Internal key number for red key f9 (Inventory)
 \
 \ As you can see - and contrary to popular legend - Elite does not use every
 \ single last byte of the BBC Micro's usable memory. There are actually quite a
-\ few unused bytes in the tape version, as noted in the "Unused" column above;
-\ 66 of them, to be precise. Here are the details, in the order in which they
-\ appear above:
+\ few unused bytes in the cassette version, as noted in the "Unused" column
+\ above; 66 of them, to be precise. Here are the details, in the order in which
+\ they appear above:
 \
 \   * In the main game code:
 \
@@ -1153,7 +1155,7 @@ ORG &0300
 .TP
 
  SKIP 1                 \ The current mission status, which is always 0 for the
-                        \ tape version of Elite as there are no missions
+                        \ cassette version of Elite as there are no missions
 
 .QQ0
 
@@ -4451,9 +4453,9 @@ LOAD_A% = LOAD%
                         \ instruction
 
  LDA #0                 \ This is an "always on" laser (i.e. a beam laser,
-                        \ as tape Elite doesn't have military lasers), so
-                        \ set A = 0, which will be stored in LASCT to denote
-                        \ that this is not a pulsing laser
+                        \ as the cassette version of Elite doesn't have military
+                        \ lasers), so set A = 0, which will be stored in LASCT
+                        \ to denote that this is not a pulsing laser
 
 .ma1
 
@@ -8302,8 +8304,8 @@ Q% = _ENABLE_MAX_COMMANDER
  EQUB 0                 \ Mission status. The disc version of the game has two
                         \ missions, and this byte contains the status of those
                         \ missions (the possible values are 0, 1, 2, &A, &E). As
-                        \ the tape version doesn't have missions, this byte will
-                        \ always be zero, which means no missions have been
+                        \ the cassette version doesn't have missions, this byte
+                        \ will always be zero, which means no missions have been
                         \ started
                         \
                         \ Note that this byte must not have bit 7 set, or
@@ -17145,8 +17147,8 @@ NEXT
 \ be called by name. It is unused, and could have been culled to save a few
 \ bytes (24 to be precise), but it's still here.
 \
-\ In the disc version it has the label MULTU6, but here in the tape version it's
-\ unnamed, unloved and unvisited, through no fault of its own.
+\ In the disc version it has the label MULTU6, but here in the cassette version
+\ it's unnamed, unloved and unvisited, through no fault of its own.
 \
 \ ******************************************************************************
 
@@ -22012,8 +22014,8 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \JSR FLKB               \ This instruction is commented out in the original
                         \ source. It calls a routine to flush the keyboard
-                        \ buffer (FLKB) that isn't present in the tape version
-                        \ but is in the disc version
+                        \ buffer (FLKB) that isn't present in the cassette
+                        \ version but is in the disc version
 
  LDA #0                 \ We're going to loop through all the available market
  STA QQ29               \ items, so we set up a counter in QQ29 to denote the
@@ -22297,8 +22299,8 @@ LOAD_D% = LOAD% + P% - CODE%
 
 \JSR FLKB               \ This instruction is commented out in the original
                         \ source. It calls a routine to flush the keyboard
-                        \ buffer (FLKB) that isn't present in the tape version
-                        \ but is in the disc version
+                        \ buffer (FLKB) that isn't present in the cassette
+                        \ version but is in the disc version
 
  LDA #205               \ Print recursive token 45 ("SELL")
  JSR TT27
@@ -33925,8 +33927,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \LDX #3                 \ source. This block starts with the same *FX call as
 \STX XC                 \ above, then clears the screen, calls a routine to
 \JSR FX200              \ flush the keyboard buffer (FLKB) that isn't present
-\LDA #1                 \ in the tape version but is in the disc version, and
-\JSR TT66               \ then it displays "LOAD NEW COMMANDER (Y/N)?" and
+\LDA #1                 \ in the cassette version but is in the disc version,
+\JSR TT66               \ and then it displays "LOAD NEW COMMANDER (Y/N)?" and
 \JSR FLKB               \ lists the current cargo, before falling straight into
 \LDA #14                \ the load routine below, whether or not we have
 \JSR TT214              \ pressed "Y". This may be a bit of testing code, as the
@@ -34723,10 +34725,10 @@ ENDIF
                         \ instruction, i.e. a BRK instruction, which will force
                         \ an interrupt to call the address in BRKV, which is set
                         \ to BR1... so this instruction restarts the game from
-                        \ the title screen. Valid commander files for the tape
-                        \ version of Elite only have 0 for the first byte, while
-                        \ the disc version can have 0, 1, 2, &A or &E, so having
-                        \ bit 7 set is invalid anyway
+                        \ the title screen. Valid commander files for the
+                        \ cassette version of Elite only have 0 for the first
+                        \ byte, while the disc version can have 0, 1, 2, &A or
+                        \ &E, so having bit 7 set is invalid anyway
 
  LDX #NT%               \ We have successfully loaded the commander file at
                         \ &0B00, so now we want to copy it to the last saved
@@ -38278,8 +38280,8 @@ LOAD_G% = LOAD% + P% - CODE%
 
  LDA #255               \ Set the 15th byte of XX2 to 255, so that face 15 is
  STA XX2+15             \ always visible. No ship definitions actually have this
-                        \ number of faces in the tape version, but this allows
-                        \ us to force a vertex to always be visible by
+                        \ number of faces in the cassette version, but this
+                        \ allows us to force a vertex to always be visible by
                         \ associating it with face 15 (see the blueprints for
                         \ the Cobra Mk III at SHIP5 and asteroid at SHIP10 for
                         \ examples)

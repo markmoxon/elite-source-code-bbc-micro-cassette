@@ -46,7 +46,8 @@ ZP = &70                \ ZP is a zero page variable used in the checksum
                         \ routine at LBL
 
 ORG &1100               \ The load address of the main game code file ("ELTcode"
-                        \ for disc loading, "ELITEcode" for tape)
+                        \ for loading from disc, "ELITEcode" for loading from
+                        \ tape)
 
 \ ******************************************************************************
 \
