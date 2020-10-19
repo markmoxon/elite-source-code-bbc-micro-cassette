@@ -4610,6 +4610,88 @@ LOAD_A% = LOAD%
 \     * Copy the updated ship's data block from INWK back to K%
 \
 \ ******************************************************************************
+\
+\ Deep dive: Program flow of the ship-moving routine
+\ ==================================================
+\
+\ Summary: A breakdown of the routine that moves the entire universe around us
+\
+\ References: MVEIT
+\
+\ The Elite universe is well-known for being immersive, and one of the most
+\ convincing aspects of the bubble of universe around our Cobra Mk III is how
+\ all the other objects around us move independently, from ships and space
+\ stations to entire planets and suns. This is no static universe with chunky
+\ bitmap backdrops or the predictable alien shuffle of Space Invaders - this is
+\ a convincing reality where pirates fly rings around rookie pilots while
+\ Coriolis stations pump out wave after wave of deadly law-enforcing Vipers.
+\
+\ So it's no surprise that the main ship-moving routine at MVEIT does a lot of
+\ heavy lifting. That said, the amount of effort is greatly reduced by the fact
+\ that the universe rotates around our ship, rather than the other way round.
+\ When we pitch or roll our Cobra, our ship actually stays put and the game
+\ rotates the entire universe around us in the opposite direction to the way
+\ we're rotating. The end result is the same because the universe is nice and
+\ simple, but the calculations are a lot easier to implement.
+\
+\ The MVEIT routine gets called by the main flight loop for each nearby ship.
+\ It rotates the current ship by the pitch and roll angles (which are set up
+\ to move the univers in the correct direction) while also applying the ship's
+\ own individual movements, such as its speed, orientation changes, and so on.
+\
+\ The MVEIT also calls the TACTICS routine to apply tactics to ships with AI
+\ enabled (see the deep dive on "Program flow of the tactics routine" for more
+\ details).
+\
+\ Program flow
+\ ------------
+\ Here's a breakdown of how the game implements a universe that literally
+\ revolves around us.
+\ 
+\ 1/9 MVEIT (main entry point for moving)
+\
+\   * Tidy the orientation vectors for one of the ship slots (by calling TIDY)
+\ 
+\ 2/9
+\
+\   * Apply tactics to ships with AI enabled (by calling TACTICS)
+\   * Remove the ship from the scanner, so we can move it (by calling SCAN)
+\ 
+\ 3/9
+\
+\   * Move the ship forward (along the vector pointing in the direction of
+\     travel) according to its speed
+\ 
+\ 4/9
+\
+\   * Apply acceleration to the ship's speed (if acceleration is non-zero), and
+\     then zero the acceleration as it's a one-off change
+\ 
+\ 5/9
+\
+\   * Rotate the ship's location in space by the amount of pitch and roll of our
+\     ship
+\ 
+\ 6/9
+\
+\   * Move the ship in space according to our speed
+\ 
+\ 7/9
+\
+\   * Rotate the ship's orientation vectors according to our pitch and roll
+\     (MVS4)
+\ 
+\ 8/9
+\
+\   * If the ship we are processing is rolling or pitching itself, rotate it and
+\     apply damping if required
+\ 
+\ 9/9
+\
+\   * If the ship is exploding or being removed, hide it on the scanner
+\   * Otherwise redraw the ship on the scanner, now that it's been moved
+\
+\ ******************************************************************************
 
 .MA21
 
@@ -6235,7 +6317,7 @@ LOAD_A% = LOAD%
 \
 \ This routine has multiple stages. This stage does the following:
 \
-\   * Apply tactics to ships with AI enabled
+\   * Apply tactics to ships with AI enabled (by calling the TACTICS routine)
 \
 \   * Remove the ship from the scanner, so we can move it
 \
@@ -14365,6 +14447,122 @@ LOAD_C% = LOAD% +P% - CODE%
 \   * If it has reached its target and the target is a ship, destroy the missile
 \     and the ship, potentially damaging us if we are nearby
 \
+\ ******************************************************************************
+\
+\ Deep dive: Program flow of the tactics routine
+\ ==============================================
+\
+\ Summary: How ships and missiles work out attack patterns... or how to run away
+\
+\ References: TACTICS
+\
+\ Ships in Elite seem to have purpose - it's part of the reason why the Elite
+\ universe feels so alive. Later versions of the game expand on the simpler
+\ artificial intelligence in the BBC versions: the version of Elite for the
+\ Acorn Archimedes is particularly celebrated for having ships that genuinely
+\ seem to be going about their business, with busy lives of their own. But even
+\ in the memory-constrained cassette version on the BBC Micro, the universe
+\ feels as if it is piloted by real people... or real aliens, if you're unlucky
+\ enough to bump into the Thargoids.
+\
+\ The heart of Elite's convincing AI is the TACTICS routine. This gets applied
+\ to every ship that has bit 7 set in ship byte #32, and it is called by the
+\ MVEIT routine, which itself is called on every iteration of the main loop.
+\ However, because it takes quite a bit of time to apply tactics to a ship, they
+\ are only applied to one or two ships on each iteration of the main flight
+\ loop, depending on the value of the main loop counter in MCNT.
+\
+\ Program flow
+\ ------------
+\ Let's see how ships in Elite are brought to life by stepping through the
+\ TACTICS routine. You might want to start with part 2, as that's where the main
+\ entry point is (the following is in the order in which it appears in the
+\ source code).
+\
+\ 1/7 TA34 (missile tactics, called from part 1 for missiles only)
+\
+\   * If E.C.M. is active, destroy the missile
+\
+\   * If the missile is hostile towards us, then check how close it is. If it
+\     hasn't reached us, jump to part 3 so it can streak towards us, otherwise
+\     we've been hit, so process a large amount of damage to our ship, which can
+\     lead to DEATH
+\
+\   * Otherwise see how close the missile is to its target. If it has not yet
+\     reached its target, give the target a chance to activate its E.C.M. if it
+\     has one, otherwise jump to part 3
+\
+\   * If it has reached its target and the target is the space station, destroy
+\     the missile, potentially damaging us if we are nearby
+\
+\   * If it has reached its target and the target is a ship, destroy the missile
+\     and the ship, potentially damaging us if we are nearby
+\
+\ 2/7 TACTICS (main entry point for tactics)
+\
+\   * If this is a missile, jump up to the missile code in part 1
+\
+\   * If this is an escape pod, point it at the planet and jump to part 7
+\
+\   * If this is the space station and it is hostile, spawn a cop and we're done
+\
+\   * If this is a lone Thargon without a mothership, set it adrift aimlessly
+\     and we're done
+\
+\   * If this is a pirate and we are within the space station safe zone, stop
+\     the pirate from attacking
+\
+\   * Recharge the ship's energy banks by 1
+\ 
+\ 3/7
+\
+\   * Calculate the dot product of the ship's nose vector (i.e. the direction it
+\     is pointing) with the vector between us and the ship so we can work out
+\     later on whether the enemy ship can hit us with its lasers
+\ 
+\ 4/7
+\
+\   * Rarely (2.5% chance) roll the ship by a noticeable amount
+\
+\   * If the ship has at least half its energy banks full, jump to part 6 to
+\     consider firing the lasers
+\
+\   * If the ship isn't really low on energy, jump to part 5 to consider firing
+\     a missile
+\
+\   * Rarely (10% chance) the ship runs out of both energy and luck, and bails,
+\     launching an escape pod and drifting in space
+\ 
+\ 5/7
+\
+\   * If the ship doesn't have any missiles, skip to the next part
+\
+\   * If an E.C.M. is firing, skip to the next part
+\
+\   * Randomly decide whether to fire a missile (or, in the case of Thargoids,
+\     release a Thargon), and if we do, we're done
+\ 
+\ 6/7
+\
+\   * If the ship is not pointing at us, skip to the next part
+\
+\   * If the ship is pointing at us but not accurately, fire its laser at us and
+\     skip to the next part
+\
+\   * If we are in the ship's crosshairs, register some damage to our ship, slow
+\     down the attacking ship, make the noise of us being hit by laser fire
+\     (which could end in DEATH), and we're done
+\ 
+\ 7/7
+\
+\   * Work out which direction the ship should be moving, depending on whether
+\     it's an escape pod, where it is, which direction it is pointing, and how
+\     aggressive it is
+\
+\   * Set the pitch and roll counters to head in that direction
+\
+\   * Speed up or slow down, depending on where the ship is in relation to us
+\ 
 \ ******************************************************************************
 
 {
@@ -33594,12 +33792,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \ References: TT170, MLOOP, M%
 \
 \ Here is a high-level look at the main program flow, from the title screen to
-\ the end of life as we know it, via the main game loop, the main flight loop,
-\ moving and tactics.
-\
-\ This is mainly about the flight aspects of the game, as the docked screens
-\ don't really have much of a flow, they just get shown when the relevant keys
-\ are pressed.
+\ the end of life as we know it, via the main game loop and the main flight
+\ loop. The following is mainly about the flight aspects of the game, as the
+\ docked screens don't really have much of a flow, they just get shown when the
+\ relevant keys are pressed.
 \
 \ Each section is broken down into parts that mirror the structure of the source
 \ code, so it should be easy enough to find the relevant parts mentioned below.
@@ -33686,7 +33882,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \ 
 \ 6/16
 \
-\   * Move the ship in space (MVEIT, see below)
+\   * Move the ship in space by calling MVEIT (see the deep dive on "Program
+\     flow of the ship-moving routine" for details). MVEIT also calls the main
+\     tactics routine at TACTICS (see the deep dive on "Program flow of the
+\     tactics routine" for more)
 \
 \   * Copy the updated ship's data block from INWK back to K%
 \ 
@@ -33744,137 +33943,6 @@ LOAD_F% = LOAD% + P% - CODE%
 \   * Process E.C.M. energy drain
 \   * Call the stardust routine if we are on a space view (STARS)
 \   * Return from the main flight loop
-\ 
-\ Moving
-\ ------
-\ 1/9 MVEIT (main entry point for moving)
-\
-\   * Tidy the orientation vectors for one of the ship slots (TIDY)
-\ 
-\ 2/9
-\
-\   * Apply tactics to ships with AI enabled (TACTICS, see below)
-\   * Remove the ship from the scanner, so we can move it (SCAN)
-\ 
-\ 3/9
-\
-\   * Move the ship forward (along the vector pointing in the direction of
-\     travel) according to its speed
-\ 
-\ 4/9
-\
-\   * Apply acceleration to the ship's speed (if acceleration is non-zero), and
-\     then zero the acceleration as it's a one-off change
-\ 
-\ 5/9
-\
-\   * Rotate the ship's location in space by the amount of pitch and roll of our
-\     ship
-\ 
-\ 6/9
-\
-\   * Move the ship in space according to our speed
-\ 
-\ 7/9
-\
-\   * Rotate the ship's orientation vectors according to our pitch and roll
-\     (MVS4)
-\ 
-\ 8/9
-\
-\   * If the ship we are processing is rolling or pitching itself, rotate it and
-\     apply damping if required
-\ 
-\ 9/9
-\
-\   * If the ship is exploding or being removed, hide it on the scanner
-\   * Otherwise redraw the ship on the scanner, now that it's been moved
-\ 
-\ Tactics
-\ -------
-\ 1/7 TA34 (missile tactics, called from part 1 for missiles only)
-\
-\   * If E.C.M. is active, destroy the missile
-\
-\   * If the missile is hostile towards us, then check how close it is. If it
-\     hasn't reached us, jump to part 3 so it can streak towards us, otherwise
-\     we've been hit, so process a large amount of damage to our ship, which can
-\     lead to DEATH
-\
-\   * Otherwise see how close the missile is to its target. If it has not yet
-\     reached its target, give the target a chance to activate its E.C.M. if it
-\     has one, otherwise jump to part 3
-\
-\   * If it has reached its target and the target is the space station, destroy
-\     the missile, potentially damaging us if we are nearby
-\
-\   * If it has reached its target and the target is a ship, destroy the missile
-\     and the ship, potentially damaging us if we are nearby
-\
-\ 2/7 TACTICS (main entry point for tactics)
-\
-\   * If this is a missile, jump up to the missile code in part 1
-\
-\   * If this is an escape pod, point it at the planet and jump to part 7
-\
-\   * If this is the space station and it is hostile, spawn a cop and we're done
-\
-\   * If this is a lone Thargon without a mothership, set it adrift aimlessly
-\     and we're done
-\
-\   * If this is a pirate and we are within the space station safe zone, stop
-\     the pirate from attacking
-\
-\   * Recharge the ship's energy banks by 1
-\ 
-\ 3/7
-\
-\   * Calculate the dot product of the ship's nose vector (i.e. the direction it
-\     is pointing) with the vector between us and the ship so we can work out
-\     later on whether the enemy ship can hit us with its lasers
-\ 
-\ 4/7
-\
-\   * Rarely (2.5% chance) roll the ship by a noticeable amount
-\
-\   * If the ship has at least half its energy banks full, jump to part 6 to
-\     consider firing the lasers
-\
-\   * If the ship isn't really low on energy, jump to part 5 to consider firing
-\     a missile
-\
-\   * Rarely (10% chance) the ship runs out of both energy and luck, and bails,
-\     launching an escape pod and drifting in space
-\ 
-\ 5/7
-\
-\   * If the ship doesn't have any missiles, skip to the next part
-\
-\   * If an E.C.M. is firing, skip to the next part
-\
-\   * Randomly decide whether to fire a missile (or, in the case of Thargoids,
-\     release a Thargon), and if we do, we're done
-\ 
-\ 6/7
-\
-\   * If the ship is not pointing at us, skip to the next part
-\
-\   * If the ship is pointing at us but not accurately, fire its laser at us and
-\     skip to the next part
-\
-\   * If we are in the ship's crosshairs, register some damage to our ship, slow
-\     down the attacking ship, make the noise of us being hit by laser fire
-\     (which could end in DEATH), and we're done
-\ 
-\ 7/7
-\
-\   * Work out which direction the ship should be moving, depending on whether
-\     it's an escape pod, where it is, which direction it is pointing, and how
-\     aggressive it is
-\
-\   * Set the pitch and roll counters to head in that direction
-\
-\   * Speed up or slow down, depending on where the ship is in relation to us
 \ 
 \ Death
 \ -----
