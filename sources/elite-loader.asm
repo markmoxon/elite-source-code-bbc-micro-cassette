@@ -2869,10 +2869,24 @@ IF PROT AND DISC = 0
  BIT M2                 \ If bit 1 of the block flag is set, jump to itdone
  BNE itdone
 
- EOR #%10000011         \ Otherwise flip bits 0, 1 and 7 of A, so that bit 1 is
-                        \ set in A, so we won't increment BLCNT until the next
-                        \ block starts loading (so in this way we count the
-                        \ number of blocks loaded in BLCNT)
+ EOR #%10000011         \ Otherwise flip bits 0, 1 and 7 of A. This has two
+                        \ main effects:
+                        \
+                        \   * Bit 0 of the block flag gets cleared. Most
+                        \     cassette versions of Acornsoft games are saved to
+                        \     tape with locked blocks, so you can't just load
+                        \     the game into memory (you'll get a "Locked" error
+                        \     for each block). Locked blocks have bit 0 set, so
+                        \     this clears the locked status, so when the MOS
+                        \     gets round to checking whether the block is
+                        \     locked, we've already cleared it and updated it in
+                        \     memory (which we do below), so the block loads
+                        \     without throwing an error
+                        \
+                        \   * Bit 1 of the block flag gets set, so we won't
+                        \     increment BLCNT again until the next block starts
+                        \     loading (so in this way we count the number of
+                        \     blocks loaded in BLCNT)
 
  INC BLCNT              \ Increment BLCNT, which was initialised to 0 in part 3
 
@@ -2883,7 +2897,8 @@ IF PROT AND DISC = 0
 
 .ZQK
 
- STA (BLPTR),Y          \ Store the updated value of A in the block flag
+ STA (BLPTR),Y          \ Store the updated value of A in the block flag, so the
+                        \ block gets unlocked
 
  LDA #&23               \ If the block number in BLN is &23, skip the next
  CMP (BLN),Y            \ instruction
