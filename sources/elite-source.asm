@@ -901,36 +901,10 @@ ORG &0000
 
  SKIP 1                 \ The main loop counter
                         \
-                        \ This counter, which starts at 255 and gets decremented
-                        \ every iteration of the main loop in TT100, is used to
-                        \ determine when to do certain actions within the main
-                        \ loop. So, for example:
-                        \
-                        \   * Ship energy and shields are bumped up every 8
-                        \     loops
-                        \
-                        \   * We check whether we are near a space station every
-                        \     32 loops
-                        \
-                        \   * We check the ship's altitude every 10 loops
-                        \
-                        \   * We consider spawning a ship every 256 iterations
-                        \
-                        \   * We tidy one ship's orientation vectors for 13 out
-                        \     of 16 iterations
-                        \
-                        \ and so on. The counter is reset in various ways:
-                        \
-                        \   * It gets set to 0 when we buy fuel, launch from a
-                        \     space station, arrive in a new system, or launch
-                        \     an escape pod
-                        \
-                        \   * It gets set to 1 after completing an in-system
-                        \     jump, so the next iteration through the main loop
-                        \     will potentially spawn ships
-                        \
-                        \   * It gets set to 255 while the death screen is
-                        \     showing, and then set to 0 once it's finished
+                        \ This counter determines how often certain actions are
+                        \ performed within the main loop. See the deep dive on
+                        \ "Scheduling tasks with the main loop counter" for more
+                        \ details
 
 .DL
 
@@ -5472,6 +5446,150 @@ LOAD_A% = LOAD%
 \   * Charge shields and energy banks (every 7 iterations of the main loop)
 \
 \ ******************************************************************************
+\
+\ Deep dive: Scheduling tasks with the main loop counter
+\ ======================================================
+\ 
+\ Summary: How the main loop counter controls what we do and when we do it
+\ 
+\ References: MCNT
+\ 
+\ Elite's program flow is based around a main loop that starts iterating as soon
+\ as you get past the title screen. At its simplest - when docked - the main
+\ loop does little more than listening for function key presses and calling the
+\ relevant routines for cargo, equipment, charts and so on, but out in space in
+\ the midst of a frenetic battle for survival, things get an awful lot busier.
+\ 
+\ If this level of activity isn't controlled, then things can really start to
+\ slow down on an 2MHz 8-bit CPU that's doing its best to keep up with Thargoids
+\ and missiles and suns and 3D graphics and ship AI and in-flight messages and
+\ complicated vector maths and all the other demands that a futuristic Cobra Mk
+\ III simulator makes on the hardware. Elite does a great job of maintaining a
+\ respectable frame rate amongst all this activity, and one of its coping
+\ mechanisms is the main loop counter in MCNT.
+\ 
+\ The idea behind the main loop counter is simple: on any particular iteration
+\ round the main loop, it lets the game decide whether or not to perform each
+\ specific action, depending on the counter value. Some actions are vital and
+\ have to be done on every iteration round the loop, so they just ignore the
+\ value of MCNT, but some actions don't need such regular attention. The loop
+\ counter lets us do what's important all of the time, while doing what's less
+\ important (or more difficult) only some of the time.
+\ 
+\ Let's see how this works.
+\ 
+\ Using MCNT to control what we do...
+\ -----------------------------------
+\ The main loop counter is stored in location MCNT. It gets decremented every
+\ time the main loop restarts, just after routine TT100 is entered. Some
+\ routines set the counter to specific values to ensure certain actions will or
+\ won't happen (see below), but for the most part the counter decrements from
+\ 255 down to 0 and back up to 255 again.
+\ 
+\ At various points in the code, we check the counter value to determine what we
+\ need to do. One way of doing this is to use a logical AND to implement a
+\ modulo operation, as follows. Consider the following code:
+\ 
+\   LDA MCNT
+\   AND #7
+\   BNE skip
+\   
+\   ... code gets run once every 8 iterations ...
+\   
+\   .skip
+\ 
+\ In binary, 7 is %00000111, so we perform the skip if any of the three lowest
+\ bits of MCNT are non-zero. In other words, we run the code only when the three
+\ lowest bits are all zero, which happens once every 8 iterations. This is the
+\ same as saying "do the action when MCNT mod 8 = 0".
+\ 
+\ In general, if n is a power of 2, we can use AND #n-1 to calculate modulo n,
+\ so we could use AND #31 to do something every 32 iterations, for example.
+\ 
+\ Another approach is to calculate the modulo and then compare the value to a
+\ fixed number, to spread operations out within a specific batch of iterations.
+\ For example:
+\ 
+\   LDA MCNT
+\   AND #31
+\   
+\   CMP #10
+\   BNE skip1
+\   
+\   ... code gets run once at iteration 10 out of every 32 iterations ...
+\   
+\   .skip1
+\   
+\   CMP #20
+\   BNE skip2
+\   
+\   ... code gets run once at iteration 20 out of every 32 iterations ...
+\   
+\   .skip2
+\ 
+\ There are some minor variations on the above in the game code, but the basic
+\ approach is the same: check the counter and perform actions accordingly. Let's
+\ take a look at how the main loop counter is used to determine what happens
+\ when in the main loop's iterations.
+\ 
+\ ...and when we do it
+\ --------------------
+\ Here's a breakdown of all events that are dependent on the value of MCNT. The
+\ counts are given within each iteration batch, so "every 4 iterations on count
+\ 0/4" means we do the action when MCNT is 0, 4, 8, 12 and so on, while "every
+\ 32 iterations on count 10/32" means we do it when MCNT is 10, 42, 74 and so
+\ on.
+\ 
+\   * Every 4 iterations on count 0/4: Update the non-essential dashboard bar
+\     indicators (i.e. everything except speed, pitch and roll, scanner and
+\     compass, which update every iteration)
+\ 
+\   * Every 8 iterations on count 0/8: Regenerate ship energy and shields
+\ 
+\   * Every 8 iterations on counts 0-4 (2 ships) and 5-7 (1 ship): Apply tactics
+\     to 1 or 2 ships per iteration, working through all 13 slots every 8
+\     iterations
+\ 
+\   * Every 16 iterations on counts 0/16 and 8/16: If configured, flash the
+\     dashboard dials on and off, with 8 iterations on, and 8 off
+\ 
+\   * Every 16 iterations on counts 0/16 to 12/16: Tidy one ship's orientation
+\     vectors for 13 out every 16 iterations
+\ 
+\   * Every 32 iterations on count 0/32: Check whether we are near a space
+\     station, and spawn one if we are
+\ 
+\   * Every 32 iterations on count 10/32: Calculate the ship's altitude above
+\     the planet, and die if we crash land
+\ 
+\   * Every 32 iterations on count 10/32: If our energy is low, print "ENERGY
+\     LOW" as an in-flight message and beep
+\ 
+\   * Every 32 iterations on count 20/32: Calculate the ship's altitude above
+\     the sun, set the cabin temperature accordingly (and die if it's too hot),
+\     and if we are scooping, add the relevant amount of fuel
+\ 
+\   * Every 256 iterations on count 0/256: Consider spawning a ship
+\ 
+\ Resetting the counter
+\ ---------------------
+\ The MCNT counter is reset in various ways, to affect the state of the various
+\ actions it triggers:
+\ 
+\   * It gets set to 0 when we buy fuel, launch from a space station, arrive in
+\     a new system, or launch an escape pod, so the main loop won't consider
+\     spawning new ships for at least 256 iterations (as the counter will be
+\     decremented to 255 as soon as the main loop is entered)
+\ 
+\   * It gets set to 1 after completing an in-system jump, so the next iteration
+\     through the main loop will potentially spawn ships (as the counter will be
+\     decremented to 0 as soon as the main loop is entered)
+\ 
+\   * It gets set to 255 while the death screen is showing, so nothing gets
+\     spawned during the death sequence, and then it's set to 0 once it's
+\     finished
+\
+\ ******************************************************************************
 
 .MA18
 
@@ -5501,9 +5619,9 @@ LOAD_A% = LOAD%
 
 .MA77
 
- LDA MCNT               \ Fetch the main loop counter and look at bits 0-2,
- AND #%00000111         \ jumping to MA22 if they are zero (so the following
- BNE MA22               \ section only runs every 8 iterations of the main loop)
+ LDA MCNT               \ Fetch the main loop counter and calculate MCNT mod 7,
+ AND #7                 \ jumping to MA22 if it is non-zero (so the following
+ BNE MA22               \ code only runs every 8 iterations of the main loop)
 
  LDX ENERGY             \ Fetch our ship's energy levels and skip to b if bit 7
  BPL b                  \ is not set, i.e. only charge the shields from the
@@ -5547,10 +5665,9 @@ LOAD_A% = LOAD%
  BNE MA23S              \ the following, as there are no space stations in
                         \ witchspace
 
- LDA MCNT               \ Fetch the main loop counter and look at bits 0-4,
- AND #%00011111         \ jumping to MA93 if they are zero (so the following
- BNE MA93               \ section only runs every 32 iterations of the main
-                        \ loop)
+ LDA MCNT               \ Fetch the main loop counter and calculate MCNT mod 32,
+ AND #31                \ jumping to MA93 if it is on-zero (so the following
+ BNE MA93               \ code only runs every 32 iterations of the main loop
 
  LDA SSPR               \ If we are inside the space station safe zone, jump to
  BNE MA23S              \ MA23S to skip the following, as we already have a
@@ -5673,9 +5790,9 @@ LOAD_A% = LOAD%
  BNE MA23               \ the following, as there are no planets or suns to
                         \ bump into in witchspace
 
- LDA MCNT               \ Fetch the main loop counter and look at bits 0-4,
- AND #%00011111         \ so this tells us the position of this loop in each
-                        \ block of 32 iterations
+ LDA MCNT               \ Fetch the main loop counter and calculate MCNT mod 32,
+ AND #31                \ which tells us the position of this loop in each block
+                        \ of 32 iterations
 
 .MA93
 
@@ -13334,10 +13451,10 @@ NEXT
 \
 \ ******************************************************************************
 
- LDA MCNT               \ If the main loop counter has either of bits 0 and 1
- AND #%00000011         \ set, return from the subroutine (as rT9 contains an
- BNE rT9                \ RTS), so we fall through to the following in one of
-                        \ every four main loop iterations
+ LDA MCNT               \ Fetch the main loop counter and calculate MCNT mod 4,
+ AND #3                 \ jumping to rT9 if it is non-zero. rT9 contains an RTS,
+ BNE rT9                \ so the following code only runs every 4 iterations of
+                        \ the main loop, otherwise we return from the subroutine
 
  LDY #0                 \ Set Y = 0, for use in various places below
 
@@ -34277,7 +34394,7 @@ ENDIF
 
  JSR LL9                \ Call LL9 to display the ship
 
- DEC MCNT               \ Decrement the move counter
+ DEC MCNT               \ Decrement the main loop counter
 
  LDA SHEILA+&40         \ Read 6522 System VIA input register IRB (SHEILA &40)
 
