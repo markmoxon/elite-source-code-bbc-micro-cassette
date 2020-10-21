@@ -41287,9 +41287,9 @@ LOAD_G% = LOAD% + P% - CODE%
 \   * Calculate the line gradient from the 16-bit coordinates, calculating it
 \     the right way round to make it a fractional gradient:
 \
-\       * Calculate (delta_x / delta_y) if delta_x < delta_y
+\     * Calculate (delta_x / delta_y) if delta_x < delta_y
 \
-\       * Calculate (delta_y / delta_x) if delta_x >= delta_y
+\     * Calculate (delta_y / delta_x) if delta_x >= delta_y
 \
 \ Part 4
 \
