@@ -5034,12 +5034,10 @@ LOAD_A% = LOAD%
 \
 \ 5. Horizontal docking slot
 \ --------------------------
-\ The space station's roofv vector points out of the top of the space station
-\ (OK, it doesn't have a roof, but it still points up). The station's blueprint
-\ has the slot in a vertical orientation, so this means roofv points in the
-\ same direction as the slot (when we do a successful docking, the space
-\ station is actually on its side, which makes this part a little harder to
-\ visualise).
+\ The space station is one of the ships with a non-standard orientation (see the
+\ deep dive on "Orientation vectors" for details). Specifically, the roofv
+\ vector points out of the side of the space station in a direction that is
+\ parallel to the horizontal line of the slot.
 \
 \ As we are approaching the station and trying to dock, then, the roof vector
 \ is pointing to the side when the slot is nice and horizontal. If we start to
@@ -5058,7 +5056,7 @@ LOAD_A% = LOAD%
 \   cos(t) = 80 / 96
 \
 \ which gives an angle of t = 33.6 degrees. So if we approach with the slot at
-\ an angle of more than 33.6 degrees, we will fail docking.
+\ an angle of more than 33.6 degrees, we will fail to dock successfully.
 \
 \ ******************************************************************************
 
@@ -6265,6 +6263,10 @@ LOAD_A% = LOAD%
 \
 \   * sidev points out of the ship's right view
 \
+\ (Note that there are five ships that have slightly different orientations to
+\ this standard model, namely Thargoids, Thargons, space stations, cargo
+\ canisters and asteroids. These orientations are described below.)
+\
 \ It might help to think of these vectors from the point of view of the ship's
 \ cockpit. From this perspective, the orientation vectors always look like this,
 \ with our ship at the origin:
@@ -6387,6 +6389,63 @@ LOAD_A% = LOAD%
 \
 \ Finally, the orientation vectors define a left-handed universe, with the thumb
 \ as roofv, index finger as nosev, and middle finger as sidev.
+\
+\ Non-standard orientations
+\ -------------------------
+\ The following ships don't have a standard orientation (all other ships follow
+\ the logical nose-roof-side pattern).
+\
+\   * Thargoid mothership: 
+\
+\     * nosev points out of one side of the mothership
+\
+\     * roofv points out of the other side of the mothership
+\
+\     * sidev points out of the roof of the mothership
+\
+\   * Thargon: 
+\
+\     * nosev points out of the Thargon's nose
+\
+\     * roofv points out of the side of the Thargon
+\
+\     * sidev points out of the roof of the Thargon
+\
+\   * Space station:
+\
+\     * nosev points forward out of the docking slot
+\
+\     * roofv points out of the side of the space station in a direction that is
+\       parallel to the horizontal line of the slot
+\
+\     * sidev points out of the side of the space station in a direction that is
+\       perpendicular to the horizontal line of the slot
+\
+\   * Cargo canister:
+\
+\     * nosev points out of the side of the canister, avoiding the apexes of the
+\       pentagonal cross-section and at right-angles to roofv
+\
+\     * roofv points out of the side of the canister, through one of the apexes
+\       of the pentagonal cross-section
+\
+\     * sidev points out of one end of the canister
+\
+\ The asteroid also follows its own orientation, but I'm not even going to try
+\ to describe which features appear to be the the nose, roof and side, as they
+\ all just look like bumps to me.
+\
+\ One interesting (and presumably intentional) effect of the Thargoid and
+\ Thargon orientations can be seen when they pitch and roll. A pitching Thargoid
+\ actually spins like a traditional flying saucer (i.e. like a spinning top) as
+\ its roofv vector points out of its side (though a rolling Thargoid tilts back
+\ and forth as expected). When fighting Thargoids, you often find yourself
+\ orientating your ship to get them vertically aligned in your sights, which is
+\ because you can then track their sideways pitching with your own vertical
+\ pitching movement. This is different to the other ships, which expose their
+\ soft underbellies to your lasers when they try to pitch out of your way.
+\
+\ That's Thargoids for you. Different... and deadly.
 \
 \ ******************************************************************************
 
