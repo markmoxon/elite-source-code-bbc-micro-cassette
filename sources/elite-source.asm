@@ -37514,10 +37514,20 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \   Q = SQRT(R Q)
 \
-\ This algorithm is related to the shift-and-subtract algorithm for division
-\ as described in TIS2, though with a couple of twists. If you think about the
-\ division algorithm, it calculates the quotient and remainder from a given
-\ dividend and divisor, and the following holds:
+\ ******************************************************************************
+\
+\ Deep dive: Calculating square roots
+\ ===================================
+\
+\ Summary: The algorithm behind the square root routine
+\
+\ References: LL5
+\
+\ The algorithm used to calculate square roots in routine LL5 is related to the
+\ division algorithm in TIS2 (see the deep dive on "Shift-and-subtract division"
+\ for details), though with a couple of twists. If you think about the division
+\ algorithm, it calculates the quotient and remainder from a given dividend and
+\ divisor, and the following holds:
 \
 \   dividend = (quotient * divisor) + remainder
 \
