@@ -3192,7 +3192,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \
 \   * Bytes #6-8        Ship's z-coordinate in space = (z_sign z_hi z_lo)
 \
-\   * Bytes #9-14       Orientation vector nosev = [ nosev_x nosev_y nosev_z ] 
+\   * Bytes #9-14       Orientation vector nosev = [ nosev_x nosev_y nosev_z ]
 \
 \   * Bytes #15-19      Orientation vector roofv = [ roofv_x roofv_y roofv_z ]
 \
@@ -3531,7 +3531,7 @@ ORG &0D40
 
 .GNTMP
 
- SKIP 1                 \ Laser temperature (or "gun temperature") 
+ SKIP 1                 \ Laser temperature (or "gun temperature")
                         \
                         \ If the laser temperature exceeds 242 then the laser
                         \ overheats and cannot be fired again until it has
@@ -4601,45 +4601,45 @@ LOAD_A% = LOAD%
 \ ------------
 \ Here's a breakdown of how the game implements a universe that literally
 \ revolves around us.
-\ 
+\
 \ 1/9 MVEIT (main entry point for moving)
 \
 \   * Tidy the orientation vectors for one of the ship slots (by calling TIDY)
-\ 
+\
 \ 2/9
 \
 \   * Apply tactics to ships with AI enabled (by calling TACTICS)
 \   * Remove the ship from the scanner, so we can move it (by calling SCAN)
-\ 
+\
 \ 3/9
 \
 \   * Move the ship forward (along the vector pointing in the direction of
 \     travel) according to its speed
-\ 
+\
 \ 4/9
 \
 \   * Apply acceleration to the ship's speed (if acceleration is non-zero), and
 \     then zero the acceleration as it's a one-off change
-\ 
+\
 \ 5/9
 \
 \   * Rotate the ship's location in space by the amount of pitch and roll of our
 \     ship
-\ 
+\
 \ 6/9
 \
 \   * Move the ship in space according to our speed
-\ 
+\
 \ 7/9
 \
 \   * Rotate the ship's orientation vectors according to our pitch and roll
 \     (MVS4)
-\ 
+\
 \ 8/9
 \
 \   * If the ship we are processing is rolling or pitching itself, rotate it and
 \     apply damping if required
-\ 
+\
 \ 9/9
 \
 \   * If the ship is exploding or being removed, hide it on the scanner
@@ -4657,7 +4657,7 @@ LOAD_A% = LOAD%
                         \ point to the ship's data block in K%, so we can simply
                         \ do the reverse of the copy we did before, this time
                         \ copying from INWK to INF
-                        
+
  LDY #(NI%-1)           \ Set a counter in Y so we can loop through the NI%
                         \ bytes in the ship data block
 
@@ -5427,17 +5427,17 @@ LOAD_A% = LOAD%
 \
 \ Deep dive: Scheduling tasks with the main loop counter
 \ ======================================================
-\ 
+\
 \ Summary: How the main loop counter controls what we do and when we do it
-\ 
+\
 \ References: MCNT
-\ 
+\
 \ Elite's program flow is based around a main loop that starts iterating as soon
 \ as you get past the title screen. At its simplest - when docked - the main
 \ loop does little more than listening for function key presses and calling the
 \ relevant routines for cargo, equipment, charts and so on, but out in space in
 \ the midst of a frenetic battle for survival, things get an awful lot busier.
-\ 
+\
 \ If this level of activity isn't controlled, then things can really start to
 \ slow down on an 2MHz 8-bit CPU that's doing its best to keep up with Thargoids
 \ and missiles and suns and 3D graphics and ship AI and in-flight messages and
@@ -5445,7 +5445,7 @@ LOAD_A% = LOAD%
 \ III simulator makes on the hardware. Elite does a great job of maintaining a
 \ respectable frame rate amongst all this activity, and one of its coping
 \ mechanisms is the main loop counter in MCNT.
-\ 
+\
 \ The idea behind the main loop counter is simple: on any particular iteration
 \ round the main loop, it lets the game decide whether or not to perform each
 \ specific action, depending on the counter value. Some actions are vital and
@@ -5453,9 +5453,9 @@ LOAD_A% = LOAD%
 \ value of MCNT, but some actions don't need such regular attention. The loop
 \ counter lets us do what's important all of the time, while doing what's less
 \ important (or more difficult) only some of the time.
-\ 
+\
 \ Let's see how this works.
-\ 
+\
 \ Using MCNT to control what we do...
 \ -----------------------------------
 \ The main loop counter is stored in location MCNT. It gets decremented every
@@ -5463,53 +5463,53 @@ LOAD_A% = LOAD%
 \ routines set the counter to specific values to ensure certain actions will or
 \ won't happen (see below), but for the most part the counter decrements from
 \ 255 down to 0 and back up to 255 again.
-\ 
+\
 \ At various points in the code, we check the counter value to determine what we
 \ need to do. One way of doing this is to use a logical AND to implement a
 \ modulo operation, as follows. Consider the following code:
-\ 
+\
 \   LDA MCNT
 \   AND #7
 \   BNE skip
-\   
+\
 \   ... code gets run once every 8 iterations ...
-\   
+\
 \   .skip
-\ 
+\
 \ In binary, 7 is %00000111, so we perform the skip if any of the three lowest
 \ bits of MCNT are non-zero. In other words, we run the code only when the three
 \ lowest bits are all zero, which happens once every 8 iterations. This is the
 \ same as saying "do the action when MCNT mod 8 = 0".
-\ 
+\
 \ In general, if n is a power of 2, we can use AND #n-1 to calculate modulo n,
 \ so we could use AND #31 to do something every 32 iterations, for example.
-\ 
+\
 \ Another approach is to calculate the modulo and then compare the value to a
 \ fixed number, to spread operations out within a specific batch of iterations.
 \ For example:
-\ 
+\
 \   LDA MCNT
 \   AND #31
-\   
+\
 \   CMP #10
 \   BNE skip1
-\   
+\
 \   ... code gets run once at iteration 10 out of every 32 iterations ...
-\   
+\
 \   .skip1
-\   
+\
 \   CMP #20
 \   BNE skip2
-\   
+\
 \   ... code gets run once at iteration 20 out of every 32 iterations ...
-\   
+\
 \   .skip2
-\ 
+\
 \ There are some minor variations on the above in the game code, but the basic
 \ approach is the same: check the counter and perform actions accordingly. Let's
 \ take a look at how the main loop counter is used to determine what happens
 \ when in the main loop's iterations.
-\ 
+\
 \ ...and when we do it
 \ --------------------
 \ Here's a breakdown of all events that are dependent on the value of MCNT. The
@@ -5517,52 +5517,52 @@ LOAD_A% = LOAD%
 \ 0/4" means we do the action when MCNT is 0, 4, 8, 12 and so on, while "every
 \ 32 iterations on count 10/32" means we do it when MCNT is 10, 42, 74 and so
 \ on.
-\ 
+\
 \   * Every 4 iterations on count 0/4: Update the non-essential dashboard bar
 \     indicators (i.e. everything except speed, pitch and roll, scanner and
 \     compass, which update every iteration)
-\ 
+\
 \   * Every 8 iterations on count 0/8: Regenerate ship energy and shields
-\ 
+\
 \   * Every 8 iterations on counts 0-4 (2 ships) and 5-7 (1 ship): Apply tactics
 \     to 1 or 2 ships per iteration, working through all 13 slots every 8
 \     iterations
-\ 
+\
 \   * Every 16 iterations on counts 0/16 and 8/16: If configured, flash the
 \     dashboard dials on and off, with 8 iterations on, and 8 off
-\ 
+\
 \   * Every 16 iterations on counts 0/16 to 12/16: Tidy one ship's orientation
 \     vectors for 13 out every 16 iterations
-\ 
+\
 \   * Every 32 iterations on count 0/32: Check whether we are near a space
 \     station, and spawn one if we are
-\ 
+\
 \   * Every 32 iterations on count 10/32: Calculate the ship's altitude above
 \     the planet, and die if we crash land
-\ 
+\
 \   * Every 32 iterations on count 10/32: If our energy is low, print "ENERGY
 \     LOW" as an in-flight message and beep
-\ 
+\
 \   * Every 32 iterations on count 20/32: Calculate the ship's altitude above
 \     the sun, set the cabin temperature accordingly (and die if it's too hot),
 \     and if we are scooping, add the relevant amount of fuel
-\ 
+\
 \   * Every 256 iterations on count 0/256: Consider spawning a ship
-\ 
+\
 \ Resetting the counter
 \ ---------------------
 \ The MCNT counter is reset in various ways, to affect the state of the various
 \ actions it triggers:
-\ 
+\
 \   * It gets set to 0 when we buy fuel, launch from a space station, arrive in
 \     a new system, or launch an escape pod, so the main loop won't consider
 \     spawning new ships for at least 256 iterations (as the counter will be
 \     decremented to 255 as soon as the main loop is entered)
-\ 
+\
 \   * It gets set to 1 after completing an in-system jump, so the next iteration
 \     through the main loop will potentially spawn ships (as the counter will be
 \     decremented to 0 as soon as the main loop is entered)
-\ 
+\
 \   * It gets set to 255 while the death screen is showing, so nothing gets
 \     spawned during the death sequence, and then it's set to 0 once it's
 \     finished
@@ -6375,7 +6375,7 @@ LOAD_A% = LOAD%
 \ The following ships don't have a standard orientation (all other ships follow
 \ the logical nose-roof-side pattern).
 \
-\   * Thargoid mothership: 
+\   * Thargoid mothership:
 \
 \     * nosev points out of one side of the mothership
 \
@@ -6383,7 +6383,7 @@ LOAD_A% = LOAD%
 \
 \     * sidev points out of the roof of the mothership
 \
-\   * Thargon: 
+\   * Thargon:
 \
 \     * nosev points out of the Thargon's nose
 \
@@ -14669,13 +14669,13 @@ LOAD_C% = LOAD% +P% - CODE%
 \     the pirate from attacking
 \
 \   * Recharge the ship's energy banks by 1
-\ 
+\
 \ 3/7
 \
 \   * Calculate the dot product of the ship's nose vector (i.e. the direction it
 \     is pointing) with the vector between us and the ship so we can work out
 \     later on whether the enemy ship can hit us with its lasers
-\ 
+\
 \ 4/7
 \
 \   * Rarely (2.5% chance) roll the ship by a noticeable amount
@@ -14688,7 +14688,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \   * Rarely (10% chance) the ship runs out of both energy and luck, and bails,
 \     launching an escape pod and drifting in space
-\ 
+\
 \ 5/7
 \
 \   * If the ship doesn't have any missiles, skip to the next part
@@ -14697,7 +14697,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \   * Randomly decide whether to fire a missile (or, in the case of Thargoids,
 \     release a Thargon), and if we do, we're done
-\ 
+\
 \ 6/7
 \
 \   * If the ship is not pointing at us, skip to the next part
@@ -14708,7 +14708,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \   * If we are in the ship's crosshairs, register some damage to our ship, slow
 \     down the attacking ship, make the noise of us being hit by laser fire
 \     (which could end in DEATH), and we're done
-\ 
+\
 \ 7/7
 \
 \   * Work out which direction the ship should be moving, depending on whether
@@ -14718,7 +14718,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \   * Set the pitch and roll counters to head in that direction
 \
 \   * Speed up or slow down, depending on where the ship is in relation to us
-\ 
+\
 \ ******************************************************************************
 
 {
@@ -33955,7 +33955,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Each section is broken down into parts that mirror the structure of the source
 \ code, so it should be easy enough to find the relevant parts mentioned below.
-\ 
+\
 \ Title sequence
 \ --------------
 \ 1/2 TT170
@@ -33972,13 +33972,13 @@ LOAD_F% = LOAD% + P% - CODE%
 \   * Set the docked flag
 \   * Jump to the docked section of the main game loop (FRCE, see below) with f8
 \     "pressed" to show Status Mode
-\ 
+\
 \ Main game loop
 \ --------------
 \ 1/6 (potentially called from part 2)
 \
 \   * Spawn a trader
-\ 
+\
 \ 2/6
 \
 \   * Call the main flight loop (M%, see below)
@@ -33986,56 +33986,56 @@ LOAD_F% = LOAD% + P% - CODE%
 \   * On 255 out of 256 iterations, skip straight to MLOOP in part 5
 \   * Potentially spawn a trader by jumping up to part 1
 \   * Potentially spawn a cargo canister or an asteroid
-\ 
+\
 \ 3/6
 \
 \   * Potentially spawn a cop, with a higher chance if we've been bad
-\ 
+\
 \ 4/6
 \
 \   * Potentially spawn a lone bounty hunter, a Thargoid, or a group of 1-4
 \     pirates
-\ 
+\
 \ 5/6 MLOOP (main entry point for main game loop)
 \
 \   * Cool down the lasers
 \   * Update the dashboard (DIALS)
 \   * If this is not a space view, scan for cursor keys
-\ 
+\
 \ 6/6 FRCE (entry point for displaying a specific screen)
 \
 \   * Process function keys and other non-flight keys (TT102)
 \   * If docked, loop back to part 5 (MLOOP)
 \   * If in-flight, loop back to part 2
-\ 
+\
 \ Main flight loop
 \ ----------------
 \ 1/16 M% (main entry point for main flight loop)
 \
 \   * Seed the random number generator
-\ 
+\
 \ 2/16
 \
 \   * Calculate the alpha and beta angles from the current pitch and roll
-\ 
+\
 \ 3/16
 \
 \   * Scan for flight keys and process the results
-\ 
+\
 \ Now start looping through all the ships in the local bubble, and for each one,
 \ do parts 4-12:
-\ 
+\
 \ 4/16
 \
 \   * Copy the ship's data block from K% to INWK
 \
 \   * Set XX0 to point to the ship's blueprint (if this is a ship)
-\ 
+\
 \ 5/16
 \
 \   * If an energy bomb has been set off and this ship can be killed, kill it
 \     and increase the kill tally
-\ 
+\
 \ 6/16
 \
 \   * Move the ship in space by calling MVEIT (see the deep dive on "Program
@@ -34044,32 +34044,32 @@ LOAD_F% = LOAD% + P% - CODE%
 \     tactics routine" for more)
 \
 \   * Copy the updated ship's data block from INWK back to K%
-\ 
+\
 \ 7/16
 \
 \   * Check how close we are to this ship and work out if we are docking,
 \     scooping or colliding with it
-\ 
+\
 \ 8/16
 \
 \   * Process scooping of items
-\ 
+\
 \ 9/16
 \
 \   * Process docking with space station, which can take us to the main loop via
 \     BAY (if we dock successfully) or DEATH (if we don't)
-\ 
+\
 \ 10/16
 \
 \   * Remove scooped item after both successful and failed scoopings
 \   * Process collisions, which can lead to DEATH
-\ 
+\
 \ 11/16
 \
 \   * If this isn't the front space view, flip the ship coordinates' axes (PLUT)
 \   * Process missile lock
 \   * Process our laser firing
-\ 
+\
 \ 12/16
 \
 \   * Draw the ship (LL9)
@@ -34077,29 +34077,29 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ Loop back up to part 4 to do the next ship in the local bubble until we have
 \ processed them all
-\ 
+\
 \ 13/16
 \
 \   * Show energy bomb effect (if applicable)
 \   * Charge shields and energy banks
-\ 
+\
 \ 14/16
 \
 \   * Spawn a space station if we are close enough to the planet
-\ 
+\
 \ 15/16
 \
 \   * Perform an altitude check with the planet, which can lead to DEATH
 \   * Perform an an altitude check with the sun, which can also lead to DEATH
 \   * Process fuel scooping
-\ 
+\
 \ 16/16
 \
 \   * Process laser pulsing
 \   * Process E.C.M. energy drain
 \   * Call the stardust routine if we are on a space view (STARS)
 \   * Return from the main flight loop
-\ 
+\
 \ Death
 \ -----
 \ 1/1 DEATH
@@ -34110,7 +34110,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \   * Clean up a number of variables and workspaces, ready for the next attempt
 \
 \   * Jump up to TT170 to start the whole process again
-\ 
+\
 \ ******************************************************************************
 
 .TT170
@@ -38152,24 +38152,24 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Summary: The main routine for drawing 3D wiremesh ships in space
 \
 \ References: LL9
-\ 
+\
 \ The ship-drawing routine is one of the most celebrated aspects of Elite. The
 \ 3D graphics are groundbreaking and breathtaking in equal measure, at least as
 \ far as 8-bit gome computers are concerned, and even today the way that the
 \ ships and space stations move through space is impressive. Without its slick
 \ 3D graphics engine, Elite wouldn't have been nearly as immersive, and without
 \ its immersion, it just wouldn't have been Elite.
-\ 
+\
 \ It doesn't take a rocket scientist to work out that Elite must have some
 \ pretty clever optimisations at the heart of its graphics routines, and this is
 \ indeed the case. Elite's 3D objects are stored in a way that makes visibility
 \ calculations relatively quick, so we can work out which parts of the ship need
 \ to be converted into screen coordinates and drawn, and (more to the point)
 \ which ones don't.
-\ 
+\
 \ Let's look at visibility distances before moving on to the details of the
 \ ship-drawing process.
-\ 
+\
 \ Visibility distances
 \ --------------------
 \ Ships are stored as collections of vertices (i.e. points in space) as you
@@ -38180,164 +38180,164 @@ LOAD_G% = LOAD% + P% - CODE%
 \ considering, so we only spend spend time calculating what we need to draw,
 \ discarding anything we don't need. The whole process is aimed at narrowing
 \ down what we need to do, as quickly and easily as possible.
-\ 
+\
 \ These are the visibility rules for the various components of the ship:
-\ 
+\
 \   * If the ship is further away than the ship visibility distance in ship byte
 \     #13, we draw it as a dot and skip all the wireframe calculations
-\   
+\
 \   * A face is visible if one of these is true:
-\   
+\
 \     * The ship is further away than that face's visibility distance
-\     
+\
 \     * The ship is closer than the face's visibility distance and the face is
 \       turned towards us
-\     
+\
 \   * A vertex is visible if at least one face associated with that vertex is
 \     visible
-\   
+\
 \   * An edge is visible if at least one face associated with that edge is
 \     visible
-\ 
+\
 \ These rules get applied as we work our way through all the faces, vertices and
 \ edges in the process below.
-\ 
+\
 \ The ship line heap
 \ ------------------
 \ Just as with the planet and sun, we need a way to remove ships from the screen
 \ quickly, so it's no surprise that each ship has its own storage heap for doing
 \ just that - the ship line heap.
-\ 
+\
 \ Each ship has its own heap as part of the main ship line heap, which descends
 \ from location WP. The ship line heap is very simple - it contains sets of four
 \ coordinates, each of which describes a line in that ship's screen depiction.
 \ To draw the ship we simply work through the heap, drawing each line, and to
 \ remove the ship from the screen, we repeat the process.
-\ 
+\
 \ The first byte of the heap contains the total number of bytes in the heap.
 \ Each line is stored as four bytes - X1, Y1, X2, Y2 - which describe the start
 \ and end screen coordinates for that line.
-\ 
+\
 \ When a ship is added to our local bubble of universe, a ship line heap is
 \ reserved for that ship, with the heap size given in byte #5 of the ship's
 \ blueprint. This gives the maximum heap size needed for plotting ship, which
 \ is:
-\ 
+\
 \   1 + 4 * max. no of visible edges
-\ 
+\
 \ as there are four bytes needed for each line, plus 1 for the size byte at the
 \ start. So for the Sidewinder there are never more than 15 edges visible, so
 \ there will never be more than 15 lines on the ship line heap, so the maximum
 \ heap size is 1 + 4 * 15 = 61 bytes.
-\ 
+\
 \ The drawing workflow
 \ --------------------
 \ The following process summarises the different steps in the LL9 routine. The
 \ part numbers match the breakdown of the source code, so you can refer to the
 \ code as you go.
-\ 
+\
 \ 1/11 LL9
-\ 
+\
 \   * If the ship is a planet or sun, jump to PLANET to draw it
-\ 
+\
 \   * If the ship has just been killed but isn't yet exploding, initialise a new
 \     explosion cloud
-\ 
+\
 \   * If the ship is behind us, then it isn't visible, so remove it from the
 \     screen (by calling part 11 below to redraw it using EOR logic) and we're
 \     done
-\ 
+\
 \ 2/11
-\ 
+\
 \   * If the ship is outside of our field of view, remove it from the screen and
 \     we're done
-\ 
+\
 \   * If the ship is a long way away, jump to SHPPT to remove it from the screen
 \     and redraw it as a dot
-\ 
+\
 \   * Flag the ship's laser vertex in the XX3 buffer, so we can check it in part
 \     9 when processing laser fire
-\ 
+\
 \   * Calculate the ship's distance from us, reduced to a value in the range
 \     0-31 so it's testable against visibility distances
-\ 
+\
 \   * If the ship is further away than the ship blueprint's visibility distance,
 \     jump to SHPPT to remove it from the screen and redraw it as a dot
-\ 
+\
 \ 3/11
-\ 
+\
 \   * Fetch the ship's orientation vectors and normalise them
-\ 
+\
 \   * Fetch the ship's x, y and z coordinates in space
-\ 
+\
 \ 4/11
-\ 
+\
 \   * If the ship is exploding, set all the faces to be visible and skip down to
 \     part 6
-\ 
+\
 \ 5/11
-\ 
+\
 \   * Work out the scale factor for the face normals so we can make them as big
 \     as possible while not overflowing, incorporating the scale factor from the
 \     blueprint
-\ 
+\
 \   * Process the ship's faces and work out if they're visible, as follows:
-\ 
+\
 \     * If the ship is further away than a face's visibility distance, mark it
 \       as visible (this is the opposite to the other visibility distance tests)
-\     
+\
 \     * Otherwise work out if the face is pointing towards us or away from us
 \       using the dot product (see the deep dive on "Back-face culling")
-\ 
+\
 \ 6/11
-\ 
+\
 \   * Process the ship's vertices and work out which ones are visible:
-\   
+\
 \     * If the ship is further away than the vertex's visibility distance, it is
 \       not visible
-\     
+\
 \     * If at least one face associated with this vertex is visible, the vertex
 \       is visible
-\   
+\
 \   * For visible vertices only:
-\   
+\
 \     * Calculate the space coordinates of that vertex (see the deep dive on
 \       "Calculating vertex coordinates"), starting the calculation in part 6...
-\ 
+\
 \ 7/11
-\ 
+\
 \     * ...and finishing it in part 7, before moving on to part 8...
-\ 
+\
 \ 8/11
-\ 
+\
 \     * ...to convert the visible vertex's space coordinates into screen
 \       coordinates
-\   
+\
 \ 9/11
-\ 
+\
 \   * If the ship is exploding, jump to DOEXP to display the explosion cloud
-\  
+\
 \   * Remove the ship from the screen
-\   
+\
 \   * If the ship is firing at us and its laser vertex (which we tagged in part
 \     2) is visible, then calculate the laser beam line coordinates and add them
 \     to the ship line heap
-\  
+\
 \ 10/11
 \
 \   * Process the ship's edges and work out which ones are visible:
-\   
+\
 \     * If the ship is further away than the edge's visibility distance, it is
 \       not visible
-\     
+\
 \     * If at least one face associated with this edge is visible, the edge is
 \       visible
-\ 
+\
 \   * For visible edges, add this edge to the ship line heap (i.e. add the
 \     screen coordinates of the start and end vertices)
-\ 
+\
 \ 11/11
-\ 
+\
 \   * Draw the lines in the ship line heap, which draws the ship on screen (or
 \     removes it, if the ship is already on screen)
 \
