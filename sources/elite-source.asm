@@ -14197,7 +14197,8 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
-\ The main interrupt handler, which implements Elite's split-screen mode.
+\ The main interrupt handler, which implements Elite's split-screen mode (see
+\ the deep dive on "The split-screen mode" for details).
 \
 \ IRQ1V is set to point to IRQ1 by elite-loader.asm.
 \
@@ -34766,7 +34767,7 @@ ENDIF
 \ novel, function key strip and control summary card, was the competition entry
 \ form. Unfortunately the entry deadline of March 1985 has long since passed,
 \ but back in the day, budding players could fill out the postcard in hope of
-\ joining the Order of Elite, with the best six players standing a chance of
+\ joining the Order of Elite, with the six best players standing a chance of
 \ being invited to the "national Elite tournament" in April 1985. Accordingly,
 \ piles of postcards poured into Acornsoft's offices and sat in tottering stacks
 \ around the office, waiting for some lucky soul to process them all.
@@ -40831,16 +40832,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ along the line until it is on-screen, so this effectively clips the (x1, y1)
 \ end of a line to be on the screen.
 \
-\ For example, if x1 is negative, i.e. off the left edge of the screen, we move
-\ the point right along the line until x1 = 0. We calculate the new y1 by
-\ multiplying the distance travelled in the x-direction by the gradient.
-\
-\ Similar logic is applied when the point is off-screen to the right, top or
-\ bottom. Also, because the gradient is always stored as a fractional value
-\ (it's less than 1.0, just expressed as a byte), then when the line is more
-\ vertical than horizontal, the value stored is actually 1 / gradient, as that
-\ way it fits into the byte. Because of this, if T = 0, we have to divide by the
-\ gradient rather than multiply to get the same result.
+\ See the deep dive on "Line-clipping" for more details.
 \
 \ Arguments:
 \
@@ -40858,9 +40850,9 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \   T                   The type of slope:
 \
-\                           * 0 if it's more vertical than horizontal
+\                         * 0 if it's more vertical than horizontal
 \
-\                           * &FF if it's more horizontal than vertical
+\                         * &FF if it's more horizontal than vertical
 \
 \ Returns:
 \
@@ -40960,7 +40952,7 @@ LOAD_G% = LOAD% + P% - CODE%
  JSR LL123              \ Call LL123 to calculate:
                         \
                         \   (Y X) = (S R) / XX12+2      if T = 0
-                        \         = y1 * gradient
+                        \         = y1 / gradient
                         \
                         \   (Y X) = (S R) * XX12+2      if T <> 0
                         \         = y1 * gradient
@@ -41404,9 +41396,9 @@ LOAD_G% = LOAD% + P% - CODE%
 \ Deep dive: Line-clipping
 \ ========================
 \
-\ Summary: Working out whether any part of an extended line is visible on-screen
+\ Summary: Efficiently clipping an extended line to the part that's on-screen
 \
-\ References: LL145
+\ References: LL145, LL118
 \
 \ Space is big. Vintage computer screens, however, are not big. Elite's space
 \ view is a whopping 256 pixels across and 192 pixels high, and somehow we have
@@ -41428,14 +41420,23 @@ LOAD_G% = LOAD% + P% - CODE%
 \ universe, and line-clipping is the process of working out what we can see
 \ through that portal.
 \
-\ The main line-clipping routine is LL145, which checks whether a line is worth
-\ clipping - in other words, whether the line passes through the screen at any
-\ point. The actual clipping is done in part 4 by calling the LL118 routine,
-\ which is quite an involved process, so it's worth spending time checking
-\ whether we need to call it at all.
+\ Line-clipping is done in two stages. The first stage in routine LL145 works
+\ out whether the lone intersects the screen at any point, and if it does, then
+\ the second stage in routine LL118 clips the line and returns the portion that
+\ appears on-screen, which we then need to draw.
+\
+\ Lets see how these two stages work.
+\
+\ LL145: Working out whether to clip a line
+\ -----------------------------------------
+\ The line-clipping routine starts with a call to LL145, which checks whether
+\ the line is worth clipping - in other words, whether the line passes through
+\ the screen at any point. As the actual clipping process the LL118 routine, is
+\ quite involved, it's worth spending time checking whether we need to call it
+\ at all.
 \
 \ Here's a breakdown of how LL145 determines whether a line is partly or wholly
-\ on screen, and therefore whether it's worth sending to be clipped.
+\ on screen, and therefore whether it's worth sending to LL118 to be clipped.
 \
 \ Part 1
 \
@@ -41479,6 +41480,30 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \   * Return the clipped line with success, and with XX13 and SWAP set to
 \     describe the kind of clipping we had to do
+\
+\ LL118: Clipping a line
+\ ----------------------
+\ LL118 is called by LL145 when we think a line crosses the screen. It only
+\ clips one end of the line, so if LL145 finds that both ends need clipping,
+\ it calls LL118 twice, once for each end.
+\
+\ This is how it works. Given a point (x1, y1), we move the point along the line
+\ until it is on-screen, which effectively clips the (x1, y1) end of a line to
+\ be on the screen. The movement process depends on the line's gradient, the
+\ direction of slope (i.e. top left to bottom right, or top right to bottom
+\ left), and the steepness of slope (i.e. is it more vertical than horizontal).
+\
+\ For example, if x1 is negative, i.e. off the left edge of the screen, we move
+\ the point right along the line until x1 = 0. We calculate the new y1 by
+\ multiplying the distance travelled in the x-direction by the gradient.
+\
+\ Similar logic is applied when the point is off-screen to the right, top or
+\ bottom. Also, because the gradient is always stored as a fractional value
+\ (it's less than 1.0, just expressed as a byte), then when the line is more
+\ vertical than horizontal, the value stored is actually 1 / gradient, as that
+\ way it fits into the byte. Because of this, if the line is more vertical than
+\ horizontal, we have to divide by the gradient rather than multiply to get the
+\ same result.
 \
 \ ******************************************************************************
 
