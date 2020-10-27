@@ -101,7 +101,8 @@ f9 = &77                \ Internal key number for red key f9 (Inventory)
 \ Deep dive: The Elite memory map
 \ ===============================
 \
-\ Summary: Memory usage, unused memory locations and labelling conventions
+\ Summary: A map of memory usage, details of unused memory locations, and notes
+\ on BBC Micro and Acorn Atom label names
 \
 \ References: ZP, XX3, T%, QQ18, K%, WP, S%, XX21, SHIP4
 \
@@ -348,7 +349,8 @@ f9 = &77                \ Internal key number for red key f9 (Inventory)
 \       Type: Workspace
 \    Address: &0000 to &00B0
 \   Category: Workspaces
-\    Summary: Lots of really important variables
+\    Summary: Lots of important variables are stored in the zero page workspace
+\             as it is quicker and more space-efficient to access memory here
 \
 \ ******************************************************************************
 
@@ -4034,7 +4036,8 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 2 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: Calculate alpha and beta angles from the current pitch and roll
+\    Summary: Calculate the alpha and beta angles from the current pitch and
+\             roll of our ship
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4423,7 +4426,8 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 4 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: For each nearby ship: Copy the ship's data block from K% to INWK
+\    Summary: For each nearby ship: Copy the ship's data block from K% to the
+\             zero-page workspace at INWK
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4510,7 +4514,8 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 5 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: For each nearby ship: Process the detonation of an energy bomb
+\    Summary: For each nearby ship: If an energy bomb has been set off,
+\             potentially kill this ship
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4549,7 +4554,8 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 6 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: For each nearby ship: Move ship in space and copy INWK back to K%
+\    Summary: For each nearby ship: Move the ship in space and copy the updated
+\             INWK data block back to K%
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4676,7 +4682,8 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 7 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: For each nearby ship: Are we docking, scooping, colliding with it?
+\    Summary: For each nearby ship: Check whether we are docking, scooping or
+\             colliding with it
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4837,7 +4844,8 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 9 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: If nearby ship is a space station, process us docking with it
+\    Summary: For each nearby ship: If it is a space station, check whether we
+\             are successfully docking with it
 \
 \ ------------------------------------------------------------------------------
 \
