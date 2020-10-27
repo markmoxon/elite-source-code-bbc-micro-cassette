@@ -1685,8 +1685,7 @@ ENDIF
 \
 \ ------------------------------------------------------------------------------
 \
-\ Set A and X to random numbers. Carry flag is also set randomly. Overflow flag
-\ will be have a 50% probability of being 0 or 1.
+\ Set A and X to random numbers. The C and V flags are also set randomly.
 \
 \ This is a simplified version of the DORND routine in the main game code. It
 \ swaps the two calculations around and omits the ROL A instruction, but is
@@ -1749,7 +1748,7 @@ ENDIF
  LDY #8                 \ Set up a counter in Y to count the 8 bits in P
 
  LSR P                  \ Set P = P >> 1
-                        \ and carry = bit 0 of P
+                        \ and C flag = bit 0 of P
 
 .SQL1
 

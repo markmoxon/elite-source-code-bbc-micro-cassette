@@ -4094,9 +4094,9 @@ LOAD_A% = LOAD%
  CMP #8                 \ If A >= 8, skip the following two instructions
  BCS P%+4
 
- LSR A                  \ A < 8, so halve A again and clear the carry flag, so
- CLC                    \ so we can do addition later without the carry flag
-                        \ affecting the result
+ LSR A                  \ A < 8, so halve A again and clear the C flag, so we
+ CLC                    \ can do addition later without the C flag affecting
+                        \ the result
 
  STA ALP1               \ Store A in ALP1, so we now have:
                         \
@@ -4800,14 +4800,15 @@ LOAD_A% = LOAD%
  STA QQ29               \ Call tnpr with the scooped cargo type stored in QQ29
  LDA #1                 \ and A set to 1, to work out whether we have room in
  JSR tnpr               \ the hold for the scooped item (A is preserved by this
-                        \ call, and the carry flag contains the result)
+                        \ call, and the C flag contains the result)
 
  LDY #78                \ This instruction has no effect, so presumably it used
                         \ to do something, but didn't get removed
 
- BCS MA59               \ If carry is set then we have no room in the hold for
-                        \ the scooped item, so jump down to MA59 make a sound
-                        \ to indicate failure, before destroying the canister
+ BCS MA59               \ If the C flag is set then we have no room in the hold
+                        \ for the scooped item, so jump down to MA59 make a
+                        \ sound to indicate failure, before destroying the
+                        \ canister
 
  LDY QQ29               \ Scooping was successful, so set Y to the type of
                         \ item we just scooped, which we stored in QQ29 above
@@ -5222,8 +5223,8 @@ LOAD_A% = LOAD%
                         \ match the view (front, rear, left, right)
 
  JSR HITCH              \ Call HITCH to see if this ship is in the crosshairs,
- BCC MA8                \ in which case carry will be set (so if there is no
-                        \ missile or laser lock, we jump to MA8 to skip the
+ BCC MA8                \ in which case the C flag will be set (so if there is
+                        \ no missile or laser lock, we jump to MA8 to skip the
                         \ following)
 
  LDA MSAR               \ We have missile lock, so check whether the leftmost
@@ -6071,8 +6072,8 @@ LOAD_A% = LOAD%
  ROL A
  STA K+2
 
- LDA #0                 \ Set K+3 bit 7 to the carry flag, so the sign bit
- ROR A                  \ of the above result goes into K+3
+ LDA #0                 \ Set K+3 bit 7 to the C flag, so the sign bit of the
+ ROR A                  \ above result goes into K+3
  STA K+3
 
  JSR MVT3               \ Add (x_sign x_hi x_lo) to K(3 2 1)
@@ -7170,7 +7171,7 @@ LOAD_A% = LOAD%
 \ (In practice, MVT1 is only ever called directly with A = 0 or 128, otherwise
 \ it is always called via MVT-2, which clears A apart from the sign bit. The
 \ routine is written to cope with a non-zero delta_hi, so it supports a full
-\ 16-bit delta, but it appears that delta_hi is only ever used to carry the
+\ 16-bit delta, but it appears that delta_hi is only ever used to hold the
 \ sign of the delta.)
 \
 \ The comments below assume we are adding delta to the x-axis, though the axis
@@ -12543,8 +12544,8 @@ NEXT
 
                         \ Finally we fall through into BPRNT to print out the
                         \ number in K to K+3, which now contains (Y X), to 3
-                        \ digits (as U = 3), using the same carry flag as when
-                        \ pr2 was called to control the decimal point
+                        \ digits (as U = 3), using the same C flag as when pr2
+                        \ was called to control the decimal point
 }
 
 \ ******************************************************************************
@@ -12635,11 +12636,11 @@ NEXT
 \ the complexity comes in.
 \
 \ Let's look at the above algorithm in more detail. We need to implement it with
-\ multi-byte subtraction, which we can do byte-by-byte using the carry flag,
-\ but we also need to be able to multiply a multi-byte number by 10, which is
-\ slightly trickier. Multiplying by 10 isn't directly supported the 6502, but
-\ multiplying by 2 is, in the guise of shifting and rotating left, so we can do
-\ this to multiply K by 10:
+\ multi-byte subtraction, which we can do byte-by-byte using the C flag, but we
+\ also need to be able to multiply a multi-byte number by 10, which is slightly
+\ trickier. Multiplying by 10 isn't directly supported the 6502, but multiplying
+\ by 2 is, in the guise of shifting and rotating left, so we can do this to
+\ multiply K by 10:
 \
 \   K * 10 = K * (2 + 8)
 \          = (K * 2) + (K * 8)
@@ -12657,11 +12658,11 @@ NEXT
 \   ROL S
 \
 \ First we use ASL K+3 to shift the least significant byte left (so bit 7 goes
-\ to the carry flag). Then we rotate the next most significant byte with ROL
-\ K+2 (so the carry flag goes into bit 0 and bit 7 goes into the carry), and we
-\ repeat this with each byte in turn, until we get to the overflow byte S. This
-\ has the effect of shifting the entire five-byte number one place to the left,
-\ which doubles it in-place.
+\ to the C flag). Then we rotate the next most significant byte with ROL K+2 (so
+\ the C flag goes into bit 0 and bit 7 goes into the C flag), and we repeat this
+\ with each byte in turn, until we get to the overflow byte S. This has the
+\ effect of shifting the entire five-byte number one place to the left, which
+\ doubles it in-place.
 \
 \ Finally, there are three variables that are used as counters in the above
 \ loop, each of which gets decremented as we go work our way through the
@@ -12695,9 +12696,9 @@ NEXT
                         \ characters in TT37 below
 
  PHP                    \ Make a copy of the status register (in particular
-                        \ the carry flag) so we can retrieve it later
+                        \ the C flag) so we can retrieve it later
 
- BCC TT30               \ If the carry flag is clear, we do not want to print a
+ BCC TT30               \ If the C flag is clear, we do not want to print a
                         \ decimal point, so skip the next two instructions
 
  DEC T                  \ As we are going to show a decimal point, decrement
@@ -12708,8 +12709,8 @@ NEXT
 
  LDA #11                \ Set A to 11, the maximum number of digits allowed
 
- SEC                    \ Set the carry flag so we can do subtraction without
-                        \ the carry flag affecting the result
+ SEC                    \ Set the C flag so we can do subtraction without the
+                        \ C flag affecting the result
 
  STA XX17               \ Store the maximum number of digits allowed (11) in
                         \ XX17
@@ -12780,8 +12781,8 @@ NEXT
  ROL K
  ROL S
 
- CLC                    \ Clear the carry flag so we can do addition without
-                        \ the carry flag affecting the result
+ CLC                    \ Clear the C flag so we can do addition without the
+                        \ C flag affecting the result
 
  LDX #3                 \ By now we've got (K * 2) in XX15(4 0 1 2 3) and
                         \ (K * 8) in K(S 0 1 2 3), so the final step is to add
@@ -12827,8 +12828,8 @@ NEXT
  LDX #3                 \ Our first calculation concerns 32-bit numbers, so
                         \ set up a counter for a four-byte loop
 
- SEC                    \ Set the carry flag so we can do subtraction without
-                        \ the carry flag affecting the result
+ SEC                    \ Set the C flag so we can do subtraction without the
+                        \ C flag affecting the result
 
 .tt37
 
@@ -12959,11 +12960,11 @@ NEXT
                         \ next digit
 
  PLP                    \ If we get here then we have printed the exact number
-                        \ of digits that we wanted to, so restore the carry
-                        \ flag that we stored at the start of BPRNT
+                        \ of digits that we wanted to, so restore the C flag
+                        \ that we stored at the start of BPRNT
 
- BCC P%+7               \ If carry is clear, we don't want a decimal point, so
-                        \ look back to TT35 (via the last instruction in this
+ BCC P%+7               \ If the C flag is clear, we don't want a decimal point,
+                        \ so look back to TT35 (via the last instruction in this
                         \ subroutine) to print the next digit
 
  LDA #'.'               \ Print the decimal point
@@ -13033,7 +13034,7 @@ NEXT
 \
 \   Y                   Y is preserved
 \
-\   C flag              Carry is cleared
+\   C flag              C flag is cleared
 \
 \ Other entry points:
 \
@@ -13238,9 +13239,8 @@ NEXT
                         \ we're just updating the cursor so it's in the right
                         \ position following the deletion
 
- ADC #&5E               \ A contains YC (from above) and the carry flag is set
- TAX                    \ (from the CPY #127 above), so these instructions do
-                        \ this:
+ ADC #&5E               \ A contains YC (from above) and the C flag is set (from
+ TAX                    \ the CPY #127 above), so these instructions do this:
                         \
                         \   X = YC + &5E + 1
                         \     = YC + &5F
@@ -13267,7 +13267,7 @@ NEXT
 
  BEQ RR4                \ We are done deleting, so restore the registers and
                         \ return from the subroutine (this BNE is effectively
-                        \ a JMP as ZES2 always returns with the zero flag set)
+                        \ a JMP as ZES2 always returns with the Z flag set)
 
 .RR2
 
@@ -13358,7 +13358,7 @@ NEXT
 
  LDY YSAV2              \ We're done printing, so restore the values of the
  LDX XSAV2              \ A, X and Y registers that we saved above and clear
- LDA K3                 \ the carry flag, so everything is back to how it was
+ LDA K3                 \ the C flag, so everything is back to how it was
  CLC
 
 .^rT9
@@ -17084,13 +17084,13 @@ NEXT
 
  TAX                    \ Set T1 = X - 1
  DEX                    \
- STX T1                 \ We subtract 1 as carry will be set when we want to do
-                        \ an addition in the loop below
+ STX T1                 \ We subtract 1 as the C flag will be set when we want
+                        \ to do an addition in the loop below
 
  LDA #0                 \ Set A = 0 so we can start building the answer in A
 
  LSR P                  \ Set P = P >> 1
-                        \ and carry = bit 0 of P
+                        \ and C flag = bit 0 of P
 
                         \ We are now going to work our way through the bits of
                         \ P, and do a shift-add for any bits that are set,
@@ -17321,15 +17321,15 @@ NEXT
 {
  DEX                    \ Set T = X - 1
  STX T                  \
-                        \ We subtract 1 as carry will be set when we want to do
-                        \ an addition in the loop below
+                        \ We subtract 1 as the C flag will be set when we want
+                        \ to do an addition in the loop below
 
  LDA #0                 \ Set A = 0 so we can start building the answer in A
 
  LDX #8                 \ Set up a counter in X to count the 8 bits in P
 
  LSR P                  \ Set P = P >> 1
-                        \ and carry = bit 0 of P
+                        \ and C flag = bit 0 of P
 
                         \ We are now going to work our way through the bits of
                         \ P, and do a shift-add for any bits that are set,
@@ -17591,7 +17591,7 @@ NEXT
  LDX #16                \ Set up a counter in X to count the 16 bits in (P+1 P)
 
  ROR P                  \ Set P = P >> 1 with bit 7 = bit 0 of A
-                        \ and carry = bit 0 of P
+                        \ and C flag = bit 0 of P
 
 .MUL7
 
@@ -17837,7 +17837,7 @@ NEXT
  TAX                    \ Store A in X
 
  AND #%01111111         \ Set P = |A| >> 1
- LSR A                  \ and carry = bit 0 of A
+ LSR A                  \ and C flag = bit 0 of A
  STA P
 
  TXA                    \ Restore argument A
@@ -17853,8 +17853,8 @@ NEXT
 
  TAX                    \ Set T1 = |Q| - 1
  DEX                    \
- STX T1                 \ We subtract 1 as carry will be set when we want to do
-                        \ an addition in the loop below
+ STX T1                 \ We subtract 1 as the C flag will be set when we want
+                        \ to do an addition in the loop below
 
                         \ We are now going to work our way through the bits of
                         \ P, and do a shift-add for any bits that are set,
@@ -18139,8 +18139,8 @@ NEXT
  ADC T1                 \ stored the original argument A in T1 earlier, so we
                         \ can do this with:
                         \
-                        \   A = A  + S + carry
-                        \     = T1 + S + carry
+                        \   A = A  + S + C
+                        \     = T1 + S + C
 
  ORA T                  \ If argument A was negative (and therefore S was also
                         \ negative) then make sure result A is negative by
@@ -18189,11 +18189,12 @@ NEXT
 
  TXA                    \ Set X = 0 - X using two's complement (to negate a
  EOR #&FF               \ number in two's complement, you can invert the bits
- ADC #1                 \ and add one - and we know carry is clear as we didn't
- TAX                    \ take the BCS branch above, so ADC will do the job)
+ ADC #1                 \ and add one - and we know the C flag is clear as we
+ TAX                    \ didn't take the BCS branch above, so ADC will do the 
+                        \ correct addition)
 
  LDA #0                 \ Set A = 0 - A, which we can do this time using a
- SBC U                  \ a subtraction with carry clear
+ SBC U                  \ a subtraction with the C flag clear
 
  ORA #%10000000         \ We now set the sign bit of A, so that the EOR on the
                         \ next line will give the result the opposite sign to
@@ -18762,14 +18763,14 @@ NEXT
 
  TXA                    \ Copy argument X into A
 
- CLC                    \ Clear the carry flag so we can do addition without
-                        \ the carry flag affecting the result
+ CLC                    \ Clear the C flag so we can do addition without the
+                        \ C flag affecting the result
 
  ADC T                  \ Set X = A = argument X + argument A
  TAX
 
- BCC RE2                \ If carry is clear, then we didn't overflow, so jump
-                        \ to RE2 to auto-recentre and return the result
+ BCC RE2                \ If the C flag is clear, then we didn't overflow, so
+                        \ jump to RE2 to auto-recentre and return the result
 
  LDX #255               \ We have an overflow, so set X to the maximum possible
                         \ value, 255
@@ -18827,14 +18828,14 @@ NEXT
 
  TXA                    \ Copy argument X into A
 
- SEC                    \ Set the carry flag so we can do subtraction without
-                        \ the carry flag affecting the result
+ SEC                    \ Set the C flag so we can do subtraction without the
+                        \ C flag affecting the result
 
  SBC T                  \ Set X = A = argument X - argument A
  TAX
 
- BCS RE3                \ If carry is set, then we didn't underflow, so jump
-                        \ to RE3 to auto-recentre and return the result
+ BCS RE3                \ If the C flag is set, then we didn't underflow, so
+                        \ jump to RE3 to auto-recentre and return the result
 
  LDX #1                 \ We have an underflow, so set X to the minimum possible
                         \ value, 1
@@ -20931,7 +20932,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ individual stocks of gold, platinum, gem-stones and
                         \ alien items)?
                         \
-                        \ If so, this sets the carry flag (no room)
+                        \ If so, this sets the C flag (no room)
                         \
                         \ Otherwise it is clear (we have room)
 
@@ -21118,7 +21119,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ If we denote the low byte of w0 as w0_lo and the high byte as w0_hi, then
 \ the twist operation above can be rewritten for 16-bit values like this,
-\ assuming the additions include the carry flag:
+\ assuming the additions include the C flag:
 \
 \   tmp_lo = w0_lo + w1_lo          (tmp = w0 + w1)
 \   tmp_hi = w0_hi + w1_hi
@@ -21153,7 +21154,7 @@ LOAD_D% = LOAD% + P% - CODE%
  ADC QQ15+2
  TAX
 
- LDA QQ15+1             \ Y = tmp_hi = w1_hi + w1_hi + carry
+ LDA QQ15+1             \ Y = tmp_hi = w1_hi + w1_hi + C
  ADC QQ15+3
  TAY
 
@@ -21174,7 +21175,7 @@ LOAD_D% = LOAD% + P% - CODE%
  ADC QQ15+2
  STA QQ15+4
 
- TYA                    \ w2_hi = Y + w1_hi + carry
+ TYA                    \ w2_hi = Y + w1_hi + C
  ADC QQ15+3
  STA QQ15+5
 
@@ -21217,9 +21218,8 @@ LOAD_D% = LOAD% + P% - CODE%
  LDX QQ8                \ Load (Y X) from QQ8, which contains the 16-bit
  LDY QQ8+1              \ distance we want to show
 
- SEC                    \ Set the carry flag so that the call to pr5 will
-                        \ include a decimal point, and display the value as
-                        \ (Y X) / 10
+ SEC                    \ Set the C flag so that the call to pr5 will include a
+                        \ decimal point, and display the value as (Y X) / 10
 
  JSR pr5                \ Print (Y X) to 5 digits, including a decimal point
 
@@ -21414,13 +21414,13 @@ LOAD_D% = LOAD% + P% - CODE%
  CMP #%00000010
  BEQ TT70
 
- LDA QQ3                \ The LSR A above shifted bit 0 of QQ3 into the carry
- BCC TT71               \ flag, so this jumps to TT71 if bit 0 of QQ3 is 0,
-                        \ i.e. if QQ3 = %000, %001 or %010 (0, 1 or 2)
+ LDA QQ3                \ The LSR A above shifted bit 0 of QQ3 into the C flag,
+ BCC TT71               \ so this jumps to TT71 if bit 0 of QQ3 is 0, in other
+                        \ words if QQ3 = %000, %001 or %010 (0, 1 or 2)
 
- SBC #5                 \ Here QQ3 = %101, %110 or %111 (5, 6 or 7), so
- CLC                    \ subtract 5 to bring it down to 0, 1 or 2 (the carry
-                        \ flag is already set so the SBC will be correct)
+ SBC #5                 \ Here QQ3 = %101, %110 or %111 (5, 6 or 7), so subtract
+ CLC                    \ 5 to bring it down to 0, 1 or 2 (the C flag is already
+                        \ set so the SBC will be correct)
 
 .TT71
 
@@ -21475,7 +21475,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ should be 1-15
 
  CLC                    \ Call pr2 to print the technology level as a 3-digit
- JSR pr2                \ number without a decimal point (by clearing the carry
+ JSR pr2                \ number without a decimal point (by clearing the C
                         \ flag)
 
  JSR TTX69              \ Print a paragraph break and set Sentence Case
@@ -21484,8 +21484,8 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR TT68               \ colon
 
  SEC                    \ Call pr2 to print the population as a 3-digit number
- LDX QQ6                \ with a decimal point (by setting the carry flag), so
- JSR pr2                \ the number printed will be population / 10
+ LDX QQ6                \ with a decimal point (by setting the C flag), so the
+ JSR pr2                \ number printed will be population / 10
 
  LDA #198               \ Print recursive token 38 (" BILLION"), followed by a
  JSR TT60               \ paragraph break and Sentence Case
@@ -21643,8 +21643,8 @@ LOAD_D% = LOAD% + P% - CODE%
  TAY
 
  JSR pr5                \ Print (Y X) to 5 digits, not including a decimal
-                        \ point, as the carry flag will be clear (as the
-                        \ maximum radius will always fit into 16 bits)
+                        \ point, as the C flag will be clear (as the maximum
+                        \ radius will always fit into 16 bits)
 
  JSR TT162              \ Print a space
 
@@ -21965,9 +21965,9 @@ LOAD_D% = LOAD% + P% - CODE%
                         \   (A P) = P * population
 
  ASL P                  \ Next we multiply the result by 8, as a 16-bit number,
- ROL A                  \ so we shift both bytes to the left three times,
- ASL P                  \ using the carry flag to carry bits from bit 7 of the
- ROL A                  \ low byte into bit 0 of the high byte
+ ROL A                  \ so we shift both bytes to the left three times, using
+ ASL P                  \ the C flag to carry bits from bit 7 of the low byte
+ ROL A                  \ into bit 0 of the high byte
  ASL P
  ROL A
 
@@ -24312,7 +24312,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  SEC                    \ We now have our final price, * 10, so we can call pr5
  JSR pr5                \ to print (Y X) to 5 digits, including a decimal
-                        \ point, as the carry flag is set
+                        \ point, as the C flag is set
 
  LDY QQ19+4             \ We now move on to availability, so fetch the market
                         \ item number that we stored in QQ19+4 at the start
@@ -24325,7 +24325,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  STX QQ25               \ Store the availability in QQ25
 
- CLC                    \ Clear the carry flag
+ CLC                    \ Clear the C flag
 
  BEQ TT172              \ If none are available, jump to TT172 to print a tab
                         \ and a "-"
@@ -24423,7 +24423,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  BCC TT162              \ Jump to TT162 to print a space and return from the
                         \ subroutine using a tail call (this BCC is effectively
-                        \ a JMP as carry is cleared by TT26)
+                        \ a JMP as the C flag is cleared by TT26)
 }
 
 \ ******************************************************************************
@@ -24575,7 +24575,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  STA QQ19+2             \ Store A in QQ19+2
 
- CLC                    \ Clear the carry flag so we can do additions below
+ CLC                    \ Clear the C flag so we can do additions below
 
  LDA #0                 \ Set AVL+16 (availability of Alien Items) to 0,
  STA AVL+16             \ setting A to 0 in the process
@@ -26150,8 +26150,8 @@ LOAD_E% = LOAD% + P% - CODE%
 .tal
 {
  CLC                    \ We don't want to print the galaxy number with a
-                        \ decimal point, so clear the carry flag for pr2 to
-                        \ take as an argument
+                        \ decimal point, so clear the C flag for pr2 to take as
+                        \ an argument
 
  LDX GCNT               \ Load the current galaxy number from GCNT into X
 
@@ -26187,7 +26187,7 @@ LOAD_E% = LOAD% + P% - CODE%
  LDX QQ14               \ Load the current fuel level from QQ14
 
  SEC                    \ We want to print the fuel level with a decimal point,
-                        \ so set the carry flag for pr2 to take as an argument
+                        \ so set the C flag for pr2 to take as an argument
 
  JSR pr2                \ Call pr2, which prints the number in X to a width of
                         \ 3 figures (i.e. in the format x.x, which will always
@@ -26239,8 +26239,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ for BRPNT to take as an argument
 
  SEC                    \ We want to print the fuel level with a decimal point,
-                        \ so set the carry flag for BRPNT to take as an
-                        \ argument
+                        \ so set the C flag for BRPNT to take as an argument
 
  JSR BPRNT              \ Print the amount of cash to 9 digits with a decimal
                         \ point
@@ -27748,7 +27747,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ reached 0, so increment ENERGY back to 1
 
  PLP                    \ Restore the flags from the stack, so we return with
-                        \ the zero flag from the DEC instruction above
+                        \ the Z flag from the DEC instruction above
 
  RTS                    \ Return from the subroutine
 }
@@ -28551,9 +28550,9 @@ LOAD_E% = LOAD% + P% - CODE%
 .NW3
 
  CLC                    \ Otherwise we don't have an empty slot, so we can't
- RTS                    \ add a new ship, so clear the carry flag to indicate
-                        \ that we have not managed to create the new ship, and
-                        \ return from the subroutine
+ RTS                    \ add a new ship, so clear the C flag to indicate that
+                        \ we have not managed to create the new ship, and return
+                        \ from the subroutine
 
 .NW1
 
@@ -28676,7 +28675,7 @@ LOAD_E% = LOAD% + P% - CODE%
  BCC NW3+1              \ If we have an underflow from the subtraction, then
                         \ INF > INWK+33 and we definitely don't have enough
                         \ room for this ship, so jump to NW3+1, which clears
-                        \ the carry flag and returns from the subroutine
+                        \ the C flag and returns from the subroutine
 
  BNE NW4                \ If the subtraction of the high bytes in A is not
                         \ zero, and we don't have underflow, then we definitely
@@ -28687,9 +28686,9 @@ LOAD_E% = LOAD% + P% - CODE%
  BCC NW3+1              \ subtraction, so now we compare the low byte of the
                         \ result (which is in Y) with NI%. This is the same as
                         \ doing INWK+33 - INF > NI% (see above). If this isn't
-                        \ true, the carry flag will be clear and we don't have
+                        \ true, the C flag will be clear and we don't have
                         \ enough space, so we jump to NW3+1, which clears the
-                        \ carry flag and returns from the subroutine
+                        \ C flag and returns from the subroutine
 
 .NW4
 
@@ -28738,7 +28737,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ all over
 
  SEC                    \ We have successfully created our new ship, so set the
-                        \ carry flag to indicate success
+                        \ C flag to indicate success
 
  RTS                    \ Return from the subroutine
 }
@@ -31814,20 +31813,20 @@ LOAD_E% = LOAD% + P% - CODE%
 
  LDA #0                 \ Set the result, A = 0
 
- CPY #&10               \ If Y >= &10 set carry, so A = A - 1
+ CPY #&10               \ If Y >= &10 set the C flag, so A = A - 1
  SBC #0
 
 \CPY #&20               \ These instructions are commented out in the original
 \SBC #0                 \ source, but they would make the joystick move the
                         \ cursor faster by increasing the range of Y by -1 to +1
 
- CPY #64                \ If Y >= 64 set carry, so A = A - 1
+ CPY #64                \ If Y >= 64 set the C flag, so A = A - 1
  SBC #0
 
- CPY #192               \ If Y >= 192 set carry, so A = A + 1
+ CPY #192               \ If Y >= 192 set the C flag, so A = A + 1
  ADC #0
 
- CPY #224               \ If Y >= 224 set carry, so A = A + 1
+ CPY #224               \ If Y >= 224 set the C flag, so A = A + 1
  ADC #0
 
 \CPY #&F0               \ These instructions are commented out in the original
@@ -32834,8 +32833,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ Set A and X to random numbers. Carry flag is also set randomly. Overflow flag
-\ will be have a 50% probability of being 0 or 1.
+\ Set A and X to random numbers. The C and V flags are also set randomly.
 \
 \ Other entry points:
 \
@@ -32894,8 +32892,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \   r2´ = ((r0 << 1) mod 256) + C
 \   r0´ = r2´ + r2 + bit 7 of r0
 \
-\ C is the carry flag on entry. If this routine is entered with the carry flag
-\ clear, e.g. via DORND2, then if bit 0 of RAND+2 is 0, it will remain at 0.
+\ C is the C flag on entry to the routine. If this routine is entered with the C
+\ flag clear, e.g. via DORND2, then if bit 0 of RAND+2 is 0, it will remain at 0.
 \
 \ r1 and r3 (which are returned in A and X) follow this number sequence through
 \ successive calls to DORND, going from r1 and r3 to r1´ and r3´:
@@ -32903,10 +32901,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \   A = r1´ = r1 + r3 + C
 \   X = r3´ = r1
 \
-\ C is the carry flag from the calculation of r0´ above, i.e. from the addition
-\ of r2´ with r2 and bit 7 of r0. Because r3´ is set to r1, this can be thought
-\ of as a number sequence, with A being the next number in the sequence and X
-\ being the value of A from the previous call.
+\ C is the C flag from the calculation of r0´ above, i.e. from the addition of
+\ r2´ with r2 and bit 7 of r0. Because r3´ is set to r1, this can be thought of
+\ as a number sequence, with A being the next number in the sequence and X being
+\ the value of A from the previous call.
 \
 \ In DORND2, we enter with the C flag clear, which changes the calculations in
 \ DORND to:
@@ -32928,7 +32926,7 @@ LOAD_F% = LOAD% + P% - CODE%
  LDA RAND               \ r2´ = ((r0 << 1) mod 256) + C
  ROL A                  \ r0´ = r2´ + r2 + bit 7 of r0
  TAX
- ADC RAND+2             \ C = carry bit from r0´ calculation
+ ADC RAND+2             \ C = C flag from r0´ calculation
  STA RAND
  STX RAND+2
 
@@ -32962,7 +32960,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \     and a clockwise roll
 \
 \ We call this from within the main loop, with A set to a random number and the
-\ carry flag set.
+\ C flag set.
 \
 \ ******************************************************************************
 
@@ -32978,8 +32976,8 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ clockwise roll (as bit 7 is clear), and a 1 in 127
                         \ chance of it having no damping
 
- ROL INWK+31            \ Set bit 0 of missile count (as we know the carry flag
-                        \ is set), giving the ship one missile
+ ROL INWK+31            \ Set bit 0 of missile count (as we know the C flag is
+                        \ set), giving the ship one missile
 
  AND #31                \ Set the ship speed to our random number, set to a
  ORA #16                \ minimum of 16 and a maximum of 31
@@ -33077,7 +33075,7 @@ LOAD_F% = LOAD% + P% - CODE%
  LDA #38                \ Set z_hi = 38 (far away)
  STA INWK+7
 
- JSR DORND              \ Set A, X and carry flag to random numbers
+ JSR DORND              \ Set A, X and C flag to random numbers
 
  STA INWK               \ Set x_lo = random
 
@@ -33090,12 +33088,12 @@ LOAD_F% = LOAD% + P% - CODE%
  AND #%10000000
  STA INWK+5
 
- ROL INWK+1             \ Set bit 2 of x_hi to the carry flag, which is random,
- ROL INWK+1             \ so this randomly moves us slightly off-centre
+ ROL INWK+1             \ Set bit 2 of x_hi to the C flag, which is random, so
+ ROL INWK+1             \ this randomly moves us slightly off-centre
 
- JSR DORND              \ Set A, X and overflow flag to random numbers
+ JSR DORND              \ Set A, X and V flag to random numbers
 
- BVS MTT4               \ If overflow is set (50% chance), jump up to MTT4 to
+ BVS MTT4               \ If V flag is set (50% chance), jump up to MTT4 to
                         \ spawn a trader
 
  ORA #%01101111         \ Take the random number in A and set bits 0-3 and 5-6,
@@ -33111,16 +33109,16 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ spawn something else
 
  TXA                    \ Set A to the random X we set above, which we haven't
- BCS MTT2               \ used yet, and if carry is set (50% chance) jump down
-                        \ to MTT2 to skip the following
+ BCS MTT2               \ used yet, and if the C flag is set (50% chance) jump
+                        \ down to MTT2 to skip the following
 
  AND #31                \ Set the ship speed to our random number, set to a
  ORA #16                \ minimum of 16 and a maximum of 31
  STA INWK+27
 
  BCC MTT3               \ Jump down to MTT3, skipping the following (this BCC
-                        \ is effectively a JMP as we know the carry flag is
-                        \ clear, having passed through the BCS above)
+                        \ is effectively a JMP as we know the C flag is clear,
+                        \ having passed through the BCS above)
 
 .MTT2
 
@@ -33680,8 +33678,8 @@ LOAD_F% = LOAD% + P% - CODE%
 {
  LDA QQ20+3             \ Set A to the number of tonnes of slaves in the hold
 
- CLC                    \ Clear the carry flag so we can do addition without
-                        \ the carry flag affecting the result
+ CLC                    \ Clear the C flag so we can do addition without the
+                        \ C flag affecting the result
 
  ADC QQ20+6             \ Add the number of tonnes of narcotics in the hold
 
@@ -34495,8 +34493,8 @@ ENDIF
  LDX #NT%-2             \ Set X to the size of the commander data block, less
                         \ 2 (as there are two checksum bytes)
 
- CLC                    \ Clear the carry flag so we can do addition without
-                        \ the carry flag affecting the result
+ CLC                    \ Clear the C flag so we can do addition without the
+                        \ C flag affecting the result
 
  TXA                    \ Seed the checksum calculation by setting A to the
                         \ size of the commander data block, less 2
@@ -34509,8 +34507,8 @@ ENDIF
 
 .QUL2
 
- ADC NA%+7,X            \ Add the X-1-th byte of the data block to A, plus
-                        \ carry
+ ADC NA%+7,X            \ Add the X-1-th byte of the data block to A, plus the
+                        \ C flag
 
  EOR NA%+8,X            \ EOR A with the X-th byte of the data block
 
@@ -34733,6 +34731,10 @@ ENDIF
 \
 \   SC                  The low byte (i.e. the offset into the page) of the
 \                       starting point of the zero-fill
+\
+\ Returns:
+\
+\   Z flag              Z flag is set
 \
 \ ******************************************************************************
 
@@ -35569,9 +35571,9 @@ ENDIF
  JSR SFS1-2             \ to add the missile to our universe with an AI flag
                         \ of %11111110 (AI enabled, hostile, no E.C.M.)
 
- BCC NO1                \ The carry flag will be set if the call to SFS1-2 was
-                        \ a success, so if it's clear, jump to NO1 to return
-                        \ from the subroutine (as NO1 contains an RTS)
+ BCC NO1                \ The C flag will be set if the call to SFS1-2 was a
+                        \ success, so if it's clear, jump to NO1 to return from
+                        \ the subroutine (as NO1 contains an RTS)
 
  LDA #120               \ Print recursive token 120 ("INCOMING MISSILE") as an
  JSR MESS               \ in-flight message
@@ -35791,8 +35793,8 @@ ENDIF
 
 .NOS1
 {
- LSR A                  \ Divide A by 2, and also clear the carry flag, as bit
-                        \ of A is always zero
+ LSR A                  \ Divide A by 2, and also clear the C flag, as bit 0 of
+                        \ A is always zero (as A is a multiple of 8)
 
  ADC #3                 \ Set Y = A + 3, so Y now points to the last byte of
  TAY                    \ four within the block of four-byte values
