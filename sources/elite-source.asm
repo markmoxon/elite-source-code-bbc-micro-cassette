@@ -4676,7 +4676,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 7 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: For each nearby ship: Check for us docking, scooping or colliding
+\    Summary: For each nearby ship: Are we docking, scooping, colliding with it?
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4701,39 +4701,46 @@ LOAD_A% = LOAD%
                         \ far away (i.e. has a non-zero high byte in at least
                         \ one of the three axes), or it is already exploding,
                         \ or has been flagged as being killed - in which case
-                        \ jump to MA65 to skip the following
+                        \ jump to MA65 to skip the following, as we can't dock
+                        \ scoop or collide with it
 
  LDA INWK               \ Set A = (x_lo OR y_lo OR z_lo), and if bit 7 of the
  ORA INWK+3             \ result is set, the ship is still a fair distance
- ORA INWK+6             \ away, so jump to MA65 to skip the following
- BMI MA65
+ ORA INWK+6             \ away (further than 127 in at least one axis), so jump
+ BMI MA65               \ to MA65 to skip the following, as it's too far away to
+                        \ dock, scoop or collide with
 
- LDX TYPE               \ If the ship type is negative then this indicates a
- BMI MA65               \ planet or sun, so jump down to MA65 to skip the
-                        \ following
+ LDX TYPE               \ If the current ship type is negative then it's either
+ BMI MA65               \ a planet or a sun, so jump down to MA65 to skip the
+                        \ following, as we can't dock with it or scoop it
 
  CPX #SST               \ If this ship is the space station, jump to ISDK to
- BEQ ISDK               \ check for docking
+ BEQ ISDK               \ check whether we are docking with it
 
- AND #%11000000         \ If bit 6 of (x_lo OR y_lo OR z_lo) is set, then we
- BNE MA65               \ are still a reasonable distance away, so jump to
-                        \ MA65 to skip the following
+ AND #%11000000         \ If bit 6 of (x_lo OR y_lo OR z_lo) is set, then the
+ BNE MA65               \ ship is still a reasonable distance away (further than
+                        \ 63 in at least one axis), so jump to MA65 to skip the
+                        \ following, as it's too far away to dock, scoop or
+                        \ collide with
 
  CPX #MSL               \ If this ship is a missile, jump down to MA65 to skip
- BEQ MA65               \ the following
+ BEQ MA65               \ the following, as we can't scoop or dock with a
+                        \ missile, and it has its own dedicated collision
+                        \ checks in the TACTICS routine
 
  CPX #OIL               \ If ship type >= OIL (i.e. it's a cargo canister,
  BCS P%+5               \ Thargon or escape pod), skip the JMP instruction and
  JMP MA58               \ continue on, otherwise jump to MA58 to process a
-                        \ collision
+                        \ potential collision
 
- LDA BST                \ If we have fuel scoops fitted then BST will be 127,
+ LDA BST                \ If we have fuel scoops fitted then BST will be &FF,
                         \ otherwise it will be 0
 
- AND INWK+5             \ Ship byte #5 contains the y_sign of this ship, so a -1
-                        \ here means the canister is below us, so this result
-                        \ will be negative if the canister is below us and we
-                        \ have a fuel scoop fitted
+ AND INWK+5             \ Ship byte #5 contains the y_sign of this ship, so a
+                        \ negative value here means the canister is below us,
+                        \ which means the result of the AND will be negative if
+                        \ the canister is below us and we have a fuel scoop
+                        \ fitted
 
  BPL MA58               \ If the result is positive, then we either have no
                         \ scoop or the canister is above us, and in both cases
@@ -4745,7 +4752,7 @@ LOAD_A% = LOAD%
 \       Name: Main flight loop (Part 8 of 16)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: For each nearby ship: Process the scooping of items
+\    Summary: For each nearby ship: Process us potentially scooping this item
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4755,21 +4762,23 @@ LOAD_A% = LOAD%
 \   * Continue looping through all the ships in the local bubble, and for each
 \     one:
 \
-\     * Process the scooping of items
+\     * Process us potentially scooping this item
 \
 \ ******************************************************************************
 
  LDA #3                 \ Set A to 3 to denote we may be scooping an escape pod
 
  CPX #TGL               \ If ship type < Thargon, i.e. it's a canister, jump
- BCC oily               \ to oily to scoop the canister
+ BCC oily               \ to oily to randomly decide the canister's contents
 
  BNE slvy2              \ If ship type <> Thargon, i.e. it's an escape pod,
-                        \ jump to slvy2 with A = 3
+                        \ jump to slvy2 with A set to 3, so we scoop up the
+                        \ escape pod as slaves
 
  LDA #16                \ Otherwise this is a Thargon, so jump to slvy2 with
- BNE slvy2              \ A = 16 (this BNE is effectively a JMP as A will never
-                        \ be zero)
+ BNE slvy2              \ A set to 16, so we scoop up the Thargon as alien items
+                        \ (this BNE is effectively a JMP as A will never be
+                        \ zero)
 
 .oily
 
@@ -4789,37 +4798,38 @@ LOAD_A% = LOAD%
                         \ Thargons become alien items when scooped
 
  STA QQ29               \ Call tnpr with the scooped cargo type stored in QQ29
- LDA #1                 \ and A = 1 to work out whether we have room in the
- JSR tnpr               \ hold for the scooped item (A is preserved by this
+ LDA #1                 \ and A set to 1, to work out whether we have room in
+ JSR tnpr               \ the hold for the scooped item (A is preserved by this
                         \ call, and the carry flag contains the result)
 
  LDY #78                \ This instruction has no effect, so presumably it used
-                        \ to do something, and didn't get removed
+                        \ to do something, but didn't get removed
 
  BCS MA59               \ If carry is set then we have no room in the hold for
                         \ the scooped item, so jump down to MA59 make a sound
-                        \ to indicate failure, and destroy the canister
+                        \ to indicate failure, before destroying the canister
 
  LDY QQ29               \ Scooping was successful, so set Y to the type of
-                        \ item we just scooped
+                        \ item we just scooped, which we stored in QQ29 above
 
- ADC QQ20,Y             \ Add A to the number of items of type Y in the cargo
- STA QQ20,Y             \ hold, as we just successfully scooped A units of Y
+ ADC QQ20,Y             \ Add A (which we set to 1 above) to the number of items
+ STA QQ20,Y             \ of type Y in the cargo hold, as we just successfully
+                        \ scooped one canister of type Y
 
  TYA                    \ Print recursive token 48 + A as an in-flight token,
  ADC #208               \ which will be in the range 48 ("FOOD") to 64 ("ALIEN
  JSR MESS               \ ITEMS"), so this prints the scooped item's name
 
- JMP MA60               \ We are done scooping, so jump down to MA60 to
-                        \ set the kill flag on the canister, as it no longer
-                        \ exists in the local bubble
+ JMP MA60               \ We are done scooping, so jump down to MA60 to set the
+                        \ kill flag on the canister, as it no longer exists in
+                        \ the local bubble
 
 .MA65
 
  JMP MA26               \ If we get here, then the ship we are processing was
                         \ too far away to be scooped, docked or collided with,
                         \ so jump to MA26 to skip over the collision routines
-                        \ and to move on to missile targeting
+                        \ and move on to missile targeting
 
 \ ******************************************************************************
 \
@@ -5158,7 +5168,7 @@ LOAD_A% = LOAD%
 .MA58
 
                         \ If we get here, we have collided with something in a
-                        \ fatal way
+                        \ potentially fatal way
 
  ASL INWK+31            \ Set bit 7 of the ship we just collided with, to
  SEC                    \ denote that it has been killed and should be removed
@@ -8256,9 +8266,9 @@ LOAD_A% = LOAD%
                         \
                         \ which also means:
                         \
-                        \ K(3 2 1) = (A P+1 P) * Q / 256
-                        \          = x * -alpha / 256
-                        \          = - alpha * x / 256
+                        \   K(3 2 1) = (A P+1 P) * Q / 256
+                        \            = x * -alpha / 256
+                        \            = - alpha * x / 256
 
  LDX #3                 \ Set K(3 2 1) = (y_sign y_hi y_lo) + K(3 2 1)
  JSR MVT3               \              = y - alpha * x / 256
@@ -8277,27 +8287,27 @@ LOAD_A% = LOAD%
 
  LDA K+3                \ Set K+3 to K2+3, so now we have result 1 above:
  STA K2+3               \
-                        \ K2(3 2 1) = K(3 2 1)
-                        \           = y - alpha * x / 256
+                        \   K2(3 2 1) = K(3 2 1)
+                        \             = y - alpha * x / 256
 
                         \ We also have:
                         \
-                        \ A = K+3
+                        \   A = K+3
                         \
-                        \ P(1 0) = K(2 1)
+                        \   P(1 0) = K(2 1)
                         \
                         \ so combined, these mean:
                         \
-                        \ (A P+1 P) = K(3 2 1)
-                        \           = K2(3 2 1)
+                        \   (A P+1 P) = K(3 2 1)
+                        \             = K2(3 2 1)
 
  JSR MULT3              \ Set K(3 2 1 0) = (A P+1 P) * Q
                         \
                         \ which also means:
                         \
-                        \ K(3 2 1) = (A P+1 P) * Q / 256
-                        \          = K2(3 2 1) * beta / 256
-                        \          = beta * K2 / 256
+                        \   K(3 2 1) = (A P+1 P) * Q / 256
+                        \            = K2(3 2 1) * beta / 256
+                        \            = beta * K2 / 256
 
  LDX #6                 \ K(3 2 1) = (z_sign z_hi z_lo) + K(3 2 1)
  JSR MVT3               \          = z + beta * K2 / 256
@@ -8314,12 +8324,12 @@ LOAD_A% = LOAD%
 
  LDA K+3                \ Set A = z_sign = K+3, so now we have:
  STA INWK+8             \
-                        \ (z_sign z_hi z_lo) = K(3 2 1)
-                        \                    = z + beta * K2 / 256
+                        \   (z_sign z_hi z_lo) = K(3 2 1)
+                        \                      = z + beta * K2 / 256
 
                         \ So we now have result 2 above:
                         \
-                        \ z = z + beta * K2
+                        \   z = z + beta * K2
 
  EOR #%10000000         \ Flip the sign bit of A to give A = -z_sign
 
@@ -8341,7 +8351,7 @@ LOAD_A% = LOAD%
 
  LDA K                  \ We now do the following sum:
 \CLC                    \
- ADC K2                 \ (A y_hi y_lo -) = K(3 2 1 0) + K2(3 2 1 0)
+ ADC K2                 \   (A y_hi y_lo -) = K(3 2 1 0) + K2(3 2 1 0)
                         \
                         \ starting with the low bytes (which we don't keep)
                         \
@@ -8361,7 +8371,7 @@ LOAD_A% = LOAD%
  LDA K+3                \ And then the sign bytes into A, so overall we have the
  ADC K2+3               \ following, if we drop the low bytes from the result:
                         \
-                        \ (A y_hi y_lo) = (K + K2) / 256
+                        \   (A y_hi y_lo) = (K + K2) / 256
 
  JMP MV2                \ Jump to MV2 to skip the calculation for when K and K2
                         \ have different signs
@@ -8372,7 +8382,7 @@ LOAD_A% = LOAD%
  SEC                    \ instead of adding, we need to subtract to get the
  SBC K2                 \ result we want, like this:
                         \
-                        \ (A y_hi y_lo -) = K(3 2 1 0) - K2(3 2 1 0)
+                        \   (A y_hi y_lo -) = K(3 2 1 0) - K2(3 2 1 0)
                         \
                         \ starting with the low bytes (which we don't keep)
 
@@ -8397,7 +8407,7 @@ LOAD_A% = LOAD%
                         \ By now we have the following, if we drop the low bytes
                         \ from the result:
                         \
-                        \ (A y_hi y_lo) = (K - K2) / 256
+                        \   (A y_hi y_lo) = (K - K2) / 256
                         \
                         \ so now we just need to make sure the sign of the
                         \ result is correct
@@ -8434,8 +8444,8 @@ LOAD_A% = LOAD%
 
                         \ So we now have result 3 above:
                         \
-                        \ y = K2 + K
-                        \   = K2 - beta * z
+                        \   y = K2 + K
+                        \     = K2 - beta * z
 
  LDA ALPHA              \ Set A = alpha
  STA Q
@@ -8463,7 +8473,7 @@ LOAD_A% = LOAD%
 
                         \ So we now have result 4 above:
                         \
-                        \ x = x + y * alpha
+                        \   x = x + y * alpha
 
  JMP MV45               \ We have now finished rotating the planet or sun by
                         \ our pitch and roll, so jump back into the MVEIT
@@ -34053,7 +34063,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ 8/16
 \
-\   * Process scooping of items
+\   * Process us potentially scooping this item
 \
 \ 9/16
 \
