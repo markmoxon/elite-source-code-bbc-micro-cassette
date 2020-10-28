@@ -10929,7 +10929,7 @@ NEXT
 \
 \ Summary: How we remember the lines used to draw circles so they can be redrawn
 \
-\ References: BLINE, LSX2, LSY2
+\ References: BLINE, LSX2, LSY2, LSP, WPLS2
 \
 \ The planet, the sun and ships in our local bubble of universe are complicated
 \ things, and we have to use an awful lot of maths to calculate their shapes
@@ -30963,14 +30963,14 @@ LOAD_E% = LOAD% + P% - CODE%
 \ way round the circle, with 64 covering the whole thing. So 5 o'clock looks
 \ like this (I've put a "c" for the angle CNT as it's a bit of a tight squeeze):
 \
-\           _ - _
-\        =         =                     |`.                          |`.
-\      =             =                   |c `.                        |c `.  K
-\     =               =                  |    `. K         K * cos(c) |    `.
-\     =       |`.     =        __-->     |      `.                    |      `.
-\      =      |  `.  =  ___.--´          |        `.                  +--------`
-\       =     |    `.                    |     __--´    ----->        K * sin(c)
-\        `--__|__--´                     |__--´
+\         _ - _
+\      =         =                     |`.                          |`.
+\    =             =                   |c `.                        |c `.  K
+\   =               =                  |    `. K         K * cos(c) |    `.
+\   =       |`.     =        __-->     |      `.                    |      `.
+\    =      |  `.  =  ___.--´          |        `.                  +--------`
+\     =     |    `.                    |     __--´    ----->        K * sin(c)
+\      `--__|__--´                     |__--´
 \
 \ So if the centre of the circle (the top of the triangle above) is at the
 \ origin (0, 0), then using basic trigonometry, we can see that at step number
