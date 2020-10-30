@@ -1573,18 +1573,18 @@ ENDMACRO
 \
 \ Summary: Printing recursive text tokens, two-letter tokens and control codes
 \
-\ References: TT27
+\ References: TT27, BPRNT, TT26
 \
 \ There are an awful lot of routines for printing text in Elite, covering
 \ everything from the formatting of huge decimal numbers to printing individual
 \ spaces, but under the hood they all boil down to three core routines:
 \
-\   * BPRNT, which prints numbers (see the deep dive on "Printing decimal
-\     numbers")
+\   * TT27, which prints text tokens
+\
+\   * BPRNT, which prints numbers (for more information on this, see the deep
+\     dive on "Printing decimal numbers")
 \
 \   * TT26, which pokes individual characters into screen memory
-\
-\   * TT27, which prints text tokens
 \
 \ This deep dive looks at the last of these three routines, which forms the
 \ heart of Elite's text tokenisation system. There are three types of text token
@@ -12990,7 +12990,7 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
-\ This is the standard system beep as made bu VDU 7.
+\ This is the standard system beep as made by VDU 7.
 \
 \ ******************************************************************************
 
@@ -14227,7 +14227,7 @@ NEXT
 \
 \ Summary: Elite's famous split-screen mode, dissected and explained in detail
 \
-\ References: IRQ1
+\ References: IRQ1, B% (Loader)
 \
 \ Elite uses a unique split-screen mode that enables a high-resolution
 \ black-and-white space view to coexist with a lower resolution, colour ship
@@ -14236,7 +14236,7 @@ NEXT
 \
 \ Elite's screen mode is a custom mode, based on mode 4 but with fewer pixels.
 \ This mode is set up in elite-loader.asm by reprogramming the registers of the
-\ 6845 CRTC - see the section on VDU command data in that file for more
+\ 6845 CRTC - see the section on VDU command data at location B% for more
 \ details, but the salient part is the screen size, which is 32 columns by 31
 \ rows rather than the 40 x 32 of standard mode 4. Screen sizes are given in
 \ terms of characters, which are 8 x 8 pixels, so this means Elite's custom
@@ -25958,7 +25958,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Summary: Producing system names from twisted seeds and two-letter tokens
 \
-\ References: cpl, QQ15, QQ16
+\ References: cpl, QQ15, QQ16, QQ18, TT54
 \
 \ System names are generated from the three 16-bit seeds for that system. In
 \ the case of the selected system, those seeds live at QQ15. The process works
@@ -34781,7 +34781,7 @@ ENDIF
 \
 \ Summary: All the information that's hidden in the Elite competition code
 \
-\ References: COK, SVE, CHK, CHK2
+\ References: COK, SVE, CHK, CHK2, STATUS
 \
 \ Bundled with Elite, and easy to miss amongst the razzmatazz of the manual,
 \ novel, function key strip and control summary card, was the competition entry
