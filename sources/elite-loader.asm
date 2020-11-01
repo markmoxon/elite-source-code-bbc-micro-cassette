@@ -20,10 +20,10 @@
 \
 \ after reading in the following files:
 \
-\   * images/DIALS.bin
-\   * images/P.ELITE.bin
-\   * images/P.A-SOFT.bin
-\   * images/P.(C)ASFT.bin
+\   * binaries/DIALS.bin
+\   * binaries/P.ELITE.bin
+\   * binaries/P.A-SOFT.bin
+\   * binaries/P.(C)ASFT.bin
 \   * output/WORDS9.bin
 \   * output/PYTHON.bin
 \
@@ -365,7 +365,7 @@ INCBIN "output/WORDS9.bin"
 
 ORG CODE% + &400
 PRINT "P.DIALS = ",~P%
-INCBIN "images/P.DIALS.bin"
+INCBIN "binaries/P.DIALS.bin"
 
 ORG CODE% + &B00
 PRINT "PYTHON = ",~P%
@@ -373,15 +373,15 @@ INCBIN "output/PYTHON.bin"
 
 ORG CODE% + &C00
 PRINT "P.ELITE = ",~P%
-INCBIN "images/P.ELITE.bin"
+INCBIN "binaries/P.ELITE.bin"
 
 ORG CODE% + &D00
 PRINT "P.A-SOFT = ",~P%
-INCBIN "images/P.A-SOFT.bin"
+INCBIN "binaries/P.A-SOFT.bin"
 
 ORG CODE% + &E00
 PRINT "P.(C)ASFT = ",~P%
-INCBIN "images/P.(C)ASFT.bin"
+INCBIN "binaries/P.(C)ASFT.bin"
 
 O% = CODE% + &400 + &800 + &300
 ORG O%

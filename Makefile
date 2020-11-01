@@ -9,7 +9,7 @@ build:
 	$(BEEBASM) -i sources/elite-bcfs.asm -v >> output/compile.txt
 	$(BEEBASM) -i sources/elite-loader.asm -v >> output/compile.txt
 	$(PYTHON) sources/elite-checksum.py -u
-	$(BEEBASM) -i sources/elite-disc.asm -do elite.ssd -boot ELITE
+	$(BEEBASM) -i sources/elite-disc.asm -do elite.ssd -opt 3
 
 .PHONY:encrypt
 encrypt:
@@ -19,7 +19,7 @@ encrypt:
 	$(BEEBASM) -i sources/elite-bcfs.asm -v >> output/compile.txt
 	$(BEEBASM) -i sources/elite-loader.asm -v >> output/compile.txt
 	$(PYTHON) sources/elite-checksum.py
-	$(BEEBASM) -i sources/elite-disc.asm -do elite.ssd -boot ELITE
+	$(BEEBASM) -i sources/elite-disc.asm -do elite.ssd -opt 3
 
 .PHONY:extract
 extract:
@@ -29,7 +29,7 @@ extract:
 	$(BEEBASM) -i sources/elite-bcfs.asm -v >> output/compile.txt
 	$(BEEBASM) -i sources/elite-loader.asm -v >> output/compile.txt
 	$(PYTHON) sources/elite-checksum.py
-	$(BEEBASM) -i sources/elite-disc.asm -do elite.ssd -boot ELITE
+	$(BEEBASM) -i sources/elite-disc.asm -do elite.ssd -opt 3
 
 .PHONY:verify
 verify:
