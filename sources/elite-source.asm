@@ -306,7 +306,7 @@ f9 = &77                \ Internal key number for red key f9 (Inventory)
 \       block at NA% (see above)
 \
 \ On top of this, there are quite a few instructions in the main game code that
-\ have no effect and could have been culled without impact; I've identified 20
+\ have no effect and could have been culled without impact; I've identified 21
 \ of them, but there are no doubt more of them to find (search the comments for
 \ "no effect" to find the ones I've spotted).
 \
@@ -1919,7 +1919,7 @@ ENDMACRO
 \ ******************************************************************************
 
 .QQ18
-
+{
  RTOK 111               \ Token 0:      "FUEL SCOOPS ON {beep}"
  RTOK 131               \ Encoded as:   "[111][131]{7}"
  CTRL 7
@@ -3091,6 +3091,7 @@ ENDMACRO
  CHAR '8'
  CHAR '4'
  EQUB 0
+}
 
 \ ******************************************************************************
 \
@@ -11349,7 +11350,7 @@ NEXT
 \ when thinking about stardust, we're really thinking about a 2D plane, with the
 \ z-coordinate only being used when moving the stardust towards us, and when
 \ determining how it should look.
-
+\
 \ Each of the coordinates is stored as 16-bit sign-magnitude value, as in
 \ (x_hi x_lo) and (y_hi y_lo). The coordinates for the Y-th particle of stardust
 \ are stored in (SX+Y SXL+Y), (SY+Y SYL+Y) and (SZ+Y SZL+Y) respectively. The
@@ -18479,7 +18480,7 @@ NEXT
 \ routine shifts both the numerator (the top part of the division) and the
 \ denominator (the bottom part of the division) around to get the multi-byte
 \ result we want.
-
+\
 \ Specifically, it shifts both of them to the left as far as possible, keeping a
 \ tally of how many shifts get done in each one - and specifically, the
 \ difference in the number of shifts between the top and bottom (as shifting
@@ -19394,7 +19395,7 @@ NEXT
 \ flip the axes for everything we want to display in the space view, so the axes
 \ used in the drawing routines will still work.
 \
-\ The axis-flipping is quite q quick process. Indeed, there were originally six
+\ The axis-flipping is quite a quick process. Indeed, there were originally six
 \ views, with up and down thrown into the mix, but they ended up being dropped
 \ to save space. It would only have taken a few extra instructions to implement
 \ their flipped axes and stardust views, so the space would most likely have
@@ -35214,10 +35215,11 @@ ENDIF
 .FX200
 {
  LDY #0                 \ Call OSBYTE &C8 (200) with Y = 0, so new value is
- LDA #200               \ set to X
- JMP OSBYTE
+ LDA #200               \ set to X, and return from the subroutine using a tail
+ JMP OSBYTE             \ call
 
- RTS                    \ Return from the subroutine
+ RTS                    \ This instruction has no effect, as we already returned
+                        \ from the subroutine
 }
 
 \ ******************************************************************************
