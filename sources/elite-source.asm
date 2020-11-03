@@ -13699,6 +13699,7 @@ NEXT
  JMP COMPAS             \ We have now drawn all the indicators, so jump to
                         \ COMPAS to draw the compass, returning from the
                         \ subroutine using a tail call
+}
 
 \ ******************************************************************************
 \
@@ -13733,7 +13734,7 @@ NEXT
 \ ******************************************************************************
 
 .PZW
-
+{
  LDX #&F0               \ Set X to dashboard colour 2 (yellow/white)
 
  LDA MCNT               \ A will be non-zero for 8 out of every 16 main loop
