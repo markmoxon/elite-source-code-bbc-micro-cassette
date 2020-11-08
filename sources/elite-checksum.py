@@ -60,11 +60,8 @@ print("Commander checksum = ", CH)
 
 # Must have Commander checksum otherwise game will lock:
 
-if Encrypt:
-    data_block[eliteb_offset + commander_offset] = CH ^ 0xA9
-    data_block[eliteb_offset + commander_offset + 1] = CH
-else:
-    print("WARNING! Commander checksum must be copied into elite-source.asm as CH% = ", CH)
+data_block[eliteb_offset + commander_offset] = CH ^ 0xA9
+data_block[eliteb_offset + commander_offset + 1] = CH
 
 # Skip one byte for checksum0
 
