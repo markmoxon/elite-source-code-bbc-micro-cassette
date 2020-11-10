@@ -13641,9 +13641,9 @@ NEXT
 \
 \ ******************************************************************************
 
- LDA #&78               \ Set SC(1 0) = &7816, which is the screen address for
+ LDA #&78               \ Set SC(1 0) = &7810, which is the screen address for
  STA SC+1               \ the character block containing the left end of the
- LDA #16                \ top indicator in the left part of the dashboard, the
+ LDA #&10               \ top indicator in the left part of the dashboard, the
  STA SC                 \ one showing the forward shield
 
  LDA FSH                \ Draw the forward shield indicator using a range of
