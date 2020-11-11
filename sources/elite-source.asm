@@ -10,8 +10,8 @@
 \ The commentary is copyright Mark Moxon, and any misunderstandings or mistakes
 \ in the documentation are entirely my fault
 \
-\ The terminology used in this commentary is explained at the start of the
-\ elite-loader.asm file
+\ The terminology and notations used in this commentary are explained at
+\ https://www.bbcelite.com/about_site/terminology_used_in_this_commentary.html
 \
 \ ------------------------------------------------------------------------------
 \
@@ -98,259 +98,13 @@ f9 = &77                \ Internal key number for red key f9 (Inventory)
 
 \ ******************************************************************************
 \
-\ Deep dive: The Elite memory map
-\ ===============================
-\
-\ Summary: A map of memory usage, details of unused memory locations, and notes
-\ on BBC Micro and Acorn Atom label names
-\
-\ References: ZP, XX3, T%, QQ18, K%, WP, S%, XX21, SHIP4
-\
-\ The cassette version of Elite uses almost every nook and cranny of the BBC
-\ Micro Model B, which isn't surprising when you consider just how much the
-\ authors managed to squeeze into this 32K micro. Sure, the disc version of the
-\ game has more features, but that's because the main game code is split into
-\ two different programs, one that's loaded when you're docked and another
-\ that's loaded for spaceflight. The cassette version that's documented here
-\ doesn't have the luxury of fast loading - quite the opposite, in fact - so it
-\ has to cram the whole game into memory, all at once. It's an absolute marvel
-\ of efficiency.
-\
-\ When the cassette version of Elite is loaded, this is how the memory map of
-\ the BBC Micro Model B looks.
-\
-\     +-----------------------------------+   &FFFF
-\     |                                   |
-\     | Machine Operating System (MOS)    |
-\     |                                   |
-\     +-----------------------------------+   &C000
-\     |                                   |
-\     | Paged ROMs                        |
-\     |                                   |
-\     +-----------------------------------+   &8000
-\     |                                   |
-\     | Python blueprint (PYTHON.bin)     |
-\     |                                   |
-\     +-----------------------------------+   &7F00 = SHIP4
-\     |                                   |
-\     | Memory for the split-screen mode  |
-\     |                                   |
-\     +-----------------------------------+   &6000
-\     |                                   |
-\     | Ship blueprints (SHIPS.bin)       |
-\     |                                   |
-\     +-----------------------------------+   &563A = XX21
-\     |                                   |
-\     | Main game code (ELTcode.bin)      |
-\     |                                   |
-\     +-----------------------------------+   &0F40 = S%
-\     |                                   |
-\     | &0F34-&0F40 unused                |
-\     |                                   |
-\     +-----------------------------------+   &0F34
-\     |                                   |
-\     | WP workspace                      |
-\     |                                   |
-\     +-----------------------------------+   &0D40 = WP
-\     |                                   |
-\     | Ship line heap descends from WP   |
-\     |                                   |
-\     +-----------------------------------+   SLSP
-\     |                                   |
-\     .                                   .
-\     .                                   .
-\     .                                   .
-\     .                                   .
-\     .                                   .
-\     |                                   |
-\     +-----------------------------------+   INF
-\     |                                   |
-\     | Ship data blocks ascend from K%   |
-\     |                                   |
-\     +-----------------------------------+   &0900 = K%
-\     |                                   |
-\     | Page 8 MOS sound/printer space    |
-\     |                                   |
-\     +-----------------------------------+   &0800
-\     |                                   |
-\     | Recursive tokens (WORDS9.bin)     |
-\     |                                   |
-\     +-----------------------------------+   &0400 = QQ18
-\     |                                   |
-\     | Page 3 MOS tape system workspace  |
-\     |                                   |
-\     +-----------------------------------+   &0372
-\     |                                   |
-\     | T% workspace                      |
-\     |                                   |
-\     +-----------------------------------+   &0300 = T%
-\     |                                   |
-\     | Page 2 MOS workspace              |
-\     |                                   |
-\     +-----------------------------------+   &0200
-\     |                                   |
-\     | 6502 stack descends from &01FF    |
-\     |                                   |
-\     +-----------------------------------+
-\     |                                   |
-\     .                                   .
-\     .                                   .
-\     .                                   .
-\     .                                   .
-\     .                                   .
-\     |                                   |
-\     +-----------------------------------+
-\     |                                   |
-\     | Heap space ascends from XX3       |
-\     |                                   |
-\     +-----------------------------------+   &0100 = XX3
-\     |                                   |
-\     | Zero page workspace               |
-\     |                                   |
-\     +-----------------------------------+   &0000 = ZP
-\
-\ This memory map shows the full 64K of addressable memory that's supported by
-\ the BBC's 6502 processor, but only the bottom 32K is writable RAM, and hence
-\ usable by Elite. The top 16K is mapped to the MOS (Machine operating system)
-\ ROM, and the next 16K is mapped to the currently selected paged ROM, which
-\ might be anything from BBC Basic to the VIEW word processor.
-\
-\ This 32K of RAM includes both screen memory and the various operating system
-\ workspaces, which can leave a pretty small amount for programs (especially in
-\ high resolution screen modes). Let's take a look at how the authors managed to
-\ shoehorn their game into such a small amount of memory.
-\
-\ Memory usage
-\ ------------
-\ Here's a full breakdown of memory usage in bytes, once the cassette version of
-\ Elite is loaded and running:
-\
-\                                                                Used     Unused
-\
-\   Machine operating system (MOS) ROM                         16,384          -
-\   Paged ROMs                                                 16,384          -
-\   MOS general workspace in page 2                               256          -
-\   MOS sound and printer workspace in page 8                     256          -
-\   MOS tape filing system workspace in page 3                    142          -
-\   MOS zero page locations, &B0-&D0 and &E2-&FF inclusive         63          -
-\                                                              ------     ------
-\                               Total MOS and ROM memory       33,485          -
-\
-\
-\   Memory for the split-screen mode (31 rows of 256 bytes)     7,936          -
-\   6502 stack and XX3 heap space (at opposite ends of page 1)    256          -
-\                                                              ------     ------
-\                               Total shared memory             8,192          -
-\
-\
-\   Main game code                                             18,136         34
-\   Ship blueprints (11 different designs, all except Python)   2,502          -
-\   K% workspace (ship data blocks and line heaps)              1,088          -
-\   Game text (recursive token table)                           1,023          1
-\   WP workspace (ship slots, variables)                          499         13
-\   Python ship blueprint and SVN, VEC variables                  245         11
-\   Zero page workspace (INWK workspace, variables)               192          1
-\   T% workspace (current commander data, stardust data)          108          6
-\                                                              ------     ------
-\                               Total game code memory         23,793         66
-\
-\
-\                               Total memory                   65,536
-\
-\ As you can see - and contrary to popular legend - Elite does not use every
-\ single last byte of the BBC Micro's usable memory. There are actually quite a
-\ few unused bytes in the cassette version, as noted in the "Unused" column
-\ above; 66 of them, to be precise. Here are the details, in the order in which
-\ they appear above:
-\
-\   * In the main game code:
-\
-\     * There are six unused bytes in the last saved commander data at NA%. Two
-\       of them are between LASER and CRGO, just after the four laser powers;
-\       they were originally used for up and down lasers, but those views were
-\       dropped and the space never reclaimed. There are four more unused bytes
-\       between the escape pod at ESCP and the cargo bay capacity at CRGO, which
-\       might have been for additional equipment that didn't get implemented...
-\       who knows?
-\
-\     * There's an unused and unlabelled duplicate of the multiplication routine
-\       MULTU sandwiched between FMLTU and MLTU2 that takes up 24 bytes
-\
-\     * The MUT3 routine is never called and would be identical to MUT2 even if
-\       it were, so that's another four bytes that aren't used
-\
-\   * In the recursive token table at QQ18:
-\
-\     * There is one unused byte at &07FF, right at the end of the table
-\
-\   * In the WP workspace:
-\
-\     * The one-byte variable XX24 is never used
-\
-\     * There are 12 bytes at the end of the WP workspace, from &0F34 to &0F40,
-\       which aren't used
-\
-\   * In the Python workspace:
-\
-\     * There are 11 unused bytes between the end of the Python ship blueprint
-\       and the SVN and VEC variables, right at the top of user memory
-\
-\   * In the zero page workspace:
-\
-\     * The one-byte variable XX14 is never used
-\
-\   * In the T% workspace:
-\
-\     * There are six unused bytes in the current commander data block at T%,
-\       which correspond with the unused bytes in the last saved commander data
-\       block at NA% (see above)
-\
-\ On top of this, there are quite a few instructions in the main game code that
-\ have no effect and could have been culled without impact; I've identified 21
-\ of them, but there are no doubt more of them to find (search the comments for
-\ "no effect" to find the ones I've spotted).
-\
-\ But this is splitting hairs, as Elite swells the BBC Micro to near bursting
-\ point while being both incredibly clever and incredibly efficient, and for
-\ that, very serious respect is due to the authors.
-\
-\ Shared locations
-\ ----------------
-\ Some locations have two names in the source code. This is partly because some
-\ of the code was developed on an Acorn Atom, which restricts the names you can
-\ use for labels to two letters followed by one or more numbers. Presumably when
-\ this code was merged with the code that was developed on a BBC Micro, where
-\ label naming is more flexible, it was easier just to share label names than
-\ refactor the Atom code.
-\
-\ The following label names point to the same locations in memory, and are
-\ therefore interchangeable:
-\
-\   LOIN        = LL30
-\   INWK        = XX1
-\   INWK(34 33) = XX19(1 0)
-\   X1          = XX15
-\   Y1          = XX15+1
-\   X2          = XX15+2
-\   Y2          = XX15+3
-\   K5          = XX18         = QQ17
-\   K3          = XX2
-\   LSO         = LSX
-\   CABTMP      = MANY
-\
-\ The last one is slightly different, in that the first byte of the MANY table
-\ is unused, so CABTMP simply makes the most of the otherwise unused location.
-\
-\ ******************************************************************************
-
-\ ******************************************************************************
-\
 \       Name: ZP
 \       Type: Workspace
 \    Address: &0000 to &00B0
 \   Category: Workspaces
 \    Summary: Lots of important variables are stored in the zero page workspace
 \             as it is quicker and more space-efficient to access memory here
+\  Deep dive: The Elite memory map
 \
 \ ******************************************************************************
 
@@ -459,7 +213,6 @@ ORG &0000
                         \ screen (the mode 4 part) has a white border that
                         \ clashes with columns 0 and 32, text is only shown
                         \ in columns 1-31
-
 
 .YC
 
@@ -1565,356 +1318,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Text
 \    Summary: Recursive token table for tokens 0-148
-\
-\ ******************************************************************************
-\
-\ Deep dive: Printing text tokens
-\ ===============================
-\
-\ Summary: Printing recursive text tokens, two-letter tokens and control codes
-\
-\ References: TT27, BPRNT, TT26, QQ16, QQ18
-\
-\ There are an awful lot of routines for printing text in Elite, covering
-\ everything from the formatting of huge decimal numbers to printing individual
-\ spaces, but under the hood they all boil down to three core routines:
-\
-\   * TT27, which prints text tokens
-\
-\   * BPRNT, which prints numbers (for more information on this, see the deep
-\     dive on "Printing decimal numbers")
-\
-\   * TT26, which pokes individual characters into screen memory
-\
-\ This deep dive looks at the last of these three routines, which forms the
-\ heart of Elite's text tokenisation system. There are three types of text token
-\ used by Elite - recursive tokens, two-letter tokens and control codes - so
-\ let's look at how they all work.
-\
-\ Tokenisation
-\ ------------
-\ Elite uses a tokenisation system to store most of the the text that it
-\ displays in the game. This enables the game to store strings more efficiently
-\ than would be the case if they were simply inserted into the source code using
-\ EQUS, and it also makes it possible to build text strings, like system names,
-\ using procedural generation.
-\
-\ To support tokenisation, characters are printed to the screen using a special
-\ subroutine, TT27, which not only supports the usual range of letters, numbers
-\ and punctuation, but also three different types of token. When printed, these
-\ tokens get expanded into longer strings, which enables the game to squeeze a
-\ lot of text into a small amount of storage.
-\
-\ To print something, you pass a character code in A to the printing routine at
-\ TT27. The character code determines what gets printed, as follows:
-\
-\   Code in A     Text or token that gets printed
-\   ---------     -------------------------------------------------------------
-\   0-13          Control codes 0-13
-\   14-31         Recursive tokens 128-145 (i.e. print token number A + 114)
-\   32-95         Normal ASCII characters 32-95 (0-9, A-Z and most punctuation)
-\   96-127        Recursive tokens 96-127 (i.e. print token number A)
-\   128-159       Two-letter tokens 128-159
-\   160-255       Recursive tokens 0-95 (i.e. print token number A - 160)
-\
-\ Codes 32-95 represent the normal ASCII characters from " " to "_", so a value
-\ of 65 represents the letter A (as "A" has character code 65 in the BBC Micro's
-\ character set).
-\
-\ All other character codes (0-31 and 96-255) represent tokens, and they can
-\ print anything from single characters to entire sentences. In the case of
-\ recursive tokens, the tokens can themselves contain other tokens, and in this
-\ way long strings can be stored in very few bytes, at the expense of code
-\ readability and speed.
-\
-\ To make things easier to follow in the discussion and comments below, let's
-\ refer to the three token types like this, where n is the character code:
-\
-\   {n}           Control code              n = 0 to 13
-\   <n>           Two-letter token          n = 128 to 159
-\   [n]           Recursive token           n = 0 to 148
-\
-\ So when we say {13} we're talking about control code 13 ("crlf"), while <141>
-\ is the two-letter token 141 ("DI"), and [3] is the recursive token 3 ("DATA
-\ ON {current system}"). The brackets are just there to make things easier to
-\ understand when following the code, because the way these tokens are stored
-\ in memory and passed to subroutines is confusing, to say the least.
-\
-\ We'll take a look at each of the three token types in more detail below, but
-\ first a word about the two routines for printing characters in Elite.
-\
-\ The TT27 print subroutine
-\ -------------------------
-\ As mentioned above, Elite contains a subroutine at TT27 that prints out the
-\ character code given in the accumulator, and if that number refers to a token,
-\ then the token is expanded before being printed. This is how almost all of the
-\ text in the game gets put on the screen. For example, the following code:
-\
-\   LDA #65
-\   JSR TT27
-\
-\ prints a capital A, while this code:
-\
-\   LDA #163
-\   JSR TT27
-\
-\ prints recursive token number 3 (see below for more on why we pass a value of
-\ 163 instead of 3). This would produce the following if we were currently
-\ visiting the lore-heavy system of Tionisla:
-\
-\   DATA ON TIONISLA
-\
-\ This is because token 3 expands to the string "DATA ON {current system}". You
-\ can see this very call being used in routine TT25, which displays data on the
-\ selected system when red key f6 is pressed (this particular call prints the
-\ title at the top of the screen).
-\
-\ The ex print subroutine
-\ -----------------------
-\ There are 149 recursive tokens in all, numbered from 0 to 148, but the TT27
-\ routine can only print tokens 0 to 145. So how do we print recursive tokens
-\ 146, 147 and 148?
-\
-\ Luckily there is another subroutine at ex that always prints the recursive
-\ token number given in the accumulator, so we can use that to print these
-\ tokens. So this, for example, is how we print "GAME OVER":
-\
-\   LDA #146
-\   JSR ex
-\
-\ Incidentally, the ex subroutine is what TT27 calls when it has analysed the
-\ character code, determined that it is a recursive token, and subtracted 160
-\ or added 114 as appropriate to get the token number, so calling ex directly
-\ with 146-148 in the accumulator is doing exactly the same thing, just without
-\ all the preamble.
-\
-\ Control codes: {n}
-\ ------------------
-\ Control codes are in the range 0 to 13, and expand to the following when
-\ printed via TT27:
-\
-\   0   Current cash, right-aligned to width 9, then " CR", newline
-\   1   Current galaxy number, right-aligned to width 3
-\   2   Current system name
-\   3   Selected system name (the crosshairs in the Short-range Chart)
-\   4   Commander's name
-\   5   "FUEL: ", fuel level, " LIGHT YEARS", newline, "CASH:", {0}, newline
-\   6   Switch case to Sentence Case
-\   7   Beep
-\   8   Switch case to ALL CAPS
-\   9   Tab to column 21, then print a colon
-\   10  Line feed (i.e. move cursor down)
-\   11  (not used, does the same as 13)
-\   12  (not used, does the same as 13)
-\   13  Newline (i.e. carriage return and line feed)
-\
-\ So a value of 4 in a tokenised string will be expanded to the current
-\ commander's name, while a value of 5 will print the current fuel level in the
-\ format "FUEL: 5.3 LIGHT YEARS", followed by a newline, followed by "CASH: ",
-\ and then control code 0 - which shows the amount of cash to one significant
-\ figure, right-aligned to a width of 9 characters - before finishing off with
-\ " CR" and another newline. The result is something like this, when displayed
-\ in Sentence Case:
-\
-\   Fuel: 6.7 Light Years
-\   Cash:    1234.5 Cr
-\
-\ If you press f8 to show the Status Mode screen, you can see control code 4
-\ being used to show the commander's name in the title, while control code 5 is
-\ responsible for displaying the fuel and cash lines.
-\
-\ When talking about encoded strings in the code comments below, control
-\ characters are shown as {n}, so {4} expands to the commander's name and {5}
-\ to the current fuel.
-\
-\ By default, Elite prints words using Sentence Case, where the first letter of
-\ each word is capitalised. Control code {8} can be used to switch to ALL CAPS
-\ (so it acts like Caps Lock), and {6} can be used to switch back to Sentence
-\ Case. You can see this in action on the Status Mode screen, where the title
-\ and equipment headers are in ALL CAPS, while everything else is in Sentence
-\ Case. Tokens are stored using capital letters only, and each letter's case is
-\ determined by the logic in TT27 before it is printed.
-\
-\ Two-letter tokens: <n>
-\ ----------------------
-\ Two-letter tokens expand to the following:
-\
-\   128     AL
-\   129     LE
-\   130     XE
-\   131     GE
-\   132     ZA
-\   133     CE
-\   134     BI
-\   135     SO
-\   136     US
-\   137     ES
-\   138     AR
-\   139     MA
-\   140     IN
-\   141     DI
-\   142     RE
-\   143     A?
-\   144     ER
-\   145     AT
-\   146     EN
-\   147     BE
-\   148     RA
-\   149     LA
-\   150     VE
-\   151     TI
-\   152     ED
-\   153     OR
-\   154     QU
-\   155     AN
-\   156     TE
-\   157     IS
-\   158     RI
-\   159     ON
-\
-\ So a value of 150 in a tokenised string would expand to VE, for example. When
-\ talking about encoded strings in the code comments below, two-letter tokens
-\ are shown as <n>, so <150> expands to VE.
-\
-\ The set of two-letter tokens is stored at location QQ16, in a two-byte lookup
-\ table. This table is also used to generate system names procedurally, as
-\ described in the deep dive on "Generating system names".
-\
-\ Note that question marks in two-letter tokens are not printed, so token <143>
-\ expands to "A" rather than "A?". This allows names with an odd number of
-\ characters to be generated from sequences of two-letter tokens, though they do
-\ have to contain the letter A, as token <143> is the only one of its type.
-\
-\ Recursive tokens: [n]
-\ ---------------------
-\ The binary file that is generated by this part of the main source file
-\ (WORDS9.bin) contains 149 recursive tokens, numbered from 0 to 148, which are
-\ stored at QQ18 (from &0400 to &06FF) in a tokenised form. These tokenised
-\ strings can include references to other tokens, hence "recursive".
-\
-\ When talking about encoded strings in the code comments below, recursive
-\ tokens are shown as [n], so [111] expands to "FUEL SCOOPS", for example, and
-\ [110] expands to "[102][104]S", which in turn expands to "EXTRA BEAM LASERS"
-\ (as [102] expands to "EXTRA " and [104] to "BEAM LASER").
-\
-\ The recursive tokens are numbered from 0 to 148, but because we've already
-\ reserved codes 0-13 for control characters, 32-95 for ASCII characters and
-\ 128-159 for two-letter tokens, we can't just send the token number straight
-\ to TT27 to print it out (sending 65 to TT27 prints "A", for example, and not
-\ recursive token 65). So instead, we use the following from the table above to
-\ work out what to send to TT27:
-\
-\   Code in A     Text or token that gets printed
-\   ---------     -------------------------------------------------------------
-\   14-31         Recursive tokens 128-145 (i.e. print token number A + 114)
-\   96-127        Recursive tokens 96-127 (i.e. print token number A)
-\   160-255       Recursive tokens 0-95 (i.e. print token number A - 160)
-\
-\ The first column is the number we need to send to TT27 in the accumulator to
-\ print the token described in the second column.
-\
-\ So, if we want to print recursive token 132, then according to the first row
-\ in this table, we need to subtract 114 to get 18, and send that to TT27.
-\
-\ Meanwhile, if we want to print token 101, then according to the second row,
-\ we can just pass that straight through to TT27.
-\
-\ Finally, if we want to print token 3, then according to the third row, we
-\ need to add 160 to get 163.
-\
-\ Note that, as described in the section on the ex routine above, you can't use
-\ TT27 to print recursive tokens 146-148, but instead you need to call the ex
-\ subroutine. The method described here only applies to recursive tokens 0-145.
-\
-\ How recursive tokens are stored in memory
-\ -----------------------------------------
-\ The 149 recursive tokens are stored one after the other in memory, starting
-\ at &0400, with each token being terminated by a null character (EQUB 0).
-\
-\ To complicate matters, the strings themselves are all EOR'd with 35 before
-\ being stored, and this process is repeated when they are read from memory (as
-\ EOR is reversible). This is done in the routine at TT50.
-\
-\ Note that if a recursive token contains another recursive token, then that
-\ token's number is stored as the number that would be sent to TT27, rather
-\ than the number of the token itself.
-\
-\ All of this makes it pretty challenging to work out how one would store a
-\ specific token in memory, which is why this file uses a handful of macros to
-\ make life easier. They are:
-\
-\   CHAR n          Insert ASCII character n        n = 32 to 95
-\   CTRL n          Insert control code n           n = 0 to 13
-\   TWOK 'x', 'x'   Insert two-letter token "xy"    "xy" is in the table above
-\   RTOK n          Insert recursive token n        n = 0 to 148
-\
-\ A side effect of all this obfuscation is that tokenised strings can't contain
-\ ASCII 35 characters ("#"). This is because ASCII "#" EOR 35 is 0, and the
-\ null character is already used to terminate our tokens in memory, so if you
-\ did have a string containing the hash character, it wouldn't print the hash,
-\ but would instead terminate at the character before.
-\
-\ Interestingly, there's no lookup table for each recursive token's starting
-\ point in memory, as that would take up too much space, so to get hold of the
-\ encoded string for a specific recursive token, the print routine runs through
-\ the entire list of tokens, character by character, counting all the nulls
-\ until it reaches the right spot. This might not be fast, but it is much more
-\ space-efficient than a lookup table would be. You can see this loop in the
-\ subroutine at ex, which is where recursive tokens are printed.
-\
-\ An example
-\ ----------
-\ Given all this, let's consider recursive token 3 again, which is printed
-\ using the following code (remember, we have to add 160 to 3 to get the value
-\ to pass through to TT27):
-\
-\   LDA #163
-\   JSR TT27
-\
-\ Token 3 is stored in the tokenised form:
-\
-\   D<145>A[131]{3}
-\
-\ which we could store in memory using the following (adding in the null
-\ terminator at the end and knowing that two-letter token 145 is "AT"):
-\
-\   CHAR 'D'
-\   TWOK 'A', 'T'
-\   CHAR 'A'
-\   RTOK 131
-\   CTRL 3
-\   EQUB 0
-\
-\ As mentioned above, the values that are actually stored are EOR'd with 35,
-\ and token [131] has to have 114 taken off it before it's ready for TT27, so
-\ the bytes that are actually stored in memory for this token are:
-\
-\   EQUB 'D' EOR 35
-\   EQUB 145 EOR 35
-\   EQUB 'A' EOR 35
-\   EQUB (131 - 114) EOR 35
-\   EQUB 3 EOR 35
-\   EQUB 0
-\
-\ or, as they would appear in the raw WORDS9.bin file, this:
-\
-\   EQUB &67, &B2, &62, &32, &20, &00
-\
-\ These all produce the same output, but the first version is rather easier to
-\ understand.
-\
-\ Now that the token is stored in memory, we can call TT27 with the accumulator
-\ set to 163, and the token will be printed as follows:
-\
-\   D             The letter D                  "D"
-\   <145>         Two-letter token 145          "AT"
-\   A             The letter A                  "A"
-\   [131]         Recursive token 131           " ON "
-\   {3}           Control character 3           The selected system name
-\
-\ So if the system under the crosshairs in the Short-range Chart is Tionisla,
-\ this expands into "DATA ON TIONISLA", all of which is stored in just six
-\ bytes.
+\  Deep dive: Printing text tokens
 \
 \ ******************************************************************************
 
@@ -3115,6 +2519,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \    Address: &0900 to &0D40
 \   Category: Workspaces
 \    Summary: Ship data blocks and ship line heaps
+\  Deep dive: Ship data blocks
 \
 \ ------------------------------------------------------------------------------
 \
@@ -3129,263 +2534,6 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ See the deep dive on "Ship data blocks" for details on ship data blocks, and
 \ the deep dive on "The local bubble of universe" for details of how Elite
 \ stores the local universe in K%, FRIN and UNIV.
-\
-\ ******************************************************************************
-\
-\ Deep dive: Ship data blocks
-\ ===========================
-\
-\ Summary: Storing data for each of the ships in the local bubble of universe
-\
-\ References: K%, INWK
-\
-\ Every ship in our local bubble of universe has its own data block, stored in
-\ the K% workspace. The ship data block contains information about the ship's
-\ status, its location in space, its orientation and so on. Each ship in the
-\ local bubble has an entry in the lookup table at UNIV that points to its data
-\ block in K%, and along with the ship slots at FRIN and the ship blueprints at
-\ XX21, we have everything we need to simulate the world of Elite.
-\
-\ Before going any further, some important notes on how we're going to talk
-\ about ships and ship data blocks.
-\
-\ Ship data terminology
-\ ---------------------
-\ Throughout this documentation, we're going to refer to "ships" and "ship data
-\ blocks" for all the different object types in the vicinity, not just ships.
-\ The same blocks, pointers and data structures are used not only for ships, but
-\ also for cargo canisters, missiles, escape pods, asteroids, space stations,
-\ planets and suns, but that's a bit of a mouthful compared to "ships", so
-\ "ships" it is.
-\
-\ When working with a ship's data - such as when we move a ship in MVEIT, or
-\ spawn a child ship in SFS1 - we normally work with the data in the INWK
-\ workspace, as INWK is in zero page and is therefore faster and more memory
-\ efficient to manipulate. The ship data blocks in the K% workspace are
-\ therefore copied into INWK before they are worked on, and new ship blocks
-\ are created in INWK before being copied to K%. As a result, the layout of the
-\ INWK data block is identical the layout of each ship data block in K%.
-\
-\ It's also important to note that INWK is known as XX1 in some parts of the
-\ codebase, namely those parts that were written by David Braben on his Acorn
-\ Atom, where he was only allowed to use label names starting with two letters,
-\ followed by numbers (this is why the source code is full of catchy labels like
-\ TT26 and LL9). Because we might end up talking about ship data in INWK, K% or
-\ XX1, this commentary refers to "ship byte #5" for byte #5 of the ship data
-\ (y_sign), or "ship byte #32" for byte #32 (the AI flag), and so on. Most of
-\ the time we will be working with INWK or XX1, but every now and then the bytes
-\ in the K% block are manipulated directly, which we will point out in the
-\ comments.
-\
-\ There are 36 bytes of data in each ship's block, and as mentioned above, they
-\ all have the same format, though not all bytes are used for all ship types.
-\ Planets, for example, don't have AI or missiles, though it would be fun if
-\ they did...
-\
-\ Let's take a look at the format of a typical ship data block.
-\
-\ Summary of the ship data block format
-\ -------------------------------------
-\ The bytes in each ship data block are arranged as follows:
-\
-\   * Bytes #0-2        Ship's x-coordinate in space = (x_sign x_hi x_lo)
-\
-\   * Bytes #3-5        Ship's y-coordinate in space = (y_sign y_hi y_lo)
-\
-\   * Bytes #6-8        Ship's z-coordinate in space = (z_sign z_hi z_lo)
-\
-\   * Bytes #9-14       Orientation vector nosev = [ nosev_x nosev_y nosev_z ]
-\
-\   * Bytes #15-19      Orientation vector roofv = [ roofv_x roofv_y roofv_z ]
-\
-\   * Bytes #21-26      Orientation vector sidev = [ sidev_x sidev_y sidev_z ]
-\
-\   * Byte #27          Speed
-\
-\   * Byte #28          Acceleration
-\
-\   * Byte #29          Roll counter
-\
-\   * Byte #30          Pitch counter
-\
-\   * Byte #31          Exploding state
-\                       Killed state
-\                       "Is being drawn on-screen" flag
-\                       "Is visible on the scanner" flag
-\                       Missile count
-\
-\   * Byte #32          AI flag
-\                       Hostility flag
-\                       Aggression level
-\                       E.C.M. flag
-\
-\   * Bytes #33-34      Ship line heap address pointer
-\
-\   * Byte #35          Energy level
-\
-\ Let's look at these in more detail.
-\
-\ Ship coordinates (bytes #0-8)
-\ -----------------------------
-\ These bytes contain the ship's location in space relative to our ship. The
-\ x-axis goes to the right, the y-axis goes up and the z-axis goes into the
-\ screen.
-\
-\   * Byte #0 = x_lo
-\   * Byte #1 = x_hi
-\   * Byte #2 = x_sign
-\
-\   * Byte #3 = y_lo
-\   * Byte #4 = y_hi
-\   * Byte #5 = y_sign
-\
-\   * Byte #6 = z_lo
-\   * Byte #7 = z_hi
-\   * Byte #8 = z_sign
-\
-\ The coordinates are stored as 24-bit sign-magnitude numbers, where the sign of
-\ the number is stored in bit 7 of the sign byte, and the other 23 bits contain
-\ the magnitude of the number without any sign (i.e. the absolute values |x|,
-\ |y| and |z|).
-\
-\ We can also write the coordinates like this:
-\
-\   * x-coordinate = (x_sign x_hi x_lo) = INWK(2 1 0)
-\   * y-coordinate = (y_sign y_hi y_lo) = INWK(5 4 3)
-\   * z-coordinate = (z_sign z_hi z_lo) = INWK(8 7 6)
-\
-\ Orientation vectors (bytes #9-26)
-\ ---------------------------------
-\ The ship's orientation vectors determine its orientation in space. There are
-\ three vectors, named according to the direction they point in (i.e. out of the
-\ ship's nose, the ship's roof, or the ship's right side):
-\
-\   * Byte #9  = nosev_x_lo
-\   * Byte #10 = nosev_x_hi
-\   * Byte #11 = nosev_y_lo
-\   * Byte #12 = nosev_y_hi
-\   * Byte #13 = nosev_z_lo
-\   * Byte #14 = nosev_z_hi
-\
-\   * Byte #15 = roofv_x_lo
-\   * Byte #16 = roofv_x_hi
-\   * Byte #17 = roofv_y_lo
-\   * Byte #18 = roofv_y_hi
-\   * Byte #19 = roofv_z_lo
-\   * Byte #20 = roofv_z_hi
-\
-\   * Byte #21 = sidev_x_lo
-\   * Byte #22 = sidev_x_hi
-\   * Byte #23 = sidev_y_lo
-\   * Byte #24 = sidev_y_hi
-\   * Byte #25 = sidev_z_lo
-\   * Byte #26 = sidev_z_hi
-\
-\ The vector coordinates are stored as 16-bit sign-magnitude numbers, where the
-\ sign of the number is stored in bit 7 of the high byte. See the deep dive on
-\ "Orientation vectors" for more information.
-\
-\ Ship movement (bytes #27-30)
-\ ----------------------------
-\ This block controls the ship's movement in space.
-\
-\   * Byte #27 = Speed, in the range 1-40
-\
-\   * Byte #28 = Acceleration, which gets added to the speed once, in MVEIT,
-\     before being zeroed again
-\
-\   * Byte #29 = Roll counter
-\
-\     * Bits 0-6 = The counter. If this is 127 (%1111111) then damping is
-\       disabled and the ship keeps rolling forever, otherwise damping is
-\       enabled and the counter reduces by 1 for every iteration of the main
-\       flight loop. The ship rolls by a fixed amount (1/16 radians, or 3.6
-\       degrees) for every iteration where the counter is > 0
-\
-\     * Bit 7 = The direction of roll
-\
-\   * Byte #30 = Pitch counter
-\
-\     * Bits 0-6 = The counter. If this is 127 (%1111111) then damping is
-\       disabled and the ship keeps pitching forever, otherwise damping is
-\       enabled and the counter reduces by 1 for every iteration of the main
-\       flight loop. The ship pitches by a fixed amount (1/16 radians, or 3.6
-\       degrees) for every iteration where the counter is > 0
-\
-\     * Bit 7 = The direction of pitch
-\
-\ See the deep dive on "Pitching and rolling by a fixed angle" for more details
-\ on the pitch and roll that the above counters apply to a ship.
-\
-\ Ship flags (bytes #31-32)
-\ -------------------------
-\ These two flags contain a lot of information about the ship, and they are
-\ consulted often.
-\
-\   * Byte #31 = Exploding state, Killed state, "Is being drawn on-screen" flag,
-\     "Is visible on the scanner" flag, Missile count
-\
-\     * Bits 0-2: %nnn = number of missiles or Thargons (maximum 7)
-\
-\     * Bit 3:    0 = isn't currently being drawn on-screen
-\                 1 = is currently being drawn on-screen
-\
-\     * Bit 4:    0 = don't show on scanner
-\                 1 = do show on scanner
-\
-\     * Bit 5:    0 = ship is not exploding
-\                 1 = ship is exploding
-\
-\     * Bit 6:    0 = ship is not firing lasers
-\                 1 = ship is firing lasers
-\                 0 = explosion has not been drawn
-\                 1 = explosion has been drawn
-\
-\     * Bit 7:    0 = ship has not been killed
-\                 1 = ship has been killed
-\
-\   * Byte #32 = AI flag, Hostility flag, Aggression level, E.C.M. flag
-\
-\     * For ships:
-\
-\       * Bit 0:    0 = no E.C.M.
-\                   1 = has E.C.M.
-\
-\       * Bits 1-5: n = aggression level (see TACTICS part 7)
-\
-\       * Bit 6:    0 = friendly
-\                   1 = hostile
-\
-\       * Bit 7:    0 = dumb
-\                   1 = AI enabled (tactics get applied by the TACTICS routine)
-\
-\     * For the space station:
-\
-\       * Bit 7:    0 = friendly
-\                   1 = hostile
-\
-\     * For missiles:
-\
-\       * Bit 0:    0 = no lock/launched
-\                   1 = target locked
-\
-\       * Bits 1-4: %nnnn = target's slot number (maximum 15)
-\
-\       * Bit 6:    0 = friendly
-\                   1 = hostile
-\
-\       * Bit 7:    0 = dumb
-\                   1 = AI enabled (tactics get applied)
-\
-\ Heap pointer and energy (bytes #33-34)
-\ --------------------------------------
-\ The final two bytes are as follows:
-\
-\   * Byte #33 = low byte of ship line heap address pointer in INWK(34 33)
-\
-\   * Byte #34 = high byte of ship line heap address pointer in INWK(34 33)
-\
-\   * Byte #35 = ship energy
 \
 \ ******************************************************************************
 
@@ -4457,7 +3605,7 @@ LOAD_A% = LOAD%
                         \ our local bubble of universe, so set a counter in X,
                         \ starting from 0, to refer to each ship slot in turn
 
-.^MAL1
+.MAL1
 
  STX XSAV               \ Store the current slot number in XSAV
 
@@ -4556,6 +3704,7 @@ LOAD_A% = LOAD%
 \   Category: Main loop
 \    Summary: For each nearby ship: Move the ship in space and copy the updated
 \             INWK data block back to K%
+\  Deep dive: Program flow of the ship-moving routine
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4568,88 +3717,6 @@ LOAD_A% = LOAD%
 \     * Move the ship in space
 \
 \     * Copy the updated ship's data block from INWK back to K%
-\
-\ ******************************************************************************
-\
-\ Deep dive: Program flow of the ship-moving routine
-\ ==================================================
-\
-\ Summary: A breakdown of the routine that moves the entire universe around us
-\
-\ References: MVEIT
-\
-\ The Elite universe is well-known for being immersive, and one of the most
-\ convincing aspects of the bubble of universe around our Cobra Mk III is how
-\ all the other objects around us move independently, from ships and space
-\ stations to entire planets and suns. This is no static universe with chunky
-\ bitmap backdrops or the predictable alien shuffle of Space Invaders - this is
-\ a convincing reality where pirates fly rings around rookie pilots while
-\ Coriolis stations pump out wave after wave of deadly law-enforcing Vipers.
-\
-\ So it's no surprise that the main ship-moving routine at MVEIT does a lot of
-\ heavy lifting. That said, the amount of effort is greatly reduced by the fact
-\ that the universe rotates around our ship, rather than the other way round.
-\ When we pitch or roll our Cobra, our ship actually stays put and the game
-\ rotates the entire universe around us in the opposite direction to the way
-\ we're rotating. The end result is the same because the universe is nice and
-\ simple, but the calculations are a lot easier to implement.
-\
-\ The MVEIT routine gets called by the main flight loop for each nearby ship.
-\ It rotates the current ship by the pitch and roll angles (which are set up
-\ to move the univers in the correct direction) while also applying the ship's
-\ own individual movements, such as its speed, orientation changes, and so on.
-\
-\ The MVEIT also calls the TACTICS routine to apply tactics to ships with AI
-\ enabled (see the deep dive on "Program flow of the tactics routine" for more
-\ details).
-\
-\ Program flow
-\ ------------
-\ Here's a breakdown of how the game implements a universe that literally
-\ revolves around us.
-\
-\ 1/9 MVEIT (main entry point for moving)
-\
-\   * Tidy the orientation vectors for one of the ship slots (by calling TIDY)
-\
-\ 2/9
-\
-\   * Apply tactics to ships with AI enabled (by calling TACTICS)
-\   * Remove the ship from the scanner, so we can move it (by calling SCAN)
-\
-\ 3/9
-\
-\   * Move the ship forward (along the vector pointing in the direction of
-\     travel) according to its speed
-\
-\ 4/9
-\
-\   * Apply acceleration to the ship's speed (if acceleration is non-zero), and
-\     then zero the acceleration as it's a one-off change
-\
-\ 5/9
-\
-\   * Rotate the ship's location in space by the amount of pitch and roll of our
-\     ship
-\
-\ 6/9
-\
-\   * Move the ship in space according to our speed
-\
-\ 7/9
-\
-\   * Rotate the ship's orientation vectors according to our pitch and roll
-\     (MVS4)
-\
-\ 8/9
-\
-\   * If the ship we are processing is rolling or pitching itself, rotate it and
-\     apply damping if required
-\
-\ 9/9
-\
-\   * If the ship is exploding or being removed, hide it on the scanner
-\   * Otherwise redraw the ship on the scanner, now that it's been moved
 \
 \ ******************************************************************************
 
@@ -4846,6 +3913,7 @@ LOAD_A% = LOAD%
 \   Category: Main loop
 \    Summary: For each nearby ship: If it is a space station, check whether we
 \             are successfully docking with it
+\  Deep dive: Docking checks
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4861,216 +3929,6 @@ LOAD_A% = LOAD%
 \
 \   GOIN                We jump here from part 3 of the main flight loop if the
 \                       docking computer is activated by pressing "C"
-\
-\ ******************************************************************************
-\
-\ Deep dive: Docking checks
-\ =========================
-\
-\ Summary: The checks that determine whether we are docking... or just crashing
-\
-\ References: ISDK, Main flight loop (Part 9 of 16)
-\
-\ Docking is difficult, there's no doubt about it. The challenge of slotting
-\ into one of Elite's rotating Coriolis space stations is absolutely iconic, and
-\ for almost everyone, the first few attempts to match the station's rotation
-\ while heading into the middle of the slot end in messy failure. It is one of
-\ the biggest hurdles to overcome in the early game, but to progress you have to
-\ master the art to the point where it's almost a shame when you can afford a
-\ docking computer to handle things for you. Almost.
-\
-\ But how does the game know when we successfully snake into the docking bay,
-\ rather than crashing into the station walls, leaving nothing but a trail of
-\ sparks and dented pride? The routine at ISDK houses the heart of the docking
-\ algorithm, which watches us nervously line up with the planet-facing side of
-\ the station, and judges whether our approach is nominal or abominable.
-\
-\ Specifically, the ISDK routine does five tests to confirm whether we are
-\ docking safely. They are:
-\
-\   1. Friend or foe: Confirm that the station isn't hostile, because stations
-\      have feelings too - feelings and whole nests of Vipers
-\
-\   2. Orientation: Confirm that our ship is pointing in the right direction, by
-\      checking that the angle that we are facing is within 26 degrees of the
-\      perfect, head-on approach
-\
-\   3. Heading: Confirm that we are facing towards the space station
-\
-\   4. Location: Confirm that we are within a small "cone" of safe approach
-\
-\   5. Rotation: Confirm that the slot is less than 33.6 degrees off the
-\      horizontal
-\
-\ Here's a further look at how these tests work.
-\
-\ 1. Check how friendly the station is
-\ ------------------------------------
-\ This is the easiest check to do. The station is hostile if bit 7 of byte #32
-\ of the station's ship data is set, so all we do is fetch that byte and check
-\ to see of it is negative. If it is, then the station is hostile, so docking
-\ ends badly.
-\
-\ 2. Check the angle of approach
-\ ------------------------------
-\ The space station's ship data is in INWK. The nosev vector in byte #9 to
-\ byte #14 is the station's forward-facing normal vector, and it's perpendicular
-\ to the face containing the slot, pointing straight out into space out of the
-\ docking slot. You can see this in the diagram on the left, which is a side-on
-\ view of the station, with us approaching at a jaunty angle from the top-right,
-\ with the docking slot on the top face of the station. You can imagine this
-\ vector as a big stick, sticking out of the slot.
-\
-\        nosev
-\          ^         ship
-\          :       /
-\          :      /
-\          :     L
-\          :    /
-\          : t / <--- approach
-\          :  /       vector
-\          : /
-\          :/
-\     ____====____
-\    /     /\     \
-\   |    /    \    |
-\   |  /        \  |
-\   : . station  . :
-\
-\ We want to check whether the angle t is too large, because if it is, we are
-\ coming in at the wrong angle and will probably bounce off the front of the
-\ space station. To find out the value of t, we need to look at the geometry
-\ of this situation.
-\
-\ The station's nose vector has length 1, because it's a unit vector. We
-\ actually store a 1 in a unit vector as &6000, because this means we don't
-\ have to deal with fractions. We can also just consider the high byte of
-\ this figure, so 1 has a high byte of 96 when we're talking about vectors
-\ like the station's nose vector.
-\
-\ So the nose vector is a big stick, poking out of the slot, with a length of
-\ 1 unit (stored as a high byte of 96 internally).
-\
-\ Now, if that vector was coming perpendicularly out of the screen towards us,
-\ we would be on a perfect approach angle, the stick would be poking in our
-\ face, and the length of the stick in our direction would be the full length
-\ of 1, or 96. However, if our angle of approach is off by a bit, then the
-\ nose vector won't be pointing straight at us, and the end of the stick will
-\ be further away from us - less "in our face", if you like.
-\
-\ In other words, the end of the stick is less in our direction, or to put it
-\ yet another way, it's not so far towards us along the z-axis, which goes in
-\ and out of the screen.
-\
-\ Or, to put it mathematically, the z-coordinate of the end of the stick, or
-\ nosev_z, is smaller when our approach angle is off. The docking routine uses
-\ this method to see how well we are approaching the slot, by comparing nosev_z
-\ with 214, so what does that mean?
-\
-\ We can draw a triangle showing this whole stick-slot situation, like this. The
-\ left triangle is from the diagram above, while the triangle on the right is
-\ the same triangle, rotated slightly to the left:
-\
-\          ^         ship                 ________  ship
-\          :       /                      \       |
-\          :      /                        \      |
-\          :     L                          \     v
-\          :    /                         1  \    | nosev_z
-\          : t /                              \ t |
-\          :  /                                \  |
-\          : /                                  \ |
-\          :/                                    \|
-\          + station                              + station
-\
-\ The stick is the left edge of each triangle, poking out of the slot at the
-\ bottom, and the ship is at the top, looking down towards the slot. We know
-\ that the right-hand edge of the triangle - the adjacent side - has length
-\ nosev_z, while the hypotenuse is the length of the space station's vector, 1
-\ (stored as 96). So we can do some trigonometry, like this, if we just
-\ consider the high bytes of our vectors:
-\
-\   cos(t) = adjacent / hypotenuse
-\          = nosev_z_hi / 96
-\
-\ so:
-\
-\   nosev_z_hi = 96 * cos(t)
-\
-\ We need our approach angle to be off by less than 26 degrees, so this
-\ becomes the following, if we round down the result to an integer:
-\
-\   nosev_z_hi = 96 * cos(26)
-\              = 86
-\
-\ So, we get this:
-\
-\   The angle of approach is less than 26 degrees if nosev_z_hi >= 86
-\
-\ There is one final twist, however, because we are approaching the slot head
-\ on, the z-axis from our perspective points into the screen, so that means
-\ the station's nose vector is coming out of the screen towards us, so it has
-\ a negative z-coordinate. So the station's nose vector in this case is
-\ actually in the reverse direction, so we need to reverse the check and set
-\ the sign bit, to this. Setting bit 7 of 86 gives us 214, so we get this:
-\
-\   The angle of approach is less than 26 degrees if nosev_z_hi <= 214
-\
-\ And that's the check we make below to make sure our docking angle is correct.
-\
-\ 3. Heading in the right direction
-\ ---------------------------------
-\ Before we can work out whether we are facing towards the space station, we
-\ need to get the vector from us to the space station. Once this is done, it's
-\ an easy check to see whether the sign of the z-coordinate of that vector is
-\ positive or negative. Negative means the space station is behind us, so if
-\ that's the case, we're falling into the station backwards, which doesn't end
-\ well.
-\
-\ 4. Cone of safe approach
-\ ------------------------
-\ This is similar to the angle-of-approach check, but where check 2 only looked
-\ at the orientation of our ship, this check makes sure we are in the right
-\ place in space. That place is within a cone that extends out from the slot
-\ and into space, and we can check where we are in that cone by checking the
-\ angle of the vector between our position and the space station.
-\
-\ The check is whether the z-coordinate of the vector is less than 89, in which
-\ case we fail to dock. The z-coordinate of the vector between our ship and the
-\ centre of the station uses 96 to represent the unit vector length, so we can
-\ use the same cosine calculation as step 2 to calculate the cone's angle at
-\ the largest permissable value of 89:
-\
-\   cos(t) = 89 / 96
-\
-\ which gives an angle of t = 22.0 degrees. So if we approach the slot outside
-\ of a 22 degree cone of approach, where the cone extends from the centre of the
-\ station, then we will fail to dock successfully.
-\
-\ 5. Horizontal docking slot
-\ --------------------------
-\ The space station is one of the ships with a non-standard orientation (see the
-\ deep dive on "Orientation vectors" for details). Specifically, the roofv
-\ vector points out of the side of the space station in a direction that is
-\ parallel to the horizontal line of the slot.
-\
-\ As we are approaching the station and trying to dock, then, the roof vector
-\ is pointing to the side when the slot is nice and horizontal. If we start to
-\ veer away from the horizontal, the roof vector will start to tilt further up
-\ or down, so instead of pointing to 3 o'clock or 9 o'clock, it will tilt
-\ above or below.
-\
-\ As the vector tilts away from the horizontal, its x-coordinate component will
-\ start to shrink, as the x-axis goes from right to left. So this test:
-\
-\   |roofv_x_hi| >= 80
-\
-\ makes sure that the slot is reasonably horizontal. Specifically, the maximum
-\ angle we are allowed to be off the horizontal by is given by:
-\
-\   cos(t) = 80 / 96
-\
-\ which gives an angle of t = 33.6 degrees. So if we approach with the slot at
-\ an angle of more than 33.6 degrees, we will fail to dock successfully.
 \
 \ ******************************************************************************
 
@@ -5103,7 +3961,7 @@ LOAD_A% = LOAD%
  CMP #80
  BCC MA62
 
-.^GOIN
+.GOIN
 
                         \ If we arrive here, either the docking computer has
                         \ been activated, or we just docked successfully
@@ -5447,6 +4305,7 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: Show energy bomb effect, charge shields and energy banks
+\  Deep dive: Scheduling tasks with the main loop counter
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5456,150 +4315,6 @@ LOAD_A% = LOAD%
 \   * Show energy bomb effect (if applicable)
 \
 \   * Charge shields and energy banks (every 7 iterations of the main loop)
-\
-\ ******************************************************************************
-\
-\ Deep dive: Scheduling tasks with the main loop counter
-\ ======================================================
-\
-\ Summary: How the main loop counter controls what we do and when we do it
-\
-\ References: MCNT
-\
-\ Elite's program flow is based around a main loop that starts iterating as soon
-\ as you get past the title screen. At its simplest - when docked - the main
-\ loop does little more than listening for function key presses and calling the
-\ relevant routines for cargo, equipment, charts and so on, but out in space in
-\ the midst of a frenetic battle for survival, things get an awful lot busier.
-\
-\ If this level of activity isn't controlled, then things can really start to
-\ slow down on an 2MHz 8-bit CPU that's doing its best to keep up with Thargoids
-\ and missiles and suns and 3D graphics and ship AI and in-flight messages and
-\ complicated vector maths and all the other demands that a futuristic Cobra Mk
-\ III simulator makes on the hardware. Elite does a great job of maintaining a
-\ respectable frame rate amongst all this activity, and one of its coping
-\ mechanisms is the main loop counter in MCNT.
-\
-\ The idea behind the main loop counter is simple: on any particular iteration
-\ round the main loop, it lets the game decide whether or not to perform each
-\ specific action, depending on the counter value. Some actions are vital and
-\ have to be done on every iteration round the loop, so they just ignore the
-\ value of MCNT, but some actions don't need such regular attention. The loop
-\ counter lets us do what's important all of the time, while doing what's less
-\ important (or more difficult) only some of the time.
-\
-\ Let's see how this works.
-\
-\ Using MCNT to control what we do...
-\ -----------------------------------
-\ The main loop counter is stored in location MCNT. It gets decremented every
-\ time the main loop restarts, just after routine TT100 is entered. Some
-\ routines set the counter to specific values to ensure certain actions will or
-\ won't happen (see below), but for the most part the counter decrements from
-\ 255 down to 0 and back up to 255 again.
-\
-\ At various points in the code, we check the counter value to determine what we
-\ need to do. One way of doing this is to use a logical AND to implement a
-\ modulo operation, as follows. Consider the following code:
-\
-\   LDA MCNT
-\   AND #7
-\   BNE skip
-\
-\   ... code gets run once every 8 iterations ...
-\
-\   .skip
-\
-\ In binary, 7 is %00000111, so we perform the skip if any of the three lowest
-\ bits of MCNT are non-zero. In other words, we run the code only when the three
-\ lowest bits are all zero, which happens once every 8 iterations. This is the
-\ same as saying "do the action when MCNT mod 8 = 0".
-\
-\ In general, if n is a power of 2, we can use AND #n-1 to calculate modulo n,
-\ so we could use AND #31 to do something every 32 iterations, for example.
-\
-\ Another approach is to calculate the modulo and then compare the value to a
-\ fixed number, to spread operations out within a specific batch of iterations.
-\ For example:
-\
-\   LDA MCNT
-\   AND #31
-\
-\   CMP #10
-\   BNE skip1
-\
-\   ... code gets run once at iteration 10 out of every 32 iterations ...
-\
-\   .skip1
-\
-\   CMP #20
-\   BNE skip2
-\
-\   ... code gets run once at iteration 20 out of every 32 iterations ...
-\
-\   .skip2
-\
-\ There are some minor variations on the above in the game code, but the basic
-\ approach is the same: check the counter and perform actions accordingly. Let's
-\ take a look at how the main loop counter is used to determine what happens
-\ when in the main loop's iterations.
-\
-\ ...and when we do it
-\ --------------------
-\ Here's a breakdown of all events that are dependent on the value of MCNT. The
-\ counts are given within each iteration batch, so "every 4 iterations on count
-\ 0/4" means we do the action when MCNT is 0, 4, 8, 12 and so on, while "every
-\ 32 iterations on count 10/32" means we do it when MCNT is 10, 42, 74 and so
-\ on.
-\
-\   * Every 4 iterations on count 0/4: Update the non-essential dashboard bar
-\     indicators (i.e. everything except speed, pitch and roll, scanner and
-\     compass, which update every iteration)
-\
-\   * Every 8 iterations on count 0/8: Regenerate ship energy and shields
-\
-\   * Every 8 iterations on counts 0-4 (2 ships) and 5-7 (1 ship): Apply tactics
-\     to 1 or 2 ships per iteration, working through all 13 slots every 8
-\     iterations
-\
-\   * Every 16 iterations on counts 0/16 and 8/16: If configured, flash the
-\     dashboard dials on and off, with 8 iterations on, and 8 off
-\
-\   * Every 16 iterations on counts 0/16 to 12/16: Tidy one ship's orientation
-\     vectors for 13 out every 16 iterations
-\
-\   * Every 32 iterations on count 0/32: Check whether we are near a space
-\     station, and spawn one if we are
-\
-\   * Every 32 iterations on count 10/32: Calculate the ship's altitude above
-\     the planet, and die if we crash land
-\
-\   * Every 32 iterations on count 10/32: If our energy is low, print "ENERGY
-\     LOW" as an in-flight message and beep
-\
-\   * Every 32 iterations on count 20/32: Calculate the ship's altitude above
-\     the sun, set the cabin temperature accordingly (and die if it's too hot),
-\     and if we are scooping, add the relevant amount of fuel
-\
-\   * Every 256 iterations on count 0/256: Consider spawning a ship
-\
-\ Resetting the counter
-\ ---------------------
-\ The MCNT counter is reset in various ways, to affect the state of the various
-\ actions it triggers:
-\
-\   * It gets set to 0 when we buy fuel, launch from a space station, arrive in
-\     a new system, or launch an escape pod, so the main loop won't consider
-\     spawning new ships for at least 256 iterations (as the counter will be
-\     decremented to 255 as soon as the main loop is entered)
-\
-\   * It gets set to 1 after completing an in-system jump, so the next iteration
-\     through the main loop will potentially spawn ships (as the counter will be
-\     decremented to 0 as soon as the main loop is entered)
-\
-\   * It gets set to 255 while the death screen is showing, so nothing gets
-\     spawned during the death sequence, and then it's set to 0 once it's
-\     finished
 \
 \ ******************************************************************************
 
@@ -6109,7 +4824,7 @@ LOAD_A% = LOAD%
 
  AND #%01111111         \ Set A to the sign byte with the sign cleared
 
-.^MA9
+.MA9
 
  RTS                    \ Return from the subroutine
 
@@ -6154,12 +4869,11 @@ LOAD_A% = LOAD%
 \
 \ ******************************************************************************
 
-
-.^m
+.m
  LDA #0                 \ Set A = 0 and fall through into MAS2 to calculate the
                         \ OR of the three bytes at K%+2+Y, K%+5+Y and K%+8+Y
 
-.^MAS2
+.MAS2
 
  ORA K%+2,Y             \ Set A = A OR x_sign OR y_sign OR z_sign
  ORA K%+5,Y
@@ -6238,6 +4952,7 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Moving
 \    Summary: Move current ship: Tidy the orientation vectors
+\  Deep dive: Orientation vectors
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6252,210 +4967,6 @@ LOAD_A% = LOAD%
 \   XSAV                The slot number of the current ship/planet/sun
 \
 \   TYPE                The type of the current ship/planet/sun
-\
-\ ******************************************************************************
-\
-\ Deep dive: Orientation vectors
-\ ==============================
-\
-\ Summary: The three vectors that determine a ship's orientation in space
-\
-\ References: MVEIT (Part 1 of 9), INWK, K%, TIDY, MVS4, MVS5
-\
-\ Each ship in the Elite universe has its own set of three orientation vectors,
-\ which determine its orientation in space. There are three different vectors -
-\ nosev, roofv and sidev - with each of them pointing along one of the ship's
-\ main axes, like this:
-\
-\   * nosev points forward out of the nose of the ship
-\
-\   * roofv points up out of the ship's sunroof... or it would if it had one
-\
-\   * sidev points out of the ship's right view
-\
-\ (Note that there are five ships that have slightly different orientations to
-\ this standard model, namely Thargoids, Thargons, space stations, cargo
-\ canisters and asteroids. These orientations are described below.)
-\
-\ It might help to think of these vectors from the point of view of the ship's
-\ cockpit. From this perspective, the orientation vectors always look like this,
-\ with our ship at the origin:
-\
-\   roofv
-\   ^
-\   |
-\   |
-\   |
-\   |    nosev
-\   |   /
-\   |  /
-\   | /
-\   |/
-\   +-----------------------> sidev
-\
-\ Every ship out there has its own set of orientation vectors, with nosev
-\ pointing out of that ship's nose, roofv pointing out of that ship's roof, and
-\ sidev out of that ship's right side. The orientation vectors are used in lots
-\ of places, for example:
-\
-\   * When we draw the ship on screen, we take the shape as defined by its
-\     blueprint, and rotate it so that it aligns with its orientation vectors,
-\     so the ship we draw on screen points the right way
-\
-\   * If an enemy ship is firing its lasers at us, we use that ship's nosev
-\     vector to work out whether it is pointing towards us, and therefore
-\     whether it can hit us
-\
-\   * When enemy ships pitch or roll, we can apply these movements by rotating
-\     their orientation vectors
-\
-\ Our ship doesn't have its own set of orientation vectors - at least, not
-\ explicitly. This is because our own ship's orientation vectors always align
-\ with the main coordinate axes: sidev aligns with the x-axis, which always
-\ points to the right from the point of view of our cockpit, while roofv aligns
-\ with the y-axis and points up, and nosev aligns with the z-axis, which always
-\ points into the screen.
-\
-\ Storing the vectors in the ship data block
-\ ------------------------------------------
-\ The three vectors are stored in bytes #9-26 of the ship's data block, so when
-\ we copy a ship's data into the internal workspace INWK, the vectors live in
-\ INWK+9 to INWK+26. Each vector coordinate is stored as a 16-bit sign-magnitude
-\ number, like this:
-\
-\           [ INWK(10 9)  ]           [ INWK(16 15) ]           [ INWK(22 21) ]
-\   nosev = [ INWK(12 11) ]   roofv = [ INWK(18 17) ]   sidev = [ INWK(24 23) ]
-\           [ INWK(14 13) ]           [ INWK(20 19) ]           [ INWK(26 25) ]
-\
-\ We can refer to these three vectors in various ways, such as these variations
-\ for the nosev vector:
-\
-\   nosev = (nosev_x, nosev_y, nosev_z)
-\
-\         = [ nosev_x nosev_y nosev_z ]
-\
-\           [ nosev_x ]
-\         = [ nosev_y ]
-\           [ nosev_z ]
-\
-\           [ (nosev_x_hi nosev_x_lo) ]
-\         = [ (nosev_y_hi nosev_y_lo) ]
-\           [ (nosev_z_hi nosev_z_lo) ]
-\
-\ Orthonormal vectors
-\ -------------------
-\ The three orientation vectors are orthonormal, which means they are orthogonal
-\ (i.e. they are perpendicular to each other), and normal (i.e. each of the
-\ vectors has length 1).
-\
-\ We can rotate a ship about its centre by rotating these vectors, as in the
-\ MVS4 routine (see the deep dive on "Pitching and rolling" for more about
-\ this). However, because we use the small angle approximation to rotate in
-\ space, and it is not completely accurate, the three vectors tend to get a bit
-\ stretched over time, so periodically we have to tidy the vectors with the TIDY
-\ routine to ensure they remain as orthonormal as possible.
-\
-\ Initialisation
-\ --------------
-\ When a new ship is spawned, its vectors are initialised in ZINF as follows:
-\
-\   sidev = (1,  0,  0)
-\   roofv = (0,  1,  0)
-\   nosev = (0,  0, -1)
-\
-\ So new ships are spawned facing out of the screen, as their nosev vectors
-\ point in a negative direction along the z-axis, which is positive into the
-\ screen and negative out of the screen.
-\
-\ Internally, we store a vector value of 1 as 96, to support fractional values,
-\ and the orientation vectors are stored as 16-bit sign-magnitude numbers. 96 is
-\ &60, and &60 with bit 7 set is &E0, so we store the above vectors like this:
-\
-\   sidev = (&6000, 0, 0)
-\   roofv = (0, &6000, 0)
-\   nosev = (0, 0, &E000)
-\
-\ so nosev_z_hi = &E0 = -96, sidev_x_hi = &60 = 96 and so on.
-\
-\ Rotation matrices and axes
-\ --------------------------
-\ Sometimes we might refer to the orientation vectors as a matrix, with sidev
-\ as the first row, roofv as the second row, and nosev as the third row, like
-\ this:
-\
-\   [ sidev_x sidev_y sidev_z ]
-\   [ roofv_x roofv_y roofv_z ]
-\   [ nosev_x nosev_y nosev_z ]
-\
-\ though generally we talk about the individual vectors, because that's easier
-\ to understand. See the deep dive on "Calculating vertex coordinates" for an
-\ example of the above matrix in use.
-\
-\ For the mathematically inclined, the three orientation vectors can be thought
-\ of as axes that define the 3D coordinate space orientated around the other
-\ ship - they form the basis for this space. To put it yet another way, the
-\ matrix above is a rotation matrix that transforms the axes of our ship into
-\ the axes of the other ship.
-\
-\ Finally, the orientation vectors define a left-handed universe, with the thumb
-\ as roofv, index finger as nosev, and middle finger as sidev.
-\
-\ Non-standard orientations
-\ -------------------------
-\ The following ships don't have a standard orientation (all other ships follow
-\ the logical nose-roof-side pattern).
-\
-\   * Thargoid mothership:
-\
-\     * nosev points out of one side of the mothership
-\
-\     * roofv points out of the other side of the mothership
-\
-\     * sidev points out of the roof of the mothership
-\
-\   * Thargon:
-\
-\     * nosev points out of the Thargon's nose
-\
-\     * roofv points out of the side of the Thargon
-\
-\     * sidev points out of the roof of the Thargon
-\
-\   * Space station:
-\
-\     * nosev points forward out of the docking slot
-\
-\     * roofv points out of the side of the space station in a direction that is
-\       parallel to the horizontal line of the slot
-\
-\     * sidev points out of the side of the space station in a direction that is
-\       perpendicular to the horizontal line of the slot
-\
-\   * Cargo canister:
-\
-\     * nosev points out of the side of the canister, avoiding the apexes of the
-\       pentagonal cross-section and at right-angles to roofv
-\
-\     * roofv points out of the side of the canister, through one of the apexes
-\       of the pentagonal cross-section
-\
-\     * sidev points out of one end of the canister
-\
-\ The asteroid also follows its own orientation, but I'm not even going to try
-\ to describe which features appear to be the the nose, roof and side, as they
-\ all just look like bumps to me.
-\
-\ One interesting (and presumably intentional) effect of the Thargoid and
-\ Thargon orientations can be seen when they pitch and roll. A pitching Thargoid
-\ actually spins like a traditional flying saucer (i.e. like a spinning top) as
-\ its roofv vector points out of its side (though a rolling Thargoid tilts back
-\ and forth as expected). When fighting Thargoids, you often find yourself
-\ orientating your ship to get them vertically aligned in your sights, which is
-\ because you can then track their sideways pitching with your own vertical
-\ pitching movement. This is different to the other ships, which expose their
-\ soft underbellies to your lasers when they try to pitch out of your way.
-\
-\ That's Thargoids for you. Different... and deadly.
 \
 \ ******************************************************************************
 
@@ -6686,6 +5197,7 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Moving
 \    Summary: Move current ship: Rotate ship's location by our pitch and roll
+\  Deep dive: Rotating the universe
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6693,88 +5205,6 @@ LOAD_A% = LOAD%
 \
 \   * Rotate the ship's location in space by the amount of pitch and roll of
 \     our ship. See below for a deeper explanation of this routine
-\
-\ ******************************************************************************
-\
-\ Deep dive: Rotating the universe
-\ ================================
-\
-\ Summary: What happens to the rest of the universe when we rotate our ship?
-\
-\ References: MVEIT (Part 5 of 9)
-\
-\ When we rotate our ship with the keyboard or joystick, it turns out that it's
-\ a lot easier to rotate the whole universe around our Cobra, rather than
-\ rotating our ship and ending up having to include our orientation into every
-\ other calculation. Because there is no up or down in space, rotating the whole
-\ universe has the same effect, as everything is drawn from the perspective of
-\ our cockpit.
-\
-\ Part 5 of the MVEIT routine is responsible for performing this act of seeming
-\ omnipotence, and it does this by rotating the (x, y, z) coordinate of the
-\ ship we are processing, by the pitch and roll angles alpha (roll) and beta
-\ (pitch), so the ship moves as we pitch and roll.
-\
-\ It does this using the exact same rotation equations that MVS4 uses in part 7
-\ to rotate the ship's orientation vectors (see the deep dive on "Pitching and
-\ rolling" for details of the maths behind the following). But just as with
-\ part 7, there is a twist, and yet again, the twist is all about Minsky.
-\
-\ The twist is that, this time, the pitch and roll calculations are done in a
-\ mixed-up order. In MVS4, we do the roll calculations first:
-\
-\   y = y - alpha * x
-\   x = x + alpha * y
-\
-\ and then we do the pitch calculations:
-\
-\   y = y - beta * z
-\   z = z + beta * y
-\
-\ and because we use the updated y in the x and z calculations, we get to enjoy
-\ a more accurate result because of the Minsky effect, like this:
-\
-\   x -> x + alpha * (y - alpha * x)
-\   y -> y - alpha * x - beta * z
-\   z -> z + beta * (y - alpha * x - beta * z)
-\
-\ The calculation used here is very similar, but we switch the order of the x
-\ and z calculations, by doing these two first:
-\
-\   y = y - alpha * x
-\   z = z + beta * y
-\
-\ and then these two:
-\
-\   y = y - beta * z
-\   x = x + alpha * y
-\
-\ The result is this really complex set of transformations:
-\
-\   x -> x + alpha * (y - alpha * x - beta * (z + beta * (y - alpha * x)))
-\   y -> y - alpha * x - beta * (z + beta * (y - alpha * x))
-\   z -> z + beta * (y - alpha * x)
-\
-\ This is a pretty hard-to-follow variation on the classic Minsky equations
-\ implemented in MVS4, but it still encapsulates the essence of the Minsky
-\ approach, which is to use the updated values when calculating. It's just that
-\ this time we use the updated values of both y and z in the calculation, and
-\ that leads to a different result.
-\
-\ We implement this variation like this, using K2 to store the updated value of
-\ Y as we progress through the above stages:
-\
-\   1. K2 = y - alpha * x
-\   2. z = z + beta * K2
-\   3. y = K2 - beta * z
-\   4. x = x + alpha * y
-\
-\ We also discard the low bytes from the angle multiplications, so all of the
-\ above multiplications get divided by 256. This effectively converts the values
-\ of alpha and beta from their stored value ranges of 0 to 31 and 0 to 8 in
-\ ALP1 and BET1 into the ranges 0 to 0.125 and 0 to 0.03125. These figures work
-\ well as small angles in radians, which is why we can apply the small angle
-\ approximation to them above.
 \
 \ ******************************************************************************
 
@@ -6992,7 +5422,7 @@ LOAD_A% = LOAD%
 \
 \ ******************************************************************************
 
-.^MV45
+.MV45
 
  LDA DELTA              \ Set R to our speed in DELTA
  STA R
@@ -7213,10 +5643,9 @@ LOAD_A% = LOAD%
 \
 \ ******************************************************************************
 
-
  AND #%10000000         \ Clear bits 0-6 of A
 
-.^MVT1
+.MVT1
 
  ASL A                  \ Set the C flag to the sign bit of the delta, leaving
                         \ delta_hi << 1 in A
@@ -7444,6 +5873,7 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Moving
 \    Summary: Apply pitch and roll to an orientation vector
+\  Deep dive: Pitching and rolling
 \
 \ ------------------------------------------------------------------------------
 \
@@ -7468,286 +5898,6 @@ LOAD_A% = LOAD%
 \                         * Y = 15 rotates roofv: (roofv_x, roofv_y, roofv_z)
 \
 \                         * Y = 21 rotates sidev: (sidev_x, sidev_y, sidev_z)
-\
-\ ******************************************************************************
-\
-\ Deep dive: Pitching and rolling
-\ ===============================
-\
-\ Summary: Applying our pitch and roll to another ship's orientation in space
-\
-\ References: MVS4
-\
-\ In order to understand the MVS4 routine, we need first to understand what it's
-\ for, so consider our Cobra Mk III sitting in deep space, minding its own
-\ business, when an enemy ship appears in the distance. Inside the little
-\ bubble of universe that Elite creates to simulate this scenario, our ship is
-\ at the origin (0, 0, 0), and the enemy ship has just popped into existence at
-\ (x, y, z), where the x-axis is to our right, the y-axis is up, and the z-axis
-\ is in the direction our Cobra is pointing in.
-\
-\ Of course, our first thought is to pitch and roll our Cobra to get the new
-\ arrival firmly into the crosshairs, and in doing this the enemy ship will
-\ appear to move in space, relative to us. For example, if we do a pitch by
-\ pulling back on the joystick or pressing "X", this will pull the nose of our
-\ Cobra Mk III up, and the point (x, y, z) will appear to move down in the sky
-\ in front of us.
-\
-\ So this routine calculates the movement of the enemy ship in space when we
-\ pitch and roll, as then the game can show the ship on-screen and work out
-\ whether our lasers are pointing in the correct direction to unleash fiery
-\ death on the pirate/cop/innocent trader in our sights.
-\
-\ Pitch and roll
-\ --------------
-\ To make it easier to work with the 3D rotations of pitching and rolling, we
-\ break down the movement into two separate rotations, the roll and the pitch,
-\ and we apply one of them first, and then the other (in Elite, we do the roll
-\ first, and then the pitch).
-\
-\ So let's look at the first one: the roll. Imagine we're sitting in our
-\ spaceship and do a roll to the right by pressing ">". From our perspective
-\ this is the same as the universe doing a roll to the left, so if we're
-\ looking out of the front of our ship, and there's a stationary enemy ship at
-\ (x, y, z), then rolling by an angle of a will look something like this:
-\
-\   y
-\
-\   ^         (x´, y´, z´)
-\   |       /
-\   |      /    <-.
-\   |     /       a`.
-\   |    /          |
-\   |   /
-\   |  /              __ (x, y, z)
-\   | /       __..--''
-\   |/__..--''
-\   +-----------------------> x
-\
-\ So the enemy ship will move from (x, y, z) to (x´, y´, z´) in our little
-\ bubble of universe. Moreover, because the enemy ship is stationary, rolling
-\ our ship won't change the enemy ship's z-coordinate - it will always be the
-\ same distance in front of us, however far we roll. So we know that z´ = z,
-\ but how do we calculate x´ and y´?
-\
-\ First, let's ditch the z-coordinate, as we know this doesn't change. This
-\ leaves us with a 2D rotation to consider; we are effectively only interested
-\ in what happens in the 2D plane at distance z in front of our ship (imagine a
-\ cinema screen at distance z, and that's what we're about to draw graphs on).
-\
-\ Now, let's look at the triangle formed by the original (x, y) point:
-\
-\   ^
-\   |
-\   |
-\   |
-\   |
-\   |
-\   |         h       __ (x, y)
-\   |         __..--''  |
-\   | __..--''    t     | <------- y
-\   +----------------------->
-\        <---- x ---->
-\
-\ In this triangle, let's call the angle at the origin t and the hypotenuse h,
-\ and we already know the adjacent side is x and the opposite side is y. If we
-\ plug these into the equations for sine and cosine, we get:
-\
-\   cos t = adjacent / hypotenuse = x / h
-\   sin t = opposite / hypotenuse = y / h
-\
-\ which gives us the following when we multiply both sides by h:
-\
-\   x = h * cos(t)
-\   y = h * sin(t)
-\
-\ (We could use Pythagoras to calculate h from x and y, but we don't need to -
-\ you'll see why in a minute.)
-\
-\ Now let's look at the 2D triangle formed by the new, post-roll (x´, y´)
-\ point:
-\
-\   ^         (x´, y´)
-\   |       /|
-\   |      / |
-\   |     /  |
-\   |  h /   |
-\   |   /    | <------- y´
-\   |  /     |
-\   | /      |
-\   |/ t+a   |
-\   +----------------------->
-\   <-- x´ -->
-\
-\ In this triangle, the angle is now t + a (as we have rolled left by an angle
-\ of a), the hypotenuse is still h (because we're rotating around the origin),
-\ the adjacent is x´ and the opposite is y´. If we plug these into the
-\ equations for sine and cosine, we get:
-\
-\  cos(t + a) = adjacent / hypotenuse = x´ / h
-\  sin(t + a) = opposite / hypotenuse = y´ / h
-\
-\ which gives us the following when we multiply both sides by h:
-\
-\   x´ = h * cos(t + a)                                   (i)
-\   y´ = h * sin(t + a)                                   (ii)
-\
-\ We can expand these using the standard trigonometric formulae for compound
-\ angles, like this:
-\
-\   x´ = h * cos(t + a)                                   (i)
-\      = h * (cos(t) * cos(a) - * sin(t) * sin(a))
-\      = h * cos(t) * cos(a) - h * sin(t) * sin(a)        (iii)
-\
-\   y´ = h * sin(t + a)                                   (ii)
-\      = h * (sin(t) * cos(a) + cos(t) * sin(a))
-\      = h * sin(t) * cos(a) + h * cos(t) * sin(a)        (iv)
-\
-\ and finally we can substitute the values of x and y that we calculated from
-\ the first triangle above:
-\
-\   x´ = h * cos(t) * cos(a) - h * sin(t) * sin(a)        (iii)
-\      = x * cos(a) - y * sin(a)
-\
-\   y´ = h * sin(t) * cos(a) + h * cos(t) * sin(a)        (iv)
-\      = y * cos(a) + x * sin(a)
-\
-\ So, to summarise, if we do a roll of angle a, then the ship at (x, y, z) will
-\ move to (x´, y´, z´), where:
-\
-\   x´ = x * cos(a) - y * sin(a)
-\   y´ = y * cos(a) + x * sin(a)
-\   z´ = z
-\
-\ Transformation matrices
-\ -----------------------
-\ We can express the exact same thing in matrix form, like this:
-\
-\   [  cos(a)  sin(a)  0 ]     [ x ]     [ x * cos(a) + y * sin(a) ]
-\   [ -sin(a)  cos(a)  0 ]  x  [ y ]  =  [ y * cos(a) - x * sin(a) ]
-\   [    0       0     1 ]     [ z ]     [            z            ]
-\
-\ The matrix on the left is therefore the transformation matrix for rolling
-\ through an angle a.
-\
-\ We can apply the exact same process to the pitch rotation, which gives us a
-\ transformation matrix for pitching through an angle b, as follows:
-\
-\   [ 1    0        0    ]     [ x ]     [            x            ]
-\   [ 0  cos(b)  -sin(b) ]  x  [ y ]  =  [ y * cos(b) - z * sin(a) ]
-\   [ 0  sin(b)   cos(b) ]     [ z ]     [ y * sin(b) + z * cos(b) ]
-\
-\ Finally, we can multiply these two rotation matrices together to get a
-\ transformation matrix that applies roll and then pitch in one go:
-\
-\   [       cos(a)           sin(a)         0    ]     [ x ]
-\   [ -sin(a) * cos(b)  cos(a) * cos(b)  -sin(b) ]  x  [ y ]
-\   [ -sin(a) * sin(b)  cos(a) * sin(b)   cos(b) ]     [ z ]
-\
-\ So, to move our enemy ship in space when we pitch and roll, we simply need
-\ to do this matrix multiplication. In 6502 assembly language. In a very small
-\ memory footprint. Oh, and it needs to be quick, too, because we're going to
-\ be using this routine a lot. Got that?
-\
-\ Small angle approximation
-\ -------------------------
-\ Luckily we can simplify the maths considerably by applying the "small angle
-\ approximation". This states that for small angles in radians, the following
-\ approximations hold true:
-\
-\   sin a ~= a
-\   cos a ~= 1 - (a^2 / 2) ~= 1
-\   tan a ~= a
-\
-\ These approximations make sense when you look at the triangle geometry that
-\ is used to show the ratios of trigonometry, and imagine what happens when the
-\ angle gets small; for example, cosine is defined as the adjacent over the
-\ hypotenuse, and as the angle tends to 0, the hypotenuse "hinges" down on top
-\ of the adjacent, so it's intuitive that cos a tends to 1 for small angles.
-\
-\ The approximations above state that cos a approximates to 1 - (a^2 / 2), but
-\ Elite actually uses cos a ~= 1 and corrects for the inaccuracy by regularly
-\ calling the TIDY routine to. So dropping the small angle approximations into
-\ our rotation calculation above gives the following, much simpler version:
-\
-\   [  1   a   0 ]     [ x ]     [    x + ay     ]
-\   [ -a   1  -b ]  x  [ y ]  =  [ y - ax  - bz  ]
-\   [ -ab  b   1 ]     [ z ]     [ z + b(y - ax) ]
-\
-\ So to move rotate a point (x, y, z) around the origin (the centre of our
-\ ship) by the current pitch and roll angles (alpha and beta), we just need to
-\ calculate these three relatively simple equations:
-\
-\   x -> x + alpha * y
-\   y -> y - alpha * x - beta * z
-\   z -> z + beta * (y - alpha * x)
-\
-\ There's a fascinating document on Ian Bell's Elite website that shows this
-\ exact calculation, in the author's own handwritten notes for the game. You
-\ can see it in the third image here:
-\
-\   http://www.elitehomepage.org/design/
-\
-\ just below the original design for the cockpit, before the iconic 3D scanner
-\ was added (which is a whole other story...).
-\
-\ Minsky circles
-\ --------------
-\ So that's what this routine does... it transforms x, y and z when we roll and
-\ pitch. But there is a twist. Let's write the transformation equations as you
-\ might write them in code (and, indeed this is how the routine itself is
-\ structured).
-\
-\ First, we do the roll calculations:
-\
-\   y = y - alpha * x
-\   x = x + alpha * y
-\
-\ and then we do the pitch calculations:
-\
-\   y = y - beta * z
-\   z = z + beta * y
-\
-\ At first glance this code looks the same as the matrix calculation above, but
-\ then you notice that the value of y used in the calculations of x and z is not
-\ the original value of y, but the updated value of y. In fact, the above code
-\ actually does the following transformation of (x, y, z):
-\
-\   x -> x + alpha * (y - alpha * x)
-\   y -> y - alpha * x - beta * z
-\   z -> z + beta * (y - alpha * x - beta * z)
-\
-\ Oops, that isn't what we wanted to calculate... except this version turns out
-\ to do a better job than our original matrix multiplication above. This new
-\ version, where we reuse the updated y in the calculations of x and z instead
-\ of the original y, was "invented by mistake when [Marvin Minsky] tried to save
-\ one register in a display hack", and inadvertently discovered a way to rotate
-\ points within a pretty good approximation of a circle without using complex
-\ maths. The method appeared as item 149 in the 1972 HAKMEM memo, and if that
-\ doesn't mean anything to you, see if you can take the time to look it up.
-\ It's worth the effort if you're interested in this kind of thing (and you're
-\ the one reading a commentary on 8-bit code from 1984, so I'm guessing this
-\ might include you).
-\
-\ Anyway, the rotation in Minsky's method doesn't describe a perfect circle,
-\ but instead it follows a slightly sheared ellipse, but that's close enough
-\ for 8-bit space combat in 192 x 256 pixels. So, coming back to the Elite
-\ source code, the MVS4 routine implements the rotation like this (shown
-\ here for the nosev orientation vectors, i.e. nosev_x, nosev_y and nosev_z):
-\
-\ Roll calculations:
-\
-\   nosev_y = nosev_y - alpha * nosev_x_hi
-\   nosev_x = nosev_x + alpha * nosev_y_hi
-\
-\ Pitch calculations:
-\
-\   nosev_y = nosev_y - beta * nosev_z_hi
-\   nosev_z = nosev_z + beta * nosev_y_hi
-\
-\ And that's how we rotate a point around the origin by pitch alpha and roll
-\ beta, using the small angle approximation to make the maths easier, and
-\ incorporating the Minsky circle algorithm to make the rotation more stable.
 \
 \ ******************************************************************************
 
@@ -7841,6 +5991,7 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Moving
 \    Summary: Apply a 3.6 degree pitch or roll to an orientation vector
+\  Deep dive: Pitching and rolling by a fixed angle
 \
 \ ------------------------------------------------------------------------------
 \
@@ -7891,116 +6042,6 @@ LOAD_A% = LOAD%
 \   RAT2                The direction of the pitch or roll to perform, positive
 \                       or negative (i.e. the sign of the roll or pitch counter
 \                       in bit 7)
-\
-\ ******************************************************************************
-\
-\ Deep dive: Pitching and rolling by a fixed angle
-\ ================================================
-\
-\ Summary: How other ships manage to pitch and roll in space
-\
-\ References: MVS5
-\
-\ We can pitch and roll our ship by varying amounts, as shown by the dashboard's
-\ DC and RL indicators, but enemy ships don't have such a luxury - it turns out
-\ they can only orientate themselves at a fixed speed. Specifically, they can
-\ only pitch or roll by a fixed amount each iteration of the main loop - by an
-\ angle of 1/16 radians, or 3.6 degrees.
-\
-\ This fixed rotation speed makes life simpler for the game code, not only
-\ because the angle is small enough to apply the small angle approximation, but
-\ also because 1/16 is a power of 2. Let's see how this helps by looking at the
-\ calculation in MVS5 in more detail.
-\
-\ Fixed angle calculations
-\ ------------------------
-\ The MVS5 routine applies the same trigonometry as described in routine MVS4
-\ (see the deep dive on "Rotating the universe" for details). In MVS5 we rotated
-\ the ship's orientation vectors by our own pitch and roll, but this time the
-\ angle is fixed at a very small 1/16 radians (around 3.6 degrees) so the maths
-\ is rather simpler. If you refer to the documentation for MVS4, you can see
-\ that the equations for rolling a point (x, y, z) through an angle a to
-\ (x´, y´, z´) are:
-\
-\   x´ = x * cos(a) - y * sin(a)
-\   y´ = y * cos(a) + x * sin(a)
-\   z´ = z
-\
-\ In this case, angle a is fixed at 1/16 radians, so we can take the small angle
-\ approximations described in MVS4, and reduce them like this:
-\
-\   sin a ~= a
-\          = 1/16
-\
-\   cos a ~= 1 - (a * a) / 2
-\          = 1 - (1/16 * 1/16) / 2
-\          = 1 - (1/256) / 2
-\          = 1 - 1/512
-\
-\ Plugging these into the above equations, we get:
-\
-\   x´ = x * cos(a) - y * sin(a)
-\      = x * (1 - 1/512) - y / 16
-\
-\   y´ = y * cos(a) + x * sin(a)
-\      = y * (1 - 1/512) + x / 16
-\
-\   z´ = z
-\
-\ so this is what routine MVS5 implements.
-\
-\ To clarify further, let's consider the example when X = 15 (roofv_x) and
-\ Y = 21 (sidev_x), which applies roll to the ship. If we consider the
-\ orientation vectors, this is how the three vectors look if we're sitting in
-\ in the ship's cockpit:
-\
-\   roofv (points up out of the ship's sunroof...
-\   ^       or it would if it had one)
-\   |
-\   |
-\   |
-\   |    nosev (points forward out of the ship's nose
-\   |   /        and into the screen)
-\   |  /
-\   | /
-\   |/
-\   +-----------------------> sidev (points out of the
-\                                    ship's right view)
-\
-\ If we are doing a roll, then the nosev vector won't change, but roofv and
-\ sidev will rotate around, so let's just consider the x-y plane (i.e. the
-\ screen) and ignore the z-axis. It looks like this when we roll to the left by
-\ angle a, rotating roofv to roofv´ and sidev to sidev´:
-\
-\             roofv
-\                ^
-\   roofv´       |
-\         \      |
-\          \     |
-\           \    |
-\            \   |
-\             \  |                 __ sidev´     <-.
-\              \ |         __..--''                a`.
-\               \| __..--''                          |
-\                +-----------------------> sidev
-\
-\ Applying trigonometry to the above diagram, we get:
-\
-\   roofv´ = roofv * cos(a) - sidev * sin(a)
-\
-\   sidev´ = sidev * cos(a) + roofv * sin(a)
-\
-\ so calling MVS5 with X = 15 (roofv_x) and Y = 21 (sidev_x) and a negative
-\ RAT2 (as the roll angle a is anticlockwise in our example), we get the
-\ following if we do the calculation for the x coordinates in-place:
-\
-\   roofv_x = roofv_x * (1 - 1/512) - sidev_x / 16
-\
-\   sidev_x = sidev_x * (1 - 1/512) + roofv_x / 16
-\
-\ Subsequent calls with X = 17, Y = 23 and X = 19, Y = 25 cover the y and z
-\ coordinates, so that's exactly what the roll section of routine MVS5 does,
-\ with the pitch section doing the same maths, but on roofv and nosev.
 \
 \ ******************************************************************************
 
@@ -8709,201 +6750,13 @@ PRINT "CH% = ", ~CH%
 \       Type: Variable
 \   Category: Universe
 \    Summary: Table of pointers to the local universe's ship data blocks
+\  Deep dive: The local bubble of universe
 \
 \ ------------------------------------------------------------------------------
 \
 \ See the deep dive on "Ship data blocks" for details on ship data blocks, and
 \ the deep dive on "The local bubble of universe" for details of how Elite
 \ stores the local universe in K%, FRIN and UNIV.
-\
-\ ******************************************************************************
-\
-\ Deep dive: The local bubble of universe
-\ =======================================
-\
-\ Summary: The data structures used to simulate the universe around our ship
-\
-\ References: UNIV, FRIN, K%, XX21
-\
-\ One of the most impressive aspects of Elite is how expansive the universe
-\ feels. The eight galaxies and 2048 systems no doubt have something to do with
-\ this, but while they might make you feel like nothing more than a pale blue
-\ dot in the background of a cosmic snapshot, the experience of flying around in
-\ system space is a lot more visceral. That feeling in the pit of your stomach
-\ when a group of pirates pings into view on the scanner, while you're busy
-\ surfing the sun's rays for precious fuel while trying not to boil the outer
-\ hull into stardust... there's a real sense of being there, out in the black.
-\ Clearly a 32K micro from the early 1980s can't actually be home to an entire
-\ solar system, so how does Elite simulate things closer to home?
-\
-\ The answer is in the "local bubble of universe", which stores all the details
-\ of our immediate vicinity, along with the major bodies in the current system.
-\ The local bubble is made up of the following data structures:
-\
-\   * The ship slots at FRIN
-\   * The ship data block lookup table at UNIV
-\   * The ship data blocks at K%
-\   * The ship blueprints at XX21
-\
-\ Using these, the local bubble can store details on up to 13 (NOSH + 1) ships,
-\ including the planet, sun and space station. Note that to keep things simple,
-\ we call any object in the vicinity a "ship", whether it's a ship, or a space
-\ station, the planet, the sun, a missile, an escape pod, an asteroid or a
-\ cargo canister.
-\
-\ Let's look at these structures in more detail.
-\
-\ The ship slots at FRIN
-\ ----------------------
-\ Each ship in our local bubble of universe has its own "ship slot" in the table
-\ at FRIN. Ships get added to slots by the NWSHP routine, and when they get
-\ killed or fly too far away to be in the bubble, they get removed from the
-\ table by the KILLSHP routine, and the whole table gets shuffled down to close
-\ up the gap. This means that the next free gap is always at the end of the
-\ table, assuming it isn't full (if it is, NWSHP returns with a flag to say that
-\ no new ship was created).
-\
-\ The local bubble always contains the planet, plus either the sun or the space
-\ station (but not both). The first two slots are reserved for this purpose as
-\ follows.
-\
-\ The first ship slot at location FRIN is always reserved for the planet. It
-\ contains 128 or 130, depending on the type of planet:
-\
-\   * 128 for a planet with an equator and meridian
-\
-\   * 130 for a planet with a crater
-\
-\ The second ship slot at FRIN+1 is always reserved for the sun and the space
-\ station. They can share the same slot because we only ever have one of them in
-\ our local bubble of universe at any one time - the sun disappears when we
-\ enter the space station's safe zone, and it reappears when we leave it again.
-\ This slot always contains one of the following:
-\
-\   * 8 (#SST) for the space station
-\
-\   * 129 for the sun
-\
-\ Any actual ships in our local bubble start at slot FRIN+2. There can be up to
-\ 11 ships in the local bubble, and for each of these, there's a slot containing
-\ the ship type. Ship types correspond to the blueprint numbers in the lookup
-\ table at XX21, and as this table has 13 entries, the ship type will be a value
-\ from 1-13 (though this part of the slot table never contains an 8, as we have
-\ already reserved the second ship slot at FRIN+1 for the space station). Some
-\ ship types have corresponding configuration variables that make the source
-\ code a bit easier to follow - such as #COPS for the Viper - but not all of
-\ them do. There is also one ship, the Cobra Mk III, that comes in two flavours:
-\ a ship type of 5 is a bounty hunting Cobra, while a ship type of 7 is a more
-\ peaceful trader. Both ships use the same blueprint when drawn on-screen, but
-\ their tactical behaviour is quite different.
-\
-\ The 13 ship types are as follows, along with the configuration variables where
-\ they exist:
-\
-\   1.  Sidewinder
-\   2.  Viper (COPS)
-\   3.  Mamba
-\   4.  Python
-\   5.  Cobra Mk III bounty hunter
-\   6.  Thargoid (THG)
-\   7.  Cobra Mk III trader (CYL)
-\   9.  Missile (MSL)
-\   10. Asteroid (AST)
-\   11. Cargo (OIL)
-\   12. Thargon (TGL)
-\   13. Escape pod (ESC)
-\
-\ If a ship slot is empty, it contains 0.
-\
-\ The ship data block lookup table at UNIV
-\ ----------------------------------------
-\ For each occupied ship slot in Fthe table at FRIN, there is a corresponding
-\ address in the lookup table at UNIV that points to that ship's data block.
-\ The ship data blocks are stored in the K% workspace, and the addresses in
-\ UNIV map to the ship slots in FRIN just as you would expect:
-\
-\   * UNIV points to the ship data block for the planet in slot FRIN
-\
-\   * UNIV+1 points to the ship data block for the sun or space station in slot
-\     FRIN+1
-\
-\   * UNIV+2 points to the ship data block for the ship in slot FRIN+2
-\
-\   * UNIV+3 points to the ship data block for the ship in slot FRIN+3
-\
-\ ...and so on up to UNIV+12. Because each ship data block is always the same
-\ size (36 bytes), the addresses in the UNIV table are hard-coded and don't
-\ change.
-\
-\ The ship data blocks at K%
-\ --------------------------
-\ As noted above, the local bubble of universe can contain up to 13 (NOSH + 1)
-\ ships, one for each slot in FRIN and address in UNIV. Each of those ships has
-\ its own ship data block of 36 (NI%) bytes that contains information such as
-\ the ship's position in space, its speed, its rotation, its energy levels and
-\ so on. It also contains a pointer to that ship's ship line heap which is
-\ where we store details of all the lines that aee required to draw the ship
-\ on-screen, so that it's easy to remove the ship from the screen by redrawing
-\ the exact same shape again (see the deep dive on "Drawing ships" for more
-\ details).
-\
-\ These 13 blocks of ship data live in the first 468 bytes of the workspace at
-\ K% (&0900 to &0AD4), while the ship line heaps are stored in descending order
-\ from the start of the WP workspace. This is the layout of the ship data blocks
-\ and ship line heaps in memory, shown when we are in the process of adding a
-\ new ship to the local bubble in the NWSHP routine:
-\
-\   +-----------------------------------+   &0F34
-\   |                                   |
-\   | WP workspace                      |
-\   |                                   |
-\   +-----------------------------------+   &0D40 = WP
-\   |                                   |
-\   | Current ship line heap            |
-\   |                                   |
-\   +-----------------------------------+   SLSP
-\   |                                   |
-\   | Proposed heap for new ship        |
-\   |                                   |
-\   +-----------------------------------+   INWK(34 33)
-\   |                                   |
-\   .                                   .
-\   .                                   .
-\   .                                   .
-\   .                                   .
-\   .                                   .
-\   |                                   |
-\   +-----------------------------------+   INF + NI%
-\   |                                   |
-\   | Proposed data block for new ship  |
-\   |                                   |
-\   +-----------------------------------+   INF
-\   |                                   |
-\   | Existing ship data blocks         |
-\   |                                   |
-\   +-----------------------------------+   &0900 = K%
-\
-\ If we want to update a ship's data, which we want to do when moving the ship
-\ in space during the main flight loop, then instead of working with the data in
-\ the K% workspace, we first copy the whole block to the INWK workspace. This
-\ "inner workspace" is in zero page, where it is much quicker and more efficient
-\ to access mempory locations. When we are done updating the ship's data, we
-\ copy it back to the relevant location in K%, as pointed to by the UNIV table.
-\
-\ See the deep dive on "Ship data blocks" for details of the 36 bytes and the
-\ information that they contain.
-\
-\ The ship blueprints at XX21
-\ ---------------------------
-\ Each ship type has an associated ship blueprint that contains fixed data about
-\ that specific ship type, such as its maximum speed or the size of the target
-\ area we need to hit with our lasers to cause damage. The blueprints also
-\ contain data on the ship's vertices, faces and edges, which are used to draw
-\ the ship on-screen.
-\
-\ The table at XX21 contains the blueprint addresses for the various ship types.
-\ See the deep dive on "Ship blueprints" for more details of the blueprints and
-\ the information that they contain.
 \
 \ ******************************************************************************
 
@@ -8998,6 +6851,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a line: Calculate the line gradient in the form of deltas
+\  Deep dive: Bresenham's line algorithm
 \
 \ ------------------------------------------------------------------------------
 \
@@ -9013,219 +6867,6 @@ NEXT
 \                       (X1, Y1) to (X2, Y2)
 \
 \   HL6                 Contains an RTS
-\
-\ ******************************************************************************
-\
-\ Deep dive: Bresenham's line algorithm
-\ =====================================
-\
-\ Summary: The main line-drawing algorithm used to draw non-horizontal lines
-\
-\ References: LOIN
-\
-\ Most of what you see in the space view in Elite is composed of straight lines.
-\ The ships are drawn using wireframes that are made up of straight lines, the
-\ planets are made from circles and arcs that consist of lots of small, straight
-\ lines, and the sun is no more than a sequence of horizontal lines, drawn along
-\ a vertical axis. Having a fast line-drawing algorithm is essential in a game
-\ like Elite.
-\
-\ Horizontal lines are a special case and have their own optimised routine at
-\ HLOIN, but all non-horizontal lines in Elite are drawn using Bresenham's line
-\ algorithm. Let's look at how that works.
-\
-\ The core algorithm
-\ ------------------
-\ The basic idea is quite simple. Let's consider a line from (X1, Y1) to (X2,
-\ Y2), where that line slopes down and right at a reasonably shallow angle, like
-\ this:
-\
-\   (X1, Y1) ''-..__
-\                   ''--..__
-\                           ''--..__
-\                                   ''--.._
-\                                           (X2, Y2)
-\
-\ As we move along the line from (X1, Y1) to (X2, Y2), let's say that we move
-\ across by delta_x and down by delta_y, like this:
-\
-\
-\            <---------- delta_x --------->
-\
-\   (X1, Y1) ''-..__                                    ^
-\                   ''--..__                            | delta_y
-\                           ''--..__                    |
-\                                   ''--.._             v
-\                                           (X2, Y2)
-\
-\ So we have the following:
-\
-\   * As we move along the line by delta_x in the x-direction, we move down by
-\     delta_y in the y-direction.
-\
-\ If we divide each side of the triangle by delta_x, we also get the following:
-\
-\   * As we move along the line by 1 in the x-direction, we move down by
-\     (delta_y / delta_x) in the y-direction.
-\
-\ This is the core of the algorithm: if we step along the x-axis, 1 pixel at a
-\ time, then if we also move down by (delta_y / delta_x) in the y-direction and
-\ plot a point each time, we'll have our line. In pseudo-code, it looks like
-\ this:
-\
-\   function line(x1, y1, x2, y2)
-\     delta_x = x2 - x1
-\     delta_y = y2 - y1
-\     y = y1
-\     for x from x1 to x2
-\       plot(x, y)
-\       y = y + (delta_y / delta_x)
-\
-\ If our screen had an infinite resolution, then this would do nicely... but, of
-\ course, it doesn't, so we need to refine this idea. Internally we still do the
-\ same calculation for y, but when we come to plot the point with plot(x, y), we
-\ need to convert y into an integer. We could just convert y to the nearest
-\ integer each time, but working with floating point numbers is pretty slow, so
-\ the algorithm speeds things up by using the concept of a "slope error".
-\
-\ We're drawing a pixel line, so each time we step along the x-axis by 1 pixel,
-\ we have a choice of either staying where we are in the y-axis, or moving down
-\ one line (i.e. incrementing y by 1). We can't increase y by fractions, so
-\ instead, each time we step along the x-axis, we keep a running total of how
-\ far we would step down in the y-axis if we weren't constrained by only being
-\ able to move down by 1. In other words, we keep a tally of the (delta_y /
-\ delta_x)'s that we would ideally be adding to y, until we know we've moved
-\ onto the next line, at which point we add 1 to y. This tally is known as the
-\ "slope error", as it's a running tally of the current error between our pixels
-\ and the real slope of the line.
-\
-\ There's one final tweak, and that's starting our slope error tally at 0.5,
-\ which denotes the centre of the starting pixel. So the final algorithm looks
-\ like this:
-\
-\   function line(x1, y1, x2, y2)
-\     delta_x = x2 - x1
-\     delta_y = y2 - y1
-\     slope_err = abs(delta_y / delta_x)
-\     error = 0.5
-\     y = y1
-\     for x from x1 to x2
-\       plot(x, y)
-\       error = error + slope_err
-\       if error >= 1.0 then
-\         y = y + 1
-\         error = error - 1.0
-\
-\ Implementing Bresenham in 8-bit integers
-\ ----------------------------------------
-\ You may have noticed that the algorithm above still uses real numbers. When we
-\ actually use this approach in Elite, we multiply all the real numbers by 256,
-\ so that 256 is equivalent to 1.0. We can now initialise error to 128, and
-\ instead of checking whether error >= 1.0, we can check whether error is >=
-\ 256, like this:
-\
-\   function line(x1, y1, x2, y2)
-\     delta_x = x2 - x1
-\     delta_y = y2 - y1
-\     slope_err = abs(delta_y / delta_x)
-\     error = 128
-\     y = y1
-\     for x = x1 to x2
-\       plot(x, y)
-\       error = error + slope_err
-\       if error >= 256 then
-\         y = y + 1
-\         error = error - 256
-\
-\ There is one final improvement. If we use a single byte to store the error,
-\ then error >= 256 is the same as saying "has the addition just overflowed", in
-\ which case we don't need to subtract 256 as the byte will already have rolled
-\ around to 0. So here is the final algorithm used in Elite:
-\
-\   function line(x1, y1, x2, y2)
-\     delta_x = x2 - x1
-\     delta_y = y2 - y1
-\     slope_err = abs(delta_y / delta_x)
-\     error = 128
-\     y = y1
-\     for x = x1 to x2
-\       plot(x, y)
-\       error = error + slope_err
-\       if C flag is set then
-\         y = y + 1
-\
-\ This is the algorithm that's implemented in part 4 of the LOIN routine, for
-\ gently sloping lines that go right and down. It uses Q, S, X and Y as follows:
-\
-\   Q = |delta_y| / |delta_x|
-\   S = 128
-\   Y = Y1
-\   for X = X1 to X2
-\     plot(X, Y)
-\     S = S + Q
-\     if C flag set then
-\       inc Y
-\
-\ The full LOIN routine implements the same basic algorithm multiple times,
-\ tweaked to cater for all the other variations of sloping line (such as more
-\ vertical lines that slope sharply up and to the left, for example). But the
-\ same principles apply, just with different signs.
-\
-\ Also, it's worth noting that Elite doesn't plot the last pixel in any of its
-\ lines. This is to prevent corners from disappearing; if you imagine us drawing
-\ a triangle by drawing a line from point A to point B, then from B to C, and
-\ then from C to A again, then if we plotted the end points, each of the
-\ triangle's vertices (A, B and C) would be plotted twice, once as the start of
-\ a line, and again as the end of the line. Normally this wouldn't be a problem,
-\ but because Elite draws everything on-screen using EOR logic (so objects can
-\ be drawn and then erased by simply drawing them again), this would mean the
-\ corner points would disappear, and that would look very strange. So there is
-\ also logic in the following to omit the last pixel from the line, in the same
-\ way that HLOIN omits the final pixel from its lines too.
-\
-\ Summary of the routine
-\ ----------------------
-\ To help with understanding the 7 parts of the line-drawing routine, here's a
-\ summary of what each part does.
-\
-\   1. Calculate delta_x, delta_y
-\      Choose either parts 2-4 or parts 5-7
-\
-\ If the line is closer to being horizontal than vertical, we step right along
-\ the x-axis:
-\
-\   2. Potentially swap coordinates so X1 < X2
-\      Set up screen address variables
-\      Calculate |delta_y| / |delta_x|
-\      Choose either part 3 or part 4
-\
-\   3. The line is going right and up (no swap) or left and down (swap)
-\      X1 < X2 and Y1-1 > Y2
-\      Draw from (X1, Y1) at bottom left to (X2, Y2) at top right
-\      If we swapped, don't plot (X1, Y1)
-\
-\   4. The line is going right and down (no swap) or left and up (swap)
-\      X1 < X2 and Y1-1 <= Y2
-\      Draw from (X1, Y1) at top left to (X2, Y2) at bottom right
-\      If we didn't swap, skip plotting (X1, Y1)
-\
-\ If the line is closer to being vertical than horizontal, we step up along
-\ the y-axis:
-\
-\   5. Potentially swap coordinates so Y1 >= Y2
-\      Set up screen address variable
-\      Calculate |delta_x| / |delta_y|
-\      Choose either part 6 or part 7
-\
-\   6. The line is going up and left (no swap) or down and right (swap)
-\      X1 < X2 and Y1 >= Y2
-\      Draw from (X1, Y1) at bottom right to (X2, Y2) at top left
-\      If we didn't swap, skip plotting (X1, Y1)
-\
-\   7. The line is going up and right (no swap) or down and left (swap)
-\      X1 >= X2 and Y1 >= Y2
-\      Draw from (X1, Y1) at bottom left to (X2, Y2) at top right
-\      If we didn't swap, skip plotting (X1, Y1)
 \
 \ ******************************************************************************
 
@@ -9253,7 +6894,6 @@ NEXT
  EOR #%11111111         \ Negate the result in A by flipping all the bits and
  ADC #1                 \ adding 1, i.e. using two's complement to make it
                         \ positive
-
 
  SEC                    \ Set the C flag, ready for the subtraction below
 
@@ -9650,7 +7290,6 @@ NEXT
  LSR A                  \ that will contain our horizontal line
  LSR A
 
-
  ORA #&60               \ As A < 32, this effectively adds &60 to A, which gives
                         \ us the screen address of the character row (as each
                         \ character row takes up 256 bytes, and the first
@@ -9903,7 +7542,7 @@ NEXT
 
  LDY YSAV               \ Restore Y from YSAV, so that it's preserved
 
-.^HL6
+.HL6
 
  RTS                    \ Return from the subroutine
 
@@ -10004,7 +7643,6 @@ NEXT
  BNE HLOIN              \ Call HLOIN to draw a horizontal line from (2, A) to
                         \ (254, A) and return from the subroutine (this BNE is
                         \ effectively a JMP as A will never be zero)
-
 
 \ ******************************************************************************
 \
@@ -10465,6 +8103,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Drawing pixels
 \    Summary: Draw a 1-pixel dot, 2-pixel dash or 4-pixel square
+\  Deep dive: Drawing monochrome pixels in mode 4
 \
 \ ------------------------------------------------------------------------------
 \
@@ -10487,317 +8126,6 @@ NEXT
 \ Other entry points:
 \
 \   PX4                 Contains an RTS
-\
-\ ******************************************************************************
-\
-\ Deep dive: Drawing monochrome pixels in mode 4
-\ ==============================================
-\
-\ Summary: Poking screen memory to display monochrome pixels in the space view
-\
-\ References: PIXEL, TWOS, TWOS2
-\
-\ Everything boils down to pixels in the end. Even the most complicated ship
-\ battle, with ship hulls glinting in the glow of the distant sun and sparkling
-\ clouds of explosive dust dissipating into the cold vacuum of space... even
-\ this scene of destruction and mayhem is made up of pixels, each of them either
-\ black or white. We are all made of stars, and the stars are all made of
-\ pixels.
-\
-\ Clearly, then, plotting pixels is a vital part of simulating the universe, and
-\ the space view in Elite - the monochrome mode 4 part - is designed to make the
-\ process as efficient as possible. The mode definition is set up by the loader
-\ code in elite-loader.asm, where the 6845 CRTC chip is programmed to show a
-\ screen mode with exactly 256 pixels in each row. Each pixel takes up one bit
-\ in the space view, so that means the top part of Elite's split-screen mode
-\ consists of 192 rows of pixels, with 256 bits in in each row.
-\
-\ So can we just plot a pixel by setting that bit on the relevant row in screen
-\ memory? Unfortunately not, as the way the BBC Micro stores its screen memory
-\ isn't completely straightforward, and to understand Elite's drawing routines,
-\ an understanding of this memory structure is essential.
-\
-\ Screen memory
-\ -------------
-\ First up, the simple part. Because mode 4 is a monochrome screen mode, each
-\ pixel is represented by one bit (1 for white, 0 for black). It's more complex
-\ for the four-colour mode 5 that's used for the dashboard portion of the
-\ screen, but for mode 4 it's as simple as it gets.
-\
-\ However, screen memory is not laid out as you would expect. It isn't a simple
-\ sequence of 256-bit lines, one for each horizontal pixel line, but instead
-\ the screen is split into rows and columns. Each row is 8 pixels high, and
-\ each column is 8 pixels wide, so the 192x256 space view has 24 rows and 32
-\ columns. That 8x8 size is the same size as a standard BBC Micro text
-\ character, so the screen memory is effectively split up into character rows
-\ and columns (and it's no coincidence that these match the character layout
-\ used in Elite, where XC and YC hold the location of the text cursor, with XC
-\ in the range 0 to 32 and YC in the range 0 to 23).
-\
-\ The mode 4 screen starts in memory at &6000, and each character row takes up
-\ 8 rows of 256 bits, or 256 bytes, so that means each character row takes up
-\ one page of memory. So the first character row starts at &6000, the second
-\ character row starts at &6100, and so on.
-\
-\ Each character row on the screen is laid out like this in memory, where each
-\ digit (0, 1, 2 etc.) represents a pixel, or bit:
-\
-\         01234567 ->-.      ,------->- 01234567->-.
-\                      |    |                       |
-\    ,-------<--------´     |     ,-------<--------´
-\   |                       |    |
-\    `->- 01234567 ->-.     |     `->- 01234567 ->-.
-\                      |    |                       |
-\    ,-------<--------´     |     ,-------<--------´
-\   |                       |    |
-\    `->- 01234567 ->-.     |     `->- 01234567 ->-.
-\                      |    |                       |
-\    ,-------<--------´     |     ,-------<--------´
-\   |                       |    |
-\    `->- 01234567 ->-.     |     `->- 01234567 ->-.
-\                      |    |                       |
-\    ,-------<--------´     |     ,-------<--------´
-\   |                       |    |
-\    `->- 01234567 ->-.     |     `->- 01234567 ->-.
-\                      |    |                       |
-\    ,-------<--------´     |     ,-------<--------´
-\   |                       |    |
-\    `->- 01234567 ->-.     |     `->- 01234567 ->-.
-\                      |    |                       |
-\    ,-------<--------´     |     ,-------<--------´
-\   |                       |    |
-\    `->- 01234567 ->-.     |     `->- 01234567 ->-.      ^
-\                      |    |                       |     :
-\    ,-------<--------´     |     ,-------<--------´      :
-\   |                       |    |                        |
-\    `->- 01234567 ->------´      `->- 01234567 ->-------´
-\
-\ The left-hand half of the diagram displays one 8x8 character's worth of
-\ pixels, while the right-hand half shows a second 8x8 character's worth, and
-\ so on along the row, for 32 characters. Specifically, the diagram above would
-\ produce the following pixels in the top-left corner of the screen:
-\
-\   0123456701234567
-\   0123456701234567
-\   0123456701234567
-\   0123456701234567
-\   0123456701234567
-\   0123456701234567
-\   0123456701234567
-\   0123456701234567
-\
-\ So let's imagine we want to draw a 2x2 bit of stardust on the screen at pixel
-\ location (7, 2) - where the origin (0, 0) is in the top-left corner - so that
-\ the top-left corner of the screen looks like this:
-\
-\   ................
-\   ................
-\   .......XX.......
-\   .......XX.......
-\   ................
-\   ................
-\   ................
-\   ................
-\
-\ Let's split this up to match the above diagram a bit more closely:
-\
-\   ........ ........
-\   ........ ........
-\   .......X X.......
-\   .......X X.......
-\   ........ ........
-\   ........ ........
-\   ........ ........
-\   ........ ........
-\
-\ As this is the first screen row, the address of the top-left corner is &6000.
-\ The first byte is the first row on the left, the second byte is the second
-\ row, and so on, like this:
-\
-\   &6000 = ........    &6008 = ........
-\   &6001 = ........    &6009 = ........
-\   &6002 = .......X    &600A = X.......
-\   &6003 = .......X    &600B = X.......
-\   &6004 = ........    &600C = ........
-\   &6005 = ........    &600D = ........
-\   &6006 = ........    &600E = ........
-\   &6007 = ........    &600F = ........
-\
-\ So you can see that if we want to draw our 2x2 bit of stardust, we need to do
-\ the following:
-\
-\   Set &6002 = %00000001
-\   Set &6003 = %00000001
-\   Set &600A = %10000000
-\   Set &600B = %10000000
-\
-\ Or, if we want to draw our stardust without obliterating anything that's
-\ already on-screen in this area, we can use EOR logic, like this:
-\
-\   Set &6002 = ?&6002 EOR %00000001
-\   Set &6003 = ?&6002 EOR %00000001
-\   Set &600A = ?&6002 EOR %10000000
-\   Set &600B = ?&6002 EOR %10000000
-\
-\ where ?&6002 denotes the current value of location &6002. Because of the way
-\ EOR works:
-\
-\   0 EOR x = x
-\   1 EOR x = NOT x
-\
-\ this means that the screen display will only change when we want to poke a
-\ bit with value 1 into the screen memory (i.e. paint it white), and when we're
-\ doing this, it will invert what's already on-screen. This not only means that
-\ poking a 0 into the screen memory means "leave this pixel as it is", it also
-\ means we can draw something on the screen, and then redraw the exact same
-\ thing to remove it from the screen, which can be a lot more efficient than
-\ clearing the whole screen and redrawing the whole thing every time something
-\ moves.
-\
-\ (The downside of EOR screen logic is that when white pixels overlap, they go
-\ black, but that's not a particularly big deal in space - and it also means
-\ that things like in-flight messages show up as black when they overlap the
-\ sun, without complex logic.)
-\
-\ Converting pixel coordinates to screen locations
-\ ------------------------------------------------
-\ Given the above, we clearly need a way of converting pixel coordinates like
-\ (7, 2) into screen memory locations. There are two parts to this - first, we
-\ need to find out which character block we need to write into, and second,
-\ which pixel row and column within that character corresponds to the pixel we
-\ want to paint.
-\
-\ The first step is pretty easy. The screen is split up into character rows and
-\ columns, with 8 pixels per character in both directions, so we can simply
-\ divide the pixel coordinates by 8 to get the character location. Let's look
-\ at some examples:
-\
-\   (7,   2)     becomes   (0.875,  0.25)
-\   (57,  82)    becomes   (7.125,  10.25)
-\   (191, 255)   becomes   (23.875, 31.875)
-\
-\ So the first pixel is at (0.875, 0.25), which is the same as saying it's in
-\ the first character block (0, 0), and is at position (0.875, 0.25) within
-\ that character. For the second example, the pixel is inside character (7, 10)
-\ and is at position (0.125, 0.25) within that character, and the third is in
-\ character (23, 31) at (0.875, 0.875) inside the character.
-\
-\ We can now codify this. To get the character block that contains a specific
-\ pixel, we can divide the coordinates by 8 and ignore any remainder to get the
-\ result we want, which is what the div operator does. So:
-\
-\   (7,   2)     is in character block   (7   div 8,   2 div 8)   =   (0, 0)
-\   (57,  82)    is in character block   (57  div 8,  82 div 8)   =   (7, 10)
-\   (191, 255)   is in character block   (191 div 8, 255 div 8)   =   (23, 31)
-\
-\ We can do the div 8 operation really easily in assembly language, by shifting
-\ right three times, so in assembly, we get this:
-\
-\   Pixel (x, y) is in the character block at (x >> 3, y >> 3)
-\
-\ Next, we can then use the remainder to work out where our pixel is within
-\ this 8x8 character block. The remainder is given by the mod operator, so:
-\
-\   (7, 2)       is at pixel   (7   mod 8,   2 mod 8)   =   (7, 2)
-\   (57, 82)     is at pixel   (57  mod 8,  82 mod 8)   =   (1, 2)
-\   (191, 255)   is at pixel   (191 mod 8, 255 mod 8)   =   (7, 7)
-\
-\ We can do a mod 8 operation really easily in assembly language by simply
-\ AND'ing with %111, so in assembly, we get this:
-\
-\   Pixel (x, y) is at position (x AND %111, y AND %111) within the character
-\
-\ And this is the algorithm that's implemented in this routine, though with a
-\ small twist.
-\
-\ Poking bytes into screen addresses
-\ ----------------------------------
-\ To summarise, in order to paint pixel (x, y) on the screen, we need to update
-\ this character block:
-\
-\   (x >> 3, y >> 3)
-\
-\ and this specific pixel within that character block:
-\
-\   (x AND %111, y AND %111)
-\
-\ As mentioned above, we can update this pixel by poking a byte into screen
-\ memory, so now we need to work out which memory location we need to update,
-\ and what to update it with.
-\
-\ We've already discussed how each character row takes up one page (256 bytes)
-\ of memory in Elite's mode 4 screen, so we can work out the page of the
-\ location we need to update by taking the y-coordinate of the character for
-\ the page. So, if (SCH SC) is the 16-bit address of the byte that we need to
-\ update in order to paint pixel (x, y) on the screen (i.e. SCH is the high byte
-\ and SC is the low byte), then we know:
-\
-\   SCH = &60 + y >> 3
-\
-\ because the first character row takes up page &60 (screen memory starts at
-\ &6000), and each character row takes up one page.
-\
-\ Next, within this page of memory, we want to update the character number x >>
-\ 3. Each character takes up 8x8 pixels, which is 64 bits, or 8 bytes, so we
-\ can calculate the memory location of where that character is stored in screen
-\ memory by multiplying the character number by 8, like this:
-\
-\   The character starts at byte (x >> 3) * 8 within the row's page
-\
-\ Next, we know that the pixel we want to update within this block is on row (y
-\ AND %111) in the character, and because there are 8 bits in each row (one
-\ byte), this is also the byte offset of the start of that row within the
-\ character block. So we also know this:
-\
-\   The pixel is in the character byte number (y AND %111)
-\
-\ So, to summarise, we know we need to update this byte in the row's memory
-\ page:
-\
-\   (x >> 3) * 8 + (y AND %111)
-\
-\ The final question is what to poke into this byte.
-\
-\ The two TWOS tables
-\ -------------------
-\ So we know which byte to update, and we also know which bit to set within
-\ that byte - it's bit number (x AND %111). We could always fetch that byte and
-\ EOR it with 1 shifted by the relevant number of spaces, but Elite chooses a
-\ slightly different approach, one which makes it easier for us to plot not only
-\ individual pixels, but also two pixels and even blocks of four.
-\
-\ There are two tables of bytes, one at TWOS and the other at TWOS2, that
-\ contain ready-made bytes for plotting one-pixel and two-pixel points. In each
-\ table, the byte at offset X contains a byte that, when poked into a character
-\ row, will plot a single-pixel at column X (for TWOS) or a two-pixel "dash" at
-\ column X (for TWOS2). As one example, this is what's in the fourth entry from
-\ each table (i.e. the entry at offset 3):
-\
-\   TWOS+3  = %00010000
-\
-\   TWOS2+3 = %00011000
-\
-\ This is the value we need to EOR with the byte we worked out above, where the
-\ offset is the bit number we want to set, i.e. (x AND %111). Or to put it
-\ another way, if we set the following:
-\
-\   SCH = &60 + y >> 3
-\   SC = (x >> 3) * 8 + (y AND %111)
-\   X = x AND %111
-\
-\ then we want to fetch this byte:
-\
-\   TWOS+X
-\
-\ and poke it here:
-\
-\   (SCH SC)
-\
-\ to set the pixel (x, y) on-screen. (Or, if we want to set two pixels at this
-\ location, we can use TWOS2, and if we wants a 2x2 square of pixels setting,
-\ we can do the same again on the row below.)
-\
-\ And that's the approach used below.
 \
 \ ******************************************************************************
 
@@ -10859,7 +8187,7 @@ NEXT
 
  LDY T1                 \ Restore Y from T1, so Y is preserved by the routine
 
-.^PX4
+.PX4
 
  RTS                    \ Return from the subroutine
 
@@ -10869,6 +8197,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Drawing circles
 \    Summary: Draw a circle segment and add it to the ball line heap
+\  Deep dive: The ball line heap
 \
 \ ------------------------------------------------------------------------------
 \
@@ -10906,99 +8235,6 @@ NEXT
 \   A                   The new value of CNT
 \
 \   FLAG                Set to 0
-\
-\ ******************************************************************************
-\
-\ Deep dive: The ball line heap
-\ =============================
-\
-\ Summary: How we remember the lines used to draw circles so they can be redrawn
-\
-\ References: BLINE, LSX2, LSY2, LSP, WPLS2
-\
-\ The planet, the sun and ships in our local bubble of universe are complicated
-\ things, and we have to use an awful lot of maths to calculate their shapes
-\ on-screen. Not surprisingly, all that maths takes up quite a bit of processor
-\ time. We can remove shapes from the screen by drawing the same shapes again in
-\ exactly the same place (which erases them because it's all done with EOR
-\ logic), so if we can avoid having to repeat all those intensive calculations
-\ for that second drawing, that would save a lot of time and effort.
-\
-\ Not surprisingly, Elite has a solution - three of them, to be precise. Instead
-\ of repeating the calculations for the second drawing, Elite has a set of three
-\ "line heaps" where all the drawing information gets stored, so it's a simple
-\ process to redraw, and therefore erase, any shape on-screen.
-\
-\ There are three types of line heap used in Elite:
-\
-\   * The ball line heap, which is used by the BLINE routine when drawing
-\     circles (as well as polygonal rings like the launch and hyperspace tunnel)
-\
-\   * The sun line heap, which is used by the SUN routine when drawing the sun
-\     (see the deep dive on "Drawing the sun" for details)
-\
-\   * The ship line heap, one per ship in the local bubble of universe, which
-\     is used by the LL9 routine when drawing ships (see the deep dive on
-\     "Drawing ships" for details)
-\
-\ Here we take a look at the ball line heap that's stored at LSX2 and LSY2, and
-\ with the pointer in LSP.
-\
-\ Drawing and storing circles with BLINE
-\ --------------------------------------
-\ We draw a circle by repeated calls to BLINE, passing the next point around the
-\ circle with each subsequent call, until the circle (or half-circle) is drawn.
-\
-\ Calling the routine with a value of &FF in FLAG initialises the line heap and
-\ stores the first point in memory rather than in the heap, so it's ready for
-\ the second call to BLINE, which is when we actually have a segment to draw
-\ and store in the line heap.
-\
-\ The routine keeps a tally of the points passed to it on each call, storing
-\ them in the line heaps at LSX2 and LSY2, and using the line heap pointer
-\ in LSP (which points to the end of the heap). It also keeps the point from
-\ the previous call to BLINE in K5(3 2 1 0), so it can draw a segment between
-\ the last point and this one.
-\
-\ If a line doesn't fit on-screen, then it isn't drawn or stored in the heap.
-\ Instead a &FF marker is inserted into the LSY2 entry at the current position,
-\ which indicates to the next call to BLINE that it should start a new segment.
-\ In this way broken, non-continuous lines can still be stored in the line
-\ heap.
-\
-\ Keeping the points in the line heap lets us quickly redraw the circle without
-\ needing to regenerate all the points, so it is easy to remove the circle from
-\ the screen by simply redrawing all the segments stored in the line heaps. This
-\ is done in WPLS2.
-\
-\ How the LSX2 and LSY2 heaps are structured
-\ ------------------------------------------
-\ The ball line heap is stored in 78 bytes at LSX2 and another 78 bytes at LSY2.
-\ The LSP variable points to the number of the first free entry at the end of
-\ the heap, so LSP = 1 indicates that the heap is empty.
-\
-\ The first location at LSX2 has a special meaning:
-\
-\   * LSX2 = 0 indicates the line heap contains data
-\   * LSX2 = &FF indicates the line heap is empty
-\
-\ Meanwhile, if a y-coordinate in LSY2 is &FF, then this means the next point in
-\ the heap represents the start of a new segment, rather than a continuation
-\ of the previous one. Specifically, this is the layout in the heap:
-\
-\   LSX2  ...      X1  X2 ...
-\   LSY2  ... &FF  Y1  Y2 ...
-\
-\ The first entry in the table at LSY2 is always &FF, as the first point is
-\ always the start of a segment, so the start of a non-empty line heap looks
-\ like this:
-\
-\   LSX2  0    X1  X2  X3 ...
-\   LSY2  &FF  Y1  Y2  Y3 ...
-\
-\ When a planet is plotted for the second time to remove it from screen, the
-\ heaps are reset by setting LSP to 1 and inserting a &FF at the start of LSX2.
-\ See WPLS2 for details.
 \
 \ ******************************************************************************
 
@@ -11146,7 +8382,6 @@ NEXT
  LDA K6+3               \
  STA K5+3               \ They now become the "previous point" in the next call
 
-
  LDA CNT                \ Set CNT = CNT + STP
  CLC
  ADC STP
@@ -11260,6 +8495,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Stardust
 \    Summary: Process the stardust for the front view
+\  Deep dive: Stardust in the front view
 \
 \ ------------------------------------------------------------------------------
 \
@@ -11271,126 +8507,8 @@ NEXT
 \ its memory is recycled as a new particle that's positioned randomly on-screen.
 \
 \ ******************************************************************************
-\
-\ Deep dive: Stardust in the front view
-\ =====================================
-\
-\ Summary: The algorithms behind the stardust particles in the front view
-\
-\ References: STARS1
-\
-\ The small particles of dust out there in space - which I've called "stardust"
-\ in this commentary, though I'm not sure what the official term is - is an
-\ essential way of making us feel like we are flying through space in our Cobra.
-\ Pulling back on the joystick and watching the stardust fly down and backwards
-\ is still a seriously immersive feeling. You really feel like those particles
-\ are slamming into your windshield as you shoot through space and into the
-\ ether.
-\
-\ The STARS1 routine looks after stardust in the front view. It is responsible
-\ for moving the stardust towards us according to our speed (so the dust rushes
-\ past us), and applying our current pitch and roll to each particle of dust, so
-\ the stardust moves correctly when we steer our ship.
-\
-\ The STARS6 routine processes stardust in the rear view, and is essentially the
-\ reverse of STARS1. Let's take a look at how STARS1 works.
-\
-\ Processing stardust
-\ -------------------
-\ The process in STARS1 breaks down into three stages:
-\
-\  * Moving the stardust towards us
-\
-\  * Applying roll to the stardust
-\
-\  * Applying pitch to the stardust
-\
-\ Let's look at these three stages in more detail. Throughout the calculations
-\ below, we disregard the low bytes from the angle calculations, just like in
-\ part 5 of MVEIT.
-\
-\ Note that each particle of stardust has its own (x, y, z) coordinate. Stardust
-\ coordinates are not true 3D space coordinates - when stardust is drawn, the z
-\ value is purely used to determine the size of the stardust dot that is
-\ displayed, and that's it. The dot is drawn at screen coordinate (x, y), so
-\ when thinking about stardust, we're really thinking about a 2D plane, with the
-\ z-coordinate only being used when moving the stardust towards us, and when
-\ determining how it should look.
-\
-\ Each of the coordinates is stored as 16-bit sign-magnitude value, as in
-\ (x_hi x_lo) and (y_hi y_lo). The coordinates for the Y-th particle of stardust
-\ are stored in (SX+Y SXL+Y), (SY+Y SYL+Y) and (SZ+Y SZL+Y) respectively. The
-\ origin for stardust particles is the centre of the screen, at the crosshairs.
-\
-\ Moving the stardust towards us
-\ ------------------------------
-\ The following calculations move the stardust away from the centre of the
-\ screen by a distance proportionate to our speed, so dust that is further away
-\ from us (i.e. with a high value of z) moves by a smaller amount to create a
-\ sense of perspective.
-\
-\ These are the calculations:
-\
-\   1. q = 64 * speed / z_hi
-\   2. z = z - speed * 64
-\   3. y = y + |y_hi| * q
-\   4. x = x + |x_hi| * q
-\
-\ We move the particle towards us by reducing the z-coordinate by the current
-\ speed - that's the easy part. We then calculate a factor q that determines how
-\ far we should move the stardust particle away from the centre point, and apply
-\ that factor by multiplying the x and y screen coordinates by (1 + q), which
-\ has the effect of making particles near the centre (small x and y) move less
-\ than particles near the edges (high x and y).
-\
-\ Essentially, this is using the fact that when we project 3D (x, y, z)
-\ coordinates onto a 2D screen, the calculation is essentially:
-\
-\   x_screen = x / z
-\   y_screen = y / z
-\
-\ so if we reduce z (i.e. move the particle near to us) then the x and y screen
-\ coordinates should increase by an inverse but proportional amount.
-\
-\ Applying roll to the stardust
-\ -----------------------------
-\ The following calculations apply the current roll angle alpha to the stardust:
-\
-\   5. y = y + alpha * x / 256
-\   6. x = x - alpha * y / 256
-\
-\ These are essentially the same as the roll equations from MVS4, which work
-\ in the same way when projected onto the 2D screen, as we can ignore the z axis
-\ when rolling.
-\
-\ Applying pitch to the stardust
-\ ------------------------------
-\ The following calculations apply the current pitch angle beta to the stardust:
-\
-\   7. x = x + 2 * (beta * y / 256) ^ 2
-\   8. y = y - beta * 256
-\
-\ The second one is essentially the same as the pitch equation from MVS4,
-\ just applied to the y-coordinate projected into 2D (i.e. divided by z).
-\
-\ The first one, though, is still a bit of a mystery. Removing this part of the
-\ calculation doesn't seem to affect the look of the stardust field, and with
-\ the maximum magnitude of beta being 8, and y always being less than 120, the
-\ maximum delta applied to x is:
-\
-\   2 * (beta * y / 256) ^ 2 = 2 * (8 * y / 256) ^ 2
-\                            = 2 * 64 * y^2 / 65536
-\                            = y^2 / 512
-\                            = 28
-\
-\ out of 256 pixels across the screen, and that's at the extremities of the
-\ screen and with full pitch. Perhaps this is a fisheye effect that makes space
-\ feel more curved when pitching is high? For now, I don't have an answer...
-\
-\ ******************************************************************************
 
 .STARS1
-
 
  LDY NOSTM              \ Set Y to the current number of stardust particles, so
                         \ we can use it as a counter through all the stardust
@@ -11406,7 +8524,7 @@ NEXT
                         \ These values are stored in (SX+Y SXL+Y), (SY+Y SYL+Y)
                         \ and (SZ+Y SZL+Y) respectively
 
-.^STL1
+.STL1
 
  JSR DV42               \ Call DV42 to set the following:
                         \
@@ -12109,7 +9227,6 @@ NEXT
 \
 \ ******************************************************************************
 
-
 .st4
 
                         \ We call this from st5 below with the high byte of the
@@ -12150,7 +9267,7 @@ NEXT
                         \ Competent (this BNE is effectively a JMP as A will
                         \ never be zero)
 
-.^STATUS
+.STATUS
 
  LDA #8                 \ Clear the top part of the screen, draw a white border,
  JSR TT66               \ and set the current view type in QQ11 to 8 (Status
@@ -12417,7 +9534,6 @@ NEXT
 
 .plf2
 
-
  JSR plf                \ Print the text token in A followed by a newline
 
  LDX #6                 \ Set the text cursor to column 6
@@ -12536,6 +9652,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Text
 \    Summary: Print a 32-bit number, left-padded to n digits, and optional point
+\  Deep dive: Printing decimal numbers
 \
 \ ------------------------------------------------------------------------------
 \
@@ -12561,112 +9678,6 @@ NEXT
 \                       place). In this case, the number in K to K+3 contains
 \                       10 * the number we end up printing, so to print 123.4,
 \                       we would pass 1234 in K to K+3 and would set the C flag
-\
-\ ******************************************************************************
-\
-\ Deep dive: Printing decimal numbers
-\ ===================================
-\
-\ Summary: How to print big decimal numbers with decimal points and padding
-\
-\ References: BPRNT
-\
-\ Elite prints out a lot of numbers, all of them in decimal (hexadecimal and
-\ binary numbers are used internally, but we never see them displayed). The
-\ BPRNT routine can print out numbers from 0.1 to 4,294,967,295 (32 set bits),
-\ though as the highest figure in the game is the cash pot and that stores the
-\ cash amount * 10, the highest figure BPRNT might ever be asked to display is
-\ 429,496,729.5 - the biggest cash pot we can have.
-\
-\ Let's first look at the algorithm for printing decimal numbers, as all our
-\ numbers are stored in binary, and then we'll look at the BPRNT implementation
-\ of it.
-\
-\ Printing decimal numbers
-\ ------------------------
-\ The algorithm is relatively simple, but it looks fairly complicated because
-\ we're dealing with 32-bit numbers.
-\
-\ To see how it works, let's first consider a simple example with fewer digits.
-\ Let's say we want to print out the following number to three digits:
-\
-\   567
-\
-\ First we subtract 100 repeatedly until we can't do it any more, counting how
-\ many times we can do this:
-\
-\   567 - 100 - 100 - 100 - 100 - 100 = 67
-\
-\ Not surprisingly, we can subtract it 5 times, so our first digit is 5. Now we
-\ multiply the remaining number by 10 to get 670, and repeat the process:
-\
-\   670 - 100 - 100 - 100 - 100 - 100 - 100 = 70
-\
-\ We subtracted 100 6 times, so the second digit is 6. Now to multiply by 10
-\ again to get 700 and repeat the process:
-\
-\   700 - 100 - 100 - 100 - 100 - 100 - 100 - 100 = 0
-\
-\ So the third digit is 7 and we are done.
-\
-\ The BPRNT routine
-\ -----------------
-\ The BPRNT subroutine does exactly this in its main loop at TT36, except that
-\ instead of having a three-digit number and subtracting 100, we have up to an
-\ 11-digit number and subtract 10 billion each time (as 10 billion has 11
-\ digits), using 32-bit arithmetic and an overflow byte, and that's where
-\ the complexity comes in.
-\
-\ Let's look at the above algorithm in more detail. We need to implement it with
-\ multi-byte subtraction, which we can do byte-by-byte using the C flag, but we
-\ also need to be able to multiply a multi-byte number by 10, which is slightly
-\ trickier. Multiplying by 10 isn't directly supported the 6502, but multiplying
-\ by 2 is, in the guise of shifting and rotating left, so we can do this to
-\ multiply K by 10:
-\
-\   K * 10 = K * (2 + 8)
-\          = (K * 2) + (K * 8)
-\          = (K * 2) + (K * 2 * 2 * 2)
-\
-\ And that's essentially what we do in the TT35 subroutine, just with 32-bit
-\ numbers with an 8-bit overflow. This doubling process is used quite a few
-\ times in the following, so let's look at an example, in which we double the
-\ number in K(S 0 1 2 3):
-\
-\   ASL K+3
-\   ROL K+2
-\   ROL K+1
-\   ROL K
-\   ROL S
-\
-\ First we use ASL K+3 to shift the least significant byte left (so bit 7 goes
-\ to the C flag). Then we rotate the next most significant byte with ROL K+2 (so
-\ the C flag goes into bit 0 and bit 7 goes into the C flag), and we repeat this
-\ with each byte in turn, until we get to the overflow byte S. This has the
-\ effect of shifting the entire five-byte number one place to the left, which
-\ doubles it in-place.
-\
-\ Finally, there are three variables that are used as counters in the above
-\ loop, each of which gets decremented as we go work our way through the
-\ digits. Their starting values are:
-\
-\   XX17   The maximum number of characters to print in total (this is
-\          hard-coded to 11)
-\
-\   T      The maximum number of digits that we might end up printing (11 if
-\          there's no decimal point, 10 otherwise)
-\
-\   U      The loop number at which we should start printing digits or spaces
-\          (calculated from the U argument to BPRNT)
-\
-\ We do the loop XX11 times, once for each character that we might print. We
-\ start printing characters once we reach loop number U (at which point we
-\ print a space if there isn't a digit at that point, otherwise we print the
-\ calculated digit). As soon as we have printed our first digit we set T to 0
-\ to indicate that we should print characters for all subsequent loops, so T is
-\ effectively a flag for denoting that we're switching from spaces to zeroes
-\ for zero values, and decrementing T ensures that we always have at least one
-\ digit in the number, even if it's a zero.
 \
 \ ******************************************************************************
 
@@ -13280,7 +10291,7 @@ NEXT
  JMP RR4                \ And restore the registers and return from the
                         \ subroutine
 
-.^RR3
+.RR3
 
  ORA #&60               \ A contains the value of YC - the screen row where we
                         \ want to print this character - so now we need to
@@ -13304,7 +10315,7 @@ NEXT
                         \ so YC OR &60 effectively adds &60 to YC, giving us
                         \ the page number that we want
 
-.^RREN
+.RREN
 
  STA SC+1               \ Store the page number of the destination screen
                         \ location in SC+1, so SC now points to the full screen
@@ -13341,7 +10352,7 @@ NEXT
  LDA K3                 \ the C flag, so everything is back to how it was
  CLC
 
-.^rT9
+.rT9
 
  RTS                    \ Return from the subroutine
 
@@ -13718,6 +10729,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Update a bar-based indicator on the dashboard
+\  Deep dive: The dashboard indicators
 \
 \ ------------------------------------------------------------------------------
 \
@@ -13756,80 +10768,6 @@ NEXT
 \                       banks)
 \
 \ ******************************************************************************
-\
-\ Deep dive: The dashboard indicators
-\ ===================================
-\
-\ Summary: How the bar-based dashboard indicators display their data
-\
-\ References: DILX, DIALS
-\
-\ The dashboard shows an awful lot of information, and the vast majority of the
-\ indicators are bar-based (there are 11 bar indicators in all). The game uses
-\ one routine to display all 11 of these indicators - routine DILX - and that
-\ can lead to some interesting behaviour.
-\
-\ Each bar indicator is 16 pixels long, and the default entry point at DILX can
-\ show values from 0-255, with each pixel in the bar representing 16 units (so
-\ in the default mode, the last pixel, the 16th, is not used). For comparison,
-\ if the routine is called via the entry point at DIL, then the bar's range is
-\ 0-16, with each pixel representing 1 unit (and in this case, the 16th pixel
-\ can be used).
-\
-\ The dashboard's bar-based indicators are as follows, along with the range of
-\ values shown by the bar, plus the range of that particular measurement in the
-\ game in brackets:
-\
-\   * Forward and aft shields   0-255
-\   * Fuel                      0-64    (fuel is actually 0-70)
-\   * Cabin temperature         0-255
-\   * Laser temperature         0-255
-\   * Altitude                  0-255
-\   * Speed                     0-32    (speed is actually 0-40)
-\   * Energy banks              0-16    (the first bank is actually 0-15)
-\
-\ Most of the indicators have internal values of 0-255 and use the standard DILX
-\ bar (so, as noted above, they only use pixels 0-15 in the bar, and don't use
-\ the last one).
-\
-\ The energy banks are the same, as the maximum value for the ship's energy
-\ levels is 255, which is divided into four banks to give a range of 0-15 for
-\ the first bank, and a range of 0-16 for the other banks. This means that when
-\ the energy banks are fully charged, the top indicator doesn't use the last
-\ pixel, while the other energy banks do.
-\
-\ As a result of the above, most of the indicators have a comfortable fit within
-\ the dashboard, with an empty pixel at the end of the bar that gives a nice,
-\ black gap between the left-hand indicators and the left edge of the scanner.
-\ However, the maximum values for fuel and speed don't fit nicely into the space
-\ available in their bar-based indicators. Here's why:
-\
-\   * The maximum value for fuel is 70 (for 7.0 light years), so when this
-\     routine is called via DILX+2 to show the fuel reserves, the fuel
-\     level in A is reduced down to a maximum of 17 (70 >> 2), which is one
-\     bigger than the maximum of 16 that each bar can show. You never really
-\     notice this as it's only the first 0.6 light years that fall off the end
-\     of the bar, and jumps that small aren't that common, but the fuel level
-\     does start off using all 16 pixels in its bar, which is one greater than
-\     the other indicators in that column (all of which slot into the 0-15
-\     pixel range), so it's clear that this indicator is slightly different.
-\
-\   * The speed indicator is at another level, though. The maximum speed of our
-\     ship in Elite is a DELTA value of 40, which reduces down to an indicator
-\     value of 20, four greater than the maximum value shown on the bar. The bar
-\     simply cuts off any values greater than 16 and doesn't display the four
-\     pixels that fall off the end. You can test this in-flight by tapping Space
-\     until the speed indicator is just full, and then tapping it again four
-\     times (during which your speed will still increase). If you then tap the
-\     "?" key to slow down, you have to tap it five times before the speed
-\     indicator starts to drop again. I guess there just wasn't room to let this
-\     particular control knob go up to 11...
-\
-\ The only other dashboard indicators are the missile indicators, the pitch and
-\ roll bars, the compass, the 3D scanner, and the space station and E.C.M.
-\ bulbs, all of which have their own individual routines.
-\
-\ ******************************************************************************
 
 .DILX
 
@@ -13840,7 +10778,7 @@ NEXT
 
  LSR A                  \ If we call DIL-1, we set A = A / 2, so A is 0-15
 
-.^DIL
+.DIL
 
                         \ If we call DIL, we leave A alone, so A is 0-15
 
@@ -14180,6 +11118,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Screen mode
 \    Summary: The main screen-mode interrupt handler (IRQ1V points here)
+\  Deep dive: The split-screen mode
 \
 \ ------------------------------------------------------------------------------
 \
@@ -14189,124 +11128,6 @@ NEXT
 \ IRQ1V is set to point to IRQ1 by elite-loader.asm.
 \
 \ ******************************************************************************
-\
-\ Deep dive: The split-screen mode
-\ ================================
-\
-\ Summary: Elite's famous split-screen mode, dissected and explained in detail
-\
-\ References: IRQ1, B% (Loader)
-\
-\ Elite uses a unique split-screen mode that enables a high-resolution
-\ black-and-white space view to coexist with a lower resolution, colour ship
-\ dashboard. There are two parts to this screen mode: the custom mode, and the
-\ split-screen aspect.
-\
-\ Elite's screen mode is a custom mode, based on mode 4 but with fewer pixels.
-\ This mode is set up in elite-loader.asm by reprogramming the registers of the
-\ 6845 CRTC - see the section on VDU command data at location B% for more
-\ details, but the salient part is the screen size, which is 32 columns by 31
-\ rows rather than the 40 x 32 of standard mode 4. Screen sizes are given in
-\ terms of characters, which are 8 x 8 pixels, so this means Elite's custom
-\ screen mode is 256 x 248 pixels, in monochrome.
-\
-\ The split-screen aspect is implemented using a timer. The timer is set when
-\ the vertical sync occurs, which happens once every screen refresh. While the
-\ screen is redrawn, the timer runs down, and it is set up to run out just as
-\ the computer starts to redraw the dashboard section. When the timer hits zero
-\ it generates an interrupt, which runs the code below to reprogram the Video
-\ ULA to switch the number of colours per pixel from 2 (black and white) to 4,
-\ so the dashboard can be shown in colour. The trick is setting up the timer so
-\ that the interrupt happens at the right place during the screen refresh.
-\
-\ Looking at the code, you can see the SHEILA+&44 and &45 commands in LINSCN
-\ start the 6522 System VIA T1 timer counting down from 14622 (the high byte is
-\ 57, the low byte is 30). The authors almost certainly arrived at this exact
-\ figure by getting close and then tweaking the result, as the vertical sync
-\ doesn't quite happen when you would expect, but here's how they would have
-\ got an initial figure to start working from.
-\
-\ First, we need to know more about the screen structure and exactly where the
-\ vertical sync occurs. Looking at the 6845 registers for screen mode 4, we get
-\ the following:
-\
-\   * The horizontal total register (R0) is set to 63, which means the total
-\     number of character columns is 64, the same as the default for mode 4
-\     (the number stored in R0 is the number of columns minus 1)
-\
-\   * The vertical total register (R4) is set to 38, which means the total
-\     number of character rows is 39, the same as the default for mode 4 (the
-\     number stored in R4 is the number of rows minus 1)
-\
-\   * The vertical displayed register (R6), which gives us the number of
-\     character rows, is set to 31 in elite-loader.asm, a change from the
-\     default value of 32 for mode 4
-\
-\   * The vertical sync position register (R7) is 34, which again is the
-\     default for mode 4
-\
-\ For the countdown itself, we use the 6522 System VIA T1 timer, which ticks
-\ away at 1 MHz, or 1 million times a second. Each screen row contains 64
-\ characters, or 64 * 8 = 512 pixels, and in mode 4 pixels are written to the
-\ screen at a rate of 1MHz, so that's 512 ticks of the timer per character row.
-\
-\ This means for every screen refresh, all 39 lines of it, the timer will tick
-\ down from 39 * 512 = 19968 ticks. If we can work out how many ticks there are
-\ between the vertical sync firing and the screen redraw reaching the
-\ dashboard, we can use the T1 timer to switch the colour depth at the right
-\ moment.
-\
-\ Register R7 determines the position of the vertical sync, and it's set to 34
-\ for mode 4. In theory, this means that the vertical sync is fired when the
-\ screen redraw hits row 34, though in practice the sync actually fires quite a
-\ bit later, at around line 34.5.
-\
-\ It's probably easiest to visualise the screen layout in terms of rows, with
-\ row 1 being the top of the screen:
-\
-\   1     First row of space view
-\   .
-\   .     ... 24 rows of space view = 192 pixel rows ...
-\   .
-\   24    Last row of space view
-\   25    First row of dashboard
-\   .
-\   .     ... 7 rows of dashboard = 56 pixel rows ...
-\   .
-\   31    Last row of dashboard
-\   .
-\   .     ... vertical retrace period ...
-\   .
-\   34.5  Vertical sync fires
-\   .
-\   .     ... 4.5 rows between vertical sync and end of screen ...
-\   .
-\   39    Last row of screen
-\
-\ So starting at the vertical sync, we have 4.5 rows before the end of the
-\ screen, and then 24 rows from the top of the screen down to the start of the
-\ dashboard, so that's a total of 28.5 rows. So given that we have 512 ticks
-\ per row, we get:
-\
-\   28.5 * 512 = 14592
-\
-\ So if we started our timer from 14592 at the vertical sync and let it tick
-\ down to zero, then it should get there just as we reach the dashboard.
-\
-\ However, because of the way the interrupt system works, this needs a little
-\ tweaking, which is where the low byte of the timer comes in. In the code
-\ below, the low byte is set to 30, to give a total timer count of 14622.
-\
-\ (Interestingly, in the loading screen in elite-loader.asm, the T1 timer for
-\ the split screen has 56 in the high byte, and 50 in the low byte, so it counts
-\ down from 14386 instead of 14622. As a result the screen does flicker quite a
-\ bit more at the top of the dashboard, and there are quite a few red and yellow
-\ pixels above the split, as it switches a bit too early. Perhaps the authors
-\ didn't think it worth spending time perfecting the loader's split screen? Who
-\ knows...)
-\
-\ ******************************************************************************
-
 
 .LINSCN
 
@@ -14369,7 +11190,7 @@ NEXT
                         \ passed on to the next interrupt handler, but instead
                         \ the interrupt terminates here
 
-.^IRQ1
+.IRQ1
 
  TYA                    \ Store Y on the stack
  PHA
@@ -14439,7 +11260,6 @@ NEXT
  BMI jvec               \ Jump up to jvec to pass control to the next interrupt
                         \ handler (this BMI is effectively a JMP as we didn't
                         \ loop back with the BPL above, so BMI is always true)
-
 
 \ ******************************************************************************
 \
@@ -14565,6 +11385,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Type: Subroutine
 \   Category: Tactics
 \    Summary: Apply tactics: Process missiles, both enemy missiles and our own
+\  Deep dive: Program flow of the tactics routine
 \
 \ ------------------------------------------------------------------------------
 \
@@ -14589,123 +11410,6 @@ LOAD_C% = LOAD% +P% - CODE%
 \     and the ship, potentially damaging us if we are nearby
 \
 \ ******************************************************************************
-\
-\ Deep dive: Program flow of the tactics routine
-\ ==============================================
-\
-\ Summary: How ships and missiles work out attack patterns... or how to run away
-\
-\ References: TACTICS
-\
-\ Ships in Elite seem to have purpose - it's part of the reason why the Elite
-\ universe feels so alive. Later versions of the game expand on the simpler
-\ artificial intelligence in the BBC versions: the version of Elite for the
-\ Acorn Archimedes is particularly celebrated for having ships that genuinely
-\ seem to be going about their business, with busy lives of their own. But even
-\ in the memory-constrained cassette version on the BBC Micro, the universe
-\ feels as if it is piloted by real people... or real aliens, if you're unlucky
-\ enough to bump into the Thargoids.
-\
-\ The heart of Elite's convincing AI is the TACTICS routine. This gets applied
-\ to every ship that has bit 7 set in ship byte #32, and it is called by the
-\ MVEIT routine, which itself is called on every iteration of the main loop.
-\ However, because it takes quite a bit of time to apply tactics to a ship, they
-\ are only applied to one or two ships on each iteration of the main flight
-\ loop, depending on the value of the main loop counter in MCNT.
-\
-\ Program flow
-\ ------------
-\ Let's see how ships in Elite are brought to life by stepping through the
-\ TACTICS routine. You might want to start with part 2, as that's where the main
-\ entry point is (the following is in the order in which it appears in the
-\ source code).
-\
-\ 1/7 TA34 (missile tactics, called from part 1 for missiles only)
-\
-\   * If E.C.M. is active, destroy the missile
-\
-\   * If the missile is hostile towards us, then check how close it is. If it
-\     hasn't reached us, jump to part 3 so it can streak towards us, otherwise
-\     we've been hit, so process a large amount of damage to our ship, which can
-\     lead to DEATH
-\
-\   * Otherwise see how close the missile is to its target. If it has not yet
-\     reached its target, give the target a chance to activate its E.C.M. if it
-\     has one, otherwise jump to part 3
-\
-\   * If it has reached its target and the target is the space station, destroy
-\     the missile, potentially damaging us if we are nearby
-\
-\   * If it has reached its target and the target is a ship, destroy the missile
-\     and the ship, potentially damaging us if we are nearby
-\
-\ 2/7 TACTICS (main entry point for tactics)
-\
-\   * If this is a missile, jump up to the missile code in part 1
-\
-\   * If this is an escape pod, point it at the planet and jump to part 7
-\
-\   * If this is the space station and it is hostile, spawn a cop and we're done
-\
-\   * If this is a lone Thargon without a mothership, set it adrift aimlessly
-\     and we're done
-\
-\   * If this is a pirate and we are within the space station safe zone, stop
-\     the pirate from attacking
-\
-\   * Recharge the ship's energy banks by 1
-\
-\ 3/7
-\
-\   * Calculate the dot product of the ship's nose vector (i.e. the direction it
-\     is pointing) with the vector between us and the ship so we can work out
-\     later on whether the enemy ship can hit us with its lasers
-\
-\ 4/7
-\
-\   * Rarely (2.5% chance) roll the ship by a noticeable amount
-\
-\   * If the ship has at least half its energy banks full, jump to part 6 to
-\     consider firing the lasers
-\
-\   * If the ship isn't really low on energy, jump to part 5 to consider firing
-\     a missile
-\
-\   * Rarely (10% chance) the ship runs out of both energy and luck, and bails,
-\     launching an escape pod and drifting in space
-\
-\ 5/7
-\
-\   * If the ship doesn't have any missiles, skip to the next part
-\
-\   * If an E.C.M. is firing, skip to the next part
-\
-\   * Randomly decide whether to fire a missile (or, in the case of Thargoids,
-\     release a Thargon), and if we do, we're done
-\
-\ 6/7
-\
-\   * If the ship is not pointing at us, skip to the next part
-\
-\   * If the ship is pointing at us but not accurately, fire its laser at us and
-\     skip to the next part
-\
-\   * If we are in the ship's crosshairs, register some damage to our ship, slow
-\     down the attacking ship, make the noise of us being hit by laser fire
-\     (which could end in DEATH), and we're done
-\
-\ 7/7
-\
-\   * Work out which direction the ship should be moving, depending on whether
-\     it's an escape pod, where it is, which direction it is pointing, and how
-\     aggressive it is
-\
-\   * Set the pitch and roll counters to head in that direction
-\
-\   * Speed up or slow down, depending on where the ship is in relation to us
-\
-\ ******************************************************************************
-
 
 .TA34
 
@@ -14883,7 +11587,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ ******************************************************************************
 
-.^TACTICS
+.TACTICS
 
  CPX #MSL               \ If this is a missile, jump up to TA18 to implement
  BEQ TA18               \ missile tactics
@@ -15490,6 +12194,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Type: Subroutine
 \   Category: Tactics
 \    Summary: Work out if the ship in INWK is in our crosshairs
+\  Deep dive: In the crosshairs
 \
 \ ------------------------------------------------------------------------------
 \
@@ -15503,65 +12208,6 @@ LOAD_C% = LOAD% +P% - CODE%
 \ Other entry points:
 \
 \   HI1                 Contains an RTS
-\
-\ ******************************************************************************
-\
-\ Deep dive: In the crosshairs
-\ ============================
-\
-\ Summary: How the game knows whether an enemy is being hit by our laser fire
-\
-\ References: HITCH
-\
-\ During combat, one of the most important calculations is working out whether
-\ we have another ship in our sights. We need to calculate this when we're
-\ trying to hit another ship with our lasers, and when we're trying to get the
-\ enemy in our sights so we can lock a missile onto the target. In both cases,
-\ we use the HITCH routine to work out just how close to the crosshairs that
-\ ship really is. Let's take a look at how the HITCH routine works.
-\
-\ There are a number of steps we have to take to work out whether a ship is in
-\ our crosshairs. They are as follows.
-\
-\   * Make sure the ship is in front of us (z_sign is positive)
-\
-\   * Make sure this isn't the planet or sun (bit 7 of the ship type is clear)
-\
-\   * Make sure the ship isn't exploding (bit 5 of byte #31 is clear)
-\
-\   * Make sure the ship is close enough to be targeted or hit (both x_hi and
-\     y_hi are 0)
-\
-\   * Test whether our crosshairs are within the targetable area for this ship
-\
-\ This last one needs further explanation. Each ship type has, as part of its
-\ blueprint, a 16-bits value that defines the area of the ship that can be
-\ locked onto by a missile or hit by laser fire. The bigger this value, the
-\ easier the ship is to hit.
-\
-\ The key to the calculation is the observation that the ship's x- and
-\ y-coordinates give the horizontal and vertical distances between our line of
-\ fire and the ship. This is because the z-axis points out of the nose of our
-\ ship, and is therefore the same as our line of fire, so the other two axes
-\ give the deviation of the other ship's position from this line.
-\
-\ We've already confirmed in the checks above that x_hi and y_hi are both zero,
-\ so we calculate this:
-\
-\   (S R) = x_lo^2 + y_lo^2
-\
-\ which, using Pythagoras, is the same as the square of the distance from our
-\ crosshairs to the ship.
-\
-\ If this calculation doesn't fit into the 16 bits of (S R) then we know we
-\ can't be aiming at the ship, but if it does, we compare (S R) with the 16-bit
-\ targetable area from the ship's blueprint, and if (S R) is less than the
-\ targetable area, the ship is determined to be in our crosshairs and can
-\ be hit or targeted.
-\
-\ So the targetable area is the square of the distance that the ship can be from
-\ the centre of our crosshairs but still be locked onto by our missiles or hit
-\ by our lasers.
 \
 \ ******************************************************************************
 
@@ -15645,7 +12291,7 @@ LOAD_C% = LOAD% +P% - CODE%
                         \
                         \   * If A < R then the C flag will be C clear
 
-.^HI1
+.HI1
 
  RTS                    \ Return from the subroutine
 
@@ -15710,7 +12356,7 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ from the subroutine back to the ESCAPE routine that
                         \ called FRS1 in the first place
 
-.^fq1
+.fq1
 
  LDA #&60               \ Set byte #14 (nosev_z_hi) to 1 (&60), so the launched
  STA INWK+14            \ ship is pointing away from us
@@ -16281,6 +12927,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Type: Subroutine
 \   Category: Stardust
 \    Summary: Process the stardust for the left or right view
+\  Deep dive: Stardust in the side views
 \
 \ ------------------------------------------------------------------------------
 \
@@ -16295,69 +12942,6 @@ LOAD_C% = LOAD% +P% - CODE%
 \                         * X = 1 for left view
 \
 \                         * X = 2 for right view
-\
-\ ******************************************************************************
-\
-\ Deep dive: Stardust in the side views
-\ =====================================
-\
-\ Summary: The algorithms behind the stardust particles in the side views
-\
-\ References: STARS2
-\
-\ The STARS2 routine moves the stardust sideways according to our speed and
-\ which side we are looking out of, and applies our current pitch and roll to
-\ each particle of dust, so the stardust moves correctly when we steer our ship.
-\
-\ Let's look at this process in more detail. It breaks down into three stages:
-\
-\  * Moving the stardust sideways
-\
-\  * Applying pitch to the stardust (rotating around the mid-point)
-\
-\  * Applying roll to the stardust (up and down)
-\
-\ Moving the stardust sideways
-\ ----------------------------
-\ First, we want to move the stardust sideways, in the correct direction for
-\ the current view. The further away the stardust particle (i.e. with a higher
-\ value of z) the slower it should move, to give a sense of perspective.
-\
-\ These are the calculations:
-\
-\   1. delta_x = 8 * 256 * speed / z_hi
-\   2. x = x + delta_x
-\
-\ We sign the delta_x value as negative for the left view, where particles go
-\ from right to left, and positive for the right view, where particles go from
-\ left to right, and then we add the delta to the x-coordinate to move the
-\ stardust particle past our side window as we speed along.
-\
-\ Applying pitch to the stardust (rotating)
-\ -----------------------------------------
-\ The following calculations apply the current pitch angle beta to the stardust:
-\
-\   3. x = x + beta * y
-\   4. y = y - beta * x
-\
-\ These are essentially the same as the roll equations from MVS4, just using the
-\ pitch angle beta, because when we are looking out of the side views, when the
-\ ship pitches, the side views rotate around the middle, just like the front
-\ view does when we roll.
-\
-\ Applying roll to the stardust (up/down)
-\ ---------------------------------------
-\ The following calculations apply the current roll angle alpha to the stardust:
-\
-\   5. x = x - alpha * x * y
-\   6. y = y + alpha * y * y + alpha
-\
-\ The significant part here is adding alpha to y (or, more specifically, ALPHA *
-\ 256). This means that as we roll the ship and alpha increases, the stardust
-\ out of the side view goes up and down, which is pretty intuitive.
-\
-\ The other part is currently a bit of a mystery, along with the pitch
-\ calculations in STARS1. More analysis needed here...
 \
 \ ******************************************************************************
 
@@ -16666,6 +13250,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Type: Variable
 \   Category: Maths (Geometry)
 \    Summary: Sine/cosine table
+\  Deep dive: The sine, cosine and arctan tables
 \
 \ ------------------------------------------------------------------------------
 \
@@ -16686,118 +13271,6 @@ LOAD_C% = LOAD% +P% - CODE%
 \   SNE + ((theta * 10) + 16) mod 32
 \
 \ Theta must be between 0 and 3.1 radians, so theta * 10 is between 0 and 31.
-\
-\ ******************************************************************************
-\
-\ Deep dive: The sine, cosine and arctan tables
-\ =============================================
-\
-\ Summary: The lookup tables used for the planet-drawing trigonometric functions
-\
-\ References: SNE, ARCTAN, ACT
-\
-\ The SNE table contains lookup values for sine and cosine. These values are
-\ used when drawing circles and suns, as the small angle approximation that we
-\ use when rotating ships in space isn't accurate enough for describing entire
-\ circles. For this, we need to be able to look up the sine and cosine of any
-\ angle, not just small ones, and for that we need a lookup table.
-\
-\ The ACT table, meanwhile, contains lookup values for arctan. This is used when
-\ drawing the meridians and equators on planets in part 2 of PL9.
-\
-\ Let's have a look at how these tables work (see the deep dives on "Drawing
-\ circles" and "Drawing the sun" for more details on how the sine and cosine
-\ tables are actually used.)
-\
-\ Sine table
-\ ----------
-\ We use the sine table like this. To calculate the following:
-\
-\   sin(theta) * 256
-\
-\ where theta is in radians, we look up the value in:
-\
-\   SNE + (theta * 10)
-\
-\ Here's how this works. The value at byte number (theta * 10) is:
-\
-\   256 * ABS(SIN((theta * 10 / 64) * 2 * PI))
-\
-\ rounded to the nearest integer. If we expand the part that we pass to SIN():
-\
-\   (theta * 10 / 64) * 2 * PI =  (theta / 6.4) * 2 * PI
-\                              =~ (theta / 6.4) * 6.28
-\                              =~ theta
-\
-\ then substituting this into the above, we can see that the value at byte
-\ (theta * 10) is approximately:
-\
-\   256 * ABS(SIN(theta))
-\
-\ Cosine table
-\ ------------
-\ So that's the sine lookup, but what about the cosine? To calculate the
-\ following:
-\
-\   cos(theta) * 256
-\
-\ where theta is in radians, we look up the value in:
-\
-\   SNE + ((theta * 10) + 16) mod 32
-\
-\ How does this work? Well, because of the way sine and cosine work in terms of
-\ right-angled triangles, the following holds true (using degrees for a second
-\ as it's easier to picture):
-\
-\   cos(theta) = sin(90 − theta) = sin(90 + theta)
-\
-\ So to get the cosine value, we just need to look up the sine of 90 + theta.
-\
-\ The 32 entries in the sine table cover half a circle, as they go from sin(0)
-\ to sin(31/64 * 2 * PI) and there are 2 * PI radians in a circle, so if 32
-\ entries covers half a circle, 90 degrees is a half of that, or 16.
-\
-\ So to get the cosine, we look up the following value, applying mod 32 so the
-\ table lookup wraps around correctly if the index falls over the end:
-\
-\   SNE + ((theta * 10) + 16) mod 32
-\
-\ It's not 100% accurate, but it's easily good enough for our needs.
-\
-\ Arctan table
-\ ------------
-\ To calculate the following:
-\
-\   theta = arctan(t)
-\
-\ where 0 <= t < 1, we look up the value in:
-\
-\   ACT + (t * 32)
-\
-\ The result will be an integer representing the angle in radians, with 256
-\ representing a full circle of 2 * PI radians.
-\
-\ The ACT table contains arctan values for arguments less than one - in other
-\ words, it contains values for arctan(0) through arctan(31/32), or angles
-\ in triangles where the length of the opposite is less than the length of the
-\ adjacent, so the angle is less than 45 degrees. This means the table contains
-\ values in the range 0 to 31.
-\
-\ The table does not support values of t >= 1 or t < 0 directly, but we can use
-\ the following calculations instead:
-\
-\   * For t > 1, arctan(t) = 64 - arctan(1 / t)
-\
-\   * For t < 0, arctan(-t) = 128 - arctan(t)
-\
-\ If t < -1, we can do the first one to get arctan(|t|), then the second to get
-\ arctan(-|t|).
-\
-\ The first one follows from the fact that arctan(t) + arctan(1 / t) = PI / 2,
-\ and we represent PI / 2 by 64 in our model.
-\
-\ The second one follows from the fact that arctan(-t) = PI - arctan(t) for the
-\ range 0 < arctan(t) < PI, and we represent PI by 128 in our model.
 \
 \ ******************************************************************************
 
@@ -17022,7 +13495,7 @@ NEXT
  LDX ALP1               \ Set P to the roll angle alpha magnitude in ALP1
  STX P                  \ (0-31), so now we calculate P * A
 
-.^MULTS
+.MULTS
 
  TAX                    \ Set X = A, so now we can calculate P * X instead of
                         \ P * A to get our result, and we can use the algorithm
@@ -17059,7 +13532,6 @@ NEXT
                         \   A = A + T1 + C
                         \     = A + X - 1 + 1
                         \     = A + X
-
 
  ROR A                  \ Shift A right to catch the next digit of our result,
                         \ which the next ROR sticks into the left end of P while
@@ -17522,10 +13994,9 @@ NEXT
 \
 \ ******************************************************************************
 
-
  STX Q                  \ Store X in Q
 
-.^MLTU2
+.MLTU2
 
  EOR #%11111111         \ Flip the bits in A and rotate right, storing the
  LSR A                  \ result in P+1, so we now calculate (P+1 P) * Q
@@ -17654,122 +14125,13 @@ NEXT
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (A P) = Q * A
+\  Deep dive: Shift-and-add multiplication
 \
 \ ------------------------------------------------------------------------------
 \
 \ Do the following multiplication of two 8-bit sign-magnitude numbers:
 \
 \   (A P) = Q * A
-\
-\ ******************************************************************************
-\
-\ Deep dive: Shift-and-add multiplication
-\ =======================================
-\
-\ Summary: The main algorithm behind Elite's many multiplication routines
-\
-\ References: MULT1, MU11, FMLTU
-\
-\ Elite implements multiplication using the shift-and-add algorithm. One such
-\ example is the MULT1 routine, which multiplies two 8-bit numbers to give a
-\ 16-bit result). Let's take a look at how it does it, as this same technique is
-\ used in lots of different multiplication routines throughout the game code.
-\
-\ Consider multiplying two example numbers, which we'll call p and a (as this
-\ makes it easier to map the following explanation to the code in MULT1):
-\
-\   p * a = %00101001 * a
-\
-\ This is the same as:
-\
-\   p * a = (%00100000 + %00001000 + %00000001) * a
-\
-\ or:
-\
-\   p * a = %00100000 * a + %00001000 * a + %00000001 * a
-\
-\ or:
-\
-\   p * a = a << 5 + a << 3 + a << 0
-\
-\ or, to lay this out in the way we're used to seeing it in school books on
-\ long multiplication, if a is made up of binary digits aaaaaaaa, it's the same
-\ as:
-\
-\          00101001         p
-\          aaaaaaaa x       * a
-\   ---------------
-\          aaaaaaaa
-\         00000000
-\        00000000
-\       aaaaaaaa
-\      00000000
-\     aaaaaaaa
-\    00000000
-\   00000000        +
-\   ---------------
-\   xxxxxxxxxxxxxxx         -> the result of p * a
-\
-\ In other words, we can work our way through the digits in the first number p
-\ and every time there's a 1, we add an a to the result, shifted to the left by
-\ the position of that digit.
-\
-\ We could code this into assembly relatively easily, but Elite takes a rather
-\ more optimised route. Instead of shifting the number aaaaaaaa to the left for
-\ each addition, we can instead shift the entire result to the right, saving
-\ the bit that falls off the right end, and add an unshifted value of a. If you
-\ think of one of the sums in our longhand version like this:
-\
-\     a7a6a5a4a3a2a1a0
-\   a7a6a5a4a3a2a1a0   +
-\
-\ then instead of shifting the second number to the left, we can shift the
-\ first number to the right and save the rightmost bit, like this:
-\
-\     a7a6a5a4a3a2a1        -> result bit 0 is a0
-\   a7a6a5a4a3a2a1a0 +
-\
-\ So the routine's approach is to work our way through the digits in the first
-\ number p, shifting the result right every time and saving the rightmost bit
-\ in the final result, and every time there's a 1 in p, we add another a to the
-\ sum.
-\
-\ This is essentially what Elite does in the MULT1 routine, but there is one
-\ more tweak that makes the process even more efficient (and even more
-\ confusing, especially when you first read through the code). Instead of saving
-\ the result bits out into a separate location, we can stick them onto the left
-\ end of p, because every time we shift p to the right, we gain a spare bit on
-\ the left end of p that we no longer use.
-\
-\ For a simpler version of the above algorithm, take a look at MU11, which
-\ multiplies two unsigned numbers.
-\
-\ Optimised multiplication
-\ ------------------------
-\ The above approach is used in all the multiplication routines in Elite, though
-\ sometimes it can be a bit hard to follow. Let look at a particularly knotty
-\ example.
-\
-\ The FMLTU routine uses the same basic algorithm as MU11, but because we are
-\ only interested in the high byte of the result, we can optimise away a few
-\ instructions. Instead of having a loop counter to count the 8 bits in the
-\ multiplication, we can instead invert one of the arguments (A in this case,
-\ which we then store in P to pull bits off), and then reverse the logic so that
-\ ones get skipped and zeroes cause an addition.
-\
-\ Also, when we do the first shift right, we can stick a one into bit 7, so we
-\ can keep looping and shifting right until we run out of ones, which is an easy
-\ BNE test. This works because we don't have to store the low byte of the result
-\ anywhere, so we can just shift P to the right, rather than ROR'ing it as we do
-\ in MULT1 - and that lets us do the BNE test, saving few precious instructions
-\ in the process.
-\
-\ The result is a really slick, optimised multiplication routine that does a
-\ specialised job, at the expense of clarity. To understand the FMLTU routine,
-\ first try to understand MULT1, then look at MU11, and finally try FMLTU (I
-\ have kept the comments similar so they are easier to compare). And if your
-\ eyes aren't crossed by that point, then hats off to you, because this is
-\ properly gnarly stuff.
 \
 \ ******************************************************************************
 
@@ -17965,6 +14327,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (A X) = (A P) + (S R)
+\  Deep dive: Adding sign-magnitude numbers
 \
 \ ------------------------------------------------------------------------------
 \
@@ -17972,82 +14335,6 @@ NEXT
 \ correct sign. Specifically:
 \
 \   (A X) = (A P) + (S R)
-\
-\ ******************************************************************************
-\
-\ Deep dive: Adding sign-magnitude numbers
-\ ========================================
-\
-\ Summary: Doing basic arithmetic with sign-magnitude numbers
-\
-\ References: ADD
-\
-\ Elite uses a lot of sign-magnitude numbers, where the sign bit is stored
-\ separately from an unsigned magnitude. The classic examples are the ship
-\ coordinates at INWK, which are stored in 24 bits as as (x_sign x_hi x_lo),
-\ where bit 7 of x_sign is the sign, and (x_hi x_lo) is the coordinate value.
-\
-\ This means that when we come to do arithmetic on sign-magnitude numbers, we
-\ have to write our own routines for everything from addition and subtraction
-\ to multiplication and division, as the standard two's complement maths that
-\ the 6502 supports won't work.
-\
-\ For example, let's try adding 127 and -1 as sign-magnitude numbers, first
-\ using sign-magnitude arithmetic. 127 is 01111111 as a sign-magnitude number,
-\ while -1  is 10000001, and:
-\
-\   127 + -1 = 0 1111111 + 1 0000001
-\            = 0 1111111 - 0 0000001
-\            = 0 1111110
-\            = 126
-\
-\ However, if we use the built-in ADC instruction, we get the following:
-\
-\   127 + -1 = 01111111 + 10000001
-\            = 00000000
-\
-\ which is a completely different result.
-\
-\ Elite's ADD routine implements sign-magnitude addition using the following
-\ algorithm. We want to add A and S, so:
-\
-\   * If both A and S are positive, just add them as normal
-\
-\   * If both A and S are negative, then add them and make sure the result is
-\     negative
-\
-\   * If A and S have different signs, then we can use the absolute values of A
-\     and S to work out the sum, as follows:
-\
-\     * Subtract the smaller absolute value from the larger absolute value
-\
-\     * Give the answer the same sign as the argument with the larger absolute
-\       value
-\
-\ To see why this works, try visualising a number line containing the two
-\ numbers A and S, with one to the left of zero and one to the right. Adding
-\ the numbers is a bit like moving the number with the larger absolute value
-\ towards zero on the number line, moving it by the amount of the smaller
-\ absolute number; so it's like subtracting the smaller absolute value from the
-\ larger one. You can also see that the sum of the two numbers will be on the
-\ same side of zero as the number that is furthest from zero, so that's why the
-\ answer should have the same sign as the argument with the larger absolute
-\ value.
-\
-\ We can implement these steps like this:
-\
-\   * If |A| = |S|, then the result is 0
-\
-\   * If |A| > |S|, then the result is |A| - |S|, with the sign set to the same
-\     sign as A
-\
-\   * If |S| > |A|, then the result is |S| - |A|, with the sign set to the same
-\     sign as S
-\
-\ So that's what we do in the ADD routine to implement 16-bit sign-magnitude
-\ addition. The same basic approach can be found in lots of Elite's arithmetic
-\ routines: check the signs of the two operands, then add, subtract, divide or
-\ multiply as appropriate, and finally set the sign bit correctly.
 \
 \ ******************************************************************************
 
@@ -18705,7 +14992,7 @@ NEXT
  LDX #255               \ We have an overflow, so set X to the maximum possible
                         \ value, 255
 
-.^RE2
+.RE2
 
  BPL RE3+2              \ If X has bit 7 clear (i.e. the result < 128), then
                         \ jump to RE3+2 below to do an auto-recentre, if
@@ -18769,7 +15056,7 @@ NEXT
  LDX #1                 \ We have an underflow, so set X to the minimum possible
                         \ value, 1
 
-.^RE3
+.RE3
 
  BPL RE2+2              \ If X has bit 7 clear (i.e. the result < 128), then
                         \ jump to RE2+2 above to return the result as is,
@@ -18856,7 +15143,6 @@ NEXT
  TXA                    \ This also sets A = P (which now contains the original
                         \ argument |Q|)
 
-
  JSR ARS1               \ Call ARS1 to set the following from the lookup table:
                         \
                         \   A = arctan(A / Q)
@@ -18870,7 +15156,6 @@ NEXT
  BCS AR4                \ Jump to AR4 to continue the calculation (this BCS is
                         \ effectively a JMP as the subtraction will never
                         \ underflow, as ARS1 returns values in the range 0-31)
-
 
 .AR2
 
@@ -19201,7 +15486,7 @@ NEXT
 
  JSR DENGY              \ Call DENGY to deplete our energy banks by 1
 
-.^LASLI2
+.LASLI2
 
  LDA QQ11               \ If this is not a space view (i.e. QQ11 is non-zero)
  BNE PU1-1              \ then jump to MA9 to return from the main flight loop
@@ -19259,6 +15544,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Flight
 \    Summary: Flip the coordinate axes for the four different views
+\  Deep dive: Flipping axes between space views
 \
 \ ------------------------------------------------------------------------------
 \
@@ -19270,235 +15556,6 @@ NEXT
 \   LO2                 Contains an RTS
 \
 \   PU1-1               Contains an RTS
-\
-\ ******************************************************************************
-\
-\ Deep dive: Flipping axes between space views
-\ ============================================
-\
-\ Summary: Details of how the different space views are implemented
-\
-\ References: PLUT
-\
-\ Switching space views in Elite is one of those seemingly simple ideas that
-\ ends up adding so much to the believability of the game universe. When you're
-\ in deep space and an asteroid or a peaceful trader appears in the distance up
-\ ahead, the ability to flick to the side view and then the rear view to watch
-\ it speed past your windows is truly immersive; you really feel you're inside
-\ a spaceship powering through space. And docking without being able to use the
-\ side views to line up for your approach run? Forget it. Those space views are
-\ an essential aspect of the game.
-\
-\ But do we really have to write four different display routines for the four
-\ views? Luckily we don't, as the authors came up with a mathematical solution
-\ that is both wonderfully elegant and extremely efficient. The solution is to
-\ flip the axes for everything we want to display in the space view, so the axes
-\ used in the drawing routines will still work.
-\
-\ The axis-flipping is quite a quick process. Indeed, there were originally six
-\ views, with up and down thrown into the mix, but they ended up being dropped
-\ to save space. It would only have taken a few extra instructions to implement
-\ their flipped axes and stardust views, so the space would most likely have
-\ been saved by removing the code supporting the extra laser mounts in the Equip
-\ Ship screen).
-\
-\ Let's see what axis-flipping actually means.
-\
-\ Flipping the axes
-\ -----------------
-\ The solution to having multiple views is similar in concept to the way we
-\ process pitch and roll. When we rotate our ship, we don't actually move our
-\ ship at all - instead, we rotate the entire universe around us, in the
-\ opposite direction to our movement (see the deep dives on "Pitching and
-\ rolling" and "Rotating the universe" for more details on this process). We do
-\ a similar kind of thing when we switch views, but instead of rotating all the
-\ other ships and planets around us, we flip the axes instead, which is a much
-\ quicker process.
-\
-\ How do we do this? First, we need to talk about the three axes. In terms of
-\ our relationship to the universe, the z-axis always points into the screen,
-\ the y-axis always points up, and the x-axis always points to the right, like
-\ this:
-\
-\     y
-\     ^
-\     |   z (into screen)
-\     |  /
-\     | /
-\     |/
-\     +---------> x
-\
-\ This rule always applies, whichever view we are looking through. So when we're
-\ looking through the front view, the z-axis is into the screen, which is also
-\ the direction of travel - but if we switch to the left view, then the z-axis
-\ is still into the screen, but the direction of travel is now to our right,
-\ along the x-axis. So what was the z-axis is now the x-axis... so the axes just
-\ flipped. That flipping process is essentially what the PLUT routine does.
-\
-\ It's important to note that the local universe is stored in the ship data
-\ blocks at K% as if we are looking forward, so as far as the stored coordinates
-\ are concerned, the z-axis is always in the direction of travel. As part of the
-\ main flight loop, each ship data block is copied on turn into the INWK
-\ workspace, where the movement routines in MVEIT are applied, before the block
-\ is copied back into K% with the position of the ship updated.
-\
-\ It's after all the data has been copied back to K% that we start flipping
-\ axes to fit the current space view, but this flipped version of the ship
-\ doesn't get stored anywhere - the flipped data is only used for working out
-\ missile and laser lock, and for drawing the ship, as these are the parts that
-\ are affected by the view we're looking through.
-\
-\ Anyway, back to the process of flipping axes. If we are looking through the
-\ front view then there is no flipping to be done, as the ship coordinates in
-\ INWK are already using the correct axes, as mentioned above. If, however, we
-\ are looking to the sides or rear, then the PLUT routine takes the ship
-\ coordinates from INWK and switches the axes around, so that we can use the
-\ same routines to display what's in that view.
-\
-\ For example, take the z-axis, which points into the screen for the front view.
-\ We move it to point out of the screen if we are looking backwards, to the
-\ right if we're looking out of the left view, or to the left if we are looking
-\ out of the right view.
-\
-\ For the front view, then, we change nothing. Let's look at the other views in
-\ more detail, because this is one of those concepts that makes a lot more sense
-\ when you draw pretty diagrams.
-\
-\ Rear view
-\ ---------
-\ For the rear view, this is what our original universe axes look like when we
-\ we are looking backwards:
-\
-\                 y
-\                 ^
-\                 |
-\                 |
-\                 |
-\                 |
-\     x <---------+
-\                /
-\               z (out of screen)
-\
-\ so to convert these axes into the standard "up, right, into-the-screen" set
-\ of axes we need for drawing to the screen, we need to do the changes on the
-\ left (with the original set of axes on the right for comparison):
-\
-\   y                                           y
-\   ^                                           ^
-\   |   -z (into screen)                        |   z (into screen)
-\   |  /                                        |  /
-\   | /                                         | /
-\   |/                                          |/
-\   +---------> -x                              +---------> x
-\
-\ So to change the INWK workspace from the original axes on the right to the
-\ new set on the left, we need to change the signs of the x and z coordinates
-\ and vectors in INWK, which we can do by flipping the signs of the following:
-\
-\   * x_sign, z_sign
-\   * nosev_x_hi, nosev_z_hi
-\   * roofv_x_hi, roofv_z_hi
-\   * sidev_x_hi, sidev_z_hi
-\
-\ So this is what we do in the PLUT routine for the rear view.
-\
-\ Left view
-\ ---------
-\ For the left view, this is what our original universe axes look like when we
-\ are looking to the left:
-\
-\       y
-\       ^
-\       |
-\       |
-\       |
-\       |
-\       +---------> z
-\      /
-\     /
-\    /
-\   x (out of screen)
-\
-\ so to convert these axes into the standard "up, right, into-the-screen" set
-\ of axes we need for drawing to the screen, we need to do the changes on the
-\ left (with the original set of axes on the right for comparison):
-\
-\   y                                           y
-\   ^                                           ^
-\   |   -x (into screen)                        |   z (into screen)
-\   |  /                                        |  /
-\   | /                                         | /
-\   |/                                          |/
-\   +---------> z                               +---------> x
-\
-\ In other words, to go from the original set of axes on the right to the new
-\ set of axes on the left, we need to swap the x- and z-axes around, and flip
-\ the sign of the one now going in and out of the screen (i.e. the new z-axis).
-\ In other words, we swap the following values in INWK:
-\
-\   * x_lo and z_lo
-\   * x_hi and z_hi
-\   * x_sign and z_sign
-\   * nosev_x_lo and nosev_z_lo
-\   * roofv_x_lo and roofv_z_lo
-\   * sidev_x_lo and sidev_z_lo
-\
-\ and then change the sign of the axis going in and out of the screen by
-\ flipping the signs of the following:
-\
-\   * z_sign
-\   * nosev_z_hi
-\   * roofv_z_hi
-\   * sidev_z_hi
-\
-\ So this is what we do in the PLUT routine for the left view.
-\
-\ Right view
-\ ---------
-\ For the right view, this is what our original universe axes look like when we
-\ are looking to the right:
-\
-\               y
-\               ^
-\               |   x (into screen)
-\               |  /
-\               | /
-\               |/
-\   z <---------+
-\
-\ so to convert these axes into the standard "up, right, into-the-screen" set
-\ of axes we need for drawing to the screen, we need to do the changes on the
-\ left (with the original set of axes on the right for comparison):
-\
-\   y                                           y
-\   ^                                           ^
-\   |   x (into screen)                         |   z (into screen)
-\   |  /                                        |  /
-\   | /                                         | /
-\   |/                                          |/
-\   +---------> -z                              +---------> x
-\
-\ In other words, to go from the original set of axes on the right to the new
-\ set of axes on the left, we need to swap the x- and z-axes around, and flip
-\ the sign of the one now going to the right (i.e. the new x-axis). In other
-\ words, we swap the following values in INWK:
-\
-\   * x_lo and z_lo
-\   * x_hi and z_hi
-\   * x_sign and z_sign
-\   * nosev_x_lo and nosev_z_lo
-\   * roofv_x_lo and roofv_z_lo
-\   * sidev_x_lo and sidev_z_lo
-\
-\ and then change the sign of the axis going to the right by flipping the signs
-\ of the following:
-\
-\   * x_sign
-\   * nosev_x_hi
-\   * roofv_x_hi
-\   * sidev_x_hi
-\
-\ So this is what we do in the PLUT routine for the right view.
 \
 \ ******************************************************************************
 
@@ -19514,7 +15571,7 @@ NEXT
  BNE PU1                \ If the current view is the front view, return from the
  RTS                    \ subroutine, as the geometry in INWK is already correct
 
-.^PU1
+.PU1
 
  DEX                    \ Decrement the view, so now:
                         \
@@ -19653,7 +15710,6 @@ NEXT
 \
 \ ******************************************************************************
 
-
 .LO2
 
  RTS                    \ Return from the subroutine
@@ -19671,7 +15727,7 @@ NEXT
  JMP NWSTARS            \ Set up a new stardust field and return from the
                         \ subroutine using a tail call
 
-.^LOOK1
+.LOOK1
 
  LDA #0                 \ Set A = 0, the type number of a space view
 
@@ -19745,10 +15801,9 @@ NEXT
 \
 \ ******************************************************************************
 
-
  LDA #1
 
-.^TT66
+.TT66
 
  STA QQ11               \ Set the current view type in QQ11 to A
 
@@ -19817,7 +15872,7 @@ NEXT
                         \ i.e. print the hyperspace countdown in the top-left
                         \ corner
 
-.^BOX
+.BOX
 
  LDY #1                 \ Move the text cursor to row 1
  STY YC
@@ -19926,19 +15981,18 @@ NEXT
 \
 \ ******************************************************************************
 
-
  LDY #2                 \ Set Y to 2 vertical syncs
 
  EQUB &2C               \ Skip the next instruction by turning it into
                         \ &2C &A0 &08, or BIT &08A0, which does nothing bar
                         \ affecting the flags
 
-.^DEL8
+.DEL8
 
  LDY #8                 \ Set Y to 8 vertical syncs and fall through into DELAY
                         \ to wait for this long
 
-.^DELAY
+.DELAY
 
  JSR WSCAN              \ Call WSCAN to wait for the vertical sync, so the whole
                         \ screen gets drawn
@@ -20079,7 +16133,7 @@ NEXT
 
  BNE EE2                \ Loop back until Y is zero
 
-.^SC5
+.SC5
 
  RTS                    \ Return from the subroutine
 
@@ -20089,6 +16143,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Display the current ship on the scanner
+\  Deep dive: The 3D scanner
 \
 \ ------------------------------------------------------------------------------
 \
@@ -20097,253 +16152,6 @@ NEXT
 \ Arguments:
 \
 \   INWK                The ship's data block
-\
-\ ******************************************************************************
-\
-\ Deep dive: The 3D scanner
-\ =========================
-\
-\ Summary: The maths behind Elite's famous 3D elliptical scanner
-\
-\ References: SCAN
-\
-\ The elliptical 3D scanner in the centre of the dashboard is one of Elite's
-\ most celebrated features, but it almost didn't make it into the game. For
-\ almost all of the game's life the scanner consisted of two two-dimensional
-\ radars, one showing a top-down view of the area around the ship and the other
-\ showing a side-on view, but it never really worked that well. Then, at the
-\ very last minute, after the manual had been written and the game's code had
-\ been polished until it shone, David Braben hit upon the idea of the 3D
-\ ellipse, and it was so good it just had to go in, so while Braben created the
-\ elliptical background image, Ian Bell coded it up, all in time to update the
-\ manual and hit the publishing deadline.
-\
-\ It was worth the effort, as the scanner is a thing of beauty, not only in
-\ terms of Braben's fantastic idea, which transforms the gaming experience, but
-\ also in the elegant simplicity of Bell's code. This is the last bit of code
-\ the pair wrote as anonymous undergraduates; after this, they would become rock
-\ stars, and their worlds would change forever.
-\
-\ So how does it work, this spark of genius that is so essential in making the
-\ 3D world of Elite feel so immersive? Well, to display a ship on the scanner,
-\ there are six main hoops we have to jump through.
-\
-\ We start with the ship's coordinates in space, given relative to our position
-\ (and therefore relative to the centre of the ellipse in the scanner, which
-\ represents our ship). Let's call the other ship's coordinates (x, y, z), with
-\ our position being at the origin (0, 0, 0).
-\
-\ We want to display a dot on the scanner at the ship's position, as well as a
-\ stick that drops down (or rises up) from the dot onto the scanner's ellipse.
-\
-\ The steps we have to perform are as follows:
-\
-\   1. Check that the ship is within the scanner range (and stop if it isn't)
-\
-\   2. Set X1 = the screen x-coordinate of the ship's dot (and stick)
-\
-\   3. Set SC = the screen y-coordinate of the base of the ship's stick
-\
-\   4. Set A = the screen height of the ship's stick
-\
-\   5. Use these values to calculate Y1, the screen y-coordinate of the ship's
-\      dot
-\
-\   6. Draw the dot at (X1, Y1) and draw a stick of length A from that dot (up
-\      or down as appropriate)
-\
-\ Before looking at these steps individually, first we need to talk about the
-\ scanner's dimensions.
-\
-\ Scanner dimensions
-\ ------------------
-\ In terms of screen coordinates, the scanner is laid out as follows.
-\
-\ The rectangle containing the scanner and compass has the following range of
-\ screen coordinates inside the rectangle (so we definitely don't want to draw
-\ anything outside these values, or the scanner will leak out into the
-\ surrounding dashboard and space view):
-\
-\   * x-coordinate from  50 to 204
-\   * y-coordinate from 193 to 246
-\
-\ The scanner's ellipse is 138 screen coordinates wide and 36 screen coordinates
-\ high, and the range of coordinates is:
-\
-\   * x-coordinate from  56 to 192
-\   * y-coordinate from 204 to 239
-\
-\ The centre of the scanner is at (124, 220).
-\
-\ That said, this routine restricts itself to a slightly smaller range when
-\ passing coordinates to the drawing routines, only drawing dots and sticks
-\ within this range:
-\
-\   * x-coordinate from  60 to 186
-\   * y-coordinate from 194 to 246
-\
-\ These values are explained in the following.
-\
-\ Now that we know the screen area in which we are going to show our ships,
-\ let's look at the different things we have to do.
-\
-\ Check the ship is in range
-\ --------------------------
-\ Elite does a simple check to see whether to show a ship on the scanner. Ship
-\ coordinates are stored in the INWK workspace using three bytes, like this:
-\
-\   x = (x_sign x_hi x_lo)
-\   y = (y_sign y_hi y_lo)
-\   z = (z_sign z_hi z_lo)
-\
-\ The sign bytes only use bit 7, so the actual value is in the high and low
-\ bytes (these two bytes store the absolute value, without the sign).
-\
-\ A ship should be shown on the scanner if bits 7 and 6 of all the high bytes
-\ are 0. This means that ships to be shown on the scanner have high bytes in the
-\ range 0-63, as 63 = %00111111, and because the sign is kept separately, it
-\ means that for ships that we show on the scanner, the following are true:
-\
-\   -63 <= x_hi <= 63
-\   -63 <= y_hi <= 63
-\   -63 <= z_hi <= 63
-\
-\ We can now move on to calculating the screen coordinates of the dot and stick.
-\
-\ Calculate the x-coordinate
-\ --------------------------
-\ The x-coordinate is the easiest, as all we have to do is scale x so that it
-\ fits into the horizontal range of the scanner... and it turns out that the
-\ range of (x_sign x_hi) is already pretty close to the full width of the
-\ scanner (the ellipse is 138 screen coordinates wide, while the range of
-\ (x_sign x_hi) values from -63 to +63 is 127, which is in the right ballpark).
-\
-\ So if we take the x-coordinate of the centre of the scanner, 124, and add
-\ (x_sign x_hi), we get a range of 61 to 187, which fits nicely within the
-\ ellipse range of 56 to 192 and is quick and easy to calculate.
-\
-\ There is one small tweak to this, however. If we add 124 to (x_sign x_hi),
-\ then if the other ship is dead ahead of us - i.e. when (x_sign x_hi) = 0 - the
-\ dot will be drawn with the left pixel on the centre line and the right pixel
-\ just to the right of the line. This isn't a problem, but because we draw the
-\ stick down (or up) from the right-hand pixel, this means that ships that are
-\ dead ahead have a stick that lands on the ellipse just to the right of the
-\ centre line. So to fix this, we actually add 123 to get the scanner
-\ x-coordinate, as this not only moves the stick to the correct spot, it also
-\ has the benefit of making the end-points even numbers, as the range of 123 +
-\ (x_sign x_hi) is 60 to 186 (and even numbers are good news when your pixels
-\ are always 2 screen coordinates wide).
-\
-\ So this is how we get the screen x-coordinate of the ship on the scanner:
-\
-\   X1 = 123 + (x_sign x_hi)
-\
-\ This was the easy one. Now for the y-coordinate of the base of the stick,
-\ which is a bit more challenging.
-\
-\ Calculate the base of the stick
-\ ---------------------------------
-\ We already know the x-coordinate of dot, as we just calculated that, and the
-\ stick will have the same x-coordinate as the dot, though we will add 1 when
-\ drawing it, as the stick is on the right side of the 2-pixel-wide dot. So we
-\ already know the x-coordinate of the base of the stick - now to find the
-\ y-coordinate.
-\
-\ The main observation here is that the scanner's ellipse is a plane in space,
-\ and for every point in that plane, the space y-coordinate is zero, and the
-\ space x- and z-coordinates determine where those points appear, either from
-\ left to right (for the x-axis) or front to back (the z-axis). We've already
-\ worked out where the base of the stick is in terms of left and right, but what
-\ about front to back?
-\
-\ If you think about it, points on the ellipse that are further in front of us
-\ will be further up the screen, while those behind us will be lower down the
-\ screen. It turns out that this is an easy way to work out the y-coordinate of
-\ the base of the stick - we just take the space y-coordinate and scale it so
-\ that it fits into the height of the ellipse on-screen. As long as we reverse
-\ things so that large positive y-coordinates (far in front of us) are scaled to
-\ smaller screen y-coordinates (higher up the screen), this should work pretty
-\ well.
-\
-\ The maths for this is relatively simple. We take (z_sign z_hi), which is in
-\ the range -63 to +63, divide it by 4 to get a range of -15 to +15, and then
-\ negate it. We then add this to the coordinate of the centre of the ellipse,
-\ which is at screen y-coordinate 220, to get the following:
-\
-\   SC = 220 - (z_sign z_hi) / 4
-\
-\ This is in the range 205 to 235, which is really close to the range of
-\ y-coordinates of the ellipse on-screen (204 to 239), and fits within the
-\ ellipse nicely.
-\
-\ Next, we need to work out the height of the stick, and then we'll have all the
-\ information we need to draw this thing.
-\
-\ Convert the stick height
-\ ------------------------
-\ The stick height should be a signed number that contains the number of pixels
-\ in the stick, with the sign set so that we can get the dot's y-coordinate by
-\ adding the height to the y-coordinate of the base of the stick. This means
-\ that we want the following to be true:
-\
-\   * The stick height should be negative for dots above the ellipse (as the dot
-\     is above the base of the stick, so it has a lower y-coordinate)
-\
-\   * The stick height should be zero for dots on the ellipse
-\
-\   * The stick height should be positive for dots below the ellipse (as the dot
-\     is below the base of the stick, so it has a lower y-coordinate)
-\
-\ The main observation here is that the length of the stick is effectively the
-\ same as the ship's y-coordinate in space, just negated. Specifically:
-\
-\   * If the y-coordinate is 0, then the dot is in the plane of the ellipse and
-\     there is no stick
-\
-\   * If the y-coordinate is positive, then the ship is above us and the stick
-\     length should be negative
-\
-\   * If the y-coordinate is negative, then the ship is above us and the stick
-\     length should be positive
-\
-\   * The further the ship is above or below us, the longer the stick
-\
-\ It turns out that it's good enough just to scale the y-coordinate to get the
-\ stick length. Sure, if you were building an accurate scanner than the stick
-\ length would also have to be scaled for reasons of perspective, but this is an
-\ 8-bit space simulation from 1984 where every processor cycle counts, and the
-\ following approximation is easily good enough.
-\
-\ It also turns out that dividing the y-coordinate by 2 does a good enough job.
-\ We take (y_sign y_hi), which is in the range -63 to +63, and divide it by 2 to
-\ get a range of -31 to +31. As we noted above, the y-coordinate for the base of
-\ the stick is in the range 205 to 235, so this means the range of screen
-\ y-coordinates for our dots comes out as 174 to 266.
-\
-\ But this is a bit of a problem - the dashboard only covers y-coordinates from
-\ 193 to 246, so quite a few of the more distant dots will end up spilling out
-\ of the dashboard if we don't do something about it. The solution is pretty
-\ simple - if the dot is outside of the dashboard limits, we move it back
-\ inside. This does mean that the dots and sticks of distant ships don't behave
-\ correctly - they get shifted up or down to keep them within the dashboard,
-\ which isn't correct - but somehow our brains don't seem to care. The stick
-\ heights still remain correct, and the orientation of these outliers is still
-\ generally in the right direction, so we can get away with this simplification.
-\
-\ In terms of this clipping, we actually clip the dot's y-coordinate so that it
-\ is in the range 194 to 246, rather than 193 to 246. This is because the
-\ double-height dot-drawing routine at CPIX2 takes the coordinate of the bottom
-\ row of the dot, so we have to restrict it to a minimum of 194, as passing 193
-\ would draw a dot that overlapped the top border of the dashboard.
-\
-\ So this is how we calculate the stick height from the ship's y-coordinate in
-\ space:
-\
-\   A = - (y_sign y_hi) / 2
-\
-\ and clip the result so that it's in the range 193 to 246. So now we have all
-\ the information required to draw the ship on the scanner, and to erase it
-\ later (which we do by drawing it a second time).
 \
 \ ******************************************************************************
 
@@ -20860,70 +16668,12 @@ LOAD_D% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Twist the selected system's seeds four times
+\  Deep dive: Galaxy and system seeds
 \
 \ ------------------------------------------------------------------------------
 \
 \ Twist the three 16-bit seeds in QQ15 (selected system) four times, to
 \ generate the next system.
-\
-\ ******************************************************************************
-\
-\ Deep dive: Galaxy and system seeds
-\ ==================================
-\
-\ Summary: How system data is extracted from the galaxy and system seeds
-\
-\ References: TT20, TT24, TT25, cpl, SOLAR, QQ15, QQ21
-\
-\ Famously, Elite's galaxy and system data is generated procedurally, using a
-\ set of three 16-bit seed numbers and the Tribonnaci series. You can read all
-\ about this process in the deep dives on "Generating system data", "Galaxy and
-\ system seeds" and "Twisting the system seeds", as well as the galaxy
-\ twisting process in Ghy.
-\
-\ The three seeds are stored as little-endian 16-bit numbers, so the low (least
-\ significant) byte is first followed by the high (most significant) byte. That
-\ means if the seeds are w0, w1 and w2, they are stored like this:
-\
-\       low byte  high byte
-\   w0  QQ15      QQ15+1
-\   w1  QQ15+2    QQ15+3
-\   w2  QQ15+4    QQ15+5
-\
-\ In this documentation, we denote the low byte of w0 as w0_lo and the high byte
-\ as w0_hi, and so on for w1_lo, w1_hi, w2_lo and w2_hi.
-\
-\ The seeds for the selected system are stored at QQ15, while the seeds for the
-\ current galaxy are in QQ21.
-\
-\ Here's a summary of which bits in which seeds are used to generate the various
-\ bits of data in the universe. The routine names where these data are generated
-\ are shown at the end (TT25 etc.).
-\
-\    w0_hi    w0_lo    w1_hi    w1_lo    w2_hi    w2_lo
-\ 76543210 76543210 76543210 76543210 76543210 76543210
-\
-\                                        ^^^----------- Species adjective 1 TT25
-\                                     ^^^-------------- Species adjective 2 TT25
-\       ^^----------------^^--------------------------- Species adjective 3 TT25
-\                                           ^^--------- Species type        TT25
-\                   ^^^^^^^^--------------^^^^--------- Average radius      TT25
-\                              ^^^--------------------- Government type     TT24
-\       ^^--------------------------------------------- Prosperity level    TT24
-\       ^---------------------------------------------- Economy type        TT24
-\                         ^^--------------------------- Tech level          TT24
-\                   ^^^^^^^^--------------------------- Galactic x-coord    TT24
-\ ^^^^^^^^--------------------------------------------- Galactic y-coord    TT24
-\                                               ^-^---- Long-range dot size TT22
-\                                                     ^ Short-range size    TT23
-\           ^------------------------------------------ Name length          cpl
-\                                        ^^^^^--------- Name token (x4)      cpl
-\      ^^^--------------------------------------------- Planet distance    SOLAR
-\                        ^^^--------------------------- Sun distance       SOLAR
-\                                           ^^--------- Sun x-y offset     SOLAR
-\
-\ 76543210 76543210 76543210 76543210 76543210 76543210
-\    w0_hi    w0_lo    w1_hi    w1_lo    w2_hi    w2_lo
 \
 \ ******************************************************************************
 
@@ -20946,116 +16696,11 @@ LOAD_D% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Twist the selected system's seeds
+\  Deep dive: Twisting the system seeds
 \
 \ ------------------------------------------------------------------------------
 \
 \ This routine twists the three 16-bit seeds in QQ15 once.
-\
-\ ******************************************************************************
-\
-\ Deep dive: Twisting the system seeds
-\ ====================================
-\
-\ Summary: How the system seeds are twisted to produce entire galaxies of stars
-\
-\ References: TT54, TT20, Ghy
-\
-\ Data on each star system in Elite's galaxies is generated procedurally, and
-\ the core of this process is the set of three 16-bit seeds that describe each
-\ system in the universe. Each of the eight galaxies in the game is generated in
-\ the same way, by taking an initial set of seeds and "twisting" them to
-\ generate 256 systems, one after the other.
-\
-\ Specifically, given the initial set of seeds, we can generate the next system
-\ in the sequence by twisting that system's seeds four times. As we do these
-\ twists, we can extract the system's data from the seed values - including the
-\ system name, which is generated by the subroutine cpl, where you can read
-\ about how this aspect works.
-\
-\ It is therefore no exaggeration that the twisting process implemented below
-\ is the fundamental building block of Elite's "universe in a bottle" approach,
-\ which enabled the authors to squeeze eight galaxies of 256 planets out of
-\ nothing more than three initial numbers and a short twisting routine (and
-\ they could have had far larger galaxies and many more of them, if they had
-\ wanted, but they made the wise decision to limit the number). Let's look at
-\ how this twisting process works.
-\
-\ The three seeds that describe a system represent three consecutive numbers in
-\ a Tribonacci sequence, where each number is equal to the sum of the preceding
-\ three numbers (the name is a play on Fibonacci sequence, in which each number
-\ is equal to the sum of the preceding two numbers). Twisting is the process of
-\ moving along the sequence by one place. So, say our seeds currently point to
-\ these numbers in the sequence:
-\
-\   0   0   1   1   2   4   7   13   24   44   ...
-\                       ^   ^    ^
-\
-\ so they are 4, 7 and 13, then twisting would move them all along by one
-\ place, like this:
-\
-\   0   0   1   1   2   4   7   13   24   44   ...
-\                           ^    ^    ^
-\
-\ giving us 7, 13 and 24. To generalise this, if we start with seeds w0, w1
-\ and w2 and we want to work out their new values after we perform a twist
-\ (let's call the new values w0´, w1´ and w2´), then:
-\
-\   w0´ = w1
-\   w1´ = w2
-\   w2´ = w0 + w1 + w2
-\
-\ So given an existing set of seeds in w0, w1 and w2, we can get the new values
-\ w0´, w1´ and w2´ simply by doing the above sums. And if we want to do the
-\ above in-place without creating three new w´ variables, then we can do the
-\ following:
-\
-\   tmp = w0 + w1
-\   w0 = w1
-\   w1 = w2
-\   w2 = tmp + w1
-\
-\ In Elite, the numbers we're dealing with are two-byte, 16-bit numbers, and
-\ because these 16-bit numbers can only hold values up to 65535, the sequence
-\ wraps around at the end. But the maths is the same, it just has to be done
-\ on 16-bit numbers, one byte at a time.
-\
-\ The seeds are stored as little-endian 16-bit numbers, so the low (least
-\ significant) byte is first, followed by the high (most significant) byte.
-\ Taking the case of the currently selected system, whose seeds are stored
-\ in the six bytes from QQ15, that means our seed values are stored like this:
-\
-\       low byte  high byte
-\   w0  QQ15      QQ15+1
-\   w1  QQ15+2    QQ15+3
-\   w2  QQ15+4    QQ15+5
-\
-\ If we denote the low byte of w0 as w0_lo and the high byte as w0_hi, then
-\ the twist operation above can be rewritten for 16-bit values like this,
-\ assuming the additions include the C flag:
-\
-\   tmp_lo = w0_lo + w1_lo          (tmp = w0 + w1)
-\   tmp_hi = w0_hi + w1_hi
-\   w0_lo  = w1_lo                  (w0 = w1)
-\   w0_hi  = w1_hi
-\   w1_lo  = w2_lo                  (w1 = w2)
-\   w1_hi  = w2_hi
-\   w2_lo  = tmp_lo + w1_lo         (w2 = tmp + w1)
-\   w2_hi  = tmp_hi + w1_hi
-\
-\ And that's exactly what the TT54 subroutine does to twist our three 16-bit
-\ seeds to the next values in the sequence, using X to store tmp_lo and Y to
-\ store tmp_hi.
-\
-\ Twisting the galaxy seeds
-\ -------------------------
-\ The Ghy routine updates the galaxy seeds to point to the next galaxy. Using
-\ a galactic hyperdrive rotates each seed byte to the left, rolling each byte
-\ left within itself like this:
-\
-\   01234567 -> 12345670
-\
-\ to get the seeds for the next galaxy. So after 8 galactic jumps, the seeds
-\ roll round to those of the first galaxy again.
 \
 \ ******************************************************************************
 
@@ -21335,7 +16980,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \   QQ3 = 1 or 6 prints token 11 ("AVERAGE ")
                         \   QQ3 = 2 or 7 prints token 12 ("POOR ")
 
-.^TT72
+.TT72
 
  LDA QQ3                \ Now to work out the type of economy, which is
  LSR A                  \ determined by bit 2 of QQ3, as follows:
@@ -21563,6 +17208,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Calculate system data from the system seeds
+\  Deep dive: Generating system data
 \
 \ ------------------------------------------------------------------------------
 \
@@ -21579,213 +17225,6 @@ LOAD_D% = LOAD% + P% - CODE%
 \ The ranges of the various values are shown in brackets. Note that the radius
 \ and type of inhabitant are calculated on-the-fly in the TT25 routine when
 \ the system data gets displayed, so they aren't calculated here.
-\
-\ ******************************************************************************
-\
-\ Deep dive: Generating system data
-\ =================================
-\
-\ Summary: The algorithms behind the procedural generation of system data
-\
-\ References: TT24, TT25
-\
-\ The Data on System screen is, under the hood, a work of mathematical art.
-\ Every bit of data on that screen is procedurally generated from the system
-\ seeds, specifically from parts of w0_hi, w1_hi and w1_lo. For more details on
-\ the system seeds see the deep dive on "Galaxy and system seeds".
-\
-\ The following bits of data are generated in routine TT24 and are stored in
-\ locations QQ3 to QQ7:
-\
-\   QQ3 = economy (0-7)
-\   QQ4 = government (0-7)
-\   QQ5 = technology level (0-14)
-\   QQ6 = population * 10 (1-71)
-\   QQ7 = productivity (96-62480)
-\
-\ The species type and average radius aren't stored anywhere, but are generated
-\ on-the-fly in routine TT25 when displaying the system data.
-\
-\ Let's look at how these bits of data are all generated.
-\
-\ Government
-\ ----------
-\ The government is given by a 3-bit value, taken from bits 3-5 of w1_lo. This
-\ value determine the type of government as follows:
-\
-\   0 = Anarchy
-\   1 = Feudal
-\   2 = Multi-government
-\   3 = Dictatorship
-\   4 = Communist
-\   5 = Confederacy
-\   6 = Democracy
-\   7 = Corporate State
-\
-\ The highest government value is 7 and the lowest is 0.
-\
-\ Economy
-\ -------
-\ The economy is given by a 3-bit value, taken from bits 0-2 of w0_hi. This
-\ value determine the prosperity of the economy:
-\
-\   0 or 5 = %000 or %101 = Rich
-\   1 or 6 = %001 or %110 = Average
-\   2 or 7 = %010 or %111 = Poor
-\   3 or 4 = %011 or %100 = Mainly
-\
-\ while bit 2 determines the type of economy:
-\
-\   bit 2 = %0 = Industrial
-\   bit 2 = %1 = Agricultural
-\
-\ Putting these two together, we get:
-\
-\   0 = Rich Industrial
-\   1 = Average Industrial
-\   2 = Poor Industrial
-\   3 = Mainly Industrial
-\   4 = Mainly Agricultural
-\   5 = Rich Agricultural
-\   6 = Average Agricultural
-\   7 = Poor Agricultural
-\
-\ If the government is an anarchy or feudal state, we need to fix the economy
-\ so it can't be rich (as that wouldn't make sense). We do this by setting bit
-\ 1 of the economy value, giving possible values of %010, %011, %110, %111.
-\ Looking at the prosperity list above, we can see this forces the economy to
-\ be poor, mainly, average, or poor respectively, so there's now a 50% chance
-\ of the system being poor, a 25% chance of it being average, and a 25% chance
-\ of it being "Mainly Agricultural" or "Mainly Industrial".
-\
-\ The highest economy value is 7 and the lowest is 0.
-\
-\ Technology level
-\ ----------------
-\ The tech level is calculated as follows:
-\
-\   flipped_economy + (w1_hi AND %11) + (government / 2)
-\
-\ where flipped_economy is the economy value with its bits inverted (keeping
-\ it as a 3-bit value, so if the economy is %001, flipped_economy is %110). The
-\ division is done using LSR and the addition uses ADC, so this rounds up the
-\ division for odd-numbered government types.
-\
-\ Flipping the three economy bits gives the following spread of numbers:
-\
-\   7 or 2 = %111 or %010 = Rich
-\   6 or 1 = %110 or %001 = Average
-\   5 or 0 = %101 or %000 = Poor
-\   4 or 3 = %100 or %011 = Mainly
-\
-\ This, on average, gives a higher number to rich states compared with poor
-\ states, as well as giving higher values to industrial economies compared to
-\ agricultural, all of which makes a reasonable basis for a measurement of
-\ technology level.
-\
-\ The highest tech level is 7 + 3 + (7 / 2) = 14 (when rounded up) and the
-\ lowest is 0.
-\
-\ Population
-\ ----------
-\ The population is calculated as follows:
-\
-\   (tech level * 4) + economy + government + 1
-\
-\ This means that systems with higher tech levels, better economies and more
-\ stable governments have higher populations, with the tech level having the
-\ most influence. The number stored is actually the population * 10 (in
-\ billions), so we can display it to one decimal place by calling the pr2
-\ subroutine (so if the population value is 52, it means 5.2 billion).
-\
-\ The highest population is 14 * 4 + 7 + 7 + 1 = 71 (7.1 billion) and the
-\ lowest is 1 (0.1 billion).
-\
-\ Productivity
-\ ------------
-\ The productivity is calculated as follows:
-\
-\   (flipped_economy + 3) * (government + 4) * population * 8
-\
-\ Productivity is measured in millions of credits, so a productivity of 23740
-\ would be displayed as "23740 M CR".
-\
-\ The highest productivity is 10 * 11 * 71 * 8 = 62480, while the lowest is 3 *
-\ 4 * 1 * 8 = 96 (so the range is between 96 and 62480 million credits).
-\
-\ Species type
-\ ------------
-\ The species type is either Human Colonials, or it's an alien species that
-\ consists of up to three adjectives and a species name (so you can get
-\ anything from "Rodents" and "Fierce Frogs" to "Black Fat Felines" and "Small
-\ Yellow Bony Lobsters").
-\
-\ As with the rest of the system data, the species is built from various bits
-\ in the seeds. Specifically, all the bits in w2_hi are used, along with bits
-\ 0-2 of w0_hi and w1_hi, and bit 7 of w2_lo.
-\
-\ First, we check bit 7 of w2_lo. If it is clear, print "Human Colonials" and
-\ stop, otherwise this is an alien species, so we move onto the following
-\ steps. (In the following steps, the potential range of the calculated value
-\ of A is 0-7, and if a match isn't made, nothing is printed for that step.)
-\
-\   1. Set A = bits 2-4 of w2_hi
-\
-\     * If A = 0,  print "Large "
-\     * If A = 1,  print "Fierce "
-\     * If A = 2,  print "Small "
-\
-\   2. Set A = bits 5-7 of w2_hi
-\
-\     * If A = 0,  print "Green "
-\     * If A = 1,  print "Red "
-\     * If A = 2,  print "Yellow "
-\     * If A = 3,  print "Blue "
-\     * If A = 4,  print "Black "
-\     * If A = 5,  print "Harmless "
-\
-\   3. Set A = bits 0-2 of (w0_hi EOR w1_hi)
-\
-\     * If A = 0,  print "Slimy "
-\     * If A = 1,  print "Bug-Eyed "
-\     * If A = 2,  print "Horned "
-\     * If A = 3,  print "Bony "
-\     * If A = 4,  print "Fat "
-\     * If A = 5,  print "Furry "
-\
-\   4. Add bits 0-1 of w2_hi to A from step 3, and take bits 0-2 of the result
-\
-\     * If A = 0,  print "Rodents"
-\     * If A = 1,  print "Frogs"
-\     * If A = 2,  print "Lizards"
-\     * If A = 3,  print "Lobsters"
-\     * If A = 4,  print "Birds"
-\     * If A = 5,  print "Humanoids"
-\     * If A = 6,  print "Felines"
-\     * If A = 7,  print "Insects"
-\
-\ So if we print an adjective at step 3, then the only options for the species
-\ name are from A to A + 3 (because we add a 2-bit number) in step 4. So only
-\ certain combinations are possible:
-\
-\   * Only rodents, frogs, lizards and lobsters can be slimy
-\   * Only frogs, lizards, lobsters and birds can be bug-eyed
-\   * Only lizards, lobsters, birds and humanoids can be horned
-\   * Only lobsters, birds, humanoids and felines can be bony
-\   * Only birds, humanoids, felines and insects can be fat
-\   * Only humanoids, felines, insects and rodents can be furry
-\
-\ So however hard you look, you will never find slimy humanoids, bony insects,
-\ fat rodents or furry frogs, which is probably for the best.
-\
-\ Average radius
-\ --------------
-\ The average radius is calculated as follows:
-\
-\   ((w2_hi AND %1111) + 11) * 256 + w1_hi
-\
-\ The highest average radius is (15 + 11) * 256 + 255 = 6911 km, and the lowest
-\ is 11 * 256 = 2816 km.
 \
 \ ******************************************************************************
 
@@ -22130,7 +17569,6 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-
 .TT126
 
  LDA #104               \ Set QQ19 = 104, for the x-coordinate of the centre of
@@ -22153,7 +17591,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ and radius K that reflects the current fuel levels,
                         \ returning from the subroutine using a tail call
 
-.^TT14
+.TT14
 
  LDA QQ11               \ If the current view is the Short-range Chart, which
  BMI TT126              \ is the only view with bit 7 set, then jump up to TT126
@@ -22436,7 +17874,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JMP TT220              \ Otherwise loop back to TT220 to print the next market
                         \ item
 
-.^BAY2
+.BAY2
 
  LDA #f9                \ Jump into the main loop at FRCE, setting the key
  JMP FRCE               \ "pressed" to red key f9 (so we show the Inventory
@@ -22969,7 +18407,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  STA QQ19+4             \ Store the updated coordinate in QQ19+4
 
-.^TT180
+.TT180
 
  RTS                    \ Return from the subroutine
 
@@ -23030,7 +18468,6 @@ LOAD_D% = LOAD% + P% - CODE%
  ADC #90                \ 90 is the y-coordinate of the centre of the chart,
  STA QQ19+1             \ so this sets QQ19+1 to the screen pixel x-coordinate
                         \ of the crosshairs
-
 
  LDA #8                 \ Set QQ19+2 to 8 denote crosshairs of size 8
  STA QQ19+2
@@ -23536,7 +18973,6 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ distance between the vertical y-coordinates. We will
                         \ refer to this as the y-delta
 
-
  JSR SQUA2              \ Set (A P) = A * A
                         \           = (|QQ10 - QQ1| / 2) ^ 2
                         \           = y_delta ^ 2
@@ -23833,7 +19269,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ perhaps the original plan was to arrive in each new
                         \ galaxy in a random place?
 
-.^zZ
+.zZ
 
  LDA #&60               \ Set (QQ9, QQ10) to (96, 96), which is where we always
  STA QQ9                \ arrive in a new galaxy (the selected system will be
@@ -23874,7 +19310,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA QQ10               \ Set the current system's galactic y-coordinate to the
  STA QQ1                \ y-coordinate of the selected system
 
-.^hy5
+.hy5
 
  RTS                    \ Return from the subroutine
 
@@ -24010,6 +19446,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Market
 \    Summary: Print the name, price and availability of a market item
+\  Deep dive: Market item prices and availability
 \
 \ ------------------------------------------------------------------------------
 \
@@ -24025,89 +19462,6 @@ LOAD_D% = LOAD% + P% - CODE%
 \   QQ24                The item's price / 4
 \
 \   QQ25                The item's availability
-\
-\ ******************************************************************************
-\
-\ Deep dive: Market item prices and availability
-\ ==============================================
-\
-\ Summary: The algorithms behind the generation of each system's cargo market
-\
-\ References: TT151, AVL, GVL
-\
-\ The prices and availability of the market items on display in the Buy Cargo
-\ screen are calculated using a couple of complex formulae, which take a base
-\ value for each item, mix in a couple of economic variables, and blend it all
-\ with a bit of random behaviour. The result is the heart of Elite's trading
-\ system, where canny traders can make a killing (while the rest of us can't
-\ seem to get a break).
-\
-\ Let's start by looking at the formula for prices, and then availability.
-\
-\ Market item prices
-\ ------------------
-\ This is the formula for an item's price, which is performed as an 8-bit
-\ calculation:
-\
-\   price = (base_price + (random AND mask) + economy * economic_factor) * 4
-\
-\ The resulting price is 10 times the displayed price, so we can show it to one
-\ decimal place. The individual items in the calculation are as follows:
-\
-\   * The item's base_price is byte #0 in the market prices table at QQ23, so
-\     it's 19 for food, 20 for textiles, 235 for narcotics and so on.
-\
-\   * Each time we arrive in a new system, a random number is generated and
-\     stored in location QQ26, and this is shown as "random" in the calculation
-\     above.
-\
-\   * The item's mask is byte #3 in the market prices table at QQ23, so
-\     it's &01 for food, &03 for textiles, &78 for narcotics and so on. The
-\     more set bits there are in this mask, and the higher their position in
-\     this byte, the larger the price fluctuations for this commodity, as the
-\     random number is AND'd with the mask. So narcotics will vary wildly in
-\     price, while food and textiles will be relatively stable.
-\
-\   * The economy for a system is given in a 3-bit value, from 0 to 7, that is
-\     stored in QQ28. This value is described in more detail in routine TT24,
-\     but this is the range of values:
-\
-\       0 = Rich Industrial
-\       1 = Average Industrial
-\       2 = Poor Industrial
-\       3 = Mainly Industrial
-\       4 = Mainly Agricultural
-\       5 = Rich Agricultural
-\       6 = Average Agricultural
-\       7 = Poor Agricultural
-\
-\   * The economic_factor is stored in bits 0-4 of byte #1 in the market prices
-\     table at QQ23, and its sign is in bit 7, so it's -2 for food, -1 for
-\     textiles, +8 for narcotics and so on. Negative factors show products that
-\     tend to be cheaper than average in agricultural economies but closer to
-\     average in rich industrial ones, while positive factors are more
-\     expensive in poor agricultural systems than rich industrial ones - so
-\     food is cheaper in poor agricultural systems while narcotics are very
-\     expensive, and it's the other way round in rich industrial systems,
-\     where narcotics are closer to the average price, but food is pricier.
-\
-\   * The units for this item (i.e. tonnes, grams or kilograms) are given by
-\     bits 5-6 of byte #1 in the market prices table at QQ23.
-\
-\ Market item availability
-\ ------------------------
-\ The availability of each item is also calculated using a formula, which is
-\ again performed as an 8-bit calculation:
-\
-\   quantity = (base_quantity + (random AND mask) - economy * economic_factor)
-\              mod 64
-\
-\ If the result of the above is less than 0, then the available quantity is set
-\ to 0.
-\
-\ The item's base_availability is byte #2 in the market prices table at QQ23, so
-\ it's 6 for food, 10 for textiles, 8 for narcotics and so on. The other
-\ variables are described above.
 \
 \ ******************************************************************************
 
@@ -24640,7 +19994,7 @@ LOAD_D% = LOAD% + P% - CODE%
  CMP #63                \ If A < 63, jump back up to hy9 to set the availability
  BCC hy9                \ for the next market item
 
-.^hyR
+.hyR
 
  RTS                    \ Return from the subroutine
 
@@ -24692,14 +20046,13 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-
-.^ptg
+.ptg
 
  LSR COK                \ Set bit 0 of the competition flags in COK, so that the
  SEC                    \ copmpetition code will include the fact that we have
  ROL COK                \ manually forced a mis-jump into witchspace
 
-.^MJP
+.MJP
 
 \LDA #1                 \ This instruction is commented out in the original
                         \ source - it is not required as a call to TT66-2 sets
@@ -25026,7 +20379,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ a failed LCASH call, the C flag correctly indicates
                         \ failure
 
-.^TT113
+.TT113
 
  RTS                    \ Return from the subroutine
 
@@ -25092,13 +20445,12 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-
 .bay
 
  JMP BAY                \ Go to the docking bay (i.e. show the Status Mode
                         \ screen)
 
-.^EQSHP
+.EQSHP
 
  JSR DIALS              \ Call DIALS to update the dashboard
 
@@ -25372,7 +20724,6 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ number we stored in T1 earlier, as the call to prx
                         \ will have overwritten the original value in X
 
-
 .et5
 
  LDY #111               \ Set Y to recursive token 107 ("FUEL SCOOPS")
@@ -25408,7 +20759,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #31                \ Print recursive token 145 ("PRESENT")
  JSR TT27
 
-.^err
+.err
 
  JSR dn2                \ Call dn2 to make a short, high beep and delay for 1
                         \ second
@@ -25614,11 +20965,10 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-
  SEC                    \ Decrement A (for when this routine is called via
  SBC #1                 \ prx-3)
 
-.^prx
+.prx
 
  ASL A                  \ Set Y = A * 2, so it can act as an index into the
  TAY                    \ PRXS table, which has two bytes per entry
@@ -25628,7 +20978,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA PRXS+1,Y           \ Fetch the low byte of the price into A and transfer
  TAY                    \ it to X, so the price is now in (Y X)
 
-.^c
+.c
 
  RTS                    \ Return from the subroutine
 
@@ -25782,6 +21132,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Text
 \    Summary: Print the selected system name
+\  Deep dive: Generating system names
 \
 \ ------------------------------------------------------------------------------
 \
@@ -25791,35 +21142,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Other entry points:
 \
 \   cmn-1               Contains an RTS
-\
-\ ******************************************************************************
-\
-\ Deep dive: Generating system names
-\ ==================================
-\
-\ Summary: Producing system names from twisted seeds and two-letter tokens
-\
-\ References: cpl, QQ15, QQ16, QQ18, TT54
-\
-\ System names are generated from the three 16-bit seeds for that system. In
-\ the case of the selected system, those seeds live at QQ15. The process works
-\ as follows, where w0, w1, w2 are the seeds for the system in question
-\
-\   1. Check bit 6 of w0_lo. If it is set then we will generate four two-letter
-\      pairs for the name (8 characters in total), otherwise we will generate
-\      three pairs (6 characters).
-\
-\   2. Generate the first two letters by taking bits 0-4 of w2_hi. If this is
-\      zero, jump to the next step, otherwise we have a number in the range
-\      1-31. Add 128 to get a number in the range 129-159, and convert this to
-\      a two-letter token (see variable QQ18 for more on two-letter tokens).
-\
-\   3. Twist the seeds by calling TT54 and repeat the previous step, until we
-\      have processed three or four pairs, depending on step 1.
-\
-\ One final note. As the process above involves twisting the seeds three or
-\ four times, they will be changed, so we also need to back up the original
-\ seeds before starting the above process, and restore them afterwards.
 \
 \ ******************************************************************************
 
@@ -26306,7 +21628,7 @@ LOAD_E% = LOAD% + P% - CODE%
  ADC #32                \ Add 32 to the character, to convert it from upper to
                         \ to lower case
 
-.^TT44
+.TT44
 
  JMP TT26               \ Print the character in A
 
@@ -26726,7 +22048,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ token, jump back up to TT50 to print the next
                         \ character, otherwise we are done printing
 
-.^TT48
+.TT48
 
  RTS                    \ Return from the subroutine
 
@@ -26736,72 +22058,9 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw an exploding ship
+\  Deep dive: Drawing explosion clouds
 \
 \ ******************************************************************************
-\
-\ Deep dive: Drawing explosion clouds
-\ ===================================
-\
-\ Summary: Drawing and storing explosion clouds for ships whose luck runs out...
-\
-\ References: DOEXP
-\
-\ Like the ships, planet and sun, explosion clouds take a lot of maths to draw,
-\ and like them, we store the results of all this maths in a heap. For explosion
-\ clouds, we use the same ship line heap that we use for lines, but instead of
-\ storing lines on the ship line heap, we store details of the ship's explosion
-\ cloud on the heap. (We can use the same space as a ship is either a wireframe
-\ or an explosion cloud, but is never both.)
-\
-\ This is the heap structure:
-\
-\   * Byte #0 = cloud size
-\
-\   * Byte #1 = cloud counter, starts at 18, increases by 4 each time we redraw
-\     the cloud, cloud expands until 128, shrinks until it overflows, then the
-\     cloud disappears
-\
-\   * Byte #2 = explosion count for this ship from the blueprint (i.e. the
-\     number of vertices used as origins for explosion clouds)
-\
-\   * Bytes #3 to #6 = random seeds to pass to DORND2 at the start of the
-\     drawing process, so we can redraw the exact same cloud again
-\
-\   * Byte #7 onwards = coordinates of the visible vertices for the exploding
-\     ship, so we can generate clouds around them (or, specifically, if byte #2
-\     is n, the first n of them)
-\
-\ The block above is set up when a ship explodes, in place of the ship lines
-\ themselves, as exploding ships don't have any lines any more.
-\
-\ The process for drawing explosion clouds is as follows:
-\
-\   * Redraw the existing explosion cloud, if there is one, to remove it from
-\     the screen
-\
-\   * Increase the cloud counter by 4 (it starts at 18 for new explosions)
-\
-\   * Set the cloud size to cloud counter / distance, so the further away the
-\     cloud, the smaller it is, and as the cloud counter ticks onward, the cloud
-\     expands
-\
-\   * Use the cloud counter to determine the number of particles in each vertex
-\     cloud, so the cloud has more particles as the counter increases, until it
-\     gets past 128, after which the number decreases
-\
-\   * For the first n vertices (where n is the explosion count from the ship's
-\     blueprint), do the following:
-\
-\     * Fetch the vertex coordinates from the XX3 workspace into the ship line
-\       heap
-\
-\     * Seed the random number generator with four bytes from the ship line heap
-\
-\     * Plot randomly placed points within the radius of the vertex, with the
-\       number of particles set above, with random sizes
-\
-\ ******************************************************************************
-
 
 .EX2
 
@@ -26811,7 +22070,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  RTS                    \ Return from the subroutine
 
-.^DOEXP
+.DOEXP
 
  LDA INWK+31            \ If bit 6 of the ship's byte #31 is clear, then the
  AND #%01000000         \ ship is not already exploding so there is no existing
@@ -27523,13 +22782,12 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-
  DEX                    \ Increment the shield value so that it doesn't go past
                         \ a maximum of 255
 
  RTS                    \ Return from the subroutine
 
-.^SHD
+.SHD
 
  INX                    \ Increment the shield value
 
@@ -27860,6 +23118,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing pixels
 \    Summary: Draw a single-height dot on the dashboard
+\  Deep dive: Drawing colour pixels in mode 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -27872,122 +23131,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \   Y1                  The screen pixel y-coordinate of the dash
 \
 \   COL                 The colour of the dash as a mode 5 character row byte
-\
-\ ******************************************************************************
-\
-\ Deep dive: Drawing colour pixels in mode 5
-\ ==========================================
-\
-\ Summary: Poking screen memory to display colour pixels in the dashboard view
-\
-\ References: CPIX2, CTWOS
-\
-\ Drawing four-colour pixels in the dashboard is not as straightforward as you
-\ might think. It's complicated enough drawing monochrome pixels in the
-\ two-colour mode 4 screen that Elite uses for the space view, but it's even
-\ more mind-bending in mode 5, so before you read the following, I highly
-\ recommend you take a look at the deep dive on "Drawing monochrome pixels in
-\ mode 4", which looks at screen addresses and plotting techniques for this
-\ simpler black-and-white mode. If monochrome plotting already makes sense to
-\ you, then let's move on to four colours.
-\
-\ As with mode 4, the mode 5 screen is laid out in memory using character
-\ blocks. Indeed, the character blocks are the same size and height in terms of
-\ bits and bytes, and pixel coordinates are identical in both screen modes (both
-\ screen modes are 256 coordinates wide), so as far as the end used is
-\ concerned, the screen modes are really similar. At the screen memory level,
-\ however, there are some key differences.
-\
-\ The main difference is that each pixel can be one of four colours rather than
-\ two, so as a result each pixel takes up twice as much memory (2 bits as
-\ opposed to 1 bit). If we look at the way character blocks are laid out in
-\ terms of bits, it looks the same as for mode 4 - here's what two neighbouring
-\ character blocks look like in both modes:
-\
-\   01234567 01234567
-\   01234567 01234567
-\   01234567 01234567
-\   01234567 01234567
-\   01234567 01234567
-\   01234567 01234567
-\   01234567 01234567
-\   01234567 01234567
-\
-\ However, while in mode 4 each bit represents one pixel, so the above block
-\ would be 16 pixels across and 8 pixels high, in mode 5 each pixel takes up two
-\ bits, so the above block shows as 8 pixels across and 8 pixels high. Pixels in
-\ mode 5 are stretched out so they appear twice as wide as they are high, so
-\ everything still fits on-screen in a sensible manner.
-\
-\ So we know that a character block row in mode 5 consists of four pixels in one
-\ byte. The complicated part is how that byte stores those four pixels. If we
-\ consider a character row byte like this:
-\
-\   01234567
-\
-\ then the first pixel is defined by bits 0 and 4, the second by bits 1 and 5,
-\ and so on. If we split it up into nibbles:
-\
-\   0123 4567
-\
-\ then the first pixel is defined by the first bits of each nibble (0 and 4),
-\ the second is defined by the second bits of each nibble (1 and 5), and so on
-\ with bits 2 and 6, and bits 3 and 7. So consider this character row byte:
-\
-\   1111 0000
-\
-\ Each of the four bits has a 1 as the first bit and a 0 as the second bit,
-\ giving %10, or 2, so this defines four pixels in a row of colour 2. And this
-\ one:
-\
-\   1010 0011
-\
-\ contains the following pixels: %10, %00, %11 and %01, so this is a four-pixel
-\ row consisting of pixel colours 2, 0, 3 and 1.
-\
-\ That aside, modes 4 and 5 work in the same way. Each character row takes up
-\ 256 bytes, or exactly one page, so we can convert from screen coordinates to
-\ character blocks using the same code. We can even work out the correct row in
-\ the relevant character block in the same way, as the screen x- and
-\ y-coordinate systems are identical. The only differences are:
-\
-\   * How we manipulate the individual character row bytes to support the nibble
-\     system for four colours
-\
-\   * The fact that the y-coordinate still ranges from 0 to 256, but this time
-\     there are only 128 pixels across the screen, so each pixel effectively has
-\     two different screen coordinates (though we can easily cater for this by
-\     ignoring the last bit of the y-coordinate)
-\
-\ We can even use a similar system to the TWOS table that we use in PIXEL, but
-\ this time it's set up for the nibble system above. As a reminder, the TWOS
-\ table provides ready-made bytes for plotting single pixels, such as this one
-\ for plotting the third pixel in the row (out of 8):
-\
-\   TWOS+2  = %00100000
-\
-\ We can do the same for mode 5, but for the third pixel in the row (out of 4),
-\ the table returns this value instead:
-\
-\   CTWOS+2  = %00100010
-\
-\ which breaks up into 0010 0010, or %11 in the third pixel. As with TWOS, we
-\ can use this byte as a mask onto a 4-pixel colour byte to work out what to
-\ poke into screen memory.
-\
-\ On the subject of 4-pixel colour bytes, this is what they look like for the
-\ four colours used in the dashboard:
-\
-\   * Colour 0: %00000000 = &00 (black)
-\
-\   * Colour 1: %00001111 = &0F (red)
-\
-\   * Colour 2: %11110000 = &F0 (yellow/white)
-\
-\   * Colour 3: %11111111 = &FF (green/cyan)
-\
-\ So aside from having two bits per pixel and four pixels per character row,
-\ mode 5 is pretty similar to the monochrome mode 4.
 \
 \ ******************************************************************************
 
@@ -28899,6 +24042,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Project the current ship onto the screen
+\  Deep dive: Extended screen coordinates
 \
 \ ------------------------------------------------------------------------------
 \
@@ -28937,181 +24081,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \                       clear if it does project onto the screen
 \
 \   A                   Contains K4+1, the high byte of the y-coordinate
-\
-\ ******************************************************************************
-\
-\ Deep dive: Extended screen coordinates
-\ ======================================
-\
-\ Summary: The extended 16-bit screen coordinate system behind the space view
-\
-\ References: PROJ, LL145, LL118
-\
-\ When simulating its universe of ships, stars and space stations, Elite uses
-\ large numbers - space is big, after all. The ship coordinates are stored as
-\ sign-magnitude numbers with 16 bits for the magnitudes, while the planet and
-\ sun coordinates go all the way up to 23-bit magnitudes (as they can be a lot
-\ further away from us than ships and stations).
-\
-\ To maintain accuracy when projecting these shapes onto the screen, Elite uses
-\ 16-bit screen coordinates for the calculations. The screen itself is only 256
-\ pixels across, which fits into 8 bits, so this means during the projection,
-\ ships often project onto coordinates that are off-screen.
-\
-\ This is intentional, and happens all the time when you're speeding past enemy
-\ ships or slamming into the walls of a space station. Hammering the keyboard
-\ with a sudden pitch-and-roll manoeuvre brings ships into view that were
-\ otherwise minding their own business in the depths of space, but even though
-\ we couldn't see them, they were there all along.
-\
-\ The extended screen coordinate system is a key part of the simulation. The
-\ PROJ routine that projects space coordinates onto the screen produces 16-bit
-\ coordinates as a result of the projection, but the way these 16-bit
-\ coordinates relate to the screen is delightfully simple. Let's take a look.
-\
-\ A wall of screens
-\ -----------------
-\ First, let's consider a 256x256 screen (the space view in Elite is 256 pixels
-\ wide and 192 pixels high, but we'll come to that in a moment). The screen
-\ (x, y) coordinates would look like this, when expressed in hexadecimal:
-\
-\                         (&00, &00)      (&FF, &00)
-\                                +----------+
-\                                |          |
-\                                |          |
-\                                |          |
-\                                +----------+
-\                         (&00, &FF)      (&FF, &FF)
-\
-\ These coordinates are 8-bit values, as the screen is only 256 pixels wide. In
-\ the extended coordinate system, there's an additional high byte. Let's set that
-\ high byte for our screen to 0, so in terms of 16-bit coordinates, we have the
-\ following coordinates:
-\
-\                      (&0000, &0000)    (&00FF, &0000)
-\                                +----------+
-\                                |          |
-\                                |          |
-\                                |          |
-\                                +----------+
-\                      (&0000, &00FF)    (&00FF, &00FF)
-\
-\ Let's describe this screen, where the high byte of the x- and y-coordinates is
-\ &00, like this:
-\
-\                                +----------+
-\                                |          |
-\                                | &00, &00 |
-\                                |          |
-\                                +----------+
-\
-\ Now let's tack another 256x256 screen onto the right of this one. The screen
-\ x-coordinates of this new screen would have a high byte of 1 instead of 0,
-\ like this:
-\
-\                      (&0100, &0000)    (&01FF, &0000)
-\                                +----------+
-\                                |          |
-\                                |          |
-\                                |          |
-\                                +----------+
-\                      (&0100, &00FF)    (&01FF, &00FF)
-\
-\ which we can also write like this:
-\
-\                                +----------+
-\                                |          |
-\                                | &01, &00 |
-\                                |          |
-\                                +----------+
-\
-\ Putting the neighbours side by side, we get this:
-\
-\                          +----------+----------+
-\                          |          |          |
-\                          | &00, &00 | &01, &00 |
-\                          |          |          |
-\                          +----------+----------+
-\
-\ We can also bolt another screen onto the bottom, like this:
-\
-\                          +----------+----------+
-\                          |          |          |
-\                          | &00, &00 | &01, &00 |
-\                          |          |          |
-\                          +----------+----------+
-\                          |          |
-\                          | &00, &01 |
-\                          |          |
-\                          +----------+
-\
-\ and, if we consider the extended screen coordinates to be signed 16-bit
-\ values using two's complement, we can extend the screens in all directions,
-\ like this:
-\
-\   +----------+     +----------+----------+----------+     +----------+
-\   |          |     |          |          |          |     |          |
-\   | &80, &80 | ... | &FF, &80 | &00, &80 | &01, &80 | ... | &7F, &80 |
-\   |          |     |          |          |          |     |          |
-\   +----------+     +----------+----------+----------+     +----------+
-\        :                :          :          :                :
-\        :                :          :          :                :
-\        :                :          :          :                :
-\   +----------+     +----------+----------+----------+     +----------+
-\   |          |     |          |          |          |     |          |
-\   | &80, &FF | ... | &FF, &FF | &00, &FF | &01, &FF | ... | &7F, &FF |
-\   |          |     |          |          |          |     |          |
-\   +----------+     +----------+----------+----------+     +----------+
-\   |          |     |          |          |          |     |          |
-\   | &80, &00 | ... | &FF, &00 | &00, &00 | &01, &00 | ... | &7F, &00 |
-\   |          |     |          |          |          |     |          |
-\   +----------+     +----------+----------+----------+     +----------+
-\   |          |     |          |          |          |     |          |
-\   | &80, &01 | ... | &FF, &01 | &00, &01 | &01, &01 | ... | &7F, &01 |
-\   |          |     |          |          |          |     |          |
-\   +----------+     +----------+----------+----------+     +----------+
-\        :                :          :          :                :
-\        :                :          :          :                :
-\        :                :          :          :                :
-\   +----------+     +----------+----------+----------+     +----------+
-\   |          |     |          |          |          |     |          |
-\   | &80, &7F | ... | &FF, &7F | &00, &7F | &01, &7F | ... | &7F, &7F |
-\   |          |     |          |          |          |     |          |
-\   +----------+     +----------+----------+----------+     +----------+
-\
-\ This is the extended coordinate system used in Elite. You can think of it as
-\ a bank of individual screens, where the entire view is projected onto all
-\ the screens, but the game just shows the screen in the middle to the player.
-\ The extended coordinates cover a 256x256 mesh of individual 256x256 screens,
-\ which is easily enough space to project 3D space coordinates onto the screen
-\ in the middle.
-\
-\ Checking whether a coordinate is on-screen
-\ ------------------------------------------
-\ The clever part about all this is how quickly we can check whether a screen
-\ coordinate is visible in the space view, and how easy it is to get the actual
-\ screen coordinate we need for drawing. Given an extended screen coordinate,
-\ this is how we check whether it's on-screen:
-\
-\   * The first check is on the high byte. If either of the x- or y-coordinate's
-\     high bytes is non-zero, then the coordinate isn't in the &00, &00 screen
-\     in the above diagram, so it is definitely off-screen. If they are both
-\     zero, we move on to the next check.
-\
-\   * If both high bytes are zero, then the second check is to make sure the
-\     coordinate is in the space view rather than the dashboard. This is a
-\     simple check whether the low byte of the y-coordinate is less than 192, as
-\     the space view is made up of the top 192 pixel rows. If it is less than
-\     192, the coordinate is indeed in the space view, otherwise it's hidden by
-\     the dashboard.
-\
-\   * If the coordinate is in the space view, then we can simply take the low
-\     bytes to get the screen coordinate for drawing.
-\
-\ In this way Elite effectively projects its universe onto a huge, cinematic
-\ bank of screens, and then works out which parts of the projection appear in
-\ the space view using three quick comparisons against 0 and 192. It's elegant
-\ and fast, as so much of this game's code is.
 \
 \ ******************************************************************************
 
@@ -29342,6 +24311,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing planets
 \    Summary: Draw the planet's equator and meridian
+\  Deep dive: Drawing meridians and equators
 \
 \ ------------------------------------------------------------------------------
 \
@@ -29356,71 +24326,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \   K4(1 0)             Pixel y-coordinate of the centre of the planet
 \
 \   INWK                The planet's ship data block
-\
-\ ******************************************************************************
-\
-\ Deep dive: Drawing meridians and equators
-\ =========================================
-\
-\ Summary: The algorithms behind the meridians and equators of planets like Lave
-\
-\ References: PL9 (Part 2 of 3)
-\
-\ This deep dive is a work in progress. It covers part 2 of the PL9 routine,
-\ which draws meridians and equators on planets.
-\
-\ Part 2 of PL9 calculates the following and, for each meridian, calls PLS2 to
-\ do the actual plotting.
-\
-\ For meridian 1, we calculate the following
-\
-\   CNT2 = arctan(-nosev_z_hi / roofv_z_hi) / 4
-\          with opposite sign to nosev_z_hi
-\
-\   (XX16   K2  ) = nosev_x / z
-\   (XX16+1 K2+1) = nosev_y / z
-\   (XX16+2 K2+2) = roofv_x / z
-\   (XX16+3 K2+3) = roofv_y / z
-\
-\ Then PLS2 does this, with CNT2 stepping through a half circle from the
-\ starting point set above:
-\
-\   K6(1 0) = K3(1 0) + (XX16 K2) * cos(CNT2) + (XX16+2 K2+2) * sin(CNT2)
-\           = K3(1 0) + (nosev_x / z) * cos(CNT2) + (roofv_x / z) * sin(CNT2)
-\
-\   (T X) = - |XX16+1 K2+1| * cos(CNT2) - |XX16+3 K2+3| * sin(CNT2)
-\         = - |nosev_y / z| * cos(CNT2) - |roofv_y / z| * sin(CNT2)
-\
-\ calling BLINE each iteration to plot segments to:
-\
-\   x = K6(1 0), y = K4(1 0) + (T X)
-\
-\ and counting CNT2 through half a circle from its starting point.
-\
-\ For meridian 2, we calculate the following
-\
-\   CNT2 = arctan(-nosev_z_hi / sidev_z_hi) / 4
-\          with opposite sign to nosev_z_hi
-\
-\   (XX16   K2  ) = nosev_x / z
-\   (XX16+1 K2+1) = nosev_y / z
-\   (XX16+2 K2+2) = sidev_x / z
-\   (XX16+3 K2+3) = sidev_y / z
-\
-\ Then PLS2 does this, with CNT2 stepping through a half circle from the
-\ starting point set above:
-\
-\   K6(1 0) = K3(1 0) + (XX16 K2) * cos(CNT2) + (XX16+2 K2+2) * sin(CNT2)
-\           = K3(1 0) + (nosev_x / z) * cos(CNT2) + (sidev_x / z) * sin(CNT2)
-\
-\   (T X) = - |XX16+1 K2+1| * cos(CNT2) - |XX16+3 K2+3| * sin(CNT2)
-\         = - |nosev_y / z| * cos(CNT2) - |sidev_y / z| * sin(CNT2)
-\
-\ calling BLINE each iteration to plot segments to:
-\
-\   x = K6(1 0), y = K4(1 0) + (T X)
-\
-\ and counting CNT2 through half a circle from its starting point.
 \
 \ ******************************************************************************
 
@@ -29494,6 +24399,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing planets
 \    Summary: Draw the planet's crater
+\  Deep dive: Drawing craters
 \
 \ ------------------------------------------------------------------------------
 \
@@ -29508,45 +24414,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \   K4(1 0)             Pixel y-coordinate of the centre of the planet
 \
 \   INWK                The planet's ship data block
-\
-\ ******************************************************************************
-\
-\ Deep dive: Drawing craters
-\ ==========================
-\
-\ Summary: The algorithms behind the huge craters of planets like Diso
-\
-\ References: PL9 (Part 3 of 3)
-\
-\ This deep dive is a work in progress. It covers part 3 of the PL9 routine,
-\ which draws craters on planets.
-\
-\ Part 3 of PL9 calculates the following and calls PLS22 to do the actual
-\ plotting.
-\
-\ First, the calculations:
-\
-\   K3(1 0) = 222 * roofv_x / z + x-coordinate of planet centre
-\   K4(1 0) = 222 * roofv_x / z - y-coordinate of planet centre
-\
-\   (XX16   K2  ) = nosev_x / 2z
-\   (XX16+1 K2+1) = nosev_y / 2z
-\   (XX16+2 K2+2) = sidev_x / 2z
-\   (XX16+3 K2+3) = sidev_y / 2z
-\
-\ Then PLS22 does this with CNT2 stepping through a whole circle:
-\
-\   K6(1 0) = K3(1 0) + (XX16 K2) * cos(CNT2) + (XX16+2 K2+2) * sin(CNT2)
-\           = K3(1 0) + (nosev_x / z) * cos(CNT2) + (sidev_x / z) * sin(CNT2)
-\
-\   (T X) = - |XX16+1 K2+1| * cos(CNT2) - |XX16+3 K2+3| * sin(CNT2)
-\         = - |nosev_y / z| * cos(CNT2) - |sidev_y / z| * sin(CNT2)
-\
-\ calling BLINE each iteration to plot segments to:
-\
-\   x = K6(1 0), y = K4(1 0) + (T X)
-\
-\ and counting CNT2 through a whole circle from 0.
 \
 \ ******************************************************************************
 
@@ -29960,6 +24827,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing suns
 \    Summary: Draw the sun: Set up all the variables needed
+\  Deep dive: Drawing the sun
 \
 \ ------------------------------------------------------------------------------
 \
@@ -29985,123 +24853,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \   RTS2                Contains an RTS
 \
 \ ******************************************************************************
-\
-\ Deep dive: Drawing the sun
-\ ==========================
-\
-\ Summary: Drawing and storing the sun, and the systems on the Short-range Chart
-\
-\ References: SUN, WPLS
-\
-\ The sun in Elite is an absolute sight to behold, with its flickering fringes
-\ and bright, white glare that lights up even the darkest corners of space.
-\ Perhaps surprisingly, it turns out to be quite a lot easier to draw the sun
-\ than the meridians and craters of the planets.
-\
-\ Let's see what it takes to let there be light in the Elite universe.
-\
-\ Line by line
-\ ------------
-\ Unlike the planets, which are drawn as circles, the sun is drawn as a set of
-\ horizontal lines, with one line per pixel line on-screen. This is how the
-\ shimmering edges are drawn, by randomly making the lines shorter or longer
-\ (more on that later).
-\
-\ Each line is defined by two parameters: the coordinate of the centre of the
-\ line, and the length of the line from its centre to one end (which we call the
-\ "half-width", as it's half the width of the full horizontal line). For the
-\ sun, all the lines have the same centre x-coordinate, which is the same
-\ x-coordinate as the centre of the sun.
-\
-\ Given this, we can draw the sun line by line, and all we need to calculate is
-\ the half-width of the line for that particular y-coordinate. We can do this
-\ using nothing more complicated than Pythagoras - there's no need for any
-\ trigonometry here. Consider drawing a sun line near the bottom of a sun with
-\ radius K, let's say the line that is V lines below the centre. It looks
-\ something like this:
-\
-\                          _ - _
-\                       =         =
-\                     =             =                   |`.
-\                    =               =                  |  `.  K
-\   We want          =       |`.     =                V |    `.
-\   to draw           =      |  `.  =         __-->     |      `.
-\   this line ------>  ._____|____`.   ___.--´          +--------`
-\                          - _ -                     SQRT(K^2 - V^2)
-\
-\ Looking at the triangle from the centre of the sun down to the horizontal
-\ line we want to draw, we can apply Pythagoras to calculate that the half-width
-\ of the line we want to draw is SQRT(K^2 - V^2), so along with the value of V
-\ we have all the data we need to draw that line, and by extension the whole
-\ ball of fire.
-\
-\ Flickering fringes
-\ ------------------
-\ The sun's flickering fringes are easy enough to implement in this model.
-\
-\ We start by calculating a figure between 0 and 7, with bigger numbers for
-\ bigger suns, and call this the "fringe size", which we store in CNT. This
-\ defines the width of the pulsating fringe around the sun (which explains why
-\ the sun stops flickering when it's far away - it has a fringe size of 0).
-\
-\ Then, when calculating the half-width of each line using the method above, we
-\ simply pick a random number between 0 and the fringe size, and add it to the
-\ half-width. This makes the sun symmetrical around its vertical meridian, and
-\ as the random number changes for each line and for each redraw of the sun, the
-\ sun's fringes shimmer and flicker. It's simple but very effective, and it adds
-\ very little effort, even to the erase procedure, as we can see in the next
-\ section.
-\
-\ Drawing and storing sun lines with SUN
-\ --------------------------------------
-\ As with all objects in the sky, we can erase the sun from the screen by
-\ drawing it a second time in the same place as before, so it cancels out the
-\ existing sun using EOR logic. Although the maths above isn't complex, it is
-\ still pretty time-consuming, especially with a large sun on the screen, so
-\ as with the planets, the sun has its own line heap, stored at LSO, which
-\ stores the data for every line in the current sun.
-\
-\ The first location at LSO has a special meaning:
-\
-\   * LSO = 1   indicates the line heap contains data
-\   * LSO = &FF indicates the line heap is empty
-\
-\ Because the sun is made up of lines and it can fill the entire space view,
-\ the sun's line heap contains 192 values, one for each of the lines on the
-\ screen. The value in LSO+Y contains details of the sun's line on pixel row Y,
-\ with a 0 indicating there is no line, and a non-zero value containing the
-\ half-width of the sun line on that y-coordinate. Along with the sun's centre
-\ coordinates in SUNX and SUNY, the line heap contains everything we need to
-\ know in order to draw the sun, all without having to recalculate anything.
-\
-\ This also applies to the random fringe factor that we add to the half-width to
-\ make the sun shimmer. As we're only storing the half-width and that contains
-\ the random fringe size, we can store and redraw shimmering suns with no more
-\ effort then a clean ball sun. It's remarkably elegant for such a complicated-
-\ looking graphical effect.
-\
-\ The SUN routine combines the drawing of the new sun and the removal of the
-\ old one into one pass through the line heap, from the bottom of the screen
-\ to the top (so from the end of the heap to the start). We do this in part 2
-\ by starting at the bottom and plotting each sun line in turn from the line
-\ heap as we move up the screen. As each line is plotted, thus erasing the
-\ old sun, it is removed from the line heap.
-\
-\ We do this until we reach the point where we need to start drawing the new
-\ sun, at which point we move into part 3. This draws two horizontal lines that
-\ between them manage to remove the old sun's line and draw the new sun's line
-\ in the most efficient way. Each time, we replace the value in the line heap
-\ with the new line's half-width, so the new sun can be erased in the same way.
-\ Once the new sun is drawn, we then keep heading up the screen in part 4, where
-\ we redraw any remaining lines from the old sun, thus removing them from the
-\ screen, and leaving just the new sun on show.
-\
-\ The LSO line heap block shares its memory with the ship line heap for the
-\ space station. This memory can be shared as our local bubble of universe can
-\ support either the sun or a space station, but not both.
-\
-\ ******************************************************************************
-
 
  JMP WPLS               \ Jump to WPLS to remove the old sun from the screen. We
                         \ only get here via the BCS just after the SUN entry
@@ -30131,7 +24882,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JMP PLF5               \ Jump to PLF5
 
-.^SUN
+.SUN
 
  LDA #1                 \ Set LSX = 1 to indicate the sun line heap is about to
  STA LSX                \ be filled up
@@ -30531,7 +25282,6 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ If we get here then there is no old sun line on this
                         \ line, so we can just draw the new sun's line. The new
 
-
  LDX K3                 \ Set YY(1 0) = K3(1 0), the x-coordinate of the centre
  STX YY                 \ of the new sun's line
  LDX K3+1
@@ -30614,7 +25364,7 @@ LOAD_E% = LOAD% + P% - CODE%
  LDA K3+1
  STA SUNX+1
 
-.^RTS2
+.RTS2
 
  RTS                    \ Return from the subroutine
 
@@ -30679,6 +25429,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing circles
 \    Summary: Draw a circle (for the planet or chart)
+\  Deep dive: Drawing circles
 \
 \ ------------------------------------------------------------------------------
 \
@@ -30698,88 +25449,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Returns:
 \
 \   C flag              The C flag is clear
-\
-\ ******************************************************************************
-\
-\ Deep dive: Drawing circles
-\ ==========================
-\
-\ Summary: The routines that draw planets and the hyperspace and docking tunnels
-\
-\ References: CIRCLE, CIRCLE2, TT128
-\
-\ You never forget your first journey in Elite, and a lot of that is down to the
-\ circle routine. The launch tunnel rushing past as you punch your way out of
-\ the station - that's the circle routine. The planet Lave, hanging in space in
-\ front of you in all its rotating glory - that's the circle routine. The nearby
-\ systems you can choose to visit on the Short-range Chart are all those inside
-\ a circle drawn by the circle routine. And the hyperspace tunnel? You guessed
-\ it. It's the circle routine again.
-\
-\ Circles are drawn by the CIRCLE2 routine. This routine draws a circle by
-\ starting at the bottom of the circle - or at 6 o'clock if you think of it as a
-\ clock face - and moving anti-clockwise in steps defined by the size of the
-\ step size in STP. The whole circle is divided into 64 steps and the step
-\ number is stored in CNT, so if STP were 2, CNT would be 0, 2, 4 and so on up
-\ to and including 64. So we work our way around the circle like this:
-\
-\   * CNT = 0-16  is the bottom-right quadrant (6 o'clock to 3 o'clock)
-\   * CNT = 16-32 is the top-right quadrant    (3 o'clock to 12 o'clock)
-\   * CNT = 32-48 is the top-left quadrant     (12 o'clock to 9 o'clock)
-\   * CNT = 48-64 is the bottom-left quadrant  (9 o'clock to 6 o'clock)
-\
-\ If we can work out the coordinates of the point on the circle at step CNT,
-\ then we can draw the circle by simply drawing lines between each point, with
-\ each line being a segment of the circle. We can draw smooth circles by having
-\ smaller segments, as with the circles on the charts, or we can draw more
-\ polygonal circles by having large segments, as with the launch tunnel. The
-\ circle's "step size" determines how many of the 64 points make up each
-\ segment, so smaller step sizes give smoother circles (the step size is
-\ typically 2, 4 or 8 points).
-\
-\ So let's consider the step where CNT is around 5, say, so that's around 5
-\ o'clock. The sine table at SNE contains 32 values that cover half a circle, so
-\ we can think of CNT as the angle that we have travelled through as we work our
-\ way round the circle, with 64 covering the whole thing. So 5 o'clock looks
-\ like this (I've put a "c" for the angle CNT as it's a bit of a tight squeeze):
-\
-\         _ - _
-\      =         =                     |`.                          |`.
-\    =             =                   |c `.                        |c `.  K
-\   =               =                  |    `. K         K * cos(c) |    `.
-\   =       |`.     =        __-->     |      `.                    |      `.
-\    =      |  `.  =  ___.--´          |        `.                  +--------`
-\     =     |    `.                    |     __--´    ----->        K * sin(c)
-\      `--__|__--´                     |__--´
-\
-\ So if the centre of the circle (the top of the triangle above) is at the
-\ origin (0, 0), then using basic trigonometry, we can see that at step number
-\ CNT, the point on the circle is at these coordinates:
-\
-\   x = K * sin(CNT)
-\   y = K * cos(CNT)
-\
-\ The SNE table only gives us positive results, so for other quadrants of the
-\ circle, we'll need to set the signs of x and y according to the particular
-\ quadrant we're in, but the magnitude of the coordinates will be as above.
-\ Specifically, we need to do the following (as screen y-coordinates are
-\ positive down the screen and screen x-coordinates are positive to the right):
-\
-\   * CNT = 0-16  is the bottom-right quadrant so x is +ve and y is +ve
-\   * CNT = 16-32 is the top-right quadrant    so x is +ve and y is -ve
-\   * CNT = 32-48 is the top-left quadrant     so x is -ve and y is -ve
-\   * CNT = 48-64 is the bottom-left quadrant  so x is -ve and y is +ve
-\
-\ To get the final screen coordinates of the point at count CNT, we have to add
-\ the results from above to the coordinates of the centre of the circle, as the
-\ origin of the screen is at the top-left, not in the centre of the circle. We
-\ do this with the following:
-\
-\   x = K * sin(CNT) + K3(1 0)
-\   y = K * cos(CNT) + K4(1 0)
-\
-\ And that's how we draw the planet and chart circles in a step-wise fashion
-\ using the sine table.
 \
 \ ******************************************************************************
 
@@ -31207,7 +25876,6 @@ LOAD_E% = LOAD% + P% - CODE%
                         \
                         \   (A P+1) = K4(1 0) + K
 
-
  BMI PL21               \ If A has bit 7 set then we overflowed, so jump to
                         \ PL21 to set the C flag and return from the subroutine
 
@@ -31518,7 +26186,7 @@ LOAD_E% = LOAD% + P% - CODE%
  ADC #0                 \   X = ~X
  TAX
 
-.^PL44
+.PL44
 
  CLC                    \ Clear the C flag to indicate success
 
@@ -32183,7 +26851,6 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ that needs shuffling down (this BEQ is effectively a
                         \ JMP as A will always be zero)
 
-
 \ ******************************************************************************
 \
 \       Name: SFX
@@ -32593,6 +27260,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Utility routines
 \    Summary: Generate random numbers
+\  Deep dive: Generating random numbers
 \
 \ ------------------------------------------------------------------------------
 \
@@ -32603,88 +27271,12 @@ LOAD_F% = LOAD% + P% - CODE%
 \   DORND2              Restricts the value of RAND+2 so that bit 0 is always 0
 \
 \ ******************************************************************************
-\
-\ Deep dive: Generating random numbers
-\ ====================================
-\
-\ Summary: The algorithm behind Elite's random number generation routines
-\
-\ References: DORND, DORND2
-\
-\ Games like Elite need a steady stream of random numbers. They are used all
-\ over the place to add an element of chance to gameplay, whether it's in the
-\ main flight loop when deciding whether or not to spawn an angry Thargoid in
-\ the depths of space, or on arrival in a new system where the market prices
-\ have a random element mixed into the procedural generation, so they are never
-\ exactly the same.
-\
-\ Random numbers on Elite are generated by the DORND and DORND2 routines. These
-\ routines use the four seed bytes at RAND to RAND+3 to generate random numbers,
-\ though I am still trying to work out how this works, and the difference
-\ between the two different entry points, one of which clears the C flag first.
-\
-\ Let's look at the algorithm, anyway.
-\
-\ There are two calculations of two 8-bit numbers in the DORND routine. The
-\ first pair is at RAND and RAND+2 (let's call them r0 and r2) and the second
-\ pair is at RAND+1 and RAND+3 (let's call them r1 and r3).
-\
-\ The values of r0 and r2 are not read by any other routine apart from this
-\ one, so they are effectively internal to the random number generation
-\ routine. r1 and r3, meanwhile, are returned in A and X with each call to
-\ DORND, and along with the returned values of the C and V flags, form the
-\ the random results we're looking for.
-\
-\ The seeds are overwritten in three places:
-\
-\   * All four locations are updated by EXL2, using a STA &FFFD,Y instruction
-\     with Y = 2, 3, 4, 5 (so this points the write to zero page location &00,
-\     which is where RAND is located, in the first four bytes of memory).
-\
-\   * r0 is written to at the start of M% in the main loop, to seed the random
-\     number generator. Here, r0 is set to the first byte of the ship data block
-\     at K% (which is the x_lo coordinate for the planet).
-\
-\   * r3 is written to in EX4 as part of the explosion routine, with r3 being
-\     set to the seventh byte of the ship data block at K%+6 (which is the z_lo
-\     coordinate for the planet).
-\
-\ r0 and r2 follow the following sequence through successive calls to DORND,
-\ going from r0 and r2 to r0´ and r2´ with each call:
-\
-\   r2´ = ((r0 << 1) mod 256) + C
-\   r0´ = r2´ + r2 + bit 7 of r0
-\
-\ C is the C flag on entry to the routine. If this routine is entered with the C
-\ flag clear, e.g. via DORND2, then if bit 0 of RAND+2 is 0, it will remain at 0.
-\
-\ r1 and r3 (which are returned in A and X) follow this number sequence through
-\ successive calls to DORND, going from r1 and r3 to r1´ and r3´:
-\
-\   A = r1´ = r1 + r3 + C
-\   X = r3´ = r1
-\
-\ C is the C flag from the calculation of r0´ above, i.e. from the addition of
-\ r2´ with r2 and bit 7 of r0. Because r3´ is set to r1, this can be thought of
-\ as a number sequence, with A being the next number in the sequence and X being
-\ the value of A from the previous call.
-\
-\ In DORND2, we enter with the C flag clear, which changes the calculations in
-\ DORND to:
-\
-\   r2´ = ((r0 << 1) mod 256)
-\   r0´ = r2´ + r2 + bit 7 of r0
-\
-\ so r2´ always has bit 0 cleared, i.e. r2 is always a multiple of 2.
-\
-\ ******************************************************************************
 
-
-.^DORND2
+.DORND2
 
  CLC                    \ This ensures that bit 0 of r2 is 0
 
-.^DORND
+.DORND
 
  LDA RAND               \ r2´ = ((r0 << 1) mod 256) + C
  ROL A                  \ r0´ = r2´ + r2 + bit 7 of r0
@@ -32725,7 +27317,6 @@ LOAD_F% = LOAD% + P% - CODE%
 \ C flag set.
 \
 \ ******************************************************************************
-
 
 .MTT4
 
@@ -32774,7 +27365,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-.^TT100
+.TT100
 
  JSR M%                 \ Call M% to iterate through the main flight loop
 
@@ -32791,7 +27382,7 @@ LOAD_F% = LOAD% + P% - CODE%
  INC DLY                \ If we get here, DLY is negative, so we have gone too
                         \ and need to increment DLY back to 0
 
-.^me3
+.me3
 
  DEC MCNT               \ Decrement the main loop counter in MCNT
 
@@ -33099,7 +27690,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-.^MLOOP
+.MLOOP
  LDA #%00000001         \ Set 6522 System VIA interrupt enable register IER
  STA SHEILA+&4E         \ (SHEILA &4E) bit 1 (i.e. disable the CA2 interrupt,
                         \ which comes from the keyboard)
@@ -33158,7 +27749,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-.^FRCE
+.FRCE
 
  JSR TT102              \ Call TT102 to process the key pressed in A
 
@@ -33665,7 +28256,6 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR DET1               \ the dashboard, and fall through into DEATH2 to reset
                         \ and restart the game
 
-
 \ ******************************************************************************
 \
 \       Name: DEATH2
@@ -33687,6 +28277,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Start and end
 \    Summary: Main entry point for the Elite game code
+\  Deep dive: Program flow of the main game loop
 \
 \ ------------------------------------------------------------------------------
 \
@@ -33701,179 +28292,6 @@ LOAD_F% = LOAD% + P% - CODE%
 \                       pointer. BRKV is set to point here by elite-loader.asm
 \
 \ ******************************************************************************
-\
-\ Deep dive: Program flow of the main game loop
-\ =============================================
-\
-\ Summary: The sequence of events in the main game loop and the main flight loop
-\
-\ References: TT170, MLOOP, M%
-\
-\ Here is a high-level look at the main program flow, from the title screen to
-\ the end of life as we know it, via the main game loop and the main flight
-\ loop. The following is mainly about the flight aspects of the game, as the
-\ docked screens don't really have much of a flow, they just get shown when the
-\ relevant keys are pressed.
-\
-\ Each section is broken down into parts that mirror the structure of the source
-\ code, so it should be easy enough to find the relevant parts mentioned below.
-\
-\ Title sequence
-\ --------------
-\ 1/2 TT170
-\
-\   * Show "load commander?" title screen (TITLE)
-\   * Process loading of commander file, if selected
-\   * Copy last saved commander NA% to current commander TP
-\   * Show "press fire or space" title screen (TITLE)
-\   * Set target system to home system
-\   * Process arrival in system closest to target
-\
-\ 2/2 BAY
-\
-\   * Set the docked flag
-\   * Jump to the docked section of the main game loop (FRCE, see below) with f8
-\     "pressed" to show Status Mode
-\
-\ Main game loop
-\ --------------
-\ 1/6 (potentially called from part 2)
-\
-\   * Spawn a trader
-\
-\ 2/6
-\
-\   * Call the main flight loop (M%, see below)
-\   * Clear any expired in-flight messages from the screen
-\   * On 255 out of 256 iterations, skip straight to MLOOP in part 5
-\   * Potentially spawn a trader by jumping up to part 1
-\   * Potentially spawn a cargo canister or an asteroid
-\
-\ 3/6
-\
-\   * Potentially spawn a cop, with a higher chance if we've been bad
-\
-\ 4/6
-\
-\   * Potentially spawn a lone bounty hunter, a Thargoid, or a group of 1-4
-\     pirates
-\
-\ 5/6 MLOOP (main entry point for main game loop)
-\
-\   * Cool down the lasers
-\   * Update the dashboard (DIALS)
-\   * If this is not a space view, scan for cursor keys
-\
-\ 6/6 FRCE (entry point for displaying a specific screen)
-\
-\   * Process function keys and other non-flight keys (TT102)
-\   * If docked, loop back to part 5 (MLOOP)
-\   * If in-flight, loop back to part 2
-\
-\ Main flight loop
-\ ----------------
-\ 1/16 M% (main entry point for main flight loop)
-\
-\   * Seed the random number generator
-\
-\ 2/16
-\
-\   * Calculate the alpha and beta angles from the current pitch and roll
-\
-\ 3/16
-\
-\   * Scan for flight keys and process the results
-\
-\ Now start looping through all the ships in the local bubble, and for each one,
-\ do parts 4-12:
-\
-\ 4/16
-\
-\   * Copy the ship's data block from K% to INWK
-\
-\   * Set XX0 to point to the ship's blueprint (if this is a ship)
-\
-\ 5/16
-\
-\   * If an energy bomb has been set off and this ship can be killed, kill it
-\     and increase the kill tally
-\
-\ 6/16
-\
-\   * Move the ship in space by calling the MVEIT routine (see the deep dive on
-\     "Program flow of the ship-moving routine" for details). MVEIT also calls
-\     the main tactics routine at TACTICS to implement ship AI (see the deep
-\     dive on "Program flow of the tactics routine" for more)
-\
-\   * Copy the updated ship's data block from INWK back to K%
-\
-\ 7/16
-\
-\   * Check how close we are to this ship and work out if we are docking,
-\     scooping or colliding with it
-\
-\ 8/16
-\
-\   * Process us potentially scooping this item
-\
-\ 9/16
-\
-\   * Process docking with space station, which can take us to the main loop via
-\     BAY (if we dock successfully) or DEATH (if we don't)
-\
-\ 10/16
-\
-\   * Remove scooped item after both successful and failed scoopings
-\   * Process collisions, which can lead to DEATH
-\
-\ 11/16
-\
-\   * If this isn't the front space view, flip the ship coordinates' axes (PLUT)
-\   * Process missile lock
-\   * Process our laser firing
-\
-\ 12/16
-\
-\   * Draw the ship (LL9)
-\   * Process the removal of killed ships
-\
-\ Loop back up to part 4 to do the next ship in the local bubble until we have
-\ processed them all
-\
-\ 13/16
-\
-\   * Show energy bomb effect (if applicable)
-\   * Charge shields and energy banks
-\
-\ 14/16
-\
-\   * Spawn a space station if we are close enough to the planet
-\
-\ 15/16
-\
-\   * Perform an altitude check with the planet, which can lead to DEATH
-\   * Perform an an altitude check with the sun, which can also lead to DEATH
-\   * Process fuel scooping
-\
-\ 16/16
-\
-\   * Process laser pulsing
-\   * Process E.C.M. energy drain
-\   * Call the stardust routine if we are on a space view (STARS)
-\   * Return from the main flight loop
-\
-\ Death
-\ -----
-\ 1/1 DEATH
-\
-\   * We have been killed, so display the chaos of our destruction above a "GAME
-\     OVER" sign
-\
-\   * Clean up a number of variables and workspaces, ready for the next attempt
-\
-\   * Jump up to TT170 to start the whole process again
-\
-\ ******************************************************************************
 
 .TT170
 
@@ -33884,7 +28302,7 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ elite-loader.asm pushes code onto the stack, and this
                         \ effectively removes that code so we start afresh
 
-.^BR1
+.BR1
 
                         \ BRKV is set to point here by elite-loader.asm
 
@@ -34508,193 +28926,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Save and load
 \    Summary: Save the commander file
-\
-\ ******************************************************************************
-\
-\ Deep dive: The competition code
-\ ===============================
-\
-\ Summary: All the information that's hidden in the Elite competition code
-\
-\ References: COK, SVE, CHK, CHK2, STATUS
-\
-\ Bundled with Elite, and easy to miss amongst the razzmatazz of the manual,
-\ novel, function key strip and control summary card, was the competition entry
-\ form. Unfortunately the entry deadline of March 1985 has long since passed,
-\ but back in the day, budding players could fill out the postcard in hope of
-\ joining the Order of Elite, with the six best players standing a chance of
-\ being invited to the "national Elite tournament" in April 1985. Accordingly,
-\ piles of postcards poured into Acornsoft's offices and sat in tottering stacks
-\ around the office, waiting for some lucky soul to process them all.
-\
-\ My postcard was in there somewhere.
-\
-\ Apart from your name and address, the postcard asked for two things: your
-\ credit balance, and the competition code that the game displayed on-screen
-\ during the saving process. These two bits of information enabled Acornsoft to
-\ work out who was a legitimately amazing pilot, and who had cheated, using a
-\ decoding algorithm that was a closely guarded secret.
-\
-\ This algorithm can be seen in the BBC BASIC program called UNPACK that's
-\ included on the Elite source disc. Some lucky Acornsoft employee presumably
-\ had to sit there and enter these two bits of information into UNPACK, which
-\ would then tell them whether the cash levels on the postcard were correct, and
-\ most importantly, what the player's combat rank was. UNPACK could also tell
-\ them whether that person had tampered with their save file, and it also
-\ revealed which version of the game this code was from, which could then be
-\ cross-checked against the colour of the postcard (blue for the BBC Micro
-\ cassette version, brown for the BBC Micro disc version, and green for the
-\ Acorn Electron version).
-\
-\ And then... onto the next postcard. I bet that was a fun job.
-\
-\ People would have sold their grandmothers to get hold of UNPACK, so let's see
-\ how it all works, starting with the competition flags.
-\
-\ The competition flags
-\ ---------------------
-\ The competition flags at location COK track three vital bits of information
-\ that get encoded into the final competition code. They are as follows:
-\
-\   * Bit 0 is set in routine ptg if we hold CTRL during hyperspace to force a
-\     mis-jump into witchspace (having first paused the game and toggled on the
-\     author credits with X). UNPACK does not report the status of this bit, so
-\     presumably manually mis-jumping was not regarded as cheating by Acornsoft,
-\     but perhaps it was recorded to see if anyone found this way of hunting
-\     Thargoids
-\
-\   * Bit 1 is set if this commander file has ever been saved by the cassette
-\     version of BBC Micro Elite. Note that commander files can be loaded into
-\     and saved from any BBC Micro or Electron version of the game, so this flag
-\     indicates that it was, at some point, saved from the cassette version, and
-\     it can be set alongside the other platform bits, if applicable
-\
-\   * Bit 2 is set if this commander file has ever been saved by the disc
-\     version of BBC Micro Elite. It is also set by the 6502 Second Processor
-\     version, but this version was launched after the competition expired, so
-\     presumably the authors just reused the disc version's save routine code
-\
-\   * Bit 3 is set if this commander file has ever been saved by the Acorn
-\     Electron version of Elite
-\
-\   * Bits 4-6 are not set by any of the above versions, but if they are set in
-\     the commander file, the platform is reported as "Something else??" by
-\     UNPACK
-\
-\   * Bit 7 is set if the CHK and CHK2 checksums in the commander file do not
-\     match, which indicates that the commander data has been tampered with.
-\     CHK2 is set to CHK EOR &A9 when the file is saved, so anyone tampering
-\     with the file would not only need to update the CHK checksum accordingly,
-\     they would also need to update CHK2 as well. The game hangs if you try to
-\     load a commander file with an incorrect CHK value, but it lets an
-\     incorrect CHK2 through, so the chances are a hacker wouldn't know that
-\     CHK2 needed to be correct for a valid competition entry
-\
-\ The competition flag is buried within the competition code that players had to
-\ copy onto the competition postcard, so now let's look at the competition code.
-\
-\ The competition code
-\ --------------------
-\ The competition code is calculated and shown on screen in the SVE routine when
-\ the commander file is saved. It's a four-byte number with a maximum value of
-\ 4,294,967,295, which fits nicely into the ten-box slot on the competition
-\ postcard.
-\
-\ It is calculated into K(0 1 2 3), which is a big-endian number with the most
-\ significant byte in K and the least significant in K+3 (so it's stored in the
-\ same way that the player's cash is stored in location CASH, and it's printed
-\ out by the same BPRNT routine that displays the credit balance). The
-\ calculation is done in this order:
-\
-\   K   = CHK OR %10000000
-\   K+2 = K EOR COK
-\   K+1 = K+2 EOR CASH+2
-\   K+3 = K+1 EOR &5A EOR TALLY+1
-\
-\ The result is then printed on-screen using BPRNT, and the file is saved.
-\
-\ Extracting data from the competition code
-\ -----------------------------------------
-\ So to extract the various bits of information encoded in the competition code,
-\ we can apply the algorithm in UNPACK, described here using the same variable
-\ names as used UNPACK, so you can follow along if you want. The following makes
-\ use of the following facts about EOR:
-\
-\   * EOR is commutative:
-\
-\       A EOR B = B EOR A
-\
-\   * EOR is transitive:
-\
-\       (A EOR B) EOR C = A EOR (B EOR C)
-\
-\   * EOR is its own self-inverse:
-\
-\       A EOR A = 0
-\
-\   * EOR 0 is the identity:
-\
-\       A EOR 0 = 0 EOR A = A
-\
-\ Given this, let's see how UNPACK extracts the data from the competition code.
-\
-\   * Split the code into the four bytes by AND'ing as follows (UNPACK has to do
-\     some division to avoid BBC BASIC overflow errors, but this is effectively
-\     what it does):
-\
-\       B1% = code AND &000000FF (i.e. K+3)
-\       B2% = code AND &0000FF00 (i.e. K+2)
-\       B3% = code AND &00FF0000 (i.e. K+1)
-\       B4% = code AND &FF000000 (i.e. K)
-\
-\   * Extract COK:
-\
-\       B% = B4% EOR B2%
-\          = K EOR K+2
-\          = K EOR (K EOR COK)
-\          = (K EOR K) EOR COK
-\          = COK
-\
-\   * Extract CASH+2:
-\
-\       B% = B2% EOR B3%
-\          = K+2 EOR K+1
-\          = (K EOR COK) EOR (K+2 EOR CASH+2)
-\          = (K EOR COK) EOR ((K EOR COK) EOR CASH+2)
-\          = ((K EOR COK) EOR (K EOR COK)) EOR CASH+2
-\          = CASH+2
-\
-\   * Extract TALLY+1:
-\
-\       B% = B3% EOR B1% EOR &5A
-\          = K+1 EOR K+3 EOR &5A
-\          = (K+2 EOR CASH+2) EOR (K+1 EOR &5A EOR TALLY+1) EOR &5A
-\          = (K+2 EOR CASH+2) EOR ((K+2 EOR CASH+2) EOR &5A EOR TALLY+1) EOR &5A
-\          = ((K+2 EOR CASH+2) EOR (K+2 EOR CASH+2)) EOR &5A EOR TALLY+1 EOR &5A
-\          = &5A EOR TALLY+1 EOR &5A
-\          = (&5A EOR &5A) EOR TALLY+1
-\          = TALLY+1
-\
-\ So in this way we can extract the competition flags (COK), one byte of the
-\ cash amount (CASH+2) and the high byte of the combat rank (TALLY+1). We can
-\ check the extracted cash byte against the cash amount entered on the postcard,
-\ as follows:
-\
-\   CASH+2 = (cash total from postcard * 10) AND &FF00
-\
-\ and we can work out the combat rank from TALLY+1 using the same algorithm as
-\ the STATUS routine:
-\
-\   Competent     TALLY+1 = 1 to 2
-\   Dangerous     TALLY+1 = 2 to 9
-\   Deadly        TALLY+1 = 10 to 24
-\   Elite         TALLY+1 = 25 and up
-\
-\ and from the value COK we know whether the file has been tampered with, which
-\ platforms the game has been played on, and whether the player has done any
-\ manual mis-jumps.
-\
-\ That's pretty clever stuff for a few digits on a postcard...
+\  Deep dive: The competition code
 \
 \ ******************************************************************************
 
@@ -35170,7 +29402,7 @@ ENDIF
  JSR TIS2               \ with 1 being represented by 96
  STA XX15+2
 
-.^NO1
+.NO1
 
  RTS                    \ Return from the subroutine
 
@@ -35554,6 +29786,7 @@ ENDIF
 \       Type: Variable
 \   Category: Keyboard
 \    Summary: Lookup table for in-flight keyboard controls
+\  Deep dive: The key logger
 \
 \ ------------------------------------------------------------------------------
 \
@@ -35567,73 +29800,6 @@ ENDIF
 \
 \ Note that KYTB actually points to the byte before the start of the table, so
 \ the offset of the first key value is 1 (i.e. KYTB+1), not 0.
-\
-\ ******************************************************************************
-\
-\ Deep dive: The key logger
-\ =========================
-\
-\ Summary: Supporting concurrent in-flight key presses using a key logger
-\
-\ References: KYTB, KL, DKS1, DK4, DOKEY
-\
-\ There's a lot to do when piloting a space ship. Pitching and rolling while
-\ slamming on the brakes to avoid missing the docking slot; firing lasers while
-\ activating the E.C.M. and slamming your foot on the accelerator; targeting a
-\ missile while switching between space views, trying to track down your foe...
-\ it's all in a day's work for your average Cobra Mk III pilot.
-\
-\ Unfortunately, most 8-bit micros weren't built to handle multiple concurrent
-\ key presses. The Machine Operating System (MOS) in the BBC Micro can handle up
-\ to two concurrent key presses, on top of the modifier keys; this known as a
-\ "two-key rollover", and it's generally fine for typing, as you rarely intend
-\ to press more than two letter keys at the same time. However, for a game where
-\ you legitimately might want to pitch up, roll right, fire lasers, slow down
-\ and launch a missile all at the same time (by pressing "X", ">", "A", "?" and
-\ "M" concurrently), a simple two-key rollover just won't do.
-\
-\ Elite therefore implements its own logging system that listens for key presses
-\ for all the important flight controls, and stores their details in a keyboard
-\ logger for the main loop to process in its own time. There are 15 of these
-\ flight controls, which are split up into the seven primary controls (speed,
-\ pitch, roll and lasers) and eight secondary controls (energy bomb, escape pod,
-\ missile controls, E.C.M., in-system jump and the docking computer). The key
-\ logger effectively implements an 8-key rollover for each of the primary
-\ controls, plus one secondary control, which is more than enough to make the
-\ game responsive to our every whim.
-\
-\ How the key logger works
-\ ------------------------
-\ The heart of the key logger system is the table at location KL. This contains
-\ one byte for each of the 15 flight controls listed in the keyboard lookup
-\ table at KYTB, starting from KL+1 for "?" (slow down) and going through to
-\ KL+15 for "C" (which turns on the docking computer). Each key logger location
-\ has its own label, so KY1 = KL+1, KY2 = KL+2 up to KY15 = KL+15, where KY1
-\ corresponds to the internal key number in KYTB+1, KY2 to the key number in
-\ KYTB+2, and so on.
-\
-\ The various keyboard scanning routines can set the relevant byte in the KL
-\ table to &FF to denote that a particular key is being pressed. The logger is
-\ cleared to zero (to denote that no keys are being pressed) by the U% routine.
-\
-\ The main routines that populate the key logger are:
-\
-\   * DKS4, which scans the keyboard for a specific key
-\
-\   * DKS1, which calls DKS4 and updates the key logger with the result
-\
-\   * DOKEY, which calls DKS1 for each of the primary flight controls
-\
-\   * DK4, which scans for the secondary flight controls
-\
-\ If a key is being pressed that is not in the keyboard table at KYTB, then it
-\ can be stored in the first location in the key logger, KL, as this isn't
-\ mapped to a KYTB key. This is done in routine DK4, for example, so we almost
-\ never miss a key press.
-\
-\ In addition, the joystick fire button is checked, and if it is pressed, the
-\ key logger entry for laser fire ("A") is set, so there is only one location
-\ to check when processing laser fire.
 \
 \ ******************************************************************************
 
@@ -36293,7 +30459,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
  TAX                    \ Copy A into X
 
-.^out
+.out
 
  RTS                    \ Return from the subroutine
 
@@ -36672,6 +30838,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Geometry)
 \    Summary: Orthonormalise the orientation vectors for a ship
+\  Deep dive: Tidying orthonormal vectors
 \
 \ ------------------------------------------------------------------------------
 \
@@ -36685,162 +30852,6 @@ ENDMACRO
 \ routine to ensure they remain as orthonormal as possible.
 \
 \ ******************************************************************************
-\
-\ Deep dive: Tidying orthonormal vectors
-\ ======================================
-\
-\ Summary: Making the orientation vectors orthonormal, and why this matters
-\
-\ References: TIDY, NORM
-\
-\ There are an awful lot of rotations in Elite. When we pitch or roll, we rotate
-\ the entire universe around our ship, so every ship in our local bubble of
-\ universe gets rotated in space every time we tap our controls. Not only do we
-\ rotate the ship's position in space by our pitch and roll in part 5 of MVEIT,
-\ but we also rotate the ship's orientation vectors by our pitch and roll in
-\ MVS4, and we rotate the orientation vectors again, this time around the ship's
-\ centre, when we apply the ship's own pitch and roll in part 8 of MVEIT.
-\
-\ One of the problems with all this rotating is that we use the small angle
-\ approximation to rotate all these vectors in space. This is not completely
-\ accurate, so the three orientation vectors tend to get stretched over time, so
-\ periodically we have to tidy the vectors with the TIDY routine.
-\
-\ Elite's calculations rely on having orthonormal orientation vectors, which
-\ means the three orientation vectors are both orthogonal (perpendicular to each
-\ and normal (so each of the vectors has length 1). The TIDY routine therefore
-\ tidies up the vectors by making them orthonormal, and Elite tidies one ship
-\ on most iterations of the main flight loop (it tidies one ship slot on 13 out
-\ of every 16 iterations).
-\
-\ The challenge, then, is to take the three orientation vectors - nosev, roofv
-\ and sidev - and tweak them so that they are orthogonal and normal once again.
-\ Let's call these new, tweaked vectors nosev´, roofv´ and sidev´, and let's
-\ look at how we can calculate them.
-\
-\ The first vector, nosev´
-\ ------------------------
-\ First, let's normalise nosev, so it has length 1 (stored internally as 96),
-\ and let's call this nosev´. We start with the node vector, as normalising it
-\ doesn't change the direction that the ship is pointing in, so if we happen to
-\ be looking at a ship as it gets tidied, at least it won't change direction.
-\
-\ The second vector, roofv´
-\ -------------------------
-\ Next, we want to tweak roofv into a new vector roofv´, where roofv´ is
-\ perpendicular to nosev´. When two vectors are perpendicular, their dot product
-\ is zero, so this means:
-\
-\   roofv´ . nosev´ = 0
-\
-\ This expands to:
-\
-\   nosev_x´ * roofv_x´ + nosev_y´ * roofv_y´ + nosev_z´ * roofv_z´ = 0
-\
-\ which we can expand to the following:
-\
-\   roofv_x´ = -(nosev_y´ * roofv_y´ + nosev_z´ * roofv_z´) / nosev_x´
-\   roofv_y´ = -(nosev_x´ * roofv_x´ + nosev_z´ * roofv_z´) / nosev_y´
-\   roofv_z´ = -(nosev_x´ * roofv_x´ + nosev_y´ * roofv_y´) / nosev_z´
-\
-\ Because time is of the essence, we would rather only calculate one of these,
-\ so we do a clever trick. If you think of two arbitrary lines on a piece of
-\ paper, then given any direction, it's possible to move the end of one of the
-\ lines in that direction so that the lines become parallel. In the case of our
-\ vectors, this means we can tweak roofv in one axis only - i.e. only change one
-\ of its x, y, and z coordinates - and can still get a vector that's at
-\ right-angles to nosev´.
-\
-\ So let's say that we tweak roofv in the x-axis only, then that means we leave
-\ roofv_y and roofv_z alone - so roofv_y´ = roofv_y and roofv_z´ = roofv_z. So
-\ this means:
-\
-\   roofv_x´ = -(nosev_y´ * roofv_y + nosev_z´ * roofv_z) / nosev_x´
-\   roofv_y´ = roofv_y
-\   roofv_z´ = roofv_z
-\
-\ So we can just tweak roofv_x to roofv_x´, using this calculation:
-\
-\   roofv_x´ = -(nosev_y´ * roofv_y + nosev_z´ * roofv_z) / nosev_x´
-\
-\ and roofv´ will be perpendicular to nosev; then all we need to do is normalise
-\ roofv´ and we've got our second orthonormal vector.
-\
-\ We can do the same with any of the axes, leading to these two equations:
-\
-\   roofv_y´ = -(nosev_x´ * roofv_x + nosev_z´ * roofv_z) / nosev_y´
-\   roofv_z´ = -(nosev_x´ * roofv_x + nosev_y´ * roofv_y) / nosev_z´
-\
-\ So how do we choose which coordinate axis to move? Well, seeing as we are
-\ going to be dividing by one of the coordinates of nosev´ in our calculation,
-\ and dividing by big numbers in integer arithmetic isn't so accurate (as we're
-\ dealing in integers here, not floating point numbers), we could always choose
-\ an equation with a low nosev value, and this is exactly what Elite does. First
-\ we check whether nosev_x´ is small, and if it is, we do this one:
-\
-\   roofv_x´ = -(nosev_y´ * roofv_y + nosev_z´ * roofv_z) / nosev_x´
-\
-\ Otherwise we check whether nosev_y´ is small, and if it is, we do this one:
-\
-\   roofv_y´ = -(nosev_x´ * roofv_x + nosev_z´ * roofv_z) / nosev_y´
-\
-\ Otherwise, we have no choice but to do this one:
-\
-\   roofv_z´ = -(nosev_x´ * roofv_x + nosev_y´ * roofv_y) / nosev_z´
-\
-\ And finally we normalise roofv, so it has length 1 (stored internally as 96)
-\
-\ The third vector, sidev´
-\ ------------------------
-\ So we have two vectors in nosev´ and roofv´ that are orthogonal and normal, so
-\ we just need to find a vector that is perpendicular to these two. There's an
-\ easy way to calculate such a vector, by using the cross-product.
-\
-\ The cross-product works like this. Consider two vectors, a and b, which have
-\ an angle theta between them. The cross-product of these two vectors, a x b,
-\ gives us another vector that is at right-angles to the first two, and which
-\ has length |a| * |b| * sin(theta).
-\
-\ In other words, if we calculate the following:
-\
-\   sidev = nosev x roofv
-\
-\ which we can do by breaking it down into axes:
-\
-\   [ sidev_x ]   [ nosev_x´ ]   [ roofv_x´ ]
-\   [ sidev_y ] = [ nosev_y´ ] x [ roofv_y´ ]
-\   [ sidev_z ]   [ nosev_z´ ]   [ roofv_z´ ]
-\
-\                 [ nosev_z´ * roofv_y´ - nosev_y´ * roofv_z´ ]
-\               = [ nosev_x´ * roofv_z´ - nosev_z´ * roofv_x´ ]
-\                 [ nosev_y´ * roofv_x´ - nosev_x´ * roofv_y´ ]
-\
-\ then this sets sidev to a vector that is perpendicular to the others, and
-\ which has length |nosev´| * |roofv´| * sin(theta). We know that because
-\ nosev´ and roofv´ are orthonormal, theta must be a right-angle, and
-\ |nosev´| and |roofv´| must be 1, so this means sidev has length 1:
-\
-\   |nosev´| * |roofv´| * sin(theta) = 1 * 1 * 1 = 1
-\
-\ So if we calculate the following in the TIDY routine, this will set sidev to
-\ a vector of length 1 that's perpendicular to the other two, which is a third
-\ orthonormal vector - exactly what we want our third vector to be.
-\
-\   sidev_x´ = (nosev_z´ * roofv_y´ - nosev_y´ * roofv_z´) / 96
-\   sidev_y´ = (nosev_x´ * roofv_z´ - nosev_z´ * roofv_x´) / 96
-\   sidev_z´ = (nosev_y´ * roofv_x´ - nosev_x´ * roofv_y´) / 96
-\
-\ We divide by 96 as we use 96 to represent 1 internally. This means the length
-\ of nosev and roofv internally is actually 96, so the length of the
-\ cross-product would be 96 96. We want the length of sidev to be 96 (so it
-\ represents 1), so we divide by 96 to get the correct result.
-\
-\ This leaves us with orthonormal vectors, and this is how the TIDY routine
-\ tidies the orientation vectors, so the ships don't stretch and warp in space
-\ when they are rotated.
-\
-\ ******************************************************************************
-
 
 .TI2
 
@@ -36874,7 +30885,7 @@ ENDMACRO
 
  JMP TI3                \ Jump to TI3 to keep tidying
 
-.^TIDY
+.TIDY
 
  LDA INWK+10            \ Set (XX15, XX15+1, XX15+2) = nosev
  STA XX15
@@ -36995,6 +31006,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate A = A / Q
+\  Deep dive: Shift-and-subtract division
 \
 \ ------------------------------------------------------------------------------
 \
@@ -37007,45 +31019,6 @@ ENDMACRO
 \ and the maximum value returned is 1 (i.e. 96). This routine is used when
 \ normalising vectors, where we represent fractions using integers, so this
 \ gives us an approximation to two decimal places.
-\
-\ ******************************************************************************
-\
-\ Deep dive: Shift-and-subtract division
-\ ======================================
-\
-\ Summary: The main algorithm behind Elite's many division routines
-\
-\ References: TIS1, TIS2, DVID4
-\
-\ Elite implements division in routines like TIS2 using the shift-and-subtract
-\ algorithm. This is similar in concept to the shift-and-add algorithm used to
-\ implement multiplication in routines like MULT1, but it's essentially the
-\ reverse of that algorithm.
-\
-\ In the same way that shift-and-add implements a binary version of the manual
-\ long multiplication process, shift-and-subtract implements long division. We
-\ shift bits out of the left end of the number being divided (A), subtracting
-\ the largest possible multiple of the divisor (Q) after each shift; each bit of
-\ A where we can subtract Q gives a 1 the answer to the division, otherwise it
-\ gives a 0.
-\
-\ In pseudo-code, the algorithm to calculate T = P / Q (with remainder A) looks
-\ like this:
-\
-\   T = 0
-\   A = 0
-\   for x = 7 to 0
-\     A = A << 1
-\     A(bit 0) = P(bit x)
-\     if A >= Q then
-\       A = A − Q
-\       T(bit x) = 1
-\
-\ This is the algorithm implemented in TIS2, except we save space (and make
-\ things much more confusing) by using A for both the number being divided and
-\ the remainder, building the answer in T instead of P, and using set bits in T
-\ to implement the loop counter. The basic idea of shifting and subtracting is
-\ the same, though.
 \
 \ ******************************************************************************
 
@@ -37251,7 +31224,6 @@ ENDMACRO
 
  RTS                    \ Return from the subroutine
 
-
 \ ******************************************************************************
 \
 \ Save output/ELTF.bin
@@ -37391,52 +31363,13 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate Q = SQRT(R Q)
+\  Deep dive: Calculating square roots
 \
 \ ------------------------------------------------------------------------------
 \
 \ Calculate the following square root:
 \
 \   Q = SQRT(R Q)
-\
-\ ******************************************************************************
-\
-\ Deep dive: Calculating square roots
-\ ===================================
-\
-\ Summary: The algorithm behind the square root routine
-\
-\ References: LL5
-\
-\ The algorithm used to calculate square roots in routine LL5 is related to the
-\ division algorithm in TIS2 (see the deep dive on "Shift-and-subtract division"
-\ for details), though with a couple of twists. If you think about the division
-\ algorithm, it calculates the quotient and remainder from a given dividend and
-\ divisor, and the following holds:
-\
-\   dividend = (quotient * divisor) + remainder
-\
-\ The problem of calculating the square root is related to this, except we have
-\ the following relationship between the arguments and results, where "number"
-\ is the number we want to find the square root of:
-\
-\   number = (root * root) + remainder
-\
-\ So the number we want to find the root of is equivalent to the dividend in the
-\ shift-and-subtract algorithm, and instead of the divisor being fixed, we
-\ instead build up the root bit by bit and use that in place of the divisor.
-\
-\ When generalised to calculate the n-th root, this approach is called the
-\ "shifting nth-root" algorithm, and it is explained in various places on the
-\ web by minds more devious than mine. The LL5 routine is an application of
-\ the algorithm for n = 2, which is why the number ("dividend") and remainder
-\ get shifted by two places in each iteration.
-\
-\ There is a deeper explanation of this exact routine here, though I have to say
-\ it makes my head spin more than a little:
-\
-\    http://6502org.wikidot.com/software-math-sqrt
-\
-\ Definitely one for the "must study later" pile...
 \
 \ ******************************************************************************
 
@@ -37559,7 +31492,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ getting a 0 on the 8th iteration... and we can also
                         \ use R to catch our result bits into bit 0 each time
 
-.^LL31
+.LL31
 
  ASL A                  \ Shift A to the left
 
@@ -37758,7 +31691,6 @@ LOAD_G% = LOAD% + P% - CODE%
  JSR FMLTU              \ Set T = A * Q / 256
  STA T                  \       = |sidev_x| * x_lo / 256
 
-
  LDA XX15+1             \ Set S to the sign of x_sign * sidev_x
  EOR XX16+1,X
  STA S
@@ -37821,6 +31753,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Check if ship is exploding, check if ship is in front
+\  Deep dive: Drawing ships
 \
 \ ------------------------------------------------------------------------------
 \
@@ -37857,211 +31790,13 @@ LOAD_G% = LOAD% + P% - CODE%
 \   LL10-1              Contains an RTS
 \
 \ ******************************************************************************
-\
-\ Deep dive: Drawing ships
-\ ========================
-\
-\ Summary: The main routine for drawing 3D wiremesh ships in space
-\
-\ References: LL9
-\
-\ The ship-drawing routine is one of the most celebrated aspects of Elite. The
-\ 3D graphics are groundbreaking and breathtaking in equal measure, at least as
-\ far as 8-bit gome computers are concerned, and even today the way that the
-\ ships and space stations move through space is impressive. Without its slick
-\ 3D graphics engine, Elite wouldn't have been nearly as immersive, and without
-\ its immersion, it just wouldn't have been Elite.
-\
-\ It doesn't take a rocket scientist to work out that Elite must have some
-\ pretty clever optimisations at the heart of its graphics routines, and this is
-\ indeed the case. Elite's 3D objects are stored in a way that makes visibility
-\ calculations relatively quick, so we can work out which parts of the ship need
-\ to be converted into screen coordinates and drawn, and (more to the point)
-\ which ones don't.
-\
-\ Let's look at visibility distances before moving on to the details of the
-\ ship-drawing process.
-\
-\ Visibility distances
-\ --------------------
-\ Ships are stored as collections of vertices (i.e. points in space) as you
-\ would imagine, and they also come bundled with data on all the edges in the
-\ shape, plus data on each face in the model. In addition, each of these
-\ vertices, edges and faces comes with its own "visibility distance" figure that
-\ enables us to quickly work out which of them are close enough to be worth
-\ considering, so we only spend spend time calculating what we need to draw,
-\ discarding anything we don't need. The whole process is aimed at narrowing
-\ down what we need to do, as quickly and easily as possible.
-\
-\ These are the visibility rules for the various components of the ship:
-\
-\   * If the ship is further away than the ship visibility distance in ship byte
-\     #13, we draw it as a dot and skip all the wireframe calculations
-\
-\   * A face is visible if one of these is true:
-\
-\     * The ship is further away than that face's visibility distance
-\
-\     * The ship is closer than the face's visibility distance and the face is
-\       turned towards us
-\
-\   * A vertex is visible if at least one face associated with that vertex is
-\     visible
-\
-\   * An edge is visible if at least one face associated with that edge is
-\     visible
-\
-\ These rules get applied as we work our way through all the faces, vertices and
-\ edges in the process below.
-\
-\ The ship line heap
-\ ------------------
-\ Just as with the planet and sun, we need a way to remove ships from the screen
-\ quickly, so it's no surprise that each ship has its own storage heap for doing
-\ just that - the ship line heap.
-\
-\ Each ship has its own heap as part of the main ship line heap, which descends
-\ from location WP. The ship line heap is very simple - it contains sets of four
-\ coordinates, each of which describes a line in that ship's screen depiction.
-\ To draw the ship we simply work through the heap, drawing each line, and to
-\ remove the ship from the screen, we repeat the process.
-\
-\ The first byte of the heap contains the total number of bytes in the heap.
-\ Each line is stored as four bytes - X1, Y1, X2, Y2 - which describe the start
-\ and end screen coordinates for that line.
-\
-\ When a ship is added to our local bubble of universe, a ship line heap is
-\ reserved for that ship, with the heap size given in byte #5 of the ship's
-\ blueprint. This gives the maximum heap size needed for plotting ship, which
-\ is:
-\
-\   1 + 4 * max. no of visible edges
-\
-\ as there are four bytes needed for each line, plus 1 for the size byte at the
-\ start. So for the Sidewinder there are never more than 15 edges visible, so
-\ there will never be more than 15 lines on the ship line heap, so the maximum
-\ heap size is 1 + 4 * 15 = 61 bytes.
-\
-\ The drawing workflow
-\ --------------------
-\ The following process summarises the different steps in the LL9 routine. The
-\ part numbers match the breakdown of the source code, so you can refer to the
-\ code as you go.
-\
-\ 1/11 LL9
-\
-\   * If the ship is a planet or sun, jump to PLANET to draw it
-\
-\   * If the ship has just been killed but isn't yet exploding, initialise a new
-\     explosion cloud
-\
-\   * If the ship is behind us, then it isn't visible, so remove it from the
-\     screen (by calling part 11 below to redraw it using EOR logic) and we're
-\     done
-\
-\ 2/11
-\
-\   * If the ship is outside of our field of view, remove it from the screen and
-\     we're done
-\
-\   * If the ship is a long way away, jump to SHPPT to remove it from the screen
-\     and redraw it as a dot
-\
-\   * Flag the ship's laser vertex in the XX3 buffer, so we can check it in part
-\     9 when processing laser fire
-\
-\   * Calculate the ship's distance from us, reduced to a value in the range
-\     0-31 so it's testable against visibility distances
-\
-\   * If the ship is further away than the ship blueprint's visibility distance,
-\     jump to SHPPT to remove it from the screen and redraw it as a dot
-\
-\ 3/11
-\
-\   * Fetch the ship's orientation vectors and normalise them
-\
-\   * Fetch the ship's x, y and z coordinates in space
-\
-\ 4/11
-\
-\   * If the ship is exploding, set all the faces to be visible and skip down to
-\     part 6
-\
-\ 5/11
-\
-\   * Work out the scale factor for the face normals so we can make them as big
-\     as possible while not overflowing, incorporating the scale factor from the
-\     blueprint
-\
-\   * Process the ship's faces and work out if they're visible, as follows:
-\
-\     * If the ship is further away than a face's visibility distance, mark it
-\       as visible (this is the opposite to the other visibility distance tests)
-\
-\     * Otherwise work out if the face is pointing towards us or away from us
-\       using the dot product (see the deep dive on "Back-face culling")
-\
-\ 6/11
-\
-\   * Process the ship's vertices and work out which ones are visible:
-\
-\     * If the ship is further away than the vertex's visibility distance, it is
-\       not visible
-\
-\     * If at least one face associated with this vertex is visible, the vertex
-\       is visible
-\
-\   * For visible vertices only:
-\
-\     * Calculate the space coordinates of that vertex (see the deep dive on
-\       "Calculating vertex coordinates"), starting the calculation in part 6...
-\
-\ 7/11
-\
-\     * ...and finishing it in part 7, before moving on to part 8...
-\
-\ 8/11
-\
-\     * ...to convert the visible vertex's space coordinates into screen
-\       coordinates
-\
-\ 9/11
-\
-\   * If the ship is exploding, jump to DOEXP to display the explosion cloud
-\
-\   * Remove the ship from the screen
-\
-\   * If the ship is firing at us and its laser vertex (which we tagged in part
-\     2) is visible, then calculate the laser beam line coordinates and add them
-\     to the ship line heap
-\
-\ 10/11
-\
-\   * Process the ship's edges and work out which ones are visible:
-\
-\     * If the ship is further away than the edge's visibility distance, it is
-\       not visible
-\
-\     * If at least one face associated with this edge is visible, the edge is
-\       visible
-\
-\   * For visible edges, add this edge to the ship line heap (i.e. add the
-\     screen coordinates of the start and end vertices)
-\
-\ 11/11
-\
-\   * Draw the lines in the ship line heap, which draws the ship on screen (or
-\     removes it, if the ship is already on screen)
-\
-\ ******************************************************************************
-
 
 .LL25
 
  JMP PLANET             \ Jump to the PLANET routine, returning from the
                         \ subroutine using a tail call
 
-.^LL9
+.LL9
 
  LDA TYPE               \ If the ship type is negative then this indicates a
  BMI LL25               \ planet or sun, so jump to PLANET via LL25 above
@@ -38158,7 +31893,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ will remove it from the screen, returning from the
                         \ subroutine using a tail call
 
-.^EE51
+.EE51
 
  LDA #%00001000         \ If bit 3 of the ship's byte #31 is clear, then there
  BIT XX1+31             \ is already nothing being shown for this ship, so
@@ -38411,7 +32146,6 @@ LOAD_G% = LOAD% + P% - CODE%
                         \
                         \   * XX18(8 7 6) = (z_sign z_hi z_lo)
 
-
  LDA #255               \ Set the 15th byte of XX2 to 255, so that face 15 is
  STA XX2+15             \ always visible. No ship definitions actually have this
                         \ number of faces in the cassette version, but this
@@ -38482,241 +32216,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Calculate the visibility of each of the ship's faces
-\
-\ ******************************************************************************
-\
-\ Deep dive: Back-face culling
-\ ============================
-\
-\ Summary: How Elite draws solid-looking 3D ships by only drawing visible faces
-\
-\ References: LL9 (Part 5 of 11)
-\
-\ One of the reasons that Elite's 3D wireframe ships look so good is because
-\ you can't see through them - they look genuinely solid. This is down to a
-\ process called "back-face culling", a mathematical process that works out
-\ which faces of the ship are visible to the viewer and which ones aren't. It
-\ then discards (or "culls") any faces that aren't visible and only draws those
-\ that we can actually see. This prevents the wireframes from being see-through,
-\ and this gives the ships a real sense of solidity.
-\
-\ The main principle behind back-face culling is the dot product. This simple
-\ mathematical operation takes two vectors and produces a scalar value that is
-\ in essence a kind of mathematical application of one vector to the other, of
-\ taking the "essence" of one vector and applying it to another. For the
-\ purposes of back-face culling in Elite, we use the dot product in two distinct
-\ ways.
-\
-\ Direction of the face normal
-\ ----------------------------
-\ The first use is to calculate whether a face is pointing towards us or away
-\ from us, so we can decide whether to draw it. For this we use a property of
-\ the dot product that's almost tailor-made for solving this problem: if the dot
-\ product of two vectors is negative, then the angle between them is greater
-\ than 90 degrees (and by extension, if it is positive then the angle is less
-\ than 90 degrees, while a dot product of 0 means they are at exactly 90 degrees
-\ to each other).
-\
-\ Now, consider a face of one of our ships, and take the surface normal vector
-\ of that face. This is the vector that sticks out of the surface of the face at
-\ 90 degrees to the surface (so a ship with its face normals attached would look
-\ like a strange, space-faring hedgehog). Now think about rotating that face in
-\ space, and you can see that if that face normal is pointing towards us - in
-\ other words if the spike is pointing in our general direction, more towards us
-\ than away from us - then we can see the front of the face, while if the face
-\ normal (the spike) is pointing away from us, then the face is also pointing
-\ away from us and we can't see it.
-\
-\ The normal is effectively pointing in the direction of the face, so if it is
-\ pointing in our general direction, then the face is pointing towards us and we
-\ can see it; similarly, if the normal is pointing away from us, then the face
-\ is also pointing away from us, and we can't see it. Finally, if the face is
-\ exactly side on to us, it's on the cusp of being visible and invisible to us.
-\
-\ It looks like this (though you'll have to imagine that the normals are at
-\ 90 degrees, as that's pretty difficult to do in ASCII):
-\
-\                                /                        `.   /   normal points
-\                               /      normal points        `./    towards us,
-\   line of sight ----->       /`.     away, face            /     face visible
-\                             /   `.   not visible          /
-\
-\ The solid lines represent the faces, while the dotted lines represent the
-\ normals. On the left the normal is pointing away from us and the face is
-\ turned away from us, so it's not visible, while on the right the normal is
-\ pointing towards us and so is the face, so it's visible.
-\
-\ So, when the face normal is pointing away from us, the face is hidden from us.
-\ To put this another way, when the angle between the face normal and our line
-\ of sight is greater than 90 degrees, then the face normal is pointing away
-\ from us and the face is not visible. Similarly, when the angle is less than 90
-\ degrees, the normal is pointing towards us, so the face is visible.
-\
-\ This means that we can calculate the visibility of a face by calculating the
-\ following dot product:
-\
-\   line of sight vector . face normal vector
-\
-\ If the result of this dot product is negative, then the face is visible; if
-\ it's positive, it isn't visible; and if it's zero it's edge on to us.
-\
-\ Line of sight vector
-\ --------------------
-\ We already have the face normal vector, as that's how faces are stored in the
-\ memory (see the ship blueprints documentation at XX21 for more information on
-\ this). So how can we calculate the line of sight vector?
-\
-\ The first solution that springs to mind is to use the vector from our position
-\ to the ship we are trying to draw. Our ship is always at the origin (0, 0, 0),
-\ so this would mean the line of sight vector would be the vector from the
-\ origin to the ship at (x, y, z), or [x y z]. This is close, but it isn't quite
-\ right as the line of sight we are interested in is towards the face, not the
-\ centre of the ship.
-\
-\ Luckily, any point on the face will do for our calculation, so we just need to
-\ find the vector from our position to any point on the face, and the dot
-\ product will work fine. Indeed, we can extend that to say that any point on
-\ the plane containing the face will suffice; if you think about it, extending
-\ the face in all directions wouldn't change its visibility to us, so it won't
-\ change the calculation if we pick a point that is outside the limits of the
-\ actual face we want to draw. It just has to be in the same plane as the face
-\ for this to work.
-\
-\ Given this, perhaps we can get hold of a vector that goes from the ship's
-\ centre to a point on the extended face plane? As then we could define our line
-\ of sight vector by adding the vector to the ship's centre, and the vector from
-\ the ship's centre to the extended face plane.
-\
-\ Luckily - well, it isn't luck, it's by design, but it feels lucky - this is
-\ exactly how faces are stored in Elite. Each face is stored as a face normal
-\ vector, but that normal is specifically designed to be the vector from the
-\ centre of the ship to the nearest point on the extended face plane. The
-\ direction of the vector stored in the ship's blueprint is parallel to the
-\ face normal (the hedgehog spike), but its magnitude (i.e. the vector's length)
-\ is set to the distance from the ship's centre to the extended face plane. So,
-\ by design, we can add this vector to the ship's position in space to get the
-\ line of sight vector from our ship to a point on the face plane, like so:
-\
-\   line of sight vector = [x y z] + face normal vector
-\
-\ and we can then calculate the dot product of this vector with the face normal
-\ vector to get our positive or negative result, which determines whether this
-\ face is hidden or visible.
-\
-\ (Incidentally, the face normal vector that's stored in the ship's blueprint
-\ goes from the ship's centre to the nearest point on the extended face plane,
-\ as the vector is a normal, though we don't need to use this fact, it's just
-\ an interesting consequence of how this is all set up.)
-\
-\ Projecting onto the orientation vector space
-\ --------------------------------------------
-\ So are we done? Not quite. The maths is all good, but the way the coordinates
-\ and vectors are stored means we have to do a bit more geometry before we can
-\ plug the values into our dot product equation.
-\
-\ The problem is that the vector from our position to the ship we're displaying
-\ uses a different set of axes to the ship's blueprint. As we cavort through
-\ space, pitching and rolling away, the x-axis is always pointing to the right
-\ on screen, the y-axis always points up, and the z-axis always points into the
-\ screen. This is always the case, even if we switch views (this is where the
-\ PLUT routine comes in, as it switches the axes around to maintain this
-\ relationship between the screen and the axes). When we roll, pitch and travel
-\ through space, we don't actually roll or pitch, but instead we rotate the
-\ universe around us (this is done in the MVEIT routine). On top of this, each
-\ ship has its own set of orientation vectors - nosev, roofv and sidev - that
-\ determine the direction that the ship is pointing.
-\
-\ The problem is that the face normal vector in the ship's blueprint is stored
-\ in terms of an unrotated ship. Ship coordinates are stored with the x, y and
-\ z axes along the orientation vectors, so if we were sitting in the ship,
-\ the x-coordinate of the face normal vector would be pointing to our right, the
-\ y-coordinate would be pointing up, and the z-coordinate would be pointing
-\ forward, because that's how the coordinates are stored. This intentionally
-\ coincides with the way the orientation vectors point; from the perspective of
-\ the pilot of the other ship, sidev is the x-axis going off to the right, roofv
-\ is the y-axis going up, and the z-axis is nosev, heading forward. The face
-\ normal vectors are stored with reference to these orientation vectors as axes;
-\ mathematically speaking, the ship's orientation vectors form an orthonormal
-\ basis for the Euclidean space in which the face normals are expressed.
-\
-\ So somehow we need to merge these two coordinate systems - the orientation of
-\ the universe from the perspective of our ship vs the orientation of the
-\ universe from the perspective of the other ship. Luckily there's an easy
-\ solution, and again it involves the dot product.
-\
-\ The feature of the dot product that we use to merge the coordinate systems is
-\ called "scalar projection". This says that given a vector and a unit vector,
-\ we can calculate the projection of the vector onto the unit vector by simply
-\ calculating the dot product. If we do this with a vector and three unit
-\ vectors, then the dot product gives us that vector, expressed in terms of the
-\ three unit vectors - in other words, this is how we convert coordinates from
-\ one set of axes to another.
-\
-\ In our case, we have the following equation to calculate:
-\
-\   line of sight vector . face normal vector
-\
-\ where:
-\
-\   line of sight vector = [x y z] + face normal vector
-\
-\ so if we can convert [x y z] to use the same axes as the face normal vector,
-\ then we can do our calculation. As discussed above, the face normal vector
-\ uses the ship's orientation vectors as its axes, and we know that the
-\ orientation vectors are unit vectors because they are orthonormal (and we
-\ keep calling the TIDY routine to ensure that they stay this way). So we can
-\ project the [x y z] vector onto each of the orientation vectors in turn, like
-\ this:
-\
-\   [x y z] projected onto sidev = [x y z] . sidev
-\   [x y z] projected onto roofv = [x y z] . roofv
-\   [x y z] projected onto nosev = [x y z] . nosev
-\
-\ and because the orientation vectors are effectively the x, y and z axes for
-\ the ship's space, we can combine them into our projected line of sight vector
-\ like this:
-\
-\                              [ [x y z] . sidev ]
-\   projected [x y z] vector = [ [x y z] . roofv ]
-\                              [ [x y z] . nosev ]
-\
-\ The final step is to combine all of the above into our final equation. This is
-\ the value we want to calculate:
-\
-\   line of sight vector . face normal vector
-\
-\ and we know that:
-\
-\   line of sight vector = [x y z] + face normal vector
-\
-\ so if we now project the [x y z] vector into the same space as the face
-\ normals so we can combine them properly, we get:
-\
-\   line of sight vector = projected [x y z] vector + face normal vector
-\
-\                          [ [x y z] . sidev ]   [ normal_x ]
-\                        = [ [x y z] . roofv ] + [ normal_y ]
-\                          [ [x y z] . nosev ]   [ normal_z ]
-\
-\                          [ [x y z] . sidev + normal_x ]
-\                        = [ [x y z] . roofv + normal_y ]
-\                          [ [x y z] . nosev + normal_z ]
-\
-\ and if we substitute this into our final calculation, we can calculate the dot
-\ product as follows:
-\
-\                [ [x y z] . sidev + normal_x ]   [ normal_x ]
-\   visibility = [ [x y z] . roofv + normal_y ] . [ normal_y ]
-\                [ [x y z] . nosev + normal_z ]   [ normal_z ]
-\
-\ If the result is negative the face is visible, otherwise it is not visible.
-\
-\ This is exactly what happens in part 5 of the LL9 routine. We set the block of
-\ memory at XX15 to the left-hand side of the final calculation and the block at
-\ XX12 block to the right-hand side, and calculate the dot product XX12 . XX15
-\ to tell us whether or not this face is visible, which we store in the table at
-\ XX2. This gets repeated for all the faces until XX2 contains the visibilities
-\ of all the faces for this ship.
+\  Deep dive: Back-face culling
 \
 \ ******************************************************************************
 
@@ -39170,74 +32670,13 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Calculate the visibility of each of the ship's vertices
+\  Deep dive: Calculating vertex coordinates
 \
 \ ------------------------------------------------------------------------------
 \
 \ This section calculates the visibility of each of the ship's vertices, and for
 \ those that are visible, it starts the process of calculating the screen
 \ coordinates of each vertex
-\
-\ ******************************************************************************
-\
-\ Deep dive: Calculating vertex coordinates
-\ =========================================
-\
-\ Summary: Determining whether a ship's vertex is visible or hidden from us
-\
-\ References: LL9 (Part 6 of 11)
-\
-\ To understand the following, you'll probably want to have a look through the
-\ deep dive on "Back-face culling", which describes how we can work out whether
-\ or not a ship's face is visible.
-\
-\ As part of the back-face cull, we projected the vector [x y z] onto the
-\ orientation vector space like this:
-\
-\   [x y z] projected onto sidev = [x y z] . sidev
-\   [x y z] projected onto roofv = [x y z] . roofv
-\   [x y z] projected onto nosev = [x y z] . nosev
-\
-\ We can express this exact same calculation in terms of matrix multiplication:
-\
-\   [ sidev ]   [ x ]
-\   [ roofv ] . [ y ]
-\   [ nosev ]   [ z ]
-\
-\ or, expanding it out fully:
-\
-\                       [ sidev_x sidev_y sidev_z ]   [ x ]
-\   projected [x y z] = [ roofv_x roofv_y roofv_z ] . [ y ]
-\                       [ nosev_x nosev_y nosev_z ]   [ z ]
-\
-\ This is just a different way of expressing the exact same equation as we used
-\ in part 5 of LL9, just with a matrix instead of individual dot products.
-\
-\ Transposing the rotation matrix
-\ -------------------------------
-\ So the inverse matrix will map vectors in the orientation vector space back
-\ into normal ship space. The inverse of a rotation matrix is its transpose, so
-\ this is the calculation:
-\
-\                       [ sidev_x roofv_x nosev_x ]   [ x ]
-\   projected [x y z] = [ sidev_y roofv_y nosev_y ] . [ y ]
-\                       [ sidev_z roofv_z nosev_z ]   [ z ]
-\
-\ This takes a vector, which goes from the ship's centre to the vertex and is
-\ expressed in terms of the ship's axes (i.e. its orientation vectors), and
-\ instead expresses it in terms of our ship's axes (i.e. our orientation
-\ vectors).
-\
-\ Given this new vector, we can add the vector from our ship to the other ship,
-\ to get the vector from us to the vertex, expressed in our ship's coordinates:
-\
-\                      [ sidev_x roofv_x nosev_x ]   [ x ]   [ x ]
-\   vector to vertex = [ sidev_y roofv_y nosev_y ] . [ y ] + [ y ]
-\                      [ sidev_z roofv_z nosev_z ]   [ z ]   [ z ]
-\
-\ The code to calculate this equation takes up parts 6 and 7 of LL9. It's in two
-\ parts because there are two small subroutines that have rudely inserted
-\ themselves just before the big reveal. These are used by part 8 and don't play
-\ a part in this calculation (except to make it harder to follow).
 \
 \ ******************************************************************************
 
@@ -39714,7 +33153,6 @@ LOAD_G% = LOAD% + P% - CODE%
  STA U
 
  RTS                    \ Return from the subroutine
-
 
 \ ******************************************************************************
 \
@@ -40456,7 +33894,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  JMP LL75               \ Loop back to LL75 to process the next edge
 
-.^LL81
+.LL81
 
                         \ We have finished adding lines to the ship line heap,
                         \ so now we need to set the first byte of the heap to
@@ -40786,7 +34224,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \
                         \   (Y X) = (S R) / Q
 
-.^LL122
+.LL122
 
                         \ The following calculates:
                         \
@@ -40901,7 +34339,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \
                         \   (Y X) = (S R) * Q
 
-.^LL121
+.LL121
 
                         \ The following calculates:
                         \
@@ -40969,7 +34407,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BMI LL128              \ If A is negative jump to LL128 to return from the
                         \ subroutine with (Y X) as is
 
-.^LL133
+.LL133
 
  TXA                    \ Otherwise negate (Y X) using two's complement by first
  EOR #%11111111         \ setting the low byte to ~X + 1
@@ -41043,6 +34481,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Clip line: Work out which end-points are on-screen, if any
+\  Deep dive: Line-clipping
 \
 \ ------------------------------------------------------------------------------
 \
@@ -41098,120 +34537,6 @@ LOAD_G% = LOAD% + P% - CODE%
 \   LL147               Don't initialise the values in SWAP or A
 \
 \ ******************************************************************************
-\
-\ Deep dive: Line-clipping
-\ ========================
-\
-\ Summary: Efficiently clipping an extended line to the part that's on-screen
-\
-\ References: LL145, LL118
-\
-\ Space is big. Vintage computer screens, however, are not big. Elite's space
-\ view is a whopping 256 pixels across and 192 pixels high, and somehow we have
-\ to cram planets, suns and seat-of-the-pants space battles into this tiny,
-\ thumbnail-sized bit of cathode-ray real estate. This isn't easy.
-\
-\ The first part of the solution is to simulate not only the part of space
-\ that's visible on-screen, but the surroundings too. Elite's extended screen
-\ coordinate system takes care of this - see the deep dive on "Extended screen
-\ coordinates" for details.
-\
-\ The second part of the solution is efficient line-clipping. The extended
-\ screen coordinate system caters for objects outside of the screen bounds, so
-\ when the game actually comes to draw these objects in the space view, it needs
-\ to work out exactly which lines to draw on-screen, and that's where the
-\ line-clipping routines come in. They take lines made up of 16-bit coordinates
-\ and work out whether any of that line is on-screen, and return the portion
-\ that's visible. In a sense, the screen is a small portal onto the wider
-\ universe, and line-clipping is the process of working out what we can see
-\ through that portal.
-\
-\ Line-clipping is done in two stages. The first stage in routine LL145 works
-\ out whether the lone intersects the screen at any point, and if it does, then
-\ the second stage in routine LL118 clips the line and returns the portion that
-\ appears on-screen, which we then need to draw.
-\
-\ Lets see how these two stages work.
-\
-\ LL145: Working out whether to clip a line
-\ -----------------------------------------
-\ The line-clipping routine starts with a call to LL145, which checks whether
-\ the line is worth clipping - in other words, whether the line passes through
-\ the screen at any point. As the actual clipping process the LL118 routine, is
-\ quite involved, it's worth spending time checking whether we need to call it
-\ at all.
-\
-\ Here's a breakdown of how LL145 determines whether a line is partly or wholly
-\ on screen, and therefore whether it's worth sending to LL118 to be clipped.
-\
-\ Part 1
-\
-\   * If both coordinates are on-screen, then return with success as the line
-\     doesn't need clipping and already fits on-screen
-\
-\   * Otherwise, set XX13 to reflect which point(s) are on-screen and off-screen
-\
-\ Part 2
-\
-\   * If both points are off-screen and both points are past the same screen
-\     edge, then return with failure
-\
-\   * If moving both points left by one screen doesn't move at least one of them
-\     past the left edge of the screen (i.e. if neither of them is in the
-\     vertical screen-wide strip to the right of the screen), return with
-\     failure
-\
-\   * If moving both points up by one screen doesn't move at least one of them
-\     past the top edge of the screen (i.e. if neither of them is in the
-\     horizontal screen-high strip below the bottom of the screen), return with
-\     failure (this test needs to be done only using the space view portion of
-\     the screen)
-\
-\ Part 3
-\
-\   * Calculate the line gradient from the 16-bit coordinates, calculating it
-\     the right way round to make it a fractional gradient:
-\
-\     * Calculate (delta_x / delta_y) if delta_x < delta_y
-\
-\     * Calculate (delta_y / delta_x) if delta_x >= delta_y
-\
-\ Part 4
-\
-\   * Do the actual clipping by calling LL118 to move one end of the line at a
-\     time (so if both points need moving on-screen, we call LL118 twice)
-\
-\   * If both the original coordinates were off-screen, double-check that the
-\     clipped line is indeed on-screen, and if not return with failure
-\
-\   * Return the clipped line with success, and with XX13 and SWAP set to
-\     describe the kind of clipping we had to do
-\
-\ LL118: Clipping a line
-\ ----------------------
-\ LL118 is called by LL145 when we think a line crosses the screen. It only
-\ clips one end of the line, so if LL145 finds that both ends need clipping,
-\ it calls LL118 twice, once for each end.
-\
-\ This is how it works. Given a point (x1, y1), we move the point along the line
-\ until it is on-screen, which effectively clips the (x1, y1) end of a line to
-\ be on the screen. The movement process depends on the line's gradient, the
-\ direction of slope (i.e. top left to bottom right, or top right to bottom
-\ left), and the steepness of slope (i.e. is it more vertical than horizontal).
-\
-\ For example, if x1 is negative, i.e. off the left edge of the screen, we move
-\ the point right along the line until x1 = 0. We calculate the new y1 by
-\ multiplying the distance travelled in the x-direction by the gradient.
-\
-\ Similar logic is applied when the point is off-screen to the right, top or
-\ bottom. Also, because the gradient is always stored as a fractional value
-\ (it's less than 1.0, just expressed as a byte), then when the line is more
-\ vertical than horizontal, the value stored is actually 1 / gradient, as that
-\ way it fits into the byte. Because of this, if the line is more vertical than
-\ horizontal, we have to divide by the gradient rather than multiply to get the
-\ same result.
-\
-\ ******************************************************************************
 
 .LL145
 
@@ -41220,7 +34545,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  LDA XX15+5             \ Set A = x2_hi
 
-.^LL147
+.LL147
 
  LDX #Y*2-1             \ Set Y2 = #Y * 2 - 1. The constant #Y is 96, the
                         \ y-coordinate of the mid-point of the space view, so
@@ -41587,7 +34912,6 @@ LOAD_G% = LOAD% + P% - CODE%
  ORA XX15+3             \ LL137 to return from the subroutine with the C flag
  BNE LL137              \ set, as the line doesn't fit on-screen
 
-
  LDA XX15+2             \ If y1_lo > y-coordinate of the bottom of the screen
  CMP #Y*2               \ jump to LL137 to return from the subroutine with the
  BCS LL137              \ C flag set, as the line doesn't fit on-screen
@@ -41807,187 +35131,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprints lookup table
-\
-\ ******************************************************************************
-\
-\ Deep dive: Ship blueprints
-\ ==========================
-\
-\ Summary: Specifications for all the different types of ship in the universe
-\
-\ References: XX21, SHIP1, SHIP4
-\
-\ Every ship in Elite has a blueprint that defines that ship's characteristics
-\ (note that in this context, "ship" refers not only to ships, but also cargo
-\ canisters, space stations, escape pods, missiles and asteroids). These
-\ blueprints are the in-game equivalent of the last section of the Space Traders
-\ Flight Training Manual - a real life version of "Jane's Galactic Ships and
-\ Remote Colonial Construction, 5th Edition, 3205" (pub. Trantor House).
-\
-\ There is a lookup table at XX21 that contains the addresses of all the ship
-\ blueprints used in the game. Ship type 1 (the Sidewinder at SHIP1) is first in
-\ the table, then ship type 2 (the Viper at SHIP2) is next, and so on up to ship
-\ type 13 (the escape pod at SHIP13). For all ships except the Python, the
-\ blueprints themselves are stored in sequence just after the table; the Python
-\ is stored at SHIP4, just above screen memory at &7F00.
-\
-\ The 13 ship types are as follows, along with the configuration variables where
-\ they exist:
-\
-\   1.  Sidewinder
-\   2.  Viper (COPS)
-\   3.  Mamba
-\   4.  Python
-\   5.  Cobra Mk III bounty hunter
-\   6.  Thargoid (THG)
-\   7.  Cobra Mk III trader (CYL)
-\   9.  Missile (MSL)
-\   10. Asteroid (AST)
-\   11. Cargo (OIL)
-\   12. Thargon (TGL)
-\   13. Escape pod (ESC)
-\
-\ Each ship blueprint defines a whole range of attributes, such as the ship's
-\ maximum speed, the number of missiles it can carry, and the size of the target
-\ area we need to hit with our laser. It also contains data that's used when
-\ managing the ship once its spawned inside our local bubble of universe, like
-\ the maximum size of the ship line heap.
-\
-\ The blueprint also contains all the data we need to draw the ship on-screen.
-\ This includes the ship's vertices, edges and faces, the visibility distances,
-\ and the face normal scale factor, all of which are used in the ship drawing
-\ routine at LL9. See the deep dive on "Drawing ships" for more details.
-\
-\ Ship characteristics
-\ --------------------
-\ For each ship blueprint, the first 20 bytes define the main characteristics of
-\ this ship type. They are as follows:
-\
-\   * Byte #0           Maximum number of cargo canisters released when
-\                       destroyed
-\
-\   * Byte #1-2         The ship's targetable area, which represents how far the
-\                       ship can be from the centre of our crosshairs and still
-\                       be locked onto by our missiles or hit by our lasers, as
-\                       described in the HITCH routine (16-bit value, 1 = low
-\                       byte, 2 = high byte)
-\
-\   * Byte #3           Edges data offset low byte (offset is from byte #0)
-\
-\   * Byte #4           Faces data offset low byte (offset is from byte #0)
-\
-\   * Byte #5           Maximum heap size for plotting ship = 1 + 4 * max. no of
-\                       visible edges
-\
-\   * Byte #6           Number * 4 of the vertex used for the ship's laser
-\                       position, for when the ship fires its lasers
-\
-\   * Byte #7           Explosion count = 4 * n + 6, where n = number of
-\                       vertices used as origins for explosion clouds
-\
-\   * Byte #8           Number of vertices * 6
-\
-\   * Byte #9           Number of edges
-\
-\   * Byte #10-11       The bounty awarded for the destruction of this ship in
-\                       Cr * 10 (16-bit little-endian value, 10 = low byte,
-\                       11 = high byte)
-\
-\   * Byte #12          Number of faces * 4
-\
-\   * Byte #13          Visibility distance, beyond which we show the ship as a
-\                       dot
-\
-\   * Byte #14          Maximum energy/shields
-\
-\   * Byte #15          Maximum speed
-\
-\   * Byte #16          Edges data offset high byte (can be negative and point
-\                       to another ship's edge net)
-\
-\   * Byte #17          Faces data offset high byte
-\
-\   * Byte #18          Face normals are scaled down by 2 ^ this value to enable
-\                       us to store more accurate fractional data in the table
-\
-\   * Byte #19          %00 lll mmm, where:
-\
-\                         * Bits 0-2 = number of missiles
-\
-\                         * Bits 3-5 = laser power
-\
-\ Vertex definitions
-\ ------------------
-\ Next come the vertex definitions. Each vertex is made up of eight values
-\ stored in six bytes, as follows:
-\
-\   * Byte #0           Magnitude of the vertex's x-coordinate, with the origin
-\                       in the middle of the ship
-\
-\   * Byte #1           Magnitude of the vertex's y-coordinate
-\
-\   * Byte #2           Magnitude of the vertex's z-coordinate
-\
-\   * Byte #3           %xyz vvvvv, where:
-\
-\                         * Bits 0-4 = visibility distance, beyond which the
-\                           vertex is not shown
-\
-\                         * Bits 7-5 = the sign bits of x, y and z
-\
-\   * Byte #4           %ffff ffff, where:
-\
-\                          * Bits 0-3 = the number of face 1
-\
-\                          * Bits 4-7 = the number of face 2
-\
-\   * Byte #5           %ffff ffff, where:
-\
-\                          * Bits 0-3 = the number of face 3
-\
-\                          * Bits 4-7 = the number of face 4
-\
-\ Edge definitions
-\ ----------------
-\ Then we have the edge definitions. Each edge is made up of five values stored
-\ in four bytes, as follows:
-\
-\   * Byte #0           Visibility distance, beyond which the edge is not shown
-\
-\   * Byte #1           %ffff ffff, where:
-\
-\                         * Bits 0-3 = the number of face 1
-\
-\                         * Bits 4-7 = the number of face 2
-\
-\   * Byte #2           The number of the vertex at the start the edge
-\
-\   * Byte #3           The number of the vertex at the end of the edge
-\
-\ Face definitions
-\ ----------------
-\ Finally we have the face definitions. Each face is made up of four values
-\ stored in four bytes, as follows. Note that the visibility distance works in
-\ the opposite way for faces than for the ship, vertices and edges, in that the
-\ face is always shown when it's further away than the visibility distance.
-\
-\   * Byte #0           %xyz vvvvv, where:
-\
-\                         * Bits 0-4 = visibility distance, beyond which the
-\                           face is always shown
-\
-\                         * Bits 7-5 = the sign bits of normal_x, normal_y and
-\                           normal_z
-\
-\   * Byte #1           Magnitude of the face normal's x-coordinate, normal_x
-\
-\   * Byte #2           Magnitude of the face normal's y-coordinate, normal_y
-\
-\   * Byte #3           Magnitude of the face normal's z-coordinate, normal_z
-\
-\ To make the source code easier to follow, we use three macros (called VERTEX,
-\ EDGE and FACE) that let us separate out the different values, and which
-\ squash the data into the above bytes at compile time.
+\  Deep dive: Ship blueprints
 \
 \ ******************************************************************************
 
