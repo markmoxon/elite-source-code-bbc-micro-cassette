@@ -6638,11 +6638,7 @@ ENDIF
 
  EQUB POW+(128 AND Q%)  \ LASER = Front laser
 
-IF Q% OR _FIX_REAR_LASER
  EQUB (POW+128) AND Q%  \ LASER+1 = Rear laser, as in ELITEB source
-ELSE
- EQUB POW               \ LASER+1 = Rear laser, as in extracted ELTB binary
-ENDIF
 
  EQUB 0                 \ LASER+2 = Left laser
 
@@ -6713,20 +6709,16 @@ ENDIF
 \
 \ ------------------------------------------------------------------------------
 \
-\ Second checksum byte, see elite-checksum.py for more details.
+\ Second commander checksum byte. If the default commander is changed, a new
+\ checksum will be calculated and inserted by the elite-checksum.py script.
 \
 \ ******************************************************************************
 
-IF NOT(_FIX_REAR_LASER)
- CH% = &92              \ The correct value for the released game
-ELSE
- CH% = &3               \ The figure in the ELTB binary on the source disc
-ENDIF
-
 .CHK2
 
- EQUB CH% EOR &A9       \ Commander checksum byte, EOR'd with &A9 to make it
-                        \ harder to tamper with the checksum byte
+ EQUB &92 EOR &A9       \ The checksum value for the default commander, EOR'd
+                        \ with &A9 to make it harder to tamper with the checksum
+                        \ byte
 
 \ ******************************************************************************
 \
@@ -6737,15 +6729,14 @@ ENDIF
 \
 \ ------------------------------------------------------------------------------
 \
-\ Commander checksum byte, see elite-checksum.py for more details.
+\ Commander checksum byte. If the default commander is changed, a new checksum
+\ will be calculated and inserted by the elite-checksum.py script.
 \
 \ ******************************************************************************
 
 .CHK
 
- EQUB CH%
-
-PRINT "CH% = ", ~CH%
+ EQUB &92               \ The checksum value for the default commander
 
 \ ******************************************************************************
 \
