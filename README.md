@@ -108,8 +108,6 @@ The unencrypted version should be more useful for anyone who wants to make modif
 
 The encrypted version produces the released version of Elite, along with the standard default commander.
 
-(Note that there is a third build target, `extract`, which is explained in the section below on [differences between the various source files](#Differences-between-the-various-source-files]).)
-
 Builds are supported for both Windows and Mac/Linux systems. In all cases the build process is defined in the `Makefile` provided.
 
 Note that the build ends with a warning that there is no `SAVE` command in the source file. You can ignore this, as the source file contains a `PUTFILE` command instead, but BeebAsm still reports this as a warning.
@@ -184,7 +182,7 @@ Checksum   Size  Checksum   Size  Match  Filename
 -----------------------------------------------------------
 a88ca82b   5426  a88ca82b   5426   Yes   ELITE.bin
 0f1ad255   2228  0f1ad255   2228   Yes   ELTA.bin
-e725760a   2600  e725760a   2600   Yes   ELTB.bin
+3f107178   2600  3f107178   2600   Yes   ELTB.bin
 97e338e8   2735  97e338e8   2735   Yes   ELTC.bin
 322b174c   2882  322b174c   2882   Yes   ELTD.bin
 29f7b8cb   2663  29f7b8cb   2663   Yes   ELTE.bin
@@ -194,9 +192,9 @@ e725760a   2600  e725760a   2600   Yes   ELTB.bin
 99529ca8    256  99529ca8    256   Yes   PYTHON.bin
 49ee043c   2502  49ee043c   2502   Yes   SHIPS.bin
 c4547e5e   1023  c4547e5e   1023   Yes   WORDS9.bin
-*             *  f40816ec   5426    *    ELITE.unprot.bin
-*             *  1e4466ec  20712    *    ELTcode.unprot.bin
-*             *  00d5bb7a     40    *    ELThead.bin
+-             -  f40816ec   5426    -    ELITE.unprot.bin
+-             -  8de09f8f  20712    -    ELTcode.unprot.bin
+-             -  00d5bb7a     40    -    ELThead.bin
 ```
 
 All the compiled binaries match the extracts, so we know we are producing the same final game as the release version.
@@ -237,15 +235,9 @@ Given the above, we can see that `O.ELITEB` correctly produces a default command
 
 In contrast, `$.ELITEB` will always produce a default commander with a rear pulse laser, irrespective of the setting of `Q%`, so it doesn't match the released version.
 
-The `ELTB` binary file in the `extracted` folder of this repository is the release version, so we can easily tell whether any changes we've made to the code deviate from the release version. However, the `ELTB` binary file on the sources disc matches the version produced by `$.ELITEB`, rather than the released version produced by `O.ELITEB` - in other words, `ELTB` on the source disc is not the release version.
+The `ELTB` binary file in the `extracted` folder of this repository matches the release version, so we can easily tell whether any changes we've made to the code deviate from the release version. However, the `ELTB` binary file on the sources disc matches the version produced by `$.ELITEB`, rather than the released version produced by `O.ELITEB` - in other words, `ELTB` on the source disc is not the release version.
 
 The implication is that the `ELTB` binary file on the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip) was produced by `$.ELITEB`, while the `ELTcode` file (the released game) used `O.ELITEB`. Perhaps the released game was compiled, and then someone backed up the `ELITEB` source to `O.ELITEB`, edited the `$.ELITEB` to have a rear pulse laser, and then generated a new `ELTB` binary file. Who knows? Unfortunately, files on DFS discs don't have timestamps, so it's hard to tell.
-
-To support this discrepancy, there is an extra build target for building the `ELTB` binary as found on the sources disc, and as produced by `$.ELITEB`. You can build this version, which has the rear pulse laser, with:
-
-  `make extract`
-
-The `ELTcode` executable produced by this build target is different to the released version, because the default commander has the extra rear pulse laser. You can use the verify target to confirm this. Doing `make encrypt verify` shows that all the generated files match the extracted ones, while `make extract verify` shows that the all the generated files match the extracted ones except for `ELTB` and `ELTcode`.
 
 ---
 
