@@ -6716,7 +6716,7 @@ ENDIF
 
 .CHK2
 
- EQUB &92 EOR &A9       \ The checksum value for the default commander, EOR'd
+ EQUB &03 EOR &A9       \ The checksum value for the default commander, EOR'd
                         \ with &A9 to make it harder to tamper with the checksum
                         \ byte
 
@@ -6736,7 +6736,7 @@ ENDIF
 
 .CHK
 
- EQUB &92               \ The checksum value for the default commander
+ EQUB &03               \ The checksum value for the default commander
 
 \ ******************************************************************************
 \

@@ -182,7 +182,7 @@ Checksum   Size  Checksum   Size  Match  Filename
 -----------------------------------------------------------
 a88ca82b   5426  a88ca82b   5426   Yes   ELITE.bin
 0f1ad255   2228  0f1ad255   2228   Yes   ELTA.bin
-3f107178   2600  3f107178   2600   Yes   ELTB.bin
+e725760a   2600  e725760a   2600   Yes   ELTB.bin
 97e338e8   2735  97e338e8   2735   Yes   ELTC.bin
 322b174c   2882  322b174c   2882   Yes   ELTD.bin
 29f7b8cb   2663  29f7b8cb   2663   Yes   ELTE.bin
