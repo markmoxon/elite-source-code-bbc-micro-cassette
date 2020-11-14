@@ -51,6 +51,8 @@ NOSH = 12               \ The maximum number of ships in our local bubble of
                         \ universe (counting from 0, so there are actually 13
                         \ ship slots)
 
+NTY = 13                \ The number of different ship types
+
 COPS = 2                \ Ship type for a Viper
 MAM = 3                 \ Ship type for a Mamba
 THG = 6                 \ Ship type for a Thargoid
@@ -2595,7 +2597,7 @@ ORG &0D40
 
 .SSPR
 
- SKIP 14 - SST          \ "Space station present" flag
+ SKIP NTY + 1 - SST     \ "Space station present" flag
                         \
                         \   * Non-zero if we are inside the space station's safe
                         \     zone
@@ -2768,6 +2770,7 @@ ORG &0D40
                         \ The spaces can be shared as our local bubble of
                         \ universe can support either the sun or a space
                         \ station, but not both
+
 .LSX2
 
  SKIP 78                \ The ball line heap for storing x-coordinates (see the
@@ -9405,6 +9408,7 @@ NEXT
 
  BNE st5L               \ Keep looping around until A = 0, which means there are
                         \ no set bits left in A
+
 .st3
 
  TXA                    \ A now contains our rating as a value of 1 to 9, so
@@ -10198,8 +10202,10 @@ NEXT
  STA P+1                \ Store the address of this character's definition in
  STX P+2                \ P(2 1)
 
- LDA XC                 \ Fetch XC, the x-coordinate (column) of the text
- ASL A                  \ cursor, multiply by 8, and store in SC. As each
+ LDA XC                 \ Fetch XC, the x-coordinate (column) of the text cursor
+                        \ into A
+
+ ASL A                  \ Multiply A by 8, and store in SC. As each
  ASL A                  \ character is 8 bits wide, and the special screen mode
  ASL A                  \ Elite uses for the top part of the screen is 256
  STA SC                 \ bits across with one bit per pixel, this value is
@@ -10235,7 +10241,7 @@ NEXT
                         \
                         \   X = YC + &5E + 1
                         \     = YC + &5F
-                        \
+
                         \ Because YC starts at 0 for the first text row, this
                         \ means that X will be &5F for row 0, &60 for row 1 and
                         \ so on. In other words, X is now set to the page number
@@ -12665,9 +12671,11 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ space station, for example, the spawned ship won't
                         \ keep rolling forever)
 
- TXA                    \ If the child we are spawning is not a cargo canister,
- CMP #OIL               \ jump to NOIL to skip us setting up the pitch and roll
- BNE NOIL               \ for the canister
+ TXA                    \ Copy the child's ship type from X into A
+
+ CMP #OIL               \ If the child we are spawning is not a cargo canister,
+ BNE NOIL               \ jump to NOIL to skip us setting up the pitch and roll
+                        \ for the canister
 
  JSR DORND              \ Set A and X to random numbers
 
@@ -12861,12 +12869,11 @@ LOAD_C% = LOAD% +P% - CODE%
 
 .HFS1
 
- LDA #128               \ Set K3 = 128 (the x-coordinate pf the centre of the
+ LDA #128               \ Set K3 = 128 (the x-coordinate of the centre of the
  STA K3                 \ screen)
 
  LDX #Y                 \ Set K4 = #Y (the y-coordinate of the centre of the
-                        \ screen)
- STX K4
+ STX K4                 \ screen)
 
  ASL A                  \ Set A = 0
 
@@ -14273,7 +14280,8 @@ NEXT
 
  LDA XX15               \ Set A = XX15
 
- JSR MULT12             \ Set (S R) = Q * A =
+ JSR MULT12             \ Set (S R) = Q * A
+                        \           = vect_x * XX15
 
  LDX INWK+2,Y           \ Set Q = the Y+2-th byte of INWK, i.e. vect_y
  STX Q
@@ -14765,7 +14773,8 @@ NEXT
  BMI DV9                \ If bit 7 of A is set, jump down to DV9 to skip the
                         \ left-shifting of the denominator (though this branch
                         \ instruction has no effect as bit 7 of the above AND
-                        \ can never be set)
+                        \ can never be set, which is why this instruction was
+                        \ removed from later versions)
 
 .DVL6
 
@@ -16226,6 +16235,7 @@ NEXT
 
  ADC #123               \ Set X1 = 123 + x_hi
  STA X1
+
                         \ Next, we convert the z_hi coordinate of the ship into
                         \ the y-coordinate of the base of the ship's stick,
                         \ like this (see above for an explanation):
@@ -18122,8 +18132,8 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR MCASH              \ Add (Y X) cash to the cash pot in CASH
 
  LDA #0                 \ We've made the sale, so set the amount
- LDY QQ29               \ item index
- STA QQ20,Y             \ ship cargo count
+ LDY QQ29
+ STA QQ20,Y
 
  STA QQ17               \ Set QQ17 = 0, which enables printing again
 
@@ -18327,8 +18337,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT103
 
- LDA QQ11               \ If this is a space view, return from the subroutine
- BEQ TT180              \ (as TT180 contains an RTS), as there are no moveable
+ LDA QQ11               \ Fetch the current view type into A
+
+ BEQ TT180              \ If this is a space view, return from the subroutine
+                        \ (as TT180 contains an RTS), as there are no moveable
                         \ crosshairs in space
 
  BMI TT105              \ If this is the Short-range Chart screen, jump to TT105
@@ -22479,18 +22491,23 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .SOLAR
 
- LSR FIST               \ Halve our legal status in FIST, making us less bad
-                        \ moving bit 0 into the C flag (so every time we arrive
-                        \ in a new system, our legal status improves a bit)
+ LSR FIST               \ Halve our legal status in FIST, making us less bad,
+                        \ and moving bit 0 into the C flag (so every time we
+                        \ arrive in a new system, our legal status improves a
+                        \ bit)
 
  JSR ZINF               \ Call ZINF to reset the INWK ship workspace, which
                         \ doesn't affect the C flag
 
- LDA QQ15+1             \ Fetch w0_hi, extract bits 0-2 (which also happen to
- AND #%00000111         \ determine the economy), add 6 + C, divide by 2, and
- ADC #6                 \ store the result - which will be between 3 and 7 - in
- LSR A                  \ z_sign in byte #6
- STA INWK+8
+ LDA QQ15+1             \ Fetch w0_hi
+
+ AND #%00000111         \ Extract bits 0-2 (which also happen to determine the
+                        \ economy), which will be between 0 and 7
+
+ ADC #6                 \ Add 6 + C, and divide by 2, to get a result between 3
+ LSR A                  \ and 7
+
+ STA INWK+8             \ Store the result in z_sign in byte #6
 
  ROR A                  \ Halve A, rotating in the C flag, which was previously
  STA INWK+2             \ bit 0 of w0_hi + 6 + C, so when this is stored in both
@@ -23995,7 +24012,8 @@ LOAD_E% = LOAD% + P% - CODE%
 
  LDA #49                \ Set SC = 49 - T
  SBC T                  \        = 48 + 1 - (X * 8)
- STA SC                 \
+ STA SC
+
                         \ So the low byte of SC(1 0) contains the row address
                         \ for the rightmost missile indicator, made up as
                         \ follows:
@@ -24162,10 +24180,13 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .PL2
 
- LDA TYPE               \ If the planet/sun's type has bit 0 clear, then it's
- LSR A                  \ either 128 or 130, which is a planet; meanwhile, the
- BCS P%+5               \ sun has type 129, which has bit 0 set. So if this is
-                        \ the sun planet, skip the following instruction
+ LDA TYPE               \ Shift bit 0 of the planet/sun's type into the C flag
+ LSR A
+
+ BCS P%+5               \ If the planet/sun's type has bit 0 clear, then it's
+                        \ either 128 or 130, which is a planet; meanwhile, the
+                        \ sun has type 129, which has bit 0 set. So if this is
+                        \ the sun, skip the following instruction
 
  JMP WPLS2              \ This is the planet, so jump to WPLS2 to remove it from
                         \ screen, returning from the subroutine using a tail
@@ -26246,8 +26267,9 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ and +2 depending on the joystick roll value (moving
                         \ the stick sideways)
 
- TYA                    \ Copy Y to A and X
- TAX
+ TYA                    \ Copy Y to A
+
+ TAX                    \ Copy A to X
 
  LDA JSTY               \ Fetch the joystick pitch, ranging from 1 to 255 with
                         \ 128 as the centre point, and fall through into TJS1 to
@@ -27211,7 +27233,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \   * Reset the INWK ship workspace
 \
-\   * Set the ship to a fair distance away (32) in all axes, in front of us but
+\   * Set the ship to a fair distance away in all axes, in front of us but
 \     randomly up or down, left or right
 \
 \   * Give the ship a 4% chance of having E.C.M.
@@ -27691,6 +27713,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ ******************************************************************************
 
 .MLOOP
+
  LDA #%00000001         \ Set 6522 System VIA interrupt enable register IER
  STA SHEILA+&4E         \ (SHEILA &4E) bit 1 (i.e. disable the CA2 interrupt,
                         \ which comes from the keyboard)
@@ -28281,15 +28304,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ Also called following death or quitting a game (by pressing Escape when
-\ paused).
-\
-\ BRKV is set to point to BR1 by elite-loader.asm.
-\
-\ Other entry points:
-\
-\   BR1                 Restarts the game, but without resetting the stack
-\                       pointer. BRKV is set to point here by elite-loader.asm
+\ This is the main entry point for a the main game coce. It is also called
+\ following death, and when the game is quit by pressing Escape when paused.
 \
 \ ******************************************************************************
 
@@ -28302,9 +28318,22 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ elite-loader.asm pushes code onto the stack, and this
                         \ effectively removes that code so we start afresh
 
-.BR1
+                        \ Fall through into BR1 to start the game
 
-                        \ BRKV is set to point here by elite-loader.asm
+\ ******************************************************************************
+\
+\       Name: BR1
+\       Type: Subroutine
+\   Category: Start and end
+\    Summary: Restart the game
+\
+\ ------------------------------------------------------------------------------
+\
+\ BRKV is set to point to BR1 by elite-loader.asm.
+\
+\ ******************************************************************************
+
+.BR1
 
  LDX #3                 \ Set XC = 3 (set text cursor to column 3)
  STX XC
@@ -29110,10 +29139,10 @@ ENDIF
  LDY #&B                \ Set up an OSFILE block at &0C00, containing:
  STY &0C03              \
  INC &0C0B              \ Load address = &00000B00 in &0C02 to &0C05
- INY                    \
-                        \ Length of file = &00000100 in &0C0A to &0C0D
                         \
-                        \ Y is left containing &C which we use next
+                        \ Length of file = &00000100 in &0C0A to &0C0D
+
+ INY                    \ Increment Y to &C, which we use next
 
  LDA #&FF               \ Call QUS1 with A = &FF, Y = &C to load the commander
  JSR QUS1               \ file at address &0B00
@@ -29711,8 +29740,10 @@ ENDIF
 
 .NO3
 
- LDX DNOIZ              \ If DNOIZ is non-zero, then sound is disabled, so
- BNE NO1                \ return from the subroutine
+ LDX DNOIZ              \ Set X to the DNOIZ configuration setting
+
+ BNE NO1                \ If DNOIZ is non-zero, then sound is disabled, so
+                        \ return from the subroutine (as NO1 contains an RTS)
 
  LDX #LO(XX16)          \ Otherwise call OSWORD 7, with (Y X) pointing to the
  LDY #HI(XX16)          \ sound block in XX16. This makes the sound as
@@ -36170,7 +36201,7 @@ ORG CODE_PYTHON%
 
 .SVN
 
- EQUB 0                 \ SVN = &7FFD
+ EQUB 0                 \ "Saving in progress" flag
                         \
                         \ Set to 1 while we are saving a commander, 0 otherwise
 

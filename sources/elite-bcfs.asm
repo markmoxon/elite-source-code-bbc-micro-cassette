@@ -33,6 +33,8 @@
 \
 \ ******************************************************************************
 
+INCLUDE "sources/elite-header.h.asm"
+
 CODE% = &0F40           \ CODE% is set to the location that the main game code
                         \ gets moved to after it is loaded
 

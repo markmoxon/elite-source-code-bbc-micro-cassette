@@ -1509,6 +1509,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Utility routines
 \    Summary: Generate random numbers
+\  Deep dive: Generating random numbers
 \
 \ ------------------------------------------------------------------------------
 \
@@ -2613,6 +2614,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Screen mode
 \    Summary: The loader's screen-mode interrupt handler (IRQ1V points here)
+\  Deep dive: The split-screen mode
 \
 \ ------------------------------------------------------------------------------
 \
