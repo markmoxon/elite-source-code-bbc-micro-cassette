@@ -181,6 +181,7 @@ The binaries in the `extracted` folder were taken straight from the [cassette so
 Checksum   Size  Checksum   Size  Match  Filename
 -----------------------------------------------------------
 a88ca82b   5426  a88ca82b   5426   Yes   ELITE.bin
+f40816ec   5426  f40816ec   5426   Yes   ELITE.unprot.bin
 0f1ad255   2228  0f1ad255   2228   Yes   ELTA.bin
 e725760a   2600  e725760a   2600   Yes   ELTB.bin
 97e338e8   2735  97e338e8   2735   Yes   ELTC.bin
@@ -189,12 +190,11 @@ e725760a   2600  e725760a   2600   Yes   ELTB.bin
 8a4cecc2   2721  8a4cecc2   2721   Yes   ELTF.bin
 7a6a5d1a   2340  7a6a5d1a   2340   Yes   ELTG.bin
 01a00dce  20712  01a00dce  20712   Yes   ELTcode.bin
+1e4466ec  20712  1e4466ec  20712   Yes   ELTcode.unprot.bin
+00d5bb7a     40  00d5bb7a     40   Yes   ELThead.bin
 99529ca8    256  99529ca8    256   Yes   PYTHON.bin
 49ee043c   2502  49ee043c   2502   Yes   SHIPS.bin
 c4547e5e   1023  c4547e5e   1023   Yes   WORDS9.bin
--             -  f40816ec   5426    -    ELITE.unprot.bin
--             -  8de09f8f  20712    -    ELTcode.unprot.bin
--             -  00d5bb7a     40    -    ELThead.bin
 ```
 
 All the compiled binaries match the extracts, so we know we are producing the same final game as the release version.
