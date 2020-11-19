@@ -35141,8 +35141,6 @@ SAVE "output/ELTG.bin", CODE_G%, P%, LOAD%
 CODE_SHIPS% = P%
 LOAD_SHIPS% = LOAD% + P% - CODE%
 
-_IS_PIRATE = FALSE
-
 \ ******************************************************************************
 \
 \       Name: VERTEX
@@ -35325,30 +35323,30 @@ ENDMACRO
 
 .XX21
 
- EQUW SHIP1             \         1 = Sidewinder
- EQUW SHIP2             \ COPS =  2 = Viper
- EQUW SHIP3             \ MAM  =  3 = Mamba
- EQUW SHIP4             \         4 = Python
- EQUW SHIP5             \         5 = Cobra Mk III (bounty hunter)
- EQUW SHIP6             \ THG  =  6 = Thargoid
- EQUW SHIP5             \ CYL  =  7 = Cobra Mk III (trader)
- EQUW SHIP8             \ SST  =  8 = Coriolis space station
- EQUW SHIP9             \ MSL  =  9 = Missile
- EQUW SHIP10            \ AST  = 10 = Asteroid
- EQUW SHIP11            \ OIL  = 11 = Cargo
- EQUW SHIP12            \ TGL  = 12 = Thargon
- EQUW SHIP13            \ ESC  = 13 = Escape pod
+ EQUW SHIP_SIDEWINDER   \         1 = Sidewinder
+ EQUW SHIP_VIPER        \ COPS =  2 = Viper
+ EQUW SHIP_MAMBA        \ MAM  =  3 = Mamba
+ EQUW SHIP_PYTHON       \         4 = Python
+ EQUW SHIP_COBRA_MK_3   \         5 = Cobra Mk III (bounty hunter)
+ EQUW SHIP_THARGOID     \ THG  =  6 = Thargoid
+ EQUW SHIP_COBRA_MK_3   \ CYL  =  7 = Cobra Mk III (trader)
+ EQUW SHIP_CORIOLIS     \ SST  =  8 = Coriolis space station
+ EQUW SHIP_MISSILE      \ MSL  =  9 = Missile
+ EQUW SHIP_ASTEROID     \ AST  = 10 = Asteroid
+ EQUW SHIP_CANISTER     \ OIL  = 11 = Cargo canister
+ EQUW SHIP_THARGON      \ TGL  = 12 = Thargon
+ EQUW SHIP_ESCAPE_POD   \ ESC  = 13 = Escape pod
 
 \ ******************************************************************************
 \
-\       Name: SHIP1
+\       Name: SHIP_SIDEWINDER
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Sidewinder
 \
 \ ******************************************************************************
 
-.SHIP1
+.SHIP_SIDEWINDER
 
  EQUB 0                 \ Max. canisters on demise = 0
  EQUW 65 * 65           \ Targetable area          = 65 * 65
@@ -35410,14 +35408,14 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\       Name: SHIP2
+\       Name: SHIP_VIPER
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Viper
 \
 \ ******************************************************************************
 
-.SHIP2
+.SHIP_VIPER
 
  EQUB 0                 \ Max. canisters on demise = 0
  EQUW 75 * 75           \ Targetable area          = 75 * 75
@@ -35489,14 +35487,14 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\       Name: SHIP3
+\       Name: SHIP_MAMBA
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Mamba
 \
 \ ******************************************************************************
 
-.SHIP3
+.SHIP_MAMBA
 
  EQUB 1                 \ Max. canisters on demise = 1
  EQUW 70 * 70           \ Targetable area          = 70 * 70
@@ -35584,14 +35582,14 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\       Name: SHIP5
+\       Name: SHIP_COBRA_MK_3
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Cobra Mk III
 \
 \ ******************************************************************************
 
-.SHIP5
+.SHIP_COBRA_MK_3
 
  EQUB 3                 \ Max. canisters on demise = 3
  EQUW 95 * 95           \ Targetable area          = 95 * 95
@@ -35700,14 +35698,14 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\       Name: SHIP6
+\       Name: SHIP_THARGOID
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Thargoid mothership
 \
 \ ******************************************************************************
 
-.SHIP6
+.SHIP_THARGOID
 
  EQUB 0                 \ Max. canisters on demise = 0
  EQUW 99 * 99           \ Targetable area          = 99 * 99
@@ -35777,7 +35775,6 @@ ENDMACRO
  EDGE      13,      14,     6,     9,         31    \ Edge 22
  EDGE      14,      15,     7,     9,         31    \ Edge 23
  EDGE      16,      17,     9,     9,         30    \ Edge 24
-
  EDGE      18,      19,     9,     9,         30    \ Edge 25
 
 \FACE normal_x, normal_y, normal_z, visibility
@@ -35794,14 +35791,14 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\       Name: SHIP8
+\       Name: SHIP_CORIOLIS
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Coriolis space station
 \
 \ ******************************************************************************
 
-.SHIP8
+.SHIP_CORIOLIS
 
  EQUB 0                 \ Max. canisters on demise = 0
  EQUW 160 * 160         \ Targetable area          = 160 * 160
@@ -35889,14 +35886,14 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\       Name: SHIP9
+\       Name: SHIP_MISSILE
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a missile
 \
 \ ******************************************************************************
 
-.SHIP9
+.SHIP_MISSILE
 
  EQUB 0                 \ Max. canisters on demise = 0
  EQUW 40 * 40           \ Targetable area          = 40 * 40
@@ -35976,14 +35973,14 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\       Name: SHIP10
+\       Name: SHIP_ASTEROID
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for an asteroid
 \
 \ ******************************************************************************
 
-.SHIP10
+.SHIP_ASTEROID
 
  EQUB 0                 \ Max. canisters on demise = 0
  EQUW 80 * 80           \ Targetable area          = 80 * 80
@@ -36057,14 +36054,14 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\       Name: SHIP11
+\       Name: SHIP_CANISTER
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a cargo canister
 \
 \ ******************************************************************************
 
-.SHIP11
+.SHIP_CANISTER
 
  EQUB 0                 \ Max. canisters on demise = 0
  EQUW 20 * 20           \ Targetable area          = 20 * 20
@@ -36126,18 +36123,23 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\       Name: SHIP12
+\       Name: SHIP_THARGON
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Thargon
 \
+\ ------------------------------------------------------------------------------
+\
+\ The ship blueprint for the Thargon reuses the edges data from the cargo
+\ canister, so the edges data offset is negative.
+\
 \ ******************************************************************************
 
-.SHIP12
+.SHIP_THARGON
 
  EQUB 0                 \ Max. canisters on demise = 0
  EQUW 40 * 40           \ Targetable area          = 40 * 40
- EQUB &A8               \ Edges data offset (low)  = &FFA8 = -88 (canister data)
+ EQUB &A8               \ Edges data offset (low)  = &FFA8 = -88 (canister)
  EQUB &50               \ Faces data offset (low)  = &0050
  EQUB 65                \ Max. edge count          = (65 - 1) / 4 = 16
  EQUB 0                 \ Gun vertex               = 0
@@ -36149,7 +36151,7 @@ ENDMACRO
  EQUB 20                \ Visibility distance      = 20
  EQUB 20                \ Max. energy              = 20
  EQUB 30                \ Max. speed               = 30
- EQUB &FF               \ Edges data offset (high) = &FFA8 = -88 (canister data)
+ EQUB &FF               \ Edges data offset (high) = &FFA8 = -88 (canister)
  EQUB &00               \ Faces data offset (high) = &0050
  EQUB 2                 \ Normals are scaled by    = 2^2 = 4
  EQUB %00010000         \ Laser power              = 2
@@ -36178,14 +36180,14 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\       Name: SHIP13
+\       Name: SHIP_ESCAPE_POD
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for an escape pod
 \
 \ ******************************************************************************
 
-.SHIP13
+.SHIP_ESCAPE_POD
 
  EQUB 0                 \ Max. canisters on demise = 0
  EQUW 16 * 16           \ Targetable area          = 16 * 16
@@ -36260,14 +36262,14 @@ ORG CODE_PYTHON%
 
 \ ******************************************************************************
 \
-\       Name: SHIP4
+\       Name: SHIP_PYTHON
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Python
 \
 \ ******************************************************************************
 
-.SHIP4
+.SHIP_PYTHON
 
  EQUB 3                 \ Max. canisters on demise = 3
  EQUW 120 * 120         \ Targetable area          = 120 * 120
