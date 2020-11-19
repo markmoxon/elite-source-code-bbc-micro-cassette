@@ -325,9 +325,10 @@ ORG O%
 \
 \ ------------------------------------------------------------------------------
 \
-\ This table contains the sound envelope data, which is passed to OSWORD to set
-\ up the sound envelopes in part 2 below. Refer to chapter 30 of the BBC Micro
-\ User Guide for details of sound envelopes.
+\ This table contains the sound envelope data, which is passed to OSWORD by the
+\ FNE macro to create the four sound envelopes used in-game. Refer to chapter 30
+\ of the BBC Micro User Guide for details of sound envelopes and what all the
+\ parameters mean.
 \
 \ The envelopes are as follows:
 \
@@ -540,20 +541,22 @@ ORG O%
 \
 \ ------------------------------------------------------------------------------
 \
-\ The following macro is used to defining the four sound envelopes used in the
+\ The following macro is used to define the four sound envelopes used in the
 \ game. It uses OSWORD 8 to create an envelope using the 14 parameters in the
-\ the I%-th block of 14 bytes at location E%. This does the same as BBC BASIC's
-\ ENVELOPE command.
+\ the I%-th block of 14 bytes at location E%. This OSWORD call is the same as
+\ BBC BASIC's ENVELOPE command.
 \
 \ See variable E% for more details of the envelopes themselves.
 \
 \ ******************************************************************************
 
 MACRO FNE I%
+
   LDX #LO(E%+I%*14)     \ Call OSWORD with A = 8 and (Y X) pointing to the
   LDY #HI(E%+I%*14)     \ I%-th set of envelope data in E%, to set up sound
   LDA #8                \ envelope I%
   JSR OSWORD
+
 ENDMACRO
 
 \ ******************************************************************************
@@ -1205,7 +1208,8 @@ ENDIF
 .PLL1
 
                         \ The following loop iterates CNT(1 0) times, i.e. &500
-                        \ or 1280 times
+                        \ or 1280 times, and draws the planet part of the
+                        \ loading screen's Saturn
 
  LDA VIA+4              \ Read the 6522 System VIA T1C-L timer 1 low-order
  STA RAND+1             \ counter, which increments 1000 times a second so this
@@ -1294,7 +1298,7 @@ ENDIF
 
  JSR PIX                \ Draw a pixel at screen coordinate (X, -A), i.e. at
                         \
-                        \ (ZP / 2, -A)
+                        \   (ZP / 2, -A)
                         \
                         \ where ZP = SQRT(128^2 - (r1^2 + r2^2))
                         \
@@ -1324,6 +1328,10 @@ ENDIF
  STX EXCN               \ EXCN(1 0) = &03C2, which we will use in the IRQ1
                         \ handler (this has nothing to do with drawing Saturn,
                         \ it's all part of the copy protection)
+
+                        \ The following loop iterates CNT2(1 0) times, i.e. &1DD
+                        \ or 477 times, and draws the background stars on the
+                        \ loading screen
 
 .PLL2
 
@@ -1357,9 +1365,9 @@ ENDIF
  JSR PIX                \ Draw a pixel at screen coordinate (X, -A), i.e. at
                         \ (r3, -r4), where (r3^2 + r4^2) / 256 >= 17
                         \
-                        \ Negating a random number from 0 to 255 gives the same
-                        \ thing, so this is the same as plotting at (x, y)
-                        \ where:
+                        \ Negating a random number from 0 to 255 still gives a
+                        \ random number from 0 to 255, so this is the same as
+                        \ plotting at (x, y) where:
                         \
                         \   x = random number from 0 to 255
                         \   y = random number from 0 to 255
@@ -1387,6 +1395,10 @@ ENDIF
  STX BLN                \ BLN(1 0) = &03C6, which we will use in the IRQ1
                         \ handler (this has nothing to do with drawing Saturn,
                         \ it's all part of the copy protection)
+
+                        \ The following loop iterates CNT3(1 0) times, i.e. &500
+                        \ or 1280 times, and draws the rings around the loading
+                        \ screen's Saturn
 
 .PLL3
 
@@ -1433,8 +1445,8 @@ ENDIF
                         \   %00000000 - %00011111  = 0-31
                         \   %11100000 - %11111111  = 224-255
                         \
-                        \ In terms of signed 8-bit integers, this is from -32 to
-                        \ 31. Let's call it r7
+                        \ In terms of signed 8-bit integers, this is a random
+                        \ number from -32 to 31. Let's call it r7
 
  ADC YY                 \ Set X = A + YY
  TAX                    \       = r7 + r6
@@ -1454,8 +1466,8 @@ ENDIF
  CMP #80                \ If A >= 80, jump down to PLC3 to skip to the next
  BCS PLC3               \ pixel
 
- CMP #32                \ If A < 32, jump down to PLC3 to skip to the next
- BCC PLC3               \ pixel
+ CMP #32                \ If A < 32, jump down to PLC3 to skip to the next pixel
+ BCC PLC3
 
  TYA                    \ Set A = Y + T
  ADC T                  \       = r7^2 / 256 + r6^2 / 256
@@ -1477,9 +1489,9 @@ ENDIF
                         \   X = (random -32 to 31) + r6
                         \   A = r6
                         \
-                        \ Negating a random number from 0 to 255 gives the same
-                        \ thing, so this is the same as plotting at (x, y)
-                        \ where:
+                        \ Negating a random number from 0 to 255 still gives a
+                        \ random number from 0 to 255, so this is the same as
+                        \ plotting at (x, y) where:
                         \
                         \   r5 = random number from 0 to 255
                         \   r6 = random number from 0 to 255
@@ -1615,8 +1627,9 @@ ENDIF
 \ before drawing, and then the routine uses the same approach as the PIXEL
 \ routine in the main game code, except it plots a single pixel from TWOS
 \ instead of a two pixel dash from TWOS2. This applies to the top part of the
-\ screen (the monochrome mode 4 portion). See the PIXEL routine in the main game
-\ code for more details.
+\ screen (the monochrome mode 4 space view).
+\
+\ See the PIXEL routine in the main game code for more details.
 \
 \ Arguments:
 \
@@ -1752,7 +1765,7 @@ ENDIF
 \ This routine is identical to LL5 in the main game code - it even has the same
 \ label names. The only difference is that LL5 calculates Q = SQRT(R Q), but
 \ apart from the variables used, the instructions are identical, so see the LL5
-\ routine in the main game code for more details.
+\ routine in the main game code for more details on the algorithm used here.
 \
 \ ******************************************************************************
 

@@ -1188,6 +1188,7 @@ ORG CODE_WORDS%
 \       Type: Macro
 \   Category: Text
 \    Summary: Macro definition for characters in the recursive token table
+\  Deep dive: Printing text tokens
 \
 \ ------------------------------------------------------------------------------
 \
@@ -1198,10 +1199,16 @@ ORG CODE_WORDS%
 \ See the deep dive on "Printing text tokens" for details on how characters are
 \ stored in the recursive token table.
 \
+\ Arguments:
+\
+\   'x'                 The character to insert into the table
+\
 \ ******************************************************************************
 
 MACRO CHAR x
+
   EQUB x EOR 35
+
 ENDMACRO
 
 \ ******************************************************************************
@@ -1210,6 +1217,7 @@ ENDMACRO
 \       Type: Macro
 \   Category: Text
 \    Summary: Macro definition for two-letter tokens in the token table
+\  Deep dive: Printing text tokens
 \
 \ ------------------------------------------------------------------------------
 \
@@ -1220,9 +1228,18 @@ ENDMACRO
 \ See the deep dive on "Printing text tokens" for details on how two-letter
 \ tokens are stored in the recursive token table.
 \
+\ Arguments:
+\
+\   'x'                 The first letter of the two-letter token to insert into
+\                       the table
+\
+\   'y'                 The second letter of the two-letter token to insert into
+\                       the table
+\
 \ ******************************************************************************
 
 MACRO TWOK t, k
+
   IF t = 'A' AND k = 'L' : EQUB 128 EOR 35 : ENDIF
   IF t = 'L' AND k = 'E' : EQUB 129 EOR 35 : ENDIF
   IF t = 'X' AND k = 'E' : EQUB 130 EOR 35 : ENDIF
@@ -1255,6 +1272,7 @@ MACRO TWOK t, k
   IF t = 'I' AND k = 'S' : EQUB 157 EOR 35 : ENDIF
   IF t = 'R' AND k = 'I' : EQUB 158 EOR 35 : ENDIF
   IF t = 'O' AND k = 'N' : EQUB 159 EOR 35 : ENDIF
+
 ENDMACRO
 
 \ ******************************************************************************
@@ -1263,6 +1281,7 @@ ENDMACRO
 \       Type: Macro
 \   Category: Text
 \    Summary: Macro definition for control codes in the recursive token table
+\  Deep dive: Printing text tokens
 \
 \ ------------------------------------------------------------------------------
 \
@@ -1273,10 +1292,16 @@ ENDMACRO
 \ See the deep dive on "Printing text tokens" for details on how characters are
 \ stored in the recursive token table.
 \
+\ Arguments:
+\
+\   n                   The control code to insert into the table
+\
 \ ******************************************************************************
 
 MACRO CTRL n
+
   EQUB n EOR 35
+
 ENDMACRO
 
 \ ******************************************************************************
@@ -1285,6 +1310,7 @@ ENDMACRO
 \       Type: Macro
 \   Category: Text
 \    Summary: Macro definition for recursive tokens in the recursive token table
+\  Deep dive: Printing text tokens
 \
 \ ------------------------------------------------------------------------------
 \
@@ -1301,9 +1327,15 @@ ENDMACRO
 \ See the deep dive on "Printing text tokens" for details on how recursive
 \ tokens are stored in the recursive token table.
 \
+\ Arguments:
+\
+\   n                   The number of the recursive token to insert into the
+\                       table, in the range 0 to 145
+\
 \ ******************************************************************************
 
 MACRO RTOK n
+
   IF n >= 0 AND n <= 95
     t = n + 160
   ELIF n >= 128
@@ -1311,7 +1343,9 @@ MACRO RTOK n
   ELSE
     t = n
   ENDIF
+
   EQUB t EOR 35
+
 ENDMACRO
 
 \ ******************************************************************************
@@ -4873,6 +4907,7 @@ LOAD_A% = LOAD%
 \ ******************************************************************************
 
 .m
+
  LDA #0                 \ Set A = 0 and fall through into MAS2 to calculate the
                         \ OR of the three bytes at K%+2+Y, K%+5+Y and K%+8+Y
 
@@ -9646,7 +9681,8 @@ NEXT
 \       Name: BPRNT
 \       Type: Subroutine
 \   Category: Text
-\    Summary: Print a 32-bit number, left-padded to n digits, and optional point
+\    Summary: Print a 32-bit number, left-padded to a specific number of digits,
+\             with an optional decimal point
 \  Deep dive: Printing decimal numbers
 \
 \ ------------------------------------------------------------------------------
@@ -9655,24 +9691,27 @@ NEXT
 \ left-padding with spaces for numbers with fewer digits (so lower numbers are
 \ right-aligned). Optionally include a decimal point.
 \
+\ See the deep dive on "Printing decimal numbers" for details of the algorithm
+\ used in this routine.
+\
 \ Arguments:
 \
 \   K(0 1 2 3)          The number to print, stored with the most significant
-\                       byte in K and the least significant in K+3 (big-endian,
-\                       which is not the same way that 6502 assembler stores
-\                       addresses)
+\                       byte in K and the least significant in K+3 (i.e. as a
+\                       big-endian number, which is the opposite way to how the
+\                       6502 assembler stores addresses, for example)
 \
 \   U                   The maximum number of digits to print, including the
 \                       decimal point (spaces will be used on the left to pad
 \                       out the result to this width, so the number is right-
-\                       aligned to this width). The maximum number of characters
-\                       including any decimal point must be 11 or less
+\                       aligned to this width). U must be 11 or less
 \
 \   C flag              If set, include a decimal point followed by one
 \                       fractional digit (i.e. show the number to 1 decimal
-\                       place). In this case, the number in K to K+3 contains
+\                       place). In this case, the number in K(0 1 2 3) contains
 \                       10 * the number we end up printing, so to print 123.4,
-\                       we would pass 1234 in K to K+3 and would set the C flag
+\                       we would pass 1234 in K(0 1 2 3) and would set the C
+\                       flag to include the decimal point
 \
 \ ******************************************************************************
 
@@ -9680,7 +9719,7 @@ NEXT
 
  LDX #11                \ Set T to the maximum number of digits allowed (11
  STX T                  \ characters, which is the number of digits in 10
-                        \ billion); we will use this as a flag when printing
+                        \ billion). We will use this as a flag when printing
                         \ characters in TT37 below
 
  PHP                    \ Make a copy of the status register (in particular
@@ -9707,13 +9746,12 @@ NEXT
  STA U                  \ number of digits minus the number of digits we want
  INC U                  \ to display, plus 1 (so this is the number of digits
                         \ we should skip before starting to print the number
-                        \ itself, and the plus 1 is there to ensure we at least
-                        \ print one digit)
+                        \ itself, and the plus 1 is there to ensure we print at
+                        \ least one digit)
 
  LDY #0                 \ In the main loop below, we use Y to count the number
                         \ of times we subtract 10 billion to get the leftmost
-                        \ digit, so set this to zero (see below TT36 for an
-                        \ of how this algorithm works)
+                        \ digit, so set this to zero
 
  STY S                  \ In the main loop below, we use location S as an
                         \ 8-bit overflow for the 32-bit calculations, so
@@ -9725,8 +9763,8 @@ NEXT
 .TT35
 
                         \ This subroutine multiplies K(S 0 1 2 3) by 10 and
-                        \ stores the result back in K(S 0 1 2 3), using the
-                        \ (K * 2) + (K * 2 * 2 * 2) approach described above
+                        \ stores the result back in K(S 0 1 2 3), using the fact
+                        \ that K * 10 = (K * 2) + (K * 2 * 2 * 2)
 
  ASL K+3                \ Set K(S 0 1 2 3) = K(S 0 1 2 3) * 2 by rotating left
  ROL K+2
@@ -9746,19 +9784,18 @@ NEXT
  STA XX15,X             \ XX15(0 1 2 3), so that XX15 will contain a copy of
                         \ K(0 1 2 3) once we've copied all four bytes
 
- DEX                    \ Decrement the loop counter so we move to the next
-                        \ byte, going from least significant (3) to most
-                        \ significant (0)
+ DEX                    \ Decrement the loop counter
 
- BPL tt35               \ Loop back to copy the next byte
+ BPL tt35               \ Loop back to copy the next byte until we have copied
+                        \ all four
 
  LDA S                  \ Store the value of location S, our overflow byte, in
  STA XX15+4             \ XX15+4, so now XX15(4 0 1 2 3) contains a copy of
                         \ K(S 0 1 2 3), which is the value of (K * 2) that we
-                        \ want
+                        \ want to use in our calculation
 
  ASL K+3                \ Now to calculate the (K * 2 * 2 * 2) part. We still
- ROL K+2                \ have (K * 2) in K(S 0 1 2 3), so we just need to
+ ROL K+2                \ have (K * 2) in K(S 0 1 2 3), so we just need to shift
  ROL K+1                \ it twice. This is the first one, so we do this:
  ROL K                  \
  ROL S                  \   K(S 0 1 2 3) = K(S 0 1 2 3) * 2 = K * 4
@@ -9787,11 +9824,11 @@ NEXT
 
  STA K,X                \ Store the result in the X-th byte of K
 
- DEX                    \ Decrement the loop counter so we move to the next
-                        \ byte, going from least significant (3) to most
-                        \ significant (0)
+ DEX                    \ Decrement the loop counter
 
- BPL tt36               \ Loop back to add the next byte
+ BPL tt36               \ Loop back to add the next byte, moving from the least
+                        \ significant byte to the most significant, until we
+                        \ have added all four
 
  LDA XX15+4             \ Finally, fetch the overflow byte from XX15(4 0 1 2 3)
 
@@ -9799,19 +9836,21 @@ NEXT
                         \ with carry
 
  STA S                  \ And store the result in the overflow byte from
-                        \ K(S 0 1 2 3), so now we have our desired result that
-                        \ K(S 0 1 2 3) is now K(S 0 1 2 3) * 10
+                        \ K(S 0 1 2 3), so now we have our desired result, i.e.
+                        \
+                        \   K(S 0 1 2 3) = K(S 0 1 2 3) * 10
 
  LDY #0                 \ In the main loop below, we use Y to count the number
                         \ of times we subtract 10 billion to get the leftmost
-                        \ digit, so set this to zero
+                        \ digit, so set this to zero so we can rejoin the main
+                        \ loop for another subtraction process
 
 .TT36
 
                         \ This is the main loop of our digit-printing routine.
                         \ In the following loop, we are going to count the
-                        \ number of times that we can subtract 10 million in Y,
-                        \ which we have already set to 0
+                        \ number of times that we can subtract 10 million and
+                        \ store that count in Y, which we have already set to 0
 
  LDX #3                 \ Our first calculation concerns 32-bit numbers, so
                         \ set up a counter for a four-byte loop
@@ -9821,7 +9860,7 @@ NEXT
 
 .tt37
 
-                        \ Now we loop thorough each byte in turn to do this:
+                        \ We now loop through each byte in turn to do this:
                         \
                         \   XX15(4 0 1 2 3) = K(S 0 1 2 3) - 100,000,000,000
 
@@ -9830,11 +9869,11 @@ NEXT
 
  STA XX15,X             \ Store the result in the X-th byte of XX15
 
- DEX                    \ Decrement the loop counter so we move to the next
-                        \ byte, going from least significant (3) to most
-                        \ significant (0)
+ DEX                    \ Decrement the loop counter
 
- BPL tt37               \ Loop back to subtract from the next byte
+ BPL tt37               \ Loop back to subtract the next byte, moving from the
+                        \ least significant byte to the most significant, until
+                        \ we have subtracted all four
 
  LDA S                  \ Subtract the fifth byte of 10 billion (i.e. &17) from
  SBC #&17               \ the fifth (overflow) byte of K, which is S
@@ -9844,21 +9883,20 @@ NEXT
  BCC TT37               \ If subtracting 10 billion took us below zero, jump to
                         \ TT37 to print out this digit, which is now in Y
 
- LDX #3                 \ We now want to copy XX15(4 0 1 2 3) back to
+ LDX #3                 \ We now want to copy XX15(4 0 1 2 3) back into
                         \ K(S 0 1 2 3), so we can loop back up to do the next
                         \ subtraction, so set up a counter for a four-byte loop
 
 .tt38
 
  LDA XX15,X             \ Copy the X-th byte of XX15(0 1 2 3) to the X-th byte
- STA K,X                \ of K(0 1 2 3), so that K will contain a copy of
-                        \ XX15(0 1 2 3) once we've copied all four bytes
+ STA K,X                \ of K(0 1 2 3), so that K(0 1 2 3) will contain a copy
+                        \ of XX15(0 1 2 3) once we've copied all four bytes
 
- DEX                    \ Decrement the loop counter so we move to the next
-                        \ byte, going from least significant (3) to most
-                        \ significant (0)
+ DEX                    \ Decrement the loop counter
 
- BPL tt38               \ Loop back to copy the next byte
+ BPL tt38               \ Loop back to copy the next byte, until we have copied
+                        \ all four
 
  LDA XX15+4             \ Store the value of location XX15+4, our overflow
  STA S                  \ byte in S, so now K(S 0 1 2 3) contains a copy of
@@ -9866,7 +9904,7 @@ NEXT
 
  INY                    \ We have now managed to subtract 10 billion from our
                         \ number, so increment Y, which is where we are keeping
-                        \ count of the number of subtractions so far
+                        \ a count of the number of subtractions so far
 
  JMP TT36               \ Jump back to TT36 to subtract the next 10 billion
 
@@ -9893,8 +9931,8 @@ NEXT
                         \
                         \   * If T = 0 then we have started printing digits
                         \
-                        \ We initially set T to the maximum number of
-                        \ characters allowed at, less 1 if we are printing a
+                        \ We initially set T above to the maximum number of
+                        \ characters allowed, less 1 if we are printing a
                         \ decimal point, so the first time we enter the digit
                         \ printing routine at TT37, it is definitely non-zero
 
@@ -9926,8 +9964,8 @@ NEXT
 
 .tt34
 
- JSR TT26               \ Print the character in A and fall through into TT34
-                        \ to get things ready for the next digit
+ JSR TT26               \ Call TT26 to print the character in A and fall through
+                        \ into TT34 to get things ready for the next digit
 
 .TT34
 
@@ -9935,28 +9973,29 @@ NEXT
  BPL P%+4               \ again if the above decrement made T negative)
  INC T
 
- DEC XX17               \ Decrement the total number of characters to print in
-                        \ XX17
+ DEC XX17               \ Decrement the total number of characters left to
+                        \ print, which we stored in XX17
 
- BMI RR3+1              \ If it is negative, we have printed all the characters
-                        \ so return from the subroutine (as RR3 contains an
-                        \ ORA #&60 instruction, so RR3+1 is &60, which is the
-                        \ opcode for an RTS)
+ BMI RR3+1              \ If the result is negative, we have printed all the
+                        \ characters, so return from the subroutine (as RR3
+                        \ contains an ORA #&60 instruction, so RR3+1 is &60,
+                        \ which is the opcode for an RTS)
 
- BNE P%+10              \ If it is positive (> 0) loop back to TT35 (via the
-                        \ last instruction in this subroutine) to print the
-                        \ next digit
+ BNE P%+10              \ If the result is positive (> 0) then we still have
+                        \ characters left to print, so loop back to TT35 (via
+                        \ the JMP TT35 instruction below) to print the next
+                        \ digit
 
  PLP                    \ If we get here then we have printed the exact number
                         \ of digits that we wanted to, so restore the C flag
-                        \ that we stored at the start of BPRNT
+                        \ that we stored at the start of the routine
 
  BCC P%+7               \ If the C flag is clear, we don't want a decimal point,
-                        \ so look back to TT35 (via the last instruction in this
-                        \ subroutine) to print the next digit
+                        \ so loop back to TT35 (via the JMP TT35 instruction
+                        \ below) to print the next digit
 
- LDA #'.'               \ Print the decimal point
- JSR TT26
+ LDA #'.'               \ Otherwise the C flag is set, so print the decimal
+ JSR TT26               \ point
 
  JMP TT35               \ Loop back to TT35 to print the next digit
 
@@ -9969,7 +10008,7 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
-\ This is the standard system beep as made by VDU 7.
+\ This is the standard system beep as made by the VDU 7 command in BBC BASIC.
 \
 \ ******************************************************************************
 
@@ -12424,15 +12463,16 @@ LOAD_C% = LOAD% +P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ All this actually does is set the ship's hostile flag, start it turning and
+\ All this routine does is set the ship's hostile flag, start it turning and
 \ give it a kick of acceleration - later calls to TACTICS will make the ship
-\ actually attack.
+\ start to attack us.
 \
 \ Arguments:
 \
-\   A                   The type of ship to irritate
+\   A                   The type of ship we're going to irritate
 \
-\   INF                 The address of the data block for the ship to infuriate
+\   INF                 The address of the data block for the ship we're going
+\                       to infuriate
 \
 \ ******************************************************************************
 
@@ -12458,8 +12498,8 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ it can't get hostile, so return from the subroutine
                         \ (as HI1 contains an RTS)
 
- ORA #%10000000         \ Otherwise set bit 7 to ensure AI is definitely enabled
- STA (INF),Y
+ ORA #%10000000         \ Otherwise set bit 7 (AI enabled) to ensure AI is
+ STA (INF),Y            \ definitely enabled
 
  LDY #28                \ Set the ship's byte #28 (acceleration) to 2, so it
  LDA #2                 \ speeds up
@@ -14330,8 +14370,7 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
-\ Add two signed 16-bit numbers together, making sure the result has the
-\ correct sign. Specifically:
+\ Add two 16-bit sign-magnitude numbers together, calculating:
 \
 \   (A X) = (A P) + (S R)
 \
@@ -14353,7 +14392,7 @@ NEXT
                         \ If we reach here, then A and S have the same sign, so
                         \ we can add them and set the sign to get the result
 
- LDA R                  \ Add the least significant bytes together into X, so
+ LDA R                  \ Add the least significant bytes together into X:
  CLC                    \
  ADC P                  \   X = P + R
  TAX
@@ -14382,9 +14421,9 @@ NEXT
  AND #%01111111         \ U, so U now contains |S|
  STA U
 
- LDA P                  \ Subtract the least significant bytes into X, so
- SEC                    \   X = P - R
- SBC R
+ LDA P                  \ Subtract the least significant bytes into X:
+ SEC                    \
+ SBC R                  \   X = P - R
  TAX
 
  LDA T1                 \ Restore the A of the argument (A P) from T1 and
@@ -14404,7 +14443,7 @@ NEXT
                         \ If we get here, then |A| < |S|, so our subtraction
                         \ above was the wrong way round (we actually subtracted
                         \ the larger absolute value from the smaller absolute
-                        \ value. So let's subtract the result we have in (A X)
+                        \ value). So let's subtract the result we have in (A X)
                         \ from zero, so that the subtraction is the right way
                         \ round
 
@@ -14413,8 +14452,8 @@ NEXT
  TXA                    \ Set X = 0 - X using two's complement (to negate a
  EOR #&FF               \ number in two's complement, you can invert the bits
  ADC #1                 \ and add one - and we know the C flag is clear as we
- TAX                    \ didn't take the BCS branch above, so ADC will do the 
-                        \ correct addition)
+ TAX                    \ didn't take the BCS branch above, so the ADC will do
+                        \ the correct addition)
 
  LDA #0                 \ Set A = 0 - A, which we can do this time using a
  SBC U                  \ a subtraction with the C flag clear
@@ -14969,8 +15008,7 @@ NEXT
 \
 \ Other entry points:
 \
-\   RE2+2               Restore A from T and return from the subroutine. Used by
-\                       REDU2
+\   RE2+2               Restore A from T and return from the subroutine
 \
 \ ******************************************************************************
 
@@ -14990,18 +15028,18 @@ NEXT
                         \ jump to RE2 to auto-recentre and return the result
 
  LDX #255               \ We have an overflow, so set X to the maximum possible
-                        \ value, 255
+                        \ value of 255
 
 .RE2
 
  BPL RE3+2              \ If X has bit 7 clear (i.e. the result < 128), then
-                        \ jump to RE3+2 below to do an auto-recentre, if
-                        \ configured, because the result is on the left side of
-                        \ the centre point of 128
+                        \ jump to RE3+2 in routine REDU2 to do an auto-recentre,
+                        \ if configured, because the result is on the left side
+                        \ of the centre point of 128
 
                         \ Jumps to RE2+2 end up here
 
- LDA T                  \ Restore the original argument A into A
+ LDA T                  \ Restore the original argument A from T into A
 
  RTS                    \ Return from the subroutine
 
@@ -15033,8 +15071,8 @@ NEXT
 \
 \ Other entry points:
 \
-\   RE3+2               Auto-recentre the value in X, if configured. Used by
-\                       BUMP2
+\   RE3+2               Auto-recentre the value in X, if keyboard auto-recentre
+\                       is configured
 \
 \ ******************************************************************************
 
@@ -15114,19 +15152,20 @@ NEXT
  ASL A
 
  CMP Q                  \ If A >= Q, i.e. |P| > |Q|, jump to AR1 to swap P
- BCS AR1                \ and Q around, so we can use the lookup table
+ BCS AR1                \ and Q around, so we can still use the lookup table
 
  JSR ARS1               \ Call ARS1 to set the following from the lookup table:
                         \
                         \   A = arctan(A / Q)
                         \     = arctan(|P / Q|)
 
- SEC                    \ Set the C flag
+ SEC                    \ Set the C flag so the SBC instruction in AR3 will be
+                        \ correct, should we jump there
 
 .AR4
 
  LDX T1                 \ If T1 is negative, i.e. P and Q have different signs,
- BMI AR3                \ jump down to AR3 to change
+ BMI AR3                \ jump down to AR3 to return arctan(-|P / Q|)
 
  RTS                    \ Otherwise P and Q have the same sign, so our result is
                         \ correct and we can return from the subroutine
@@ -15134,8 +15173,8 @@ NEXT
 .AR1
 
                         \ We want to calculate arctan(t) where |t| > 1, so we
-                        \ can use the calculation described in the ACT
-                        \ documentation below, i.e. 64 - arctan(1 / t)
+                        \ can use the calculation described in the documentation
+                        \ for the ACT table, i.e. 64 - arctan(1 / t)
 
  LDX Q                  \ Swap the values in Q and P, using the fact that we
  STA Q                  \ called AR1 with A = P
@@ -15172,8 +15211,8 @@ NEXT
 
                         \ A contains arctan(|P / Q|) but P and Q have different
                         \ signs, so we need to return arctan(-|P / Q|), using
-                        \ the calculation described in the ACT documentation
-                        \ below, i.e. 128 - A
+                        \ the calculation described in the documentation for the
+                        \ ACT table, i.e. 128 - A
 
  STA T                  \ Set A = 128 - A
  LDA #128               \
@@ -23744,7 +23783,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .ABORT
 
- LDX #&FF               \ Set X to &FF, which is the value in MSTG when we have
+ LDX #&FF               \ Set X to &FF, which is the value of MSTG when we have
                         \ no target lock for our missile
 
                         \ Fall through into ABORT2 to set the missile lock to
@@ -23763,8 +23802,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Arguments:
 \
-\   X                   The slot number of the ship in our missile lock, or &FF
-\                       to remove missile lock
+\   X                   The slot number of the ship to lock our missile onto, or
+\                       &FF to remove missile lock
 \
 \   Y                   The new colour of the missile indicator:
 \
@@ -23782,8 +23821,8 @@ LOAD_E% = LOAD% + P% - CODE%
 
  STX MSTG               \ Store the target of our missile lock in MSTG
 
- LDX NOMSL              \ Update the leftmost indicator in the dashboard's
- JSR MSBAR              \ missile bar, returns with Y = 0
+ LDX NOMSL              \ Call MSBAR to update the leftmost indicator in the
+ JSR MSBAR              \ dashboard's missile bar, which returns with Y = 0
 
  STY MSAR               \ Set MSAR = 0 to indicate that the leftmost missile
                         \ is no longer seeking a target lock
@@ -24899,14 +24938,15 @@ LOAD_E% = LOAD% + P% - CODE%
  LDA #1                 \ Set LSX = 1 to indicate the sun line heap is about to
  STA LSX                \ be filled up
 
- JSR CHKON              \ Call CHKON to check whether the new sun's circle fits
-                        \ on-screen, and set P(2 1) to the maximum y-coordinate
-                        \ of the new sun on-screen
+ JSR CHKON              \ Call CHKON to check whether any part of the new sun's
+                        \ circle appears on-screen, and of it does, set P(2 1)
+                        \ to the maximum y-coordinate of the new sun on-screen
 
- BCS PLF3-3             \ If CHKON set the C flag then the circle does not fit
-                        \ on-screen, so jump to WPLS (via the JMP at the top of
-                        \ this routine) to remove the sun from the screen,
-                        \ returning from the subroutine using a tail call
+ BCS PLF3-3             \ If CHKON set the C flag then the new sun's circle does
+                        \ not appear on-screen, so jump to WPLS (via the JMP at
+                        \ the top of this routine) to remove the sun from the
+                        \ screen, returning from the subroutine using a tail
+                        \ call
 
  LDA #0                 \ Set A = 0
 
@@ -25825,7 +25865,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: CHKON
 \       Type: Subroutine
 \   Category: Drawing circles
-\    Summary: Check whether a circle will fit on-screen
+\    Summary: Check whether any part of a circle appears on the extended screen
 \
 \ ------------------------------------------------------------------------------
 \
@@ -25839,11 +25879,14 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Returns:
 \
-\   C flag              Clear if the circle fits on-screen, set if it doesn't
+\   C flag              Clear if any part of the circle appears on-screen, set
+\                       if none of the circle appears on-screen
 \
-\   P(2 1)              Maximum y-coordinate of circle on-screen
+\   (A X)               Minimum y-coordinate of the circle on-screen (i.e. the
+\                       y-coordinate of the top edge of the circle)
 \
-\   (A X)               Minimum y-coordinate of circle on-screen
+\   P(2 1)              Maximum y-coordinate of the circle on-screen (i.e. the
+\                       y-coordinate of the bottom edge of the circle)
 \
 \ ******************************************************************************
 
@@ -25857,9 +25900,14 @@ LOAD_E% = LOAD% + P% - CODE%
  ADC #0                 \ effectively sets A to the high byte of K3(1 0) + K:
                         \
                         \   (A ?) = K3(1 0) + K
+                        \
+                        \ so A is the high byte of the x-coordinate of the right
+                        \ edge of the circle
 
- BMI PL21               \ If A has bit 7 set then we overflowed, so jump to
-                        \ PL21 to set the C flag and return from the subroutine
+ BMI PL21               \ If A is negative then the right edge of the circle is
+                        \ to the left of the screen, so jump to PL21 to set the
+                        \ C flag and return from the subroutine, as the whole
+                        \ circle is off-screen to the left
 
  LDA K3                 \ Set A = K3 - K
  SEC
@@ -25869,12 +25917,21 @@ LOAD_E% = LOAD% + P% - CODE%
  SBC #0                 \ effectively sets A to the high byte of K3(1 0) - K:
                         \
                         \   (A ?) = K3(1 0) - K
+                        \
+                        \ so A is the high byte of the x-coordinate of the left
+                        \ edge of the circle
 
- BMI PL31               \ If the result is negative then the result is good,
-                        \ so skip to PL31 to continue on
+ BMI PL31               \ If A is negative then the left edge of the circle is
+                        \ to the left of the screen, and we already know the
+                        \ right edge is either on-screen or off-screen to the
+                        \ right, so skip to PL31 to move on to the y-coordinate
+                        \ checks, as at least part of the circle is on-screen in
+                        \ terms of the x-axis
 
- BNE PL21               \ The result underflowed, so jump to PL21 to set the C
-                        \ flag and return from the subroutine
+ BNE PL21               \ If A is non-zero, then the left edge of the circle is
+                        \ to the right of the screen, so jump to PL21 to set the
+                        \ C flag and return from the subroutine, as the whole
+                        \ circle is off-screen to the right
 
 .PL31
 
@@ -25887,13 +25944,21 @@ LOAD_E% = LOAD% + P% - CODE%
  ADC #0                 \ does the following:
                         \
                         \   (A P+1) = K4(1 0) + K
+                        \
+                        \ so A is the high byte of the y-coordinate of the
+                        \ bottom edge of the circle
 
- BMI PL21               \ If A has bit 7 set then we overflowed, so jump to
-                        \ PL21 to set the C flag and return from the subroutine
+ BMI PL21               \ If A is negative then the bottom edge of the circle is
+                        \ above the top of the screen, so jump to PL21 to set
+                        \ the C flag and return from the subroutine, as the
+                        \ whole circle is off-screen to the top
 
  STA P+2                \ Store the high byte in P+2, so now we have:
                         \
                         \   P(2 1) = K4(1 0) + K
+                        \
+                        \ i.e. the maximum y-coordinate of the circle on-screen
+                        \ (which we return)
 
  LDA K4                 \ Set X = K4 - K
  SEC
@@ -25904,25 +25969,42 @@ LOAD_E% = LOAD% + P% - CODE%
  SBC #0                 \ does the following:
                         \
                         \   (A X) = K4(1 0) - K
-
- BMI PL44               \ If the result is negative then the result is good, so
-                        \ jump to PL44 to clear the C flag and return from the
-                        \ subroutine using a tail call
-
- BNE PL21               \ The result underflowed, so jump to PL21 to set the C
-                        \ flag and return from the subroutine
-
- CPX #2*Y-1             \ The high byte of the result is zero, so check the low
-                        \ byte against 2 * #Y - 1 and return the C flag
-                        \ accordingly. The constant #Y is the y-coordinate of
-                        \ the mid-point of the space view, so 2 * #Y - 1 is 191,
-                        \ the y-coordinate of the bottom pixel row of the space
-                        \ view. So this returns:
                         \
-                        \   * C flag is set if coordinate (A X) is past the
-                        \     bottom of the screen
+                        \ so A is the high byte of the y-coordinate of the top
+                        \ edge of the circle
+
+ BMI PL44               \ If A is negative then the top edge of the circle is
+                        \ above the top of the screen, and we already know the
+                        \ bottom edge is either on-screen or below the bottom
+                        \ of the screen, so skip to PL44 to clear the C flag and
+                        \ return from the subroutine using a tail call, as part
+                        \ of the circle definitely appears on-screen
+
+ BNE PL21               \ If A is non-zero, then the top edge of the circle is
+                        \ below the bottom of the screen, so jump to PL21 to set
+                        \ the C flag and return from the subroutine, as the
+                        \ whole circle is off-screen to the bottom
+
+ CPX #2*Y-1             \ If we get here then A is zero, which means the top
+                        \ edge of the circle is within the screen boundary, so
+                        \ now we need to check whether it is in the space view
+                        \ (in which case it is on-screen) or the dashboard (in
+                        \ which case the top of the circle is hidden by the
+                        \ dashboard, so the circle isn't on-screen). We do this
+                        \ by checking the low byte of the result in X against
+                        \ 2 * #Y - 1, and returning the C flag from this
+                        \ comparison. The constant #Y is the y-coordinate of the
+                        \ mid-point of the space view, so 2 * #Y - 1 is 191, the
+                        \ y-coordinate of the bottom pixel row of the space
+                        \ view. So this does the following:
                         \
-                        \   * C flag is clear if coordinate (A X) is on-screen
+                        \   * The C flag is set if coordinate (A X) is below the
+                        \     bottom row of the space view, i.e. the top edge of
+                        \     the circle is hidden by the dashboard
+                        \
+                        \   * The C flag is clear if coordinate (A X) is above
+                        \     the bottom row of the space view, i.e. the top
+                        \     edge of the circle is on-screen
 
  RTS                    \ Return from the subroutine
 
@@ -28031,10 +28113,15 @@ LOAD_F% = LOAD% + P% - CODE%
 \   (slaves + narcotics) * 2 + firearms
 \
 \ so slaves and narcotics are twice as illegal as firearms. The value in FIST
-\ (our legal status) is set to a minimum of this value whenever we launch from
-\ a space station, and a FIST of 50 or more is fugitive status, so leaving a
+\ (our legal status) is set to at least this value whenever we launch from a
+\ space station, and a FIST of 50 or more gives us fugitive status, so leaving a
 \ station carrying 25 tonnes of slaves/narcotics, or 50 tonnes of firearms
 \ across multiple trips, is enough to make us a fugitive.
+\
+\ Returns:
+\
+\   A                   A value that determines how bad we are from the amount
+\                       of contraband in our hold
 \
 \ ******************************************************************************
 
@@ -28504,8 +28591,8 @@ ENDIF
  STA QQ12               \ are docked
 
  LDA #f8                \ Jump into the main loop at FRCE, setting the key
- JMP FRCE               \ "pressed" to red key f8 (so we show the Status Mode
-                        \ screen)
+ JMP FRCE               \ that's "pressed" to red key f8 (so we show the Status
+                        \ Mode screen)
 
 \ ******************************************************************************
 \
@@ -28669,10 +28756,15 @@ ENDIF
 \
 \ ------------------------------------------------------------------------------
 \
-\ Calculate the checksum for the last saved commander data block, to protect
-\ against corruption and tampering. The checksum is returned in A.
+\ The checksum for the last saved commander data block is saved as part of the
+\ commander file, in two places (CHK AND CHK2), to protect against file
+\ tampering. This routine calculates the checksum and returns it in A.
 \
 \ This algorithm is also implemented in elite-checksum.py.
+\
+\ Returns:
+\
+\   A                   The checksum for the last saved commander data block
 \
 \ ******************************************************************************
 
@@ -28702,7 +28794,9 @@ ENDIF
 
  DEX                    \ Decrement the loop counter
 
- BNE QUL2               \ Loop back for the next byte in the data block
+ BNE QUL2               \ Loop back for the next byte in the calculation, until
+                        \ we have added byte #0 and EOR'd with byte #1 of the
+                        \ data block
 
  RTS                    \ Return from the subroutine
 
@@ -30742,6 +30836,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \       Type: Macro
 \   Category: Market
 \    Summary: Macro definition for the market prices table
+\  Deep dive: Market item prices and availability
 \
 \ ------------------------------------------------------------------------------
 \
@@ -30749,8 +30844,9 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \
 \   ITEM price, factor, units, quantity, mask
 \
-\ It inserts an item into the market prices table at QQ23, with the following
-\ attributes:
+\ It inserts an item into the market prices table at QQ23. See the deep dive on
+\ "Market item prices and availability" for more information on how the market
+\ system works.
 \
 \ Arguments:
 \
@@ -30767,11 +30863,13 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ ******************************************************************************
 
 MACRO ITEM price, factor, units, quantity, mask
+
   IF factor < 0
     s = 1 << 7
   ELSE
     s = 0
   ENDIF
+
   IF units = 't'
     u = 0
   ELIF units = 'k'
@@ -30779,11 +30877,14 @@ MACRO ITEM price, factor, units, quantity, mask
   ELSE
     u = 1 << 6
   ENDIF
+
   e = ABS(factor)
+
   EQUB price
   EQUB s + u + e
   EQUB quantity
   EQUB mask
+
 ENDMACRO
 
 \ ******************************************************************************
@@ -35040,12 +35141,15 @@ SAVE "output/ELTG.bin", CODE_G%, P%, LOAD%
 CODE_SHIPS% = P%
 LOAD_SHIPS% = LOAD% + P% - CODE%
 
+_IS_PIRATE = FALSE
+
 \ ******************************************************************************
 \
 \       Name: VERTEX
 \       Type: Macro
 \   Category: Drawing ships
 \    Summary: Macro definition for adding vertices to ship blueprints
+\  Deep dive: Ship blueprints
 \
 \ ------------------------------------------------------------------------------
 \
@@ -35054,33 +35158,59 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 \   VERTEX x, y, z, face1, face2, face3, face4, visibility
 \
 \ See the deep dive on "Ship blueprints" for details of how vertices are stored
-\ in ship blueprints.
+\ in the ship blueprints, and the deep dive on "Drawing ships" for information
+\ on how vertices are used to draw 3D wiremesh ships.
+\
+\ Arguments:
+\
+\   x                   The vertex's x-coordinate
+\
+\   y                   The vertex's y-coordinate
+\
+\   z                   The vertex's z-coordinate
+\
+\   face1               The number of face 1 associated with this vertex
+\
+\   face2               The number of face 2 associated with this vertex
+\
+\   face3               The number of face 3 associated with this vertex
+\
+\   face4               The number of face 4 associated with this vertex
+\
+\   visibility          The visibility distance, beyond which the vertex is not
+\                       shown
 \
 \ ******************************************************************************
 
 MACRO VERTEX x, y, z, face1, face2, face3, face4, visibility
+
   IF x < 0
     s_x = 1 << 7
   ELSE
     s_x = 0
   ENDIF
+
   IF y < 0
     s_y = 1 << 6
   ELSE
     s_y = 0
   ENDIF
+
   IF z < 0
     s_z = 1 << 5
   ELSE
     s_z = 0
   ENDIF
+
   s = s_x + s_y + s_z + visibility
   f1 = face1 + (face2 << 4)
   f2 = face3 + (face4 << 4)
   ax = ABS(x)
   ay = ABS(y)
   az = ABS(z)
+
   EQUB ax, ay, az, s, f1, f2
+
 ENDMACRO
 
 \ ******************************************************************************
@@ -35089,6 +35219,7 @@ ENDMACRO
 \       Type: Macro
 \   Category: Drawing ships
 \    Summary: Macro definition for adding edges to ship blueprints
+\  Deep dive: Ship blueprints
 \
 \ ------------------------------------------------------------------------------
 \
@@ -35097,13 +35228,29 @@ ENDMACRO
 \   EDGE vertex1, vertex2, face1, face2, visibility
 \
 \ See the deep dive on "Ship blueprints" for details of how edges are stored
-\ in ship blueprints.
+\ in the ship blueprints, and the deep dive on "Drawing ships" for information
+\ on how edges are used to draw 3D wiremesh ships.
+\
+\ Arguments:
+\
+\   vertex1             The number of the vertex at the start of the edge
+\
+\   vertex1             The number of the vertex at the end of the edge
+\
+\   face1               The number of face 1 associated with this edge
+\
+\   face2               The number of face 2 associated with this edge
+\
+\   visibility          The visibility distance, beyond which the edge is not
+\                       shown
 \
 \ ******************************************************************************
 
 MACRO EDGE vertex1, vertex2, face1, face2, visibility
+
   f = face1 + (face2 << 4)
   EQUB visibility, f, vertex1 << 2, vertex2 << 2
+
 ENDMACRO
 
 \ ******************************************************************************
@@ -35112,6 +35259,7 @@ ENDMACRO
 \       Type: Macro
 \   Category: Drawing ships
 \    Summary: Macro definition for adding faces to ship blueprints
+\  Deep dive: Ship blueprints
 \
 \ ------------------------------------------------------------------------------
 \
@@ -35120,31 +35268,49 @@ ENDMACRO
 \   FACE normal_x, normal_y, normal_z, visibility
 \
 \ See the deep dive on "Ship blueprints" for details of how faces are stored
-\ in ship blueprints.
+\ in the ship blueprints, and the deep dive on "Drawing ships" for information
+\ on how faces are used to draw 3D wiremesh ships.
+\
+\ Arguments:
+\
+\   normal_x            The face normal's x-coordinate
+\
+\   normal_y            The face normal's y-coordinate
+\
+\   normal_z            The face normal's z-coordinate
+\
+\   visibility          The visibility distance, beyond which the edge is always
+\                       shown
 \
 \ ******************************************************************************
 
 MACRO FACE normal_x, normal_y, normal_z, visibility
+
   IF normal_x < 0
     s_x = 1 << 7
   ELSE
     s_x = 0
   ENDIF
+
   IF normal_y < 0
     s_y = 1 << 6
   ELSE
     s_y = 0
   ENDIF
+
   IF normal_z < 0
     s_z = 1 << 5
   ELSE
     s_z = 0
   ENDIF
+
   s = s_x + s_y + s_z + visibility
   ax = ABS(normal_x)
   ay = ABS(normal_y)
   az = ABS(normal_z)
+
   EQUB s, ax, ay, az
+
 ENDMACRO
 
 \ ******************************************************************************
