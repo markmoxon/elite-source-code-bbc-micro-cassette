@@ -17,7 +17,7 @@ encrypt:
 	$(BEEBASM) -i sources/elite-bcfs.asm -v >> output/compile.txt
 	$(BEEBASM) -i sources/elite-loader.asm -v >> output/compile.txt
 	$(PYTHON) sources/elite-checksum.py
-	$(BEEBASM) -i sources/elite-disc.asm -do elite.ssd -opt 3
+	$(BEEBASM) -i sources/elite-disc.asm -do elite.ssd -boot ELTdata
 
 .PHONY:verify
 verify:
