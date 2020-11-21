@@ -17,7 +17,7 @@
 \
 \ This source file produces the following SSD disc image:
 \
-\   * elite.ssd
+\   * elite-cassette.ssd
 \
 \ This can be loaded into an emulator or a real BBC Micro.
 \
