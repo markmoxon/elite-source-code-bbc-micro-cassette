@@ -2552,7 +2552,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \
 \       Name: K%
 \       Type: Workspace
-\    Address: &0900 to &0D40
+\    Address: &0900 to &0D3F
 \   Category: Workspaces
 \    Summary: Ship data blocks and ship line heaps
 \  Deep dive: Ship data blocks
@@ -2583,7 +2583,7 @@ ORG &0900
 \
 \       Name: WP
 \       Type: Workspace
-\    Address: &0D40 to &0F34
+\    Address: &0D40 to &0F33
 \   Category: Workspaces
 \    Summary: Ship slots, variables
 \
