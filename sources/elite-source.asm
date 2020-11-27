@@ -1353,7 +1353,7 @@ ENDMACRO
 \       Name: QQ18
 \       Type: Variable
 \   Category: Text
-\    Summary: Recursive token table for tokens 0-148
+\    Summary: The recursive token table for tokens 0-148
 \  Deep dive: Printing text tokens
 \
 \ ******************************************************************************
@@ -7705,7 +7705,7 @@ NEXT
 \ Returns:
 \
 \   Y                   Y is preserved
-
+\
 \ ******************************************************************************
 
 .HLOIN2
@@ -10014,8 +10014,9 @@ NEXT
 
 .BELL
 
- LDA #7                 \ Control code 7 makes a beep, so load this into A so
-                        \ we can fall through into the TT27 print routine to
+ LDA #7                 \ Control code 7 makes a beep, so load this into A
+
+                        \ Fall through into the TT27 print routine to
                         \ actually make the sound
 
 \ ******************************************************************************
@@ -10752,8 +10753,8 @@ NEXT
                         \ return from the subroutine
 
  EQUB &2C               \ Skip the next instruction by turning it into
-                        \ &2C &A9 &0F, or BIT &0FA9, which does nothing bar
-                        \ affecting the flags
+                        \ &2C &A9 &0F, or BIT &0FA9, which does nothing apart
+                        \ from affect the flags
 
  LDA #&0F               \ Set A to dashboard colour 1 (red)
 
@@ -16023,8 +16024,8 @@ NEXT
  LDY #2                 \ Set Y to 2 vertical syncs
 
  EQUB &2C               \ Skip the next instruction by turning it into
-                        \ &2C &A0 &08, or BIT &08A0, which does nothing bar
-                        \ affecting the flags
+                        \ &2C &A0 &08, or BIT &08A0, which does nothing apart
+                        \ from affect the flags
 
 .DEL8
 
@@ -21543,7 +21544,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  BMI TT43               \ If token > 127, this is either a two-letter token
                         \ (128-159) or a recursive token (160-255), so jump
-                        \ to .TT43 to process tokens
+                        \ to TT43 to process tokens
 
  DEX                    \ If token = 1, this is control code 1 (current
  BEQ tal                \ galaxy number), so jump to tal
@@ -29770,8 +29771,8 @@ ENDIF
                         \ to make the sound
 
  EQUB &2C               \ Skip the next instruction by turning it into
-                        \ &2C &A9 &20, or BIT &20A9, which does nothing bar
-                        \ affecting the flags
+                        \ &2C &A9 &20, or BIT &20A9, which does nothing apart
+                        \ from affect the flags
 
 \ ******************************************************************************
 \
@@ -30612,8 +30613,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
  EQUB &2C               \ Fall through into me1 to print the new message, but
                         \ skip the first instruction by turning it into
-                        \ &2C &A9 &6C, or BIT &6CA9, which does nothing bar
-                        \ affecting the flags
+                        \ &2C &A9 &6C, or BIT &6CA9, which does nothing apart
+                        \ from affect the flags
 
 \ ******************************************************************************
 \
@@ -30630,8 +30631,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
  EQUB &2C               \ Fall through into ou3 to print the new message, but
                         \ skip the first instruction by turning it into
-                        \ &2C &A9 &6F, or BIT &6FA9, which does nothing bar
-                        \ affecting the flags
+                        \ &2C &A9 &6F, or BIT &6FA9, which does nothing apart
+                        \ from affect the flags
 
 \ ******************************************************************************
 \
@@ -30790,45 +30791,45 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \
 \ ------------------------------------------------------------------------------
 \
-\ Two-letter token lookup table for tokens 128-159. See variable QQ18 for
-\ details of how the two-letter token system works.
+\ Two-letter token lookup table for tokens 128-159. See the deep dive on
+\ "Printing text tokens" for details of how the two-letter token system works.
 \
 \ ******************************************************************************
 
 .QQ16
 
- EQUS "AL"
- EQUS "LE"
- EQUS "XE"
- EQUS "GE"
- EQUS "ZA"
- EQUS "CE"
- EQUS "BI"
- EQUS "SO"
- EQUS "US"
- EQUS "ES"
- EQUS "AR"
- EQUS "MA"
- EQUS "IN"
- EQUS "DI"
- EQUS "RE"
- EQUS "A?"
- EQUS "ER"
- EQUS "AT"
- EQUS "EN"
- EQUS "BE"
- EQUS "RA"
- EQUS "LA"
- EQUS "VE"
- EQUS "TI"
- EQUS "ED"
- EQUS "OR"
- EQUS "QU"
- EQUS "AN"
- EQUS "TE"
- EQUS "IS"
- EQUS "RI"
- EQUS "ON"
+ EQUS "AL"              \ Token 128
+ EQUS "LE"              \ Token 129
+ EQUS "XE"              \ Token 130
+ EQUS "GE"              \ Token 131
+ EQUS "ZA"              \ Token 132
+ EQUS "CE"              \ Token 133
+ EQUS "BI"              \ Token 134
+ EQUS "SO"              \ Token 135
+ EQUS "US"              \ Token 136
+ EQUS "ES"              \ Token 137
+ EQUS "AR"              \ Token 138
+ EQUS "MA"              \ Token 139
+ EQUS "IN"              \ Token 140
+ EQUS "DI"              \ Token 141
+ EQUS "RE"              \ Token 142
+ EQUS "A?"              \ Token 143
+ EQUS "ER"              \ Token 144
+ EQUS "AT"              \ Token 145
+ EQUS "EN"              \ Token 146
+ EQUS "BE"              \ Token 147
+ EQUS "RA"              \ Token 148
+ EQUS "LA"              \ Token 149
+ EQUS "VE"              \ Token 150
+ EQUS "TI"              \ Token 151
+ EQUS "ED"              \ Token 152
+ EQUS "OR"              \ Token 153
+ EQUS "QU"              \ Token 154
+ EQUS "AN"              \ Token 155
+ EQUS "TE"              \ Token 156
+ EQUS "IS"              \ Token 157
+ EQUS "RI"              \ Token 158
+ EQUS "ON"              \ Token 159
 
 \ ******************************************************************************
 \

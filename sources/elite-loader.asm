@@ -667,9 +667,9 @@ ENDIF
  LDA #&20               \ Set A to the op code for a JSR call with absolute
                         \ addressing
 
- EQUB &2C               \ Skip the next instruction by turning it into a BIT
-                        \ instruction, which does nothing bar affecting the
-                        \ flags
+ EQUB &2C               \ Skip the next instruction by turning it into
+                        \ &2C &D0 &66, or BIT &66D0, which does nothing apart
+                        \ from affect the flags
 
 .Ian1
 
@@ -692,9 +692,9 @@ ENDIF
  JSR OSBYTE             \ Call OSBYTE with A = 16 and X = 2 to set the ADC to
                         \ sample 2 channels from the joystick
 
- EQUB &2C               \ Skip the next instruction by turning it into a BIT
-                        \ instruction, which does nothing bar affecting the
-                        \ flags
+ EQUB &2C               \ Skip the next instruction by turning it into
+                        \ &2C &D0 &A1, or BIT &A1D0, which does nothing apart
+                        \ from affect the flags
 
 .FRED1
 
@@ -725,9 +725,9 @@ ENDIF
  LDX #8                 \ ADC conversion type to 8 bits, for the joystick
  JSR OSB
 
- EQUB &2C               \ Skip the next instruction by turning it into a BIT
-                        \ instruction, which does nothing bar affecting the
-                        \ flags
+ EQUB &2C               \ Skip the next instruction by turning it into
+                        \ &2C &D0 &E1, or BIT &E1D0, which does nothing apart
+                        \ from affect the flags
 
 .David8
 
