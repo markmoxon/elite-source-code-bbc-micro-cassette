@@ -110,9 +110,9 @@ OSWORD = &FFF1          \ The address for the OSWORD routine
 
 OSPRNT = &234           \ The address for the OSPRNT vector
 
-VIA = &FE40             \ Memory-mapped space for accessing the 6845 CRTC
-
-USVIA = VIA             \ Memory-mapped space for accessing the 6845 CRTC
+VIA = &FE00             \ Memory-mapped space for accessing internal hardware,
+                        \ such as the video ULA, 6845 CRTC and 6522 VIAs (also
+                        \ known as SHEILA)
 
 VSCAN = 57-1            \ Defines the split position in the split-screen mode
 
@@ -1091,7 +1091,7 @@ ENDIF
                         \ handler to support the split-screen mode
 
  LDA #%11000010         \ Clear 6522 System VIA interrupt enable register IER
- STA VIA+&E             \ (SHEILA &4E) bits 1 and 7 (i.e. enable CA1 and TIMER1
+ STA VIA+&4E            \ (SHEILA &4E) bits 1 and 7 (i.e. enable CA1 and TIMER1
                         \ interrupts from the System VIA, which enable vertical
                         \ sync and the 1 MHz timer, which we need enabled for
                         \ the split-screen interrupt code to work)
@@ -1118,7 +1118,7 @@ ENDIF
  STA IRQ1V
 
  LDA #VSCAN             \ Set 6522 System VIA T1C-L timer 1 high-order counter
- STA USVIA+5            \ (SHEILA &45) to VSCAN (56) to start the T1 counter
+ STA VIA+&45            \ (SHEILA &45) to VSCAN (56) to start the T1 counter
                         \ counting down from 14080 at a rate of 1 MHz (this is
                         \ a different value to the main game code)
 
@@ -1211,10 +1211,10 @@ ENDIF
                         \ or 1280 times, and draws the planet part of the
                         \ loading screen's Saturn
 
- LDA VIA+4              \ Read the 6522 System VIA T1C-L timer 1 low-order
- STA RAND+1             \ counter, which increments 1000 times a second so this
-                        \ will be pretty random, and store it in RAND+1 among
-                        \ the hard-coded random seeds in RAND
+ LDA VIA+&44            \ Read the 6522 System VIA T1C-L timer 1 low-order
+ STA RAND+1             \ counter (SHEILA &44), which increments 1000 times a
+                        \ second so this will be pretty random, and store it in
+                        \ RAND+1 among the hard-coded random seeds in RAND
 
  JSR DORND              \ Set A and X to random numbers, say A = r1
 
@@ -2648,7 +2648,7 @@ ENDIF
 
 .VIA2
 
- LDA #%00000100         \ Set Video ULA control register (SHEILA+&20) to
+ LDA #%00000100         \ Set the Video ULA control register (SHEILA &20) to
  STA &FE20              \ %00000100, which is the same as switching to mode 5,
                         \ (i.e. the bottom part of the screen) but with no
                         \ cursor
@@ -2658,7 +2658,7 @@ ENDIF
 
 .inlp1
 
- LDA block1,Y           \ Copy the Y-th palette byte from block1 to SHEILA+&21
+ LDA block1,Y           \ Copy the Y-th palette byte from block1 to SHEILA &21
  STA &FE21              \ to map logical to actual colours for the bottom part
                         \ of the screen (i.e. the dashboard)
 
@@ -2754,8 +2754,9 @@ IF PROT AND DISC = 0
 
 ENDIF
 
- LDA VIA+&D             \ Read the 6522 System VIA status byte bit 1, which is
- BIT M2                 \ set if vertical sync has occurred on the video system
+ LDA VIA+&4D            \ Read the 6522 System VIA status byte bit 1 (SHEILA
+ BIT M2                 \ &4D), which is set if vertical sync has occurred on
+                        \ the video system
 
  BNE LINSCN             \ If we are on the vertical sync pulse, jump to LINSCN
                         \ to set up the timers to enable us to switch the
@@ -2774,13 +2775,13 @@ ENDIF
 .LINSCN
 
  LDA #50                \ Set 6522 System VIA T1C-L timer 1 low-order counter
- STA USVIA+4            \ (SHEILA &44) to 50
+ STA VIA+&44            \ (SHEILA &44) to 50
 
  LDA #VSCAN             \ Set 6522 System VIA T1C-L timer 1 high-order counter
- STA USVIA+5            \ (SHEILA &45) to VSCAN (56) to start the T1 counter
+ STA VIA+&45            \ (SHEILA &45) to VSCAN (56) to start the T1 counter
                         \ counting down from 14386 at a rate of 1 MHz
 
- LDA #8                 \ Set Video ULA control register (SHEILA+&20) to
+ LDA #8                 \ Set the Video ULA control register (SHEILA &20) to
  STA &FE20              \ %00001000, which is the same as switching to mode 4
                         \ (i.e. the top part of the screen) but with no cursor
 
@@ -2789,7 +2790,7 @@ ENDIF
 
 .inlp2
 
- LDA block2,Y           \ Copy the Y-th palette byte from block2 to SHEILA+&21
+ LDA block2,Y           \ Copy the Y-th palette byte from block2 to SHEILA &21
  STA &FE21              \ to map logical to actual colours for the top part of
                         \ the screen (i.e. the space view)
 
@@ -2848,17 +2849,17 @@ ENDIF
 \
 \ ******************************************************************************
 
- LDA VIA+4              \ Read the 6522 System VIA T1C-L timer 1 low-order
- STA 1                  \ counter, which increments 1000 times a second so this
-                        \ will be pretty random, and store it in location 1,
-                        \ which is among the main game code's random seeds in
-                        \ RAND (so this seeds the random numbers for the main
-                        \ game)
+ LDA VIA+&44            \ Read the 6522 System VIA T1C-L timer 1 low-order
+ STA 1                  \ counter (SHEILA &44) which increments 1000 times a
+                        \ second so this will be pretty random, and store it in
+                        \ location 1, which is among the main game code's random
+                        \ seeds in RAND (so this seeds the random numbers for
+                        \ the main game)
 
  SEI                    \ Disable all interrupts
 
  LDA #%00111001         \ Set 6522 System VIA interrupt enable register IER
- STA VIA+&E             \ (SHEILA &4E) bits 0 and 3-5 (i.e. disable the Timer1,
+ STA VIA+&4E            \ (SHEILA &4E) bits 0 and 3-5 (i.e. disable the Timer1,
                         \ CB1, CB2 and CA2 interrupts from the System VIA)
 
 \LDA #&7F               \ These instructions are commented out in the original
@@ -2874,7 +2875,7 @@ ENDIF
  STA IRQ1V+1
 
  LDA #VSCAN             \ Set 6522 System VIA T1C-L timer 1 high-order counter
- STA USVIA+5            \ (SHEILA &45) to VSCAN (56) to start the T1 counter
+ STA VIA+&45            \ (SHEILA &45) to VSCAN (56) to start the T1 counter
                         \ counting down from 14080 at a rate of 1 MHz (this is
                         \ a different value to the main game code)
 

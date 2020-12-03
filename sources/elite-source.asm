@@ -78,8 +78,9 @@ OSWORD = &FFF1          \ The address for the OSWORD routine, which is used
 OSFILE = &FFDD          \ The address for the OSFILE routine, which is used
                         \ once in the main game code
 
-SHEILA = &FE00          \ Memory-mapped space for accessing internal hardware,
-                        \ such as the video ULA, 6845 CRTC and 6522 VIAs
+VIA = &FE00             \ Memory-mapped space for accessing internal hardware,
+                        \ such as the video ULA, 6845 CRTC and 6522 VIAs (also
+                        \ known as SHEILA)
 
 VSCAN = 57              \ Defines the split position in the split-screen mode
 
@@ -4382,8 +4383,8 @@ LOAD_A% = LOAD%
                         \ screen gets drawn and the following palette change
                         \ won't kick in while the screen is still refreshing
 
- LDA #%00110000         \ Set the palette byte at SHEILA+&21 to map logical
- STA SHEILA+&21         \ colour 0 to physical colour 7 (white), but with only
+ LDA #%00110000         \ Set the palette byte at SHEILA &21 to map logical
+ STA VIA+&21            \ colour 0 to physical colour 7 (white), but with only
                         \ one mapping (rather than the 7 mappings requires to
                         \ do the mapping properly). This makes the space screen
                         \ flash with black and white stripes. See p.382 of the
@@ -10067,7 +10068,7 @@ NEXT
 \
 \   Y                   Y is preserved
 \
-\   C flag              C flag is cleared
+\   C flag              The C flag is cleared
 \
 \ Other entry points:
 \
@@ -10987,7 +10988,7 @@ NEXT
 \
 \ Returns:
 \
-\   C flag              C flag is set
+\   C flag              The C flag is set
 \
 \ ******************************************************************************
 
@@ -11110,7 +11111,7 @@ NEXT
 \ Similarly, the palette at TVT1+16 is for the monochrome space view, where
 \ logical colour 1 is mapped to physical colour 0 EOR 7 = 7 (white), and
 \ logical colour 0 is mapped to physical colour 7 EOR 7 = 0 (black). Each of
-\ these mappings requires six calls to SHEILA+&21 - see p.379 of the Advanced
+\ these mappings requires six calls to SHEILA &21 - see p.379 of the Advanced
 \ User Guide for an explanation.
 \
 \ The mode 5 palette table has two blocks which overlap. The block used depends
@@ -11183,11 +11184,11 @@ NEXT
  STA DL                 \ routines like WSCAN can set DL to 0 and then wait for
                         \ it to change to non-zero to catch the vertical sync
 
- STA SHEILA+&44         \ Set 6522 System VIA T1C-L timer 1 low-order counter
+ STA VIA+&44            \ Set 6522 System VIA T1C-L timer 1 low-order counter
                         \ (SHEILA &44) to 30
 
  LDA #VSCAN             \ Set 6522 System VIA T1C-L timer 1 high-order counter
- STA SHEILA+&45         \ (SHEILA &45) to VSCAN (57) to start the T1 counter
+ STA VIA+&45            \ (SHEILA &45) to VSCAN (57) to start the T1 counter
                         \ counting down from 14622 at a rate of 1 MHz
 
  LDA HFX                \ If HFX is non-zero, jump to VNT1 to set the mode 5
@@ -11197,14 +11198,14 @@ NEXT
                         \ to colour when we do a hyperspace jump, and is
                         \ triggered by setting HFX to 1 in routine LL164
 
- LDA #%00001000         \ Set Video ULA control register (SHEILA+&20) to
- STA SHEILA+&20         \ %00001000, which is the same as switching to mode 4
+ LDA #%00001000         \ Set the Video ULA control register (SHEILA &20) to
+ STA VIA+&20            \ %00001000, which is the same as switching to mode 4
                         \ (i.e. the top part of the screen) but with no cursor
 
 .VNT3
 
- LDA TVT1+16,Y          \ Copy the Y-th palette byte from TVT1+16 to SHEILA+&21
- STA SHEILA+&21         \ to map logical to actual colours for the bottom part
+ LDA TVT1+16,Y          \ Copy the Y-th palette byte from TVT1+16 to SHEILA &21
+ STA VIA+&21            \ to map logical to actual colours for the bottom part
                         \ of the screen (i.e. the dashboard)
 
  DEY                    \ Decrement the palette byte counter
@@ -11224,7 +11225,7 @@ NEXT
  PLA                    \ Otherwise restore Y from the stack
  TAY
 
- LDA SHEILA+&41         \ Read 6522 System VIA input register IRA (SHEILA &41)
+ LDA VIA+&41            \ Read 6522 System VIA input register IRA (SHEILA &41)
 
  LDA &FC                \ Set A to the interrupt accumulator save register,
                         \ which restores A to the value it had on entering the
@@ -11242,8 +11243,9 @@ NEXT
  LDY #11                \ Set Y as a counter for 12 bytes, to use when setting
                         \ the dashboard palette below
 
- LDA #%00000010         \ Read the 6522 System VIA status byte bit 1, which is
- BIT SHEILA+&4D         \ set if vertical sync has occurred on the video system
+ LDA #%00000010         \ Read the 6522 System VIA status byte bit 1 (SHEILA
+ BIT VIA+&4D            \ &4D), which is set if vertical sync has occurred on
+                        \ the video system
 
  BNE LINSCN             \ If we are on the vertical sync pulse, jump to LINSCN
                         \ to set up the timers to enable us to switch the
@@ -11260,7 +11262,7 @@ NEXT
 
  ASL A                  \ Double the value in A to 4
 
- STA SHEILA+&20         \ Set Video ULA control register (SHEILA+&20) to
+ STA VIA+&20            \ Set the Video ULA control register (SHEILA &20) to
                         \ %00000100, which is the same as switching to mode 5,
                         \ (i.e. the bottom part of the screen) but with no
                         \ cursor
@@ -11269,8 +11271,8 @@ NEXT
  BNE VNT1               \ palette differently (so the dashboard is a different
                         \ colour if we have an escape pod)
 
- LDA TVT1,Y             \ Copy the Y-th palette byte from TVT1 to SHEILA+&21
- STA SHEILA+&21         \ to map logical to actual colours for the bottom part
+ LDA TVT1,Y             \ Copy the Y-th palette byte from TVT1 to SHEILA &21
+ STA VIA+&21            \ to map logical to actual colours for the bottom part
                         \ of the screen (i.e. the dashboard)
 
  DEY                    \ Decrement the palette byte counter
@@ -11292,8 +11294,8 @@ NEXT
 
  LDY #7                 \ Set Y as a counter for 8 bytes
 
- LDA TVT1+8,Y           \ Copy the Y-th palette byte from TVT1+8 to SHEILA+&21
- STA SHEILA+&21         \ to map logical to actual colours for the bottom part
+ LDA TVT1+8,Y           \ Copy the Y-th palette byte from TVT1+8 to SHEILA &21
+ STA VIA+&21            \ to map logical to actual colours for the bottom part
                         \ of the screen (i.e. the dashboard)
 
  DEY                    \ Decrement the palette byte counter
@@ -22808,8 +22810,8 @@ LOAD_E% = LOAD% + P% - CODE%
 
  SEI                    \ Disable interrupts so we can update the 6845
 
- STA SHEILA+&00         \ Set 6845 register R6 to the value in X. Register R6
- STX SHEILA+&01         \ is the "vertical displayed" register, which sets the
+ STA VIA+&00            \ Set 6845 register R6 to the value in X. Register R6
+ STX VIA+&01            \ is the "vertical displayed" register, which sets the
                         \ number of rows shown on the screen
 
  CLI                    \ Re-enable interrupts
@@ -25505,7 +25507,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Returns:
 \
-\   C flag              The C flag is clear
+\   C flag              The C flag is cleared
 \
 \ ******************************************************************************
 
@@ -27793,7 +27795,7 @@ LOAD_F% = LOAD% + P% - CODE%
 .MLOOP
 
  LDA #%00000001         \ Set 6522 System VIA interrupt enable register IER
- STA SHEILA+&4E         \ (SHEILA &4E) bit 1 (i.e. disable the CA2 interrupt,
+ STA VIA+&4E            \ (SHEILA &4E) bit 1 (i.e. disable the CA2 interrupt,
                         \ which comes from the keyboard)
 
  LDX #&FF               \ Reset the 6502 stack pointer, which clears the stack
@@ -28726,7 +28728,7 @@ ENDIF
 
  DEC MCNT               \ Decrement the main loop counter
 
- LDA SHEILA+&40         \ Read 6522 System VIA input register IRB (SHEILA &40)
+ LDA VIA+&40            \ Read 6522 System VIA input register IRB (SHEILA &40)
 
  AND #%00010000         \ Bit 4 of IRB (PB4) is clear if joystick 1's fire
                         \ button is pressed, otherwise it is set, so AND'ing
@@ -28888,7 +28890,7 @@ ENDIF
  JSR DEL8               \ Wait for 8/50 of a second (0.16 seconds)
 
  LDA #%10000001         \ Clear 6522 System VIA interrupt enable register IER
- STA SHEILA+&4E         \ (SHEILA &4E) bit 1 (i.e. enable the CA2 interrupt
+ STA VIA+&4E            \ (SHEILA &4E) bit 1 (i.e. enable the CA2 interrupt,
                         \ which comes from the keyboard)
 
  LDA #15                \ Perform a *FX 15,0 command (flush all buffers)
@@ -28901,7 +28903,7 @@ ENDIF
  JSR OSWORD
 
 \LDA #%00000001         \ These instructions are commented out in the original
-\STA SHEILA+&4E         \ source, but they would set 6522 System VIA interrupt
+\STA VIA+&4E            \ source, but they would set 6522 System VIA interrupt
                         \ enable register IER (SHEILA &4E) bit 1 (i.e. disable
                         \ the CA2 interrupt, which comes from the keyboard)
 
@@ -29138,7 +29140,7 @@ ENDIF
                         \ Y is left containing &C which we use below
 
  LDA #%10000001         \ Clear 6522 System VIA interrupt enable register IER
- STA SHEILA+&4E         \ (SHEILA &4E) bit 1 (i.e. enable the CA2 interrupt,
+ STA VIA+&4E            \ (SHEILA &4E) bit 1 (i.e. enable the CA2 interrupt,
                         \ which comes from the keyboard)
 
  INC SVN                \ Increment SVN to indicate we are about to start saving
@@ -29149,7 +29151,7 @@ ENDIF
 
  LDX #0                 \ Set X = 0 for storing in SVN below
 
-\STX SHEILA+&4E         \ This instruction is commented out in the original
+\STX VIA+&4E            \ This instruction is commented out in the original
                         \ source. It would affect the 6522 System VIA interrupt
                         \ enable register IER (SHEILA &4E) if any of bits 0-6
                         \ of X were set, but they aren't, so this instruction
@@ -30051,36 +30053,36 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  SEI                    \ Disable interrupts so we can scan the keyboard
                         \ without being hijacked
 
- STA SHEILA+&40         \ Set 6522 System VIA output register ORB (SHEILA &40)
-                        \ to %0011 to stop auto scan of keyboard
+ STA VIA+&40            \ Set 6522 System VIA output register ORB (SHEILA &40)
+                        \ to %00000011 to stop auto scan of keyboard
 
  LDA #%01111111         \ Set 6522 System VIA data direction register DDRA
- STA SHEILA+&43         \ (SHEILA &43) to %01111111. This sets the A registers
-                        \ (IRA and ORA) so that
+ STA VIA+&43            \ (SHEILA &43) to %01111111. This sets the A registers
+                        \ (IRA and ORA) so that:
                         \
-                        \ Bits 0-6 of ORA will be sent to the keyboard
+                        \   * Bits 0-6 of ORA will be sent to the keyboard
                         \
-                        \ Bit 7 of IRA will be read from the keyboard
+                        \   * Bit 7 of IRA will be read from the keyboard
 
- STX SHEILA+&4F         \ Set 6522 System VIA output register ORA (SHEILA &4F)
+ STX VIA+&4F            \ Set 6522 System VIA output register ORA (SHEILA &4F)
                         \ to X, the key we want to scan for; bits 0-6 will be
                         \ sent to the keyboard, of which bits 0-3 determine the
                         \ keyboard column, and bits 4-6 the keyboard row
 
- LDX SHEILA+&4F         \ Read 6522 System VIA output register IRA (SHEILA &4F)
+ LDX VIA+&4F            \ Read 6522 System VIA output register IRA (SHEILA &4F)
                         \ into X; bit 7 is the only bit that will have changed.
                         \ If the key is pressed, then bit 7 will be set (so X
                         \ will contain 128 + X), otherwise it will be clear (so
                         \ X will be unchanged)
 
  LDA #%00001011         \ Set 6522 System VIA output register ORB (SHEILA &40)
- STA SHEILA+&40         \ to %1011 to restart auto scan of keyboard
+ STA VIA+&40            \ to %00001011 to restart auto scan of keyboard
 
  CLI                    \ Allow interrupts again
 
  TXA                    \ Transfer X into A
 
- RTS
+ RTS                    \ Return from the subroutine
 
 \ ******************************************************************************
 \
@@ -30227,7 +30229,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  INY                    \ Update the key logger for key 2 in the KYTB table, so
  JSR DKS1               \ KY2 will be &FF if Space (speed up) is being pressed
 
- LDA SHEILA+&40         \ Read 6522 System VIA input register IRB (SHEILA &40)
+ LDA VIA+&40            \ Read 6522 System VIA input register IRB (SHEILA &40)
 
  TAX                    \ This instruction doesn't seem to have any effect, as
                         \ X is overwritten in a few instructions. When the
