@@ -331,7 +331,7 @@ ORG &0000
 
 .KY1
 
- SKIP 1                 \ "?" has been pressed
+ SKIP 1                 \ "?" is being pressed
                         \
                         \   * 0 = no
                         \
@@ -339,7 +339,7 @@ ORG &0000
 
 .KY2
 
- SKIP 1                 \ Space has been pressed
+ SKIP 1                 \ Space is being pressed
                         \
                         \   * 0 = no
                         \
@@ -347,7 +347,7 @@ ORG &0000
 
 .KY3
 
- SKIP 1                 \ "<" has been pressed
+ SKIP 1                 \ "<" is being pressed
                         \
                         \   * 0 = no
                         \
@@ -355,7 +355,7 @@ ORG &0000
 
 .KY4
 
- SKIP 1                 \ ">" has been pressed
+ SKIP 1                 \ ">" is being pressed
                         \
                         \   * 0 = no
                         \
@@ -363,7 +363,7 @@ ORG &0000
 
 .KY5
 
- SKIP 1                 \ "X" has been pressed
+ SKIP 1                 \ "X" is being pressed
                         \
                         \   * 0 = no
                         \
@@ -371,7 +371,7 @@ ORG &0000
 
 .KY6
 
- SKIP 1                 \ "S" has been pressed
+ SKIP 1                 \ "S" is being pressed
                         \
                         \   * 0 = no
                         \
@@ -379,7 +379,7 @@ ORG &0000
 
 .KY7
 
- SKIP 1                 \ "A" has been pressed
+ SKIP 1                 \ "A" is being pressed
                         \
                         \   * 0 = no
                         \
@@ -390,7 +390,7 @@ ORG &0000
 
 .KY12
 
- SKIP 1                 \ Tab key has been pressed
+ SKIP 1                 \ Tab key is being pressed
                         \
                         \   * 0 = no
                         \
@@ -398,7 +398,7 @@ ORG &0000
 
 .KY13
 
- SKIP 1                 \ Escape key has been pressed
+ SKIP 1                 \ Escape key is being pressed
                         \
                         \   * 0 = no
                         \
@@ -406,7 +406,7 @@ ORG &0000
 
 .KY14
 
- SKIP 1                 \ "T" has been pressed
+ SKIP 1                 \ "T" is being pressed
                         \
                         \   * 0 = no
                         \
@@ -414,7 +414,7 @@ ORG &0000
 
 .KY15
 
- SKIP 1                 \ "U" has been pressed
+ SKIP 1                 \ "U" is being pressed
                         \
                         \   * 0 = no
                         \
@@ -422,7 +422,7 @@ ORG &0000
 
 .KY16
 
- SKIP 1                 \ "M" has been pressed
+ SKIP 1                 \ "M" is being pressed
                         \
                         \   * 0 = no
                         \
@@ -430,7 +430,7 @@ ORG &0000
 
 .KY17
 
- SKIP 1                 \ "E" has been pressed
+ SKIP 1                 \ "E" is being pressed
                         \
                         \   * 0 = no
                         \
@@ -438,7 +438,7 @@ ORG &0000
 
 .KY18
 
- SKIP 1                 \ "J" has been pressed
+ SKIP 1                 \ "J" is being pressed
                         \
                         \   * 0 = no
                         \
@@ -446,7 +446,7 @@ ORG &0000
 
 .KY19
 
- SKIP 1                 \ "C" has been pressed
+ SKIP 1                 \ "C" is being pressed
                         \
                         \   * 0 = no
                         \
@@ -29532,11 +29532,11 @@ ENDIF
 \       Name: RDKEY
 \       Type: Subroutine
 \   Category: Keyboard
-\    Summary: Scan the keyboard for a specific key
+\    Summary: Scan the keyboard for key presses
 \
 \ ------------------------------------------------------------------------------
 \
-\ Scan the keyboard, starting with internal key number 16 (Q) and working
+\ Scan the keyboard, starting with internal key number 16 ("Q") and working
 \ through the set of internal key numbers (see p.142 of the Advanced User Guide
 \ for a list of internal key numbers).
 \
@@ -29554,30 +29554,31 @@ ENDIF
 
 .RDKEY
 
- LDX #16                \ Start the scan with internal key number 16 (Q)
+ LDX #16                \ Start the scan with internal key number 16 ("Q")
 
 .Rd1
 
  JSR DKS4               \ Scan the keyboard to see if the key in X is currently
-                        \ being pressed
+                        \ being pressed, returning the result in A and X
 
  BMI Rd2                \ Jump to Rd2 if this key is being pressed (in which
-                        \ case DKS4 will have returned a negative value,
-                        \ specifically 128 + X)
+                        \ case DKS4 will have returned the key number with bit
+                        \ 7 set, which is negative)
 
- INX                    \ Increment the key number
+ INX                    \ Increment the key number, which was unchanged by the
+                        \ above call to DKS4
 
  BPL Rd1                \ Loop back to test the next key, ending the loop when
                         \ X is negative (i.e. 128)
 
  TXA                    \ If we get here, nothing is being pressed, so copy X
-                        \ into A so that X = A = 128
+                        \ into A so that X = A = 128 = %10000000
 
 .Rd2
 
- EOR #128               \ EOR A with 128, to switch off bit 7, so A now
-                        \ contains 0 if no key has been pressed, or the
-                        \ internal key number if it has been pressed
+ EOR #%10000000         \ EOR A with #%10000000 to flip bit 7, so A now contains
+                        \ 0 if no key has been pressed, or the internal key
+                        \ number if a key has been pressed
 
  TAX                    \ Copy A into X
 
@@ -30071,9 +30072,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
  LDX VIA+&4F            \ Read 6522 System VIA output register IRA (SHEILA &4F)
                         \ into X; bit 7 is the only bit that will have changed.
-                        \ If the key is pressed, then bit 7 will be set (so X
-                        \ will contain 128 + X), otherwise it will be clear (so
-                        \ X will be unchanged)
+                        \ If the key is pressed, then bit 7 will be set,
+                        \ otherwise it will be clear
 
  LDA #%00001011         \ Set 6522 System VIA output register ORB (SHEILA &40)
  STA VIA+&40            \ to %00001011 to restart auto scan of keyboard
@@ -30224,7 +30224,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 .DKJ1
 
  LDY #1                 \ Update the key logger for key 1 in the KYTB table, so
- JSR DKS1               \ KY1 will be &FF if ? (slow down) is being pressed
+ JSR DKS1               \ KY1 will be &FF if "?" (slow down) is being pressed
 
  INY                    \ Update the key logger for key 2 in the KYTB table, so
  JSR DKS1               \ KY2 will be &FF if Space (speed up) is being pressed
@@ -30408,8 +30408,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 .DK4
 
- JSR RDKEY              \ Scan the keyboard from Q upwards and fetch any key
-                        \ press into X
+ JSR RDKEY              \ Scan the keyboard for a key press and return the
+                        \ internal key number in X (or 0 for no key press)
 
  STX KL                 \ Store X in KL, byte #0 of the key logger
 
@@ -30427,8 +30427,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  JSR WSCAN              \ Call WSCAN to wait for the vertical sync, so the whole
                         \ screen gets drawn
 
- JSR RDKEY              \ Scan the keyboard from Q upwards and fetch any key
-                        \ press into X
+ JSR RDKEY              \ Scan the keyboard for a key press and return the
+                        \ internal key number in X (or 0 for no key press)
 
  CPX #&51               \ If S is not being pressed, skip to DK6
  BNE DK6
@@ -30557,7 +30557,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  JSR DELAY-5            \ Delay for 8 vertical syncs (8/50 = 0.16 seconds) so we
                         \ don't take up too much CPU time while looping round
 
- JSR RDKEY              \ Scan the keyboard, starting from Q
+ JSR RDKEY              \ Scan the keyboard for a key press and return the
+                        \ internal key number in X (or 0 for no key press)
 
  BNE t                  \ If a key was already being held down when we entered
                         \ this routine, keep looping back up to t, until the
@@ -30566,7 +30567,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 .t2
 
  JSR RDKEY              \ Any pre-existing key press is now gone, so we can
-                        \ start scanning the keyboard again, starting from Q
+                        \ start scanning the keyboard again, returning the
+                        \ internal key number in X (or 0 for no key press)
 
  BEQ t2                 \ Keep looping up to t2 until a key is pressed
 
