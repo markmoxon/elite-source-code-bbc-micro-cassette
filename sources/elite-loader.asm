@@ -227,12 +227,13 @@ ORG O%
 \
 \ ------------------------------------------------------------------------------
 \
-\ This block contains the bytes that get passed to the VDU command (via OSWRCH)
-\ in part 2 to set up the screen mode. This defines the whole screen using a
-\ square, monochrome mode 4 configuration; the mode 5 part is implemented in the
-\ IRQ1 routine.
+\ This block contains the bytes that get written by OSWRCH in part 2 to set up
+\ the screen mode (this is equivalent to using the VDU statement in BASIC).
 \
-\ Elite's monochrome screen mode is based on mode 4 but with the following
+\ It defines the whole screen using a square, monochrome mode 4 configuration;
+\ the mode 5 part for the dashboard is implemented in the IRQ1 routine.
+\
+\ The top part of Elite's screen mode is based on mode 4 but with the following
 \ differences:
 \
 \   * 32 columns, 31 rows (256 x 248 pixels) rather than 40, 32
@@ -252,12 +253,12 @@ ORG O%
 \ This almost-square mode 4 variant makes life a lot easier when drawing to the
 \ screen, as there are 256 pixels on each row (or, to put it in screen memory
 \ terms, there's one page of memory per row of pixels). For more details of the
-\ screen mode, see the PIXEL subroutine in elite-source.asm.
+\ screen mode, see the deep dive on "Drawing monochrome pixels in mode 4".
 \
 \ There is also an interrupt-driven routine that switches the bytes-per-pixel
 \ setting from that of mode 4 to that of mode 5, when the raster reaches the
-\ split between the space view and the dashboard. This is described in the IRQ1
-\ routine below, which does the switching.
+\ split between the space view and the dashboard. See the deep dive on "The
+\ split-screen mode" for details.
 \
 \ ******************************************************************************
 
@@ -748,7 +749,7 @@ ENDIF
  JSR OSB                \ the "output buffer empty" event
 
  LDA #225               \ Call OSBYTE with A = 225, X = 128 and Y = 0 to set
- LDX #128               \ the function keys to return ASCII codes for Shift-fn
+ LDX #128               \ the function keys to return ASCII codes for SHIFT-fn
  JSR OSB                \ keys (i.e. add 128)
 
  LDA #172               \ Call OSBYTE 172 to read the address of the MOS
@@ -760,12 +761,12 @@ ENDIF
  STY TRTB%+1            \ TRTB%(1 0)
 
  LDA #200               \ Call OSBYTE with A = 200, X = 3 and Y = 0 to disable
- LDX #3                 \ the Escape key and clear memory if the Break key is
+ LDX #3                 \ the ESCAPE key and clear memory if the BREAK key is
  JSR OSB                \ pressed
 
 IF PROT AND DISC = 0
  CPX #3                 \ If the previous value of X from the call to OSBYTE 200
- BNE abrk+1             \ was not 3 (Escape disabled, clear memory), jump to
+ BNE abrk+1             \ was not 3 (ESCAPE disabled, clear memory), jump to
                         \ abrk+1, which contains a BRK instruction which will
                         \ reset the computer (as we set BRKV to point to the
                         \ reset address above)
@@ -2891,7 +2892,7 @@ ENDIF
 \BMI BLAST
 
  LDY #0                 \ Call OSBYTE with A = 200, X = 3 and Y = 0 to disable
- LDA #200               \ the Escape key and clear memory if the Break key is
+ LDA #200               \ the ESCAPE key and clear memory if the BREAK key is
  LDX #3                 \ pressed
  JSR OSBYTE
 

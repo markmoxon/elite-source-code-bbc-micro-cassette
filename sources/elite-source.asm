@@ -390,7 +390,7 @@ ORG &0000
 
 .KY12
 
- SKIP 1                 \ Tab key is being pressed
+ SKIP 1                 \ TAB is being pressed
                         \
                         \   * 0 = no
                         \
@@ -398,7 +398,7 @@ ORG &0000
 
 .KY13
 
- SKIP 1                 \ Escape key is being pressed
+ SKIP 1                 \ ESCAPE is being pressed
                         \
                         \   * 0 = no
                         \
@@ -3118,7 +3118,7 @@ LOAD_A% = LOAD%
                         \
                         \   * &FF = damping is disabled
                         \
-                        \ Toggled by pressing Caps Lock when paused, see the
+                        \ Toggled by pressing CAPS LOCK when paused, see the
                         \ DKS3 routine for details
 
 .DJD
@@ -3292,9 +3292,11 @@ LOAD_A% = LOAD%
  CMP #8                 \ If A >= 8, skip the following two instructions
  BCS P%+4
 
- LSR A                  \ A < 8, so halve A again and clear the C flag, so we
- CLC                    \ can do addition later without the C flag affecting
-                        \ the result
+ LSR A                  \ A < 8, so halve A again
+
+ CLC                    \ This instruction has no effect, as we only get here
+                        \ if the C flag is clear (if it is set, we skip this
+                        \ instruction)
 
  STA ALP1               \ Store A in ALP1, so we now have:
                         \
@@ -3387,10 +3389,10 @@ LOAD_A% = LOAD%
 \
 \ The key presses that are processed are as follows:
 \
-\   * Space and "?" to speed up and slow down
+\   * SPACE and "?" to speed up and slow down
 \   * "U", "T" and "M" to disarm, arm and fire missiles
-\   * Tab to fire an energy bomb
-\   * Escape to launch an escape pod
+\   * TAB to fire an energy bomb
+\   * ESCAPE to launch an escape pod
 \   * "J" to initiate an in-system jump
 \   * "E" to deploy E.C.M. anti-missile countermeasures
 \   * "C" to use the docking computer
@@ -3475,7 +3477,7 @@ LOAD_A% = LOAD%
 
  LDA MSTG               \ If MSTG = &FF then there is no target lock, so jump to
  BMI MA64               \ MA64 to skip the following (also skipping the checks
-                        \ for Tab, Escape, "J" and "E")
+                        \ for TAB, ESCAPE, "J" and "E")
 
  JSR FRMIS              \ The "fire missile" key is being pressed and we have
                         \ a missile lock, so call the FRMIS routine to fire
@@ -3483,7 +3485,7 @@ LOAD_A% = LOAD%
 
 .MA24
 
- LDA KY12               \ If Tab is being pressed, keep going, otherwise jump
+ LDA KY12               \ If TAB is being pressed, keep going, otherwise jump
  BEQ MA76               \ jump down to MA76 to skip the following
 
  ASL BOMB               \ The "energy bomb" key is being pressed, so double
@@ -3497,7 +3499,7 @@ LOAD_A% = LOAD%
 
 .MA76
 
- LDA KY13               \ If Escape is being pressed and we have an escape pod
+ LDA KY13               \ If ESCAPE is being pressed and we have an escape pod
  AND ESCP               \ fitted, keep going, otherwise skip the next
  BEQ P%+5               \ instruction
 
@@ -3725,7 +3727,7 @@ LOAD_A% = LOAD%
 \
 \ ******************************************************************************
 
- LDA BOMB               \ If we set off our energy bomb by pressing Tab (see
+ LDA BOMB               \ If we set off our energy bomb by pressing TAB (see
  BPL MA21               \ MA24 above), then BOMB is now negative, so this skips
                         \ to MA21 if our energy bomb is not going off
 
@@ -4090,6 +4092,7 @@ LOAD_A% = LOAD%
 
  LDA #1                 \ Set the speed in DELTA to 1 (i.e. a sudden stop)
  STA DELTA
+
  LDA #5                 \ Set the amount of damage in A to 5 (a small dent) and
  BNE MA63               \ jump down to MA63 to process the damage (this BNE is
                         \ effectively a JMP as A will never be zero)
@@ -4367,7 +4370,7 @@ LOAD_A% = LOAD%
 
 .MA18
 
- LDA BOMB               \ If we set off our energy bomb by pressing Tab (see
+ LDA BOMB               \ If we set off our energy bomb by pressing TAB (see
  BPL MA77               \ MA24 above), then BOMB is now negative, so this skips
                         \ to MA77 if our energy bomb is not going off
 
@@ -6634,11 +6637,13 @@ Q% = _ENABLE_MAX_COMMANDER
 
 .NA%
 
- EQUS "JAMESON"         \ Default commander name
- EQUB 13                \ Terminated by a carriage return; commander name can
-                        \ be up to 7 characters (the DFS limit for file names)
+ EQUS "JAMESON"         \ The current commander name, which defaults to JAMESON
+ EQUB 13                \
+                        \ The commander name can be up to 7 characters (the DFS
+                        \ limit for file names), and is terminated by a carriage
+                        \ return
 
-                        \ NA%+8 - the start of the commander data block
+                        \ NA%+8 is the start of the commander data block
                         \
                         \ This block contains the last saved commander data
                         \ block. As the game is played it uses an identical
@@ -10012,11 +10017,11 @@ NEXT
 \       Name: BELL
 \       Type: Subroutine
 \   Category: Sound
-\    Summary: Make a beep sound
+\    Summary: Make a standard system beep
 \
 \ ------------------------------------------------------------------------------
 \
-\ This is the standard system beep as made by the VDU 7 command in BBC BASIC.
+\ This is the standard system beep as made by the VDU 7 statement in BBC BASIC.
 \
 \ ******************************************************************************
 
@@ -11317,7 +11322,7 @@ NEXT
 \ ------------------------------------------------------------------------------
 \
 \ This routine displays our doomed Cobra Mk III disappearing off into the ether
-\ before arranging our replacement ship. Called when we press Escape during
+\ before arranging our replacement ship. Called when we press ESCAPE during
 \ flight and have an escape pod fitted.
 \
 \ ******************************************************************************
@@ -20742,7 +20747,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ statements for all the other equipment
 
  LDY LASER,X            \ If there is no laser mounted in the chosen view (i.e.
- BEQ ed5                \ LASER+X, which contains the laser power for mount X,
+ BEQ ed5                \ LASER+X, which contains the laser power for view X,
                         \ is zero), jump to ed5 to buy a beam laser
 
 \BPL P%+4               \ This instruction is commented out in the original
@@ -20768,10 +20773,10 @@ LOAD_D% = LOAD% + P% - CODE%
 .ed5
 
  LDA #POW+128           \ We just bought a beam laser for view X, so we need
- LDX T1                 \ to mount it by storing the laser power for a beam
- STA LASER,X            \ laser (given in POW+128) in LASER+X, using the view
-                        \ number we stored in T1 earlier, as the call to prx
-                        \ will have overwritten the original value in X
+ LDX T1                 \ to fit it by storing the laser power for a beam laser
+ STA LASER,X            \ (given in POW+128) in LASER+X, using the view number
+                        \ we stored in T1 earlier, as the call to prx will have
+                        \ overwritten the original value in X
 
 .et5
 
@@ -28390,7 +28395,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ ------------------------------------------------------------------------------
 \
 \ This is the main entry point for a the main game coce. It is also called
-\ following death, and when the game is quit by pressing Escape when paused.
+\ following death, and when the game is quit by pressing ESCAPE when paused.
 \
 \ ******************************************************************************
 
@@ -28423,13 +28428,13 @@ LOAD_F% = LOAD% + P% - CODE%
  LDX #3                 \ Set XC = 3 (set text cursor to column 3)
  STX XC
 
- JSR FX200              \ Disable the Escape key and clear memory if the Break
-                        \ key is pressed (*FX 200,3)
+ JSR FX200              \ Disable the ESCAPE key and clear memory if the BREAK
+                        \ key is pressed (*FX 200, 3)
 
  LDX #CYL               \ Call the TITLE subroutine to show the rotating ship
  LDA #128               \ and load prompt. The arguments sent to TITLE are:
  JSR TITLE              \
-                        \   X = type of ship to show, CYL is Cobra Mk III
+                        \   X = type of ship to show, #CYL is a Cobra Mk III
                         \
                         \   A = text token to show below the rotating ship, 128
                         \       is "  LOAD NEW COMMANDER (Y/N)?{crlf}{crlf}"
@@ -28452,7 +28457,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \JSR TT214              \ pressed "Y". This may be a bit of testing code, as the
 \BCC QU5                \ first line is a commented label, BR1, which is where
                         \ BRKV points, so when this is uncommented, pressing
-                        \ the Break key should jump straight to the load screen
+                        \ the BREAK key should jump straight to the load screen
 
  JSR GTNME              \ We want to load a new commander, so we need to get
                         \ the commander name to load
@@ -28502,7 +28507,8 @@ LOAD_F% = LOAD% + P% - CODE%
 
  DEX                    \ Decrement the loop counter
 
- BNE QUL1               \ Loop back for the next byte of the commander file
+ BNE QUL1               \ Loop back for the next byte of the commander data
+                        \ block
 
  STX QQ11               \ X is 0 by the end of the above loop, so this sets QQ11
                         \ to 0, which means we will be showing a view without a
@@ -28874,7 +28880,7 @@ ENDIF
 \ Get the commander's name for loading or saving a commander file. The name is
 \ stored at INWK, terminated by a return character (13).
 \
-\ If Escape is pressed or a blank name is entered, then INWK is set to the name
+\ If ESCAPE is pressed or a blank name is entered, then INWK is set to the name
 \ from the last saved commander block.
 \
 \ ******************************************************************************
@@ -28893,7 +28899,7 @@ ENDIF
  STA VIA+&4E            \ (SHEILA &4E) bit 1 (i.e. enable the CA2 interrupt,
                         \ which comes from the keyboard)
 
- LDA #15                \ Perform a *FX 15,0 command (flush all buffers)
+ LDA #15                \ Call OSBYTE with A = 15 (flush all buffers)
  TAX
  JSR OSBYTE
 
@@ -28907,7 +28913,7 @@ ENDIF
                         \ enable register IER (SHEILA &4E) bit 1 (i.e. disable
                         \ the CA2 interrupt, which comes from the keyboard)
 
- BCS TR1                \ The C flag will be set if we pressed Escape when
+ BCS TR1                \ The C flag will be set if we pressed ESCAPE when
                         \ entering the name, in which case jump to TR1 to copy
                         \ the last saved commander's name from NA% to INWK
                         \ and return from the subroutine there
@@ -29220,7 +29226,7 @@ ENDIF
 
 .LOD
 
- LDX #2                 \ Enable the Escape key and clear memory if the Break
+ LDX #2                 \ Enable the ESCAPE key and clear memory if the BREAK
  JSR FX200              \ key is pressed (*FX 200,2)
 
  JSR ZERO               \ Zero-fill pages &9, &A, &B, &C and &D, which clears
@@ -29263,8 +29269,8 @@ ENDIF
 
  BPL LOL1               \ Loop back until we have copied all NT% bytes
 
- LDX #3                 \ Fall through into FX200 to disable the Escape key and
-                        \ clear memory if the Break key is pressed (*FX 200,3)
+ LDX #3                 \ Fall through into FX200 to disable the ESCAPE key and
+                        \ clear memory if the BREAK key is pressed (*FX 200,3)
                         \ and return from the subroutine there
 
 \ ******************************************************************************
@@ -29272,18 +29278,18 @@ ENDIF
 \       Name: FX200
 \       Type: Subroutine
 \   Category: Utility routines
-\    Summary: Set the behaviour of the Escape and Break keys
+\    Summary: Set the behaviour of the ESCAPE and BREAK keys
 \
 \ ------------------------------------------------------------------------------
 \
-\ Performs a *FX 200,X command, which controls the behaviour of the Escape and
-\ Break keys.
+\ This is the equivalent of a *FX 200 command, which controls the behaviour of
+\ the ESCAPE and BREAK keys.
 \
 \ ******************************************************************************
 
 .FX200
 
- LDY #0                 \ Call OSBYTE &C8 (200) with Y = 0, so new value is
+ LDY #0                 \ Call OSBYTE &C8 (200) with Y = 0, so the new value is
  LDA #200               \ set to X, and return from the subroutine using a tail
  JMP OSBYTE             \ call
 
@@ -29759,7 +29765,7 @@ ENDIF
                         \ not affect A, while AND'ing with 7 will clear bit
                         \ 3, reducing the maximum value in A to 7
 
- ORA #%11110001         \ The SOUND command's amplitude ranges from 0 (for no
+ ORA #%11110001         \ The SOUND statement's amplitude ranges from 0 (for no
                         \ sound) to -15 (full volume), so we can set bits 0 and
                         \ 4-7 in A, and keep bits 1-3 from the above to get
                         \ a value between -15 (%11110001) and -1 (%11111111),
@@ -29862,7 +29868,7 @@ ENDIF
 \ This block will be passed to OSWORD 7 to make the sound, which expects the
 \ four sound attributes as 16-bit big-endian values - in other words, with the
 \ low byte first. So the above block would pass the values &0013, &00F4, &000C
-\ and &0008 to the SOUND command when used with OSWORD 7, or:
+\ and &0008 to the SOUND statement when used with OSWORD 7, or:
 \
 \   SOUND &13, &F4, &0C, &08
 \
@@ -29933,7 +29939,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
                         \ speed and lasers):
 
  EQUB &68 + 128         \ ?         KYTB+1      Slow down
- EQUB &62 + 128         \ Space     KYTB+2      Speed up
+ EQUB &62 + 128         \ SPACE     KYTB+2      Speed up
  EQUB &66 + 128         \ <         KYTB+3      Roll left
  EQUB &67 + 128         \ >         KYTB+4      Roll right
  EQUB &42 + 128         \ X         KYTB+5      Pitch up
@@ -29942,8 +29948,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
                         \ These are the secondary flight controls:
 
- EQUB &60               \ Tab       KYTB+8      Energy bomb
- EQUB &70               \ Escape    KYTB+9      Launch escape pod
+ EQUB &60               \ TAB       KYTB+8      Energy bomb
+ EQUB &70               \ ESCAPE    KYTB+9      Launch escape pod
  EQUB &23               \ T         KYTB+10     Arm missile
  EQUB &35               \ U         KYTB+11     Unarm missile
  EQUB &65               \ M         KYTB+12     Fire missile
@@ -30144,7 +30150,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Specifically, this routine toggles the configuration settings for the
 \ following keys:
 \
-\   * Caps Lock toggles keyboard flight damping (&40)
+\   * CAPS LOCK toggles keyboard flight damping (&40)
 \   * A toggles keyboard auto-recentre (&41)
 \   * X toggles author names on start-up screen (&42)
 \   * F toggles flashing console bars (&43)
@@ -30176,7 +30182,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  BNE Dk3
 
                         \ We have a match between X and Y, so now to toggle
-                        \ the relevant configuration byte. Caps Lock has a key
+                        \ the relevant configuration byte. CAPS LOCK has a key
                         \ value of &40 and has its configuration byte at
                         \ location DAMP, A has a value of &41 and has its byte
                         \ at location DJD, which is DAMP+1, and so on. So we
@@ -30440,9 +30446,9 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
  LDY #&40               \ We now want to loop through the keys that toggle
                         \ various settings. These have internal key numbers
-                        \ between &40 (Caps Lock) and &46 (K), so we set up the
-                        \ first key number in Y to act as a loop counter. See
-                        \ subroutine DKS3 for more details on this
+                        \ between &40 (CAPS LOCK) and &46 ("K"), so we set up
+                        \ the first key number in Y to act as a loop counter.
+                        \ See subroutine DKS3 for more details on this
 
 .DKL4
 
@@ -30458,18 +30464,18 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 .DK55
 
- CPX #&10               \ If Q is not being pressed, skip to DK7
+ CPX #&10               \ If "Q" is not being pressed, skip to DK7
  BNE DK7
 
- STX DNOIZ              \ S is being pressed, so set DNOIZ to X, which is
+ STX DNOIZ              \ "Q" is being pressed, so set DNOIZ to X, which is
                         \ non-zero (&10), so this will turn the sound off
 
 .DK7
 
- CPX #&70               \ If Escape is not being pressed, skip over the next
+ CPX #&70               \ If ESCAPE is not being pressed, skip over the next
  BNE P%+5               \ instruction
 
- JMP DEATH2             \ Escape is being pressed, so jump to DEATH2 to end
+ JMP DEATH2             \ ESCAPE is being pressed, so jump to DEATH2 to end
                         \ the game
 
  CPX #&59               \ If DELETE is not being pressed, we are still paused,
