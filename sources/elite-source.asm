@@ -10166,7 +10166,7 @@ NEXT
                         \ It's a long way from 10 PRINT "Hello world!":GOTO 10
 
 \LDX #LO(K3)            \ These instructions are commented out in the original
-\INX                    \ source, but they call OSWORD &A, which reads the
+\INX                    \ source, but they call OSWORD 10, which reads the
 \STX P+1                \ character bitmap for the character number in K3 and
 \DEX                    \ stores it in the block at K3+1, while also setting
 \LDY #HI(K3)            \ P+1 to point to the character definition. This is
@@ -23612,7 +23612,8 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ type's blueprint and stores it in XX0
 
  LDA XX21-1,Y           \ Fetch the high byte of this particular ship type's
- STA XX0+1              \ blueprint and store it in XX0+1
+ STA XX0+1              \ blueprint and store it in XX0+1, so XX0(1 0) now
+                        \ contains the address of this ship's blueprint
 
  CPY #2*SST             \ If the ship type is a space station (SST), then jump
  BEQ NW6                \ to NW6, skipping the heap space steps below, as the
@@ -23698,8 +23699,8 @@ LOAD_E% = LOAD% + P% - CODE%
 
  BCC NW3+1              \ If we have an underflow from the subtraction, then
                         \ INF > INWK+33 and we definitely don't have enough
-                        \ room for this ship, so jump to NW3+1, which clears
-                        \ the C flag and returns from the subroutine
+                        \ room for this ship, so jump to NW3+1, which returns
+                        \ from the subroutine (with the C flag already cleared)
 
  BNE NW4                \ If the subtraction of the high bytes in A is not
                         \ zero, and we don't have underflow, then we definitely
@@ -23711,8 +23712,8 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ result (which is in Y) with NI%. This is the same as
                         \ doing INWK+33 - INF > NI% (see above). If this isn't
                         \ true, the C flag will be clear and we don't have
-                        \ enough space, so we jump to NW3+1, which clears the
-                        \ C flag and returns from the subroutine
+                        \ enough space, so we jump to NW3+1, which returns
+                        \ from the subroutine (with the C flag already cleared)
 
 .NW4
 
@@ -29303,9 +29304,9 @@ ENDIF
 
 .FX200
 
- LDY #0                 \ Call OSBYTE &C8 (200) with Y = 0, so the new value is
- LDA #200               \ set to X, and return from the subroutine using a tail
- JMP OSBYTE             \ call
+ LDY #0                 \ Call OSBYTE 200 with Y = 0, so the new value is set to
+ LDA #200               \ X, and return from the subroutine using a tail call
+ JMP OSBYTE
 
  RTS                    \ This instruction has no effect, as we already returned
                         \ from the subroutine
@@ -29560,7 +29561,7 @@ ENDIF
 \ through the set of internal key numbers (see p.142 of the Advanced User Guide
 \ for a list of internal key numbers).
 \
-\ This routine is effectively the same as OSBYTE &7A, though the OSBYTE call
+\ This routine is effectively the same as OSBYTE 122, though the OSBYTE call
 \ preserves A, unlike this routine.
 \
 \ Returns:
@@ -30700,7 +30701,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  STX QQ17
 
  LDY #9                 \ Move the text cursor to column 9, row 22, at the
- STY XC                 \ bottom middle of the screen
+ STY XC                 \ bottom middle of the screen, and set Y = 22
  LDY #22
  STY YC
 
@@ -30710,8 +30711,9 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
  STY DLY                \ Set the message delay in DLY to 22
 
- STA MCH                \ Set MCH to the token we are about to display and fall
-                        \ through to mes9 to print the token
+ STA MCH                \ Set MCH to the token we are about to display
+
+                        \ Fall through into mes9 to print the token in A
 
 \ ******************************************************************************
 \
@@ -30731,7 +30733,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
  JSR TT27               \ Call TT27 to print the text token in A
 
- LSR de                 \ If bit 1 of location de is clear, return from the
+ LSR de                 \ If bit 1 of variable de is clear, return from the
  BCC out                \ subroutine (as out contains an RTS)
 
  LDA #253               \ Print recursive token 93 (" DESTROYED") and return
