@@ -4388,7 +4388,7 @@ LOAD_A% = LOAD%
 
  LDA #%00110000         \ Set the palette byte at SHEILA &21 to map logical
  STA VIA+&21            \ colour 0 to physical colour 7 (white), but with only
-                        \ one mapping (rather than the 7 mappings requires to
+                        \ one mapping (rather than the 7 mappings required to
                         \ do the mapping properly). This makes the space screen
                         \ flash with black and white stripes. See p.382 of the
                         \ Advanced User Guide for details of why this single
@@ -4529,9 +4529,13 @@ LOAD_A% = LOAD%
                         \ >= 192 (i.e. they must all be < 192 for us to be near
                         \ enough to the planet to bump into a space station)
 
- LDA QQ11               \ If the current view is a space view, call WPLS to
- BNE P%+5               \ remove the sun from the screen, as we can't have both
- JSR WPLS               \ the sun and the space station at the same time
+ LDA QQ11               \ If the current view is not a space view, skip the
+ BNE P%+5               \ following instruction (so we only remove the sun from
+                        \ the screen if we are potentially looking at it)
+
+ JSR WPLS               \ Call WPLS to remove the sun from the screen, as we
+                        \ can't have both the sun and the space station at the
+                        \ same time
 
  JSR NWSPS              \ Add a new space station to our local bubble of
                         \ universe
@@ -8365,7 +8369,7 @@ NEXT
  BEQ BL9                \ coordinates around during the clipping process, so
                         \ jump to BL9 to skip the following swap
 
- LDA X1                 \ Otherwise the coordinates were swapped by the call to,
+ LDA X1                 \ Otherwise the coordinates were swapped by the call to
  LDY X2                 \ LL145 above, so we swap (X1, Y1) and (X2, Y2) back
  STA X2                 \ again
  STY X1
@@ -9336,7 +9340,7 @@ NEXT
                         \ and draw a horizontal line at pixel row 19 to box
                         \ in the title
 
- LDA #15                \ Set A to token 129 ("sentence case}DOCKED")
+ LDA #15                \ Set A to token 129 ("{sentence case}DOCKED")
 
  LDY QQ12               \ Fetch the docked status from QQ12, and if we are
  BNE st6                \ docked, jump to st6 to print "Docked" for our
@@ -9579,7 +9583,7 @@ NEXT
 
  JSR plf                \ Print the text token in A followed by a newline
 
- LDX #6                 \ Set the text cursor to column 6
+ LDX #6                 \ Move the text cursor to column 6
  STX XC
 
  RTS                    \ Return from the subroutine
@@ -10680,7 +10684,7 @@ NEXT
  STX K+1                \ Set K+1 (the colour we should show for low values) to
                         \ X (the colour to use for safe values)
 
- STA K                  \ Set K+1 (the colour we should show for high values) to
+ STA K                  \ Set K (the colour we should show for high values) to
                         \ A (the colour to use for dangerous values)
 
                         \ The above sets the following indicators to show red
@@ -11272,9 +11276,9 @@ NEXT
                         \ (i.e. the bottom part of the screen) but with no
                         \ cursor
 
- LDA ESCP               \ If escape pod fitted, jump to VNT1 to set the mode 5
- BNE VNT1               \ palette differently (so the dashboard is a different
-                        \ colour if we have an escape pod)
+ LDA ESCP               \ If an escape pod is fitted, jump to VNT1 to set the
+ BNE VNT1               \ mode 5 palette differently (so the dashboard is a
+                        \ different colour if we have an escape pod)
 
  LDA TVT1,Y             \ Copy the Y-th palette byte from TVT1 to SHEILA &21
  STA VIA+&21            \ to map logical to actual colours for the bottom part
@@ -11362,7 +11366,8 @@ NEXT
  BNE ESL1               \ Loop back to keep moving the Cobra until the AI flag
                         \ is 0, which gives it time to drift away from our pod
 
- JSR SCAN               \ Call SCAN to remove all ships from the scanner
+ JSR SCAN               \ Call SCAN to remove the Cobra from the scanner (by
+                        \ redrawing it)
 
  JSR RESET              \ Call RESET to reset our ship and various controls
 
@@ -15841,8 +15846,8 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
-\ Clear the top part of the screen (mode 4), draw a white border, and set the
-\ current view type in QQ11 to A.
+\ Clear the top part of the screen, draw a white border, and set the current
+\ view type in QQ11 to A.
 \
 \ Arguments:
 \
@@ -19109,8 +19114,8 @@ LOAD_D% = LOAD% + P% - CODE%
  STA XC                 \ screen), setting A to 15 at the same time for the
                         \ following call to TT27
 
- JMP TT27               \ Print recursive token 129 ("sentence case}DOCKED") and
-                        \ return from the subroutine using a tail call
+ JMP TT27               \ Print recursive token 129 ("{sentence case}DOCKED")
+                        \ and return from the subroutine using a tail call
 
 \ ******************************************************************************
 \
@@ -19179,7 +19184,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA QQ8+1              \ If the high byte of the distance to the selected
  BNE TT147              \ system in QQ8 is > 0, then it is definitely too far to
                         \ jump (as our maximum range is 7.0 light years, or a
-                        \ value of 70 in QQ8(1 0), so jump to TT147 to print
+                        \ value of 70 in QQ8(1 0)), so jump to TT147 to print
                         \ "RANGE?" and return from the subroutine using a tail
                         \ call
 
@@ -19195,8 +19200,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  JSR cpl                \ Call cpl to print the name of the selected system
 
-                        \ Fall through into wW to start the hyperspace
-                        \ countdown
+                        \ Fall through into wW to start the hyperspace countdown
 
 \ ******************************************************************************
 \
@@ -19284,7 +19288,7 @@ LOAD_D% = LOAD% + P% - CODE%
  INX                    \ We own a galactic hyperdrive, so X is &FF, so this
                         \ instruction sets X = 0
 
- STX QQ8                \ Set the distance to the selected system in (QQ8+1 QQ8)
+ STX QQ8                \ Set the distance to the selected system in QQ8(1 0)
  STX QQ8+1              \ to 0
 
  STX GHYP               \ The galactic hyperdrive is a one-use item, so set GHYP
@@ -19389,13 +19393,14 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .ee3
 
- LDY #1                 \ Set YC = 1 (first row)
+ LDY #1                 \ Move the text cursor to row 1
  STY YC
 
- DEY                    \ Set XC = 0 (first character)
+ DEY                    \ Move the text cursor to column 0
  STY XC
 
-                        \ Fall through into pr6 to print X to 5 digits
+                        \ Fall through into pr6 to print X to 5 digits, as the
+                        \ high byte in Y is 0
 
 \ ******************************************************************************
 \
@@ -19926,8 +19931,16 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT112
 
- LDA QQ15,X             \ Copy the X-th byte in QQ15 to the X-th byte in QQ2,
- STA QQ2,X
+ LDA QQ15,X             \ Copy the X-th byte in QQ15 to the X-th byte in QQ2, to
+ STA QQ2,X              \ update the selected system to the new one. Note that
+                        \ this approach has a minor bug associated with it: if
+                        \ your hyperspace counter hits 0 just as you're docking,
+                        \ then you will magically appear in the station in your
+                        \ hyperspace destination, without having to go to the
+                        \ effort of actually flying there. This bug was fixed in
+                        \ later versions by saving the destination seeds in a
+                        \ separate location called safehouse, and using those
+                        \ instead... but that isn't the case in this version
 
  DEX                    \ Decrement the counter
 
@@ -20621,9 +20634,10 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ clear), which will be the actual item number we want
                         \ to buy
 
- LDX #2                 \ Move the text cursor to column 2 on the next line
+ LDX #2                 \ Move the text cursor to column 2
  STX XC
- INC YC
+
+ INC YC                 \ Move the text cursor down one line
 
  PHA                    \ While preserving the value in A, call eq to subtract
  JSR eq                 \ the price of the item we want to buy (which is in A)
@@ -21083,7 +21097,7 @@ LOAD_D% = LOAD% + P% - CODE%
  ADC #80                \ "RIGHT"
  JSR TT27
 
- INC YC                 \ Move the text cursor down a row)
+ INC YC                 \ Move the text cursor down a row
 
  LDY YC                 \ Update Y with the incremented counter in YC
 
@@ -22787,7 +22801,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: DET1
 \       Type: Subroutine
 \   Category: Screen mode
-\    Summary: Hide the dashboard (for when we die)
+\    Summary: Show or hide the dashboard (for when we die)
 \
 \ ------------------------------------------------------------------------------
 \
@@ -27314,7 +27328,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ Specifically:
+\ Specifically, this routine does the following:
 \
 \   * Reset the INWK ship workspace
 \
@@ -27325,8 +27339,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \   * Set the ship to hostile, with AI enabled
 \
-\ Also sets X and T1 to a random value, and A to a random value between 192 and
-\ 255,and the C flag randomly.
+\ This routine also sets A, X, T1 and the C flag to random values.
 \
 \ ******************************************************************************
 
@@ -27360,6 +27373,9 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ and has AI (bit 7)
 
  STA INWK+32            \ Store A in the AI flag of this ship
+
+                        \ Fall through into DORND2 to set A, X and the C flag
+                        \ randomly
 
 \ ******************************************************************************
 \
@@ -27416,9 +27432,9 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ This section covers the following:
 \
-\   * Spawn a trader, i.e. a Cobra Mk III that isn't attacking anyone, with one
-\     missile and a 50% chance of having an E.C.M., a speed between 16 and 31,
-\     and a clockwise roll
+\   * Spawn a trader, i.e. a Cobra Mk III that isn't hostile, with one missile,
+\     a 50% chance of having an E.C.M., a speed between 16 and 31, and a gentle
+\     clockwise roll
 \
 \ We call this from within the main loop, with A set to a random number and the
 \ C flag set.
@@ -27443,7 +27459,7 @@ LOAD_F% = LOAD% + P% - CODE%
  ORA #16                \ minimum of 16 and a maximum of 31
  STA INWK+27
 
- LDA #CYL               \ Add a new Cobra Mk III to the local universe and fall
+ LDA #CYL               \ Add a new Cobra Mk III to the local bubble and fall
  JSR NWSHP              \ through into the main game loop again
 
 \ ******************************************************************************
@@ -27593,7 +27609,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
  CMP #5                 \ Set A to the ship number of an asteroid, and keep
  LDA #AST               \ this value for 98.5% of the time (i.e. if random
- BCS P%+4               \ A >= 5 skip the following instruction)
+ BCS P%+4               \ A >= 5 then skip the following instruction)
 
  LDA #OIL               \ Set A to the ship number of a cargo canister
 
@@ -27640,8 +27656,7 @@ LOAD_F% = LOAD% + P% - CODE%
  STA T                  \ Store our badness level in T
 
  JSR Ze                 \ Call Ze to initialise INWK to a potentially hostile
-                        \ ship, and set X to a random value and A to a random
-                        \ value between 192 and 255
+                        \ ship, and set A and X to random values
 
  CMP T                  \ If the random value in A >= our badness level, which
  BCS P%+7               \ will be the case unless we have been really, really
@@ -27705,8 +27720,7 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ group of pirates
 
  JSR Ze                 \ Call Ze to initialise INWK to a potentially hostile
-                        \ ship, and set X to a random value and A to a random
-                        \ value between 192 and 255
+                        \ ship, and set A and X to random values
 
  CMP #200               \ If the random number in A >= 200 (13% chance), jump
  BCS mt1                \ to mt1 to spawn pirates, otherwise keep going to
@@ -27727,7 +27741,7 @@ LOAD_F% = LOAD% + P% - CODE%
  ROL A                  \ Set bit 0 of A to the C flag (i.e. there's a 22%
                         \ chance of this ship having E.C.M.)
 
- ORA #%11000000         \ Set bits 6 and 7 of A, so the ship is hostile (bit 6
+ ORA #%11000000         \ Set bits 6 and 7 of A, so the ship is hostile (bit 6)
                         \ and has AI (bit 7)
 
  CPY #6                 \ If Y = 6 (i.e. a Thargoid), jump down to the tha
@@ -28286,11 +28300,10 @@ LOAD_F% = LOAD% + P% - CODE%
 
 .D1
 
- JSR Ze                 \ Initialise INWK workspace, set X and T1 to a random
-                        \ value, and A to a random value between 192 and 255 and
-                        \ the C flag randomly
+ JSR Ze                 \ Call Ze to initialise INWK to a potentially hostile
+                        \ ship, and set A and X to random values
 
- LSR A                  \ Set A = A / 4, so A is now between 48 and 63, and
+ LSR A                  \ Set A = A / 4, so A is now between 0 and 63, and
  LSR A                  \ store in byte #0 (x_lo)
  STA INWK
 
@@ -28323,18 +28336,18 @@ LOAD_F% = LOAD% + P% - CODE%
  STA INWK+29            \ store in byte #29 (roll counter) to give our ship a
                         \ gentle roll with damping
 
- ROR A                  \ C is random from above call to Ze, so this sets A to a
- AND #%10000111         \ number between -7 and +7, which we store in byte #30
- STA INWK+30            \ (pitch counter) to give our ship a very gentle pitch
-                        \ with damping
+ ROR A                  \ The C flag is randomly set from the above call to Ze,
+ AND #%10000111         \ so this sets A to a number between -7 and +7, which
+ STA INWK+30            \ we store in byte #30 (the pitch counter) to give our
+                        \ ship a very gentle pitch with damping
 
  PHP                    \ Store the processor flags
 
- LDX #OIL               \ Call fq1 with X set to OIL, which adds a new cargo
+ LDX #OIL               \ Call fq1 with X set to #OIL, which adds a new cargo
  JSR fq1                \ canister to our local bubble of universe and points it
                         \ away from us with double DELTA speed (i.e. 6, as DELTA
                         \ was set to 3 by the call to RES2 above). INF is set to
-                        \ point to the ship's data block in K%
+                        \ point to the canister's ship data block in K%
 
  PLP                    \ Restore the processor flags, including our random C
                         \ flag from before
@@ -28366,8 +28379,9 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ explained above)
 
  LDX #31                \ Set the screen to show all 31 text rows, which shows
- JSR DET1               \ the dashboard, and fall through into DEATH2 to reset
-                        \ and restart the game
+ JSR DET1               \ the dashboard
+
+                        \ Fall through into DEATH2 to reset and restart the game
 
 \ ******************************************************************************
 \
@@ -29770,8 +29784,9 @@ ENDIF
                         \ 4-7 in A, and keep bits 1-3 from the above to get
                         \ a value between -15 (%11110001) and -1 (%11111111),
                         \ with lower values of z_hi and argument X leading
-                        \ to a more negative number (so the closer the ship or
-                        \ the smaller the value of X, the louder the sound)
+                        \ to a more negative, or quieter number (so the closer
+                        \ the ship, i.e. the smaller the value of X, the louder
+                        \ the sound)
 
  STA XX16+2             \ The amplitude byte of the sound block in XX16 is in
                         \ byte #3 (where it's the low byte of the amplitude), so
