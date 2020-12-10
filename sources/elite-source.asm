@@ -16263,7 +16263,8 @@ NEXT
 
                         \ Now, we convert the x_hi coordinate of the ship into
                         \ the screen x-coordinate of the dot on the scanner,
-                        \ using the following (see above for an explanation):
+                        \ using the following (see the deep dive on "The 3D
+                        \ scanner" for an explanation):
                         \
                         \   X1 = 123 + (x_sign x_hi)
 
@@ -16288,7 +16289,8 @@ NEXT
 
                         \ Next, we convert the z_hi coordinate of the ship into
                         \ the y-coordinate of the base of the ship's stick,
-                        \ like this (see above for an explanation):
+                        \ like this (see the deep dive on "The 3D scanner" for
+                        \ an explanation):
                         \
                         \   SC = 220 - (z_sign z_hi) / 4
                         \
@@ -16320,7 +16322,8 @@ NEXT
  STA SC                 \ range 205 to 235, with a higher z_hi giving a lower SC
 
                         \ Now for the stick height, which we calculate using the
-                        \ following (see above for an explanation):
+                        \ following (see the deep dive on "The 3D scanner" for
+                        \ an explanation):
                         \
                         \ A = - (y_sign y_hi) / 2
 
@@ -23484,8 +23487,8 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JSR SPBLB              \ Light up the space station bulb on the dashboard
 
- LDX #1                 \ Set the AI flag in byte #32 to 1 (friendly, no AI, has
- STX INWK+32            \ E.C.M.)
+ LDX #%00000001         \ Set the AI flag in byte #32 to %00000001 (friendly, no
+ STX INWK+32            \ AI, has an E.C.M.)
 
  DEX                    \ Set pitch counter to 0 (no pitch, roll only)
  STX INWK+30
@@ -24469,7 +24472,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \   (XX16+3 K2+3) = sidev_y / z
 
  JMP PLS2               \ Jump to PLS2 to draw the second meridian, returning
-                        \ from the subroutine with a tail call
+                        \ from the subroutine using a tail call
 
 \ ******************************************************************************
 \
@@ -27038,7 +27041,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ Reset our ship and various controls, then fall through into RES4 to restore
+\ Reset our ship and various controls, then fall through into RES4 to recharge
 \ shields and energy, and reset the stardust and the ship workspace at INWK.
 \
 \ In this subroutine, this means zero-filling the following locations:
@@ -28409,8 +28412,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ This is the main entry point for a the main game coce. It is also called
-\ following death, and when the game is quit by pressing ESCAPE when paused.
+\ This is the main entry point for the main game code.
+\
+\ It is also called following death, and when the game is quit by pressing
+\ ESCAPE when paused.
 \
 \ ******************************************************************************
 
