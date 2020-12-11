@@ -95,10 +95,14 @@ LE% = &0B00             \ LE% is the address to which the code from UU% onwards
                         \   * The variables used by the above
 
 IF DISC
+
  CODE% = &E00+&300      \ CODE% is set to the assembly address of the loader
                         \ code file that we assemble in this file ("ELITE")
+
 ELSE
+
  CODE% = &E00
+
 ENDIF
 
 NETV = &224             \ MOS vectors that we want to intercept
@@ -107,7 +111,6 @@ IRQ1V = &204
 OSWRCH = &FFEE          \ The address for the OSWRCH routine
 OSBYTE = &FFF4          \ The address for the OSBYTE routine
 OSWORD = &FFF1          \ The address for the OSWORD routine
-
 OSPRNT = &234           \ The address for the OSPRNT vector
 
 VIA = &FE00             \ Memory-mapped space for accessing internal hardware,
@@ -765,11 +768,13 @@ ENDIF
  JSR OSB                \ pressed
 
 IF PROT AND DISC = 0
+
  CPX #3                 \ If the previous value of X from the call to OSBYTE 200
  BNE abrk+1             \ was not 3 (ESCAPE disabled, clear memory), jump to
                         \ abrk+1, which contains a BRK instruction which will
                         \ reset the computer (as we set BRKV to point to the
                         \ reset address above)
+
 ENDIF
 
  LDA #13                \ Call OSBYTE with A = 13, X = 2 and Y = 0 to disable
@@ -778,9 +783,9 @@ ENDIF
 
 .OS01                   \ Reset stack
 
- LDX #&FF               \ Set stack pointer to &01FF, as stack is in page 1
- TXS                    \ (this is the standard location for the 6502 stack,
-                        \ so this instruction effectively resets the stack)
+ LDX #&FF               \ Set the stack pointer to &01FF, which is the standard
+ TXS                    \ location for the 6502 stack, so this instruction
+                        \ effectively resets the stack
 
  INX                    \ Set X = 0, to use as a counter in the following loop
 
@@ -2336,7 +2341,7 @@ ORG LE%
  BPL David1             \ Loop back to David1 until we have done 14 character
                         \ rows (the height of the small text window)
 
- LDA #5                 \ Set the text row to 5
+ LDA #5                 \ Move the text cursor to row 5
  STA YC
 
  BNE rr                 \ Jump to rr to print the character we were about to

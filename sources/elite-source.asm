@@ -631,10 +631,10 @@ ORG &0000
                         \
                         \   0   = Space view
                         \   1   = Title screen
-                        \         Buy Cargo screen (red key f1)
-                        \         Data on System screen (red key f6)
                         \         Get commander name ("@", save/load commander)
                         \         In-system jump just arrived ("J")
+                        \         Data on System screen (red key f6)
+                        \         Buy Cargo screen (red key f1)
                         \         Mis-jump just arrived (witchspace)
                         \   4   = Sell Cargo screen (red key f2)
                         \   6   = Death screen
@@ -12889,7 +12889,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \ The animation gets drawn like this. First, we draw a circle of radius 8 at the
 \ centre, and then double the radius, draw another circle, double the radius
 \ again and draw a circle, and we keep doing this until the radius is bigger
-\ than160 (which goes beyond the edge of the screen, which is 256 pixels wide,
+\ than 160 (which goes beyond the edge of the screen, which is 256 pixels wide,
 \ equivalent to a radius of 128). We then repeat this whole process for an
 \ initial circle of radius 9, then radius 10, all the way up to radius 15.
 \
@@ -15860,7 +15860,8 @@ NEXT
 \
 \ ******************************************************************************
 
- LDA #1
+ LDA #1                 \ Set the view type to 1 when this is called via the
+                        \ TT66-2 entry point
 
 .TT66
 
@@ -15878,7 +15879,7 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
-\ Clear the top part of the screen (the spaced view) and draw a white border
+\ Clear the top part of the screen (the space view) and draw a white border
 \ along the top and sides.
 \
 \ Other entry points:
@@ -15895,7 +15896,7 @@ NEXT
  STA QQ17
 
  ASL A                  \ Set LASCT to 0, as 128 << 1 = %10000000 << 1 = 0. This
- STA LASCT              \ stops any laser pulsing. This instruction is STA LS2
+ STA LASCT              \ stops any laser pulsing. This instruction is STA LAS2
                         \ in the text source file ELITEC.TXT
 
  STA DLY                \ Set the delay in DLY to 0, to indicate that we are
@@ -16991,7 +16992,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR TT66-2             \ Clear the top part of the screen, draw a white border,
                         \ and set the current view type in QQ11 to 1
 
- LDA #9                 \ Set the text cursor XC to column 9
+ LDA #9                 \ Move the text cursor to column 9
  STA XC
 
  LDA #163               \ Print recursive token 3 as a title in capitals at
@@ -17779,7 +17780,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \JSR FLKB               \ This instruction is commented out in the original
                         \ source. It calls a routine to flush the keyboard
                         \ buffer (FLKB) that isn't present in the cassette
-                        \ version but is in the disc version
+                        \ version but is in other versions
 
  LDA #0                 \ We're going to loop through all the available market
  STA QQ29               \ items, so we set up a counter in QQ29 to denote the
@@ -18061,7 +18062,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \JSR FLKB               \ This instruction is commented out in the original
                         \ source. It calls a routine to flush the keyboard
                         \ buffer (FLKB) that isn't present in the cassette
-                        \ version but is in the disc version
+                        \ version but is in other versions
 
  LDA #205               \ Print recursive token 45 ("SELL")
  JSR TT27
@@ -18131,7 +18132,7 @@ LOAD_D% = LOAD% + P% - CODE%
  ADC #208               \ prints the current item's name
  JSR TT27
 
- LDA #14                \ Set the text cursor to column 14, for the item's
+ LDA #14                \ Move the text cursor to column 14, for the item's
  STA XC                 \ quantity
 
  PLA                    \ Restore the amount of item in the hold into X
@@ -18194,7 +18195,7 @@ LOAD_D% = LOAD% + P% - CODE%
  LDY QQ29               \ Fetch the item number from QQ29 into Y, and increment
  INY                    \ Y to point to the next item
 
- CPY #17                \ If A >= 17 then skip the next instruction as we have
+ CPY #17                \ If Y >= 17 then skip the next instruction as we have
  BCS P%+5               \ done the last item
 
  JMP TT211              \ Otherwise loop back to TT211 to print the next item
@@ -19536,7 +19537,7 @@ LOAD_D% = LOAD% + P% - CODE%
  ASL A                  \ an index into the market prices table at QQ23 for this
  STA QQ19               \ item (as there are four bytes per item in the table)
 
- LDA #1                 \ Set the text cursor to column 1, for the item's name
+ LDA #1                 \ Move the text cursor to column 1, for the item's name
  STA XC
 
  PLA                    \ Restore the item number
@@ -19545,7 +19546,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR TT27               \ range 48 ("FOOD") to 64 ("ALIEN ITEMS"), so this
                         \ prints the item's name
 
- LDA #14                \ Set the text cursor to column 14, for the price
+ LDA #14                \ Move the text cursor to column 14, for the price
  STA XC
 
  LDX QQ19               \ Fetch byte #1 from the market prices table (units and
@@ -19790,9 +19791,9 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #5                 \ Move the text cursor to column 4
  STA XC
 
- LDA #167               \ Print recursive token 7 token ("{current system name}
- JSR NLIN3              \ MARKET PRICES") and draw a horizontal line at pixel
-                        \ row 19 to box in the title
+ LDA #167               \ Print recursive token 7 ("{current system name} MARKET
+ JSR NLIN3              \ PRICES") and draw a horizontal line at pixel row 19
+                        \ to box in the title
 
  LDA #3                 \ Move the text cursor to row 3
  STA YC
@@ -20183,9 +20184,10 @@ LOAD_D% = LOAD% + P% - CODE%
 .TT18
 
  LDA QQ14               \ Subtract the distance to the selected system (in QQ8)
- SEC                    \ from the amount of fuel in our tank (in QQ14)
+ SEC                    \ from the amount of fuel in our tank (in QQ14) into A
  SBC QQ8
- STA QQ14
+
+ STA QQ14               \ Store the updated fuel amount in QQ14
 
  LDA QQ11               \ If the current view is not a space view, jump to ee5
  BNE ee5                \ to skip the following
@@ -27821,8 +27823,9 @@ LOAD_F% = LOAD% + P% - CODE%
  STA VIA+&4E            \ (SHEILA &4E) bit 1 (i.e. disable the CA2 interrupt,
                         \ which comes from the keyboard)
 
- LDX #&FF               \ Reset the 6502 stack pointer, which clears the stack
- TXS
+ LDX #&FF               \ Set the stack pointer to &01FF, which is the standard
+ TXS                    \ location for the 6502 stack, so this instruction
+                        \ effectively resets the stack
 
  LDX GNTMP              \ If the laser temperature in GNTMP is non-zero,
  BEQ EE20               \ decrement it (i.e. cool it down a bit)
@@ -28421,12 +28424,12 @@ LOAD_F% = LOAD% + P% - CODE%
 
 .TT170
 
- LDX #&FF               \ Set stack pointer to &01FF, as stack is in page 1
- TXS                    \ (this is the standard location for the 6502 stack,
-                        \ so this instruction effectively resets the stack).
-                        \ We need to do this because the loader code in
-                        \ elite-loader.asm pushes code onto the stack, and this
-                        \ effectively removes that code so we start afresh
+ LDX #&FF               \ Set the stack pointer to &01FF, which is the standard
+ TXS                    \ location for the 6502 stack, so this instruction
+                        \ effectively resets the stack. We need to do this
+                        \ because the loader code in elite-loader.asm pushes
+                        \ code onto the stack, and this effectively removes that
+                        \ code so we start afresh
 
                         \ Fall through into BR1 to start the game
 
@@ -28470,7 +28473,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \LDX #3                 \ source. This block starts with the same *FX call as
 \STX XC                 \ above, then clears the screen, calls a routine to
 \JSR FX200              \ flush the keyboard buffer (FLKB) that isn't present
-\LDA #1                 \ in the cassette version but is in the disc version,
+\LDA #1                 \ in the cassette version but is in other versions,
 \JSR TT66               \ and then it displays "LOAD NEW COMMANDER (Y/N)?" and
 \JSR FLKB               \ lists the current cargo, before falling straight into
 \LDA #14                \ the load routine below, whether or not we have
@@ -28636,8 +28639,8 @@ ENDIF
 \
 \ ------------------------------------------------------------------------------
 \
-\ Display a title screen, with a rotating ship and a recursive text token at the
-\ bottom of the screen.
+\ Display the title screen, with a rotating ship and a text token at the bottom
+\ of the screen.
 \
 \ Arguments:
 \
@@ -28687,7 +28690,7 @@ ENDIF
  LDA TYPE               \ Set up a new ship, using the ship type in TYPE
  JSR NWSHP
 
- LDY #6                 \ Set the text cursor to column 6
+ LDY #6                 \ Move the text cursor to column 6
  STY XC
 
  JSR DELAY              \ Delay for 6 vertical syncs (6/50 = 0.12 seconds)
@@ -28695,7 +28698,7 @@ ENDIF
  LDA #30                \ Print recursive token 144 ("---- E L I T E ----")
  JSR plf                \ followed by a newline
 
- LDY #6                 \ Set the text cursor to column 6 again
+ LDY #6                 \ Move the text cursor to column 6 again
  STY XC
 
  INC YC                 \ Move the text cursor down a row
@@ -28704,7 +28707,7 @@ ENDIF
  BEQ awe                \ print the author credits (PATG can be toggled by
                         \ pausing the game and pressing "X")
 
- LDA #254               \ Print recursive token 94, "BY D.BRABEN & I.BELL"
+ LDA #254               \ Print recursive token 94 ("BY D.BRABEN & I.BELL")
  JSR TT27
 
 .awe
@@ -28746,9 +28749,9 @@ ENDIF
 
  ASL A                  \ Set A = 0
 
- STA INWK               \ Set x_lo = 0, so ship remains in the screen centre
+ STA INWK               \ Set x_lo = 0, so the ship remains in the screen centre
 
- STA INWK+3             \ Set y_lo = 0, so ship remains in the screen centre
+ STA INWK+3             \ Set y_lo = 0, so the ship remains in the screen centre
 
  JSR LL9                \ Call LL9 to display the ship
 
@@ -30311,13 +30314,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
                         \ key logger at KL
 
  LDY #15                \ We want to clear the 15 key logger locations from
-                        \ KY1 to KY19, so set a counter in Y. We don't want to
-                        \ clear the first key logger location, at KL, as the
-                        \ keyboard table at KYTB starts with offset 1, not 0,
-                        \ so KL is not technically part of the key logger
-                        \ (it's actually used for logging keys that don't
-                        \ appear in the keyboard table, and which therefore
-                        \ don't use the key logger)
+                        \ KY1 to KY19, so set a counter in Y
 
 .DKL3
 
@@ -30325,9 +30322,15 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
  DEY                    \ Decrement the counter
 
- BNE DKL3               \ And loop back for the next key
+ BNE DKL3               \ And loop back for the next key, until we have just
+                        \ KL+1. We don't want to clear the first key logger
+                        \ location at KL, as the keyboard table at KYTB starts
+                        \ with offset 1, not 0, so KL is not technically part of
+                        \ the key logger (it's actually used for logging keys
+                        \ that don't appear in the keyboard table, and which
+                        \ therefore don't use the key logger)
 
- RTS
+ RTS                    \ Return from the subroutine
 
 \ ******************************************************************************
 \
@@ -36399,7 +36402,9 @@ ORG CODE_PYTHON%
 
  EQUB 0                 \ "Saving in progress" flag
                         \
-                        \ Set to 1 while we are saving a commander, 0 otherwise
+                        \   * Non-zero while we are saving a commander
+                        \
+                        \   * 0 otherwise
 
 \ ******************************************************************************
 \
