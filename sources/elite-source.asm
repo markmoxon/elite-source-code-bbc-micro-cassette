@@ -4078,9 +4078,7 @@ LOAD_A% = LOAD%
  SEC                    \ that it has been killed and should be removed from
  ROR INWK+31            \ the local bubble
 
-.MA61
-
-                        \ This label is not used but is in the original source
+.MA61                   \ This label is not used but is in the original source
 
  BNE MA26               \ Jump to MA26 to skip over the collision routines and
                         \ to move on to missile targeting (this BNE is
@@ -6662,12 +6660,7 @@ Q% = _ENABLE_MAX_COMMANDER
                         \ commander. Q% can be set to TRUE to give the default
                         \ commander lots of credits and equipment
 
- EQUB 0                 \ Mission status. The disc version of the game has two
-                        \ missions, and this byte contains the status of those
-                        \ missions (the possible values are 0, 1, 2, &A, &E). As
-                        \ the cassette version doesn't have missions, this byte
-                        \ will always be zero, which means no missions have been
-                        \ started
+ EQUB 0                 \ TP = Mission status
                         \
                         \ Note that this byte must not have bit 7 set, or
                         \ loading this commander will cause the game to restart
@@ -10042,7 +10035,7 @@ NEXT
 \       Name: TT26
 \       Type: Subroutine
 \   Category: Text
-\    Summary: Print a character at the text cursor (WRCHV points here)
+\    Summary: Print a character at the text cursor by poking into screen memory
 \
 \ ------------------------------------------------------------------------------
 \
@@ -10146,18 +10139,19 @@ NEXT
                         \ The first step, then, is to get hold of the bitmap
                         \ definition for the character we want to draw on the
                         \ screen (i.e. we need the pixel shape of this
-                        \ character). The OS ROM contains bitmap definitions
+                        \ character). The MOS ROM contains bitmap definitions
                         \ of the BBC's ASCII characters, starting from &C000
                         \ for space (ASCII 32) and ending with the £ symbol
                         \ (ASCII 126)
                         \
-                        \ There are 32 characters' definitions in each page of
-                        \ memory, as each definition takes up 8 bytes (8 rows
-                        \ of 8 pixels) and 32 * 8 = 256 bytes = 1 page. So:
+                        \ There are definitions for 32 chracters in each of the
+                        \ three pages of MOS memory, as each definition takes up
+                        \ 8 bytes (8 rows of 8 pixels) and 32 * 8 = 256 bytes =
+                        \ 1 page. So:
                         \
-                        \   ASCII 32-63  are defined in &C000-&C0FF (page &C0)
-                        \   ASCII 64-95  are defined in &C100-&C1FF (page &C1)
-                        \   ASCII 96-126 are defined in &C200-&C2F0 (page &C2)
+                        \   ASCII 32-63  are defined in &C000-&C0FF (page 0)
+                        \   ASCII 64-95  are defined in &C100-&C1FF (page 1)
+                        \   ASCII 96-126 are defined in &C200-&C2F0 (page 2)
                         \
                         \ The following code reads the relevant character
                         \ bitmap from the above locations in ROM and pokes
@@ -10189,22 +10183,23 @@ NEXT
 
  TAY                    \ Copy the character number from A to Y, as we are
                         \ about to pull A apart to work out where this
-                        \ character definition lives in the ROM
+                        \ character definition lives in memory
 
                         \ Now we want to set X to point to the relevant page
                         \ number for this character - i.e. &C0, &C1 or &C2.
+
                         \ The following logic is easier to follow if we look
                         \ at the three character number ranges in binary:
                         \
                         \   Bit #  76543210
                         \
-                        \   32  = %00100000     Page &C0
+                        \   32  = %00100000     Page 0 of bitmap definitions
                         \   63  = %00111111
                         \
-                        \   64  = %01000000     Page &C1
+                        \   64  = %01000000     Page 1 of bitmap definitions
                         \   95  = %01011111
                         \
-                        \   96  = %01100000     Page &C2
+                        \   96  = %01100000     Page 2 of bitmap definitions
                         \   125 = %01111101
                         \
                         \ We'll refer to this below
@@ -10254,17 +10249,17 @@ NEXT
  LDA XC                 \ Fetch XC, the x-coordinate (column) of the text cursor
                         \ into A
 
- ASL A                  \ Multiply A by 8, and store in SC. As each
- ASL A                  \ character is 8 bits wide, and the special screen mode
- ASL A                  \ Elite uses for the top part of the screen is 256
- STA SC                 \ bits across with one bit per pixel, this value is
-                        \ not only the screen address offset of the text cursor
-                        \ from the left side of the screen, it's also the least
-                        \ significant byte of the screen address where we want
-                        \ to print this character, as each row of on-screen
-                        \ pixels corresponds to one page. To put this more
-                        \ explicitly, the screen starts at &6000, so the
-                        \ text rows are stored in screen memory like this:
+ ASL A                  \ Multiply A by 8, and store in SC. As each character is
+ ASL A                  \ 8 pixels wide, and the special screen mode Elite uses
+ ASL A                  \ for the top part of the screen is 256 pixels across
+ STA SC                 \ with one bit per pixel, this value is not only the
+                        \ screen address offset of the text cursor from the left
+                        \ side of the screen, it's also the least significant
+                        \ byte of the screen address where we want to print this
+                        \ character, as each row of on-screen pixels corresponds
+                        \ to one page. To put this more explicitly, the screen
+                        \ starts at &6000, so the text rows are stored in screen
+                        \ memory like this:
                         \
                         \   Row 1: &6000 - &60FF    YC = 1, XC = 0 to 31
                         \   Row 2: &6100 - &61FF    YC = 2, XC = 0 to 31
@@ -10348,11 +10343,13 @@ NEXT
 
 .RR3
 
- ORA #&60               \ A contains the value of YC - the screen row where we
+                        \ A contains the value of YC - the screen row where we
                         \ want to print this character - so now we need to
                         \ convert this into a screen address, so we can poke
                         \ the character data to the right place in screen
-                        \ memory. We already stored the least significant byte
+                        \ memory
+
+ ORA #&60               \ We already stored the least significant byte
                         \ of this screen address in SC above (see the STA SC
                         \ instruction above), so all we need is the most
                         \ significant byte. As mentioned above, in Elite's
@@ -10383,7 +10380,8 @@ NEXT
 .RRL1
 
  LDA (P+1),Y            \ The character definition is at P(2 1) - we set this up
-                        \ above -  so load the Y-th byte from P(2 1)
+                        \ above - so load the Y-th byte from P(2 1), which will
+                        \ contain the bitmap for the Y-th row of the character
 
  EOR (SC),Y             \ If we EOR this value with the existing screen
                         \ contents, then it's reversible (so reprinting the
@@ -10866,7 +10864,7 @@ NEXT
                         \ row's offset
 
  LDX #3                 \ Set up a counter in X for the width of the indicator,
-                        \ which is 4 characters (each of which is 4 pixel wide,
+                        \ which is 4 characters (each of which is 4 pixels wide,
                         \ to give a total width of 16 pixels)
 
 .DL1
@@ -10934,11 +10932,11 @@ NEXT
 
 .DL3
 
- ASL A                  \ Shift the mask left and clear bits 0 and 4, which has
- AND #%11101111         \ the effect of shifting zeroes from the left into each
-                        \ nibble (i.e. xxxx xxxx becomes xxx0 xxx0, which blanks
-                        \ out the last column in the 4-pixel mode 5 character
-                        \ block)
+ ASL A                  \ Shift the mask left so bit 0 is cleared, and then
+ AND #%11101111         \ clear bit 4, which has the effect of shifting zeroes
+                        \ from the left into each nibble (i.e. xxxx xxxx becomes
+                        \ xxx0 xxx0, which blanks out the last column in the
+                        \ 4-pixel mode 5 character block)
 
  DEC Q                  \ Decrement the counter for the number of columns to
                         \ blank out
@@ -11016,7 +11014,7 @@ NEXT
                         \ a pixel row counter to work our way through the
                         \ character blocks, so each time we draw a character
                         \ block, we will increment Y by 8 to move on to the next
-                        \ block
+                        \ block (as each character block contains 8 rows)
 
 .DLL10
 
@@ -11030,8 +11028,8 @@ NEXT
 
  LDA #&FF               \ Set A to a high number (and &FF is as high as they go)
 
- LDX Q                  \ Set X to the offset of the vertical bar, which is
-                        \ within this character block as Q < 4
+ LDX Q                  \ Set X to the offset of the vertical bar, which we know
+                        \ is within this character block
 
  STA Q                  \ Set Q to a high number (&FF, why not) so we will keep
                         \ drawing blank characters after this one until we reach
@@ -17952,11 +17950,13 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ Get a number from the keyboard, up to the maximum number in QQ25. Pressing a
-\ key with an ASCII code less than ASCII "0" will return a 0 in A (so that
-\ includes pressing Space or Return), while pressing a key with an ASCII code
-\ greater than ASCII "9" will jump to the Inventory screen (so that includes
-\ all letters and most punctuation).
+\ Get a number from the keyboard, up to the maximum number in QQ25, for the
+\ buying and selling of cargo and equipment.
+\
+\ Pressing a key with an ASCII code less than ASCII "0" will return a 0 in A (so
+\ that includes pressing Space or Return), while pressing a key with an ASCII
+\ code greater than ASCII "9" will jump to the Inventory screen (so that
+\ includes all letters and most punctuation).
 \
 \ Arguments:
 \
@@ -19518,7 +19518,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \   A                   The number of the market item to print, 0-16 (see QQ23
 \                       for details of item numbers)
 \
-\ Results:
+\ Returns:
 \
 \   QQ19+1              Byte #1 from the market prices table for this item
 \
@@ -27206,11 +27206,12 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Name: ZINF
 \       Type: Subroutine
 \   Category: Utility routines
-\    Summary: Reset the INWK workspace
+\    Summary: Reset the INWK workspace and orientation vectors
 \
 \ ------------------------------------------------------------------------------
 \
-\ Zero-fill the INWK ship workspace and reset the orientation vectors.
+\ Zero-fill the INWK ship workspace and reset the orientation vectors, with
+\ nosev pointing into the screen.
 \
 \ Returns:
 \
@@ -27241,20 +27242,21 @@ LOAD_F% = LOAD% + P% - CODE%
                         \   roofv = (0,  1,  0)
                         \   nosev = (0,  0, -1)
                         \
-                        \ &6000 represents 1 in the orientation vectors, while
-                        \ &E000 represents -1. We already set the vectors to
-                        \ zero above, so we just need to set up the diagonal
-                        \ values and we're done
+                        \ 96 * 256 (&6000) represents 1 in the orientation
+                        \ vectors, while -96 * 256 (&E000) represents -1. We
+                        \ already set the vectors to zero above, so we just
+                        \ need to set up the high bytes of the diagonal values
+                        \ and we're done
 
- LDA #&60               \ Set A to represent a 1
+ LDA #96                \ Set A to represent a 1 (in vector terms)
 
- STA INWK+18            \ Set byte #18 = roofv_y_hi = &60 = 1
+ STA INWK+18            \ Set byte #18 = roofv_y_hi = 96 = 1
 
- STA INWK+22            \ Set byte #22 = sidev_x_hi = &60 = 1
+ STA INWK+22            \ Set byte #22 = sidev_x_hi = 96 = 1
 
  ORA #128               \ Flip the sign of A to represent a -1
 
- STA INWK+14            \ Set byte #14 = nosev_z_hi = &E0 = -1
+ STA INWK+14            \ Set byte #14 = nosev_z_hi = -96 = -1
 
  RTS                    \ Return from the subroutine
 
@@ -29142,7 +29144,9 @@ ENDIF
                         \ variable in zero page, so isn't reset by ZERO). I
                         \ wonder if the competition number can ever get printed
                         \ out incorrectly, with a decimal point and the wrong
-                        \ number of digits?
+                        \ number of digits? Other versions of Elite have a CLC
+                        \ instruction before the call to BPRNT, presumably to
+                        \ fix this issue
 
  JSR TT67               \ Call TT67 twice to print two newlines
  JSR TT67
@@ -29203,8 +29207,8 @@ ENDIF
 \
 \ ------------------------------------------------------------------------------
 \
-\ The filename should be stored at INWK, terminated with a carriage return (13),
-\ and the routine should be called with Y set to &C.
+\ The filename should be stored at INWK, terminated with a carriage return (13).
+\ The routine should be called with Y set to &C.
 \
 \ Arguments:
 \
@@ -29231,8 +29235,8 @@ ENDIF
  LDX #0                 \ Set X to 0 so (Y X) = &0C00
 
  JMP OSFILE             \ Jump to OSFILE to do the file operation specified in
-                        \ &0C00, returning from the subroutine using a tail
-                        \ call
+                        \ &0C00 (i.e. save or load a file depending on the value
+                        \ of A), returning from the subroutine using a tail call
 
 \ ******************************************************************************
 \
@@ -29250,7 +29254,7 @@ ENDIF
 .LOD
 
  LDX #2                 \ Enable the ESCAPE key and clear memory if the BREAK
- JSR FX200              \ key is pressed (*FX 200,2)
+ JSR FX200              \ key is pressed (*FX 200, 2)
 
  JSR ZERO               \ Zero-fill pages &9, &A, &B, &C and &D, which clears
                         \ the ship data blocks, the ship line heap, the ship
@@ -29275,8 +29279,8 @@ ENDIF
                         \ to BR1... so this instruction restarts the game from
                         \ the title screen. Valid commander files for the
                         \ cassette version of Elite only have 0 for the first
-                        \ byte, while the disc version can have 0, 1, 2, &A or
-                        \ &E, so having bit 7 set is invalid anyway
+                        \ byte, as there are no missions in this version, so
+                        \ having bit 7 set is invalid anyway
 
  LDX #NT%               \ We have successfully loaded the commander file at
                         \ &0B00, so now we want to copy it to the last saved
@@ -29307,6 +29311,22 @@ ENDIF
 \
 \ This is the equivalent of a *FX 200 command, which controls the behaviour of
 \ the ESCAPE and BREAK keys.
+\
+\ Arguments:
+\
+\   X                   Controls the behaviour as follows:
+\
+\                         * 0 = Enable ESCAPE key
+\                               Normal BREAK key action
+\
+\                         * 1 = Disable ESCAPE key
+\                               Normal BREAK key action
+\
+\                         * 2 = Enable ESCAPE key
+\                               Clear memory if the BREAK key is pressed
+\
+\                         * 3 = Disable ESCAPE key
+\                               Clear memory if the BREAK key is pressed
 \
 \ ******************************************************************************
 
