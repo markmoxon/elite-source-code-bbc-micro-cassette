@@ -10027,7 +10027,7 @@ NEXT
 
  LDA #7                 \ Control code 7 makes a beep, so load this into A
 
-                        \ Fall through into the TT27 print routine to
+                        \ Fall through into the TT26 print routine to
                         \ actually make the sound
 
 \ ******************************************************************************
@@ -10144,7 +10144,7 @@ NEXT
                         \ for space (ASCII 32) and ending with the £ symbol
                         \ (ASCII 126)
                         \
-                        \ There are definitions for 32 chracters in each of the
+                        \ There are definitions for 32 characters in each of the
                         \ three pages of MOS memory, as each definition takes up
                         \ 8 bytes (8 rows of 8 pixels) and 32 * 8 = 256 bytes =
                         \ 1 page. So:
@@ -23986,49 +23986,57 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: ECBT
 \       Type: Variable
 \   Category: Dashboard
-\    Summary: The character definition for the E.C.M. indicator
+\    Summary: The character bitmap for the E.C.M. indicator bulb
 \
 \ ------------------------------------------------------------------------------
 \
-\ The character definition for the E.C.M. indicator's "E" bulb that gets
-\ displayed on the dashboard. The E.C.M. indicator uses the first 5 rows of the
-\ space station's "S" bulb below, as the bottom 5 rows of the "E" match the top
-\ 5 rows of the "S". Each pixel is in mode 5 colour 2 (%10), which is
-\ yellow/white.
+\ The character bitmap for the E.C.M. indicator's "E" bulb that gets displayed
+\ on the dashboard.
+\
+\ The E.C.M. indicator uses the first 5 rows of the space station's "S" bulb
+\ below, as the bottom 5 rows of the "E" match the top 5 rows of the "S".
+\
+\ Each pixel is in mode 5 colour 2 (%10), which is yellow/white.
 \
 \ ******************************************************************************
 
 .ECBT
 
- EQUB %11100000
- EQUB %11100000
- EQUB %10000000
+ EQUB %11100000         \ x x x .
+ EQUB %11100000         \ x x x .
+ EQUB %10000000         \ x . . .
+                        \ x x x .
+                        \ x x x .
+                        \ x . . .
+                        \ x x x .
+                        \ x x x .
 
 \ ******************************************************************************
 \
 \       Name: SPBT
 \       Type: Variable
 \   Category: Dashboard
-\    Summary: The character definition for the space station indicator
+\    Summary: The bitmap definition for the space station indicator bulb
 \
 \ ------------------------------------------------------------------------------
 \
-\ The character definition for the space station indicator's "S" bulb that gets
-\ displayed on the dashboard. Each pixel is in mode 5 colour 2 (%10), which is
-\ yellow/white.
+\ The bitmap definition for the space station indicator's "S" bulb that gets
+\ displayed on the dashboard.
+\
+\ Each pixel is in mode 5 colour 2 (%10), which is yellow/white.
 \
 \ ******************************************************************************
 
 .SPBT
 
- EQUB %11100000
- EQUB %11100000
- EQUB %10000000
- EQUB %11100000
- EQUB %11100000
- EQUB %00100000
- EQUB %11100000
- EQUB %11100000
+ EQUB %11100000         \ x x x .
+ EQUB %11100000         \ x x x .
+ EQUB %10000000         \ x . . .
+ EQUB %11100000         \ x x x .
+ EQUB %11100000         \ x x x .
+ EQUB %00100000         \ . . x .
+ EQUB %11100000         \ x x x .
+ EQUB %11100000         \ x x x .
 
 \ ******************************************************************************
 \
@@ -24059,6 +24067,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \                         * &EE = green/cyan (disarmed)
 \
 \ Returns:
+\
+\   X                   X is preserved
 \
 \   Y                   Y is set to 0
 \
