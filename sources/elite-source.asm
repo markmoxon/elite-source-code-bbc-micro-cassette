@@ -11625,13 +11625,14 @@ LOAD_C% = LOAD% +P% - CODE%
 \   * If this is an escape pod, point it at the planet and jump to the
 \     manoeuvring code in part 7
 \
-\   * If this is the space station and it is hostile, spawn a cop and we're done
+\   * If this is the space station and it is hostile, consider spawning a cop
+\     (45% chance, up to a maximum of four) and we're done
 \
 \   * If this is a lone Thargon without a mothership, set it adrift aimlessly
 \     and we're done
 \
 \   * If this is a pirate and we are within the space station safe zone, stop
-\     the pirate from attacking
+\     the pirate from attacking by removing all its aggression
 \
 \   * Recharge the ship's energy banks by 1
 \
@@ -11658,7 +11659,9 @@ LOAD_C% = LOAD% +P% - CODE%
  BNE TA13
 
  JSR DORND              \ This is the space station, so set A and X to random
- CMP #140               \ numbers and if A < 140 (55% chance) return from the
+                        \ numbers
+
+ CMP #140               \ If A < 140 (55% chance) then return from the
  BCC TA14-1             \ subroutine (as TA14-1 contains an RTS)
 
  LDA MANY+COPS          \ We only call the tactics routine for the space station
@@ -11786,11 +11789,11 @@ LOAD_C% = LOAD% +P% - CODE%
 \   * If the ship has at least half its energy banks full, jump to part 6 to
 \     consider firing the lasers
 \
-\   * If the ship isn't really low on energy, jump to part 5 to consider firing
-\     a missile
+\   * If the ship is not into the last 1/8th of its energy, jump to part 5 to
+\     consider firing a missile
 \
-\   * Rarely (10% chance) the ship runs out of both energy and luck, and bails,
-\     launching an escape pod and drifting in space
+\   * If the ship is into the last 1/8th of its energy, then rarely (10% chance)
+\     the ship launches an escape pod and is left drifting in space
 \
 \ ******************************************************************************
 
@@ -11938,8 +11941,8 @@ LOAD_C% = LOAD% +P% - CODE%
  JSR MAS4
 
  AND #%11100000         \ If any of the hi bytes have any of bits 5-7 set, then
- BNE TA4                \ jump to TA4 to skip the laser, as the ship is too far
-                        \ away from us to hit us with a laser
+ BNE TA4                \ jump to TA4 to skip the laser checks, as the ship is
+                        \ too far away from us to hit us with a laser
 
  LDX CNT                \ Set X = the dot product set above in CNT. If this is
                         \ positive, this ship and our ship are facing in similar
@@ -11962,30 +11965,32 @@ LOAD_C% = LOAD% +P% - CODE%
                         \       shoot us, they can hit us
 
  CPX #160               \ If X < 160, i.e. X > -32, then we are not in the enemy
- BCC TA4                \ ship's line of fire, so jump to TA4
+ BCC TA4                \ ship's line of fire, so jump to TA4 to skip the laser
+                        \ checks
 
  LDA INWK+31            \ Set bit 6 in byte #31 to denote that the ship is
  ORA #%01000000         \ firing its laser at us
  STA INWK+31
 
  CPX #163               \ If X < 163, i.e. X > -35, then we are not in the enemy
- BCC TA4                \ ship's crosshairs, so jump to TA4
+ BCC TA4                \ ship's crosshairs, so jump to TA4 to skip the laser
 
 .HIT
 
  LDY #19                \ We are being hit by enemy laser fire, so fetch the
- LDA (XX0),Y            \ enemy ship's laser power from their ship's blueprint
+ LDA (XX0),Y            \ enemy ship's byte #19 from their ship's blueprint
                         \ into A
 
- LSR A                  \ Halve their laser power to get the amount of damage we
-                        \ should take
+ LSR A                  \ Halve the enemy ship's byte #19 (which contains both
+                        \ the laser power and number of missiles) to get the
+                        \ amount of damage we should take
 
  JSR OOPS               \ Call OOPS to take some damage, which could do anything
                         \ from reducing the shields and energy, all the way to
                         \ losing cargo or dying (if the latter, we don't come
                         \ back from this subroutine)
 
- DEC INWK+28            \ Halve the attacking ship's acceleration in byte #28,
+ DEC INWK+28            \ Halve the attacking ship's acceleration in byte #28
 
  LDA ECMA               \ If an E.C.M. is currently active (either our's or an
  BNE TA10               \ opponent's), return from the subroutine without making
@@ -12159,7 +12164,7 @@ LOAD_C% = LOAD% +P% - CODE%
  ASL A                  \ This is a missile, so set A = -2, as missiles are more
                         \ nimble and can brake more quickly
 
- STA INWK+28            \ Ser the ship's acceleration to A
+ STA INWK+28            \ Set the ship's acceleration to A
 
 .TA10
 
@@ -30417,11 +30422,11 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  LDA #7                 \ Set A to 7, which is the amount we want to alter the
                         \ roll rate by if the roll keys are being pressed
 
- LDY KL+3               \ If the < key is being pressed, then call the BUMP2
+ LDY KL+3               \ If the "<" key is being pressed, then call the BUMP2
  BEQ P%+5               \ routine to increase the roll rate in X by A
  JSR BUMP2
 
- LDY KL+4               \ If the > key is being pressed, then call the REDU2
+ LDY KL+4               \ If the ">" key is being pressed, then call the REDU2
  BEQ P%+5               \ routine to decrease the roll rate in X by A, taking
  JSR REDU2              \ the keyboard auto re-centre setting into account
 
@@ -30432,11 +30437,11 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  LDX JSTY               \ Set X = JSTY, the current pitch rate (as shown in the
                         \ DC indicator on the dashboard)
 
- LDY KL+5               \ If the > key is being pressed, then call the REDU2
+ LDY KL+5               \ If the "X" key is being pressed, then call the REDU2
  BEQ P%+5               \ routine to decrease the pitch rate in X by A, taking
  JSR REDU2              \ the keyboard auto re-centre setting into account
 
- LDY KL+6               \ If the S key is being pressed, then call the BUMP2
+ LDY KL+6               \ If the "S" key is being pressed, then call the BUMP2
  BEQ P%+5               \ routine to increase the pitch rate in X by A
  JSR BUMP2
 
