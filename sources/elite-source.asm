@@ -16513,7 +16513,7 @@ NEXT
  INY                    \ We want to draw the stick downwards, so we first
                         \ increment the row counter so that it's pointing to the
                         \ bottom-right pixel in the dot (as opposed to the top-
-                        \ right pixel that the call to CPIX2 finished on)
+                        \ right pixel that the call to CPIX4 finished on)
 
  CPY #8                 \ If the row number in Y is less than 8, then it
  BNE P%+6               \ correctly points at the next line down, so jump to
@@ -23239,10 +23239,10 @@ LOAD_E% = LOAD% + P% - CODE%
 
  STA SCH                \ Store the screen page in the high byte of SC(1 0)
 
- LDA X1                 \ Each character block covers 8 screen x-coordinates, so
- AND #%11111000         \ to get the address of the first byte in the character
-                        \ block that we need to draw into, as an offset from the
-                        \ start of the row we clear bits 0-2
+ LDA X1                 \ Each character block contains 8 pixel rows, so to get
+ AND #%11111000         \ the address of the first byte in the character block
+                        \ that we need to draw into, as an offset from the start
+                        \ of the row, we clear bits 0-2
 
  STA SC                 \ Store the address of the character block in the low
                         \ byte of SC(1 0), so now SC(1 0) points to the
@@ -23252,7 +23252,7 @@ LOAD_E% = LOAD% + P% - CODE%
  AND #%00000111         \ be the number of the pixel row we need to draw into
  TAY                    \ within the character block
 
- LDA X1                 \ Copy bits 0-1 of X to bits 1-2 of X1, and clear the C
+ LDA X1                 \ Copy bits 0-1 of X1 to bits 1-2 of X, and clear the C
  AND #%00000110         \ flag in the process (using the LSR). X will now be
  LSR A                  \ a value between 0 and 3, and will be the pixel number
  TAX                    \ in the character row for the left pixel in the dash.
@@ -24095,8 +24095,8 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ for the rightmost missile indicator, made up as
                         \ follows:
                         \
-                        \   * 48 (character block 7, or byte #7 * 8 = 48, which
-                        \     is the character block of the rightmost missile
+                        \   * 48 (character block 7, as byte #7 * 8 = 48), the
+                        \     character block of the rightmost missile
                         \
                         \   * 1 (so we start drawing on the second row of the
                         \     character block)
@@ -28943,10 +28943,11 @@ ENDIF
  TAX
  JSR OSBYTE
 
- LDX #LO(RLINE)         \ Call OSWORD with A = 0 and (Y X) pointing to the
+ LDX #LO(RLINE)         \ Set (Y X) to point to the RLINE parameter block
  LDY #HI(RLINE)         \ configuration block below, which reads a line from
- LDA #0                 \ the current input stream (i.e. the keyboard)
- JSR OSWORD
+
+ LDA #0                 \ Call OSWORD with A = 0 to read a line from the current
+ JSR OSWORD             \ input stream (i.e. the keyboard)
 
 \LDA #%00000001         \ These instructions are commented out in the original
 \STA VIA+&4E            \ source, but they would set 6522 System VIA interrupt
@@ -29903,10 +29904,12 @@ ENDIF
  BNE NO1                \ If DNOIZ is non-zero, then sound is disabled, so
                         \ return from the subroutine (as NO1 contains an RTS)
 
- LDX #LO(XX16)          \ Otherwise call OSWORD 7, with (Y X) pointing to the
- LDY #HI(XX16)          \ sound block in XX16. This makes the sound as
- LDA #7                 \ described in the documentation for variable SFX,
- JMP OSWORD             \ and returns from the subroutine using a tail call
+ LDX #LO(XX16)          \ Otherwise set (Y X) to point to the sound block in
+ LDY #HI(XX16)          \ XX16
+
+ LDA #7                 \ Call OSWORD 7 to makes the sound, as described in the
+ JMP OSWORD             \ documentation for variable SFX, and return from the
+                        \ subroutine using a tail call
 
 \ ******************************************************************************
 \
