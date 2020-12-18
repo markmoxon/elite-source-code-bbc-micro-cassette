@@ -28469,7 +28469,7 @@ LOAD_F% = LOAD% + P% - CODE%
  STX XC
 
  JSR FX200              \ Disable the ESCAPE key and clear memory if the BREAK
-                        \ key is pressed (*FX 200, 3)
+                        \ key is pressed (*FX 200,3)
 
  LDX #CYL               \ Call the TITLE subroutine to show the rotating ship
  LDA #128               \ and load prompt. The arguments sent to TITLE are:
@@ -29270,7 +29270,7 @@ ENDIF
 .LOD
 
  LDX #2                 \ Enable the ESCAPE key and clear memory if the BREAK
- JSR FX200              \ key is pressed (*FX 200, 2)
+ JSR FX200              \ key is pressed (*FX 200,2)
 
  JSR ZERO               \ Zero-fill pages &9, &A, &B, &C and &D, which clears
                         \ the ship data blocks, the ship line heap, the ship

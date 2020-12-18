@@ -2890,11 +2890,11 @@ ENDIF
 
 \LDA #129               \ These instructions are commented out in the original
 \LDY #&FF               \ source. They call OSBYTE with A = 129, X = 0 and
-\LDX #1                 \ Y = 255, which returns the machine sub-type in X,
-\JSR OSBYTE             \ flips all the bits and stores the result in the MOS
-\TXA                    \ variable, jumping to BLAST if bit 7 of the result is
-\EOR #&FF               \ set (which would indicate a MOS 0.1 machine or an
-\STA MOS                \ Electron)
+\LDX #1                 \ Y = &FF, which returns the machine type in X, so
+\JSR OSBYTE             \ this code would detect the MOS version
+\TXA
+\EOR #&FF
+\STA MOS
 \BMI BLAST
 
  LDY #0                 \ Call OSBYTE with A = 200, X = 3 and Y = 0 to disable
