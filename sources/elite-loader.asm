@@ -1139,20 +1139,20 @@ IF DISC
 
  LDY #20                \ Set Y = 20 for the following OSBYTE call
 
- IF _REMOVE_CHECKSUMS
+IF _REMOVE_CHECKSUMS
 
-  NOP                   \ Skip the OSBYTE call if checksums are disabled
-  NOP
-  NOP
+ NOP                    \ Skip the OSBYTE call if checksums are disabled
+ NOP
+ NOP
 
- ELSE
+ELSE
 
-  JSR OSBYTE            \ A was set to 129 above, so this calls OSBYTE with
+ JSR OSBYTE             \ A was set to 129 above, so this calls OSBYTE with
                         \ A = 129 and Y = 20, which reads the keyboard with a
                         \ time limit, in this case 20 centiseconds, or 0.2
                         \ seconds
 
- ENDIF
+ENDIF
 
  LDA #%00000001         \ Set 6522 System VIA interrupt enable register IER
  STA &FE4E              \ (SHEILA &4E) bit 1 (i.e. disable the CA2 interrupt,
@@ -2889,12 +2889,12 @@ ENDIF
  CLI                    \ Re-enable interrupts
 
 \LDA #129               \ These instructions are commented out in the original
-\LDY #&FF               \ source. They read the keyboard with a time limit, and
-\LDX #1                 \ there's a comment "FF if MOS0.1 else 0", so this might
-\JSR OSBYTE             \ be another way of detecting the MOS version
-\TXA
-\EOR #&FF
-\STA MOS
+\LDY #&FF               \ source. They call OSBYTE with A = 129, X = 0 and
+\LDX #1                 \ Y = 255, which returns the machine sub-type in X,
+\JSR OSBYTE             \ flips all the bits and stores the result in the MOS
+\TXA                    \ variable, jumping to BLAST if bit 7 of the result is
+\EOR #&FF               \ set (which would indicate a MOS 0.1 machine or an
+\STA MOS                \ Electron)
 \BMI BLAST
 
  LDY #0                 \ Call OSBYTE with A = 200, X = 3 and Y = 0 to disable

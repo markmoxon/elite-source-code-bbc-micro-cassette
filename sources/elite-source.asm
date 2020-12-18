@@ -3092,7 +3092,7 @@ LOAD_A% = LOAD%
 
 .COMC
 
- EQUB 0                 \ The colour of the dot on the compass
+ SKIP 1                 \ The colour of the dot on the compass
                         \
                         \   * &F0 = the object in the compass is in front of us,
                         \     so the dot is yellow/white
@@ -3102,7 +3102,7 @@ LOAD_A% = LOAD%
 
 .DNOIZ
 
- EQUB 0                 \ Sound on/off configuration setting
+ SKIP 1                 \ Sound on/off configuration setting
                         \
                         \   * 0 = sound is on (default)
                         \
@@ -3113,7 +3113,7 @@ LOAD_A% = LOAD%
 
 .DAMP
 
- EQUB 0                 \ Keyboard damping configuration setting
+ SKIP 1                 \ Keyboard damping configuration setting
                         \
                         \   * 0 = damping is enabled (default)
                         \
@@ -3124,7 +3124,7 @@ LOAD_A% = LOAD%
 
 .DJD
 
- EQUB 0                 \ Keyboard auto-recentre configuration setting
+ SKIP 1                 \ Keyboard auto-recentre configuration setting
                         \
                         \   * 0 = auto-recentre is enabled (default)
                         \
@@ -3135,7 +3135,7 @@ LOAD_A% = LOAD%
 
 .PATG
 
- EQUB 0                 \ Configuration setting to show the author names on the
+ SKIP 1                 \ Configuration setting to show the author names on the
                         \ start-up screen and enable manual hyperspace mis-jumps
                         \
                         \   * 0 = no author names or manual mis-jumps (default)
@@ -3154,7 +3154,7 @@ LOAD_A% = LOAD%
 
 .FLH
 
- EQUB 0                 \ Flashing console bars configuration setting
+ SKIP 1                 \ Flashing console bars configuration setting
                         \
                         \   * 0 = static bars (default)
                         \
@@ -3165,7 +3165,7 @@ LOAD_A% = LOAD%
 
 .JSTGY
 
- EQUB 0                 \ Reverse joystick Y-channel configuration setting
+ SKIP 1                 \ Reverse joystick Y-channel configuration setting
                         \
                         \   * 0 = standard Y-channel (default)
                         \
@@ -3176,7 +3176,7 @@ LOAD_A% = LOAD%
 
 .JSTE
 
- EQUB 0                 \ Reverse both joystick channels configuration setting
+ SKIP 1                 \ Reverse both joystick channels configuration setting
                         \
                         \   * 0 = standard channels (default)
                         \
@@ -3187,7 +3187,7 @@ LOAD_A% = LOAD%
 
 .JSTK
 
- EQUB 0                 \ Keyboard or joystick configuration setting
+ SKIP 1                 \ Keyboard or joystick configuration setting
                         \
                         \   * 0 = keyboard (default)
                         \
@@ -13340,7 +13340,7 @@ LOAD_C% = LOAD% +P% - CODE%
 FOR I%, 0, 31
   N = ABS(SIN((I% / 64) * 2 * PI))
   IF N >= 1
-    EQUB &FF
+    EQUB 255
   ELSE
     EQUB INT(256 * N + 0.5)
   ENDIF
@@ -36438,7 +36438,7 @@ ORG CODE_PYTHON%
 
 .SVN
 
- EQUB 0                 \ "Saving in progress" flag
+ SKIP 1                 \ "Saving in progress" flag
                         \
                         \   * Non-zero while we are saving a commander
                         \
@@ -36455,7 +36455,7 @@ ORG CODE_PYTHON%
 
 .VEC
 
- EQUW 0                 \ VEC = &7FFE
+ SKIP 2                 \ VEC = &7FFE
                         \
                         \ Set to the original IRQ1 vector by elite-loader.asm
 
