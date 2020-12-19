@@ -6636,6 +6636,11 @@ Q% = _ENABLE_MAX_COMMANDER
 \ (the DFS filename limit). It is terminated with a carriage return character,
 \ ASCII 13.
 \
+\ The offset of each byte within a saved commander file is also shown as #0, #1
+\ and so on, so the kill tally, for example, is in bytes #71 and #72 of the
+\ saved file. The related variable name from the current commander block is
+\ also shown.
+\
 \ ******************************************************************************
 
 .NA%
@@ -6660,70 +6665,70 @@ Q% = _ENABLE_MAX_COMMANDER
                         \ commander. Q% can be set to TRUE to give the default
                         \ commander lots of credits and equipment
 
- EQUB 0                 \ TP = Mission status
+ EQUB 0                 \ TP = Mission status, #0
                         \
                         \ Note that this byte must not have bit 7 set, or
                         \ loading this commander will cause the game to restart
 
- EQUB 20                \ QQ0 = current system X-coordinate (Lave)
- EQUB 173               \ QQ1 = current system Y-coordinate (Lave)
+ EQUB 20                \ QQ0 = current system X-coordinate (Lave), #1
+ EQUB 173               \ QQ1 = current system Y-coordinate (Lave), #2
 
- EQUW &5A4A             \ QQ21 = Seed w0 for system 0 in galaxy 0 (Tibedied)
- EQUW &0248             \ QQ21 = Seed w1 for system 0 in galaxy 0 (Tibedied)
- EQUW &B753             \ QQ21 = Seed w2 for system 0 in galaxy 0 (Tibedied)
+ EQUW &5A4A             \ QQ21 = Seed w0 for system 0, galaxy 0 (Tibedied), #3-4
+ EQUW &0248             \ QQ21 = Seed w1 for system 0, galaxy 0 (Tibedied), #5-6
+ EQUW &B753             \ QQ21 = Seed w2 for system 0, galaxy 0 (Tibedied), #7-8
 
 IF Q%
- EQUD &00CA9A3B         \ CASH = Amount of cash (100,000,000 Cr)
+ EQUD &00CA9A3B         \ CASH = Amount of cash (100,000,000 Cr), #9-12
 ELSE
- EQUD &E8030000         \ CASH = Amount of cash (100 Cr)
+ EQUD &E8030000         \ CASH = Amount of cash (100 Cr), #9-12
 ENDIF
 
- EQUB 70                \ QQ14 = Fuel level
+ EQUB 70                \ QQ14 = Fuel level, #13
 
- EQUB 0                 \ COK = Competition flags
+ EQUB 0                 \ COK = Competition flags, #14
 
- EQUB 0                 \ GCNT = Galaxy number, 0-7
+ EQUB 0                 \ GCNT = Galaxy number, 0-7, #15
 
- EQUB POW+(128 AND Q%)  \ LASER = Front laser
+ EQUB POW+(128 AND Q%)  \ LASER = Front laser, #16
 
- EQUB (POW+128) AND Q%  \ LASER+1 = Rear laser, as in ELITEB source
+ EQUB (POW+128) AND Q%  \ LASER+1 = Rear laser, #17
 
- EQUB 0                 \ LASER+2 = Left laser
+ EQUB 0                 \ LASER+2 = Left laser, #18
 
- EQUB 0                 \ LASER+3 = Right laser
+ EQUB 0                 \ LASER+3 = Right laser, #19
 
  EQUW 0                 \ These bytes are unused (they were originally used for
-                        \ up/down lasers, but they were dropped)
+                        \ up/down lasers, but they were dropped), #20-21
 
- EQUB 22+(15 AND Q%)    \ CRGO = Cargo capacity
+ EQUB 22+(15 AND Q%)    \ CRGO = Cargo capacity, #22
 
- EQUD 0                 \ QQ20 = Contents of cargo hold (17 bytes)
+ EQUD 0                 \ QQ20 = Contents of cargo hold (17 bytes), #23-39
  EQUD 0
  EQUD 0
  EQUD 0
  EQUB 0
 
- EQUB Q%                \ ECM = E.C.M.
+ EQUB Q%                \ ECM = E.C.M., #40
 
- EQUB Q%                \ BST = Fuel scoops ("barrel status")
+ EQUB Q%                \ BST = Fuel scoops ("barrel status"), #41
 
- EQUB Q% AND 127        \ BOMB = Energy bomb
+ EQUB Q% AND 127        \ BOMB = Energy bomb, #42
 
- EQUB Q% AND 1          \ ENGY = Energy/shield level
+ EQUB Q% AND 1          \ ENGY = Energy/shield level, #43
 
- EQUB Q%                \ DKCMP = Docking computer
+ EQUB Q%                \ DKCMP = Docking computer, #44
 
- EQUB Q%                \ GHYP = Galactic hyperdrive
+ EQUB Q%                \ GHYP = Galactic hyperdrive, #45
 
- EQUB Q%                \ ESCP = Escape pod
+ EQUB Q%                \ ESCP = Escape pod, #46
 
- EQUD FALSE             \ These four bytes are unused
+ EQUD FALSE             \ These four bytes are unused, #47-50
 
- EQUB 3+(Q% AND 1)      \ NOMSL = Number of missiles
+ EQUB 3+(Q% AND 1)      \ NOMSL = Number of missiles, #51
 
- EQUB FALSE             \ FIST = Legal status ("fugitive/innocent status")
+ EQUB FALSE             \ FIST = Legal status ("fugitive/innocent status"), #52
 
- EQUB 16                \ AVL = Market availability (17 bytes)
+ EQUB 16                \ AVL = Market availability (17 bytes), #53-69
  EQUB 15
  EQUB 17
  EQUB 0
@@ -6742,11 +6747,11 @@ ENDIF
  EQUB 0
 
  EQUB 0                 \ QQ26 = Random byte that changes for each visit to a
-                        \ system, for randomising market prices
+                        \ system, for randomising market prices, #70
 
- EQUW 0                 \ TALLY = Number of kills
+ EQUW 0                 \ TALLY = Number of kills, #71-72
 
- EQUB 128               \ SVC = Save count
+ EQUB 128               \ SVC = Save count, #73
 
 \ ******************************************************************************
 \
@@ -6760,13 +6765,16 @@ ENDIF
 \ Second commander checksum byte. If the default commander is changed, a new
 \ checksum will be calculated and inserted by the elite-checksum.py script.
 \
+\ The offset of this byte within a saved commander file is also shown (it's at
+\ byte #74).
+\
 \ ******************************************************************************
 
 .CHK2
 
  EQUB &03 EOR &A9       \ The checksum value for the default commander, EOR'd
                         \ with &A9 to make it harder to tamper with the checksum
-                        \ byte
+                        \ byte, #74
 
 \ ******************************************************************************
 \
@@ -6780,11 +6788,14 @@ ENDIF
 \ Commander checksum byte. If the default commander is changed, a new checksum
 \ will be calculated and inserted by the elite-checksum.py script.
 \
+\ The offset of this byte within a saved commander file is also shown (it's at
+\ byte #75).
+\
 \ ******************************************************************************
 
 .CHK
 
- EQUB &03               \ The checksum value for the default commander
+ EQUB &03               \ The checksum value for the default commander, #75
 
 \ ******************************************************************************
 \
