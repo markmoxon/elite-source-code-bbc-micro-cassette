@@ -6673,9 +6673,9 @@ Q% = _ENABLE_MAX_COMMANDER
  EQUB 20                \ QQ0 = current system X-coordinate (Lave), #1
  EQUB 173               \ QQ1 = current system Y-coordinate (Lave), #2
 
- EQUW &5A4A             \ QQ21 = Seed w0 for system 0, galaxy 0 (Tibedied), #3-4
- EQUW &0248             \ QQ21 = Seed w1 for system 0, galaxy 0 (Tibedied), #5-6
- EQUW &B753             \ QQ21 = Seed w2 for system 0, galaxy 0 (Tibedied), #7-8
+ EQUW &5A4A             \ QQ21 = Seed s0 for system 0, galaxy 0 (Tibedied), #3-4
+ EQUW &0248             \ QQ21 = Seed s1 for system 0, galaxy 0 (Tibedied), #5-6
+ EQUW &B753             \ QQ21 = Seed s2 for system 0, galaxy 0 (Tibedied), #7-8
 
 IF Q%
  EQUD &00CA9A3B         \ CASH = Amount of cash (100,000,000 Cr), #9-12
@@ -16784,33 +16784,33 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT54
 
- LDA QQ15               \ X = tmp_lo = w0_lo + w1_lo
+ LDA QQ15               \ X = tmp_lo = s0_lo + s1_lo
  CLC
  ADC QQ15+2
  TAX
 
- LDA QQ15+1             \ Y = tmp_hi = w1_hi + w1_hi + C
+ LDA QQ15+1             \ Y = tmp_hi = s1_hi + s1_hi + C
  ADC QQ15+3
  TAY
 
- LDA QQ15+2             \ w0_lo = w1_lo
+ LDA QQ15+2             \ s0_lo = s1_lo
  STA QQ15
 
- LDA QQ15+3             \ w0_hi = w1_hi
+ LDA QQ15+3             \ s0_hi = s1_hi
  STA QQ15+1
 
- LDA QQ15+5             \ w1_hi = w2_hi
+ LDA QQ15+5             \ s1_hi = s2_hi
  STA QQ15+3
 
- LDA QQ15+4             \ w1_lo = w2_lo
+ LDA QQ15+4             \ s1_lo = s2_lo
  STA QQ15+2
 
- CLC                    \ w2_lo = X + w1_lo
+ CLC                    \ s2_lo = X + s1_lo
  TXA
  ADC QQ15+2
  STA QQ15+4
 
- TYA                    \ w2_hi = Y + w1_hi + C
+ TYA                    \ s2_hi = Y + s1_hi + C
  ADC QQ15+3
  STA QQ15+5
 
@@ -17121,10 +17121,10 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR TT27
 
  LDA QQ15+4             \ Now to calculate the species, so first check bit 7 of
- BMI TT75               \ w2_lo, and if it is set, jump to TT75 as this is an
+ BMI TT75               \ s2_lo, and if it is set, jump to TT75 as this is an
                         \ alien species
 
- LDA #188               \ Bit 7 of w2_lo is clear, so print recursive token 28
+ LDA #188               \ Bit 7 of s2_lo is clear, so print recursive token 28
  JSR TT27               \ ("HUMAN COLONIAL")
 
  JMP TT76               \ Jump to TT76 to print "S)" and a paragraph break, so
@@ -17133,11 +17133,11 @@ LOAD_D% = LOAD% + P% - CODE%
 .TT75
 
  LDA QQ15+5             \ This is an alien species, and we start with the first
- LSR A                  \ adjective, so fetch bits 2-7 of w2_hi into A and push
+ LSR A                  \ adjective, so fetch bits 2-7 of s2_hi into A and push
  LSR A                  \ onto the stack so we can use this later
  PHA
 
- AND #%00000111         \ Set A = bits 0-2 of A (so that's bits 2-4 of w2_hi)
+ AND #%00000111         \ Set A = bits 0-2 of A (so that's bits 2-4 of s2_hi)
 
  CMP #3                 \ If A >= 3, jump to TT205 to skip the first adjective,
  BCS TT205
@@ -17152,8 +17152,8 @@ LOAD_D% = LOAD% + P% - CODE%
 .TT205
 
  PLA                    \ Now for the second adjective, so restore A to bits
- LSR A                  \ 2-7 of w2_hi, and throw away bits 2-4 to leave
- LSR A                  \ A = bits 5-7 of w2_hi
+ LSR A                  \ 2-7 of s2_hi, and throw away bits 2-4 to leave
+ LSR A                  \ A = bits 5-7 of s2_hi
  LSR A
 
  CMP #6                 \ If A >= 6, jump to TT206 to skip the second adjective
@@ -17172,9 +17172,9 @@ LOAD_D% = LOAD% + P% - CODE%
 .TT206
 
  LDA QQ15+3             \ Now for the third adjective, so EOR the high bytes of
- EOR QQ15+1             \ w0 and w1 and extract bits 0-2 of the result:
+ EOR QQ15+1             \ s0 and s1 and extract bits 0-2 of the result:
  AND #%00000111         \
- STA QQ19               \   A = (w0_hi EOR w1_hi) AND %111
+ STA QQ19               \   A = (s0_hi EOR s1_hi) AND %111
                         \
                         \ storing the result in QQ19 so we can use it later
 
@@ -17194,7 +17194,7 @@ LOAD_D% = LOAD% + P% - CODE%
 .TT207
 
  LDA QQ15+5             \ Now for the actual species, so take bits 0-1 of
- AND #%00000011         \ w2_hi, add this to the value of A that we used for
+ AND #%00000011         \ s2_hi, add this to the value of A that we used for
  CLC                    \ the third adjective, and take bits 0-2 of the result
  ADC QQ19
  AND #%00000111
@@ -17243,7 +17243,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
                         \ The average radius is calculated like this:
                         \
-                        \   ((w2_hi AND %1111) + 11) * 256 + w1_hi
+                        \   ((s2_hi AND %1111) + 11) * 256 + s1_hi
                         \
                         \ or, in terms of memory locations:
                         \
@@ -17292,7 +17292,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \
 \ Calculate system data from the seeds in QQ15 and store them in the relevant
 \ locations. Specifically, this routine calculates the following from the three
-\ 16-bit seeds in QQ15 (using only w0_hi, w1_hi and w1_lo):
+\ 16-bit seeds in QQ15 (using only s0_hi, s1_hi and s1_lo):
 \
 \   QQ3 = economy (0-7)
 \   QQ4 = government (0-7)
@@ -17308,11 +17308,11 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT24
 
- LDA QQ15+1             \ Fetch w0_hi and extract bits 0-2 to determine the
+ LDA QQ15+1             \ Fetch s0_hi and extract bits 0-2 to determine the
  AND #%00000111         \ system's economy, and store in QQ3
  STA QQ3
 
- LDA QQ15+2             \ Fetch w1_lo and extract bits 3-5 to determine the
+ LDA QQ15+2             \ Fetch s1_lo and extract bits 3-5 to determine the
  LSR A                  \ system's government, and store in QQ4
  LSR A
  LSR A
@@ -17331,7 +17331,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  LDA QQ3                \ Now to work out the tech level, which we do like this:
  EOR #%00000111         \
- CLC                    \   flipped_economy + (w1_hi AND %11) + (government / 2)
+ CLC                    \   flipped_economy + (s1_hi AND %11) + (government / 2)
  STA QQ5                \
                         \ or, in terms of memory locations:
                         \
@@ -17339,7 +17339,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \
                         \ We start by setting QQ5 = QQ3 EOR %111
 
- LDA QQ15+3             \ We then take the first 2 bits of w1_hi (QQ15+3) and
+ LDA QQ15+3             \ We then take the first 2 bits of s1_hi (QQ15+3) and
  AND #%00000011         \ add it into QQ5
  ADC QQ5
  STA QQ5
@@ -17441,10 +17441,10 @@ LOAD_D% = LOAD% + P% - CODE%
 
  STX XSAV               \ Store the counter in XSAV
 
- LDX QQ15+3             \ Fetch the w1_hi seed into X, which gives us the
+ LDX QQ15+3             \ Fetch the s1_hi seed into X, which gives us the
                         \ galactic x-coordinate of this system
 
- LDY QQ15+4             \ Fetch the w2_lo seed and clear all the bits apart
+ LDY QQ15+4             \ Fetch the s2_lo seed and clear all the bits apart
  TYA                    \ from bits 4 and 6, storing the result in ZZ to give a
  ORA #%01010000         \ random number out of 0, &10, &40 or &50 (but which
  STA ZZ                 \ will always be the same for this system). We use this
@@ -17452,7 +17452,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ system on the chart by passing it as the distance
                         \ argument to the PIXEL routine below
 
- LDA QQ15+1             \ Fetch the w0_hi seed into A, which gives us the
+ LDA QQ15+1             \ Fetch the s0_hi seed into A, which gives us the
                         \ galactic y-coordinate of this system
 
  LSR A                  \ We halve the y-coordinate because the galaxy in
@@ -18613,25 +18613,25 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ coordinates of each system from the system's seeds,
                         \ like this:
                         \
-                        \   x = w1_hi (which is stored in QQ15+3)
-                        \   y = w0_hi (which is stored in QQ15+1)
+                        \   x = s1_hi (which is stored in QQ15+3)
+                        \   y = s0_hi (which is stored in QQ15+1)
                         \
                         \ so the following loops through each system in the
                         \ galaxy in turn and calculates the distance between
-                        \ (QQ0, QQ1) and (w1_hi, w0_hi) to find the closest one
+                        \ (QQ0, QQ1) and (s1_hi, s0_hi) to find the closest one
 
 .TT182
 
- LDA QQ15+3             \ Set A = w1_hi - QQ0, the horizontal distance between
- SEC                    \ (w1_hi, w0_hi) and (QQ0, QQ1)
+ LDA QQ15+3             \ Set A = s1_hi - QQ0, the horizontal distance between
+ SEC                    \ (s1_hi, s0_hi) and (QQ0, QQ1)
  SBC QQ0
 
- BCS TT184              \ If a borrow didn't occur, i.e. w1_hi >= QQ0, then the
+ BCS TT184              \ If a borrow didn't occur, i.e. s1_hi >= QQ0, then the
                         \ result is positive, so jump to TT184 and skip the
                         \ following two instructions
 
  EOR #&FF               \ Otherwise negate the result in A, so A is always
- ADC #1                 \ positive (i.e. A = |w1_hi - QQ0|)
+ ADC #1                 \ positive (i.e. A = |s1_hi - QQ0|)
 
 .TT184
 
@@ -18640,16 +18640,16 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ appear in the Short-range Chart, so jump to TT187 to
                         \ move on to the next system
 
- LDA QQ15+1             \ Set A = w0_hi - QQ1, the vertical distance between
- SEC                    \ (w1_hi, w0_hi) and (QQ0, QQ1)
+ LDA QQ15+1             \ Set A = s0_hi - QQ1, the vertical distance between
+ SEC                    \ (s1_hi, s0_hi) and (QQ0, QQ1)
  SBC QQ1
 
- BCS TT186              \ If a borrow didn't occur, i.e. w0_hi >= QQ1, then the
+ BCS TT186              \ If a borrow didn't occur, i.e. s0_hi >= QQ1, then the
                         \ result is positive, so jump to TT186 and skip the
                         \ following two instructions
 
  EOR #&FF               \ Otherwise negate the result in A, so A is always
- ADC #1                 \ positive (i.e. A = |w0_hi - QQ1|)
+ ADC #1                 \ positive (i.e. A = |s0_hi - QQ1|)
 
 .TT186
 
@@ -18663,7 +18663,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ and set up the various variables we need to draw the
                         \ system's filled circle on the chart
 
- LDA QQ15+3             \ Set A = w1_hi - QQ0, the horizontal distance between
+ LDA QQ15+3             \ Set A = s1_hi - QQ0, the horizontal distance between
  SEC                    \ this system and the current system, where |A| < 20.
  SBC QQ0                \ Let's call this the x-delta, as it's the horizontal
                         \ difference between the current system at the centre of
@@ -18684,7 +18684,7 @@ LOAD_D% = LOAD% + P% - CODE%
  STA XC
  INC XC
 
- LDA QQ15+1             \ Set A = w0_hi - QQ1, the vertical distance between
+ LDA QQ15+1             \ Set A = s0_hi - QQ1, the vertical distance between
  SEC                    \ this system and the current system, where |A| < 38.
  SBC QQ1                \ Let's call this the y-delta, as it's the vertical
                         \ difference between the current system at the centre of
@@ -18760,13 +18760,13 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA XX12               \ Set the low byte of K3 to XX12, the pixel x-coordinate
  STA K3                 \ of this system
 
- LDA QQ15+5             \ Fetch w2_hi for this system from QQ15+5, extract bit 0
+ LDA QQ15+5             \ Fetch s2_hi for this system from QQ15+5, extract bit 0
  AND #1                 \ and add 2 to get the size of the star, which we store
  ADC #2                 \ in K. This will be either 2, 3 or 4, depending on the
  STA K                  \ value of bit 0, and whether the C flag is set (which
                         \ will vary depending on what happens in the above call
                         \ to cpl). Incidentally, the planet's average radius
-                        \ also uses w2_hi, bits 0-3 to be precise, but that
+                        \ also uses s2_hi, bits 0-3 to be precise, but that
                         \ doesn't mean the two sizes affect each other
 
                         \ We now have the following:
@@ -18878,12 +18878,12 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ galactic coordinates of each system from the system's
                         \ seeds, like this:
                         \
-                        \   x = w1_hi (which is stored in QQ15+3)
-                        \   y = w0_hi (which is stored in QQ15+1)
+                        \   x = s1_hi (which is stored in QQ15+3)
+                        \   y = s0_hi (which is stored in QQ15+1)
                         \
                         \ so the following loops through each system in the
                         \ galaxy in turn and calculates the distance between
-                        \ (QQ9, QQ10) and (w1_hi, w0_hi) to find the closest one
+                        \ (QQ9, QQ10) and (s1_hi, s0_hi) to find the closest one
 
  LDY #127               \ Set Y = T = 127 to hold the shortest distance we've
  STY T                  \ found so far, which we initially set to half the
@@ -18896,37 +18896,37 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT130
 
- LDA QQ15+3             \ Set A = w1_hi - QQ9, the horizontal distance between
- SEC                    \ (w1_hi, w0_hi) and (QQ9, QQ10)
+ LDA QQ15+3             \ Set A = s1_hi - QQ9, the horizontal distance between
+ SEC                    \ (s1_hi, s0_hi) and (QQ9, QQ10)
  SBC QQ9
 
- BCS TT132              \ If a borrow didn't occur, i.e. w1_hi >= QQ9, then the
+ BCS TT132              \ If a borrow didn't occur, i.e. s1_hi >= QQ9, then the
                         \ result is positive, so jump to TT132 and skip the
                         \ following two instructions
 
  EOR #&FF               \ Otherwise negate the result in A, so A is always
- ADC #1                 \ positive (i.e. A = |w1_hi - QQ9|)
+ ADC #1                 \ positive (i.e. A = |s1_hi - QQ9|)
 
 .TT132
 
  LSR A                  \ Set S = A / 2
- STA S                  \       = |w1_hi - QQ9| / 2
+ STA S                  \       = |s1_hi - QQ9| / 2
 
- LDA QQ15+1             \ Set A = w0_hi - QQ10, the vertical distance between
- SEC                    \ (w1_hi, w0_hi) and (QQ9, QQ10)
+ LDA QQ15+1             \ Set A = s0_hi - QQ10, the vertical distance between
+ SEC                    \ (s1_hi, s0_hi) and (QQ9, QQ10)
  SBC QQ10
 
- BCS TT134              \ If a borrow didn't occur, i.e. w0_hi >= QQ10, then the
+ BCS TT134              \ If a borrow didn't occur, i.e. s0_hi >= QQ10, then the
                         \ result is positive, so jump to TT134 and skip the
                         \ following two instructions
 
  EOR #&FF               \ Otherwise negate the result in A, so A is always
- ADC #1                 \ positive (i.e. A = |w0_hi - QQ10|)
+ ADC #1                 \ positive (i.e. A = |s0_hi - QQ10|)
 
 .TT134
 
  LSR A                  \ Set A = S + A / 2
- CLC                    \       = |w1_hi - QQ9| / 2 + |w0_hi - QQ10| / 2
+ CLC                    \       = |s1_hi - QQ9| / 2 + |s0_hi - QQ10| / 2
  ADC S                  \
                         \ So A now contains the sum of the horizontal and
                         \ vertical distances, both divided by 2 so the result
@@ -18988,12 +18988,12 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ copy
 
  LDA QQ15+1             \ The y-coordinate of the system described by the seeds
- STA QQ10               \ in QQ15 is in QQ15+1 (w0_hi), so we copy this to QQ10
+ STA QQ10               \ in QQ15 is in QQ15+1 (s0_hi), so we copy this to QQ10
                         \ as this is where we store the selected system's
                         \ y-coordinate
 
  LDA QQ15+3             \ The x-coordinate of the system described by the seeds
- STA QQ9                \ in QQ15 is in QQ15+3 (w1_hi), so we copy this to QQ9
+ STA QQ9                \ in QQ15 is in QQ15+3 (s1_hi), so we copy this to QQ9
                         \ as this is where we store the selected system's
                         \ x-coordinate
 
@@ -21254,7 +21254,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ need to loop three or four times, so for now set
                         \ up a counter in Y to loop four times
 
- BIT QQ15               \ Check bit 6 of w0_lo, which is stored in QQ15
+ BIT QQ15               \ Check bit 6 of s0_lo, which is stored in QQ15
 
  BVS P%+3               \ If bit 6 is set then skip over the next instruction
 
@@ -21265,7 +21265,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
 .TT55
 
- LDA QQ15+5             \ Step 2: Load w2_hi, which is stored in QQ15+5, and
+ LDA QQ15+5             \ Step 2: Load s2_hi, which is stored in QQ15+5, and
  AND #%00011111         \ extract bits 0-4 by AND'ing with %11111
 
  BEQ P%+7               \ If all those bits are zero, then skip the following
@@ -22576,7 +22576,7 @@ LOAD_E% = LOAD% + P% - CODE%
  JSR ZINF               \ Call ZINF to reset the INWK ship workspace, which
                         \ doesn't affect the C flag
 
- LDA QQ15+1             \ Fetch w0_hi
+ LDA QQ15+1             \ Fetch s0_hi
 
  AND #%00000111         \ Extract bits 0-2 (which also happen to determine the
                         \ economy), which will be between 0 and 7
@@ -22587,7 +22587,7 @@ LOAD_E% = LOAD% + P% - CODE%
  STA INWK+8             \ Store the result in z_sign in byte #6
 
  ROR A                  \ Halve A, rotating in the C flag, which was previously
- STA INWK+2             \ bit 0 of w0_hi + 6 + C, so when this is stored in both
+ STA INWK+2             \ bit 0 of s0_hi + 6 + C, so when this is stored in both
  STA INWK+5             \ x_sign and y_sign, it moves the planet to the upper
                         \ right or lower left
 
@@ -22596,12 +22596,12 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ it's the first one to be added to our local bubble of
                         \ this new system's universe
 
- LDA QQ15+3             \ Fetch w1_hi, extract bits 0-2, set bits 0 and 7 and
+ LDA QQ15+3             \ Fetch s1_hi, extract bits 0-2, set bits 0 and 7 and
  AND #%00000111         \ store in z_sign, so the sun is behind us at a distance
  ORA #%10000001         \ of 1 to 7
  STA INWK+8
 
- LDA QQ15+5             \ Fetch w2_hi, extract bits 0-1 and store in x_sign and
+ LDA QQ15+5             \ Fetch s2_hi, extract bits 0-1 and store in x_sign and
  AND #%00000011         \ y_sign, so the sun is either dead in our rear laser
  STA INWK+2             \ crosshairs, or off to the top left by a distance of 1
  STA INWK+1             \ or 2 when we look out the back
