@@ -6908,7 +6908,18 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
-\ This routine has multiple stages. This stage calculates the line deltas.
+\ This routine draws a line from (X1, Y1) to (X2, Y2). It has multiple stages.
+\ This stage calculates the line deltas.
+\
+\ Arguments:
+\
+\   X1                  The screen x-coordinate of the start of the line
+\
+\   Y1                  The screen y-coordinate of the start of the line
+\
+\   X2                  The screen x-coordinate of the end of the line
+\
+\   Y2                  The screen y-coordinate of the end of the line
 \
 \ Returns:
 \
@@ -6987,6 +6998,7 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
+\ This routine draws a line from (X1, Y1) to (X2, Y2). It has multiple stages.
 \ If we get here, then:
 \
 \   * |delta_y| < |delta_x|
@@ -7128,6 +7140,7 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
+\ This routine draws a line from (X1, Y1) to (X2, Y2). It has multiple stages.
 \ If we get here, then:
 \
 \   * The line is going right and up (no swap) or left and down (swap)
@@ -7211,6 +7224,7 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
+\ This routine draws a line from (X1, Y1) to (X2, Y2). It has multiple stages.
 \ If we get here, then:
 \
 \   * The line is going right and down (no swap) or left and up (swap)
@@ -7296,6 +7310,7 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
+\ This routine draws a line from (X1, Y1) to (X2, Y2). It has multiple stages.
 \ If we get here, then:
 \
 \   * |delta_y| >= |delta_x|
@@ -7440,6 +7455,7 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
+\ This routine draws a line from (X1, Y1) to (X2, Y2). It has multiple stages.
 \ If we get here, then:
 \
 \   * The line is going up and left (no swap) or down and right (swap)
@@ -7524,6 +7540,7 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
+\ This routine draws a line from (X1, Y1) to (X2, Y2). It has multiple stages.
 \ If we get here, then:
 \
 \   * The line is going up and right (no swap) or down and left (swap)
