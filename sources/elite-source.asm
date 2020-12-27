@@ -85,7 +85,6 @@ VIA = &FE00             \ Memory-mapped space for accessing internal hardware,
 VSCAN = 57              \ Defines the split position in the split-screen mode
 
 X = 128                 \ The centre x-coordinate of the 256 x 192 space view
-
 Y = 96                  \ The centre y-coordinate of the 256 x 192 space view
 
 f0 = &20                \ Internal key number for red key f0 (Launch, Front)
@@ -5474,6 +5473,11 @@ LOAD_A% = LOAD%
 \ MVEIT routine is about moving the other ships rather than us (even though we
 \ are the one doing the moving).
 \
+\ Other entry points:
+\
+\   MV45                Rejoin the MVEIT routine after the rotation, tactics and
+\                       scanner code
+\
 \ ******************************************************************************
 
 .MV45
@@ -6615,7 +6619,6 @@ SAVE "output/ELTA.bin", CODE%, P%, LOAD%
 
 CODE_B% = P%
 LOAD_B% = LOAD% + P% - CODE%
-Q% = _ENABLE_MAX_COMMANDER
 
 \ ******************************************************************************
 \
@@ -6642,6 +6645,8 @@ Q% = _ENABLE_MAX_COMMANDER
 \ also shown.
 \
 \ ******************************************************************************
+
+Q% = _ENABLE_MAX_COMMANDER
 
 .NA%
 
@@ -7972,7 +7977,8 @@ NEXT
 \       Name: TWFL
 \       Type: Variable
 \   Category: Drawing lines
-\    Summary: Ready-made character rows for left end of horizontal line
+\    Summary: Ready-made character rows for the left end of a horizontal line in
+\             mode 4
 \
 \ ------------------------------------------------------------------------------
 \
@@ -7999,7 +8005,8 @@ NEXT
 \       Name: TWFR
 \       Type: Variable
 \   Category: Drawing lines
-\    Summary: Ready-made character rows for right end of horizontal line
+\    Summary: Ready-made character rows for the right end of a horizontal line
+\             in mode 4
 \
 \ ------------------------------------------------------------------------------
 \
@@ -10758,11 +10765,13 @@ NEXT
 \
 \ Set A and X to the colours we should use for indicators showing dangerous and
 \ safe values respectively. This enables us to implement flashing indicators,
-\ which is one of the game's configurable options. If flashing is enabled, the
-\ colour returned in A (dangerous values) will be red for 8 iterations of the
-\ main loop, and yellow/white for the next 8, before going back to red. If we
-\ always use PZW to decide which colours we should use when updating indicators,
-\ flashing colours will be automatically taken care of for us.
+\ which is one of the game's configurable options.
+\
+\ If flashing is enabled, the colour returned in A (dangerous values) will be
+\ red for 8 iterations of the main loop, and yellow/white for the next 8, before
+\ going back to red. If we always use PZW to decide which colours we should use
+\ when updating indicators, flashing colours will be automatically taken care of
+\ for us.
 \
 \ The values returned are &F0 for yellow/white and &0F for red. These are mode 5
 \ bytes that contain 4 pixels, with the colour of each pixel given in two bits,
@@ -15542,7 +15551,6 @@ NEXT
 \ Draw the laser lines, aiming them to slightly different place each time so
 \ they appear to flicker and dance. Also heat up the laser temperature and drain
 \ some energy.
-\
 \
 \ Other entry points:
 \
@@ -21068,6 +21076,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \ Other entry points:
 \
 \   prx-3               Return the price of the item with number A - 1
+\
+\   c                   Contains an RTS
 \
 \ ******************************************************************************
 

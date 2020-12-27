@@ -97,16 +97,24 @@ LE% = &0B00             \ LE% is the address to which the code from UU% onwards
 IF DISC
 
  CODE% = &E00+&300      \ CODE% is set to the assembly address of the loader
-                        \ code file that we assemble in this file ("ELITE")
+                        \ code file that we assemble in this file ("ELITE"),
+                        \ which is at the lowest DFS page value of &1100 for the
+                        \ version that loads from disc
 
 ELSE
 
- CODE% = &E00
+ CODE% = &E00           \ CODE% is set to the assembly address of the loader
+                        \ code file that we assemble in this file ("ELITE"),
+                        \ which is at the standard &0E00 address for the version
+                        \ that loads from cassette
 
 ENDIF
 
-NETV = &224             \ MOS vectors that we want to intercept
-IRQ1V = &204
+NETV = &224             \ The NETV vector that we intercept as part of the copy
+                        \ protection
+
+IRQ1V = &204            \ The IRQ1V vector that we intercept to implement the
+                        \ split-sceen mode
 
 OSWRCH = &FFEE          \ The address for the OSWRCH routine
 OSBYTE = &FFF4          \ The address for the OSBYTE routine
