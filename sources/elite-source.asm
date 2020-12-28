@@ -27264,7 +27264,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \ ------------------------------------------------------------------------------
 \
 \ Zero-fill the INWK ship workspace and reset the orientation vectors, with
-\ nosev pointing into the screen.
+\ nosev pointing out of the screen, towards us.
 \
 \ Returns:
 \
@@ -27299,7 +27299,8 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ vectors, while -96 * 256 (&E000) represents -1. We
                         \ already set the vectors to zero above, so we just
                         \ need to set up the high bytes of the diagonal values
-                        \ and we're done
+                        \ and we're done. The negative nosev makes the ship
+                        \ point towards us, as the z-axis points into the screen
 
  LDA #96                \ Set A to represent a 1 (in vector terms)
 
