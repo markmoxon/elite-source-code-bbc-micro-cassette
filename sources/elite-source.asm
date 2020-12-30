@@ -6940,6 +6940,13 @@ NEXT
 \ ******************************************************************************
 
 .LL30
+
+                        \ In the cassette and disc versions of Elite, LL30 and
+                        \ LOIN are synonyms for the same routine, presumably
+                        \ because the two developers each had their own line
+                        \ routines to start with, and then chose one of them for
+                        \ the final game
+
 .LOIN
 
  STY YSAV               \ Store Y into YSAV, so we can preserve it across the
@@ -7445,11 +7452,11 @@ NEXT
                         \ We add 1 so we can skip the first pixel plot if the
                         \ line is being drawn with swapped coordinates
 
- LDA X2                 \ Set A = X2 - X1 - 1 (as the C flag is clear following
- SBC X1                 \ the above division)
+ LDA X2                 \ Set A = X2 - X1 (the C flag is set as we didn't take
+ SBC X1                 \ the above BCC)
 
- BCC LFT                \ If X2 < X1 - 1 then jump to LFT, as we need to draw
-                        \ the line to the left and down
+ BCC LFT                \ If X2 < X1 then jump to LFT, as we need to draw the
+                        \ line to the left and down
 
 \ ******************************************************************************
 \
@@ -7808,7 +7815,8 @@ NEXT
 
 .HL5
 
- DEC X2                 \ Decrement X2
+ DEC X2                 \ Decrement X2 so we do not draw a pixel at the end
+                        \ point
 
  LDA Y1                 \ Set A = Y1 / 8, so A now contains the character row
  LSR A                  \ that will contain our horizontal line
@@ -7955,7 +7963,8 @@ NEXT
                         \ containing pixels up to the end point at X2, so we can
                         \ get the actual line we want to draw by AND'ing them
                         \ together. For example, if we want to draw a line from
-                        \ point 2 to point 5, we would have this:
+                        \ point 2 to point 5 (within the row of 8 pixels
+                        \ numbered from 0 to 7), we would have this:
                         \
                         \   T       = %00111111
                         \   A       = %11111100
@@ -31771,8 +31780,8 @@ LOAD_G% = LOAD% + P% - CODE%
 
 .LL2
 
- LDA #255               \ The answer is too big for one byte, so return the
- STA R                  \ largest possible answer, R = 255
+ LDA #255               \ The division is very close to 1, so return the closest
+ STA R                  \ possible answer to 256, i.e. R = 255
 
  RTS                    \ Return from the subroutine
 
@@ -32391,8 +32400,8 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ number of faces in the cassette version, but this
                         \ allows us to force a vertex to always be visible by
                         \ associating it with face 15 (see the blueprints for
-                        \ the Cobra Mk III at SHIP5 and asteroid at SHIP10 for
-                        \ examples)
+                        \ the Cobra Mk III at SHIP_COBRA_MK_3 and asteroid at
+                        \ SHIP_ASTEROID for examples)
 
  LDY #12                \ Set Y = 12 to point to the ship blueprint byte #12,
 
