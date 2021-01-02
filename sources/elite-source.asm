@@ -972,7 +972,8 @@ ORG &0300
                         \     * Bits 0-6 contain the laser's power
                         \
                         \     * Bit 7 determines whether or not the laser pulses
-                        \       (pulse laser) or is always on (beam laser)
+                        \       (0 = pulse laser) or is always on (1 = beam
+                        \       laser)
 
  SKIP 2                 \ These bytes are unused (they were originally used for
                         \ up/down lasers, but they were dropped)
@@ -7199,7 +7200,7 @@ NEXT
 
 .LI7
 
- LDA S                  \ Set S = S + Q
+ LDA S                  \ Set S = S + Q to update the slope error
  ADC Q
  STA S
 
@@ -7285,7 +7286,7 @@ NEXT
 
 .LI10
 
- LDA S                  \ Set S = S + Q
+ LDA S                  \ Set S = S + Q to update the slope error
  ADC Q
  STA S
 
@@ -7511,7 +7512,7 @@ NEXT
 
 .LI16
 
- LDA S                  \ Set S = S + P
+ LDA S                  \ Set S = S + Q to update the slope error
  ADC P
  STA S
 
@@ -7592,7 +7593,7 @@ NEXT
 
 .LI19
 
- LDA S                  \ Set S = S + P
+ LDA S                  \ Set S = S + P to update the slope error
  ADC P
  STA S
 
@@ -7613,7 +7614,8 @@ NEXT
  SBC #7                 \ previous character along to the left
  STA SC
 
- CLC
+ CLC                    \ Clear the C flag so it doesn't affect the additions
+                        \ below
 
 .LIC6
 
@@ -23597,6 +23599,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \   C flag              Set if the ship was successfully added, clear if it
 \                       wasn't (as there wasn't enough free memory)
+\
+\   INF                 Points to the new ship's data block in K%
 \
 \ ******************************************************************************
 
