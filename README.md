@@ -2,7 +2,7 @@
 
 This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained.
 
-It is a companion to the [bbcelite.com website](https://www.bbcelite.com), which contains all the code from this repository, but laid out in a much more human-friendly fashion.
+It is a companion to the [bbcelite.com website](https://www.bbcelite.com), which contains all the code from this repository, but laid out in a much more human-friendly fashion. There is also a sister repository for the [enhanced 6502 Second Processor version of Elite](https://github.com/markmoxon/6502sp-elite-beebasm).
 
 * If you want to browse the source and read about how Elite works under the hood, you will probably find [the website](https://www.bbcelite.com) is a better place to start than this repository.
 
@@ -16,6 +16,8 @@ My hope is that this repository and the [accompanying website](https://www.bbcel
 
 * [Acknowledgements](#acknowledgements)
 
+  * [A note on licences, copyright etc.](#user-content-a-note-on-licences-copyright-etc)
+
 * [Browsing the source in an IDE](#browsing-the-source-in-an-ide)
 
 * [Building Elite from the source](#building-elite-from-the-source)
@@ -27,7 +29,7 @@ My hope is that this repository and the [accompanying website](https://www.bbcel
   * [Verifying the output](#verifying-the-output)
   * [Log files](#log-files)
 
-* [Differences between the various source files](#differences-between-the-various-source-files)
+* [Notes on the original source files](#notes-on-the-original-source-files)
 
   * [ELITEC](#elitec)
   * [ELTB](#eltb)
@@ -65,21 +67,21 @@ If you want to browse the source in an IDE, you might find the following useful.
 
 * The most interesting files are in the [sources](sources) folder:
 
-  * The main game's source code is in the [elite-source.asm](sources/elite-source.asm) file - this is the motherlode and probably contains all the stuff you're interested in
+  * The main game's source code is in the [elite-source.asm](sources/elite-source.asm) file - this is the motherlode and probably contains all the stuff you're interested in.
 
-  * The game's loader is in the [elite-loader.asm](sources/elite-loader.asm) file - this is mainly concerned with setup and copy protection
+  * The game's loader is in the [elite-loader.asm](sources/elite-loader.asm) file - this is mainly concerned with setup and copy protection.
 
-* It's probably worth skimming through the [notes on terminology and notations](https://www.bbcelite.com/about_site/terminology_used_in_this_commentary.html) on the accompanying website, as this explains a number of terms used in the commentary, without which it might be a bit tricky to follow at times (in particular, you should understand the terminology I use for multi-byte numbers)
+* It's probably worth skimming through the [notes on terminology and notations](https://www.bbcelite.com/about_site/terminology_used_in_this_commentary.html) on the accompanying website, as this explains a number of terms used in the commentary, without which it might be a bit tricky to follow at times (in particular, you should understand the terminology I use for multi-byte numbers).
 
-* The accompamying website contains [a number of "deep dive" articles](https://www.bbcelite.com/deep_dives/), each of which goes into an aspect of the game in detail. Routines that are explained further in these articles are tagged with the label `Deep dive:` and the relevant article name
+* The accompamying website contains [a number of "deep dive" articles](https://www.bbcelite.com/deep_dives/), each of which goes into an aspect of the game in detail. Routines that are explained further in these articles are tagged with the label `Deep dive:` and the relevant article name.
 
-* There are loads of routines and variables in Elite - literally hundreds. You can find them in the source files by searching for the following: `Type: Subroutine`, `Type: Variable`, `Type: Workspace` and `Type: Macro`
+* There are loads of routines and variables in Elite - literally hundreds. You can find them in the source files by searching for the following: `Type: Subroutine`, `Type: Variable`, `Type: Workspace` and `Type: Macro`.
 
-* If you know the name of a routine, you can find it by searching for `Name: <name>`, as in `Name: SCAN` (for the 3D scanner routine) or `Name: LL9` (for the ship-drawing routine)
+* If you know the name of a routine, you can find it by searching for `Name: <name>`, as in `Name: SCAN` (for the 3D scanner routine) or `Name: LL9` (for the ship-drawing routine).
 
-* The entry point for the [main game code](sources/elite-source.asm) is routine `TT170`, which you can find by searching for `Name: TT170`. If you want to follow the program flow all the way from the title screen around the main game loop, then you can find a number of [deep dives on program flow](https://www.bbcelite.com/deep_dives/) on the accompanying website
+* The entry point for the [main game code](sources/elite-source.asm) is routine `TT170`, which you can find by searching for `Name: TT170`. If you want to follow the program flow all the way from the title screen around the main game loop, then you can find a number of [deep dives on program flow](https://www.bbcelite.com/deep_dives/) on the accompanying website.
 
-* The source code is designed to be read at an 80-column width and with a monospaced font, just like in the good old days
+* The source code is designed to be read at an 80-column width and with a monospaced font, just like in the good old days.
 
 I hope you enjoy exploring the inner-workings of BBC Elite as much as I have.
 
@@ -90,7 +92,9 @@ I hope you enjoy exploring the inner-workings of BBC Elite as much as I have.
 You will need the following to build Elite from the source:
 
 * BeebAsm, which can be downloaded from the [BeebAsm repository](https://github.com/stardot/beebasm). Mac and Linux users will have to build their own executable with `make code`, while Windows users can just download the `beebasm.exe` file.
+
 * Python. Both versions 2.7 and 3.x should work.
+
 * Mac and Linux users may need to install `make` if it isn't already present (for Windows users, `make.exe` is included in this repository).
 
 For details of how the build process works, see the [build documentation on bbcelite.com](https://www.bbcelite.com/about_site/building_elite.html).
@@ -203,7 +207,7 @@ All the compiled binaries match the extracts, so we know we are producing the sa
 
 During compilation, details of every step are output in a file called `compile.txt` in the `output` folder. If you have problems, it might come in handy, and it's a great reference if you need to know the addresses of labels and variables for debugging (or just snooping around).
 
-## Differences between the various source files
+## Notes on the original source files
 
 ### ELITEC
 
