@@ -2573,8 +2573,8 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \ Contains ship data for all the ships, planets, suns and space stations in our
 \ local bubble of universe, along with their corresponding ship line heaps.
 \
-\ The blocks are pointed to by the lookup table at location UNIV. The first 468
-\ bytes of the K% workspace hold ship data on up to 13 ships, with 36 (NI%)
+\ The blocks are pointed to by the lookup table at location UNIV. The first 432
+\ bytes of the K% workspace hold ship data on up to 12 ships, with 36 (NI%)
 \ bytes per ship, and the ship line heap grows downwards from WP at the end of
 \ the K% workspace.
 \
@@ -2608,7 +2608,14 @@ ORG &0D40
 
 .FRIN
 
- SKIP NOSH + 1          \ Slots for the 13 ships in the local bubble of universe
+ SKIP NOSH + 1          \ Slots for the ships in the local bubble of universe
+                        \
+                        \ There are #NOSH + 1 slots, but the ship-spawning
+                        \ routine at NWSHP only populates #NOSH of them, so
+                        \ there are 13 slots but only 12 are used for ships
+                        \ (the last slot is effectively used as a null
+                        \ terminator when shuffling the slots down in the
+                        \ KILLSHP routine)
                         \
                         \ See the deep dive on "The local bubble of universe"
                         \ for details of how Elite stores the local universe in
@@ -23630,7 +23637,11 @@ LOAD_E% = LOAD% + P% - CODE%
  INX                    \ Otherwise increment X to point to the next slot
 
  CPX #NOSH              \ If we haven't reached the last slot yet, loop back up
- BCC NWL1               \ to NWL1 to check the next slot
+ BCC NWL1               \ to NWL1 to check the next slot (note that this means
+                        \ only slots from 0 to #NOSH - 1 are populated by this
+                        \ routine, but there is one more slot reserved in FRIN,
+                        \ which is used to identify the end of the slot list
+                        \ when shuffling the slots down in the KILLSHP routine)
 
 .NW3
 
@@ -27398,7 +27409,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \       Name: Ze
 \       Type: Subroutine
-\   Category: Utility routines
+\   Category: Universe
 \    Summary: Initialise the INWK workspace to a hostile ship
 \
 \ ------------------------------------------------------------------------------
