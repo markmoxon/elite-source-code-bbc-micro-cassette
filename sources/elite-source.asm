@@ -44,6 +44,10 @@ GUARD &8000             \ Paged ROMS start here
 \
 \ ******************************************************************************
 
+Q% = _REMOVE_CHECKSUMS  \ Set Q% to TRUE to max out the default commander, FALSE
+                        \ for the standard default commander (this is set to
+                        \ TRUE if checksums are disabled, just for convenience)
+
 NOST = 18               \ The number of stardust particles in normal space (this
                         \ goes down to 3 in witchspace)
 
@@ -6653,8 +6657,6 @@ LOAD_B% = LOAD% + P% - CODE%
 \ also shown.
 \
 \ ******************************************************************************
-
-Q% = _ENABLE_MAX_COMMANDER
 
 .NA%
 
