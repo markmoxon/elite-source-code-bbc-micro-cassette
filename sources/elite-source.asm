@@ -32,9 +32,6 @@
 
 INCLUDE "sources/elite-header.h.asm"
 
-_REMOVE_COMMANDER_CHECK = TRUE AND _REMOVE_CHECKSUMS
-_ENABLE_MAX_COMMANDER   = TRUE AND _REMOVE_CHECKSUMS
-
 GUARD &6000             \ Screen memory starts here
 GUARD &8000             \ Paged ROMS start here
 
@@ -28629,7 +28626,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
  CMP CHK                \ Test the calculated checksum against CHK
 
-IF _REMOVE_COMMANDER_CHECK
+IF _REMOVE_CHECKSUMS
 
  NOP                    \ If we have disabled the commander check, then ignore
  NOP                    \ the checksum and fall through into the next part
