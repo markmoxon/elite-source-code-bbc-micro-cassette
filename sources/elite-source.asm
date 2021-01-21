@@ -5034,9 +5034,10 @@ LOAD_A% = LOAD%
 
 .MVEIT
 
- LDA INWK+31            \ If bits 5 or 7 are set, jump to MV30 as the ship is
- AND #%10100000         \ either exploding or has been killed, so we don't need
- BNE MV30               \ to tidy its orientation vectors or apply tactics
+ LDA INWK+31            \ If bits 5 or 7 of ship byte #31 are set, jump to MV30
+ AND #%10100000         \ as the ship is either exploding or has been killed, so
+ BNE MV30               \ we don't need to tidy its orientation vectors or apply
+                        \ tactics
 
  LDA MCNT               \ Fetch the main loop counter
 
@@ -19459,8 +19460,9 @@ LOAD_D% = LOAD% + P% - CODE%
  LDY #1                 \ Move the text cursor to row 1
  STY YC
 
- DEY                    \ Move the text cursor to column 0
- STY XC
+ DEY                    \ Decrement Y to 0 for the high byte in pr6
+
+ STY XC                 \ Move the text cursor to column 0
 
                         \ Fall through into pr6 to print X to 5 digits, as the
                         \ high byte in Y is 0
@@ -30750,7 +30752,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
  PLA                    \ Restore the new message token
 
- EQUB &2C               \ Fall through into me1 to print the new message, but
+ EQUB &2C               \ Fall through into ou2 to print the new message, but
                         \ skip the first instruction by turning it into
                         \ &2C &A9 &6C, or BIT &6CA9, which does nothing apart
                         \ from affect the flags
@@ -32013,7 +32015,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 1 of 11)
+\       Name: LL9 (Part 1 of 12)
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Check if ship is exploding, check if ship is in front
@@ -32179,7 +32181,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 2 of 11)
+\       Name: LL9 (Part 2 of 12)
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Check if ship is in field of view, close enough to draw
@@ -32285,7 +32287,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 3 of 11)
+\       Name: LL9 (Part 3 of 12)
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Set up orientation vector, ship coordinate variables
@@ -32429,7 +32431,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 4 of 11)
+\       Name: LL9 (Part 4 of 12)
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Set visibility for exploding ship (all faces visible)
@@ -32476,7 +32478,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 5 of 11)
+\       Name: LL9 (Part 5 of 12)
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Calculate the visibility of each of the ship's faces
@@ -32930,7 +32932,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 6 of 11)
+\       Name: LL9 (Part 6 of 12)
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Calculate the visibility of each of the ship's vertices
@@ -33463,7 +33465,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 7 of 11)
+\       Name: LL9 (Part 7 of 12)
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Calculate the visibility of each of the ship's vertices
@@ -33549,7 +33551,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 8 of 11)
+\       Name: LL9 (Part 8 of 12)
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Calculate the screen coordinates of visible vertices
@@ -33790,7 +33792,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 9 of 11)
+\       Name: LL9 (Part 9 of 12)
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Draw laser beams if the ship is firing its laser at us
@@ -33962,7 +33964,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 10 of 11)
+\       Name: LL9 (Part 10 of 12)
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Calculate the visibility of each of the ship's edges
@@ -33970,7 +33972,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \ ------------------------------------------------------------------------------
 \
 \ This part calculates which edges are visible - in other words, which lines we
-\ should draw - and adds them to the ship line heap.
+\ should draw - and clips them to fit on the screen.
 \
 \ When we get here, the heap at XX3 contains all the visible vertex screen
 \ coordinates.
@@ -34103,6 +34105,20 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ screen, so jump to LL78 so we don't store this line
                         \ in the ship line heap
 
+\ ******************************************************************************
+\
+\       Name: LL9 (Part 11 of 12)
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Draw ship: Add all visible edges to the ship line heap
+\
+\ ------------------------------------------------------------------------------
+\
+\ This part adds all the visible edges to the ship line heap, so we can draw
+\ them in part 12.
+\
+\ ******************************************************************************
+
 .LL80
 
  LDY U                  \ Fetch the ship line heap pointer, which points to the
@@ -34173,7 +34189,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: LL9 (Part 11 of 11)
+\       Name: LL9 (Part 12 of 12)
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Draw all the visible edges from the ship line heap
