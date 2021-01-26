@@ -15867,12 +15867,24 @@ NEXT
 
                         \ And fall through into SIGHT to draw the laser
                         \ crosshairs
+
+\ ******************************************************************************
+\
+\       Name: SIGHT
+\       Type: Subroutine
+\   Category: Flight
+\    Summary: Draw the laser crosshairs
+\
+\ ******************************************************************************
+
 .SIGHT
 
- LDY VIEW               \ Fetch the laser power for our new view, and if it is
- LDA LASER,Y            \ zero (i.e. there is no laser fitted to this view),
- BEQ LO2                \ jump to LO2 to return from the subroutine (as LO2
-                        \ contains an RTS)
+ LDY VIEW               \ Fetch the laser power for our new view
+ LDA LASER,Y
+
+ BEQ LO2                \ If it is zero (i.e. there is no laser fitted to this
+                        \ view), jump to LO2 to return from the subroutine (as
+                        \ LO2 contains an RTS)
 
  LDA #128               \ Set QQ19 to the x-coordinate of the centre of the
  STA QQ19               \ screen
@@ -17821,7 +17833,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .TT219
 
-\LDA#2                  \ This instruction is commented out in the original
+\LDA #2                 \ This instruction is commented out in the original
                         \ source. Perhaps this view originally had a QQ11 value
                         \ of 2, but it turned out not to need its own unique ID,
                         \ so the authors found they could just use a view value
@@ -26465,7 +26477,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  LDA #0                 \ Set the result, A = 0
 
- CPY #&10               \ If Y >= &10 set the C flag, so A = A - 1
+ CPY #16                \ If Y >= 16 set the C flag, so A = A - 1
  SBC #0
 
 \CPY #&20               \ These instructions are commented out in the original
@@ -28536,17 +28548,10 @@ LOAD_F% = LOAD% + P% - CODE%
  JSR FX200              \ Disable the ESCAPE key and clear memory if the BREAK
                         \ key is pressed (*FX 200,3)
 
- LDX #CYL               \ Call the TITLE subroutine to show the rotating ship
- LDA #128               \ and load prompt. The arguments sent to TITLE are:
- JSR TITLE              \
-                        \   X = type of ship to show, #CYL is a Cobra Mk III
-                        \
-                        \   A = text token to show below the rotating ship, 128
-                        \       is "  LOAD NEW COMMANDER (Y/N)?{crlf}{crlf}"
-                        \
-                        \ The TITLE subroutine returns with the internal number
-                        \ of the key pressed in A (see p.142 of the Advanced
-                        \ User Guide for a list of internal key number)
+ LDX #CYL               \ Call TITLE to show a rotating Cobra Mk III (#CYL) and
+ LDA #128               \ token 128 ("  LOAD NEW COMMANDER (Y/N)?{crlf}{crlf}"),
+ JSR TITLE              \ returning with the internal number of the key pressed
+                        \ in A
 
  CMP #&44               \ Did we press "Y"? If not, jump to QU5, otherwise
  BNE QU5                \ continue on to load a new commander
@@ -28670,14 +28675,10 @@ ENDIF
  JSR msblob             \ Reset the dashboard's missile indicators so none of
                         \ them are targeted
 
- LDA #147               \ Call the TITLE subroutine to show the rotating ship
- LDX #3                 \ and fire/space prompt. The arguments sent to TITLE
- JSR TITLE              \ are:
-                        \
-                        \   X = type of ship to show, #3 is a Mamba
-                        \
-                        \   A = text token to show below the rotating ship, 147
-                        \       is "PRESS FIRE OR SPACE,COMMANDER.{crlf}{crlf}"
+ LDA #147               \ Call TITLE to show a rotating Mamba (#3) and token
+ LDX #3                 \ 147 ("PRESS FIRE OR SPACE,COMMANDER.{crlf}{crlf}"),
+ JSR TITLE              \ returning with the internal number of the key pressed
+                        \ in A
 
  JSR ping               \ Set the target system coordinates (QQ9, QQ10) to the
                         \ current system coordinates (QQ0, QQ1) we just loaded
@@ -30844,7 +30845,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
  JSR TT27               \ Call TT27 to print the text token in A
 
- LSR de                 \ If bit 1 of variable de is clear, return from the
+ LSR de                 \ If bit 0 of variable de is clear, return from the
  BCC out                \ subroutine (as out contains an RTS)
 
  LDA #253               \ Print recursive token 93 (" DESTROYED") and return

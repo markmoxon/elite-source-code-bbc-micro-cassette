@@ -168,8 +168,8 @@ EXCN = &85              \ Gets set to &03C2 as part of the obfuscation code
 \
 \ There are two files containing code:
 \
-\   * WORDS9.bin contains the recursive token table, which moved to &0400 before
-\     the main game is loaded
+\   * WORDS9.bin contains the recursive token table, which is moved to &0400
+\     before the main game is loaded
 \
 \   * PYTHON.bin contains the Python ship blueprint, which gets moved to &7F00
 \     before the main game is loaded
@@ -2897,7 +2897,7 @@ ENDIF
  CLI                    \ Re-enable interrupts
 
 \LDA #129               \ These instructions are commented out in the original
-\LDY #&FF               \ source. They call OSBYTE with A = 129, X = 0 and
+\LDY #&FF               \ source. They call OSBYTE with A = 129, X = 1 and
 \LDX #1                 \ Y = &FF, which returns the machine type in X, so
 \JSR OSBYTE             \ this code would detect the MOS version
 \TXA
