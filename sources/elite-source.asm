@@ -36253,6 +36253,8 @@ ENDMACRO
  VERTEX  -24,  -13,   -9,     3,      4,    6,     6,         31    \ Vertex 8
  VERTEX  -24,    5,  -15,     4,      5,    6,     6,         31    \ Vertex 9
 
+.SHIP_CANISTER_EDGES
+
 \EDGE vertex1, vertex2, face1, face2, visibility
  EDGE       0,       1,     0,     1,         31    \ Edge 0
  EDGE       1,       2,     0,     2,         31    \ Edge 1
@@ -36297,7 +36299,7 @@ ENDMACRO
 
  EQUB 0                 \ Max. canisters on demise = 0
  EQUW 40 * 40           \ Targetable area          = 40 * 40
- EQUB &A8               \ Edges data offset (low)  = &FFA8 = -88 (canister)
+ EQUB LO(SHIP_CANISTER_EDGES - SHIP_THARGON)    \ Edges data = canister
  EQUB &50               \ Faces data offset (low)  = &0050
  EQUB 65                \ Max. edge count          = (65 - 1) / 4 = 16
  EQUB 0                 \ Gun vertex               = 0
@@ -36309,7 +36311,7 @@ ENDMACRO
  EQUB 20                \ Visibility distance      = 20
  EQUB 20                \ Max. energy              = 20
  EQUB 30                \ Max. speed               = 30
- EQUB &FF               \ Edges data offset (high) = &FFA8 = -88 (canister)
+ EQUB HI(SHIP_CANISTER_EDGES - SHIP_THARGON)    \ Edges data = canister
  EQUB &00               \ Faces data offset (high) = &0050
  EQUB 2                 \ Normals are scaled by    = 2^2 = 4
  EQUB %00010000         \ Laser power              = 2
@@ -36372,6 +36374,8 @@ ENDMACRO
  VERTEX   -7,  -14,  -12,     2,      0,    3,     3,         31    \ Vertex 1
  VERTEX   -7,   14,  -12,     1,      0,    3,     3,         31    \ Vertex 2
  VERTEX   21,    0,    0,     1,      0,    2,     2,         31    \ Vertex 3
+
+.SHIP_ESCAPE_POD_EDGES
 
 \EDGE vertex1, vertex2, face1, face2, visibility
  EDGE       0,       1,     3,     2,         31    \ Edge 0
