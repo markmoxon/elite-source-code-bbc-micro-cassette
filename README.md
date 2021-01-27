@@ -2,7 +2,7 @@
 
 This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained.
 
-It is a companion to the [bbcelite.com website](https://www.bbcelite.com), which contains all the code from this repository, but laid out in a much more human-friendly fashion. There is also a sister repository for the [enhanced 6502 Second Processor version of Elite](https://github.com/markmoxon/6502sp-elite-beebasm).
+It is a companion to the [bbcelite.com website](https://www.bbcelite.com), which contains all the code from this repository, but laid out in a much more human-friendly fashion. There are two sister repositories, one for the [disc version of Elite](https://github.com/markmoxon/disc-elite-beebasm) and another for the [6502 Second Processor version of Elite](https://github.com/markmoxon/6502sp-elite-beebasm).
 
 * If you want to browse the source and read about how Elite works under the hood, you will probably find [the website](https://www.bbcelite.com) is a better place to start than this repository.
 
