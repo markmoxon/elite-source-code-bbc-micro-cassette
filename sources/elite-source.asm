@@ -35301,6 +35301,32 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
+\       Name: XX21
+\       Type: Variable
+\   Category: Drawing ships
+\    Summary: Ship blueprints lookup table
+\  Deep dive: Ship blueprints
+\
+\ ******************************************************************************
+
+.XX21
+
+ EQUW SHIP_SIDEWINDER   \         1 = Sidewinder
+ EQUW SHIP_VIPER        \ COPS =  2 = Viper
+ EQUW SHIP_MAMBA        \ MAM  =  3 = Mamba
+ EQUW SHIP_PYTHON       \         4 = Python
+ EQUW SHIP_COBRA_MK_3   \         5 = Cobra Mk III (bounty hunter)
+ EQUW SHIP_THARGOID     \ THG  =  6 = Thargoid
+ EQUW SHIP_COBRA_MK_3   \ CYL  =  7 = Cobra Mk III (trader)
+ EQUW SHIP_CORIOLIS     \ SST  =  8 = Coriolis space station
+ EQUW SHIP_MISSILE      \ MSL  =  9 = Missile
+ EQUW SHIP_ASTEROID     \ AST  = 10 = Asteroid
+ EQUW SHIP_CANISTER     \ OIL  = 11 = Cargo canister
+ EQUW SHIP_THARGON      \ TGL  = 12 = Thargon
+ EQUW SHIP_ESCAPE_POD   \ ESC  = 13 = Escape pod
+
+\ ******************************************************************************
+\
 \       Name: VERTEX
 \       Type: Macro
 \   Category: Drawing ships
@@ -35468,32 +35494,6 @@ MACRO FACE normal_x, normal_y, normal_z, visibility
   EQUB s, ax, ay, az
 
 ENDMACRO
-
-\ ******************************************************************************
-\
-\       Name: XX21
-\       Type: Variable
-\   Category: Drawing ships
-\    Summary: Ship blueprints lookup table
-\  Deep dive: Ship blueprints
-\
-\ ******************************************************************************
-
-.XX21
-
- EQUW SHIP_SIDEWINDER   \         1 = Sidewinder
- EQUW SHIP_VIPER        \ COPS =  2 = Viper
- EQUW SHIP_MAMBA        \ MAM  =  3 = Mamba
- EQUW SHIP_PYTHON       \         4 = Python
- EQUW SHIP_COBRA_MK_3   \         5 = Cobra Mk III (bounty hunter)
- EQUW SHIP_THARGOID     \ THG  =  6 = Thargoid
- EQUW SHIP_COBRA_MK_3   \ CYL  =  7 = Cobra Mk III (trader)
- EQUW SHIP_CORIOLIS     \ SST  =  8 = Coriolis space station
- EQUW SHIP_MISSILE      \ MSL  =  9 = Missile
- EQUW SHIP_ASTEROID     \ AST  = 10 = Asteroid
- EQUW SHIP_CANISTER     \ OIL  = 11 = Cargo canister
- EQUW SHIP_THARGON      \ TGL  = 12 = Thargon
- EQUW SHIP_ESCAPE_POD   \ ESC  = 13 = Escape pod
 
 \ ******************************************************************************
 \
