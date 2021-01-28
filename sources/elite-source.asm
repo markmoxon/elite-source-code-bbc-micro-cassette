@@ -25769,7 +25769,8 @@ LOAD_E% = LOAD% + P% - CODE%
  CPY LSP                \ If Y >= LSP then we have reached the end of the line
  BCS WP1                \ heap and have finished redrawing the planet (as LSP
                         \ points to the end of the heap), so jump to WP1 to
-                        \ reset the line heap
+                        \ reset the line heap, returning from the subroutine
+                        \ using a tail call
 
  LDA LSY2,Y             \ Set A to the y-coordinate of the current heap entry
 
@@ -25808,6 +25809,14 @@ LOAD_E% = LOAD% + P% - CODE%
  INY                    \ Increment the loop counter to point to the next point
 
  JMP WPL1               \ Loop back to WPL1 for the next point in the heap
+\ ******************************************************************************
+\
+\       Name: WP1
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Reset the ball line heap
+\
+\ ******************************************************************************
 
 .WP1
 
