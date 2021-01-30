@@ -11105,9 +11105,9 @@ NEXT
                         \ vertical bar (i.e. A is acting as a mask on the
                         \ 4-pixel colour byte)
 
- BNE DLL12              \ If A is non-zero then we have something to draw, so
-                        \ jump to DLL12 to skip the following and move on to the
-                        \ drawing
+ BNE DLL12              \ Jump to DLL12 to skip the code for drawing a blank,
+                        \ and move on to drawing the indicator (this BNE is
+                        \ effectively a JMP as A is always non-zero)
 
 .DLL11
 
@@ -12928,10 +12928,10 @@ LOAD_C% = LOAD% +P% - CODE%
  LDA #48                \ Call the NOISE routine with A = 48 to make the sound
  JSR NOISE              \ of the ship launching from the station
 
- LDA #8                 \ Set the step size for the hyperspace rings to 8, so
+ LDA #8                 \ Set the step size for the launch tunnel rings to 8, so
                         \ there are fewer sections in the rings and they are
                         \ quite polygonal (compared to the step size of 4 used
-                        \ in the much rounder launch rings)
+                        \ in the much rounder hyperspace rings)
 
                         \ Fall through into HFS2 to draw the launch tunnel rings
 
@@ -20345,7 +20345,7 @@ LOAD_D% = LOAD% + P% - CODE%
 .TT110
 
  LDX QQ12               \ If we are not docked (QQ12 = 0) then jump to NLUNCH
- BEQ NLUNCH
+ BEQ NLUNCH             \ to skip the launch tunnel and setup process
 
  JSR LAUN               \ Show the space station launch tunnel
 
@@ -23305,7 +23305,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ page in memory (256 bytes), so we now OR with &60 to
                         \ get the page containing the dash (see the comments in
                         \ routine TT26 for more discussion about calculating
-                        \ screen memory addresses
+                        \ screen memory addresses)
 
  STA SCH                \ Store the screen page in the high byte of SC(1 0)
 
@@ -26474,7 +26474,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  TYA                    \ Copy Y to A
 
- TAX                    \ Copy A to X
+ TAX                    \ Copy A to X, so X contains the joystick roll value
 
  LDA JSTY               \ Fetch the joystick pitch, ranging from 1 to 255 with
                         \ 128 as the centre point, and fall through into TJS1 to
