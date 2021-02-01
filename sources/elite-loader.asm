@@ -194,7 +194,7 @@ EXCN = &85              \ Gets set to &03C2 as part of the obfuscation code
 \     &7800, which is the starting point of the four-colour mode 5 portion at
 \     the bottom of the split screen
 \
-\  The routine ends with a jump to the start of the loader code at ENTRY.
+\ The routine ends with a jump to the start of the loader code at ENTRY.
 \
 \ ******************************************************************************
 
@@ -326,7 +326,7 @@ ORG O%
  EQUB 23, 0, 10, 32     \ Set 6845 register R10 = 32
  EQUB 0, 0, 0           \
  EQUB 0, 0, 0           \ This is the "cursor start" register, which sets the
-                        \ cursor start line at 0 with a fast blink rate
+                        \ cursor start line at 0, so it turns the cursor off
 
 \ ******************************************************************************
 \
@@ -669,10 +669,10 @@ ENDIF
 
  BPL purge              \ Loop back until we have done all the vectors
 
- LDA #&60               \ Store an RTS instruction in location &232 NETV
+ LDA #&60               \ Store an RTS instruction in location &232
  STA &232
 
- LDA #&2                \ Point the NETV vector at &232, which we just filled
+ LDA #&2                \ Point the NETV vector to &232, which we just filled
  STA NETV+1             \ with an RTS
  LDA #&32
  STA NETV
@@ -855,8 +855,8 @@ ENDIF
  JSR OSB                \ cursor editing, so the cursor keys return ASCII values
                         \ and can therefore be used in-game
 
- LDA #9                 \ Disable flashing colours (via OSBYTE 9)
- LDX #0
+ LDA #9                 \ Call OSBYTE with A = 9, X = 0 and Y = 0 to disable
+ LDX #0                 \ flashing colours
  JSR OSB
 
  LDA #&6C               \ Poke &6C into crunchit after EOR'ing it first (which

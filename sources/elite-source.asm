@@ -28677,7 +28677,8 @@ ENDIF
 
 .tZ
 
- ORA #2                 \ Set bit 1 of A to denote this is the cassette version
+ ORA #%00000010         \ Set bit 1 of A to denote that this is the cassette
+                        \ version
 
  STA COK                \ Store the updated competition flags in COK
 
