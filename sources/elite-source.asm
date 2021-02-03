@@ -28644,16 +28644,15 @@ LOAD_F% = LOAD% + P% - CODE%
 
 IF _REMOVE_CHECKSUMS
 
- NOP                    \ If we have disabled the commander check, then ignore
- NOP                    \ the checksum and fall through into the next part
+ NOP                    \ If we have disabled checksums then ignore the result
+ NOP                    \ and fall through into the next part
 
 ELSE
 
- BNE P%-6               \ If commander check is enabled and the calculated
-                        \ checksum does not match CHK, then loop back to repeat
-                        \ the check - in other words, we enter an infinite loop
-                        \ here, as the checksum routine will keep returning the
-                        \ same incorrect value
+ BNE P%-6               \ If the calculated checksum does not match CHK, then
+                        \ loop back to repeat the check - in other words, we
+                        \ enter an infinite loop here, as the checksum routine
+                        \ will keep returning the same incorrect value
 
 ENDIF
 

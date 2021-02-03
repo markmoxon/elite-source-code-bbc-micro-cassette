@@ -1149,7 +1149,7 @@ IF DISC
 
 IF _REMOVE_CHECKSUMS
 
- NOP                    \ Skip the OSBYTE call if checksums are disabled
+ NOP                    \ If we have disabled checksums, skip the OSBYTE call
  NOP
  NOP
 
@@ -1909,8 +1909,8 @@ ENDIF
 
 IF _REMOVE_CHECKSUMS
 
- EQUB HI(TUT)           \ LDA TUT,Y
- EQUB LO(TUT)
+ EQUB HI(TUT)           \ If we have disabled checksums, then just load the Y-th
+ EQUB LO(TUT)           \ byte of TUT with LDA TUT,Y
  EQUB &B9
 
 ELSE
@@ -2021,8 +2021,8 @@ ENDIF
 
 IF _REMOVE_CHECKSUMS
 
- NOP                    \ Skip the EOR if checksums are disabled
- NOP
+ NOP                    \ If we have disabled checksums, skip the EOR so the
+ NOP                    \ routine just does the copying part
  NOP
 
 ELSE
@@ -2565,13 +2565,12 @@ ENDIF
 
 IF _REMOVE_CHECKSUMS
 
- LDA (ZP),Y             \ If encryption is disabled, fetch the byte to copy from
-                        \ the Y-th block pointed to by ZP(1 0)
+ LDA (ZP),Y             \ If we have disabled checksums, just fetch the byte to
+                        \ copy from the Y-th block pointed to by ZP(1 0)
 
 ELSE
 
- EOR (ZP),Y             \ If encryption is enabled, fetch the byte and EOR it
-                        \ with the counter
+ EOR (ZP),Y             \ Fetch the byte and EOR it with the counter
 
 ENDIF
 
@@ -2951,7 +2950,7 @@ ENDIF
 
 IF _REMOVE_CHECKSUMS
 
- LDA #0                 \ If the checksum is disabled, just set A to 0 so the
+ LDA #0                 \ If we have disabled checksums, just set A to 0 so the
  NOP                    \ BEQ below jumps to itsOK
 
 ELSE
@@ -3042,14 +3041,14 @@ ENDIF
 
 IF _REMOVE_CHECKSUMS
 
- NOP                    \ If checksums are disabled, do nothing
+ NOP                    \ If we have disabled checksums, do nothing
  NOP
 
 ELSE
 
- BNE nononono           \ If checksums are enabled and the checksum we just
-                        \ calculated does not match the contents of MAINSUM+1,
-                        \ jump to nononono to reset the machine
+ BNE nononono           \ If the checksum we just calculated does not match the
+                        \ contents of MAINSUM+1, jump to nononono to reset the
+                        \ machine
 
 ENDIF
 
@@ -3076,14 +3075,14 @@ ENDIF
 
 IF _REMOVE_CHECKSUMS
 
- NOP                    \ If checksums are disabled, do nothing
+ NOP                    \ If we have disabled checksums, do nothing
  NOP
 
 ELSE
 
- BNE nononono           \ If checksums are enabled and the checksum we just
-                        \ calculated does not match the contents of MAINSUM,
-                        \ jump to nononono to reset the machine
+ BNE nononono           \ If the checksum we just calculated does not match the
+                        \ contents of MAINSUM, jump to nononono to reset the
+                        \ machine
 
 ENDIF
 
@@ -3102,19 +3101,19 @@ ENDIF
 
 IF _REMOVE_CHECKSUMS
 
- RTS                    \ If checksums are disabled, return from the subroutine
- NOP
+ RTS                    \ If we have disabled checksums, return from the
+ NOP                    \ subroutine
  NOP
 
 ELSE
 
- JMP (CHECKV)           \ If checksums are enabled, call the LBL routine in the
-                        \ header (whose address is in CHECKV). This routine is
-                        \ inserted before the main game code by elite-bcfs.asm,
-                        \ and it checks the validity of the first two pages of
-                        \ the UU% routine, which was copied to LE% above, and
-                        \ which contains a checksum byte in CHECKbyt. We return
-                        \ from the subroutine using a tail call
+ JMP (CHECKV)           \ Call the LBL routine in the header (whose address is
+                        \ in CHECKV). This routine is inserted before the main
+                        \ game code by elite-bcfs.asm, and it checks the
+                        \ validity of the first two pages of the UU% routine,
+                        \ which was copied to LE% above, and which contains a
+                        \ checksum byte in CHECKbyt. We then return from the
+                        \ subroutine using a tail call
 
 ENDIF
 
