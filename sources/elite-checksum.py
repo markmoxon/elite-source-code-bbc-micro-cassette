@@ -4,7 +4,7 @@
 #
 # ELITE CHECKSUM SCRIPT
 #
-# Written by Kieran Connell
+# Written by Kieran Connell and Mark Moxon
 #
 # This script applies encryption, checksums and obfuscation to the compiled
 # binaries for the main game and the loader. The script has two parts:
@@ -24,7 +24,7 @@ argv = sys.argv
 argc = len(argv)
 Encrypt = True
 
-if argc > 1 and argv[1] == '-u':
+if argc > 1 and argv[1] == "-u":
     Encrypt = False
 
 print("Elite Big Code File")
@@ -35,13 +35,13 @@ eliteb_offset = 0
 
 # Append all assembled code files
 
-elite_names = ('ELThead', 'ELTA', 'ELTB', 'ELTC', 'ELTD', 'ELTE', 'ELTF', 'ELTG')
+elite_names = ("ELThead", "ELTA", "ELTB", "ELTC", "ELTD", "ELTE", "ELTF", "ELTG")
 
 for file_name in elite_names:
     print(str(len(data_block)), file_name)
-    if file_name == 'ELTB':
+    if file_name == "ELTB":
         eliteb_offset = len(data_block)
-    elite_file = open('output/' + file_name + '.bin', 'rb')
+    elite_file = open("output/" + file_name + ".bin", "rb")
     data_block.extend(elite_file.read())
     elite_file.close()
 
@@ -71,9 +71,11 @@ data_block.append(0)
 
 # Append SHIPS file
 
-ships_file = open('output/SHIPS.bin', 'rb')
+ships_file = open("output/SHIPS.bin", "rb")
 data_block.extend(ships_file.read())
 ships_file.close()
+
+print("output/SHIPS.bin file saved")
 
 # Calculate checksum0
 
@@ -100,11 +102,14 @@ for n in range(0x0, 0x28):
 
 print("checksum 1 = ", checksum1)
 
-# Write output file for 'ELTcode'
+# Write output file for ELTcode
 
-output_file = open('output/ELTcode.bin', 'wb')
+output_file = open("output/ELTcode.bin", "wb")
 output_file.write(data_block)
 output_file.close()
+
+print("output/ELTcode.bin file saved")
+
 output_file = None
 
 data_block = None
@@ -114,7 +119,7 @@ print("Elite Loader Checksums")
 
 loader_block = bytearray()
 
-loader_file = open('output/ELITE.unprot.bin', 'rb')
+loader_file = open("output/ELITE.unprot.bin", "rb")
 loader_block.extend(loader_file.read())
 loader_file.close()
 
@@ -174,9 +179,10 @@ if Encrypt:
         for j in range(0, 256):
             loader_block[j + i * 256] ^= loader_block[j + 0xf86]
 
-# Write output file for 'ELITE'
+# Write output file for ELITE
 
-output_file = open('output/ELITE.bin', 'wb')
+output_file = open("output/ELITE.bin", "wb")
 output_file.write(loader_block)
 output_file.close()
-output_file = None
+
+print("output/ELITE.bin file saved")
