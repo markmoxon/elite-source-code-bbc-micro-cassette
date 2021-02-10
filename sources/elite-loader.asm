@@ -719,15 +719,15 @@ ENDIF
  LDA #&48               \ routine and set up another couple of variables
  JSR doPROT1
 
- LDA #144               \ Call OSBYTE with A = 144 and Y = 0 to turn the screen
- JSR OSB                \ interlace on (equivalent to a *TV 255,0 command)
+ LDA #144               \ Call OSBYTE with A = 144, X = 255 and Y = 0 to move
+ JSR OSB                \ the screen down one line and turn screen interlace on
 
  LDA #247               \ Call OSBYTE with A = 247 and X = Y = 0 to disable the
  LDX #0                 \ BREAK intercept code by poking 0 into the first value
  JSR OSB
 
-\LDA #&81               \ These instructions are commented out in the original
-\LDY #&FF               \ source, along with the comment "Damn 0.1", so
+\LDA #129               \ These instructions are commented out in the original
+\LDY #255               \ source, along with the comment "Damn 0.1", so
 \LDX #1                 \ presumably MOS version 0.1 was a bit of a pain to
 \JSR OSBYTE             \ support - which is probably why Elite doesn't bother
 \TXA                    \ and only supports 1.0 and 1.2
@@ -832,7 +832,7 @@ ENDIF
  LDA #HI(B%)            \ Set the high byte of ZP(1 0) to point to the VDU code
  STA ZP+1               \ table at B%
 
- LDY #0                 \ We are now going to send the 67 VDU bytes in the table
+ LDY #0                 \ We are now going to send the N% VDU bytes in the table
                         \ at B% to OSWRCH to set up the special mode 4 screen
                         \ that forms the basis for the split-screen mode
 
