@@ -39,7 +39,7 @@ def main():
                     zlib.crc32(data) & 0xffffffff,
                     len(data),
                     full_name)
-                    )
+                )
         print()
     else:
         # Do CRC on two folders
@@ -78,7 +78,7 @@ def main():
                         len(data2),
                         match,
                         name)
-                        )
+                    )
                 elif name in names1 and os.path.isfile(full_name1):
                     with open(full_name1, 'rb') as f:
                         data = f.read()
@@ -89,7 +89,7 @@ def main():
                         '    -',
                         '  -  ',
                         name)
-                        )
+                    )
                 elif name in names2 and os.path.isfile(full_name2):
                     with open(full_name2, 'rb') as f:
                         data = f.read()
@@ -100,7 +100,7 @@ def main():
                         len(data),
                         '  -  ',
                         name)
-                        )
+                    )
         print()
 
 
