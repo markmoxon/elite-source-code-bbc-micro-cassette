@@ -36307,7 +36307,7 @@ ENDMACRO
 
  EQUB 0                 \ Max. canisters on demise = 0
  EQUW 40 * 40           \ Targetable area          = 40 * 40
- EQUB LO(SHIP_CANISTER_EDGES - SHIP_THARGON)    \ Edges data = canister
+ EQUB LO(SHIP_CANISTER_EDGES - SHIP_THARGON)         \ Edges data = canister
  EQUB &50               \ Faces data offset (low)  = &0050
  EQUB 65                \ Max. edge count          = (65 - 1) / 4 = 16
  EQUB 0                 \ Gun vertex               = 0
@@ -36319,7 +36319,7 @@ ENDMACRO
  EQUB 20                \ Visibility distance      = 20
  EQUB 20                \ Max. energy              = 20
  EQUB 30                \ Max. speed               = 30
- EQUB HI(SHIP_CANISTER_EDGES - SHIP_THARGON)    \ Edges data = canister
+ EQUB HI(SHIP_CANISTER_EDGES - SHIP_THARGON)         \ Edges data = canister
  EQUB &00               \ Faces data offset (high) = &0050
  EQUB 2                 \ Normals are scaled by    = 2^2 = 4
  EQUB %00010000         \ Laser power              = 2
