@@ -238,8 +238,8 @@ ORG O%
 \
 \ ------------------------------------------------------------------------------
 \
-\ This block contains the bytes that get written by OSWRCH in part 2 to set up
-\ the screen mode (this is equivalent to using the VDU statement in BASIC).
+\ This block contains the bytes that get written by OSWRCH to set up the screen
+\ mode (this is equivalent to using the VDU statement in BASIC).
 \
 \ It defines the whole screen using a square, monochrome mode 4 configuration;
 \ the mode 5 part for the dashboard is implemented in the IRQ1 routine.
@@ -259,7 +259,7 @@ ORG O%
 \
 \   * The text window is 1 row high and 13 columns wide, and is at (2, 16)
 \
-\   * There's a large, fast-blinking cursor
+\   * The cursor is disabled
 \
 \ This almost-square mode 4 variant makes life a lot easier when drawing to the
 \ screen, as there are 256 pixels on each row (or, to put it in screen memory
@@ -325,8 +325,9 @@ ORG O%
 
  EQUB 23, 0, 10, 32     \ Set 6845 register R10 = 32
  EQUB 0, 0, 0           \
- EQUB 0, 0, 0           \ This is the "cursor start" register, which sets the
-                        \ cursor start line at 0, so it turns the cursor off
+ EQUB 0, 0, 0           \ This is the "cursor start" register, so this sets the
+                        \ cursor start line at 0, effectively disabling the
+                        \ cursor
 
 \ ******************************************************************************
 \
