@@ -6682,8 +6682,8 @@ LOAD_B% = LOAD% + P% - CODE%
                         \ Note that this byte must not have bit 7 set, or
                         \ loading this commander will cause the game to restart
 
- EQUB 20                \ QQ0 = current system X-coordinate (Lave), #1
- EQUB 173               \ QQ1 = current system Y-coordinate (Lave), #2
+ EQUB 20                \ QQ0 = Current system X-coordinate (Lave), #1
+ EQUB 173               \ QQ1 = Current system Y-coordinate (Lave), #2
 
  EQUW &5A4A             \ QQ21 = Seed s0 for system 0, galaxy 0 (Tibedied), #3-4
  EQUW &0248             \ QQ21 = Seed s1 for system 0, galaxy 0 (Tibedied), #5-6
@@ -6714,11 +6714,23 @@ ENDIF
 
  EQUB 22+(15 AND Q%)    \ CRGO = Cargo capacity, #22
 
- EQUD 0                 \ QQ20 = Contents of cargo hold (17 bytes), #23-39
- EQUD 0
- EQUD 0
- EQUD 0
- EQUB 0
+ EQUB 0                 \ QQ20+0  = Amount of Food in cargo hold, #23
+ EQUB 0                 \ QQ20+1  = Amount of Textiles in cargo hold, #24
+ EQUB 0                 \ QQ20+2  = Amount of Radioactives in cargo hold, #25
+ EQUB 0                 \ QQ20+3  = Amount of Slaves in cargo hold, #26
+ EQUB 0                 \ QQ20+4  = Amount of Liquor/Wines in cargo hold, #27
+ EQUB 0                 \ QQ20+5  = Amount of Luxuries in cargo hold, #28
+ EQUB 0                 \ QQ20+6  = Amount of Narcotics in cargo hold, #29
+ EQUB 0                 \ QQ20+7  = Amount of Computers in cargo hold, #30
+ EQUB 0                 \ QQ20+8  = Amount of Machinery in cargo hold, #31
+ EQUB 0                 \ QQ20+9  = Amount of Alloys in cargo hold, #32
+ EQUB 0                 \ QQ20+10 = Amount of Firearms in cargo hold, #33
+ EQUB 0                 \ QQ20+11 = Amount of Furs in cargo hold, #34
+ EQUB 0                 \ QQ20+12 = Amount of Minerals in cargo hold, #35
+ EQUB 0                 \ QQ20+13 = Amount of Gold in cargo hold, #36
+ EQUB 0                 \ QQ20+14 = Amount of Platinum in cargo hold, #37
+ EQUB 0                 \ QQ20+15 = Amount of Gem-Stones in cargo hold, #38
+ EQUB 0                 \ QQ20+16 = Amount of Alien Items in cargo hold, #39
 
  EQUB Q%                \ ECM = E.C.M., #40
 
@@ -6734,29 +6746,29 @@ ENDIF
 
  EQUB Q%                \ ESCP = Escape pod, #46
 
- EQUD FALSE             \ These four bytes are unused, #47-50
+ EQUD 0                 \ These four bytes are unused, #47-50
 
  EQUB 3+(Q% AND 1)      \ NOMSL = Number of missiles, #51
 
- EQUB FALSE             \ FIST = Legal status ("fugitive/innocent status"), #52
+ EQUB 0                 \ FIST = Legal status ("fugitive/innocent status"), #52
 
- EQUB 16                \ AVL = Market availability (17 bytes), #53-69
- EQUB 15
- EQUB 17
- EQUB 0
- EQUB 3
- EQUB 28
- EQUB 14
- EQUB 0
- EQUB 0
- EQUB 10
- EQUB 0
- EQUB 17
- EQUB 58
- EQUB 7
- EQUB 9
- EQUB 8
- EQUB 0
+ EQUB 16                \ AVL+0  = Market availability of Food, #53
+ EQUB 15                \ AVL+1  = Market availability of Textiles, #54
+ EQUB 17                \ AVL+2  = Market availability of Radioactives, #55
+ EQUB 0                 \ AVL+3  = Market availability of Slaves, #56
+ EQUB 3                 \ AVL+4  = Market availability of Liquor/Wines, #57
+ EQUB 28                \ AVL+5  = Market availability of Luxuries, #58
+ EQUB 14                \ AVL+6  = Market availability of Narcotics, #59
+ EQUB 0                 \ AVL+7  = Market availability of Computers, #60
+ EQUB 0                 \ AVL+8  = Market availability of Machinery, #61
+ EQUB 10                \ AVL+9  = Market availability of Alloys, #62
+ EQUB 0                 \ AVL+10 = Market availability of Firearms, #63
+ EQUB 17                \ AVL+11 = Market availability of Furs, #64
+ EQUB 58                \ AVL+12 = Market availability of Minerals, #65
+ EQUB 7                 \ AVL+13 = Market availability of Gold, #66
+ EQUB 9                 \ AVL+14 = Market availability of Platinum, #67
+ EQUB 8                 \ AVL+15 = Market availability of Gem-Stones, #68
+ EQUB 0                 \ AVL+16 = Market availability of Alien Items, #69
 
  EQUB 0                 \ QQ26 = Random byte that changes for each visit to a
                         \ system, for randomising market prices, #70
