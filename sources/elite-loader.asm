@@ -235,6 +235,8 @@ ORG O%
 \       Type: Variable
 \   Category: Screen mode
 \    Summary: VDU commands for setting the square mode 4 screen
+\  Deep dive: The split-screen mode
+\             Drawing monochrome pixels in mode 4
 \
 \ ------------------------------------------------------------------------------
 \

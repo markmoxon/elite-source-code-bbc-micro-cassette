@@ -106,7 +106,6 @@ f9 = &77                \ Internal key number for red key f9 (Inventory)
 \   Category: Workspaces
 \    Summary: Lots of important variables are stored in the zero page workspace
 \             as it is quicker and more space-efficient to access memory here
-\  Deep dive: The Elite memory map
 \
 \ ******************************************************************************
 
@@ -2567,6 +2566,7 @@ SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
 \   Category: Workspaces
 \    Summary: Ship data blocks and ship line heaps
 \  Deep dive: Ship data blocks
+\             The local bubble of universe
 \
 \ ------------------------------------------------------------------------------
 \
@@ -3209,6 +3209,8 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: Seed the random number generator
+\  Deep dive: Program flow of the main game loop
+\             Generating random numbers
 \
 \ ------------------------------------------------------------------------------
 \
@@ -3241,6 +3243,8 @@ LOAD_A% = LOAD%
 \   Category: Main loop
 \    Summary: Calculate the alpha and beta angles from the current pitch and
 \             roll of our ship
+\  Deep dive: Program flow of the main game loop
+\             Pitching and rolling
 \
 \ ------------------------------------------------------------------------------
 \
@@ -3383,6 +3387,8 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: Scan for flight keys and process the results
+\  Deep dive: Program flow of the main game loop
+\             The key logger
 \
 \ ------------------------------------------------------------------------------
 \
@@ -3633,6 +3639,8 @@ LOAD_A% = LOAD%
 \   Category: Main loop
 \    Summary: For each nearby ship: Copy the ship's data block from K% to the
 \             zero-page workspace at INWK
+\  Deep dive: Program flow of the main game loop
+\             Ship data blocks
 \
 \ ------------------------------------------------------------------------------
 \
@@ -3721,6 +3729,7 @@ LOAD_A% = LOAD%
 \   Category: Main loop
 \    Summary: For each nearby ship: If an energy bomb has been set off,
 \             potentially kill this ship
+\  Deep dive: Program flow of the main game loop
 \
 \ ------------------------------------------------------------------------------
 \
@@ -3761,7 +3770,9 @@ LOAD_A% = LOAD%
 \   Category: Main loop
 \    Summary: For each nearby ship: Move the ship in space and copy the updated
 \             INWK data block back to K%
-\  Deep dive: Program flow of the ship-moving routine
+\  Deep dive: Program flow of the main game loop
+\             Program flow of the ship-moving routine
+\             Ship data blocks
 \
 \ ------------------------------------------------------------------------------
 \
@@ -3808,6 +3819,7 @@ LOAD_A% = LOAD%
 \   Category: Main loop
 \    Summary: For each nearby ship: Check whether we are docking, scooping or
 \             colliding with it
+\  Deep dive: Program flow of the main game loop
 \
 \ ------------------------------------------------------------------------------
 \
@@ -3884,6 +3896,7 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: For each nearby ship: Process us potentially scooping this item
+\  Deep dive: Program flow of the main game loop
 \
 \ ------------------------------------------------------------------------------
 \
@@ -3970,7 +3983,8 @@ LOAD_A% = LOAD%
 \   Category: Main loop
 \    Summary: For each nearby ship: If it is a space station, check whether we
 \             are successfully docking with it
-\  Deep dive: Docking checks
+\  Deep dive: Program flow of the main game loop
+\             Docking checks
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4054,6 +4068,7 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: For each nearby ship: Remove if scooped, or process collisions
+\  Deep dive: Program flow of the main game loop
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4133,6 +4148,8 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: For each nearby ship: Process missile lock and firing our laser
+\  Deep dive: Program flow of the main game loop
+\             Flipping axes between space views
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4256,6 +4273,8 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: For each nearby ship: Draw the ship, remove if killed, loop back
+\  Deep dive: Program flow of the main game loop
+\             Drawing ships
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4361,7 +4380,8 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: Show energy bomb effect, charge shields and energy banks
-\  Deep dive: Scheduling tasks with the main loop counter
+\  Deep dive: Program flow of the main game loop
+\             Scheduling tasks with the main loop counter
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4433,6 +4453,9 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: Spawn a space station if we are close enough to the planet
+\  Deep dive: Program flow of the main game loop
+\             Scheduling tasks with the main loop counter
+\             Ship data blocks
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4557,6 +4580,8 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: Perform altitude checks with planet and sun, process fuel scooping
+\  Deep dive: Program flow of the main game loop
+\             Scheduling tasks with the main loop counter
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4732,6 +4757,7 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: Process laser pulsing, E.C.M. energy drain, call stardust routine
+\  Deep dive: Program flow of the main game loop
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5013,7 +5039,8 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Moving
 \    Summary: Move current ship: Tidy the orientation vectors
-\  Deep dive: Orientation vectors
+\  Deep dive: Program flow of the ship-moving routine
+\             Scheduling tasks with the main loop counter
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5071,6 +5098,7 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Moving
 \    Summary: Move current ship: Call tactics routine, remove ship from scanner
+\  Deep dive: Scheduling tasks with the main loop counter
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5518,6 +5546,8 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Moving
 \    Summary: Move current ship: Rotate ship's orientation vectors by pitch/roll
+\  Deep dive: Orientation vectors
+\             Pitching and rolling
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5548,6 +5578,8 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Moving
 \    Summary: Move current ship: Rotate ship about itself by its own pitch/roll
+\  Deep dive: Orientation vectors
+\             Pitching and rolling by a fixed angle
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5940,7 +5972,8 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Moving
 \    Summary: Apply pitch and roll to an orientation vector
-\  Deep dive: Pitching and rolling
+\  Deep dive: Orientation vectors
+\             Pitching and rolling
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6058,7 +6091,8 @@ LOAD_A% = LOAD%
 \       Type: Subroutine
 \   Category: Moving
 \    Summary: Apply a 3.6 degree pitch or roll to an orientation vector
-\  Deep dive: Pitching and rolling by a fixed angle
+\  Deep dive: Orientation vectors
+\             Pitching and rolling by a fixed angle
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6635,6 +6669,8 @@ LOAD_B% = LOAD% + P% - CODE%
 \       Type: Variable
 \   Category: Save and load
 \    Summary: The data block for the last saved commander
+\  Deep dive: Commander save files
+\             The competition code
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6783,6 +6819,8 @@ ENDIF
 \       Type: Variable
 \   Category: Save and load
 \    Summary: Second checksum byte for the saved commander data file
+\  Deep dive: Commander save files
+\             The competition code
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6806,6 +6844,8 @@ ENDIF
 \       Type: Variable
 \   Category: Save and load
 \    Summary: First checksum byte for the saved commander data file
+\  Deep dive: Commander save files
+\             The competition code
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6849,6 +6889,7 @@ NEXT
 \       Type: Variable
 \   Category: Drawing pixels
 \    Summary: Ready-made single-pixel character row bytes for mode 4
+\  Deep dive: Drawing colour pixels in mode 4
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6874,6 +6915,7 @@ NEXT
 \       Type: Variable
 \   Category: Drawing pixels
 \    Summary: Ready-made double-pixel character row bytes for mode 4
+\  Deep dive: Drawing colour pixels in mode 4
 \
 \ ------------------------------------------------------------------------------
 \
@@ -6899,6 +6941,7 @@ NEXT
 \       Type: Variable
 \   Category: Drawing pixels
 \    Summary: Ready-made single-pixel character row bytes for mode 5
+\  Deep dive: Drawing colour pixels in mode 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -7026,6 +7069,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a line: Line has a shallow gradient, step right along x-axis
+\  Deep dive: Bresenham's line algorithm
 \
 \ ------------------------------------------------------------------------------
 \
@@ -7168,6 +7212,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a shallow line going right and up or left and down
+\  Deep dive: Bresenham's line algorithm
 \
 \ ------------------------------------------------------------------------------
 \
@@ -7252,6 +7297,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a shallow line going right and down or left and up
+\  Deep dive: Bresenham's line algorithm
 \
 \ ------------------------------------------------------------------------------
 \
@@ -7338,6 +7384,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a line: Line has a steep gradient, step up along y-axis
+\  Deep dive: Bresenham's line algorithm
 \
 \ ------------------------------------------------------------------------------
 \
@@ -7483,6 +7530,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a steep line going up and left or down and right
+\  Deep dive: Bresenham's line algorithm
 \
 \ ------------------------------------------------------------------------------
 \
@@ -7568,6 +7616,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a steep line going up and right or down and left
+\  Deep dive: Bresenham's line algorithm
 \
 \ ------------------------------------------------------------------------------
 \
@@ -8304,6 +8353,7 @@ NEXT
 \   Category: Drawing circles
 \    Summary: Draw a circle segment and add it to the ball line heap
 \  Deep dive: The ball line heap
+\             Drawing circles
 \
 \ ------------------------------------------------------------------------------
 \
@@ -9330,6 +9380,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Status
 \    Summary: Show the Status Mode screen (red key f8)
+\  Deep dive: Combat rank
 \
 \ ******************************************************************************
 
@@ -9652,6 +9703,7 @@ NEXT
 \       Type: Variable
 \   Category: Text
 \    Summary: A constant used when printing large numbers in BPRNT
+\  Deep dive: Printing decimal numbers
 \
 \ ------------------------------------------------------------------------------
 \
@@ -10100,6 +10152,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Text
 \    Summary: Print a character at the text cursor by poking into screen memory
+\  Deep dive: Drawing text
 \
 \ ------------------------------------------------------------------------------
 \
@@ -10486,6 +10539,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Update the dashboard: speed indicator
+\  Deep dive: The dashboard indicators
 \
 \ ------------------------------------------------------------------------------
 \
@@ -10534,6 +10588,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Update the dashboard: pitch and roll indicators
+\  Deep dive: The dashboard indicators
 \
 \ ******************************************************************************
 
@@ -10598,6 +10653,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Update the dashboard: four energy banks
+\  Deep dive: The dashboard indicators
 \
 \ ------------------------------------------------------------------------------
 \
@@ -10721,6 +10777,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Update the dashboard: shields, fuel, laser & cabin temp, altitude
+\  Deep dive: The dashboard indicators
 \
 \ ******************************************************************************
 
@@ -11044,6 +11101,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Update the roll or pitch indicator on the dashboard
+\  Deep dive: The dashboard indicators
 \
 \ ------------------------------------------------------------------------------
 \
@@ -11679,6 +11737,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Type: Subroutine
 \   Category: Tactics
 \    Summary: Apply tactics: Escape pod, station, lone Thargon, safe-zone pirate
+\  Deep dive: Program flow of the tactics routine
 \
 \ ------------------------------------------------------------------------------
 \
@@ -11789,6 +11848,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Type: Subroutine
 \   Category: Tactics
 \    Summary: Apply tactics: Calculate dot product to determine ship's aim
+\  Deep dive: Program flow of the tactics routine
 \
 \ ------------------------------------------------------------------------------
 \
@@ -11845,6 +11905,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Type: Subroutine
 \   Category: Tactics
 \    Summary: Apply tactics: Check energy levels, maybe launch escape pod if low
+\  Deep dive: Program flow of the tactics routine
 \
 \ ------------------------------------------------------------------------------
 \
@@ -11919,6 +11980,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Type: Subroutine
 \   Category: Tactics
 \    Summary: Apply tactics: Consider whether to launch a missile at us
+\  Deep dive: Program flow of the tactics routine
 \
 \ ------------------------------------------------------------------------------
 \
@@ -11981,6 +12043,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Type: Subroutine
 \   Category: Tactics
 \    Summary: Apply tactics: Consider firing a laser at us, if aim is true
+\  Deep dive: Program flow of the tactics routine
 \
 \ ------------------------------------------------------------------------------
 \
@@ -12072,6 +12135,7 @@ LOAD_C% = LOAD% +P% - CODE%
 \       Type: Subroutine
 \   Category: Tactics
 \    Summary: Apply tactics: Set pitch, roll, and acceleration
+\  Deep dive: Program flow of the tactics routine
 \
 \ ------------------------------------------------------------------------------
 \
@@ -13445,6 +13509,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate K(3 2 1 0) = (A P+1 P) * Q
+\  Deep dive: Shift-and-add multiplication
 \
 \ ------------------------------------------------------------------------------
 \
@@ -13852,6 +13917,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (A P) = P * X
+\  Deep dive: Shift-and-add multiplication
 \
 \ ------------------------------------------------------------------------------
 \
@@ -13938,6 +14004,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate A = K * sin(A)
+\  Deep dive: The sine, cosine and arctan tables
 \
 \ ------------------------------------------------------------------------------
 \
@@ -14087,6 +14154,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (A P+1 P) = (A ~P) * Q
+\  Deep dive: Shift-and-add multiplication
 \
 \ ------------------------------------------------------------------------------
 \
@@ -14571,6 +14639,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (A ?) = (-X * A + (S R)) / 96
+\  Deep dive: Shift-and-subtract division
 \
 \ ------------------------------------------------------------------------------
 \
@@ -14723,6 +14792,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (P R) = 256 * A / Q
+\  Deep dive: Shift-and-subtract division
 \
 \ ------------------------------------------------------------------------------
 \
@@ -14791,6 +14861,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate K(3 2 1 0) = (A P+1 P) / (z_sign z_hi z_lo)
+\  Deep dive: Shift-and-subtract division
 \
 \ ------------------------------------------------------------------------------
 \
@@ -15208,6 +15279,7 @@ NEXT
 \       Type: Subroutine
 \   Category: Maths (Geometry)
 \    Summary: Calculate A = arctan(P / Q)
+\  Deep dive: The sine, cosine and arctan tables
 \
 \ ------------------------------------------------------------------------------
 \
@@ -15339,6 +15411,7 @@ NEXT
 \       Type: Variable
 \   Category: Maths (Geometry)
 \    Summary: Arctan table
+\  Deep dive: The sine, cosine and arctan tables
 \
 \ ------------------------------------------------------------------------------
 \
@@ -16813,7 +16886,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Twist the selected system's seeds four times
-\  Deep dive: Galaxy and system seeds
+\  Deep dive: Twisting the system seeds
+\             Galaxy and system seeds
 \
 \ ------------------------------------------------------------------------------
 \
@@ -16842,6 +16916,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \   Category: Universe
 \    Summary: Twist the selected system's seeds
 \  Deep dive: Twisting the system seeds
+\             Galaxy and system seeds
 \
 \ ------------------------------------------------------------------------------
 \
@@ -17058,6 +17133,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Show the Data on System screen (red key f6)
+\  Deep dive: Generating system data
+\             Galaxy and system seeds
 \
 \ ------------------------------------------------------------------------------
 \
@@ -17354,6 +17431,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \   Category: Universe
 \    Summary: Calculate system data from the system seeds
 \  Deep dive: Generating system data
+\             Galaxy and system seeds
 \
 \ ------------------------------------------------------------------------------
 \
@@ -17781,6 +17859,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing circles
 \    Summary: Draw a circle on a chart
+\  Deep dive: Drawing circles
 \
 \ ------------------------------------------------------------------------------
 \
@@ -19336,6 +19415,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Flight
 \    Summary: Perform a galactic hyperspace jump
+\  Deep dive: Twisting the system seeds
+\             Galaxy and system seeds
 \
 \ ------------------------------------------------------------------------------
 \
@@ -19594,6 +19675,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \   Category: Market
 \    Summary: Print the name, price and availability of a market item
 \  Deep dive: Market item prices and availability
+\             Galaxy and system seeds
 \
 \ ------------------------------------------------------------------------------
 \
@@ -20058,6 +20140,8 @@ LOAD_D% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Calculate the availability of a market item
+\  Deep dive: Market item prices and availability
+\             Galaxy and system seeds
 \
 \ ------------------------------------------------------------------------------
 \
@@ -21292,6 +21376,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \   Category: Text
 \    Summary: Print the selected system name
 \  Deep dive: Generating system names
+\             Galaxy and system seeds
 \
 \ ------------------------------------------------------------------------------
 \
@@ -21634,6 +21719,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Text
 \    Summary: Print a text token
+\  Deep dive: Printing text tokens
 \
 \ ------------------------------------------------------------------------------
 \
@@ -24811,6 +24897,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing planets
 \    Summary: Draw a circle or half-circle
+\  Deep dive: The sine, cosine and arctan tables
 \
 \ ------------------------------------------------------------------------------
 \
@@ -25203,6 +25290,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing suns
 \    Summary: Draw the sun: Start from bottom of screen and erase the old sun
+\  Deep dive: Drawing the sun
 \
 \ ------------------------------------------------------------------------------
 \
@@ -25251,6 +25339,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing suns
 \    Summary: Draw the sun: Continue to move up the screen, drawing the new sun
+\  Deep dive: Drawing the sun
 \
 \ ------------------------------------------------------------------------------
 \
@@ -25502,6 +25591,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing suns
 \    Summary: Draw the sun: Continue to the top of the screen, erasing old sun
+\  Deep dive: Drawing the sun
 \
 \ ------------------------------------------------------------------------------
 \
@@ -25560,6 +25650,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing circles
 \    Summary: Draw a circle for the planet
+\  Deep dive: Drawing circles
 \
 \ ------------------------------------------------------------------------------
 \
@@ -25752,6 +25843,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing planets
 \    Summary: Remove the planet from the screen
+\  Deep dive: The ball line heap
 \
 \ ------------------------------------------------------------------------------
 \
@@ -25845,6 +25937,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing suns
 \    Summary: Remove the sun from the screen
+\  Deep dive: Drawing the sun
 \
 \ ------------------------------------------------------------------------------
 \
@@ -27318,6 +27411,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Utility routines
 \    Summary: Reset the INWK workspace and orientation vectors
+\  Deep dive: Orientation vectors
 \
 \ ------------------------------------------------------------------------------
 \
@@ -27542,6 +27636,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: Spawn a trader (a peaceful Cobra Mk III)
+\  Deep dive: Program flow of the main game loop
+\             Ship data blocks
 \
 \ ------------------------------------------------------------------------------
 \
@@ -27587,7 +27683,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Name: Main game loop (Part 2 of 6)
 \       Type: Subroutine
 \   Category: Main loop
-\    Summary: Call main flight loop, potentially spawn trader, asteroid, cargo
+\    Summary: Call the main flight loop, and potentially spawn a trader, an
+\             asteroid, or a cargo canister
+\  Deep dive: Program flow of the main game loop
+\             Ship data blocks
 \
 \ ------------------------------------------------------------------------------
 \
@@ -27595,7 +27694,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \   * Call M% to do the main flight loop
 \
-\   * Potentially spawn a trader (Cobra Mk III), asteroid or cargo canister
+\   * Potentially spawn a trader, asteroid or cargo canister
 \
 \ Other entry points:
 \
@@ -27741,6 +27840,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: Potentially spawn a cop, particularly if we've been bad
+\  Deep dive: Program flow of the main game loop
+\             Ship data blocks
 \
 \ ------------------------------------------------------------------------------
 \
@@ -27798,6 +27899,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: Potentially spawn lone bounty hunter, Thargoid, or up to 4 pirates
+\  Deep dive: Program flow of the main game loop
+\             Ship data blocks
 \
 \ ------------------------------------------------------------------------------
 \
@@ -27910,6 +28013,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: Cool down lasers, make calls to update the dashboard
+\  Deep dive: Program flow of the main game loop
+\             The dashboard indicators
 \
 \ ------------------------------------------------------------------------------
 \
@@ -27969,6 +28074,7 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: Process non-flight key presses (red function keys, docked keys)
+\  Deep dive: Program flow of the main game loop
 \
 \ ------------------------------------------------------------------------------
 \
@@ -28892,6 +28998,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Save and load
 \    Summary: Calculate the checksum for the last saved commander data block
+\  Deep dive: Commander save files
 \
 \ ------------------------------------------------------------------------------
 \
@@ -29180,7 +29287,8 @@ ENDIF
 \       Type: Subroutine
 \   Category: Save and load
 \    Summary: Save the commander file
-\  Deep dive: The competition code
+\  Deep dive: Commander save files
+\             The competition code
 \
 \ ******************************************************************************
 
@@ -29306,6 +29414,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Save and load
 \    Summary: Save or load the commander file
+\  Deep dive: Commander save files
 \
 \ ------------------------------------------------------------------------------
 \
@@ -29580,6 +29689,8 @@ ENDIF
 \       Type: Subroutine
 \   Category: Maths (Geometry)
 \    Summary: Normalise the three-coordinate vector in XX15
+\  Deep dive: Tidying orthonormal vectors
+\             Orientation vectors
 \
 \ ------------------------------------------------------------------------------
 \
@@ -29828,6 +29939,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Sound
 \    Summary: Process us making a kill
+\  Deep dive: Combat rank
 \
 \ ------------------------------------------------------------------------------
 \
@@ -30111,6 +30223,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \       Type: Subroutine
 \   Category: Keyboard
 \    Summary: Scan the keyboard for a flight key
+\  Deep dive: The key logger
 \
 \ ------------------------------------------------------------------------------
 \
@@ -30173,6 +30286,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \       Type: Subroutine
 \   Category: Keyboard
 \    Summary: Scan the keyboard to see if a specific key is being pressed
+\  Deep dive: The key logger
 \
 \ ------------------------------------------------------------------------------
 \
@@ -30462,6 +30576,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \       Type: Subroutine
 \   Category: Keyboard
 \    Summary: Scan for the seven primary flight controls
+\  Deep dive: The key logger
+\             The docking computer
 \
 \ ------------------------------------------------------------------------------
 \
@@ -30544,6 +30660,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \       Type: Subroutine
 \   Category: Keyboard
 \    Summary: Scan for pause, configuration and secondary flight keys
+\  Deep dive: The key logger
 \
 \ ------------------------------------------------------------------------------
 \
@@ -30951,6 +31068,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \       Type: Variable
 \   Category: Text
 \    Summary: The two-letter token lookup table
+\  Deep dive: Printing text tokens
 \
 \ ------------------------------------------------------------------------------
 \
@@ -31126,6 +31244,7 @@ ENDMACRO
 \   Category: Maths (Geometry)
 \    Summary: Orthonormalise the orientation vectors for a ship
 \  Deep dive: Tidying orthonormal vectors
+\             Orientation vectors
 \
 \ ------------------------------------------------------------------------------
 \
@@ -31733,6 +31852,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate R = 256 * A / Q
+\  Deep dive: Shift-and-subtract division
 \
 \ ------------------------------------------------------------------------------
 \
@@ -32206,6 +32326,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Check if ship is in field of view, close enough to draw
+\  Deep dive: Drawing ships
 \
 \ ------------------------------------------------------------------------------
 \
@@ -32312,6 +32433,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Set up orientation vector, ship coordinate variables
+\  Deep dive: Drawing ships
 \
 \ ------------------------------------------------------------------------------
 \
@@ -32456,6 +32578,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Set visibility for exploding ship (all faces visible)
+\  Deep dive: Drawing ships
 \
 \ ------------------------------------------------------------------------------
 \
@@ -32503,7 +32626,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Calculate the visibility of each of the ship's faces
-\  Deep dive: Back-face culling
+\  Deep dive: Drawing ships
+\             Back-face culling
 \
 \ ******************************************************************************
 
@@ -32957,7 +33081,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Calculate the visibility of each of the ship's vertices
-\  Deep dive: Calculating vertex coordinates
+\  Deep dive: Drawing ships
+\             Calculating vertex coordinates
 \
 \ ------------------------------------------------------------------------------
 \
@@ -33490,6 +33615,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Calculate the visibility of each of the ship's vertices
+\  Deep dive: Drawing ships
+\             Calculating vertex coordinates
 \
 \ ------------------------------------------------------------------------------
 \
@@ -33576,6 +33703,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Calculate the screen coordinates of visible vertices
+\  Deep dive: Drawing ships
 \
 \ ------------------------------------------------------------------------------
 \
@@ -33817,6 +33945,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Draw laser beams if the ship is firing its laser at us
+\  Deep dive: Drawing ships
 \
 \ ------------------------------------------------------------------------------
 \
@@ -33989,6 +34118,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Calculate the visibility of each of the ship's edges
+\  Deep dive: Drawing ships
 \
 \ ------------------------------------------------------------------------------
 \
@@ -34132,6 +34262,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Add all visible edges to the ship line heap
+\  Deep dive: Drawing ships
 \
 \ ------------------------------------------------------------------------------
 \
@@ -34214,6 +34345,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Draw all the visible edges from the ship line heap
+\  Deep dive: Drawing ships
 \
 \ ------------------------------------------------------------------------------
 \
@@ -34274,6 +34406,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Move a point along a line until it is on-screen
+\  Deep dive: Line-clipping
 \
 \ ------------------------------------------------------------------------------
 \
@@ -34783,6 +34916,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \   Category: Drawing lines
 \    Summary: Clip line: Work out which end-points are on-screen, if any
 \  Deep dive: Line-clipping
+\             Extended screen coordinates
 \
 \ ------------------------------------------------------------------------------
 \
@@ -34941,6 +35075,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Clip line: Work out if any part of the line is on-screen
+\  Deep dive: Line-clipping
+\             Extended screen coordinates
 \
 \ ------------------------------------------------------------------------------
 \
@@ -35026,6 +35162,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Clip line: Calculate the line's gradient
+\  Deep dive: Line-clipping
+\             Extended screen coordinates
 \
 \ ******************************************************************************
 
@@ -35151,6 +35289,8 @@ LOAD_G% = LOAD% + P% - CODE%
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Clip line: Call the routine in LL188 to do the actual clipping
+\  Deep dive: Line-clipping
+\             Extended screen coordinates
 \
 \ ------------------------------------------------------------------------------
 \
@@ -35521,6 +35661,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Sidewinder
+\  Deep dive: Ship blueprints
 \
 \ ******************************************************************************
 
@@ -35590,6 +35731,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Viper
+\  Deep dive: Ship blueprints
 \
 \ ******************************************************************************
 
@@ -35669,6 +35811,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Mamba
+\  Deep dive: Ship blueprints
 \
 \ ******************************************************************************
 
@@ -35764,6 +35907,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Cobra Mk III
+\  Deep dive: Ship blueprints
 \
 \ ******************************************************************************
 
@@ -35880,6 +36024,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Thargoid mothership
+\  Deep dive: Ship blueprints
 \
 \ ******************************************************************************
 
@@ -35973,6 +36118,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Coriolis space station
+\  Deep dive: Ship blueprints
 \
 \ ******************************************************************************
 
@@ -36068,6 +36214,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a missile
+\  Deep dive: Ship blueprints
 \
 \ ******************************************************************************
 
@@ -36155,6 +36302,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for an asteroid
+\  Deep dive: Ship blueprints
 \
 \ ******************************************************************************
 
@@ -36236,6 +36384,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a cargo canister
+\  Deep dive: Ship blueprints
 \
 \ ******************************************************************************
 
@@ -36307,6 +36456,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Thargon
+\  Deep dive: Ship blueprints
 \
 \ ------------------------------------------------------------------------------
 \
@@ -36364,6 +36514,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for an escape pod
+\  Deep dive: Ship blueprints
 \
 \ ******************************************************************************
 
@@ -36448,6 +36599,7 @@ ORG CODE_PYTHON%
 \       Type: Variable
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Python
+\  Deep dive: Ship blueprints
 \
 \ ******************************************************************************
 
