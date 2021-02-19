@@ -1,6 +1,6 @@
-# Original source code for the cassette version of Elite for the BBC Micro Model B
+# Original source code for the BBC Micro cassette version of Elite
 
-This folder contains the original source code for the cassette version of Elite for the BBC Micro Model B from Ian Bell's personal website.
+This folder contains the original source code for the BBC Micro cassette version of Elite from Ian Bell's personal website.
 
 ---
 
