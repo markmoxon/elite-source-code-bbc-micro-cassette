@@ -50,8 +50,21 @@ LOAD% = &1128           \ LOAD% points to the start of the actual game code,
 
 D% = &563A              \ D% is set to the size of the main game code
 
-ZP = &70                \ ZP is a zero page variable used in the checksum
-                        \ routine at LBL
+\ ******************************************************************************
+\
+\       Name: ZP
+\       Type: Workspace
+\    Address: &0070 to &0071
+\   Category: Workspaces
+\    Summary: Important variables used by the loader
+\
+\ ******************************************************************************
+
+ORG &0070
+
+.ZP
+
+ SKIP 2                 \ Stores addresses used for moving content around
 
 \ ******************************************************************************
 \

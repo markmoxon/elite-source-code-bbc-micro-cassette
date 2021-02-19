@@ -127,32 +127,91 @@ VIA = &FE00             \ Memory-mapped space for accessing internal hardware,
 
 VSCAN = 57-1            \ Defines the split position in the split-screen mode
 
-TRTB% = &04             \ TRTB%(1 0) points to the keyboard translation table
+\ ******************************************************************************
+\
+\       Name: ZP
+\       Type: Workspace
+\    Address: &0004 to &0005 and &0070 to &0086
+\   Category: Workspaces
+\    Summary: Important variables used by the loader
+\
+\ ******************************************************************************
 
-ZP = &70                \ Temporary storage, used all over the place
+ORG &0004
 
-P = &72                 \ Temporary storage, used all over the place
+.TRTB%
 
-Q = &73                 \ Temporary storage, used all over the place
+ SKIP 2                 \ TRTB%(1 0) points to the keyboard translation table
 
-YY = &74                \ Temporary storage, used when drawing Saturn
+ORG &0070
 
-T = &75                 \ Temporary storage, used all over the place
+.ZP
 
-SC = &76                \ Used to store the screen address while plotting pixels
+ SKIP 2                 \ Stores addresses used for moving content around
 
-BLPTR = &78             \ Gets set to &03CA as part of the obfuscation code
+.P
 
-V219 = &7A              \ Gets set to &0218 as part of the obfuscation code
+ SKIP 1                 \ Temporary storage, used in a number of places
 
-K3 = &80                \ Temporary storage, used for preserving the A register
+.Q
 
-BLCNT = &81             \ Stores the tape loader block count as part of the copy
+ SKIP 1                 \ Temporary storage, used in a number of places
+
+.YY
+
+ SKIP 1                 \ Temporary storage, used in a number of places
+
+.T
+
+ SKIP 1                 \ Temporary storage, used in a number of places
+
+.SC
+
+ SKIP 1                 \ Screen address (low byte)
+                        \
+                        \ Elite draws on-screen by poking bytes directly into
+                        \ screen memory, and SC(1 0) is typically set to the
+                        \ address of the character block containing the pixel
+                        \ we want to draw (see the deep dives on "Drawing
+                        \ monochrome pixels in mode 4" and "Drawing colour
+                        \ pixels in mode 5" for more details)
+
+.SCH
+
+ SKIP 1                 \ Screen address (high byte)
+
+.BLPTR
+
+ SKIP 2                 \ Gets set to &03CA as part of the obfuscation code
+
+.V219
+
+ SKIP 2                 \ Gets set to &0218 as part of the obfuscation code
+
+ SKIP 4                 \ These bytes are unused
+
+.K3
+
+ SKIP 1                 \ Temporary storage, used in a number of places
+
+.BLCNT
+
+ SKIP 2                 \ Stores the tape loader block count as part of the copy
                         \ protection code in IRQ1
 
-BLN = &83               \ Gets set to &03C6 as part of the obfuscation code
+.BLN
 
-EXCN = &85              \ Gets set to &03C2 as part of the obfuscation code
+ SKIP 2                 \ Gets set to &03C6 as part of the obfuscation code
+
+.EXCN
+
+ SKIP 2                 \ Gets set to &03C2 as part of the obfuscation code
+
+\ ******************************************************************************
+\
+\ ELITE LOADER
+\
+\ ******************************************************************************
 
 \ ******************************************************************************
 \
