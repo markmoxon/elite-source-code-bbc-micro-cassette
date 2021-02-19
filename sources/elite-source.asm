@@ -23293,8 +23293,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ Draw a dot on the compass.
-\
 \ Arguments:
 \
 \   COMX                The screen pixel x-coordinate of the dot
@@ -24070,10 +24068,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \   Category: Dashboard
 \    Summary: Light up the E.C.M. indicator bulb ("E") on the dashboard
 \
-\ ------------------------------------------------------------------------------
-\
-\ This draws (or erases) the E.C.M. indicator bulb ("E") on the dashboard.
-\
 \ ******************************************************************************
 
 .ECBLB
@@ -24100,12 +24094,9 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: SPBLB
 \       Type: Subroutine
 \   Category: Dashboard
-\    Summary: Light up the space station indicator ("S") on the dashboard
+\    Summary: Draw (or erase) the space station indicator ("S") on the dashboard
 \
 \ ------------------------------------------------------------------------------
-\
-\ This draws (or erases) the space station indicator bulb ("S") on the
-\ dashboard.
 \
 \ Other entry points:
 \
@@ -27247,8 +27238,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ Reset our ship and various controls, then fall through into RES4 to recharge
-\ shields and energy, and reset the stardust and the ship workspace at INWK.
+\ Reset our ship and various controls, recharge shields and energy, and then
+\ fall through into RES2 to reset the stardust and the ship workspace at INWK.
 \
 \ In this subroutine, this means zero-filling the following locations:
 \
@@ -27264,8 +27255,14 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \     * ECMA - Turn E.C.M. off
 \
-\ It also sets QQ12 to &FF, to indicate we are docked, and then falls through
-\ into RES4.
+\ It also sets QQ12 to &FF, to indicate we are docked, recharges the shields and
+\ energy banks, and then falls through into RES2.
+\
+\ Other entry points:
+\
+\   RES4                Reset the shields and energy banks, then fall through
+\                       into RES2 to reset the stardust and the ship workspace
+\                       at INWK
 \
 \ ******************************************************************************
 
@@ -27292,39 +27289,28 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ Fall through into RES4 to restore shields and energy,
                         \ and reset the stardust and ship workspace at INWK
 
-\ ******************************************************************************
-\
-\       Name: RES4
-\       Type: Subroutine
-\   Category: Start and end
-\    Summary: Reset shields and energy banks and lots of flight variables
-\
-\ ------------------------------------------------------------------------------
-\
-\ Reset the shields and energy banks, then fall through into RES2 to reset the
-\ stardust and the ship workspace at INWK.
-\
-\ ******************************************************************************
-
 .RES4
 
  LDA #&FF               \ Set A to &FF so we can fill up the shields and energy
                         \ bars with a full charge
 
- LDX #2                 \ The two shields and energy bank levels are stored in
-                        \ three consecutive bytes, at FSH through FSH+2, so set
-                        \ up a counter in X to index these three bytes
+ LDX #2                 \ We're now going to recharge both shields and the
+                        \ energy bank, which live in the three bytes at FSH,
+                        \ ASH (FSH+1) and ENERGY (FSH+2), so set a loop counter
+                        \ in X for 3 bytes
 
 .REL5
 
- STA FSH,X              \ Set the X-th byte in the FSH block to &FF
+ STA FSH,X              \ Set the X-th byte of FSH to &FF to charge up that
+                        \ shield/bank
 
- DEX                    \ Decrement the loop counter
+ DEX                    \ Decrement the lopp counter
 
- BPL REL5               \ Loop back to do the next byte, until we have done
-                        \ all three
+ BPL REL5               \ Loop back to REL5 until we have recharged both shields
+                        \ and the energy bank
 
-                        \ Fall through into RES2 to reset stardust and INWK
+                        \ Fall through into RES2 to reset the stardust and ship
+                        \ workspace at INWK
 
 \ ******************************************************************************
 \
@@ -27968,8 +27954,8 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ and has AI (bit 7)
 
  CPY #6                 \ If Y = 6 (i.e. a Thargoid), jump down to the tha
- BEQ tha                \ routine to decide whether or not to spawn it (where
-                        \ there's a 22% chance of this happening)
+ BEQ tha                \ routine in part 6 to decide whether or not to spawn it
+                        \ (where there's a 22% chance of this happening)
 
  STA INWK+32            \ Store A in the AI flag of this ship
 
@@ -28096,6 +28082,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \                       "press" a key, in which case A contains the internal key
 \                       number of the key we want to "press"
 \
+\   tha                 Consider spawning a Thargoid (22% chance)
+\
 \ ******************************************************************************
 
 .FRCE
@@ -28110,15 +28098,6 @@ LOAD_F% = LOAD% + P% - CODE%
 
  JMP TT100              \ Otherwise jump to TT100 to restart the main loop from
                         \ the start
-
-\ ******************************************************************************
-\
-\       Name: tha
-\       Type: Subroutine
-\   Category: Main loop
-\    Summary: Consider spawning a Thargoid (22% chance)
-\
-\ ******************************************************************************
 
 .tha
 
@@ -28655,10 +28634,10 @@ LOAD_F% = LOAD% + P% - CODE%
 
 \ ******************************************************************************
 \
-\       Name: BR1
+\       Name: BR1 (Part 1 of 2)
 \       Type: Subroutine
 \   Category: Start and end
-\    Summary: Restart the game
+\    Summary: Start or restart the game
 \
 \ ------------------------------------------------------------------------------
 \
@@ -28706,6 +28685,15 @@ LOAD_F% = LOAD% + P% - CODE%
 
  JSR TTX66              \ And we clear the top part of the screen and draw a
                         \ white border
+
+\ ******************************************************************************
+\
+\       Name: QU5
+\       Type: Subroutine
+\   Category: Start and end
+\    Summary: Reset the current commander data block to the last saved commander
+\
+\ ******************************************************************************
 
 .QU5
 
@@ -28762,8 +28750,8 @@ LOAD_F% = LOAD% + P% - CODE%
 
 IF _REMOVE_CHECKSUMS
 
- NOP                    \ If we have disabled checksums then ignore the result
- NOP                    \ and fall through into the next part
+ NOP                    \ If we have disabled checksums, then ignore the result
+ NOP                    \ of the comparison and fall through into the next part
 
 ELSE
 
@@ -28797,6 +28785,19 @@ ENDIF
                         \ version
 
  STA COK                \ Store the updated competition flags in COK
+
+\ ******************************************************************************
+\
+\       Name: BR1 (Part 2 of 2)
+\       Type: Subroutine
+\   Category: Start and end
+\    Summary: Show the "Load New Commander (Y/N)?" screen and start the game
+\
+\ ------------------------------------------------------------------------------
+\
+\ BRKV is set to point to BR1 by elite-loader.asm.
+\
+\ ******************************************************************************
 
  JSR msblob             \ Reset the dashboard's missile indicators so none of
                         \ them are targeted
@@ -29106,15 +29107,20 @@ ENDIF
 \       Name: GTNME
 \       Type: Subroutine
 \   Category: Save and load
-\    Summary: Get the commander's name
+\    Summary: Fetch the name of a commander file to save or load
 \
 \ ------------------------------------------------------------------------------
 \
 \ Get the commander's name for loading or saving a commander file. The name is
-\ stored at INWK, terminated by a return character (13).
+\ stored in the INWK workspace and is terminated by a return character (13).
 \
-\ If ESCAPE is pressed or a blank name is entered, then INWK is set to the name
-\ from the last saved commander block.
+\ If ESCAPE is pressed or a blank name is entered, then the name stored is set
+\ to the name from the last saved commander block.
+\
+\ Returns:
+\
+\   INWK                The commander name entered, terminated by a return
+\                       character (13)
 \
 \ ******************************************************************************
 
@@ -29153,17 +29159,26 @@ ENDIF
                         \ and return from the subroutine there
 
  TYA                    \ The OSWORD call returns the length of the commander's
- BEQ TR1                \ name in Y, so transfer this to A, and if it is zero
-                        \ (a blank name was entered), jump to TR1 to copy
+                        \ name in Y, so transfer this to A
+
+ BEQ TR1                \ If A = 0, no name was entered, so jump to TR1 to copy
                         \ the last saved commander's name from NA% to INWK
                         \ and return from the subroutine there
 
  JMP TT67               \ We have a name, so jump to TT67 to print a newline
                         \ and return from the subroutine using a tail call
 
-.RLINE
+\ ******************************************************************************
+\
+\       Name: RLINE
+\       Type: Variable
+\   Category: Text
+\    Summary: The OSWORD configuration block used to fetch a line of text from
+\             the keyboard
+\
+\ ******************************************************************************
 
-                        \ This is the OSWORD configuration block used above
+.RLINE
 
  EQUW INWK              \ The address to store the input, so the commander's
                         \ name will be stored in INWK as it is typed
@@ -30290,9 +30305,6 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \
 \ ------------------------------------------------------------------------------
 \
-\ Scan the keyboard to see if the key specified in X is currently being
-\ pressed.
-\
 \ Arguments:
 \
 \   X                   The internal number of the key to check (see p.142 of
@@ -30301,12 +30313,12 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \
 \ Returns:
 \
-\   X                   If the key in X is being pressed, X contains the
-\                       original argument X, but with bit 7 set (i.e. X + 128).
-\                       If the key in X is not being pressed, the value in X is
+\   A                   If the key in A is being pressed, A contains the
+\                       original argument A, but with bit 7 set (i.e. A + 128).
+\                       If the key in A is not being pressed, the value in A is
 \                       unchanged
 \
-\   A                   Contains the same as X
+\   X                   Contains the same as A
 \
 \ Other entry points:
 \

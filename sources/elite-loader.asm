@@ -1094,6 +1094,7 @@ ENDIF
                         \
                         \ It's yet another impressive bit of obfuscation and
                         \ misdirection
+
 .RAND
 
  EQUD &6C785349         \ The random number seed used for drawing Saturn
@@ -2461,9 +2462,13 @@ ORG LE%
 .MESS1
 
 IF DISC
+
  EQUS "L.ELTcode 1100"
+
 ELSE
+
  EQUS "L.ELITEcode F1F"
+
 ENDIF
 
  EQUB 13
