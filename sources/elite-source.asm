@@ -122,9 +122,9 @@ ORG &0000
 
 .TRTB%
 
- SKIP 2                 \ This is set by elite-loader.asm to point to the MOS
-                        \ keyboard translation table, which is used by the TT217
-                        \ routine to translate internal key values to ASCII
+ SKIP 2                 \ TRTB%(1 0) points to the keyboard translation table,
+                        \ which is used to translate internal key numbers to
+                        \ ASCII
 
 .T1
 
@@ -6126,6 +6126,12 @@ LOAD_A% = LOAD%
 \
 \                         * If X = 19, rotate roofv_z
 \
+\                         * If X = 21, rotate sidev_x
+\
+\                         * If X = 23, rotate sidev_y
+\
+\                         * If X = 25, rotate sidev_z
+\
 \   Y                   The second vector to rotate:
 \
 \                         * If Y = 9,  rotate nosev_x
@@ -6714,9 +6720,6 @@ LOAD_B% = LOAD% + P% - CODE%
                         \ commander lots of credits and equipment
 
  EQUB 0                 \ TP = Mission status, #0
-                        \
-                        \ Note that this byte must not have bit 7 set, or
-                        \ loading this commander will cause the game to restart
 
  EQUB 20                \ QQ0 = Current system X-coordinate (Lave), #1
  EQUB 173               \ QQ1 = Current system Y-coordinate (Lave), #2
@@ -7149,15 +7152,15 @@ NEXT
  LDA TWOS,X             \ Fetch a 1-pixel byte from TWOS where pixel X is set,
  STA R                  \ and store it in R
 
- LDA Q                  \ Set A = |delta_y|
-
                         \ The following calculates:
                         \
-                        \   Q = A / P
+                        \   Q = Q / P
                         \     = |delta_y| / |delta_x|
                         \
                         \ using the same shift-and-subtract algorithm that's
                         \ documented in TIS2
+
+ LDA Q                  \ Set A = |delta_y|
 
  LDX #%11111110         \ Set Q to have bits 1-7 set, so we can rotate through 7
  STX Q                  \ loop iterations, getting a 1 each time, and then
@@ -7467,15 +7470,15 @@ NEXT
  AND #7                 \ character block at which we want to draw the start of
  TAY                    \ our line (as each character block has 8 rows)
 
- LDA P                  \ Set A = |delta_x|
-
                         \ The following calculates:
                         \
-                        \   P = A / Q
+                        \   P = P / Q
                         \     = |delta_x| / |delta_y|
                         \
                         \ using the same shift-and-subtract algorithm
                         \ documented in TIS2
+
+ LDA P                  \ Set A = |delta_x|
 
  LDX #1                 \ Set Q to have bits 1-7 clear, so we can rotate through
  STX P                  \ 7 loop iterations, getting a 1 each time, and then
@@ -7786,11 +7789,12 @@ NEXT
 
 .NLIN2
 
- STA Y1                 \ Set (X1, Y1) = (2, A)
- LDX #2
+ STA Y1                 \ Set Y1 = A
+
+ LDX #2                 \ Set X1 = 2, so (X1, Y1) = (2, A)
  STX X1
 
- LDX #254               \ Set X2 = 254
+ LDX #254               \ Set X2 = 254, so (X2, Y2) = (254, A)
  STX X2
 
  BNE HLOIN              \ Call HLOIN to draw a horizontal line from (2, A) to
@@ -11785,8 +11789,12 @@ LOAD_C% = LOAD% +P% - CODE%
  CPX #SST               \ If this is not the space station, jump down to TA13
  BNE TA13
 
- JSR DORND              \ This is the space station, so set A and X to random
-                        \ numbers
+                        \ We only call the tactics routine for the space station
+                        \ when it is hostile, so if we get here then this is the
+                        \ station, and we already know it's hostile, so we need
+                        \ to spawn some cops
+
+ JSR DORND              \ Set A and X to random numbers
 
  CMP #140               \ If A < 140 (55% chance) then return from the
  BCC TA14-1             \ subroutine (as TA14-1 contains an RTS)
@@ -11797,9 +11805,13 @@ LOAD_C% = LOAD% +P% - CODE%
                         \ don't need to spawn any more, so return from the
                         \ subroutine (as TA14-1 contains an RTS)
 
- LDX #COPS              \ Call SFS1 to spawn a cop from the space station that
- LDA #%11110001         \ is hostile, has AI and has E.C.M., and return from the
- JMP SFS1               \ subroutine using a tail call
+ LDX #COPS              \ Set X to the ship type for a cop
+
+ LDA #%11110001         \ Set the AI flag to give the ship E.C.M., enable AI and
+                        \ make it very aggressive (56 out of 63)
+
+ JMP SFS1               \ Jump to SFS1 to spawn the ship, returning from the
+                        \ subroutine using a tail call
 
 .TA13
 
@@ -19330,8 +19342,8 @@ LOAD_D% = LOAD% + P% - CODE%
  BMI Ghy                \ If it is, then the galactic hyperdrive has been
                         \ activated, so jump to Ghy to process it
 
- JSR hm                 \ Set the system closest to galactic coordinates (QQ9,
-                        \ QQ10) as the selected system
+ JSR hm                 \ This is a chart view, so call hm to redraw the chart
+                        \ crosshairs
 
  LDA QQ8                \ If both bytes of the distance to the selected system
  ORA QQ8+1              \ in QQ8 are zero, return from the subroutine (as zZ+1
@@ -20141,7 +20153,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \       Name: GVL
 \       Type: Subroutine
 \   Category: Universe
-\    Summary: Calculate the availability of a market item
+\    Summary: Calculate the availability of market items
 \  Deep dive: Market item prices and availability
 \             Galaxy and system seeds
 \
@@ -22740,7 +22752,8 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ economy), which will be between 0 and 7
 
  ADC #6                 \ Add 6 + C, and divide by 2, to get a result between 3
- LSR A                  \ and 7
+ LSR A                  \ and 7, at the same time shifting bit 0 of the result
+                        \ of the addition into the C flag
 
  STA INWK+8             \ Store the result in z_sign in byte #6
 
@@ -22996,7 +23009,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \   X                   The number of text rows to display on the screen (24
 \                       will hide the dashboard, 31 will make it reappear)
 \
-\ Returns
+\ Returns:
 \
 \   A                   A is set to 6
 \
@@ -23268,7 +23281,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ higher up on the compass, which has a smaller pixel
                         \ y-coordinate). So this calculation does this:
                         \
-                        \ COMY = 204 - X - (1 - 0) = 203 - X
+                        \   COMY = 204 - X - (1 - 0) = 203 - X
 
  LDA #&F0               \ Set A to a 4-pixel mode 5 byte row in colour 2
                         \ (yellow/white), the colour for when the planet or
@@ -24115,6 +24128,8 @@ LOAD_E% = LOAD% + P% - CODE%
 
  LDX #LO(SPBT)          \ Set (Y X) to point to the character definition in SPBT
  LDY #HI(SPBT)
+
+                        \ Fall through into BULB to draw the space station bulb
 
 \ ******************************************************************************
 \
@@ -27288,8 +27303,9 @@ LOAD_F% = LOAD% + P% - CODE%
  STX QQ12               \ X is now negative - i.e. &FF - so this sets QQ12 to
                         \ &FF to indicate we are docked
 
-                        \ Fall through into RES4 to restore shields and energy,
-                        \ and reset the stardust and ship workspace at INWK
+                        \ We now fall through into RES4 to restore shields and
+                        \ energy, and reset the stardust and ship workspace at
+                        \ INWK
 
 .RES4
 
@@ -27636,18 +27652,18 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ This section covers the following:
 \
-\   * Spawn a trader, i.e. a Cobra Mk III that isn't hostile, with one missile,
-\     a 50% chance of having an E.C.M., a speed between 16 and 31, and a gentle
-\     clockwise roll
+\   * Spawn a trader, i.e. a Cobra Mk III that isn't hostile, with a 50% chance
+\     of it having a missile, a 50% chance of it having an E.C.M., a speed
+\     between 16 and 31, and a gentle clockwise roll
 \
-\ We call this from within the main loop, with A set to a random number and the
-\ C flag set.
+\ We call this from within the main loop, with A set to a random number.
 \
 \ ******************************************************************************
 
 .MTT4
 
- LSR A                  \ Clear bit 7 of our random number in A
+ LSR A                  \ Clear bit 7 of our random number in A and set the C
+                        \ flag to bit 0 of A, which os random
 
  STA INWK+32            \ Store this in the ship's AI flag, so this ship does
                         \ not have AI
@@ -27656,8 +27672,9 @@ LOAD_F% = LOAD% + P% - CODE%
                         \ clockwise roll (as bit 7 is clear), and a 1 in 127
                         \ chance of it having no damping
 
- ROL INWK+31            \ Set bit 0 of missile count (as we know the C flag is
-                        \ set), giving the ship one missile
+ ROL INWK+31            \ Set bit 0 of the ship's missile count ramdomly (as the
+                        \ C flag was set), giving the ship either no missiles or
+                        \ one missile
 
  AND #31                \ Set the ship speed to our random number, set to a
  ORA #16                \ minimum of 16 and a maximum of 31
@@ -27946,8 +27963,9 @@ LOAD_F% = LOAD% + P% - CODE%
 
                         \ We now build the AI flag for this ship in A
 
- TXA                    \ First, set the C flag if X >= 200 (22% chance)
- CMP #200
+ TXA                    \ First, copy the random number in X to A
+
+ CMP #200               \ First, set the C flag if X >= 200 (22% chance)
 
  ROL A                  \ Set bit 0 of A to the C flag (i.e. there's a 22%
                         \ chance of this ship having E.C.M.)
@@ -27987,7 +28005,7 @@ LOAD_F% = LOAD% + P% - CODE%
 
  ORA #1                 \ Set A to %01 or %11 (Sidewinder or Mamba)
 
- JSR NWSHP              \ Add a new ship of type A to the local bubble
+ JSR NWSHP              \ Try adding a new ship of type A to the local bubble
 
  DEC XX13               \ Decrement the pirate counter
 
@@ -28138,6 +28156,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \   Y                   The amount to move the crosshairs in the y-axis
 \
+\ Other entry points:
+\
+\   T95                 Print the distance to the selected system
+\
 \ ******************************************************************************
 
 .TT102
@@ -28235,8 +28257,8 @@ LOAD_F% = LOAD% + P% - CODE%
  LDA T1                 \ Restore the original value of A (the key that's been
                         \ pressed) from T1
 
- CMP #&36               \ If "O" was pressed, do the following three JSRs,
- BNE ee2                \ otherwise jump to ee2 to skip the following
+ CMP #&36               \ If "O" was pressed, do the following three jumps,
+ BNE ee2                \ otherwise skip to ee2 to continue
 
  JSR TT103              \ Draw small crosshairs at coordinates (QQ9, QQ10),
                         \ which will erase the crosshairs currently there
@@ -28937,10 +28959,12 @@ ENDIF
  JSR ex                 \ stack at the start of this subroutine, and print that
                         \ token
 
- LDA #148               \ Move the text cursor to column 7 and print recursive
- LDX #7                 \ token 148 ("(C) ACORNSOFT 1984")
+ LDA #148               \ Set A to recursive token 148
+
+ LDX #7                 \ Move the text cursor to column 7
  STX XC
- JSR ex
+
+ JSR ex                 \ Print recursive token 148 ("(C) ACORNSOFT 1984")
 
 .TLL2
 
@@ -28976,9 +29000,11 @@ ENDIF
                         \ the value of IRB with %10000 extracts this bit
 
 \TAX                    \ This instruction is commented out in the original
-                        \ source
+                        \ source; it would have no effect, as the comparison
+                        \ flags are already set by the AND, and the value of X
+                        \ is not used anywhere
 
- BEQ TL2                \ If the joystick fire button is pressed, jump to BL2
+ BEQ TL2                \ If the joystick fire button is pressed, jump to TL2
 
  JSR RDKEY              \ Scan the keyboard for a key press
 
@@ -29364,16 +29390,11 @@ ENDIF
  STA K+3
 
  JSR BPRNT              \ Print the competition number stored in K to K+3. The
-                        \ values of the C flag and U will affect how this is
-                        \ printed, which is odd as they appear to be random (C
-                        \ is last set in CHECK and could go either way, and it's
-                        \ hard to know when U was last set as it's a temporary
-                        \ variable in zero page, so isn't reset by ZERO). I
-                        \ wonder if the competition number can ever get printed
-                        \ out incorrectly, with a decimal point and the wrong
-                        \ number of digits? Other versions of Elite have a CLC
-                        \ instruction before the call to BPRNT, presumably to
-                        \ fix this issue
+                        \ value of U might affect how this is printed, and as
+                        \ it's a temporary variable in zero page that isn't
+                        \ reset by ZERO, it might have any value, but as the
+                        \ competition code is a 10-digit number, this just means
+                        \ it may or may not have an extra space of padding
 
  JSR TT67               \ Call TT67 twice to print two newlines
  JSR TT67
@@ -29638,6 +29659,11 @@ ENDIF
 \
 \                         * The z-coordinate in XX15+2
 \
+\ Other entry points:
+\
+\   TA2                 Calculate the length of the vector in XX15 (ignoring the
+\                       low coordinates), returning it in Q
+\
 \ ******************************************************************************
 
 .TAS2
@@ -29730,6 +29756,8 @@ ENDIF
 \ Returns:
 \
 \   XX15                The normalised vector
+\
+\   Q                   The length of the original XX15 vector
 \
 \ Other entry points:
 \
@@ -30780,7 +30808,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 .DKL1
 
- LDX KYTB,Y             \ Get the internal key value of the Y-th flight key
+ LDX KYTB,Y             \ Get the internal key number of the Y-th flight key
                         \ the KYTB keyboard table
 
  CPX KL                 \ We stored the key that's being pressed in KL above,
@@ -30862,7 +30890,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
  LDA (TRTB%),Y          \ The address in TRTB% points to the MOS key
                         \ translation table, which is used to translate
-                        \ internal key values to ASCII, so this fetches the
+                        \ internal key numbers to ASCII, so this fetches the
                         \ key's ASCII code into A
 
  LDY YSAV               \ Restore the original value of Y we stored above
@@ -31694,7 +31722,7 @@ LOAD_G% = LOAD% + P% - CODE%
  ORA K3+1               \ If either of the high bytes of the screen coordinates
  BNE nono               \ are non-zero, jump to nono as the ship is off-screen
 
- LDA K4                 \ Set A = y-coordinate of dot
+ LDA K4                 \ Set A = the y-coordinate of the dot
 
  CMP #Y*2-2             \ If the y-coordinate is bigger than the y-coordinate of
  BCS nono               \ the bottom of the screen, jump to nono as the ship's
