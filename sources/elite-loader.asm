@@ -190,7 +190,7 @@ ORG &0070
 
  SKIP 2                 \ Gets set to &0218 as part of the obfuscation code
 
- SKIP 4                 \ These bytes are unused
+ SKIP 4                 \ These bytes appear to be unused
 
 .K3
 
