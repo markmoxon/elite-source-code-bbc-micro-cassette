@@ -1284,7 +1284,7 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\       Name: CTRL
+\       Name: CONT
 \       Type: Macro
 \   Category: Text
 \    Summary: Macro definition for control codes in the recursive token table
@@ -1294,7 +1294,7 @@ ENDMACRO
 \
 \ The following macro is used when building the recursive token table:
 \
-\   CTRL n              Insert control code token {n}
+\   CONT n              Insert control code token {n}
 \
 \ See the deep dive on "Printing text tokens" for details on how characters are
 \ stored in the recursive token table.
@@ -1305,7 +1305,7 @@ ENDMACRO
 \
 \ ******************************************************************************
 
-MACRO CTRL n
+MACRO CONT n
 
   EQUB n EOR 35
 
@@ -1369,7 +1369,7 @@ ENDMACRO
 
  RTOK 111               \ Token 0:      "FUEL SCOOPS ON {beep}"
  RTOK 131               \
- CTRL 7                 \ Encoded as:   "[111][131]{7}"
+ CONT 7                 \ Encoded as:   "[111][131]{7}"
  EQUB 0
 
  CHAR ' '               \ Token 1:      " CHART"
@@ -1393,7 +1393,7 @@ ENDMACRO
  TWOK 'A', 'T'          \
  CHAR 'A'               \ Encoded as:   "D<145>A[131]{3}"
  RTOK 131
- CTRL 3
+ CONT 3
  EQUB 0
 
  TWOK 'I', 'N'          \ Token 4:      "INVENTORY{crlf}
@@ -1402,7 +1402,7 @@ ENDMACRO
  CHAR 'T'               \ Encoded as:   "<140><150>NT<153>Y{13}"
  TWOK 'O', 'R'
  CHAR 'Y'
- CTRL 13
+ CONT 13
  EQUB 0
 
  CHAR 'S'               \ Token 5:      "SYSTEM"
@@ -1417,7 +1417,7 @@ ENDMACRO
  TWOK 'C', 'E'          \ Encoded as:   "P<158><133>"
  EQUB 0
 
- CTRL 2                 \ Token 7:      "{current system name} MARKET PRICES"
+ CONT 2                 \ Token 7:      "{current system name} MARKET PRICES"
  CHAR ' '               \
  TWOK 'M', 'A'          \ Encoded as:   "{2} <139>RKET [6]S"
  CHAR 'R'
@@ -1694,7 +1694,7 @@ ENDMACRO
 
  RTOK 122               \ Token 39:     "GALACTIC CHART{galaxy number}"
  RTOK 1                 \
- CTRL 1                 \ Encoded as:   "[122][1]{1}"
+ CONT 1                 \ Encoded as:   "[122][1]{1}"
  EQUB 0
 
  CHAR 'T'               \ Token 40:     "TARGET LOST"
@@ -1742,7 +1742,7 @@ ENDMACRO
  TWOK 'A', 'R'          \ Encoded as:   " C<138>GO{6}"
  CHAR 'G'
  CHAR 'O'
- CTRL 6
+ CONT 6
  EQUB 0
 
  CHAR 'E'               \ Token 47:     "EQUIP"
@@ -2084,7 +2084,7 @@ ENDMACRO
  CHAR ' '               \                 PRODUCT   UNIT PRICE FOR SALE{crlf}
  CHAR ' '               \                                              {lf}"
  RTOK 16                \
- CTRL 13                \ Encoded as:   "[14]  [16]{13} [26]   [14] [6] F<153>
+ CONT 13                \ Encoded as:   "[14]  [16]{13} [26]   [14] [6] F<153>
  CHAR ' '               \                 SA<129>{13}{10}"
  RTOK 26
  CHAR ' '
@@ -2100,8 +2100,8 @@ ENDMACRO
  CHAR 'S'
  CHAR 'A'
  TWOK 'L', 'E'
- CTRL 13
- CTRL 10
+ CONT 13
+ CONT 10
  EQUB 0
 
  CHAR 'F'               \ Token 96:     "FRONT"
@@ -2129,7 +2129,7 @@ ENDMACRO
  CHAR 'L'               \
  CHAR 'O'               \ Encoded as:   "[121]LOW{7}"
  CHAR 'W'
- CTRL 7
+ CONT 7
  EQUB 0
 
  RTOK 99                \ Token 101:    "RIGHT ON COMMANDER!"
@@ -2253,7 +2253,7 @@ ENDMACRO
 
  RTOK 37                \ Token 119:    "CASH:{cash} CR{crlf}
  CHAR ':'               \               "
- CTRL 0                 \
+ CONT 0                 \
  EQUB 0                 \ Encoded as:   "[37]:{0}"
 
  TWOK 'I', 'N'          \ Token 120:    "INCOMING MISSILE"
@@ -2279,7 +2279,7 @@ ENDMACRO
  CHAR 'C'
  EQUB 0
 
- CTRL 13                \ Token 123:    "{crlf}
+ CONT 13                \ Token 123:    "{crlf}
  RTOK 92                \                COMMANDER'S NAME? "
  CHAR '`'               \
  CHAR 'S'               \ Encoded as:   "{13}[92]'S NAME? "
@@ -2298,7 +2298,7 @@ ENDMACRO
  CHAR 'K'
  EQUB 0
 
- CTRL 5                 \ Token 125:    "FUEL: {fuel level} LIGHT YEARS{crlf}
+ CONT 5                 \ Token 125:    "FUEL: {fuel level} LIGHT YEARS{crlf}
  TWOK 'L', 'E'          \                CASH:{cash} CR{crlf}
  CHAR 'G'               \                LEGAL STATUS:"
  TWOK 'A', 'L'          \
@@ -2311,28 +2311,28 @@ ENDMACRO
 
  RTOK 92                \ Token 126:    "COMMANDER {commander name}{crlf}
  CHAR ' '               \                {crlf}
- CTRL 4                 \                {crlf}
- CTRL 13                \                {sentence case}PRESENT SYSTEM{tab to
- CTRL 13                \                column 21}:{current system name}{crlf}
- CTRL 13                \                HYPERSPACE SYSTEM{tab to column 21}:
- CTRL 6                 \                {selected system name}{crlf}
+ CONT 4                 \                {crlf}
+ CONT 13                \                {sentence case}PRESENT SYSTEM{tab to
+ CONT 13                \                column 21}:{current system name}{crlf}
+ CONT 13                \                HYPERSPACE SYSTEM{tab to column 21}:
+ CONT 6                 \                {selected system name}{crlf}
  RTOK 145               \                CONDITION{tab to column 21}:"
  CHAR ' '               \
  RTOK 5                 \ Encoded as:   "[92] {4}{13}{13}{13}{6}[145] [5]{9}{2}
- CTRL 9                 \                {13}[29][5]{9}{3}{13}C<159><141><151>
- CTRL 2                 \                <159>{9}"
- CTRL 13
+ CONT 9                 \                {13}[29][5]{9}{3}{13}C<159><141><151>
+ CONT 2                 \                <159>{9}"
+ CONT 13
  RTOK 29
  RTOK 5
- CTRL 9
- CTRL 3
- CTRL 13
+ CONT 9
+ CONT 3
+ CONT 13
  CHAR 'C'
  TWOK 'O', 'N'
  TWOK 'D', 'I'
  TWOK 'T', 'I'
  TWOK 'O', 'N'
- CTRL 9
+ CONT 9
  EQUB 0
 
  CHAR 'I'               \ Token 127:    "ITEM"
@@ -2354,11 +2354,11 @@ ENDMACRO
  RTOK 92
  CHAR ' '
  RTOK 65
- CTRL 13
- CTRL 13
+ CONT 13
+ CONT 13
  EQUB 0
 
- CTRL 6                 \ Token 129:    "{sentence case}DOCKED"
+ CONT 6                 \ Token 129:    "{sentence case}DOCKED"
  RTOK 124               \
  TWOK 'E', 'D'          \ Encoded as:   "{6}[124]<152>"
  EQUB 0
@@ -2375,14 +2375,14 @@ ENDMACRO
  CHAR ' '               \ Encoded as:   " <159> "
  EQUB 0
 
- CTRL 13                \ Token 132:    "{crlf}
- CTRL 8                 \                {all caps}EQUIPMENT: {sentence case}"
+ CONT 13                \ Token 132:    "{crlf}
+ CONT 8                 \                {all caps}EQUIPMENT: {sentence case}"
  RTOK 47                \
  CHAR 'M'               \ Encoded as:   "{13}{8}[47]M<146>T:{6}"
  TWOK 'E', 'N'
  CHAR 'T'
  CHAR ':'
- CTRL 6
+ CONT 6
  EQUB 0
 
  CHAR 'C'               \ Token 133:    "CLEAN"
@@ -2491,7 +2491,7 @@ ENDMACRO
  CHAR 'T'
  EQUB 0
 
- CTRL 8                 \ Token 146:    "{all caps}GAME OVER"
+ CONT 8                 \ Token 146:    "{all caps}GAME OVER"
  CHAR 'G'               \
  CHAR 'A'               \ Encoded as:   "{8}GAME O<150>R"
  CHAR 'M'
@@ -2520,8 +2520,8 @@ ENDMACRO
  CHAR ','
  RTOK 92
  CHAR '.'
- CTRL 13
- CTRL 13
+ CONT 13
+ CONT 13
  EQUB 0
 
  CHAR '('               \ Token 148:    "(C) ACORNSOFT 1984"
@@ -3404,7 +3404,7 @@ LOAD_A% = LOAD%
 \
 \ The key presses that are processed are as follows:
 \
-\   * SPACE and "?" to speed up and slow down
+\   * Space and "?" to speed up and slow down
 \   * "U", "T" and "M" to disarm, arm and fire missiles
 \   * TAB to fire an energy bomb
 \   * ESCAPE to launch an escape pod
@@ -6683,7 +6683,7 @@ LOAD_B% = LOAD% + P% - CODE%
 \
 \ Contains the last saved commander data, with the name at NA% and the data at
 \ NA%+8 onwards. The size of the data block is given in NT% (which also includes
-\ the two checksum bytes that follow this block. This block is initially set up
+\ the two checksum bytes that follow this block). This block is initially set up
 \ with the default commander, which can be maxed out for testing purposes by
 \ setting Q% to TRUE.
 \
@@ -16665,7 +16665,7 @@ NEXT
  EOR (SC),Y             \ Draw the stick on row Y of the character block using
  STA (SC),Y             \ EOR logic
 
- DEX                    \ Decrement (positive) the stick height in X
+ DEX                    \ Decrement the (positive) stick height in X
 
  BNE VLL1               \ If we still have more stick to draw, jump up to VLL1
                         \ to draw the next pixel
@@ -16723,7 +16723,7 @@ NEXT
  EOR (SC),Y             \ Draw the stick on row Y of the character block using
  STA (SC),Y             \ EOR logic
 
- INX                    \ Decrement the (negative) stick height in X
+ INX                    \ Increment the (negative) stick height in X
 
  BNE VLL2               \ If we still have more stick to draw, jump up to VLL2
                         \ to draw the next pixel
@@ -18044,10 +18044,12 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR tnpr               \ Call tnpr to work out whether there is room in the
                         \ cargo hold for this item
 
- LDY #206               \ If the C flag is set, then there is no room in the
- BCS Tc                 \ cargo hold, so set Y to the recursive token 46
-                        \ (" CARGO{sentence case}") and jump up to Tc to print a
-                        \ "Cargo?" error, beep, clear the number and try again
+ LDY #206               \ Set Y to recursive token 46 (" CARGO{sentence case}")
+                        \ to pass to the Tc routine if we call it
+
+ BCS Tc                 \ If the C flag is set, then there is no room in the
+                        \ cargo hold, jump up to Tc to print a "Cargo?" error, 
+                        \ beep, clear the number and try again
 
  LDA QQ24               \ There is room in the cargo hold, so now to check
  STA Q                  \ whether we have enough cash, so fetch the item's
@@ -26586,7 +26588,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ works in the opposite way to moving a cursor on-screen
                         \ in terms of left and right
 
- JSR TJS1               \ Call TJS1 just below to set Y to a value between -2
+ JSR TJS1               \ Call TJS1 just below to set A to a value between -2
                         \ and +2 depending on the joystick roll value (moving
                         \ the stick sideways)
 
@@ -29055,7 +29057,7 @@ ENDIF
 .CHECK
 
  LDX #NT%-2             \ Set X to the size of the commander data block, less
-                        \ 2 (as there are two checksum bytes)
+                        \ 2 (to omit the checksum bytes and the save count)
 
  CLC                    \ Clear the C flag so we can do addition without the
                         \ C flag affecting the result
@@ -29369,13 +29371,14 @@ ENDIF
 
 .SVL1
 
- LDA TP,X               \ Copy the X-th byte of TP to the X-th byte of &B00
- STA &B00,X             \ and NA%+8
+ LDA TP,X               \ Copy the X-th byte of TP to the X-th byte of &0B00
+ STA &0B00,X            \ and NA%+8
  STA NA%+8,X
 
  DEX                    \ Decrement the loop counter
 
- BPL SVL1               \ Loop back until we have copied all NT% bytes
+ BPL SVL1               \ Loop back until we have copied all the bytes in the
+                        \ commander data block
 
  JSR CHECK              \ Call CHECK to calculate the checksum for the last
                         \ saved commander and return it in A
@@ -29410,7 +29413,7 @@ ENDIF
 
  PLA                    \ Restore the checksum from the stack
 
- STA &B00+NT%           \ Store the checksum in the last byte of the save file
+ STA &0B00+NT%          \ Store the checksum in the last byte of the save file
                         \ at &0B00 (the equivalent of CHK in the last saved
                         \ block)
 
@@ -29422,9 +29425,9 @@ ENDIF
                         \ last saved block)
 
  LDY #&B                \ Set up an OSFILE block at &0C00, containing:
- STY &C0B               \
+ STY &0C0B              \
  INY                    \ Start address for save = &00000B00 in &0C0A to &0C0D
- STY &C0F               \
+ STY &0C0F              \
                         \ End address for save = &00000C00 in &0C0E to &0C11
                         \
                         \ Y is left containing &C which we use below
@@ -29528,9 +29531,9 @@ ENDIF
  INY                    \ Increment Y to &C, which we use next
 
  LDA #&FF               \ Call QUS1 with A = &FF, Y = &C to load the commander
- JSR QUS1               \ file at address &0B00
+ JSR QUS1               \ file to address &0B00
 
- LDA &B00               \ If the first byte of the loaded file has bit 7 set,
+ LDA &0B00              \ If the first byte of the loaded file has bit 7 set,
  BMI SPS1+1             \ jump to SPS+1, which is the second byte of an LDA #0
                         \ instruction, i.e. a BRK instruction, which will force
                         \ an interrupt to call the address in BRKV, which is set
@@ -30253,7 +30256,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
                         \ speed and lasers):
 
  EQUB &68 + 128         \ ?         KYTB+1      Slow down
- EQUB &62 + 128         \ SPACE     KYTB+2      Speed up
+ EQUB &62 + 128         \ Space     KYTB+2      Speed up
  EQUB &66 + 128         \ <         KYTB+3      Roll left
  EQUB &67 + 128         \ >         KYTB+4      Roll right
  EQUB &42 + 128         \ X         KYTB+5      Pitch up
@@ -30367,8 +30370,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 .DKS4
 
- LDA #3                 \ Set A to 3, so it's ready to send to SHEILA once
-                        \ interrupts have been disabled
+ LDA #%00000011         \ Set A to %00000011, so it's ready to send to SHEILA
+                        \ once interrupts have been disabled
 
  SEI                    \ Disable interrupts so we can scan the keyboard
                         \ without being hijacked
@@ -30594,6 +30597,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \ Returns:
 \
 \   A                   A is set to 0
+\
+\   Y                   Y is set to 0
 \
 \ ******************************************************************************
 
