@@ -17867,7 +17867,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
                         \ Fall through into TT128 to draw a circle with the
                         \ centre at the same coordinates as the crosshairs,
-                        \ (QQ19, QQ19+1),  and radius K that reflects the
+                        \ (QQ19, QQ19+1), and radius K that reflects the
                         \ current fuel levels
 
 \ ******************************************************************************
@@ -19253,7 +19253,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
                         \ We now store the distance to the selected system * 4
                         \ in the two-byte location QQ8, by taking (0 Q) and
-                        \ shifting it left twice, storing it in (QQ8+1 QQ8)
+                        \ shifting it left twice, storing it in QQ8(1 0)
 
  LDA Q                  \ First we shift the low byte left by setting
  ASL A                  \ A = Q * 2, with bit 7 of A going into the C flag
@@ -28895,6 +28895,11 @@ ENDIF
 \
 \   X                   The type of the ship to show (see variable XX21 for a
 \                       list of ship types)
+\
+\ Returns:
+\
+\   X                   If a key is being pressed, X contains the internal key
+\                       number, otherwise it contains 0
 \
 \ ******************************************************************************
 
