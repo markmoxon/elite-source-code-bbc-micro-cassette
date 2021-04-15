@@ -54,7 +54,6 @@ NOSH = 12               \ The maximum number of ships in our local bubble of
 NTY = 13                \ The number of different ship types
 
 COPS = 2                \ Ship type for a Viper
-MAM = 3                 \ Ship type for a Mamba
 THG = 6                 \ Ship type for a Thargoid
 CYL = 7                 \ Ship type for a Cobra Mk III (trader)
 SST = 8                 \ Ship type for the space station
@@ -35541,7 +35540,7 @@ LOAD_SHIPS% = LOAD% + P% - CODE%
 
  EQUW SHIP_SIDEWINDER   \         1 = Sidewinder
  EQUW SHIP_VIPER        \ COPS =  2 = Viper
- EQUW SHIP_MAMBA        \ MAM  =  3 = Mamba
+ EQUW SHIP_MAMBA        \         3 = Mamba
  EQUW SHIP_PYTHON       \         4 = Python
  EQUW SHIP_COBRA_MK_3   \         5 = Cobra Mk III (bounty hunter)
  EQUW SHIP_THARGOID     \ THG  =  6 = Thargoid
