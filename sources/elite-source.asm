@@ -2551,11 +2551,11 @@ PRINT "WORDS9"
 PRINT "Assembled at ", ~CODE_WORDS%
 PRINT "Ends at ", ~P%
 PRINT "Code size is ", ~(P% - CODE_WORDS%)
-PRINT "Execute at ", ~LOAD%
+PRINT "Execute at ", ~LOAD_WORDS%
 PRINT "Reload at ", ~LOAD_WORDS%
 
-PRINT "S.WORDS9 ",~CODE%," ",~P%," ",~LOAD%," ",~LOAD_WORDS%
-SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD%
+PRINT "S.WORDS9 ",~CODE%," ",~P%," ",~LOAD_WORDS%," ",~LOAD_WORDS%
+SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD_WORDS%
 
 \ ******************************************************************************
 \
