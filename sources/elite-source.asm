@@ -2554,7 +2554,7 @@ PRINT "Code size is ", ~(P% - CODE_WORDS%)
 PRINT "Execute at ", ~LOAD_WORDS%
 PRINT "Reload at ", ~LOAD_WORDS%
 
-PRINT "S.WORDS9 ",~CODE%," ",~P%," ",~LOAD_WORDS%," ",~LOAD_WORDS%
+PRINT "S.WORDS9 ",~CODE_WORDS%," ",~P%," ",~LOAD_WORDS%," ",~LOAD_WORDS%
 SAVE "output/WORDS9.bin", CODE_WORDS%, P%, LOAD_WORDS%
 
 \ ******************************************************************************
