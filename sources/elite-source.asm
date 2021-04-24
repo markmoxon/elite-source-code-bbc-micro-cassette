@@ -2749,7 +2749,7 @@ ORG &0D40
                         \
                         \   * Non-zero = hyperspace colour effect enabled
                         \
-                        \ When HFS is set to 1, the mode 4 screen that makes
+                        \ When HFX is set to 1, the mode 4 screen that makes
                         \ up the top part of the display is temporarily switched
                         \ to mode 5 (the same screen mode as the dashboard),
                         \ which has the effect of blurring and colouring the
@@ -3744,9 +3744,9 @@ LOAD_A% = LOAD%
 \
 \ ******************************************************************************
 
- LDA BOMB               \ If we set off our energy bomb by pressing TAB (see
- BPL MA21               \ MA24 above), then BOMB is now negative, so this skips
-                        \ to MA21 if our energy bomb is not going off
+ LDA BOMB               \ If we set off our energy bomb (see MA24 above), then
+ BPL MA21               \ BOMB is now negative, so this skips to MA21 if our
+                        \ energy bomb is not going off
 
  CPY #2*SST             \ If the ship in Y is the space station, jump to BA21
  BEQ MA21               \ as energy bombs are useless against space stations
@@ -4396,9 +4396,9 @@ LOAD_A% = LOAD%
 
 .MA18
 
- LDA BOMB               \ If we set off our energy bomb by pressing TAB (see
- BPL MA77               \ MA24 above), then BOMB is now negative, so this skips
-                        \ to MA77 if our energy bomb is not going off
+ LDA BOMB               \ If we set off our energy bomb (see MA24 above), then
+ BPL MA77               \ BOMB is now negative, so this skips to MA21 if our
+                        \ energy bomb is not going off
 
  ASL BOMB               \ We set off our energy bomb, so rotate BOMB to the
                         \ left by one place. BOMB was rotated left once already
@@ -6392,12 +6392,10 @@ LOAD_A% = LOAD%
 \       Name: MV40
 \       Type: Subroutine
 \   Category: Moving
-\    Summary: Rotate the planet or sun by our ship's pitch and roll
+\    Summary: Rotate the planet or sun's location in space by the amount of
+\             pitch and roll of our ship
 \
 \ ------------------------------------------------------------------------------
-\
-\ Rotate the planet or sun's location in space by the amount of pitch and roll
-\ of our ship.
 \
 \ We implement this using the same equations as in part 5 of MVEIT, where we
 \ rotated the current ship's location by our pitch and roll. Specifically, the
@@ -11809,7 +11807,7 @@ LOAD_C% = LOAD% +P% - CODE%
  LDX #COPS              \ Set X to the ship type for a cop
 
  LDA #%11110001         \ Set the AI flag to give the ship E.C.M., enable AI and
-                        \ make it very aggressive (56 out of 63)
+                        \ make it very aggressive (60 out of 63)
 
  JMP SFS1               \ Jump to SFS1 to spawn the ship, returning from the
                         \ subroutine using a tail call
@@ -12036,9 +12034,10 @@ LOAD_C% = LOAD% +P% - CODE%
  DEC INWK+31            \ We're done with the checks, so it's time to fire off a
                         \ missile, so reduce the missile count in byte #31 by 1
 
- LDA TYPE               \ If this is not a Thargoid, jump down to TA16 to launch
- CMP #THG               \ a missile
- BNE TA16
+ LDA TYPE               \ Fetch the ship type into A
+
+ CMP #THG               \ If this is not a Thargoid, jump down to TA16 to launch
+ BNE TA16               \ a missile
 
  LDX #TGL               \ This is a Thargoid, so instead of launching a missile,
  LDA INWK+32            \ the mothership launches a Thargon, so call SFS1 to
@@ -16082,8 +16081,8 @@ NEXT
 
 .BOL1
 
- JSR ZES1               \ Call ZES1 below to zero-fill the page in X, which
-                        \ clears that character row on the screen
+ JSR ZES1               \ Call ZES1  to zero-fill the page in X, which clears
+                        \ that character row on the screen
 
  INX                    \ Increment X to point to the next page, i.e. the next
                         \ character row
@@ -16208,7 +16207,7 @@ NEXT
 \
 \   DEL8                Wait for 8/50 of a second (0.16 seconds)
 \
-\   DELAY-5             Wait for 2/50 of a second (0.04 seconds).
+\   DELAY-5             Wait for 2/50 of a second (0.04 seconds)
 \
 \ ******************************************************************************
 
@@ -24008,6 +24007,12 @@ LOAD_E% = LOAD% + P% - CODE%
 \   Category: Dashboard
 \    Summary: Disarm missiles and update the dashboard indicators
 \
+\ ------------------------------------------------------------------------------
+\
+\ Arguments:
+\
+\   Y                   The new status of the leftmost missile indicator
+\
 \ ******************************************************************************
 
 .ABORT
@@ -28845,8 +28850,7 @@ ENDIF
                         \ current system coordinates (QQ0, QQ1) we just loaded
 
  JSR hyp1               \ Arrive in the system closest to (QQ9, QQ10) and then
-                        \ and then fall through into the docking bay routine
-                        \ below
+                        \ fall through into the docking bay routine below
 
 \ ******************************************************************************
 \
@@ -29186,7 +29190,7 @@ ENDIF
  JSR OSBYTE
 
  LDX #LO(RLINE)         \ Set (Y X) to point to the RLINE parameter block
- LDY #HI(RLINE)         \ configuration block below, which reads a line from
+ LDY #HI(RLINE)         \ configuration block below
 
  LDA #0                 \ Call OSWORD with A = 0 to read a line from the current
  JSR OSWORD             \ input stream (i.e. the keyboard)
@@ -29259,7 +29263,7 @@ ENDIF
 
 .ZEL
 
- JSR ZES1               \ Call ZES1 below to zero-fill the page in X
+ JSR ZES1               \ Call ZES1 to zero-fill the page in X
 
  DEX                    \ Decrement X to point to the next page
 
@@ -36642,7 +36646,7 @@ PRINT "Code size is ", ~(P% - CODE_SHIPS%)
 PRINT "Execute at ", ~LOAD%
 PRINT "Reload at ", ~LOAD_SHIPS%
 
-PRINT "S.SHIPS ", ~CODE_B%, " ", ~P%, " ", ~LOAD%, " ", ~LOAD_SHIPS%
+PRINT "S.SHIPS ", ~CODE_SHIPS%, " ", ~P%, " ", ~LOAD%, " ", ~LOAD_SHIPS%
 SAVE "output/SHIPS.bin", CODE_SHIPS%, P%, LOAD%
 
 \ ******************************************************************************

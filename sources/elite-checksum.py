@@ -75,7 +75,7 @@ ships_file = open("output/SHIPS.bin", "rb")
 data_block.extend(ships_file.read())
 ships_file.close()
 
-print("output/SHIPS.bin file saved")
+print("output/SHIPS.bin file read")
 
 # Calculate checksum0
 

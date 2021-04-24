@@ -43,16 +43,12 @@ DISC = TRUE             \ Set to TRUE to load the code above DFS and relocate
 
 PROT = FALSE            \ Set to TRUE to enable the tape protection code
 
-LOAD% = &1100           \ LOAD% is the load address of the main game code file
-                        \ ("ELTcode" for loading from disc, "ELITEcode" for
-                        \ loading from tape)
-
 C% = &0F40              \ C% is set to the location that the main game code gets
                         \ moved to after it is loaded
 
 S% = C%                 \ S% points to the entry point for the main game code
 
-L% = LOAD% + &28        \ L% points to the start of the actual game code from
+L% = &1128              \ L% points to the start of the actual game code from
                         \ elite-source.asm, after the &28 bytes of header code
                         \ that are inserted by elite-bcfs.asm
 
@@ -93,22 +89,6 @@ LE% = &0B00             \ LE% is the address to which the code from UU% onwards
                         \     on the stack by this point
                         \
                         \   * The variables used by the above
-
-IF DISC
-
- CODE% = &E00+&300      \ CODE% is set to the assembly address of the loader
-                        \ code file that we assemble in this file ("ELITE"),
-                        \ which is at the lowest DFS page value of &1100 for the
-                        \ version that loads from disc
-
-ELSE
-
- CODE% = &E00           \ CODE% is set to the assembly address of the loader
-                        \ code file that we assemble in this file ("ELITE"),
-                        \ which is at the standard &0E00 address for the version
-                        \ that loads from cassette
-
-ENDIF
 
 NETV = &224             \ The NETV vector that we intercept as part of the copy
                         \ protection
@@ -215,6 +195,28 @@ ORG &0070
 \
 \ ******************************************************************************
 
+IF DISC
+
+ CODE% = &1100          \ CODE% is set to the assembly address of the loader
+                        \ code file that we assemble in this file ("ELITE"),
+                        \ which is at the lowest DFS page value of &1100 for the
+                        \ version that loads from disc
+
+ELSE
+
+ CODE% = &E00           \ CODE% is set to the assembly address of the loader
+                        \ code file that we assemble in this file ("ELITE"),
+                        \ which is at the standard &0E00 address for the version
+                        \ that loads from cassette
+
+ENDIF
+
+LOAD% = &1100           \ LOAD% is the load address of the main game code file
+                        \ ("ELTcode" for loading from disc, "ELITEcode" for
+                        \ loading from tape)
+
+ORG CODE%
+
 \ ******************************************************************************
 \
 \       Name: Elite loader (Part 1 of 6)
@@ -259,32 +261,25 @@ ORG &0070
 \
 \ ******************************************************************************
 
-ORG CODE%
 PRINT "WORDS9 = ",~P%
 INCBIN "output/WORDS9.bin"
 
-ORG CODE% + &400
+ALIGN 256
+
 PRINT "P.DIALS = ",~P%
 INCBIN "binaries/P.DIALS.bin"
 
-ORG CODE% + &B00
 PRINT "PYTHON = ",~P%
 INCBIN "output/PYTHON.bin"
 
-ORG CODE% + &C00
 PRINT "P.ELITE = ",~P%
 INCBIN "binaries/P.ELITE.bin"
 
-ORG CODE% + &D00
 PRINT "P.A-SOFT = ",~P%
 INCBIN "binaries/P.A-SOFT.bin"
 
-ORG CODE% + &E00
 PRINT "P.(C)ASFT = ",~P%
 INCBIN "binaries/P.(C)ASFT.bin"
-
-O% = CODE% + &400 + &800 + &300
-ORG O%
 
 .run
 
@@ -476,8 +471,10 @@ ORG O%
 
  EQUS "R.ELITEcode"
  EQUB 13
+
  EQUS "By D.Braben/I.Bell"
  EQUB 13
+
  EQUB &B0
 
 \ ******************************************************************************
@@ -510,9 +507,9 @@ ORG O%
 
 .David9
 
- EQUW David5            \ The address of David5
+EQUW David5            \ The address of David5
 
- CLD                    \ This instruction is not used
+CLD                    \ This instruction is not used
 
 \ ******************************************************************************
 \
@@ -854,7 +851,7 @@ ENDIF
  LDX #2                 \ the "character entering keyboard buffer" event
  JSR OSB
 
-.OS01                   \ Reset stack
+.OS01
 
  LDX #&FF               \ Set the stack pointer to &01FF, which is the standard
  TXS                    \ location for the 6502 stack, so this instruction
@@ -1744,7 +1741,7 @@ ENDIF
  AND #%00000111
  TAX
 
- LDA TWOS,X             \ Otherwise fetch a pixel from TWOS and OR it into ZP+Y
+ LDA TWOS,X             \ Fetch a pixel from TWOS and OR it into ZP+Y
  ORA (ZP),Y
  STA (ZP),Y
 
@@ -2119,6 +2116,7 @@ ENDIF
 .UU%
 
 Q% = P% - LE%
+
 ORG LE%
 
 \ ******************************************************************************
