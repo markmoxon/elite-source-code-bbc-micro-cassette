@@ -24,6 +24,7 @@
 \ ******************************************************************************
 
 \PUTFILE "binaries/$.!BOOT.bin", "!BOOT", &0000, &0000
+PUTFILE "binaries/$.README.bin", "README", &0000, &0000
 PUTFILE "binaries/$.ELITE.bin", "ELITE", &1900, &8023
 PUTFILE "output/ELITE.bin", "ELTdata", &1100, &2000
 PUTFILE "output/ELTcode.bin", "ELTcode", &1128, &1128
