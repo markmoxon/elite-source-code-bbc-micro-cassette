@@ -114,7 +114,7 @@ ORG &1100               \ The load address of the main game code file ("ELTcode"
                         \ both of which are designed to confuse crackers
 
                         \ We now run a checksum on the block of memory from
-                        \ &0B01 to &CFF, which is the UU% routine from the
+                        \ &0B01 to &0CFF, which is the UU% routine from the
                         \ loader
 
  LDA #&B                \ Set ZP(1 0) = &0B00, to point to the start of the code

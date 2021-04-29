@@ -29426,7 +29426,7 @@ ENDIF
  EOR #&A9               \ Store the checksum EOR &A9 in CHK2, the penultimate
  STA CHK2               \ byte of the last saved commander block
 
- STA &AFF+NT%           \ Store the checksum EOR &A9 in the penultimate byte of
+ STA &0AFF+NT%          \ Store the checksum EOR &A9 in the penultimate byte of
                         \ the save file at &0B00 (the equivalent of CHK2 in the
                         \ last saved block)
 
@@ -29488,7 +29488,7 @@ ENDIF
 \
 \   Y                   Points to the page number containing the OSFILE block,
 \                       which must be &C because that's where the pointer to the
-\                       filename in INWK is stored below (by the STX &C00
+\                       filename in INWK is stored below (by the STX &0C00
 \                       instruction)
 \
 \ ******************************************************************************
@@ -29556,7 +29556,7 @@ ENDIF
 
 .LOL1
 
- LDA &B00,X             \ Copy the X-th byte of &0B00 to the X-th byte of NA%+8
+ LDA &0B00,X            \ Copy the X-th byte of &0B00 to the X-th byte of NA%+8
  STA NA%+8,X
 
  DEX                    \ Decrement the loop counter
