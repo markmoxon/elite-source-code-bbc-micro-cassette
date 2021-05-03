@@ -3,6 +3,7 @@ PYTHON?=python
 
 rel-cassette=1
 folder-cassette=''
+suffix-cassette='-from-source-disc'
 
 .PHONY:build
 build:
@@ -13,7 +14,7 @@ build:
 	$(BEEBASM) -i sources/elite-bcfs.asm -v >> output/compile.txt
 	$(BEEBASM) -i sources/elite-loader.asm -v >> output/compile.txt
 	$(PYTHON) sources/elite-checksum.py -u -rel$(rel-cassette)
-	$(BEEBASM) -i sources/elite-disc.asm -do elite-cassette.ssd -boot ELTdata
+	$(BEEBASM) -i sources/elite-disc.asm -do elite-cassette$(suffix-cassette).ssd -boot ELTdata
 
 .PHONY:encrypt
 encrypt:
@@ -24,7 +25,7 @@ encrypt:
 	$(BEEBASM) -i sources/elite-bcfs.asm -v >> output/compile.txt
 	$(BEEBASM) -i sources/elite-loader.asm -v >> output/compile.txt
 	$(PYTHON) sources/elite-checksum.py -rel$(rel-cassette)
-	$(BEEBASM) -i sources/elite-disc.asm -do elite-cassette.ssd -boot ELTdata
+	$(BEEBASM) -i sources/elite-disc.asm -do elite-cassette$(suffix-cassette).ssd -boot ELTdata
 
 .PHONY:verify
 verify:

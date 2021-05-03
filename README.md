@@ -132,7 +132,7 @@ make.bat build
 make.bat encrypt
 ```
 
-will produce a file called `elite-cassette.ssd`, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
+will produce a file called `elite-cassette-from-source-disc.ssd` containing the source disc release, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
 
 ### Mac and Linux
 
@@ -148,7 +148,7 @@ make build
 make encrypt
 ```
 
-will produce a file called `elite-cassette.ssd`, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
+will produce a file called `elite-cassette-from-source-disc.ssd` containing the source disc release, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
 
 ### Verifying the output
 
