@@ -2,8 +2,8 @@ BEEBASM?=beebasm
 PYTHON?=python
 
 rel-cassette=1
-folder-cassette=''
-suffix-cassette='-from-source-disc'
+folder-cassette=
+suffix-cassette=-from-source-disc
 
 .PHONY:build
 build:
