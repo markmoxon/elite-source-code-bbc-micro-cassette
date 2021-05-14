@@ -13,6 +13,9 @@
 \ The terminology and notations used in this commentary are explained at
 \ https://www.bbcelite.com/about_site/terminology_used_in_this_commentary.html
 \
+\ The deep dive articles referred to in this commentary can be found at
+\ https://www.bbcelite.com/deep_dives
+\
 \ ------------------------------------------------------------------------------
 \
 \ This source file produces the following binary file:
@@ -90,16 +93,17 @@ LE% = &0B00             \ LE% is the address to which the code from UU% onwards
                         \
                         \   * The variables used by the above
 
-NETV = &224             \ The NETV vector that we intercept as part of the copy
+NETV = &0224            \ The NETV vector that we intercept as part of the copy
                         \ protection
 
-IRQ1V = &204            \ The IRQ1V vector that we intercept to implement the
+IRQ1V = &0204           \ The IRQ1V vector that we intercept to implement the
                         \ split-sceen mode
+
+OSPRNT = &0234          \ The address for the OSPRNT vector
 
 OSWRCH = &FFEE          \ The address for the OSWRCH routine
 OSBYTE = &FFF4          \ The address for the OSBYTE routine
 OSWORD = &FFF1          \ The address for the OSWORD routine
-OSPRNT = &234           \ The address for the OSPRNT vector
 
 VIA = &FE00             \ Memory-mapped space for accessing internal hardware,
                         \ such as the video ULA, 6845 CRTC and 6522 VIAs (also
@@ -204,7 +208,7 @@ IF DISC
 
 ELSE
 
- CODE% = &E00           \ CODE% is set to the assembly address of the loader
+ CODE% = &0E00          \ CODE% is set to the assembly address of the loader
                         \ code file that we assemble in this file ("ELITE"),
                         \ which is at the standard &0E00 address for the version
                         \ that loads from cassette
@@ -678,7 +682,7 @@ IF DISC = 0
 .ABCDEFG
 
  LDA (ZP),Y             \ Copy the Y-th byte from the default vector table into
- STA &200,Y             \ the vector table in &0200
+ STA &0200,Y            \ the vector table in &0200
 
  DEY                    \ Decrement the loop counter
 
@@ -700,18 +704,18 @@ ENDIF
  LDA &FFFC              \ Fetch the low byte of the reset address in &FFFC,
                         \ which will reset the machine if called
 
- STA &200               \ Set the low bytes of USERV, BRKV, IRQ2V and EVENTV
- STA &202
- STA &206
- STA &220
+ STA &0200              \ Set the low bytes of USERV, BRKV, IRQ2V and EVENTV
+ STA &0202
+ STA &0206
+ STA &0220
 
  LDA &FFFD              \ Fetch the high byte of the reset address in &FFFD,
                         \ which will reset the machine if called
 
- STA &201               \ Set the high bytes of USERV, BRKV, IRQ2V and EVENTV
- STA &203
- STA &207
- STA &221
+ STA &0201              \ Set the high bytes of USERV, BRKV, IRQ2V and EVENTV
+ STA &0203
+ STA &0207
+ STA &0221
 
  LDX #&2F-2             \ We now step through all the vectors from &0204 to
                         \ &022F and OR their high bytes with &C0, so they all
@@ -721,19 +725,19 @@ ENDIF
 
 .purge
 
- LDA &202,X             \ Set the high byte of the vector in &202+X so it points
- ORA #&C0               \ to the MOS ROM
- STA &202,X
+ LDA &0202,X            \ Set the high byte of the vector in &0202+X so it
+ ORA #&C0               \ points to the MOS ROM
+ STA &0202,X
 
  DEX                    \ Increment the counter to point to the next high byte
  DEX
 
  BPL purge              \ Loop back until we have done all the vectors
 
- LDA #&60               \ Store an RTS instruction in location &232
- STA &232
+ LDA #&60               \ Store an RTS instruction in location &0232
+ STA &0232
 
- LDA #&2                \ Point the NETV vector to &232, which we just filled
+ LDA #&2                \ Point the NETV vector to &0232, which we just filled
  STA NETV+1             \ with an RTS
  LDA #&32
  STA NETV
@@ -942,13 +946,13 @@ ENDIF
 \
 \   * WORDS9: move 4 pages (1024 bytes) from CODE% to &0400
 \
-\   * P.ELITE: move 1 page (256 bytes) from CODE% + &C00 to &6300
+\   * P.ELITE: move 1 page (256 bytes) from CODE% + &0C00 to &6300
 \
-\   * P.A-SOFT: move 1 page (256 bytes) from CODE% + &D00 to &6100
+\   * P.A-SOFT: move 1 page (256 bytes) from CODE% + &0D00 to &6100
 \
-\   * P.(C)ASFT: move 1 page (256 bytes) from CODE% + &E00 to &7600
+\   * P.(C)ASFT: move 1 page (256 bytes) from CODE% + &0E00 to &7600
 \
-\   * P.DIALS and PYTHON: move 8 pages (2048 bytes) from CODE% + &400 to &7800
+\   * P.DIALS and PYTHON: move 8 pages (2048 bytes) from CODE% + &0400 to &7800
 \
 \   * Move 2 pages (512 bytes) from UU% to &0B00-&0CFF
 \
@@ -1240,45 +1244,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing planets
 \    Summary: Draw Saturn on the loading screen
-\
-\ ------------------------------------------------------------------------------
-\
-\ Part 1 (PLL1) x 1280 - planet
-\
-\   * Draw pixels at (x, y) where:
-\
-\     r1 = random number from 0 to 255
-\     r2 = random number from 0 to 255
-\     (r1^2 + r1^2) < 128^2
-\
-\     y = r2, squished into 64 to 191 by negation
-\
-\     x = SQRT(128^2 - (r1^2 + r1^2)) / 2
-\
-\ Part 2 (PLL2) x 477 - stars
-\
-\   * Draw pixels at (x, y) where:
-\
-\     y = random number from 0 to 255
-\     y = random number from 0 to 255
-\     (x^2 + y^2) div 256 > 17
-\
-\ Part 3 (PLL3) x 1280 - rings
-\
-\   * Draw pixels at (x, y) where:
-\
-\     r5 = random number from 0 to 255
-\     r6 = random number from 0 to 255
-\     r7 = r5, squashed into -32 to 31
-\
-\     32 <= (r5^2 + r6^2 + r7^2) / 256 <= 79
-\     Draw 50% fewer pixels when (r6^2 + r7^2) / 256 <= 16
-\
-\     x = r5 + r7
-\     y = r5
-\
-\ Draws pixels within the diagonal band of horizontal width 64, from top-left to
-\ bottom-right of the screen.
+\  Deep dive: Drawing Saturn on the loading screen
 \
 \ ******************************************************************************
 
@@ -2560,20 +2526,20 @@ ENDIF
                         \
                         \ so any character printing will use the TT26 routine
 
- LDA &20E               \ Copy the low byte of WRCHV to the low byte of OSPRNT
+ LDA &020E              \ Copy the low byte of WRCHV to the low byte of OSPRNT
  STA OSPRNT
 
  LDA #LO(TT26)          \ Set the low byte of WRCHV to the low byte of TT26
- STA &20E
+ STA &020E
 
  LDX #LO(MESS1)         \ Set X to the low byte of MESS1
 
- LDA &20F               \ Copy the high byte of WRCHV to the high byte of OSPRNT
+ LDA &020F              \ Copy the high byte of WRCHV to the high byte of OSPRNT
  STA OSPRNT+1
 
  LDA #HI(TT26)          \ Set the high byte of WRCHV to the high byte of TT26
  LDY #HI(MESS1)         \ and set Y to the high byte of MESS1
- STA &20F
+ STA &020F
 
  JSR AFOOL              \ This calls AFOOL, which jumps to the address in FOOLV,
                         \ which contains the address of FOOL, which contains an
@@ -2663,14 +2629,14 @@ ENDIF
                         \ code for the vector values)
 
  LDA S%+6               \ Set BRKV to point to the BR1 routine in the main game
- STA &202               \ code
+ STA &0202              \ code
  LDA S%+7
- STA &203
+ STA &0203
 
  LDA S%+2               \ Set WRCHV to point to the TT26 routine in the main
- STA &20E               \ game code
+ STA &020E              \ game code
  LDA S%+3
- STA &20F
+ STA &020F
 
  RTS                    \ This RTS actually does a jump to the first instruction
                         \ in BLOCK, after the two EQUW operatives, which is now

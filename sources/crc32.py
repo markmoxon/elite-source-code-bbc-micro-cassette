@@ -50,10 +50,21 @@ def main():
         names = list(names1)
         names.extend(x for x in names2 if x not in names)
 
-        src = '[{0: ^13}]'.format(folder1[0:13]).replace(' ', '-')
-        dest = '[{0: ^13}]'.format(folder2[0:13]).replace(' ', '-')
+        if 'extracted' in folder1:
+            src = '[--extracted--]'
+        elif 'output' in folder1:
+            src = '[---output----]'
+        else:
+            src = '[{0: ^13}]'.format(folder1[0:13]).replace(' ', '-')
 
-        print()
+        if 'extracted' in folder2:
+            dest = '[--extracted--]'
+        elif 'output' in folder2:
+            dest = '[---output----]'
+        else:
+            dest = '[{0: ^13}]'.format(folder2[0:13]).replace(' ', '-')
+
+        print('Results for release: ' + os.path.basename(folder1))
         print(src + '  ' + dest)
         print('Checksum   Size  Checksum   Size  Match  Filename')
         print('-----------------------------------------------------------')
