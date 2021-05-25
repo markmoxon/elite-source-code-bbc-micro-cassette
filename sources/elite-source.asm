@@ -14054,6 +14054,7 @@ NEXT
                         \
                         \   (A ?) = A * Q
                         \         = K * sin(A) * 256
+                        \
                         \ which is equivalent to:
                         \
                         \   A = K * sin(A)
@@ -14771,6 +14772,11 @@ NEXT
 
  LDA SZ,Y               \ Fetch the Y-th dust particle's z_hi coordinate into A
 
+                        \ Fall through into DV41 to do:
+                        \
+                        \   (P R) = 256 * DELTA / A
+                        \         = 256 * DELTA / Y-th stardust particle's z_hi
+
 \ ******************************************************************************
 \
 \       Name: DV41
@@ -14804,6 +14810,11 @@ NEXT
  STA Q                  \ Store A in Q
 
  LDA DELTA              \ Fetch the speed from DELTA into A
+
+                        \ Fall through into DVID4 to do:
+                        \
+                        \   (P R) = 256 * A / Q
+                        \         = 256 * DELTA / A
 
 \ ******************************************************************************
 \
