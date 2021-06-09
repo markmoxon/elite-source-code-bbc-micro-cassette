@@ -1199,7 +1199,7 @@ ORG CODE_WORDS%
 \
 \   CHAR 'x'            Insert ASCII character "x"
 \
-\ To include an apostrophe, use a backtick character, as in i.e. CHAR '`'.
+\ To include an apostrophe, use a backtick character, as in CHAR '`'.
 \
 \ See the deep dive on "Printing text tokens" for details on how characters are
 \ stored in the recursive token table.
@@ -18530,7 +18530,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  DEY                    \ Negate the change in Y and push it onto the stack
  TYA                    \ (let's call this the y-delta)
- EOR #255
+ EOR #&FF
  PHA
 
  JSR WSCAN              \ Call WSCAN to wait for the vertical sync, so the whole
@@ -23621,7 +23621,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \ copied into the first two K3 bytes, and the sign of the sign byte is copied
 \ into the highest K3 byte.
 \
-\ The comments below are written for the x-coordinate.
+\ The comments below are written for the x-coordinate into K3(2 1 0).
 \
 \ Arguments:
 \
@@ -25867,7 +25867,7 @@ LOAD_E% = LOAD% + P% - CODE%
  JSR BLINE              \ Call BLINE to draw this segment, which also increases
                         \ CNT by STP, the step size
 
- CMP #65                \ If CNT >=65 then skip the next instruction
+ CMP #65                \ If CNT >= 65 then skip the next instruction
  BCS P%+5
 
  JMP PLL3               \ Jump back for the next segment
@@ -25888,10 +25888,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ We do this by redrawing it using the lines stored in the ball line heap when
 \ the planet was originally drawn by the BLINE routine.
-\
-\ Other entry points:
-\
-\   WPLS-1              Contains an RTS
 \
 \ ******************************************************************************
 
@@ -25987,6 +25983,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Arguments:
 \
 \   SUNX(1 0)           The x-coordinate of the vertical centre axis of the sun
+\
+\ Other entry points:
+\
+\   WPLS-1              Contains an RTS
 \
 \ ******************************************************************************
 
@@ -30268,9 +30268,6 @@ ENDIF
 \ The pitch, roll, speed and laser keys (i.e. the seven primary flight
 \ control keys) have bit 7 set, so they have 128 added to their internal
 \ values. This doesn't appear to be used anywhere.
-\
-\ Note that KYTB actually points to the byte before the start of the table, so
-\ the offset of the first key value is 1 (i.e. KYTB+1), not 0.
 \
 \ ******************************************************************************
 
