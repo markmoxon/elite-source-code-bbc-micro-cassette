@@ -4,8 +4,9 @@
 \
 \ Elite was written by Ian Bell and David Braben and is copyright Acornsoft 1984
 \
-\ The code on this site is identical to the version released on Ian Bell's
-\ personal website at http://www.elitehomepage.org/
+\ The code on this site is identical to the source discs released on Ian Bell's
+\ personal website at http://www.elitehomepage.org/ (it's just been reformatted
+\ to be more readable)
 \
 \ The commentary is copyright Mark Moxon, and any misunderstandings or mistakes
 \ in the documentation are entirely my fault
@@ -4103,7 +4104,7 @@ LOAD_A% = LOAD%
  SEC                    \ that it has been killed and should be removed from
  ROR INWK+31            \ the local bubble
 
-.MA61                   \ This label is not used but is in the original source
+.MA61
 
  BNE MA26               \ Jump to MA26 to skip over the collision routines and
                         \ to move on to missile targeting (this BNE is
@@ -11101,7 +11102,7 @@ NEXT
                         \ to the next indicator, i.e. the one below the one we
                         \ just drew
 
-.DL9                    \ This label is not used but is in the original source
+.DL9
 
  RTS                    \ Return from the subroutine
 
@@ -19439,7 +19440,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ left corner of the screen, and return from the
                         \ subroutine using a tail call
 
-\hy5                    \ This instruction and the hy5 label are commented out
+\.hy5                   \ This instruction and the hy5 label are commented out
 \RTS                    \ in the original - they can actually be found at the
                         \ end of the jmp routine below, so perhaps this is where
                         \ they were originally, but the authors realised they
@@ -21644,7 +21645,7 @@ LOAD_E% = LOAD% + P% - CODE%
  LDA #195               \ Print recursive token 35 ("LIGHT YEARS") followed by
  JSR plf                \ a newline
 
-.PCASH                  \ This label is not used but is in the original source
+.PCASH
 
  LDA #119               \ Print recursive token 119 ("CASH:" then control code
  BNE TT27               \ 0, which prints cash levels, then " CR" and newline)
@@ -27633,7 +27634,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ Set A and X to random numbers. The C and V flags are also set randomly.
+\ Set A and X to random numbers (though note that X is set to the random number
+\ that was returned in A the last time DORND was called).
+\
+\ The C and V flags are also set randomly.
 \
 \ Other entry points:
 \
@@ -32093,7 +32097,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ Calculate following dot products:
+\ Calculate the following dot products:
 \
 \   XX12(1 0) = XX15(5 0) . XX16(5 0)
 \   XX12(3 2) = XX15(5 0) . XX16(11 6)
@@ -32389,7 +32393,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ the screen, returning from the subroutine using a
                         \ tail call
 
-\LL24                   \ This label is commented out in the original source,
+\.LL24                  \ This label is commented out in the original source,
                         \ and was presumably used to label the RTS which is
                         \ actually called by LL10-1 above, not LL24
 
@@ -34480,7 +34484,7 @@ LOAD_G% = LOAD% + P% - CODE%
  CPY XX20               \ If the heap counter is less than the size of the heap,
  BCC LL27               \ loop back to LL27 to draw the next line from the heap
 
-\LL82                   \ This label is commented out in the original source
+\.LL82                  \ This label is commented out in the original source
 
  RTS                    \ Return from the subroutine
 
