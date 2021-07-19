@@ -47,6 +47,39 @@ DISC = TRUE             \ Set to TRUE to load the code above DFS and relocate
 
 PROT = FALSE            \ Set to TRUE to enable the tape protection code
 
+LEN1 = 15               \ Size of the BEGIN% routine that gets pushed onto the
+                        \ stack and executed there
+
+LEN2 = 18               \ Size of the MVDL routine that gets pushed onto the
+                        \ stack and executed there
+
+LEN = LEN1 + LEN2       \ Total number of bytes that get pushed on the stack for
+                        \ execution there (33)
+
+VSCAN = 57-1            \ Defines the split position in the split-screen mode
+
+LE% = &0B00             \ LE% is the address to which the code from UU% onwards
+                        \ is copied in part 3. It contains:
+                        \
+                        \   * ENTRY2, the entry point for the second block of
+                        \     loader code
+                        \
+                        \   * IRQ1, the interrupt routine for the split-screen
+                        \     mode
+                        \
+                        \   * BLOCK, which by this point has already been put
+                        \     on the stack by this point
+                        \
+                        \   * The variables used by the above
+
+NETV = &0224            \ The NETV vector that we intercept as part of the copy
+                        \ protection
+
+IRQ1V = &0204           \ The IRQ1V vector that we intercept to implement the
+                        \ split-sceen mode
+
+OSPRNT = &0234          \ The address for the OSPRNT vector
+
 C% = &0F40              \ C% is set to the location that the main game code gets
                         \ moved to after it is loaded
 
@@ -71,46 +104,13 @@ SVN = &7FFD             \ SVN is where we store the "saving in progress" flag,
 VEC = &7FFE             \ VEC is where we store the original value of the IRQ1
                         \ vector, and it matches the value in elite-source.asm
 
-LEN1 = 15               \ Size of the BEGIN% routine that gets pushed onto the
-                        \ stack and executed there
-
-LEN2 = 18               \ Size of the MVDL routine that gets pushed onto the
-                        \ stack and executed there
-
-LEN = LEN1 + LEN2       \ Total number of bytes that get pushed on the stack for
-                        \ execution there (33)
-
-LE% = &0B00             \ LE% is the address to which the code from UU% onwards
-                        \ is copied in part 3. It contains:
-                        \
-                        \   * ENTRY2, the entry point for the second block of
-                        \     loader code
-                        \
-                        \   * IRQ1, the interrupt routine for the split-screen
-                        \     mode
-                        \
-                        \   * BLOCK, which by this point has already been put
-                        \     on the stack by this point
-                        \
-                        \   * The variables used by the above
-
-NETV = &0224            \ The NETV vector that we intercept as part of the copy
-                        \ protection
-
-IRQ1V = &0204           \ The IRQ1V vector that we intercept to implement the
-                        \ split-sceen mode
-
-OSPRNT = &0234          \ The address for the OSPRNT vector
-
-OSWRCH = &FFEE          \ The address for the OSWRCH routine
-OSBYTE = &FFF4          \ The address for the OSBYTE routine
-OSWORD = &FFF1          \ The address for the OSWORD routine
-
 VIA = &FE00             \ Memory-mapped space for accessing internal hardware,
                         \ such as the video ULA, 6845 CRTC and 6522 VIAs (also
                         \ known as SHEILA)
 
-VSCAN = 57-1            \ Defines the split position in the split-screen mode
+OSWRCH = &FFEE          \ The address for the OSWRCH routine
+OSBYTE = &FFF4          \ The address for the OSBYTE routine
+OSWORD = &FFF1          \ The address for the OSWORD routine
 
 \ ******************************************************************************
 \
