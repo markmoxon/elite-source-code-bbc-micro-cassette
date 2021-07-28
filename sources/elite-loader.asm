@@ -126,9 +126,9 @@ ORG &0004
 
 .TRTB%
 
- SKIP 2                 \ TRTB%(1 0) points to the keyboard translation table,
-                        \ which is used to translate internal key numbers to
-                        \ ASCII
+ SKIP 2                 \ Contains the address of the keyboard translation
+                        \ table, which is used to translate internal key
+                        \ numbers to ASCII
 
 ORG &0070
 
@@ -474,7 +474,7 @@ INCBIN "binaries/P.(C)ASFT.bin"
 \
 \ ******************************************************************************
 
- EQUS "R.ELITEcode"
+ EQUS "R.ELITEcode"     \ This is short for "*RUN ELITEcode"
  EQUB 13
 
  EQUS "By D.Braben/I.Bell"
@@ -512,9 +512,9 @@ INCBIN "binaries/P.(C)ASFT.bin"
 
 .David9
 
-EQUW David5            \ The address of David5
+ EQUW David5            \ The address of David5
 
-CLD                    \ This instruction is not used
+ CLD                    \ This instruction is not used
 
 \ ******************************************************************************
 \
@@ -565,9 +565,8 @@ CLD                    \ This instruction is not used
  STA PROT1-255,X        \ Poke &48 into PROT1, which changes the instruction
                         \ there to a PHA
 
- LDY #&18
- STY V219+1,X           \ Set the low byte of V219(1 0) to &18 (as X = 255), so
-                        \ V219(1 0) now contains &0218
+ LDY #&18               \ Set the low byte of V219(1 0) to &18 (as X = 255), so
+ STY V219+1,X           \ V219(1 0) now contains &0218
 
  RTS                    \ Return from the subroutine
 
@@ -2457,7 +2456,7 @@ ORG LE%
  JMP (OSPRNT)           \ Jump to the address in OSPRNT and return using a
                         \ tail call
 
- EQUB &6C
+ EQUB &6C               \ This byte appears to be unused
 
 \ ******************************************************************************
 \
@@ -2492,11 +2491,11 @@ ORG LE%
 
 IF DISC
 
- EQUS "L.ELTcode 1100"
+ EQUS "L.ELTcode 1100"  \ This is short for "*LOAD ELTcode 1100"
 
 ELSE
 
- EQUS "L.ELITEcode F1F"
+ EQUS "L.ELITEcode F1F" \ This is short for "*LOAD ELITEcode F1F"
 
 ENDIF
 
