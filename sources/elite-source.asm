@@ -36,6 +36,9 @@
 
 INCLUDE "sources/elite-header.h.asm"
 
+_SOURCE_DISC            = (_RELEASE = 1)
+_TEXT_SOURCES           = (_RELEASE = 2)
+
 GUARD &6000             \ Screen memory starts here
 GUARD &8000             \ Paged ROMS start here
 
@@ -15530,15 +15533,26 @@ NEXT
 
 .WARP
 
+IF _SOURCE_DISC
+
+ LDA MANY+AST           \ Set X to the total number of asteroids, escape pods
+ CLC                    \ and cargo canisters in the vicinity
+ ADC MANY+ESC
+ CLC                    \ The second CLC instruction has no effect, as there is
+ ADC MANY+OIL           \ is no way that adding the number of asteroids and the
+ TAX                    \ number escape pods will cause a carry
+
+ELIF _TEXT_SOURCES
+
  LDA MANY+AST           \ Set X to the total number of asteroids, escape pods
  CLC                    \ and cargo canisters in the vicinity
  ADC MANY+ESC           \
- CLC                    \ The second CLC instruction appears in the BASIC
- ADC MANY+OIL           \ source file (ELITEC), but not in the text source file
- TAX                    \ (ELITEC.TXT). The second CLC has no effect, as there
-                        \ is no way that adding the number of asteroids and the
-                        \ number escape pods will cause a carry, so presumably
-                        \ it got removed at some point
+ ADC MANY+OIL           \ This code saves one byte of memory over the code in
+ TAX                    \ the source disc version. The second CLC is not needed
+                        \ as there is no way that adding the number of asteroids
+                        \ and the number of escape pods will cause a carry
+
+ENDIF
 
  LDA FRIN+2,X           \ If the slot at FRIN+2+X is non-zero, then we have
                         \ something else in the vicinity besides asteroids,
@@ -15572,20 +15586,25 @@ NEXT
                         \ planet in any of the three axes (we could also call
                         \ routine m to do the same thing, as A = 0)
 
-                        \ The following two instructions appear in the BASIC
-                        \ source file (ELITEC), but in the text source file
-                        \ (ELITEC.TXT) they are replaced by:
-                        \
-                        \   LSR A
-                        \   BEQ WA1
-                        \
-                        \ which does the same thing, but saves one byte of
-                        \ memory (as LSR A is a one-byte opcode, while CMP #2
-                        \ takes up two bytes)
+IF _SOURCE_DISC
 
  CMP #2                 \ If A < 2 then jump to WA1 to abort the in-system jump
  BCC WA1                \ with a low beep, as we are facing the planet and are
                         \ too close to jump in that direction
+
+ELIF _TEXT_SOURCES
+
+ LSR A                  \ If A < 2 then jump to WA1 to abort the in-system jump
+ BEQ WA1                \ with a low beep, as we are facing the planet and are
+                        \ too close to jump in that direction
+                        \
+                        \ These instructions between them save one byte of
+                        \ memory over the CMP-based code in the source disc
+                        \ version, as LSR A is a one-byte opcode, while CMP #2
+                        \ takes up two bytes (though the code does exactly the
+                        \ same thing)
+
+ENDIF
 
 .WA3
 
@@ -15605,20 +15624,25 @@ NEXT
  JSR m                  \ Call m to set A to the largest distance to the sun
                         \ in any of the three axes
 
-                        \ The following two instructions appear in the BASIC
-                        \ source file (ELITEC), but in the text source file
-                        \ (ELITEC.TXT) they are replaced by:
-                        \
-                        \   LSR A
-                        \   BEQ WA1
-                        \
-                        \ which does the same thing, but saves one byte of
-                        \ memory (as LSR A is a one-byte opcode, while CMP #2
-                        \ takes up two bytes)
+IF _SOURCE_DISC
 
  CMP #2                 \ If A < 2 then jump to WA1 to abort the in-system jump
- BCC WA1                \ with a low beep, as we are facing the sun and are too
-                        \ close to jump in that direction
+ BCC WA1                \ with a low beep, as we are facing the planet and are
+                        \ too close to jump in that direction
+
+ELIF _TEXT_SOURCES
+
+ LSR A                  \ If A < 2 then jump to WA1 to abort the in-system jump
+ BEQ WA1                \ with a low beep, as we are facing the planet and are
+                        \ too close to jump in that direction
+                        \
+                        \ These instructions between them save one byte of
+                        \ memory over the CMP-based code in the source disc
+                        \ version, as LSR A is a one-byte opcode, while CMP #2
+                        \ takes up two bytes (though the code does exactly the
+                        \ same thing)
+
+ENDIF
 
 .WA2
 
@@ -16110,9 +16134,17 @@ NEXT
  LDA #%10000000         \ Set bit 7 of QQ17 to switch to Sentence Case
  STA QQ17
 
+IF _SOURCE_DISC
+
  ASL A                  \ Set LASCT to 0, as 128 << 1 = %10000000 << 1 = 0. This
- STA LASCT              \ stops any laser pulsing. This instruction is STA LAS2
-                        \ in the text source file ELITEC.TXT
+ STA LASCT              \ stops any laser pulsing
+
+ELIF _TEXT_SOURCES
+
+ ASL A                  \ Set LAS2 to 0, as 128 << 1 = %10000000 << 1 = 0. This
+ STA LAS2               \ stops any laser pulsing
+
+ENDIF
 
  STA DLY                \ Set the delay in DLY to 0, to indicate that we are
                         \ no longer showing an in-flight message, so any new
@@ -19507,11 +19539,13 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .Ghy
 
-\JSR TT111              \ This instruction is commented out in the original
-                        \ source, and appears in the text cassette code source
-                        \ (ELITED.TXT) but not in the BASIC source file on the
-                        \ source disc (ELITED). It finds the closest system to
-                        \ coordinates (QQ9, QQ10)
+IF _TEXT_SOURCES
+
+ JSR TT111              \ Call TT111 to set the current system to the nearest
+                        \ system to (QQ9, QQ10), and put the seeds of the
+                        \ nearest system into QQ15 to QQ15+5
+
+ENDIF
 
  LDX GHYP               \ Fetch GHYP, which tells us whether we own a galactic
  BEQ hy5                \ hyperdrive, and if it is zero, which means we don't,
@@ -19561,7 +19595,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .zZ
 
- LDA #&60               \ Set (QQ9, QQ10) to (96, 96), which is where we always
+ LDA #96                \ Set (QQ9, QQ10) to (96, 96), which is where we always
  STA QQ9                \ arrive in a new galaxy (the selected system will be
  STA QQ10               \ set to the nearest actual system later on)
 
@@ -27006,18 +27040,23 @@ LOAD_F% = LOAD% + P% - CODE%
 
  STX XX4                \ Store the slot number of the ship to remove in XX4
 
-                        \ The following two instructions appear in the BASIC
-                        \ source file (ELITEF), but in the text source file
-                        \ (ELITEF.TXT) they are replaced by:
-                        \
-                        \   CPX MSTG
-                        \
-                        \ which does the same thing, but saves two bytes of
-                        \ memory (as CPX MSTG is a two-byte opcode, while LDA
-                        \ MSTG and CMP XX4 take up four bytes between them)
+IF _SOURCE_DISC
 
  LDA MSTG               \ Check whether this slot matches the slot number in
  CMP XX4                \ MSTG, which is the target of our missile lock
+
+ELIF _TEXT_SOURCES
+
+ CPX MSTG               \ Check whether this slot matches the slot number in
+                        \ MSTG, which is the target of our missile lock
+                        \
+                        \ This instructions saves two bytes of memory over the
+                        \ LDA and CMP-based code in the source disc version, as
+                        \ CPX MSTG is a two-byte opcode, while LDA MSTG and
+                        \ CMP XX4 take up four bytes between them (the code does
+                        \ the same thing)
+
+ENDIF
 
  BNE KS5                \ If our missile is not locked on this ship, jump to KS5
 

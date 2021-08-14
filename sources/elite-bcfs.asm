@@ -39,6 +39,9 @@
 
 INCLUDE "sources/elite-header.h.asm"
 
+_SOURCE_DISC            = (_RELEASE = 1)
+_TEXT_SOURCES           = (_RELEASE = 2)
+
 \ ******************************************************************************
 \
 \ Configuration variables
@@ -51,8 +54,6 @@ CODE% = &0F40           \ CODE% is set to the location that the main game code
 LOAD% = &1128           \ LOAD% points to the start of the actual game code,
                         \ after the &28 bytes of header code that are inserted
                         \ below
-
-D% = &563A              \ D% is set to the size of the main game code
 
 \ ******************************************************************************
 \

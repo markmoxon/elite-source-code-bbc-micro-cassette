@@ -5,17 +5,24 @@ PYTHON?=python
 # the make command, where <rel> is one of:
 #
 #   source-disc
+#   text-sources
 #
 # So, for example:
 #
-#   make encrypt verify release=source-disc
+#   make encrypt verify release=text-sources
 #
-# will build the version from the source disc on Ian Bell's site. If you
+# will build the version from the text sources on Ian Bell's site. If you
 # omit the release parameter, it will build the source disc version.
 
-rel-cassette=1
-folder-cassette=/source-disc
-suffix-cassette=-from-source-disc
+ifeq ($(release), text-sources)
+  rel-cassette=2
+  folder-cassette=/text-sources
+  suffix-cassette=-from-text-sources
+else
+  rel-cassette=1
+  folder-cassette=/source-disc
+  suffix-cassette=-from-source-disc
+endif
 
 .PHONY:build
 build:

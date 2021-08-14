@@ -36,6 +36,9 @@
 
 INCLUDE "sources/elite-header.h.asm"
 
+_SOURCE_DISC            = (_RELEASE = 1)
+_TEXT_SOURCES           = (_RELEASE = 2)
+
 \ ******************************************************************************
 \
 \ Configuration variables
@@ -89,7 +92,15 @@ L% = &1128              \ L% points to the start of the actual game code from
                         \ elite-source.asm, after the &28 bytes of header code
                         \ that are inserted by elite-bcfs.asm
 
+IF _SOURCE_DISC
+
 D% = &563A              \ D% is set to the size of the main game code
+
+ELIF _TEXT_SOURCES
+
+D% = &5638              \ D% is set to the size of the main game code
+
+ENDIF
 
 LC% = &6000 - C%        \ LC% is set to the maximum size of the main game code
                         \ (as the code starts at C% and screen memory starts
