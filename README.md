@@ -255,7 +255,7 @@ make encrypt verify release=text-sources
 
 This will produce a file called `elite-cassette-from-text-sources.ssd` that contains the Ian Bell disc release.
 
-### Building the text sources release
+### Building the source disc release
 
 You can add `release=source-disc` to produce the `elite-cassette-from-source-disc.ssd.ssd` file containing the source disc release, though that's the default value so it isn't necessary.
 
@@ -263,7 +263,7 @@ You can add `release=source-disc` to produce the `elite-cassette-from-source-dis
 
 You can see the differences between the releases by searching the source code for `_SOURCE_DISC` (for features in the source disc release) or `_TEXT_SOURCES` (for features in the text sources release). There are only minor differences:
 
-* The text sources release contains an extra call in the galactic hyperspace routine that sets the current system to the nearest system to the crosshairs. This code is present in all other versions of the game (albeit in a different place), but not the original source disc from Ian Bell's site
+* The text sources contain an extra call in the galactic hyperspace routine that sets the current system to the nearest system to the crosshairs. This code is present in all other versions of the game (albeit in a different place), but not the original source disc from Ian Bell's site
 
 * In order to fit this extra call in (which takes three extra bytes), the text sources also contain four modifications to create space for the call, which together save four bytes.
 
