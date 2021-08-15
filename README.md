@@ -265,7 +265,7 @@ You can see the differences between the releases by searching the source code fo
 
 * The text sources contain an extra call in the galactic hyperspace routine that sets the current system to the nearest system to the crosshairs. This code is present in all other versions of the game (albeit in a different place), but not the original source disc from Ian Bell's site
 
-* In order to fit this extra call in (which takes three extra bytes), the text sources also contain four modifications to create space for the call, which together save four bytes.
+* In order to fit this extra call in (which takes three extra bytes), the text sources also contain four modifications to create space for the call, which together save five bytes.
 
 * There is a small change in the TTX66 routine to reset LAS2 to 0 instead of LASCT to stop laser pulsing, as this is slightly more efficient.
 
