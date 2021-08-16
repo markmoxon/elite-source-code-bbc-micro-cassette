@@ -4,8 +4,9 @@
 \
 \ Elite was written by Ian Bell and David Braben and is copyright Acornsoft 1984
 \
-\ The code on this site is identical to the version released on Ian Bell's
-\ personal website at http://www.elitehomepage.org/
+\ The code on this site is identical to the source discs released on Ian Bell's
+\ personal website at http://www.elitehomepage.org/ (it's just been reformatted
+\ to be more readable)
 \
 \ The commentary is copyright Mark Moxon, and any misunderstandings or mistakes
 \ in the documentation are entirely my fault
@@ -35,6 +36,9 @@
 
 INCLUDE "sources/elite-header.h.asm"
 
+_SOURCE_DISC            = (_RELEASE = 1)
+_TEXT_SOURCES           = (_RELEASE = 2)
+
 \ ******************************************************************************
 \
 \ Configuration variables
@@ -46,30 +50,6 @@ DISC = TRUE             \ Set to TRUE to load the code above DFS and relocate
 
 PROT = FALSE            \ Set to TRUE to enable the tape protection code
 
-C% = &0F40              \ C% is set to the location that the main game code gets
-                        \ moved to after it is loaded
-
-S% = C%                 \ S% points to the entry point for the main game code
-
-L% = &1128              \ L% points to the start of the actual game code from
-                        \ elite-source.asm, after the &28 bytes of header code
-                        \ that are inserted by elite-bcfs.asm
-
-D% = &563A              \ D% is set to the size of the main game code
-
-LC% = &6000 - C%        \ LC% is set to the maximum size of the main game code
-                        \ (as the code starts at C% and screen memory starts
-                        \ at &6000)
-
-N% = 67                 \ N% is set to the number of bytes in the VDU table, so
-                        \ we can loop through them in part 2 below
-
-SVN = &7FFD             \ SVN is where we store the "saving in progress" flag,
-                        \ and it matches the location in elite-source.asm
-
-VEC = &7FFE             \ VEC is where we store the original value of the IRQ1
-                        \ vector, and it matches the value in elite-source.asm
-
 LEN1 = 15               \ Size of the BEGIN% routine that gets pushed onto the
                         \ stack and executed there
 
@@ -78,6 +58,8 @@ LEN2 = 18               \ Size of the MVDL routine that gets pushed onto the
 
 LEN = LEN1 + LEN2       \ Total number of bytes that get pushed on the stack for
                         \ execution there (33)
+
+VSCAN = 57-1            \ Defines the split position in the split-screen mode
 
 LE% = &0B00             \ LE% is the address to which the code from UU% onwards
                         \ is copied in part 3. It contains:
@@ -101,15 +83,45 @@ IRQ1V = &0204           \ The IRQ1V vector that we intercept to implement the
 
 OSPRNT = &0234          \ The address for the OSPRNT vector
 
-OSWRCH = &FFEE          \ The address for the OSWRCH routine
-OSBYTE = &FFF4          \ The address for the OSBYTE routine
-OSWORD = &FFF1          \ The address for the OSWORD routine
+C% = &0F40              \ C% is set to the location that the main game code gets
+                        \ moved to after it is loaded
+
+S% = C%                 \ S% points to the entry point for the main game code
+
+L% = &1128              \ L% points to the start of the actual game code from
+                        \ elite-source.asm, after the &28 bytes of header code
+                        \ that are inserted by elite-bcfs.asm
+
+IF _SOURCE_DISC
+
+D% = &563A              \ D% is set to the size of the main game code
+
+ELIF _TEXT_SOURCES
+
+D% = &5638              \ D% is set to the size of the main game code
+
+ENDIF
+
+LC% = &6000 - C%        \ LC% is set to the maximum size of the main game code
+                        \ (as the code starts at C% and screen memory starts
+                        \ at &6000)
+
+N% = 67                 \ N% is set to the number of bytes in the VDU table, so
+                        \ we can loop through them in part 2 below
+
+SVN = &7FFD             \ SVN is where we store the "saving in progress" flag,
+                        \ and it matches the location in elite-source.asm
+
+VEC = &7FFE             \ VEC is where we store the original value of the IRQ1
+                        \ vector, and it matches the value in elite-source.asm
 
 VIA = &FE00             \ Memory-mapped space for accessing internal hardware,
                         \ such as the video ULA, 6845 CRTC and 6522 VIAs (also
                         \ known as SHEILA)
 
-VSCAN = 57-1            \ Defines the split position in the split-screen mode
+OSWRCH = &FFEE          \ The address for the OSWRCH routine
+OSBYTE = &FFF4          \ The address for the OSBYTE routine
+OSWORD = &FFF1          \ The address for the OSWORD routine
 
 \ ******************************************************************************
 \
@@ -125,9 +137,9 @@ ORG &0004
 
 .TRTB%
 
- SKIP 2                 \ TRTB%(1 0) points to the keyboard translation table,
-                        \ which is used to translate internal key numbers to
-                        \ ASCII
+ SKIP 2                 \ Contains the address of the keyboard translation
+                        \ table, which is used to translate internal key
+                        \ numbers to ASCII
 
 ORG &0070
 
@@ -473,7 +485,7 @@ INCBIN "binaries/P.(C)ASFT.bin"
 \
 \ ******************************************************************************
 
- EQUS "R.ELITEcode"
+ EQUS "R.ELITEcode"     \ This is short for "*RUN ELITEcode"
  EQUB 13
 
  EQUS "By D.Braben/I.Bell"
@@ -511,9 +523,9 @@ INCBIN "binaries/P.(C)ASFT.bin"
 
 .David9
 
-EQUW David5            \ The address of David5
+ EQUW David5            \ The address of David5
 
-CLD                    \ This instruction is not used
+ CLD                    \ This instruction is not used
 
 \ ******************************************************************************
 \
@@ -564,9 +576,8 @@ CLD                    \ This instruction is not used
  STA PROT1-255,X        \ Poke &48 into PROT1, which changes the instruction
                         \ there to a PHA
 
- LDY #&18
- STY V219+1,X           \ Set the low byte of V219(1 0) to &18 (as X = 255), so
-                        \ V219(1 0) now contains &0218
+ LDY #&18               \ Set the low byte of V219(1 0) to &18 (as X = 255), so
+ STY V219+1,X           \ V219(1 0) now contains &0218
 
  RTS                    \ Return from the subroutine
 
@@ -1568,7 +1579,10 @@ ENDIF
 \
 \ ------------------------------------------------------------------------------
 \
-\ Set A and X to random numbers. The C and V flags are also set randomly.
+\ Set A and X to random numbers (though note that X is set to the random number
+\ that was returned in A the last time DORND was called).
+\
+\ The C and V flags are also set randomly.
 \
 \ This is a simplified version of the DORND routine in the main game code. It
 \ swaps the two calculations around and omits the ROL A instruction, but is
@@ -2453,7 +2467,7 @@ ORG LE%
  JMP (OSPRNT)           \ Jump to the address in OSPRNT and return using a
                         \ tail call
 
- EQUB &6C
+ EQUB &6C               \ This byte appears to be unused
 
 \ ******************************************************************************
 \
@@ -2488,11 +2502,11 @@ ORG LE%
 
 IF DISC
 
- EQUS "L.ELTcode 1100"
+ EQUS "L.ELTcode 1100"  \ This is short for "*LOAD ELTcode 1100"
 
 ELSE
 
- EQUS "L.ELITEcode F1F"
+ EQUS "L.ELITEcode F1F" \ This is short for "*LOAD ELITEcode F1F"
 
 ENDIF
 

@@ -4,8 +4,9 @@
 \
 \ Elite was written by Ian Bell and David Braben and is copyright Acornsoft 1984
 \
-\ The code on this site is identical to the version released on Ian Bell's
-\ personal website at http://www.elitehomepage.org/
+\ The code on this site is identical to the source discs released on Ian Bell's
+\ personal website at http://www.elitehomepage.org/ (it's just been reformatted
+\ to be more readable)
 \
 \ The commentary is copyright Mark Moxon, and any misunderstandings or mistakes
 \ in the documentation are entirely my fault
@@ -34,6 +35,9 @@
 \ ******************************************************************************
 
 INCLUDE "sources/elite-header.h.asm"
+
+_SOURCE_DISC            = (_RELEASE = 1)
+_TEXT_SOURCES           = (_RELEASE = 2)
 
 GUARD &6000             \ Screen memory starts here
 GUARD &8000             \ Paged ROMS start here
@@ -71,19 +75,6 @@ POW = 15                \ Pulse laser power
 NI% = 36                \ The number of bytes in each ship's data block (as
                         \ stored in INWK and K%)
 
-OSBYTE = &FFF4          \ The address for the OSBYTE routine, which is used
-                        \ three times in the main game code
-
-OSWORD = &FFF1          \ The address for the OSWORD routine, which is used
-                        \ twice in the main game code
-
-OSFILE = &FFDD          \ The address for the OSFILE routine, which is used
-                        \ once in the main game code
-
-VIA = &FE00             \ Memory-mapped space for accessing internal hardware,
-                        \ such as the video ULA, 6845 CRTC and 6522 VIAs (also
-                        \ known as SHEILA)
-
 VSCAN = 57              \ Defines the split position in the split-screen mode
 
 X = 128                 \ The centre x-coordinate of the 256 x 192 space view
@@ -99,6 +90,19 @@ f6 = &75                \ Internal key number for red key f6 (Data on System)
 f7 = &16                \ Internal key number for red key f7 (Market Price)
 f8 = &76                \ Internal key number for red key f8 (Status Mode)
 f9 = &77                \ Internal key number for red key f9 (Inventory)
+
+VIA = &FE00             \ Memory-mapped space for accessing internal hardware,
+                        \ such as the video ULA, 6845 CRTC and 6522 VIAs (also
+                        \ known as SHEILA)
+
+OSBYTE = &FFF4          \ The address for the OSBYTE routine, which is used
+                        \ three times in the main game code
+
+OSWORD = &FFF1          \ The address for the OSWORD routine, which is used
+                        \ twice in the main game code
+
+OSFILE = &FFDD          \ The address for the OSFILE routine, which is used
+                        \ once in the main game code
 
 \ ******************************************************************************
 \
@@ -124,9 +128,9 @@ ORG &0000
 
 .TRTB%
 
- SKIP 2                 \ TRTB%(1 0) points to the keyboard translation table,
-                        \ which is used to translate internal key numbers to
-                        \ ASCII
+ SKIP 2                 \ Contains the address of the keyboard translation
+                        \ table, which is used to translate internal key
+                        \ numbers to ASCII
 
 .T1
 
@@ -988,7 +992,7 @@ ORG &0300
                         \   * 37 = large cargo bay of 35 tonnes
                         \
                         \ The value is two greater than the actual capacity to
-                        \ male the maths in tnpr slightly more efficient
+                        \ make the maths in tnpr slightly more efficient
 
 .QQ20
 
@@ -1034,7 +1038,12 @@ ORG &0300
                         \
                         \   * 0 = not fitted
                         \
-                        \   * 1 = fitted
+                        \   * Non-zero = fitted
+                        \
+                        \ The actual value determines the refresh rate of our
+                        \ energy banks, as they refresh by ENGY+1 each time (so
+                        \ our ship's energy level goes up by 2 each time if we
+                        \ have an energy unit fitted, otherwise it goes up by 1)
 
 .DKCMP
 
@@ -1199,7 +1208,7 @@ ORG CODE_WORDS%
 \
 \   CHAR 'x'            Insert ASCII character "x"
 \
-\ To include an apostrophe, use a backtick character, as in i.e. CHAR '`'.
+\ To include an apostrophe, use a backtick character, as in CHAR '`'.
 \
 \ See the deep dive on "Printing text tokens" for details on how characters are
 \ stored in the recursive token table.
@@ -2815,12 +2824,8 @@ ORG &0D40
 
 .LSO
 
- SKIP 192               \ This space has two uses:
-                        \
-                        \   * The ship line heap for the space station (see
-                        \     NWSPS for details)
-                        \
-                        \   * The sun line heap (see SUN for details)
+ SKIP 192               \ The ship line heap for the space station (see NWSPS)
+                        \ and the sun line heap (see SUN)
                         \
                         \ The spaces can be shared as our local bubble of
                         \ universe can support either the sun or a space
@@ -2924,8 +2929,19 @@ ORG &0D40
 
 .QQ28
 
- SKIP 1                 \ Temporary storage, used to store the economy byte of
-                        \ the current system in routine var
+ SKIP 1                 \ The current system's economy (0-7)
+                        \
+                        \   * 0 = Rich Industrial
+                        \   * 1 = Average Industrial
+                        \   * 2 = Poor Industrial
+                        \   * 3 = Mainly Industrial
+                        \   * 4 = Mainly Agricultural
+                        \   * 5 = Rich Agricultural
+                        \   * 6 = Average Agricultural
+                        \   * 7 = Poor Agricultural
+                        \
+                        \ See the deep dive on "Generating system data" for more
+                        \ information on economies
 
 .QQ29
 
@@ -2987,6 +3003,15 @@ ORG &0D40
 .QQ3
 
  SKIP 1                 \ The selected system's economy (0-7)
+                        \
+                        \   * 0 = Rich Industrial
+                        \   * 1 = Average Industrial
+                        \   * 2 = Poor Industrial
+                        \   * 3 = Mainly Industrial
+                        \   * 4 = Mainly Agricultural
+                        \   * 5 = Rich Agricultural
+                        \   * 6 = Average Agricultural
+                        \   * 7 = Poor Agricultural
                         \
                         \ See the deep dive on "Generating system data" for more
                         \ information on economies
@@ -3267,8 +3292,9 @@ LOAD_A% = LOAD%
 \
 \ ******************************************************************************
 
- LDX JSTX               \ Set X to the current rate of roll in JSTX, and
- JSR cntr               \ apply keyboard damping twice (if enabled) so the roll
+ LDX JSTX               \ Set X to the current rate of roll in JSTX
+
+ JSR cntr               \ Apply keyboard damping twice (if enabled) so the roll
  JSR cntr               \ rate in X creeps towards the centre by 2
 
                         \ The roll rate in JSTX increases if we press ">" (and
@@ -3330,8 +3356,9 @@ LOAD_A% = LOAD%
  ORA ALP2               \ Store A in ALPHA, but with the sign set to ALP2 (so
  STA ALPHA              \ ALPHA has a different sign to the actual roll rate)
 
- LDX JSTY               \ Set X to the current rate of pitch in JSTY, and
- JSR cntr               \ apply keyboard damping so the pitch rate in X creeps
+ LDX JSTY               \ Set X to the current rate of pitch in JSTY
+
+ JSR cntr               \ Apply keyboard damping so the pitch rate in X creeps
                         \ towards the centre by 1
 
  TXA                    \ Set A and Y to the pitch rate but with the sign bit
@@ -3964,7 +3991,7 @@ LOAD_A% = LOAD%
  STA QQ20,Y             \ of type Y in the cargo hold, as we just successfully
                         \ scooped one canister of type Y
 
- TYA                    \ Print recursive token 48 + A as an in-flight token,
+ TYA                    \ Print recursive token 48 + Y as an in-flight token,
  ADC #208               \ which will be in the range 48 ("FOOD") to 64 ("ALIEN
  JSR MESS               \ ITEMS"), so this prints the scooped item's name
 
@@ -4103,7 +4130,7 @@ LOAD_A% = LOAD%
  SEC                    \ that it has been killed and should be removed from
  ROR INWK+31            \ the local bubble
 
-.MA61                   \ This label is not used but is in the original source
+.MA61
 
  BNE MA26               \ Jump to MA26 to skip over the collision routines and
                         \ to move on to missile targeting (this BNE is
@@ -4215,7 +4242,7 @@ LOAD_A% = LOAD%
  LDA INWK+35            \ Fetch the hit ship's energy from byte #35 and subtract
  SEC                    \ our current laser power, and if the result is greater
  SBC LAS                \ than zero, the other ship has survived the hit, so
- BCS MA14               \ jump down to MA14
+ BCS MA14               \ jump down to MA14 to make it angry
 
  LDA TYPE               \ Did we just hit the space station? If so, jump to
  CMP #SST               \ MA14+2 to make the station hostile, skipping the
@@ -6705,7 +6732,7 @@ LOAD_B% = LOAD% + P% - CODE%
  EQUS "JAMESON"         \ The current commander name, which defaults to JAMESON
  EQUB 13                \
                         \ The commander name can be up to 7 characters (the DFS
-                        \ limit for file names), and is terminated by a carriage
+                        \ limit for filenames), and is terminated by a carriage
                         \ return
 
                         \ NA%+8 is the start of the commander data block
@@ -6757,25 +6784,25 @@ ENDIF
 
  EQUB 22+(15 AND Q%)    \ CRGO = Cargo capacity, #22
 
- EQUB 0                 \ QQ20+0  = Amount of Food in cargo hold, #23
- EQUB 0                 \ QQ20+1  = Amount of Textiles in cargo hold, #24
- EQUB 0                 \ QQ20+2  = Amount of Radioactives in cargo hold, #25
- EQUB 0                 \ QQ20+3  = Amount of Slaves in cargo hold, #26
- EQUB 0                 \ QQ20+4  = Amount of Liquor/Wines in cargo hold, #27
- EQUB 0                 \ QQ20+5  = Amount of Luxuries in cargo hold, #28
- EQUB 0                 \ QQ20+6  = Amount of Narcotics in cargo hold, #29
- EQUB 0                 \ QQ20+7  = Amount of Computers in cargo hold, #30
- EQUB 0                 \ QQ20+8  = Amount of Machinery in cargo hold, #31
- EQUB 0                 \ QQ20+9  = Amount of Alloys in cargo hold, #32
- EQUB 0                 \ QQ20+10 = Amount of Firearms in cargo hold, #33
- EQUB 0                 \ QQ20+11 = Amount of Furs in cargo hold, #34
- EQUB 0                 \ QQ20+12 = Amount of Minerals in cargo hold, #35
- EQUB 0                 \ QQ20+13 = Amount of Gold in cargo hold, #36
- EQUB 0                 \ QQ20+14 = Amount of Platinum in cargo hold, #37
- EQUB 0                 \ QQ20+15 = Amount of Gem-Stones in cargo hold, #38
- EQUB 0                 \ QQ20+16 = Amount of Alien Items in cargo hold, #39
+ EQUB 0                 \ QQ20+0  = Amount of food in cargo hold, #23
+ EQUB 0                 \ QQ20+1  = Amount of textiles in cargo hold, #24
+ EQUB 0                 \ QQ20+2  = Amount of radioactives in cargo hold, #25
+ EQUB 0                 \ QQ20+3  = Amount of slaves in cargo hold, #26
+ EQUB 0                 \ QQ20+4  = Amount of liquor/Wines in cargo hold, #27
+ EQUB 0                 \ QQ20+5  = Amount of luxuries in cargo hold, #28
+ EQUB 0                 \ QQ20+6  = Amount of narcotics in cargo hold, #29
+ EQUB 0                 \ QQ20+7  = Amount of computers in cargo hold, #30
+ EQUB 0                 \ QQ20+8  = Amount of machinery in cargo hold, #31
+ EQUB 0                 \ QQ20+9  = Amount of alloys in cargo hold, #32
+ EQUB 0                 \ QQ20+10 = Amount of firearms in cargo hold, #33
+ EQUB 0                 \ QQ20+11 = Amount of furs in cargo hold, #34
+ EQUB 0                 \ QQ20+12 = Amount of minerals in cargo hold, #35
+ EQUB 0                 \ QQ20+13 = Amount of gold in cargo hold, #36
+ EQUB 0                 \ QQ20+14 = Amount of platinum in cargo hold, #37
+ EQUB 0                 \ QQ20+15 = Amount of gem-stones in cargo hold, #38
+ EQUB 0                 \ QQ20+16 = Amount of alien items in cargo hold, #39
 
- EQUB Q%                \ ECM = E.C.M., #40
+ EQUB Q%                \ ECM = E.C.M. system, #40
 
  EQUB Q%                \ BST = Fuel scoops ("barrel status"), #41
 
@@ -6795,23 +6822,23 @@ ENDIF
 
  EQUB 0                 \ FIST = Legal status ("fugitive/innocent status"), #52
 
- EQUB 16                \ AVL+0  = Market availability of Food, #53
- EQUB 15                \ AVL+1  = Market availability of Textiles, #54
- EQUB 17                \ AVL+2  = Market availability of Radioactives, #55
- EQUB 0                 \ AVL+3  = Market availability of Slaves, #56
- EQUB 3                 \ AVL+4  = Market availability of Liquor/Wines, #57
- EQUB 28                \ AVL+5  = Market availability of Luxuries, #58
- EQUB 14                \ AVL+6  = Market availability of Narcotics, #59
- EQUB 0                 \ AVL+7  = Market availability of Computers, #60
- EQUB 0                 \ AVL+8  = Market availability of Machinery, #61
- EQUB 10                \ AVL+9  = Market availability of Alloys, #62
- EQUB 0                 \ AVL+10 = Market availability of Firearms, #63
- EQUB 17                \ AVL+11 = Market availability of Furs, #64
- EQUB 58                \ AVL+12 = Market availability of Minerals, #65
- EQUB 7                 \ AVL+13 = Market availability of Gold, #66
- EQUB 9                 \ AVL+14 = Market availability of Platinum, #67
- EQUB 8                 \ AVL+15 = Market availability of Gem-Stones, #68
- EQUB 0                 \ AVL+16 = Market availability of Alien Items, #69
+ EQUB 16                \ AVL+0  = Market availability of food, #53
+ EQUB 15                \ AVL+1  = Market availability of textiles, #54
+ EQUB 17                \ AVL+2  = Market availability of radioactives, #55
+ EQUB 0                 \ AVL+3  = Market availability of slaves, #56
+ EQUB 3                 \ AVL+4  = Market availability of liquor/Wines, #57
+ EQUB 28                \ AVL+5  = Market availability of luxuries, #58
+ EQUB 14                \ AVL+6  = Market availability of narcotics, #59
+ EQUB 0                 \ AVL+7  = Market availability of computers, #60
+ EQUB 0                 \ AVL+8  = Market availability of machinery, #61
+ EQUB 10                \ AVL+9  = Market availability of alloys, #62
+ EQUB 0                 \ AVL+10 = Market availability of firearms, #63
+ EQUB 17                \ AVL+11 = Market availability of furs, #64
+ EQUB 58                \ AVL+12 = Market availability of minerals, #65
+ EQUB 7                 \ AVL+13 = Market availability of gold, #66
+ EQUB 9                 \ AVL+14 = Market availability of platinum, #67
+ EQUB 8                 \ AVL+15 = Market availability of gem-stones, #68
+ EQUB 0                 \ AVL+16 = Market availability of alien items, #69
 
  EQUB 0                 \ QQ26 = Random byte that changes for each visit to a
                         \ system, for randomising market prices, #70
@@ -7003,8 +7030,6 @@ NEXT
 \
 \   LL30                LL30 is a synonym for LOIN and draws a line from
 \                       (X1, Y1) to (X2, Y2)
-\
-\   HL6                 Contains an RTS
 \
 \ ******************************************************************************
 
@@ -7637,6 +7662,10 @@ NEXT
 \   * X1 >= X2 and Y1 >= Y2
 \
 \   * Draw from (X1, Y1) at bottom left to (X2, Y2) at top right
+\
+\ Other entry points:
+\
+\   HL6                 Contains an RTS
 \
 \ ******************************************************************************
 
@@ -11101,7 +11130,7 @@ NEXT
                         \ to the next indicator, i.e. the one below the one we
                         \ just drew
 
-.DL9                    \ This label is not used but is in the original source
+.DL9
 
  RTS                    \ Return from the subroutine
 
@@ -12031,10 +12060,11 @@ LOAD_C% = LOAD% +P% - CODE%
  AND #31                \ Restrict A to a random number in the range 0-31
 
  CMP T                  \ If A >= T, which is quite likely, though less likely
- BCS TA3                \ with higher numbers of missiles, jump to TA3
+ BCS TA3                \ with higher numbers of missiles, jump to TA3 to skip
+                        \ firing a missile
 
  LDA ECMA               \ If an E.C.M. is currently active (either our's or an
- BNE TA3                \ opponent's), jump to TA3
+ BNE TA3                \ opponent's), jump to TA3 to skip firing a missile
 
  DEC INWK+31            \ We're done with the checks, so it's time to fire off a
                         \ missile, so reduce the missile count in byte #31 by 1
@@ -12732,11 +12762,6 @@ LOAD_C% = LOAD% +P% - CODE%
 \ This is called when an enemy ship has run out of both energy and luck, so it's
 \ time to bail.
 \
-\ Other entry points:
-\
-\   SFS1-2              Add a missile to the local bubble that has AI enabled,
-\                       is hostile, but has no E.C.M.
-\
 \ ******************************************************************************
 
 .SESCP
@@ -12783,6 +12808,11 @@ LOAD_C% = LOAD% +P% - CODE%
 \   XX0                 XX0 is preserved
 \
 \   INWK                The whole INWK workspace is preserved
+\
+\ Other entry points:
+\
+\   SFS1-2              Add a missile to the local bubble that has AI enabled,
+\                       is hostile, but has no E.C.M.
 \
 \ ******************************************************************************
 
@@ -13081,7 +13111,7 @@ LOAD_C% = LOAD% +P% - CODE%
  ASL A                  \ Set A = 0
 
  STA XX4                \ Set XX4 = 0, which we will use as a counter for
-                        \ drawing 8 concentric rings
+                        \ drawing eight concentric rings
 
  STA K3+1               \ Set the high bytes of K3(1 0) and K4(1 0) to 0
  STA K4+1
@@ -14054,6 +14084,7 @@ NEXT
                         \
                         \   (A ?) = A * Q
                         \         = K * sin(A) * 256
+                        \
                         \ which is equivalent to:
                         \
                         \   A = K * sin(A)
@@ -14771,6 +14802,11 @@ NEXT
 
  LDA SZ,Y               \ Fetch the Y-th dust particle's z_hi coordinate into A
 
+                        \ Fall through into DV41 to do:
+                        \
+                        \   (P R) = 256 * DELTA / A
+                        \         = 256 * DELTA / Y-th stardust particle's z_hi
+
 \ ******************************************************************************
 \
 \       Name: DV41
@@ -14804,6 +14840,11 @@ NEXT
  STA Q                  \ Store A in Q
 
  LDA DELTA              \ Fetch the speed from DELTA into A
+
+                        \ Fall through into DVID4 to do:
+                        \
+                        \   (P R) = 256 * A / Q
+                        \         = 256 * DELTA / A
 
 \ ******************************************************************************
 \
@@ -15492,15 +15533,26 @@ NEXT
 
 .WARP
 
+IF _SOURCE_DISC
+
+ LDA MANY+AST           \ Set X to the total number of asteroids, escape pods
+ CLC                    \ and cargo canisters in the vicinity
+ ADC MANY+ESC
+ CLC                    \ The second CLC instruction has no effect, as there is
+ ADC MANY+OIL           \ is no way that adding the number of asteroids and the
+ TAX                    \ number escape pods will cause a carry
+
+ELIF _TEXT_SOURCES
+
  LDA MANY+AST           \ Set X to the total number of asteroids, escape pods
  CLC                    \ and cargo canisters in the vicinity
  ADC MANY+ESC           \
- CLC                    \ The second CLC instruction appears in the BASIC
- ADC MANY+OIL           \ source file (ELITEC), but not in the text source file
- TAX                    \ (ELITEC.TXT). The second CLC has no effect, as there
-                        \ is no way that adding the number of asteroids and the
-                        \ number escape pods will cause a carry, so presumably
-                        \ it got removed at some point
+ ADC MANY+OIL           \ This code saves one byte of memory over the code in
+ TAX                    \ the source disc version. The second CLC is not needed
+                        \ as there is no way that adding the number of asteroids
+                        \ and the number of escape pods will cause a carry
+
+ENDIF
 
  LDA FRIN+2,X           \ If the slot at FRIN+2+X is non-zero, then we have
                         \ something else in the vicinity besides asteroids,
@@ -15534,20 +15586,25 @@ NEXT
                         \ planet in any of the three axes (we could also call
                         \ routine m to do the same thing, as A = 0)
 
-                        \ The following two instructions appear in the BASIC
-                        \ source file (ELITEC), but in the text source file
-                        \ (ELITEC.TXT) they are replaced by:
-                        \
-                        \   LSR A
-                        \   BEQ WA1
-                        \
-                        \ which does the same thing, but saves one byte of
-                        \ memory (as LSR A is a one-byte opcode, while CMP #2
-                        \ takes up two bytes)
+IF _SOURCE_DISC
 
  CMP #2                 \ If A < 2 then jump to WA1 to abort the in-system jump
  BCC WA1                \ with a low beep, as we are facing the planet and are
                         \ too close to jump in that direction
+
+ELIF _TEXT_SOURCES
+
+ LSR A                  \ If A < 2 then jump to WA1 to abort the in-system jump
+ BEQ WA1                \ with a low beep, as we are facing the planet and are
+                        \ too close to jump in that direction
+                        \
+                        \ These instructions between them save one byte of
+                        \ memory over the CMP-based code in the source disc
+                        \ version, as LSR A is a one-byte opcode, while CMP #2
+                        \ takes up two bytes (though the code does exactly the
+                        \ same thing)
+
+ENDIF
 
 .WA3
 
@@ -15567,20 +15624,25 @@ NEXT
  JSR m                  \ Call m to set A to the largest distance to the sun
                         \ in any of the three axes
 
-                        \ The following two instructions appear in the BASIC
-                        \ source file (ELITEC), but in the text source file
-                        \ (ELITEC.TXT) they are replaced by:
-                        \
-                        \   LSR A
-                        \   BEQ WA1
-                        \
-                        \ which does the same thing, but saves one byte of
-                        \ memory (as LSR A is a one-byte opcode, while CMP #2
-                        \ takes up two bytes)
+IF _SOURCE_DISC
 
  CMP #2                 \ If A < 2 then jump to WA1 to abort the in-system jump
- BCC WA1                \ with a low beep, as we are facing the sun and are too
-                        \ close to jump in that direction
+ BCC WA1                \ with a low beep, as we are facing the planet and are
+                        \ too close to jump in that direction
+
+ELIF _TEXT_SOURCES
+
+ LSR A                  \ If A < 2 then jump to WA1 to abort the in-system jump
+ BEQ WA1                \ with a low beep, as we are facing the planet and are
+                        \ too close to jump in that direction
+                        \
+                        \ These instructions between them save one byte of
+                        \ memory over the CMP-based code in the source disc
+                        \ version, as LSR A is a one-byte opcode, while CMP #2
+                        \ takes up two bytes (though the code does exactly the
+                        \ same thing)
+
+ENDIF
 
 .WA2
 
@@ -15775,8 +15837,6 @@ NEXT
 \
 \ Other entry points:
 \
-\   LO2                 Contains an RTS
-\
 \   PU1-1               Contains an RTS
 \
 \ ******************************************************************************
@@ -15930,6 +15990,10 @@ NEXT
 \
 \                         * 3 = right
 \
+\ Other entry points:
+\
+\   LO2                 Contains an RTS
+\
 \ ******************************************************************************
 
 .LO2
@@ -16070,9 +16134,17 @@ NEXT
  LDA #%10000000         \ Set bit 7 of QQ17 to switch to Sentence Case
  STA QQ17
 
+IF _SOURCE_DISC
+
  ASL A                  \ Set LASCT to 0, as 128 << 1 = %10000000 << 1 = 0. This
- STA LASCT              \ stops any laser pulsing. This instruction is STA LAS2
-                        \ in the text source file ELITEC.TXT
+ STA LASCT              \ stops any laser pulsing
+
+ELIF _TEXT_SOURCES
+
+ ASL A                  \ Set LAS2 to 0, as 128 << 1 = %10000000 << 1 = 0. This
+ STA LAS2               \ stops any laser pulsing
+
+ENDIF
 
  STA DLY                \ Set the delay in DLY to 0, to indicate that we are
                         \ no longer showing an in-flight message, so any new
@@ -16086,7 +16158,7 @@ NEXT
 
 .BOL1
 
- JSR ZES1               \ Call ZES1  to zero-fill the page in X, which clears
+ JSR ZES1               \ Call ZES1 to zero-fill the page in X, which clears
                         \ that character row on the screen
 
  INX                    \ Increment X to point to the next page, i.e. the next
@@ -16094,7 +16166,7 @@ NEXT
 
  CPX #&78               \ Loop back to BOL1 until we have cleared page &7700,
  BNE BOL1               \ the last character row in the space view part of the
-                        \ screen (the space view)
+                        \ screen (the top part)
 
  LDX QQ22+1             \ Fetch into X the number that's shown on-screen during
                         \ the hyperspace countdown
@@ -16282,8 +16354,10 @@ NEXT
 \
 \ ------------------------------------------------------------------------------
 \
-\ Clear some space at the bottom of the screen and move the text cursor to
-\ column 1, row 21. Specifically, this zeroes the following screen locations:
+\ This routine clears some space at the bottom of the screen and moves the text
+\ cursor to column 1, row 21. 
+\
+\ Specifically, it zeroes the following screen locations:
 \
 \   &7507 to &75F0
 \   &7607 to &76F0
@@ -18051,7 +18125,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ to pass to the Tc routine if we call it
 
  BCS Tc                 \ If the C flag is set, then there is no room in the
-                        \ cargo hold, jump up to Tc to print a "Cargo?" error, 
+                        \ cargo hold, jump up to Tc to print a "Cargo?" error,
                         \ beep, clear the number and try again
 
  LDA QQ24               \ There is room in the cargo hold, so now to check
@@ -18171,7 +18245,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  STA Q                  \ Store the key pressed in Q
 
- SEC                    \ Subtract ASCII '0' from the key pressed, to leave the
+ SEC                    \ Subtract ASCII "0" from the key pressed, to leave the
  SBC #'0'               \ numeric value of the key in A (if it was a number key)
 
  BCC OUT                \ If A < 0, jump to OUT to return from the subroutine
@@ -18487,7 +18561,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  SEC                    \ Set the C flag to indicate a "yes" response
 
- RTS
+ RTS                    \ Return from the subroutine
 
 \ ******************************************************************************
 \
@@ -18515,7 +18589,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  DEY                    \ Negate the change in Y and push it onto the stack
  TYA                    \ (let's call this the y-delta)
- EOR #255
+ EOR #&FF
  PHA
 
  JSR WSCAN              \ Call WSCAN to wait for the vertical sync, so the whole
@@ -19424,7 +19498,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ left corner of the screen, and return from the
                         \ subroutine using a tail call
 
-\hy5                    \ This instruction and the hy5 label are commented out
+\.hy5                   \ This instruction and the hy5 label are commented out
 \RTS                    \ in the original - they can actually be found at the
                         \ end of the jmp routine below, so perhaps this is where
                         \ they were originally, but the authors realised they
@@ -19465,11 +19539,13 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .Ghy
 
-\JSR TT111              \ This instruction is commented out in the original
-                        \ source, and appears in the text cassette code source
-                        \ (ELITED.TXT) but not in the BASIC source file on the
-                        \ source disc (ELITED). It finds the closest system to
-                        \ coordinates (QQ9, QQ10)
+IF _TEXT_SOURCES
+
+ JSR TT111              \ Call TT111 to set the current system to the nearest
+                        \ system to (QQ9, QQ10), and put the seeds of the
+                        \ nearest system into QQ15 to QQ15+5
+
+ENDIF
 
  LDX GHYP               \ Fetch GHYP, which tells us whether we own a galactic
  BEQ hy5                \ hyperdrive, and if it is zero, which means we don't,
@@ -19519,7 +19595,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
 .zZ
 
- LDA #&60               \ Set (QQ9, QQ10) to (96, 96), which is where we always
+ LDA #96                \ Set (QQ9, QQ10) to (96, 96), which is where we always
  STA QQ9                \ arrive in a new galaxy (the selected system will be
  STA QQ10               \ set to the nearest actual system later on)
 
@@ -19756,7 +19832,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ "g"), padded to a width of two characters
 
  JSR var                \ Call var to set QQ19+3 = economy * |economic_factor|
-                        \ (and set the availability of Alien Items to 0)
+                        \ (and set the availability of alien items to 0)
 
  LDA QQ19+1             \ Fetch the byte #1 that we stored above and jump to
  BMI TT155              \ TT155 if it is negative (i.e. if the economic_factor
@@ -20023,7 +20099,7 @@ LOAD_D% = LOAD% + P% - CODE%
 \ ------------------------------------------------------------------------------
 \
 \ Set QQ19+3 = economy * |economic_factor|, given byte #1 of the market prices
-\ table for an item. Also sets the availability of Alien Items to 0.
+\ table for an item. Also sets the availability of alien items to 0.
 \
 \ This routine forms part of the calculations for market item prices (TT151)
 \ and availability (GVL).
@@ -20049,7 +20125,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  CLC                    \ Clear the C flag so we can do additions below
 
- LDA #0                 \ Set AVL+16 (availability of Alien Items) to 0,
+ LDA #0                 \ Set AVL+16 (availability of alien items) to 0,
  STA AVL+16             \ setting A to 0 in the process
 
 .TT153
@@ -20194,7 +20270,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ QQ19+1
 
  JSR var                \ Call var to set QQ19+3 = economy * |economic_factor|
-                        \ (and set the availability of Alien Items to 0)
+                        \ (and set the availability of alien items to 0)
 
  LDA QQ23+3,X           \ Fetch byte #3 from the market prices table (mask) and
  AND QQ26               \ AND with the random number for this system visit
@@ -20705,6 +20781,12 @@ LOAD_D% = LOAD% + P% - CODE%
 \   err                 Beep, pause and go to the docking bay (i.e. show the
 \                       Status Mode screen)
 \
+\   pres                Given an item number A with the item name in recursive
+\                       token Y, show an error to say that the item is already
+\                       present, refund the cost of the item, and then beep and
+\                       exit to the docking bay (i.e. show the Status Mode
+\                       screen)
+\
 \ ******************************************************************************
 
 .bay
@@ -20751,15 +20833,16 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ QQ25 + 1, i.e. the highest item number on sale + 1)
 
  LDA #70                \ Set A = 70 - QQ14, where QQ14 contains the current
- SEC                    \ level in light years * 10, so this leaves the amount
+ SEC                    \ fuel in light years * 10, so this leaves the amount
  SBC QQ14               \ of fuel we need to fill 'er up (in light years * 10)
 
  ASL A                  \ The price of fuel is always 2 Cr per light year, so we
  STA PRXS               \ double A and store it in PRXS, as the first price in
                         \ the price list (which is reserved for fuel), and
                         \ because the table contains prices as price * 10, it's
-                        \ in the right format (so a full tank, or 7.0 light
-                        \ years, would be 14.0 Cr, or a PRXS value of 140)
+                        \ in the right format (so tank containing 7.0 light
+                        \ years of fuel would be 14.0 Cr, or a PRXS value of
+                        \ 140)
 
  LDX #1                 \ We are now going to work our way through the equipment
                         \ price list at PRXS, printing out the equipment that is
@@ -20845,8 +20928,8 @@ LOAD_D% = LOAD% + P% - CODE%
 
  STA MCNT               \ We just bought fuel, so we zero the main loop counter
 
- LDX #70                \ And set the current fuel level * 10 in QQ14 to 70, or
- STX QQ14               \ 7.0 light years (a full tank)
+ LDX #70                \ Set the current fuel level * 10 in QQ14 to 70, or 7.0
+ STX QQ14               \ light years (a full tank)
 
 .et0
 
@@ -21003,8 +21086,9 @@ LOAD_D% = LOAD% + P% - CODE%
 .pres
 
                         \ If we get here we need to show an error to say that
-                        \ item number A is already present, where the item's
-                        \ name is recursive token Y
+                        \ the item whose name is in recursive token Y is already
+                        \ present, and then process a refund for the cost of
+                        \ item number A
 
  STY K                  \ Store the item's name in K
 
@@ -21195,7 +21279,7 @@ LOAD_D% = LOAD% + P% - CODE%
                         \ the transaction, so jump to c to return from the
                         \ subroutine (as c contains an RTS)
 
- LDA #197               \ Otherwise we don't have enough cash to but this piece
+ LDA #197               \ Otherwise we don't have enough cash to buy this piece
  JSR prq                \ of equipment, so print recursive token 37 ("CASH")
                         \ followed by a question mark
 
@@ -21240,7 +21324,7 @@ LOAD_D% = LOAD% + P% - CODE%
 
  LDX PRXS,Y             \ Fetch the low byte of the price into X
 
- LDA PRXS+1,Y           \ Fetch the low byte of the price into A and transfer
+ LDA PRXS+1,Y           \ Fetch the high byte of the price into A and transfer
  TAY                    \ it to X, so the price is now in (Y X)
 
 .c
@@ -21276,7 +21360,8 @@ LOAD_D% = LOAD% + P% - CODE%
 .qv
 
  LDY #16                \ Move the text cursor to row 16, and at the same time
- STY YC                 \ set Y to a counter going from 16-20 in the loop below
+ STY YC                 \ set Y to a counter going from 16 to 19 in the loop
+                        \ below
 
 .qv1
 
@@ -21286,15 +21371,16 @@ LOAD_D% = LOAD% + P% - CODE%
  TYA                    \ Transfer the counter value from Y to A
 
  CLC                    \ Print ASCII character "0" - 16 + A, so as A goes from
- ADC #'0'-16            \ 16 to 20, this prints "0" through "3" followed by a
+ ADC #'0'-16            \ 16 to 19, this prints "0" through "3" followed by a
  JSR spc                \ space
 
  LDA YC                 \ Print recursive text token 80 + YC, so as YC goes from
- CLC                    \ 16 to 20, this prints "FRONT", "REAR", "LEFT" and
+ CLC                    \ 16 to 19, this prints "FRONT", "REAR", "LEFT" and
  ADC #80                \ "RIGHT"
  JSR TT27
 
- INC YC                 \ Move the text cursor down a row
+ INC YC                 \ Move the text cursor down a row, and increment the
+                        \ counter in YC at the same time
 
  LDY YC                 \ Update Y with the incremented counter in YC
 
@@ -21315,7 +21401,7 @@ LOAD_D% = LOAD% + P% - CODE%
  JSR TT217              \ Scan the keyboard until a key is pressed, and return
                         \ the key's ASCII code in A (and X)
 
- SEC                    \ Subtract ASCII '0' from the key pressed, to leave the
+ SEC                    \ Subtract ASCII "0" from the key pressed, to leave the
  SBC #'0'               \ numeric value of the key in A (if it was a number key)
 
  CMP #4                 \ If the number entered in A >= 4, then it is not a
@@ -21405,10 +21491,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Print control code 3 (the selected system name, i.e. the one in the crosshairs
 \ in the Short-range Chart).
 \
-\ Other entry points:
-\
-\   cmn-1               Contains an RTS
-\
 \ ******************************************************************************
 
 .cpl
@@ -21446,7 +21528,7 @@ LOAD_E% = LOAD% + P% - CODE%
  AND #%00011111         \ extract bits 0-4 by AND'ing with %11111
 
  BEQ P%+7               \ If all those bits are zero, then skip the following
-                        \ 2 instructions to go to step 3
+                        \ two instructions to go to step 3
 
  ORA #%10000000         \ We now have a number in the range 1-31, which we can
                         \ easily convert into a two-letter token, but first we
@@ -21491,7 +21573,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ Other entry points:
 \
-\   ypl-1               Contains an RTS
+\   cmn-1               Contains an RTS
 \
 \ ******************************************************************************
 
@@ -21525,6 +21607,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ ------------------------------------------------------------------------------
 \
 \ Print control code 2 (the current system name).
+\
+\ Other entry points:
+\
+\   ypl-1               Contains an RTS
 \
 \ ******************************************************************************
 
@@ -21573,7 +21659,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: tal
 \       Type: Subroutine
 \   Category: Text
-\    Summary: Print the current galaxy numbe
+\    Summary: Print the current galaxy number
 \
 \ ------------------------------------------------------------------------------
 \
@@ -21595,8 +21681,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  JMP pr2                \ Jump to pr2, which prints the number in X to a width
                         \ of 3 figures, left-padding with spaces to a width of
-                        \ 3, and once done, return from the subroutine (as pr2
-                        \ ends with an RTS)
+                        \ 3, and return from the subroutine using a tail call
 
 \ ******************************************************************************
 \
@@ -21629,7 +21714,7 @@ LOAD_E% = LOAD% + P% - CODE%
  LDA #195               \ Print recursive token 35 ("LIGHT YEARS") followed by
  JSR plf                \ a newline
 
-.PCASH                  \ This label is not used but is in the original source
+.PCASH
 
  LDA #119               \ Print recursive token 119 ("CASH:" then control code
  BNE TT27               \ 0, which prints cash levels, then " CR" and newline)
@@ -21666,11 +21751,11 @@ LOAD_E% = LOAD% + P% - CODE%
 
  BPL pc1                \ Loop back for the next byte to copy
 
- LDA #9                 \ We want to print the cash using up to 9 digits
+ LDA #9                 \ We want to print the cash amount using up to 9 digits
  STA U                  \ (including the decimal point), so store this in U
                         \ for BRPNT to take as an argument
 
- SEC                    \ We want to print the fuel level with a decimal point,
+ SEC                    \ We want to print the cash amount with a decimal point,
                         \ so set the C flag for BRPNT to take as an argument
 
  JSR BPRNT              \ Print the amount of cash to 9 digits with a decimal
@@ -21788,14 +21873,14 @@ LOAD_E% = LOAD% + P% - CODE%
  DEX                    \ If token = 5, this is control code 5 (fuel, newline,
  BEQ fwl                \ cash, newline), so jump to fwl
 
- DEX                    \ If token > 6, skip the following 3 instructions
+ DEX                    \ If token > 6, skip the following three instructions
  BNE P%+7
 
  LDA #%10000000         \ This token is control code 6 (switch to Sentence
  STA QQ17               \ Case), so set bit 7 of QQ17 to switch to Sentence Case
  RTS                    \ and return from the subroutine as we are done
 
- DEX                    \ If token > 8, skip the following 2 instructions
+ DEX                    \ If token > 8, skip the following two instructions
  DEX
  BNE P%+5
 
@@ -21813,7 +21898,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ range (i.e. where the recursive token number is
                         \ correct and doesn't need correcting)
 
- CMP #14                \ If token < 14, skip the following 2 instructions
+ CMP #14                \ If token < 14, skip the following two instructions
  BCC P%+6
 
  CMP #32                \ If token < 32, then this means token is in 14-31, so
@@ -22216,7 +22301,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  TAX                    \ Copy the token number into X
 
- LDA #LO(QQ18)          \ Set V, V+1 to point to the recursive token table at
+ LDA #LO(QQ18)          \ Set V(1 0) to point to the recursive token table at
  STA V                  \ location QQ18
  LDA #HI(QQ18)
  STA V+1
@@ -23005,12 +23090,13 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ Set the screen to show the number of text rows given in X. This is used when
-\ we are killed, as reducing the number of rows from the usual 31 to 24 has the
-\ effect of hiding the dashboard, leaving a monochrome image of ship debris and
-\ explosion clouds. Increasing the rows back up to 31 makes the dashboard
-\ reappear, as the dashboard's screen memory doesn't get touched by this
-\ process.
+\ This routine sets the screen to show the number of text rows given in X.
+\
+\ It is used when we are killed, as reducing the number of rows from the usual
+\ 31 to 24 has the effect of hiding the dashboard, leaving a monochrome image
+\ of ship debris and explosion clouds. Increasing the rows back up to 31 makes
+\ the dashboard reappear, as the dashboard's screen memory doesn't get touched
+\ by this process.
 \
 \ Arguments:
 \
@@ -23312,43 +23398,43 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: DOT
 \       Type: Subroutine
 \   Category: Dashboard
-\    Summary: Draw a dot on the compass
+\    Summary: Draw a dash on the compass
 \
 \ ------------------------------------------------------------------------------
 \
 \ Arguments:
 \
-\   COMX                The screen pixel x-coordinate of the dot
+\   COMX                The screen pixel x-coordinate of the dash
 \
-\   COMY                The screen pixel y-coordinate of the dot
+\   COMY                The screen pixel y-coordinate of the dash
 \
-\   COMC                The colour and thickness of the dot:
+\   COMC                The colour and thickness of the dash:
 \
-\                         * &F0 = a double-height dot in yellow/white, for when
+\                         * &F0 = a double-height dash in yellow/white, for when
 \                           the object in the compass is in front of us
 \
-\                         * &FF = a single-height dot in green/cyan, for when
+\                         * &FF = a single-height dash in green/cyan, for when
 \                           the object in the compass is behind us
 \
 \ ******************************************************************************
 
 .DOT
 
- LDA COMY               \ Set Y1 = COMY, the y-coordinate of the dot
+ LDA COMY               \ Set Y1 = COMY, the y-coordinate of the dash
  STA Y1
 
- LDA COMX               \ Set X1 = COMX, the x-coordinate of the dot
+ LDA COMX               \ Set X1 = COMX, the x-coordinate of the dash
  STA X1
 
- LDA COMC               \ Set COL = COMC, the mode 5 colour byte for the dot
+ LDA COMC               \ Set COL = COMC, the mode 5 colour byte for the dash
  STA COL
 
- CMP #&F0               \ If COL is &F0 then the dot is in front of us and we
- BNE CPIX2              \ want to draw a double-height dot, so if it isn't &F0
-                        \ jump to CPIX2 to draw a single-height dot
+ CMP #&F0               \ If COL is &F0 then the planet/station is in front of
+ BNE CPIX2              \ us and we want to draw a double-height dash, so if it
+                        \ isn't &F0 jump to CPIX2 to draw a single-height dash
 
                         \ Otherwise fall through into CPIX4 to draw a double-
-                        \ height dot
+                        \ height dash
 
 \ ******************************************************************************
 \
@@ -23388,7 +23474,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: CPIX2
 \       Type: Subroutine
 \   Category: Drawing pixels
-\    Summary: Draw a single-height dot on the dashboard
+\    Summary: Draw a single-height dash on the dashboard
 \  Deep dive: Drawing colour pixels in mode 5
 \
 \ ------------------------------------------------------------------------------
@@ -23606,7 +23692,8 @@ LOAD_E% = LOAD% + P% - CODE%
 \ copied into the first two K3 bytes, and the sign of the sign byte is copied
 \ into the highest K3 byte.
 \
-\ The comments below are written for the x-coordinate.
+\ The comments below are written for copying the planet's x-coordinate into
+\ K3(2 1 0).
 \
 \ Arguments:
 \
@@ -24125,13 +24212,7 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: SPBLB
 \       Type: Subroutine
 \   Category: Dashboard
-\    Summary: Draw (or erase) the space station indicator ("S") on the dashboard
-\
-\ ------------------------------------------------------------------------------
-\
-\ Other entry points:
-\
-\   BULB-2              Set the Y screen address
+\    Summary: Light up the space station indicator ("S") on the dashboard
 \
 \ ******************************************************************************
 
@@ -24165,6 +24246,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \   (Y X)               The address of the character definition of the bulb to
 \                       be drawn (i.e. ECBT for the E.C.M. bulb, or SPBT for the
 \                       space station bulb)
+\
+\ Other entry points:
+\
+\   BULB-2              Set the Y screen address
 \
 \ ******************************************************************************
 
@@ -25144,10 +25229,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \   SUNX(1 0)           The x-coordinate of the vertical centre axis of the old
 \                       sun (the one currently on-screen)
 \
-\ Other entry points:
-\
-\   RTS2                Contains an RTS
-\
 \ ******************************************************************************
 
  JMP WPLS               \ Jump to WPLS to remove the old sun from the screen. We
@@ -25517,7 +25598,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \
                         \   XX____X1____X2____XX+1      ->      +  +__+  +
                         \
-                        \ They all end up with a line between X1 and Y1, which
+                        \ They all end up with a line between X1 and X2, which
                         \ is what we want. There's probably a mathematical proof
                         \ of why this works somewhere, but the above is probably
                         \ easier to follow.
@@ -25621,6 +25702,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ This part erases any remaining traces of the old sun, now that we have drawn
 \ all the way to the top of the new sun.
+\
+\ Other entry points:
+\
+\   RTS2                Contains an RTS
 \
 \ ******************************************************************************
 
@@ -25852,7 +25937,7 @@ LOAD_E% = LOAD% + P% - CODE%
  JSR BLINE              \ Call BLINE to draw this segment, which also increases
                         \ CNT by STP, the step size
 
- CMP #65                \ If CNT >=65 then skip the next instruction
+ CMP #65                \ If CNT >= 65 then skip the next instruction
  BCS P%+5
 
  JMP PLL3               \ Jump back for the next segment
@@ -25873,10 +25958,6 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ We do this by redrawing it using the lines stored in the ball line heap when
 \ the planet was originally drawn by the BLINE routine.
-\
-\ Other entry points:
-\
-\   WPLS-1              Contains an RTS
 \
 \ ******************************************************************************
 
@@ -25972,6 +26053,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \ Arguments:
 \
 \   SUNX(1 0)           The x-coordinate of the vertical centre axis of the sun
+\
+\ Other entry points:
+\
+\   WPLS-1              Contains an RTS
 \
 \ ******************************************************************************
 
@@ -26955,18 +27040,23 @@ LOAD_F% = LOAD% + P% - CODE%
 
  STX XX4                \ Store the slot number of the ship to remove in XX4
 
-                        \ The following two instructions appear in the BASIC
-                        \ source file (ELITEF), but in the text source file
-                        \ (ELITEF.TXT) they are replaced by:
-                        \
-                        \   CPX MSTG
-                        \
-                        \ which does the same thing, but saves two bytes of
-                        \ memory (as CPX MSTG is a two-byte opcode, while LDA
-                        \ MSTG and CMP XX4 take up four bytes between them)
+IF _SOURCE_DISC
 
  LDA MSTG               \ Check whether this slot matches the slot number in
  CMP XX4                \ MSTG, which is the target of our missile lock
+
+ELIF _TEXT_SOURCES
+
+ CPX MSTG               \ Check whether this slot matches the slot number in
+                        \ MSTG, which is the target of our missile lock
+                        \
+                        \ This instructions saves two bytes of memory over the
+                        \ LDA and CMP-based code in the source disc version, as
+                        \ CPX MSTG is a two-byte opcode, while LDA MSTG and
+                        \ CMP XX4 take up four bytes between them (the code does
+                        \ the same thing)
+
+ENDIF
 
  BNE KS5                \ If our missile is not locked on this ship, jump to KS5
 
@@ -27548,7 +27638,7 @@ LOAD_F% = LOAD% + P% - CODE%
  LDA #0                 \ Set the delay in DLY to 0, so any new in-flight
  STA DLY                \ messages will be shown instantly
 
- JMP me3                \ Jump back into the main spawning loop at TT100
+ JMP me3                \ Jump back into the main spawning loop at me3
 
 \ ******************************************************************************
 \
@@ -27618,7 +27708,10 @@ LOAD_F% = LOAD% + P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ Set A and X to random numbers. The C and V flags are also set randomly.
+\ Set A and X to random numbers (though note that X is set to the random number
+\ that was returned in A the last time DORND was called).
+\
+\ The C and V flags are also set randomly.
 \
 \ Other entry points:
 \
@@ -27899,8 +27992,8 @@ LOAD_F% = LOAD% + P% - CODE%
 
  CMP T                  \ If the random value in A >= our badness level, which
  BCS P%+7               \ will be the case unless we have been really, really
-                        \ bad, then skip the following two instructions (so if
-                        \ we are really bad, there's a higher chance of
+                        \ bad, then skip the following two instructions (so
+                        \ if we are really bad, there's a higher chance of
                         \ spawning a cop, otherwise we got away with it, for
                         \ now)
 
@@ -28150,7 +28243,8 @@ LOAD_F% = LOAD% + P% - CODE%
 \       Name: TT102
 \       Type: Subroutine
 \   Category: Keyboard
-\    Summary: Process function key, save, hyperspace and chart key presses
+\    Summary: Process function key, save key, hyperspace and chart key presses
+\             and update the hyperspace counter
 \
 \ ------------------------------------------------------------------------------
 \
@@ -28933,8 +29027,9 @@ ENDIF
                         \ to 96, which is the distance at which the rotating
                         \ ship starts out before coming towards us
 
- LDX #127
- STX INWK+29            \ Set roll counter = 127, so don't dampen the roll
+ LDX #127               \ Set roll counter = 127, so don't dampen the roll
+ STX INWK+29
+
  STX INWK+30            \ Set pitch counter = 127, so don't dampen the pitch
 
  INX                    \ Set QQ17 to 128 (so bit 7 is set) to switch to
@@ -30013,10 +30108,6 @@ ENDIF
 \ message of encouragement if the kill total is a multiple of 256, and then
 \ make a nearby explosion sound.
 \
-\ Other entry points:
-\
-\   EXNO-2              Set X = 7 and fall through into EXNO to make the sound
-\                       of a ship exploding
 \
 \ ******************************************************************************
 
@@ -30063,6 +30154,11 @@ ENDIF
 \
 \                         * 15 = explosion is quieter (i.e. this is just a laser
 \                                strike)
+\
+\ Other entry points:
+\
+\   EXNO-2              Set X = 7 and fall through into EXNO to make the sound
+\                       of a ship exploding
 \
 \ ******************************************************************************
 
@@ -30254,9 +30350,6 @@ ENDIF
 \ control keys) have bit 7 set, so they have 128 added to their internal
 \ values. This doesn't appear to be used anywhere.
 \
-\ Note that KYTB actually points to the byte before the start of the table, so
-\ the offset of the first key value is 1 (i.e. KYTB+1), not 0.
-\
 \ ******************************************************************************
 
 KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
@@ -30371,10 +30464,6 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \
 \   X                   Contains the same as A
 \
-\ Other entry points:
-\
-\   DKS2-1              Contains an RTS
-\
 \ ******************************************************************************
 
 .DKS4
@@ -30441,6 +30530,10 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 \   (A X)               The 16-bit value read from channel X, with the value
 \                       inverted if the game has been configured to reverse the
 \                       joystick
+\
+\ Other entry points:
+\
+\   DKS2-1              Contains an RTS
 \
 \ ******************************************************************************
 
@@ -30670,7 +30763,8 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  LDA JSTK               \ If JSTK is non-zero, then we are configured to use
  BNE DKJ1               \ the joystick rather than keyboard, so jump to DKJ1
                         \ to read the joystick flight controls, before jumping
-                        \ to DK4 below
+                        \ to DK4 to scan for pause, configuration and secondary
+                        \ flight keys
 
  LDY #7                 \ We're going to work our way through the primary flight
                         \ control keys (pitch, roll, speed and laser), so set a
@@ -31074,7 +31168,7 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
  BMI out                \ If A < 0 (50% chance), return from the subroutine
                         \ (as out contains an RTS)
 
- CPX #22                \ If X >= 22 (89% chance), return from the subroutine
+ CPX #22                \ If X >= 22 (91% chance), return from the subroutine
  BCS out                \ (as out contains an RTS)
 
  LDA QQ20,X             \ If we do not have any of item QQ20+X, return from the
@@ -31268,39 +31362,23 @@ ENDMACRO
 
 .QQ23
 
- ITEM 19,  -2, 't',   6, %00000001   \ 0  = Food
-
- ITEM 20,  -1, 't',  10, %00000011   \ 1  = Textiles
-
- ITEM 65,  -3, 't',   2, %00000111   \ 2  = Radioactives
-
- ITEM 40,  -5, 't', 226, %00011111   \ 3  = Slaves
-
- ITEM 83,  -5, 't', 251, %00001111   \ 4  = Liquor/Wines
-
- ITEM 196,  8, 't',  54, %00000011   \ 5  = Luxuries
-
- ITEM 235, 29, 't',   8, %01111000   \ 6  = Narcotics
-
- ITEM 154, 14, 't',  56, %00000011   \ 7  = Computers
-
- ITEM 117,  6, 't',  40, %00000111   \ 8  = Machinery
-
- ITEM 78,   1, 't',  17, %00011111   \ 9  = Alloys
-
+ ITEM 19,  -2, 't',   6, %00000001   \  0 = Food
+ ITEM 20,  -1, 't',  10, %00000011   \  1 = Textiles
+ ITEM 65,  -3, 't',   2, %00000111   \  2 = Radioactives
+ ITEM 40,  -5, 't', 226, %00011111   \  3 = Slaves
+ ITEM 83,  -5, 't', 251, %00001111   \  4 = Liquor/Wines
+ ITEM 196,  8, 't',  54, %00000011   \  5 = Luxuries
+ ITEM 235, 29, 't',   8, %01111000   \  6 = Narcotics
+ ITEM 154, 14, 't',  56, %00000011   \  7 = Computers
+ ITEM 117,  6, 't',  40, %00000111   \  8 = Machinery
+ ITEM 78,   1, 't',  17, %00011111   \  9 = Alloys
  ITEM 124, 13, 't',  29, %00000111   \ 10 = Firearms
-
  ITEM 176, -9, 't', 220, %00111111   \ 11 = Furs
-
  ITEM 32,  -1, 't',  53, %00000011   \ 12 = Minerals
-
  ITEM 97,  -1, 'k',  66, %00000111   \ 13 = Gold
-
  ITEM 171, -2, 'k',  55, %00011111   \ 14 = Platinum
-
  ITEM 45,  -1, 'g', 250, %00001111   \ 15 = Gem-Stones
-
- ITEM 53,  15, 't', 192, %00000111   \ 16 = Alien Items
+ ITEM 53,  15, 't', 192, %00000111   \ 16 = Alien items
 
 \ ******************************************************************************
 \
@@ -32060,7 +32138,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ ------------------------------------------------------------------------------
 \
-\ Calculate following dot products:
+\ Calculate the following dot products:
 \
 \   XX12(1 0) = XX15(5 0) . XX16(5 0)
 \   XX12(3 2) = XX15(5 0) . XX16(11 6)
@@ -32387,7 +32465,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ the screen, returning from the subroutine using a
                         \ tail call
 
-\LL24                   \ This label is commented out in the original source,
+\.LL24                  \ This label is commented out in the original source,
                         \ and was presumably used to label the RTS which is
                         \ actually called by LL10-1 above, not LL24
 

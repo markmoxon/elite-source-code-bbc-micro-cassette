@@ -2,6 +2,8 @@
 
 **BBC Micro (cassette)** | [BBC Micro (disc)](https://github.com/markmoxon/disc-elite-beebasm) | [6502 Second Processor](https://github.com/markmoxon/6502sp-elite-beebasm) | [BBC Master](https://github.com/markmoxon/master-elite-beebasm) | [Acorn Electron](https://github.com/markmoxon/electron-elite-beebasm) | [Elite-A](https://github.com/markmoxon/elite-a-beebasm)
 
+![Screenshot of Elite on the BBC Micro](https://www.bbcelite.com/images/github/Elite-BBCMicro.png)
+
 This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained.
 
 It is a companion to the [bbcelite.com website](https://www.bbcelite.com).
@@ -27,18 +29,23 @@ See the [introduction](#introduction) for more information.
   * [Verifying the output](#verifying-the-output)
   * [Log files](#log-files)
 
+* [Building different releases of the cassette version of Elite](#building-different-releases-of-the-cassette-version-of-elite)
+
+  * [Building the source disc release](#building-the-source-disc-release)
+  * [Building the text sources release](#building-the-text-sources-release)
+  * [Differences between the releases](#differences-between-the-releases)
+
 * [Notes on the original source files](#notes-on-the-original-source-files)
 
-  * [ELITEC](#elitec)
-  * [ELTB](#eltb)
+  * [Fixing a bug in the source disc](#fixing-a-bug-in-the-source-disc)
 
 ## Introduction
 
 This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained.
 
-You can build the fully functioning game from this source. One release is currently supported: the version produced by the original source discs.
+You can build the fully functioning game from this source. [Two releases](#building-different-releases-of-the-cassette-version-of-elite) are currently supported: the version produced by the original source discs from Ian Bell's site, and the version built from the text sources from the same site.
 
-It is a companion to the [bbcelite.com website](https://www.bbcelite.com), which contains all the code from this repository, but laid out in a much more human-friendly fashion. The links above will take you to repositories for the other versions of Elite that are covered by this project.
+It is a companion to the [bbcelite.com website](https://www.bbcelite.com), which contains all the code from this repository, but laid out in a much more human-friendly fashion. The links at the top of this page will take you to repositories for the other versions of Elite that are covered by this project.
 
 * If you want to browse the source and read about how Elite works under the hood, you will probably find [the website](https://www.bbcelite.com) is a better place to start than this repository.
 
@@ -52,7 +59,7 @@ My hope is that this repository and the [accompanying website](https://www.bbcel
 
 Elite was written by Ian Bell and David Braben and is copyright &copy; Acornsoft 1984.
 
-The code on this site is identical to the version released on [Ian Bell's personal website](http://www.elitehomepage.org/) (it's just been reformatted to be more readable).
+The code on this site is identical to the source discs released on [Ian Bell's personal website](http://www.elitehomepage.org/) (it's just been reformatted to be more readable).
 
 The commentary is copyright &copy; Mark Moxon. Any misunderstandings or mistakes in the documentation are entirely my fault.
 
@@ -221,17 +228,55 @@ All the compiled binaries match the extracts, so we know we are producing the sa
 
 During compilation, details of every step are output in a file called `compile.txt` in the `output` folder. If you have problems, it might come in handy, and it's a great reference if you need to know the addresses of labels and variables for debugging (or just snooping around).
 
+## Building different releases of the cassette version of Elite
+
+This repository contains the source code for two different releases of the cassette version of Elite:
+
+* The version produced by the original source discs from Ian Bell's site
+
+* The version built from the text sources from the same site
+
+It turns out that the BASIC source files in the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip) are not identical to the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip), hence the two different releases.
+
+By default the build process builds the source disc release, but you can build a specified release using the `release=` build parameter.
+
+### Building the source disc release
+
+You can add `release=source-disc` to produce the `elite-cassette-from-source-disc.ssd.ssd` file containing the source disc release, though that's the default value so it isn't necessary.
+
+### Building the text sources release
+
+You can build the text sources release by appending `release=text-sources` to the `make` command, like this on Windows:
+
+```
+make.bat encrypt verify release=text-sources
+```
+
+or this on a Mac or Linux:
+
+```
+make encrypt verify release=text-sources
+```
+
+This will produce a file called `elite-cassette-from-text-sources.ssd` that contains the Ian Bell disc release.
+
+### Differences between the releases
+
+You can see the differences between the releases by searching the source code for `_SOURCE_DISC` (for features in the source disc release) or `_TEXT_SOURCES` (for features in the text sources release). There are only minor differences:
+
+* The text sources contain an extra call in the galactic hyperspace routine that sets the current system to the nearest system to the crosshairs. This code is present in all other versions of the game (albeit in a different place), but not the original source disc from Ian Bell's site
+
+* In order to fit this extra call in (which takes three extra bytes), the text sources also contain four modifications to create space for the call, which together save five bytes.
+
+* There is a small change in the TTX66 routine to reset LAS2 to 0 instead of LASCT to stop laser pulsing, as this is slightly more efficient.
+
+All these changes are carried through to all other versions of the game, so it looks like the text sources contain a slightly later version of the game than the source disc.
+
+See the [accompanying website](https://www.bbcelite.com/disc/releases.html) for a comprehensive list of differences between the releases.
+
 ## Notes on the original source files
 
-### ELITEC
-
-It turns out that the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip) do not contain identical code to the binaries in the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip). Specifically, there are some instructions in the `ELTC` binary that are different to the instructions in the `ELITEC.TXT` source file.
-
-You can see these differences documented in the `WARP` routine in the `elite-source.asm` file. To find this, search the file for `Name:  WARP` and follow the comments for mentions of `ELITEC.TXT`.
-
-The instructions included in `elite-source.asm` are those that match the binary files rather than `ELITEC.TXT`, to ensure that the build process produces binaries that match the released version of the game.
-
-### ELTB
+### Fixing a bug in the source disc
 
 It also turns out there are two versions of the `ELITEB` BASIC source program on the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip), one called `$.ELITEB` and another called `O.ELITEB`. These two versions of `ELITEB` differ by just one byte in the default commander data. This byte controls whether or not the commander has a rear pulse laser. In `O.ELITEB` this byte is generated by:
 
