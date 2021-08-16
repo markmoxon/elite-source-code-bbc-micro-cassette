@@ -33,6 +33,7 @@ See the [introduction](#introduction) for more information.
 
   * [Building the source disc release](#building-the-source-disc-release)
   * [Building the text sources release](#building-the-text-sources-release)
+  * [Differences between the releases](#differences-between-the-releases)
 
 * [Notes on the original source files](#notes-on-the-original-source-files)
 
@@ -237,7 +238,11 @@ This repository contains the source code for two different releases of the casse
 
 It turns out that the BASIC source files in the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip) are not identical to the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip), hence the two different releases.
 
-By default the build process builds the source disc release, but you can build the other release as follows.
+By default the build process builds the source disc release, but you can build a specified release using the `release=` build parameter.
+
+### Building the source disc release
+
+You can add `release=source-disc` to produce the `elite-cassette-from-source-disc.ssd.ssd` file containing the source disc release, though that's the default value so it isn't necessary.
 
 ### Building the text sources release
 
@@ -254,10 +259,6 @@ make encrypt verify release=text-sources
 ```
 
 This will produce a file called `elite-cassette-from-text-sources.ssd` that contains the Ian Bell disc release.
-
-### Building the source disc release
-
-You can add `release=source-disc` to produce the `elite-cassette-from-source-disc.ssd.ssd` file containing the source disc release, though that's the default value so it isn't necessary.
 
 ### Differences between the releases
 
