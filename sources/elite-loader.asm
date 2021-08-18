@@ -39,6 +39,8 @@ INCLUDE "sources/elite-header.h.asm"
 _SOURCE_DISC            = (_RELEASE = 1)
 _TEXT_SOURCES           = (_RELEASE = 2)
 
+GUARD &6000             \ Guard against assembling over screen memory
+
 \ ******************************************************************************
 \
 \ Configuration variables
