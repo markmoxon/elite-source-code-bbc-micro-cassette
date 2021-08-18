@@ -32,8 +32,9 @@ build:
 	$(BEEBASM) -i sources/elite-source.asm -v > output/compile.txt
 	$(BEEBASM) -i sources/elite-bcfs.asm -v >> output/compile.txt
 	$(BEEBASM) -i sources/elite-loader.asm -v >> output/compile.txt
+	$(BEEBASM) -i sources/elite-readme.asm -v >> output/compile.txt
 	$(PYTHON) sources/elite-checksum.py -u -rel$(rel-cassette)
-	$(BEEBASM) -i sources/elite-disc.asm -do elite-cassette$(suffix-cassette).ssd -boot ELTdata
+	$(BEEBASM) -i sources/elite-disc.asm -do elite-cassette$(suffix-cassette).ssd -boot ELTdata -title "E L I T E"
 
 .PHONY:encrypt
 encrypt:
@@ -43,8 +44,9 @@ encrypt:
 	$(BEEBASM) -i sources/elite-source.asm -v > output/compile.txt
 	$(BEEBASM) -i sources/elite-bcfs.asm -v >> output/compile.txt
 	$(BEEBASM) -i sources/elite-loader.asm -v >> output/compile.txt
+	$(BEEBASM) -i sources/elite-readme.asm -v >> output/compile.txt
 	$(PYTHON) sources/elite-checksum.py -rel$(rel-cassette)
-	$(BEEBASM) -i sources/elite-disc.asm -do elite-cassette$(suffix-cassette).ssd -boot ELTdata
+	$(BEEBASM) -i sources/elite-disc.asm -do elite-cassette$(suffix-cassette).ssd -boot ELTdata -title "E L I T E"
 
 .PHONY:verify
 verify:
