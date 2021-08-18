@@ -43,12 +43,12 @@ _TEXT_SOURCES           = (_RELEASE = 2)
 IF _SOURCE_DISC
  EQUS "Release: Ian Bell's source disc"
  EQUB 10, 13
- EQUS "Code no: Acornsoft SBG38 v1.0"
+ EQUS "         Acornsoft SBG38 v1.0"
  EQUB 10, 13
 ELIF _TEXT_SOURCES
  EQUS "Release: Ian Bell's text sources"
  EQUB 10, 13
- EQUS "Code no: Acornsoft SBG38 v1.1 (TBC)"
+ EQUS "         Acornsoft SBG38 v1.1"
  EQUB 10, 13
 ENDIF
  EQUB 10, 13
