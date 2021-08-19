@@ -34331,11 +34331,11 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA (V),Y              \ Fetch byte #2 for this edge into X, which contains
  TAX                    \ the number of the vertex at the start of the edge
 
- LDA XX3,X              \ Fetch the x_lo coordinate of the edge's start vertex
- STA XX15               \ from the XX3 heap into XX15
-
  LDA XX3+1,X            \ Fetch the x_hi coordinate of the edge's start vertex
  STA XX15+1             \ from the XX3 heap into XX15+1
+
+ LDA XX3,X              \ Fetch the x_lo coordinate of the edge's start vertex
+ STA XX15               \ from the XX3 heap into XX15
 
  LDA XX3+2,X            \ Fetch the y_lo coordinate of the edge's start vertex
  STA XX15+2             \ from the XX3 heap into XX15+2
@@ -34351,11 +34351,11 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA XX3,X              \ Fetch the x_lo coordinate of the edge's end vertex
  STA XX15+4             \ from the XX3 heap into XX15+4
 
- LDA XX3+2,X            \ Fetch the y_lo coordinate of the edge's end vertex
- STA XX12               \ from the XX3 heap into XX12
-
  LDA XX3+3,X            \ Fetch the y_hi coordinate of the edge's end vertex
  STA XX12+1             \ from the XX3 heap into XX11+1
+
+ LDA XX3+2,X            \ Fetch the y_lo coordinate of the edge's end vertex
+ STA XX12               \ from the XX3 heap into XX12
 
  LDA XX3+1,X            \ Fetch the x_hi coordinate of the edge's end vertex
  STA XX15+5             \ from the XX3 heap into XX15+5
@@ -34455,23 +34455,27 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ we need to erase
 
  LDA (XX19),Y           \ Fetch the X1 line coordinate from the heap and store
- INY                    \ it in XX15, incrementing the heap pointer
- STA XX15
+ STA XX15               \ it in XX15
+
+ INY                    \ Increment the heap pointer
 
  LDA (XX19),Y           \ Fetch the Y1 line coordinate from the heap and store
- INY                    \ it in XX15+1, incrementing the heap pointer
- STA XX15+1
+ STA XX15+1             \ it in XX15+1
+
+ INY                    \ Increment the heap pointer
 
  LDA (XX19),Y           \ Fetch the X2 line coordinate from the heap and store
- INY                    \ it in XX15+2, incrementing the heap pointer
- STA XX15+2
+ STA XX15+2             \ it in XX15+2
+
+ INY                    \ Increment the heap pointer
 
  LDA (XX19),Y           \ Fetch the Y2 line coordinate from the heap and store
- INY                    \ it in XX15+3, incrementing the heap pointer
- STA XX15+3
+ STA XX15+3             \ it in XX15+3
 
  JSR LL30               \ Draw a line from (X1, Y1) to (X2, Y2) to erase it from
                         \ the screen
+
+ INY                    \ Increment the heap pointer
 
  JMP LL27               \ Loop back to LL27 to draw (i.e. erase) the next line
                         \ from the heap
