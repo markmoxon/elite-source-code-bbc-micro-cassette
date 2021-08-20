@@ -20,6 +20,8 @@ See the [introduction](#introduction) for more information.
 
 * [Browsing the source in an IDE](#browsing-the-source-in-an-ide)
 
+* [Flicker-free Elite](#flicker-free-elite)
+
 * [Building Elite from the source](#building-elite-from-the-source)
 
   * [Requirements](#requirements)
@@ -105,6 +107,12 @@ If you want to browse the source in an IDE, you might find the following useful.
 * The source code is designed to be read at an 80-column width and with a monospaced font, just like in the good old days.
 
 I hope you enjoy exploring the inner-workings of BBC Elite as much as I have.
+
+## Flicker-free Elite
+
+This repository also includes a flicker-free version, which incorporates the backported flicker-free ship-drawing routines from the BBC Master. The flicker-free code is in a separate branch called `flicker-free`, and apart from the code differences for reducing flicker, this branch is identical to the main branch and the same build process applies. Checksum values are different, but that's about it.
+
+For more information on the flicker-free code, see the deep dives on [flicker-free ship drawing](https://www.bbcelite.com/deep_dives/flicker-free_ship_drawing.html) and [backporting the flicker-free algorithm](https://www.bbcelite.com/deep_dives/backporting_the_flicker-free_algorithm.html).
 
 ## Building Elite from the source
 
