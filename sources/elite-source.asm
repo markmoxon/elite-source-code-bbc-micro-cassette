@@ -14170,10 +14170,8 @@ NEXT
 \
 \ This is a duplicate of the MULTU routine, but with no entry label, so it can't
 \ be called by name. It is unused, and could have been culled to save a few
-\ bytes (24 to be precise), but it's still here.
-\
-\ In the disc version it has the label MULTU6, but here in the cassette version
-\ it's unnamed, unloved and unvisited, through no fault of its own.
+\ bytes (24 to be precise), but it's still here, unnamed, unloved and unvisited,
+\ through no fault of its own.
 \
 \ ******************************************************************************
 
