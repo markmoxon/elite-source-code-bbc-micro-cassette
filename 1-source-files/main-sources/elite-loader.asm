@@ -21,20 +21,20 @@
 \
 \ This source file produces the following binary file:
 \
-\   * output/ELITE.unprot.bin
+\   * ELITE.unprot.bin
 \
 \ after reading in the following files:
 \
-\   * binaries/DIALS.bin
-\   * binaries/P.ELITE.bin
-\   * binaries/P.A-SOFT.bin
-\   * binaries/P.(C)ASFT.bin
-\   * output/WORDS9.bin
-\   * output/PYTHON.bin
+\   * 1-source-files/images/DIALS.bin
+\   * 1-source-files/images/P.ELITE.bin
+\   * 1-source-files/images/P.A-SOFT.bin
+\   * 1-source-files/images/P.(C)ASFT.bin
+\   * WORDS9.bin
+\   * PYTHON.bin
 \
 \ ******************************************************************************
 
-INCLUDE "sources/elite-header.h.asm"
+INCLUDE "1-source-files/main-sources/elite-header.h.asm"
 
 _SOURCE_DISC            = (_RELEASE = 1)
 _TEXT_SOURCES           = (_RELEASE = 2)
@@ -280,24 +280,24 @@ ORG CODE%
 \ ******************************************************************************
 
 PRINT "WORDS9 = ",~P%
-INCBIN "output/WORDS9.bin"
+INCBIN "3-assembled-output/WORDS9.bin"
 
 ALIGN 256
 
 PRINT "P.DIALS = ",~P%
-INCBIN "binaries/P.DIALS.bin"
+INCBIN "1-source-files/images/P.DIALS.bin"
 
 PRINT "PYTHON = ",~P%
-INCBIN "output/PYTHON.bin"
+INCBIN "3-assembled-output/PYTHON.bin"
 
 PRINT "P.ELITE = ",~P%
-INCBIN "binaries/P.ELITE.bin"
+INCBIN "1-source-files/images/P.ELITE.bin"
 
 PRINT "P.A-SOFT = ",~P%
-INCBIN "binaries/P.A-SOFT.bin"
+INCBIN "1-source-files/images/P.A-SOFT.bin"
 
 PRINT "P.(C)ASFT = ",~P%
-INCBIN "binaries/P.(C)ASFT.bin"
+INCBIN "1-source-files/images/P.(C)ASFT.bin"
 
 .run
 
@@ -3208,7 +3208,7 @@ ENDIF
 
 \ ******************************************************************************
 \
-\ Save output/ELITE.unprot.bin
+\ Save ELITE.unprot.bin
 \
 \ ******************************************************************************
 
@@ -3225,4 +3225,4 @@ PRINT "Memory usage: ", ~LE%, " - ",~P%
 PRINT "Stack: ",LEN + ENDBLOCK - BLOCK
 
 PRINT "S. ELITE ", ~CODE%, " ", ~UU% + (P% - LE%), " ", ~run, " ", ~CODE%
-SAVE "output/ELITE.unprot.bin", CODE%, UU% + (P% - LE%), run, CODE%
+SAVE "3-assembled-output/ELITE.unprot.bin", CODE%, UU% + (P% - LE%), run, CODE%

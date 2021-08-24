@@ -21,23 +21,23 @@
 \
 \ This source file produces the following binary files:
 \
-\   * output/ELTcode.unprot.bin
-\   * output/ELThead.bin
+\   * ELTcode.unprot.bin
+\   * ELThead.bin
 \
 \ after reading in the following files:
 \
-\   * output/ELTA.bin
-\   * output/ELTB.bin
-\   * output/ELTC.bin
-\   * output/ELTD.bin
-\   * output/ELTE.bin
-\   * output/ELTF.bin
-\   * output/ELTG.bin
-\   * output/SHIPS.bin
+\   * ELTA.bin
+\   * ELTB.bin
+\   * ELTC.bin
+\   * ELTD.bin
+\   * ELTE.bin
+\   * ELTF.bin
+\   * ELTG.bin
+\   * SHIPS.bin
 \
 \ ******************************************************************************
 
-INCLUDE "sources/elite-header.h.asm"
+INCLUDE "1-source-files/main-sources/elite-header.h.asm"
 
 _SOURCE_DISC            = (_RELEASE = 1)
 _TEXT_SOURCES           = (_RELEASE = 2)
@@ -176,37 +176,37 @@ ORG &1100               \ The load address of the main game code file ("ELTcode"
 .elitea
 
 PRINT "elitea = ", ~P%
-INCBIN "output/ELTA.bin"
+INCBIN "3-assembled-output/ELTA.bin"
 
 .eliteb
 
 PRINT "eliteb = ", ~P%
-INCBIN "output/ELTB.bin"
+INCBIN "3-assembled-output/ELTB.bin"
 
 .elitec
 
 PRINT "elitec = ", ~P%
-INCBIN "output/ELTC.bin"
+INCBIN "3-assembled-output/ELTC.bin"
 
 .elited
 
 PRINT "elited = ", ~P%
-INCBIN "output/ELTD.bin"
+INCBIN "3-assembled-output/ELTD.bin"
 
 .elitee
 
 PRINT "elitee = ", ~P%
-INCBIN "output/ELTE.bin"
+INCBIN "3-assembled-output/ELTE.bin"
 
 .elitef
 
 PRINT "elitef = ", ~P%
-INCBIN "output/ELTF.bin"
+INCBIN "3-assembled-output/ELTF.bin"
 
 .eliteg
 
 PRINT "eliteg = ", ~P%
-INCBIN "output/ELTG.bin"
+INCBIN "3-assembled-output/ELTG.bin"
 
 .checksum0
 
@@ -218,17 +218,17 @@ PRINT "checksum0 = ", ~P%
 .ships
 
 PRINT "ships = ", ~P%
-INCBIN "output/SHIPS.bin"
+INCBIN "3-assembled-output/SHIPS.bin"
 
 .end
 
 \ ******************************************************************************
 \
-\ Save output/ELTcode.unprot.bin and output/ELThead.bin
+\ Save ELTcode.unprot.bin and ELThead.bin
 \
 \ ******************************************************************************
 
 PRINT "P% = ", ~P%
 PRINT "S.ELTcode 1100 ", ~(LOAD% + &6000 - CODE%), " ", ~LOAD%, ~LOAD%
-SAVE "output/ELTcode.unprot.bin", &1100, (LOAD% + &6000 - CODE%), LOAD%
-SAVE "output/ELThead.bin", &1100, elitea, &1100
+SAVE "3-assembled-output/ELTcode.unprot.bin", &1100, (LOAD% + &6000 - CODE%), LOAD%
+SAVE "3-assembled-output/ELThead.bin", &1100, elitea, &1100

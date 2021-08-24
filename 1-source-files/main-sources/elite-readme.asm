@@ -21,11 +21,11 @@
 \
 \ This source file produces the following binary file:
 \
-\   * output/README.txt
+\   * README.txt
 \
 \ ******************************************************************************
 
-INCLUDE "sources/elite-header.h.asm"
+INCLUDE "1-source-files/main-sources/elite-header.h.asm"
 
 _SOURCE_DISC            = (_RELEASE = 1)
 _TEXT_SOURCES           = (_RELEASE = 2)
@@ -64,5 +64,5 @@ ENDIF
  EQUS "---------------------------------------"
  EQUB 10, 13
 
-SAVE "output/README.txt", readme, P%
+SAVE "3-assembled-output/README.txt", readme, P%
 

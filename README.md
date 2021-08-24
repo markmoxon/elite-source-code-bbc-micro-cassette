@@ -20,6 +20,10 @@ See the [introduction](#introduction) for more information.
 
 * [Browsing the source in an IDE](#browsing-the-source-in-an-ide)
 
+* [Folder structure](#folder-structure)
+
+* [Flicker-free Elite](#flicker-free-elite)
+
 * [Building Elite from the source](#building-elite-from-the-source)
 
   * [Requirements](#requirements)
@@ -43,13 +47,13 @@ See the [introduction](#introduction) for more information.
 
 This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained.
 
-You can build the fully functioning game from this source. [Two releases](#building-different-releases-of-the-cassette-version-of-elite) are currently supported: the version produced by the original source discs from Ian Bell's site, and the version built from the text sources from the same site.
+You can build the fully functioning game from this source. [Two releases](#building-different-releases-of-the-cassette-version-of-elite) are currently supported: the version produced by the original source discs from Ian Bell's personal website, and the version built from the text sources from the same site.
 
 It is a companion to the [bbcelite.com website](https://www.bbcelite.com), which contains all the code from this repository, but laid out in a much more human-friendly fashion. The links at the top of this page will take you to repositories for the other versions of Elite that are covered by this project.
 
 * If you want to browse the source and read about how Elite works under the hood, you will probably find [the website](https://www.bbcelite.com) is a better place to start than this repository.
 
-* If you would rather explore the source code in your favourite IDE, then the [annotated source](sources/elite-source.asm) is what you're looking for. It contains the exact same content as the website, so you won't be missing out (the website is generated from the source files, so they are guaranteed to be identical). You might also like to read the section on [Browsing the source in an IDE](#browsing-the-source-in-an-ide) for some tips.
+* If you would rather explore the source code in your favourite IDE, then the [annotated source](1-source-files/main-sources/elite-source.asm) is what you're looking for. It contains the exact same content as the website, so you won't be missing out (the website is generated from the source files, so they are guaranteed to be identical). You might also like to read the section on [Browsing the source in an IDE](#browsing-the-source-in-an-ide) for some tips.
 
 * If you want to build Elite from the source on a modern computer, to produce a working game disc that can be loaded into a BBC Micro or an emulator, then you want the section on [Building Elite from the source](#building-elite-from-the-source).
 
@@ -65,7 +69,7 @@ The commentary is copyright &copy; Mark Moxon. Any misunderstandings or mistakes
 
 Huge thanks are due to the original authors for not only creating such an important piece of my childhood, but also for releasing the source code for us to play with; to Paul Brink for his annotated disassembly; and to Kieran Connell for his [BeebAsm version](https://github.com/kieranhj/elite-beebasm), which I forked as the original basis for this project. You can find more information about this project in the [accompanying website's project page](https://www.bbcelite.com/about_site/about_this_project.html).
 
-The following archives from Ian Bell's site form the basis for this project:
+The following archives from Ian Bell's personal website form the basis for this project:
 
 * [Cassette sources as a disc image](http://www.elitehomepage.org/archive/a/a4080602.zip)
 * [Cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip)
@@ -86,11 +90,11 @@ My hope is that the educational and non-profit intentions of this repository wil
 
 If you want to browse the source in an IDE, you might find the following useful.
 
-* The most interesting files are in the [sources](sources) folder:
+* The most interesting files are in the [main-sources](1-source-files/main-sources) folder:
 
-  * The main game's source code is in the [elite-source.asm](sources/elite-source.asm) file - this is the motherlode and probably contains all the stuff you're interested in.
+  * The main game's source code is in the [elite-source.asm](1-source-files/main-sources/elite-source.asm) file - this is the motherlode and probably contains all the stuff you're interested in.
 
-  * The game's loader is in the [elite-loader.asm](sources/elite-loader.asm) file - this is mainly concerned with setup and copy protection.
+  * The game's loader is in the [elite-loader.asm](1-source-files/main-sources/elite-loader.asm) file - this is mainly concerned with setup and copy protection.
 
 * It's probably worth skimming through the [notes on terminology and notations](https://www.bbcelite.com/about_site/terminology_used_in_this_commentary.html) on the accompanying website, as this explains a number of terms used in the commentary, without which it might be a bit tricky to follow at times (in particular, you should understand the terminology I use for multi-byte numbers).
 
@@ -100,11 +104,31 @@ If you want to browse the source in an IDE, you might find the following useful.
 
 * If you know the name of a routine, you can find it by searching for `Name: <name>`, as in `Name: SCAN` (for the 3D scanner routine) or `Name: LL9` (for the ship-drawing routine).
 
-* The entry point for the [main game code](sources/elite-source.asm) is routine `TT170`, which you can find by searching for `Name: TT170`. If you want to follow the program flow all the way from the title screen around the main game loop, then you can find a number of [deep dives on program flow](https://www.bbcelite.com/deep_dives/) on the accompanying website.
+* The entry point for the [main game code](1-source-files/main-sources/elite-source.asm) is routine `TT170`, which you can find by searching for `Name: TT170`. If you want to follow the program flow all the way from the title screen around the main game loop, then you can find a number of [deep dives on program flow](https://www.bbcelite.com/deep_dives/) on the accompanying website.
 
 * The source code is designed to be read at an 80-column width and with a monospaced font, just like in the good old days.
 
 I hope you enjoy exploring the inner-workings of BBC Elite as much as I have.
+
+## Folder structure
+
+There are five main folders in this repository, which reflect the order of the build process.
+
+* [1-source-files](1-source-files) contains all the different source files, such as the main assembler source files, image binaries, fonts, boot files and so on
+
+* [2-build-files](2-build-files) contains build-related scripts, such as the checksum, encryption and crc32 verification scripts
+
+* [3-assembled-output](3-assembled-output) contains the output from the assembly process, when the source files are assembled and the results processed by the build files
+
+* [4-reference-binaries](4-reference-binaries) contains the correct binaries for each release, so we can verify that our assembled output matches the reference
+
+* [5-compiled-game-discs](5-compiled-game-discs) contains the final output of the build process: an SSD disc image that contains the compiled game and which can be run on real hardware or in an emulator
+
+## Flicker-free Elite
+
+This repository also includes a flicker-free version, which incorporates the backported flicker-free ship-drawing routines from the BBC Master. The flicker-free code is in a separate branch called `flicker-free`, and apart from the code differences for reducing flicker, this branch is identical to the main branch and the same build process applies. Checksum values are different, but that's about it.
+
+For more information on the flicker-free code, see the deep dives on [flicker-free ship drawing](https://www.bbcelite.com/deep_dives/flicker-free_ship_drawing.html) and [backporting the flicker-free algorithm](https://www.bbcelite.com/deep_dives/backporting_the_flicker-free_algorithm.html).
 
 ## Building Elite from the source
 
@@ -151,7 +175,7 @@ make.bat build
 make.bat encrypt
 ```
 
-will produce a file called `elite-cassette-from-source-disc.ssd` containing the source disc release, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
+will produce a file called `elite-cassette-from-source-disc.ssd` in the `5-compiled-game-discs` folder that contains the source disc release, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
 
 ### Mac and Linux
 
@@ -167,11 +191,11 @@ make build
 make encrypt
 ```
 
-will produce a file called `elite-cassette-from-source-disc.ssd` containing the source disc release, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
+will produce a file called `elite-cassette-from-source-disc.ssd` in the `5-compiled-game-discs` folder that contains the source disc release, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
 
 ### Verifying the output
 
-The build process also supports a verification target that prints out checksums of all the generated files, along with the checksums of the files extracted from the original sources.
+The build process also supports a verification target that prints out checksums of all the generated files, along with the checksums of the files from the original sources.
 
 You can run this verification step on its own, or you can run it once a build has finished. To run it on its own, use the following command on Windows:
 
@@ -197,12 +221,12 @@ or this on Mac/Linux:
 make encrypt verify
 ```
 
-The Python script `crc32.py` does the actual verification, and shows the checksums and file sizes of both sets of files, alongside each other, and with a Match column that flags any discrepancies. If you are building an unencrypted set of files then there will be lots of differences, while the encrypted files should mostly match (see the Differences section below for more on this).
+The Python script `crc32.py` in the `2-build-files` folder does the actual verification, and shows the checksums and file sizes of both sets of files, alongside each other, and with a Match column that flags any discrepancies. If you are building an unencrypted set of files then there will be lots of differences, while the encrypted files should mostly match (see the Differences section below for more on this).
 
-The binaries in the `extracted` folder were taken straight from the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip) (though see the [notes on `ELTB`](#eltb) below), while those in the `output` folder are produced by the build process. For example, if you don't make any changes to the code and build the project with `make encrypt verify`, then this is the output of the verification process:
+The binaries in the `4-reference-binaries` folder were taken straight from the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip), while those in the `3-assembled-output` folder are produced by the build process. For example, if you don't make any changes to the code and build the project with `make encrypt verify`, then this is the output of the verification process:
 
 ```
-[--extracted--]  [---output----]
+[--originals--]  [---output----]
 Checksum   Size  Checksum   Size  Match  Filename
 -----------------------------------------------------------
 a88ca82b   5426  a88ca82b   5426   Yes   ELITE.bin
@@ -222,17 +246,17 @@ e725760a   2600  e725760a   2600   Yes   ELTB.bin
 c4547e5e   1023  c4547e5e   1023   Yes   WORDS9.bin
 ```
 
-All the compiled binaries match the extracts, so we know we are producing the same final game as the release version.
+All the compiled binaries match the originals, so we know we are producing the same final game as the release version.
 
 ### Log files
 
-During compilation, details of every step are output in a file called `compile.txt` in the `output` folder. If you have problems, it might come in handy, and it's a great reference if you need to know the addresses of labels and variables for debugging (or just snooping around).
+During compilation, details of every step are output in a file called `compile.txt` in the `3-assembled-output` folder. If you have problems, it might come in handy, and it's a great reference if you need to know the addresses of labels and variables for debugging (or just snooping around).
 
 ## Building different releases of the cassette version of Elite
 
 This repository contains the source code for two different releases of the cassette version of Elite:
 
-* The version produced by the original source discs from Ian Bell's site
+* The version produced by the original source discs from Ian Bell's personal website
 
 * The version built from the text sources from the same site
 
@@ -258,13 +282,13 @@ or this on a Mac or Linux:
 make encrypt verify release=text-sources
 ```
 
-This will produce a file called `elite-cassette-from-text-sources.ssd` that contains the Ian Bell disc release.
+This will produce a file called `elite-cassette-from-text-sources.ssd` in the `5-compiled-game-discs` folder that contains the Ian Bell disc release.
 
 ### Differences between the releases
 
 You can see the differences between the releases by searching the source code for `_SOURCE_DISC` (for features in the source disc release) or `_TEXT_SOURCES` (for features in the text sources release). There are only minor differences:
 
-* The text sources contain an extra call in the galactic hyperspace routine that sets the current system to the nearest system to the crosshairs. This code is present in all other versions of the game (albeit in a different place), but not the original source disc from Ian Bell's site
+* The text sources contain an extra call in the galactic hyperspace routine that sets the current system to the nearest system to the crosshairs. This code is present in all other versions of the game (albeit in a different place), but not the original source disc from Ian Bell's personal website
 
 * In order to fit this extra call in (which takes three extra bytes), the text sources also contain four modifications to create space for the call, which together save five bytes.
 
@@ -298,7 +322,7 @@ Given the above, we can see that `O.ELITEB` correctly produces a default command
 
 In contrast, `$.ELITEB` will always produce a default commander with a rear pulse laser, irrespective of the setting of `Q%`, so it doesn't match the released version.
 
-The `ELTB` binary file in the `extracted` folder of this repository matches the release version, so we can easily tell whether any changes we've made to the code deviate from the release version. However, the `ELTB` binary file on the sources disc matches the version produced by `$.ELITEB`, rather than the released version produced by `O.ELITEB` - in other words, `ELTB` on the source disc is not the release version.
+The `ELTB` binary file in the `4-reference-binaries` folder of this repository matches the release version, so we can easily tell whether any changes we've made to the code deviate from the release version. However, the `ELTB` binary file on the sources disc matches the version produced by `$.ELITEB`, rather than the released version produced by `O.ELITEB` - in other words, `ELTB` on the source disc is not the release version.
 
 The implication is that the `ELTB` binary file on the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip) was produced by `$.ELITEB`, while the `ELTcode` file (the released game) used `O.ELITEB`. Perhaps the released game was compiled, and then someone backed up the `ELITEB` source to `O.ELITEB`, edited the `$.ELITEB` to have a rear pulse laser, and then generated a new `ELTB` binary file. Who knows? Unfortunately, files on DFS discs don't have timestamps, so it's hard to tell.
 

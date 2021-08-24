@@ -27,8 +27,8 @@
 \
 \ ******************************************************************************
 
-\PUTFILE "binaries/$.!BOOT.bin", "!BOOT", &FFFFFF, &FFFFFF
-PUTFILE "binaries/$.ELITE.bin", "ELITE", &FF1900, &FF8023
-PUTFILE "output/ELITE.bin", "ELTdata", &FF1100, &FF2000
-PUTFILE "output/ELTcode.bin", "ELTcode", &FF1128, &FF1128
-PUTFILE "output/README.txt", "README", &FFFFFF, &FFFFFF
+\PUTFILE "1-source-files/boot-files/$.!BOOT.bin", "!BOOT", &FFFFFF, &FFFFFF
+PUTFILE "1-source-files/basic-programs/$.ELITE.bin", "ELITE", &FF1900, &FF8023
+PUTFILE "3-assembled-output/ELITE.bin", "ELTdata", &FF1100, &FF2000
+PUTFILE "3-assembled-output/ELTcode.bin", "ELTcode", &FF1128, &FF1128
+PUTFILE "3-assembled-output/README.txt", "README", &FFFFFF, &FFFFFF
