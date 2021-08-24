@@ -1,6 +1,6 @@
 \ ******************************************************************************
 \
-\ ELITE DISC IMAGE SCRIPT
+\ ELITE README
 \
 \ Elite was written by Ian Bell and David Braben and is copyright Acornsoft 1984
 \
@@ -19,16 +19,43 @@
 \
 \ ------------------------------------------------------------------------------
 \
-\ This source file produces the following SSD disc image:
+\ This source file produces the following binary file:
 \
-\   * elite-cassette-from-source-disc.ssd
-\
-\ This can be loaded into an emulator or a real BBC Micro.
+\   * README.txt
 \
 \ ******************************************************************************
 
-\PUTFILE "binaries/$.!BOOT.bin", "!BOOT", &FFFFFF, &FFFFFF
-PUTFILE "binaries/$.ELITE.bin", "ELITE", &FF1900, &FF8023
-PUTFILE "output/ELITE.bin", "ELTdata", &FF1100, &FF2000
-PUTFILE "output/ELTcode.bin", "ELTcode", &FF1128, &FF1128
-PUTFILE "output/README.txt", "README", &FFFFFF, &FFFFFF
+INCLUDE "1-source-files/main-sources/elite-header.h.asm"
+
+_SOURCE_DISC            = (_RELEASE = 1)
+_TEXT_SOURCES           = (_RELEASE = 2)
+
+.readme
+
+ EQUB 10, 13
+ EQUS "---------------------------------------"
+ EQUB 10, 13
+ EQUS "Acornsoft Elite"
+ EQUB 10, 13
+ EQUB 10, 13
+ EQUS "Version: BBC Micro cassette"
+ EQUB 10, 13
+IF _SOURCE_DISC
+ EQUS "Release: Ian Bell's source disc"
+ EQUB 10, 13
+ EQUS "         Acornsoft SBG38 v1.0"
+ EQUB 10, 13
+ELIF _TEXT_SOURCES
+ EQUS "Release: Ian Bell's text sources"
+ EQUB 10, 13
+ EQUS "         Acornsoft SBG38 v1.1"
+ EQUB 10, 13
+ENDIF
+ EQUB 10, 13
+ EQUS "See www.bbcelite.com for details"
+ EQUB 10, 13
+ EQUS "---------------------------------------"
+ EQUB 10, 13
+
+SAVE "3-assembled-output/README.txt", readme, P%
+

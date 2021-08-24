@@ -41,7 +41,7 @@ for file_name in elite_names:
     print(str(len(data_block)), file_name)
     if file_name == "ELTB":
         eliteb_offset = len(data_block)
-    elite_file = open("output/" + file_name + ".bin", "rb")
+    elite_file = open("3-assembled-output/" + file_name + ".bin", "rb")
     data_block.extend(elite_file.read())
     elite_file.close()
 
@@ -71,11 +71,11 @@ data_block.append(0)
 
 # Append SHIPS file
 
-ships_file = open("output/SHIPS.bin", "rb")
+ships_file = open("3-assembled-output/SHIPS.bin", "rb")
 data_block.extend(ships_file.read())
 ships_file.close()
 
-print("output/SHIPS.bin file read")
+print("3-assembled-output/SHIPS.bin file read")
 
 # Calculate checksum0
 
@@ -104,11 +104,11 @@ print("checksum 1 = ", checksum1)
 
 # Write output file for ELTcode
 
-output_file = open("output/ELTcode.bin", "wb")
+output_file = open("3-assembled-output/ELTcode.bin", "wb")
 output_file.write(data_block)
 output_file.close()
 
-print("output/ELTcode.bin file saved")
+print("3-assembled-output/ELTcode.bin file saved")
 
 output_file = None
 
@@ -119,7 +119,7 @@ print("Elite Loader Checksums")
 
 loader_block = bytearray()
 
-loader_file = open("output/ELITE.unprot.bin", "rb")
+loader_file = open("3-assembled-output/ELITE.unprot.bin", "rb")
 loader_block.extend(loader_file.read())
 loader_file.close()
 
@@ -181,8 +181,8 @@ if Encrypt:
 
 # Write output file for ELITE
 
-output_file = open("output/ELITE.bin", "wb")
+output_file = open("3-assembled-output/ELITE.bin", "wb")
 output_file.write(loader_block)
 output_file.close()
 
-print("output/ELITE.bin file saved")
+print("3-assembled-output/ELITE.bin file saved")
