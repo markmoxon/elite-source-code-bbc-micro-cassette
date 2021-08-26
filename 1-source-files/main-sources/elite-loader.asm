@@ -96,11 +96,11 @@ L% = &1128              \ L% points to the start of the actual game code from
 
 IF _SOURCE_DISC
 
-D% = &563A              \ D% is set to the size of the main game code
+ D% = &563A             \ D% is set to the size of the main game code
 
 ELIF _TEXT_SOURCES
 
-D% = &5638              \ D% is set to the size of the main game code
+ D% = &5638             \ D% is set to the size of the main game code
 
 ENDIF
 
