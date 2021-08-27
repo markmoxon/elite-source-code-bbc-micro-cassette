@@ -25,10 +25,10 @@
 \
 \ after reading in the following files:
 \
-\   * 1-source-files/images/DIALS.bin
-\   * 1-source-files/images/P.ELITE.bin
-\   * 1-source-files/images/P.A-SOFT.bin
-\   * 1-source-files/images/P.(C)ASFT.bin
+\   * DIALS.bin
+\   * P.ELITE.bin
+\   * P.A-SOFT.bin
+\   * P.(C)ASFT.bin
 \   * WORDS9.bin
 \   * PYTHON.bin
 \
