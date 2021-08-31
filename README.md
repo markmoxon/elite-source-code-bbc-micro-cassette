@@ -226,6 +226,7 @@ The Python script `crc32.py` in the `2-build-files` folder does the actual verif
 The binaries in the `4-reference-binaries` folder were taken straight from the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip), while those in the `3-assembled-output` folder are produced by the build process. For example, if you don't make any changes to the code and build the project with `make encrypt verify`, then this is the output of the verification process:
 
 ```
+Results for release: source-disc
 [--originals--]  [---output----]
 Checksum   Size  Checksum   Size  Match  Filename
 -----------------------------------------------------------
@@ -268,6 +269,8 @@ By default the build process builds the source disc release, but you can build a
 
 You can add `release=source-disc` to produce the `elite-cassette-from-source-disc.ssd.ssd` file containing the source disc release, though that's the default value so it isn't necessary.
 
+The verification checksums for this version are shown above.
+
 ### Building the text sources release
 
 You can build the text sources release by appending `release=text-sources` to the `make` command, like this on Windows:
@@ -283,6 +286,30 @@ make encrypt verify release=text-sources
 ```
 
 This will produce a file called `elite-cassette-from-text-sources.ssd` in the `5-compiled-game-discs` folder that contains the Ian Bell disc release.
+
+The verification checksums for this version are as follows:
+
+```
+Results for release: text-sources
+[--originals--]  [---output----]
+Checksum   Size  Checksum   Size  Match  Filename
+-----------------------------------------------------------
+093c73aa   5426  093c73aa   5426   Yes   ELITE.bin
+24da3246   5426  24da3246   5426   Yes   ELITE.unprot.bin
+6c109c76   2228  6c109c76   2228   Yes   ELTA.bin
+cd8bee0c   2600  cd8bee0c   2600   Yes   ELTB.bin
+20c22628   2732  20c22628   2732   Yes   ELTC.bin
+23c13c71   2885  23c13c71   2885   Yes   ELTD.bin
+ce0d9ec7   2663  ce0d9ec7   2663   Yes   ELTE.bin
+5aed3c61   2719  5aed3c61   2719   Yes   ELTF.bin
+13f3eace   2340  13f3eace   2340   Yes   ELTG.bin
+8b79fe39  20710  8b79fe39  20710   Yes   ELTcode.bin
+7c24aab0  20712  7c24aab0  20712   Yes   ELTcode.unprot.bin
+00d5bb7a     40  00d5bb7a     40   Yes   ELThead.bin
+99529ca8    256  99529ca8    256   Yes   PYTHON.bin
+8f4b6f2b   2502  8f4b6f2b   2502   Yes   SHIPS.bin
+c4547e5e   1023  c4547e5e   1023   Yes   WORDS9.bin
+```
 
 ### Differences between the releases
 
