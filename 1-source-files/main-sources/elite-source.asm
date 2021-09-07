@@ -19548,6 +19548,26 @@ IF _TEXT_SOURCES
  JSR TT111              \ Call TT111 to set the current system to the nearest
                         \ system to (QQ9, QQ10), and put the seeds of the
                         \ nearest system into QQ15 to QQ15+5
+                        \
+                        \ This appears to be a failed attempt to fix a bug in
+                        \ the cassette version, where the galactic hyperdrive
+                        \ will take us to coordinates (96, 96) in the new
+                        \ galaxy, even if there isn't actually a system there,
+                        \ so if we jump when you are low on fuel, it is
+                        \ possible to get stuck in the middle of nowhere when
+                        \ changing galaxy
+                        \
+                        \ All the other versions contain a fix for this bug that
+                        \ involves adding an extra JSR TT111 instruction after
+                        \ the coordinates are set to (96, 96) below, which finds
+                        \ the nearest system to those coordinates  and sets that
+                        \ as the current system
+                        \
+                        \ The cassette version on the original source disc
+                        \ doesn't contain this instruction, and although the
+                        \ text sources do, it's in the wrong place at the start
+                        \ of the Ghy routine, as the fix only works if it's done
+                        \ after the new coordinates are set, not before
 
 ENDIF
 
