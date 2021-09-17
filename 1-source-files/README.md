@@ -1,4 +1,4 @@
-# Source file for the BBC Micro cassette version of Elite
+# Source files for the BBC Micro cassette version of Elite
 
 This folder contains the source files for the BBC Micro cassette version of Elite.
 
