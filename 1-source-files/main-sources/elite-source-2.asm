@@ -12129,9 +12129,9 @@ KYTB = P% - 1           \ Point KYTB to the byte before the start of the table
 
 .DKS2
 
- LDA #128               \ Call OSBYTE 128 to fetch the 16-bit value from ADC
- JSR OSBYTE             \ channel X, returning (Y X), i.e. the high byte in Y
-                        \ and the low byte in X
+ LDA #128               \ Call OSBYTE with A = 128 to fetch the 16-bit value
+ JSR OSBYTE             \ from ADC channel X, returning (Y X), i.e. the high
+                        \ byte in Y and the low byte in X
 
  TYA                    \ Copy Y to A, so the result is now in (A X)
 
