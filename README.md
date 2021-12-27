@@ -49,7 +49,7 @@ This repository contains the original source code for Elite on the BBC Micro, wi
 
 You can build the fully functioning game from this source. [Two releases](#building-different-releases-of-the-cassette-version-of-elite) are currently supported: the version produced by the original source discs from Ian Bell's personal website, and the version built from the text sources from the same site.
 
-It is a companion to the [bbcelite.com website](https://www.bbcelite.com), which contains all the code from this repository, but laid out in a much more human-friendly fashion. The links at the top of this page will take you to repositories for the other versions of Elite that are covered by this project.
+It is a companion to the [bbcelite.com website](https://www.bbcelite.com) website, which contains all the code from this repository, but laid out in a much more human-friendly fashion. The links at the top of this page will take you to repositories for the other versions of Elite that are covered by this project.
 
 * If you want to browse the source and read about how Elite works under the hood, you will probably find [the website](https://www.bbcelite.com) is a better place to start than this repository.
 
