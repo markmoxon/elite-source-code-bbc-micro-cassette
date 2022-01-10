@@ -81,7 +81,7 @@ NETV = &0224            \ The NETV vector that we intercept as part of the copy
                         \ protection
 
 IRQ1V = &0204           \ The IRQ1V vector that we intercept to implement the
-                        \ split-sceen mode
+                        \ split-screen mode
 
 OSPRNT = &0234          \ The address for the OSPRNT vector
 
