@@ -7264,6 +7264,20 @@ NEXT
 
  LDA SWAP               \ If SWAP > 0 then we swapped the coordinates above, so
  BNE LI6                \ jump down to LI6 to skip plotting the first pixel
+                        \
+                        \ This appears to be a bug that omits the first pixel
+                        \ of this type of shallow line, rather than the last
+                        \ pixel, which makes the treatment of this kind of line
+                        \ different to the other kinds of slope (they all have a
+                        \ BEQ instruction at this point, rather than a BNE)
+                        \
+                        \ The result is a rather messy line join when a shallow
+                        \ line that goes right and up or left and down joins a
+                        \ line with any of the other three types of slope
+                        \
+                        \ This bug was fixed in the advanced versions of ELite,
+                        \ where the BNE is replaced by a BEQ to bring it in line
+                        \ with the other three slopes
 
  DEX                    \ Decrement the counter in X because we're about to plot
                         \ the first pixel
