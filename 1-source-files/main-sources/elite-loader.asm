@@ -891,7 +891,7 @@ ENDIF
  INX                    \ Increment the loop counter
 
  CPX #LEN               \ If X < #LEN (which is 33), loop back for the next one.
- BNE David8             \ This branch actually takes us on wild goose chase
+ BNE David8             \ This branch actually takes us on a wild goose chase
                         \ through the following locations, where each BNE is
                         \ prefaced by an EQUB &2C that disables the branch
                         \ instruction during the normal instruction flow:
