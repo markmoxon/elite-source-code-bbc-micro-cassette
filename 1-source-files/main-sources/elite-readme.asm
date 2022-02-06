@@ -27,8 +27,8 @@
 
 INCLUDE "1-source-files/main-sources/elite-header.h.asm"
 
-_SOURCE_DISC            = (_RELEASE = 1)
-_TEXT_SOURCES           = (_RELEASE = 2)
+_SOURCE_DISC            = (_VARIANT = 1)
+_TEXT_SOURCES           = (_VARIANT = 2)
 
 .readme
 
@@ -43,16 +43,14 @@ _TEXT_SOURCES           = (_RELEASE = 2)
 
 IF _SOURCE_DISC
 
- EQUS "Release: Ian Bell's source disc"
+ EQUS "Variant: Ian Bell's source disc"
  EQUB 10, 13
- EQUS "         Acornsoft SBG38 v1.0"
+ EQUS "Release: Acornsoft SBG38 (TBC)"
  EQUB 10, 13
 
 ELIF _TEXT_SOURCES
 
- EQUS "Release: Ian Bell's text sources"
- EQUB 10, 13
- EQUS "         Acornsoft SBG38 v1.1"
+ EQUS "Variant: Ian Bell's text sources"
  EQUB 10, 13
 
 ENDIF

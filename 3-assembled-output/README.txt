@@ -3,8 +3,8 @@
 Acornsoft Elite
 
 Version: BBC Micro cassette
-Release: Ian Bell's source disc
-         Acornsoft SBG38 v1.0
+Variant: Ian Bell's source disc
+Release: Acornsoft SBG38 (TBC)
 
 See www.bbcelite.com for details
 ---------------------------------------
