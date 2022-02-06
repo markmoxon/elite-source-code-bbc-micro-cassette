@@ -4,7 +4,7 @@
 
 Version: BBC Micro cassette
 Variant: Ian Bell's source disc
-Release: Acornsoft SBG38 (TBC)
+Product: Acornsoft SBG38 (TBC)
 
 Contains the flicker-free ship drawing
 routines from the BBC Master version,

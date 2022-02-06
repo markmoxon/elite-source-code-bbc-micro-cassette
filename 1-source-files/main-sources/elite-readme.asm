@@ -45,7 +45,7 @@ IF _SOURCE_DISC
 
  EQUS "Variant: Ian Bell's source disc"
  EQUB 10, 13
- EQUS "Release: Acornsoft SBG38 (TBC)"
+ EQUS "Product: Acornsoft SBG38 (TBC)"
  EQUB 10, 13
 
 ELIF _TEXT_SOURCES
