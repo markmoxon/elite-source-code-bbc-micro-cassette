@@ -3,8 +3,8 @@
 Acornsoft Elite (flicker-free version)
 
 Version: BBC Micro cassette
-Release: Ian Bell's source disc
-         Acornsoft SBG38 v1.0
+Variant: Ian Bell's source disc
+Release: Acornsoft SBG38 (TBC)
 
 Contains the flicker-free ship drawing
 routines from the BBC Master version,

@@ -33,11 +33,11 @@ See the [introduction](#introduction) for more information.
   * [Verifying the output](#verifying-the-output)
   * [Log files](#log-files)
 
-* [Building different releases of the cassette version of Elite](#building-different-releases-of-the-cassette-version-of-elite)
+* [Building different variants of the cassette version of Elite](#building-different-variants-of-the-cassette-version-of-elite)
 
-  * [Building the source disc release](#building-the-source-disc-release)
-  * [Building the text sources release](#building-the-text-sources-release)
-  * [Differences between the releases](#differences-between-the-releases)
+  * [Building the source disc variant](#building-the-source-disc-variant)
+  * [Building the text sources variant](#building-the-text-sources-variant)
+  * [Differences between the variants](#differences-between-the-variants)
 
 * [Notes on the original source files](#notes-on-the-original-source-files)
 
@@ -47,7 +47,7 @@ See the [introduction](#introduction) for more information.
 
 This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained.
 
-You can build the fully functioning game from this source. [Two releases](#building-different-releases-of-the-cassette-version-of-elite) are currently supported: the version produced by the original source discs from Ian Bell's personal website, and the version built from the text sources from the same site.
+You can build the fully functioning game from this source. [Two variants](#building-different-variants-of-the-cassette-version-of-elite) are currently supported: the version produced by the original source discs from Ian Bell's personal website, and the version built from the text sources from the same site.
 
 It is a companion to the [bbcelite.com website](https://www.bbcelite.com), which contains all the code from this repository, but laid out in a much more human-friendly fashion. The links at the top of this page will take you to repositories for the other versions of Elite that are covered by this project.
 
@@ -114,15 +114,15 @@ I hope you enjoy exploring the inner-workings of BBC Elite as much as I have.
 
 There are five main folders in this repository, which reflect the order of the build process.
 
-* [1-source-files](1-source-files) contains all the different source files, such as the main assembler source files, image binaries, fonts, boot files and so on
+* [1-source-files](1-source-files) contains all the different source files, such as the main assembler source files, image binaries, fonts, boot files and so on.
 
-* [2-build-files](2-build-files) contains build-related scripts, such as the checksum, encryption and crc32 verification scripts
+* [2-build-files](2-build-files) contains build-related scripts, such as the checksum, encryption and crc32 verification scripts.
 
-* [3-assembled-output](3-assembled-output) contains the output from the assembly process, when the source files are assembled and the results processed by the build files
+* [3-assembled-output](3-assembled-output) contains the output from the assembly process, when the source files are assembled and the results processed by the build files.
 
-* [4-reference-binaries](4-reference-binaries) contains the correct binaries for each release, so we can verify that our assembled output matches the reference
+* [4-reference-binaries](4-reference-binaries) contains the correct binaries for each variant, so we can verify that our assembled output matches the reference.
 
-* [5-compiled-game-discs](5-compiled-game-discs) contains the final output of the build process: an SSD disc image that contains the compiled game and which can be run on real hardware or in an emulator
+* [5-compiled-game-discs](5-compiled-game-discs) contains the final output of the build process: an SSD disc image that contains the compiled game and which can be run on real hardware or in an emulator.
 
 ## Flicker-free Elite
 
@@ -151,11 +151,11 @@ Let's look at how to build Elite from the source.
 There are two main build targets available. They are:
 
 * `build` - An unencrypted version
-* `encrypt` - An encrypted version that exactly matches the released version of the game
+* `encrypt` - An encrypted version that includes the same obfuscation as the released version of the game
 
 The unencrypted version should be more useful for anyone who wants to make modifications to the game code. It includes a default commander with lots of cash and equipment, which makes it easier to test the game. As this target produces unencrypted files, the binaries produced will be quite different to the binaries on the original source disc, which are encrypted.
 
-The encrypted version produces the released version of Elite, along with the standard default commander.
+The encrypted version contains an obfuscated version of the game binary, along with the standard default commander.
 
 Builds are supported for both Windows and Mac/Linux systems. In all cases the build process is defined in the `Makefile` provided.
 
@@ -163,7 +163,7 @@ Note that the build ends with a warning that there is no `SAVE` command in the s
 
 ### Windows
 
-For Windows users, there is a batch file called `make.bat` to which you can pass one of the build targets above. Before this will work, you should edit the batch file and change the values of the `BEEBASM` and `PYTHON` variables to point to the locations of your `beebasm.exe` and `python.exe` executables. You also need to change directory to the repository folder (i.e. the same folder as `make.exe`).
+For Windows users, there is a batch file called `make.bat` to which you can pass one of the build targets above. Before this will work, you should edit the batch file and change the values of the `BEEBASM` and `PYTHON` variables to point to the locations of your `beebasm.exe` and `python.exe` executables. You also need to change directory to the repository folder (i.e. the same folder as `make.bat`).
 
 All being well, doing one of the following:
 
@@ -175,7 +175,7 @@ make.bat build
 make.bat encrypt
 ```
 
-will produce a file called `elite-cassette-from-source-disc.ssd` in the `5-compiled-game-discs` folder that contains the source disc release, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
+will produce a file called `elite-cassette-from-source-disc.ssd` in the `5-compiled-game-discs` folder that contains the source disc variant, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
 
 ### Mac and Linux
 
@@ -191,7 +191,7 @@ make build
 make encrypt
 ```
 
-will produce a file called `elite-cassette-from-source-disc.ssd` in the `5-compiled-game-discs` folder that contains the source disc release, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
+will produce a file called `elite-cassette-from-source-disc.ssd` in the `5-compiled-game-discs` folder that contains the source disc variant, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
 
 ### Verifying the output
 
@@ -226,6 +226,7 @@ The Python script `crc32.py` in the `2-build-files` folder does the actual verif
 The binaries in the `4-reference-binaries` folder were taken straight from the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip), while those in the `3-assembled-output` folder are produced by the build process. For example, if you don't make any changes to the code and build the project with `make encrypt verify`, then this is the output of the verification process:
 
 ```
+Results for variant: source-disc
 [--originals--]  [---output----]
 Checksum   Size  Checksum   Size  Match  Filename
 -----------------------------------------------------------
@@ -246,47 +247,73 @@ e725760a   2600  e725760a   2600   Yes   ELTB.bin
 c4547e5e   1023  c4547e5e   1023   Yes   WORDS9.bin
 ```
 
-All the compiled binaries match the originals, so we know we are producing the same final game as the release version.
+All the compiled binaries match the originals, so we know we are producing the same final game as the source disc variant.
 
 ### Log files
 
 During compilation, details of every step are output in a file called `compile.txt` in the `3-assembled-output` folder. If you have problems, it might come in handy, and it's a great reference if you need to know the addresses of labels and variables for debugging (or just snooping around).
 
-## Building different releases of the cassette version of Elite
+## Building different variants of the cassette version of Elite
 
-This repository contains the source code for two different releases of the cassette version of Elite:
+This repository contains the source code for two different variants of the cassette version of Elite:
 
-* The version produced by the original source discs from Ian Bell's personal website
+* The variant produced by the original source discs from Ian Bell's personal website
 
-* The version built from the text sources from the same site
+* The variant built from the text sources from the same site
 
-It turns out that the BASIC source files in the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip) are not identical to the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip), hence the two different releases.
+It turns out that the BASIC source files in the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip) are not identical to the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip), hence the two different variants.
 
-By default the build process builds the source disc release, but you can build a specified release using the `release=` build parameter.
+By default the build process builds the source disc variant, but you can build a specified variant using the `variant=` build parameter.
 
-### Building the source disc release
+### Building the source disc variant
 
-You can add `release=source-disc` to produce the `elite-cassette-from-source-disc.ssd.ssd` file containing the source disc release, though that's the default value so it isn't necessary.
+You can add `variant=source-disc` to produce the `elite-cassette-from-source-disc.ssd.ssd` file containing the source disc variant, though that's the default value so it isn't necessary.
 
-### Building the text sources release
+The verification checksums for this version are shown above.
 
-You can build the text sources release by appending `release=text-sources` to the `make` command, like this on Windows:
+### Building the text sources variant
+
+You can build the text sources variant by appending `variant=text-sources` to the `make` command, like this on Windows:
 
 ```
-make.bat encrypt verify release=text-sources
+make.bat encrypt verify variant=text-sources
 ```
 
 or this on a Mac or Linux:
 
 ```
-make encrypt verify release=text-sources
+make encrypt verify variant=text-sources
 ```
 
-This will produce a file called `elite-cassette-from-text-sources.ssd` in the `5-compiled-game-discs` folder that contains the Ian Bell disc release.
+This will produce a file called `elite-cassette-from-text-sources.ssd` in the `5-compiled-game-discs` folder that contains the Ian Bell disc variant.
 
-### Differences between the releases
+The verification checksums for this version are as follows:
 
-You can see the differences between the releases by searching the source code for `_SOURCE_DISC` (for features in the source disc release) or `_TEXT_SOURCES` (for features in the text sources release). There are only minor differences:
+```
+Results for variant: text-sources
+[--originals--]  [---output----]
+Checksum   Size  Checksum   Size  Match  Filename
+-----------------------------------------------------------
+093c73aa   5426  093c73aa   5426   Yes   ELITE.bin
+24da3246   5426  24da3246   5426   Yes   ELITE.unprot.bin
+6c109c76   2228  6c109c76   2228   Yes   ELTA.bin
+cd8bee0c   2600  cd8bee0c   2600   Yes   ELTB.bin
+20c22628   2732  20c22628   2732   Yes   ELTC.bin
+23c13c71   2885  23c13c71   2885   Yes   ELTD.bin
+ce0d9ec7   2663  ce0d9ec7   2663   Yes   ELTE.bin
+5aed3c61   2719  5aed3c61   2719   Yes   ELTF.bin
+13f3eace   2340  13f3eace   2340   Yes   ELTG.bin
+8b79fe39  20710  8b79fe39  20710   Yes   ELTcode.bin
+7c24aab0  20712  7c24aab0  20712   Yes   ELTcode.unprot.bin
+00d5bb7a     40  00d5bb7a     40   Yes   ELThead.bin
+99529ca8    256  99529ca8    256   Yes   PYTHON.bin
+8f4b6f2b   2502  8f4b6f2b   2502   Yes   SHIPS.bin
+c4547e5e   1023  c4547e5e   1023   Yes   WORDS9.bin
+```
+
+### Differences between the variants
+
+You can see the differences between the variants by searching the source code for `_SOURCE_DISC` (for features in the source disc variant) or `_TEXT_SOURCES` (for features in the text sources variant). There are only minor differences:
 
 * The text sources contain an extra call in the galactic hyperspace routine that sets the current system to the nearest system to the crosshairs. This code is present in all other versions of the game (albeit in a different place), but not the original source disc from Ian Bell's personal website
 
@@ -296,7 +323,7 @@ You can see the differences between the releases by searching the source code fo
 
 All these changes are carried through to all other versions of the game, so it looks like the text sources contain a slightly later version of the game than the source disc.
 
-See the [accompanying website](https://www.bbcelite.com/disc/releases.html) for a comprehensive list of differences between the releases.
+See the [accompanying website](https://www.bbcelite.com/disc/releases.html) for a comprehensive list of differences between the variants.
 
 ## Notes on the original source files
 
@@ -318,11 +345,11 @@ The BASIC variable `Q%` is a Boolean flag that, if `TRUE`, will create a default
 
 The BASIC variable `POW` has a value of 15, which is the power of a pulse laser. `POW + 128`, meanwhile, is the power of a beam laser.
 
-Given the above, we can see that `O.ELITEB` correctly produces a default commander with no a rear laser if `Q%` is `FALSE`, but adds a rear beam laser if `Q%` is `TRUE`. This matches the released game, whose executable can be found as `ELTcode` on the same disc. The version of `ELITEB` in the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip) matches this version, `O.ELITEB`.
+Given the above, we can see that `O.ELITEB` correctly produces a default commander with no a rear laser if `Q%` is `FALSE`, but adds a rear beam laser if `Q%` is `TRUE`. This matches the default commander from the released game, and produces the `ELTcode` executable on the same disc. The version of `ELITEB` in the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip) matches this version, `O.ELITEB`.
 
 In contrast, `$.ELITEB` will always produce a default commander with a rear pulse laser, irrespective of the setting of `Q%`, so it doesn't match the released version.
 
-The `ELTB` binary file in the `4-reference-binaries` folder of this repository matches the release version, so we can easily tell whether any changes we've made to the code deviate from the release version. However, the `ELTB` binary file on the sources disc matches the version produced by `$.ELITEB`, rather than the released version produced by `O.ELITEB` - in other words, `ELTB` on the source disc is not the release version.
+The `ELTB` binary file in the `4-reference-binaries` folder of this repository matches the version generated by the source disc, so we can easily tell whether any changes we've made to the code deviate from this version. However, the `ELTB` binary file on the sources disc matches the version produced by `$.ELITEB`, rather than the version produced by `O.ELITEB` - in other words, `ELTB` on the source disc is not the version generated by the source code on the same disc.
 
 The implication is that the `ELTB` binary file on the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip) was produced by `$.ELITEB`, while the `ELTcode` file (the released game) used `O.ELITEB`. Perhaps the released game was compiled, and then someone backed up the `ELITEB` source to `O.ELITEB`, edited the `$.ELITEB` to have a rear pulse laser, and then generated a new `ELTB` binary file. Who knows? Unfortunately, files on DFS discs don't have timestamps, so it's hard to tell.
 

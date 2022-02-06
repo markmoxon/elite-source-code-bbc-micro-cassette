@@ -2,7 +2,7 @@
 
 This folder contains the boot file from the original sources for the BBC Micro cassette version of Elite on Ian Bell's personal website.
 
-* $.!BOOT.bin is the original boot file from the game disc
+* [$.!BOOT.bin]($.!BOOT.bin) is the original boot file from the game disc
 
 ---
 

@@ -64,7 +64,7 @@ def main():
         else:
             dest = '[{0: ^13}]'.format(folder2[0:13]).replace(' ', '-')
 
-        print('Results for release: ' + os.path.basename(folder1))
+        print('Results for variant: ' + os.path.basename(folder1))
         print(src + '  ' + dest)
         print('Checksum   Size  Checksum   Size  Match  Filename')
         print('-----------------------------------------------------------')

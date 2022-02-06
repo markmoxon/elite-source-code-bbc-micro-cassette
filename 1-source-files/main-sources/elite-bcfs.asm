@@ -39,8 +39,8 @@
 
 INCLUDE "1-source-files/main-sources/elite-header.h.asm"
 
-_SOURCE_DISC            = (_RELEASE = 1)
-_TEXT_SOURCES           = (_RELEASE = 2)
+_SOURCE_DISC            = (_VARIANT = 1)
+_TEXT_SOURCES           = (_VARIANT = 2)
 
 GUARD &8000             \ Guard against assembling over MOS memory
 
@@ -106,19 +106,16 @@ ORG &1100               \ The load address of the main game code file ("ELTcode"
 
 .LBL
 
- EQUB &6C               \ This is the opcode for an indirect JMP instruction,
-                        \ and the opcode for LDX #&60 is &A2 &60, so together
-                        \ the first three bytes are:
-                        \
-                        \   &6C &A2 &60 : JMP (&60A2)
-                        \
-                        \ Also, the third byte is &60, which is the opcode for
-                        \ an RTS instruction, so jumping to LBL+2 (which we do
-                        \ below) is the same as doing an RTS
+ EQUB &6C               \ This value is decremented by the tape loading routine
+                        \ in the loader, in IRQ1. During loading this value gets
+                        \ decremented down to &6C, and this new value is then
+                        \ included in the checksum calculation for the MAINSUM
+                        \ checksum in the CHECKER routine (the value is set to
+                        \ &6C here as the tape protection is disabled)
 
- LDX #&60               \ Set X = &60 (this value of X isn't used, it's just a
-                        \ set up for the JMP instruction and the RTS call below,
-                        \ both of which are designed to confuse crackers
+ LDX #&60               \ Set X = &60. This value of X isn't used, it's just a
+                        \ set up for the RTS call below, where we jump to LBL+2
+                        \ to perform an RTS, as the opcode for RTS is &60
 
                         \ We now run a checksum on the block of memory from
                         \ &0B01 to &0CFF, which is the UU% routine from the

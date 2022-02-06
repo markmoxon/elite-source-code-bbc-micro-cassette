@@ -25,10 +25,10 @@
 \
 \ after reading in the following files:
 \
-\   * 1-source-files/images/DIALS.bin
-\   * 1-source-files/images/P.ELITE.bin
-\   * 1-source-files/images/P.A-SOFT.bin
-\   * 1-source-files/images/P.(C)ASFT.bin
+\   * DIALS.bin
+\   * P.ELITE.bin
+\   * P.A-SOFT.bin
+\   * P.(C)ASFT.bin
 \   * WORDS9.bin
 \   * PYTHON.bin
 \
@@ -36,8 +36,8 @@
 
 INCLUDE "1-source-files/main-sources/elite-header.h.asm"
 
-_SOURCE_DISC            = (_RELEASE = 1)
-_TEXT_SOURCES           = (_RELEASE = 2)
+_SOURCE_DISC            = (_VARIANT = 1)
+_TEXT_SOURCES           = (_VARIANT = 2)
 
 GUARD &6000             \ Guard against assembling over screen memory
 
@@ -81,7 +81,7 @@ NETV = &0224            \ The NETV vector that we intercept as part of the copy
                         \ protection
 
 IRQ1V = &0204           \ The IRQ1V vector that we intercept to implement the
-                        \ split-sceen mode
+                        \ split-screen mode
 
 OSPRNT = &0234          \ The address for the OSPRNT vector
 
@@ -96,11 +96,11 @@ L% = &1128              \ L% points to the start of the actual game code from
 
 IF _SOURCE_DISC
 
-D% = &563A              \ D% is set to the size of the main game code
+ D% = &563A             \ D% is set to the size of the main game code
 
 ELIF _TEXT_SOURCES
 
-D% = &5638              \ D% is set to the size of the main game code
+ D% = &5638             \ D% is set to the size of the main game code
 
 ENDIF
 
@@ -891,7 +891,7 @@ ENDIF
  INX                    \ Increment the loop counter
 
  CPX #LEN               \ If X < #LEN (which is 33), loop back for the next one.
- BNE David8             \ This branch actually takes us on wold goose chase
+ BNE David8             \ This branch actually takes us on a wild goose chase
                         \ through the following locations, where each BNE is
                         \ prefaced by an EQUB &2C that disables the branch
                         \ instruction during the normal instruction flow:
@@ -1578,6 +1578,7 @@ ENDIF
 \   Category: Utility routines
 \    Summary: Generate random numbers
 \  Deep dive: Generating random numbers
+\             Fixing ship positions
 \
 \ ------------------------------------------------------------------------------
 \
@@ -2799,19 +2800,21 @@ IF PROT AND DISC = 0
  STA (BLPTR),Y          \ Store the updated value of A in the block flag, so the
                         \ block gets unlocked
 
- LDA #&23               \ If the block number in BLN is &23, skip the next
- CMP (BLN),Y            \ instruction
+ LDA #35                \ If the block number in BLN is 35, skip the next
+ CMP (BLN),Y            \ instruction, leaving A = 32 = &23
  BEQ P%+4
 
- EOR #17                \ EOR A with 17
+ EOR #17                \ Set A = 35 EOR 17 = 50 = &32
 
- CMP (EXCN),Y           \ If A = the low byte of the execution address of the
- BEQ itdone             \ file we are loading, skip to itdone
+ CMP (EXCN),Y           \ If the low byte of the execution address of the file
+ BEQ itdone             \ we are loading is equal to A (which is either &23 or
+                        \ &32), skip to itdone
 
  DEC LOAD%              \ Otherwise decrement LOAD%, which is the address of the
                         \ first byte of the main game code file (i.e. the load
                         \ address of "ELTcode"), so this decrements the first
-                        \ byte of the file we are loading
+                        \ byte of the file we are loading, i.e. the LBL variable
+                        \ added by the Big Code File source
 
 .itdone
 
@@ -3116,7 +3119,7 @@ ENDIF
 
  INY                    \ Increment the counter
 
- CPY #&28               \ There are &28 bytes in the loader, so loop back until
+ CPY #40                \ There are 40 bytes in the loader, so loop back until
  BNE CHKb               \ we have added them all
 
  CMP MAINSUM            \ Compare the result to the contents of MAINSUM, which

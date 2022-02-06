@@ -1,8 +1,5 @@
 @echo off
 SETLOCAL
-SET BEEBASM=..\..\bin\beebasm.exe
-SET PYTHON=C:\Home\Python27\python.exe
-make %1
-if [%2]==[] goto skip
-make %2
-:skip
+SET BEEBASM=C:\Users\user\bin\beebasm.exe
+SET PYTHON=C:\Users\user\AppData\Local\Microsoft\WindowsApps\python.exe
+2-build-files\make %*
