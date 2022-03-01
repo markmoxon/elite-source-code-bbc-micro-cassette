@@ -27363,11 +27363,12 @@ ENDIF
 \
 \   channel/flush, amplitude (or envelope number if 1-4), pitch, duration
 \
-\ For the channel/flush parameter, the first byte is the channel while the
-\ second is the flush control (where a flush control of 0 queues the sound,
-\ while a flush control of 1 makes the sound instantly). When written in
-\ hexadecimal, the first figure gives the flush control, while the second is
-\ the channel (so &13 indicates flush control = 1 and channel = 3).
+\ For the channel/flush parameter, the top nibble of the low byte is the channel
+\ number, while the bottom nibble of the low byte is the flush control (where a
+\ flush control of 0 queues the sound, and a flush control of 1 makes the sound
+\ instantly). When written in hexadecimal, the first figure gives the flush
+\ control, while the second is the channel (so &13 indicates flush control = 1
+\ and channel = 3).
 \
 \ So when we call NOISE with A = 40 to make a long, low beep, then this is
 \ effectively what the NOISE routine does:
