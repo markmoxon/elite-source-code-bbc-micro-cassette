@@ -27363,10 +27363,10 @@ ENDIF
 \
 \   channel/flush, amplitude (or envelope number if 1-4), pitch, duration
 \
-\ For the channel/flush parameter, the top nibble of the low byte is the channel
-\ number, while the bottom nibble of the low byte is the flush control (where a
-\ flush control of 0 queues the sound, and a flush control of 1 makes the sound
-\ instantly). When written in hexadecimal, the first figure gives the flush
+\ For the channel/flush parameter, the top nibble of the low byte is the flush
+\ control (where a flush control of 0 queues the sound, and a flush control of
+\ 1 makes the sound instantly), while the bottom nibble of the low byte is the
+\ channel number . When written in hexadecimal, the first figure gives the flush
 \ control, while the second is the channel (so &13 indicates flush control = 1
 \ and channel = 3).
 \
