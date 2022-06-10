@@ -267,7 +267,7 @@ By default the build process builds the source disc variant, but you can build a
 
 ### Building the source disc variant
 
-You can add `variant=source-disc` to produce the `elite-cassette-from-source-disc.ssd.ssd` file containing the source disc variant, though that's the default value so it isn't necessary.
+You can add `variant=source-disc` to produce the `elite-cassette-from-source-disc.ssd` file containing the source disc variant, though that's the default value so it isn't necessary.
 
 The verification checksums for this version are shown above.
 
