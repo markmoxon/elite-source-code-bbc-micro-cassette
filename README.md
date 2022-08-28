@@ -108,7 +108,7 @@ If you want to browse the source in an IDE, you might find the following useful.
 
 * The source code is designed to be read at an 80-column width and with a monospaced font, just like in the good old days.
 
-I hope you enjoy exploring the inner-workings of BBC Elite as much as I have.
+I hope you enjoy exploring the inner workings of BBC Elite as much as I have.
 
 ## Folder structure
 
