@@ -17302,9 +17302,9 @@ LOAD_D% = LOAD% + P% - CODE%
  CMP #%00000010
  BEQ TT70
 
- LDA QQ3                \ The LSR A above shifted bit 0 of QQ3 into the C flag,
- BCC TT71               \ so this jumps to TT71 if bit 0 of QQ3 is 0, in other
-                        \ words if QQ3 = %000, %001 or %010 (0, 1 or 2)
+ LDA QQ3                \ If (QQ3 + 1) >> 1 < %10, i.e. if QQ3 = %000, %001 or
+ BCC TT71               \ %010 (0, 1 or 2), then jump to TT71 with A set to the
+                        \ original value of QQ3
 
  SBC #5                 \ Here QQ3 = %101, %110 or %111 (5, 6 or 7), so subtract
  CLC                    \ 5 to bring it down to 0, 1 or 2 (the C flag is already
@@ -17340,8 +17340,8 @@ LOAD_D% = LOAD% + P% - CODE%
  LDA #162               \ Print recursive token 2 ("GOVERNMENT") followed by
  JSR TT68               \ a colon
 
- LDA QQ4                \ The system economy is determined by the value in QQ4,
-                        \ so fetch it into A
+ LDA QQ4                \ The system's government is determined by the value in
+                        \ QQ4, so fetch it into A
 
  CLC                    \ Print recursive token 17 + A, followed by a paragraph
  ADC #177               \ break and Sentence Case, so:
