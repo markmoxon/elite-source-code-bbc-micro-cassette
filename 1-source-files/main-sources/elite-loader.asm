@@ -1268,9 +1268,11 @@ ENDIF
                         \ loading screen's Saturn
 
  LDA VIA+&44            \ Read the 6522 System VIA T1C-L timer 1 low-order
- STA RAND+1             \ counter (SHEILA &44), which increments 1000 times a
-                        \ second so this will be pretty random, and store it in
-                        \ RAND+1 among the hard-coded random seeds in RAND
+ STA RAND+1             \ counter (SHEILA &44), which decrements one million
+                        \ times a second and will therefore be pretty random,
+                        \ and store it in location RAND+1, which is among the
+                        \ main game code's random seeds in RAND (so this seeds
+                        \ the random number generator)
 
  JSR DORND              \ Set A and X to random numbers, say A = r1
 
@@ -2916,11 +2918,11 @@ ENDIF
 \ ******************************************************************************
 
  LDA VIA+&44            \ Read the 6522 System VIA T1C-L timer 1 low-order
- STA 1                  \ counter (SHEILA &44) which increments 1000 times a
-                        \ second so this will be pretty random, and store it in
-                        \ location 1, which is among the main game code's random
-                        \ seeds in RAND (so this seeds the random numbers for
-                        \ the main game)
+ STA &0001              \ counter (SHEILA &44), which decrements one million
+                        \ times a second and will therefore be pretty random,
+                        \ and store it in location &0001, which is among the
+                        \ main game code's random seeds (so this seeds the
+                        \ random number generator for the main game)
 
  SEI                    \ Disable all interrupts
 
