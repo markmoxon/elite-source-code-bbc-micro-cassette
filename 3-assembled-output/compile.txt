@@ -3027,7 +3027,7 @@ Code size is &3FF
 Execute at &1100 
 Reload at &1100 
 S.WORDS9 &400  &7FF  &1100  &1100 
-Saving file 'versions/cassette/3-assembled-output/WORDS9.bin'
+Saving file '3-assembled-output/WORDS9.bin'
 .K%
      0900
 .WP
@@ -4297,7 +4297,7 @@ Code size is &8B4
 Execute at &1128 
 Reload at &1128 
 S.ELTA &F40  &17F4  &1128  &1128 
-Saving file 'versions/cassette/3-assembled-output/ELTA.bin'
+Saving file '3-assembled-output/ELTA.bin'
 .NA%
      17F4   4A 41 4D ...
      17FB   0D
@@ -5809,7 +5809,7 @@ Code size is &A28
 Execute at &1128 
 Reload at &19DC 
 S.ELTB &17F4  &221C  &1128  &19DC 
-Saving file 'versions/cassette/3-assembled-output/ELTB.bin'
+Saving file '3-assembled-output/ELTB.bin'
 .TA34
      221C   A9 00      LDA #&00
      221E   20 78 46   JSR &4678
@@ -7397,7 +7397,7 @@ Code size is &AAF
 Execute at &1128 
 Reload at &2404 
 S.ELTC &221C  &2CCB  &1128  &2404 
-Saving file 'versions/cassette/3-assembled-output/ELTC.bin'
+Saving file '3-assembled-output/ELTC.bin'
 .tnpr
      2CCB   48         PHA
      2CCC   A2 0C      LDX #&0C
@@ -8894,7 +8894,7 @@ Code size is &B42
 Execute at &1128 
 Reload at &2EB3 
 S.ELTD &2CCB  &380D  &1128  &2EB3 
-Saving file 'versions/cassette/3-assembled-output/ELTD.bin'
+Saving file '3-assembled-output/ELTD.bin'
      380D   8C
      380E   E7
      380F   8D
@@ -10437,7 +10437,7 @@ Code size is &A67
 Execute at &1128 
 Reload at &39F5 
 S.ELTE &380D  &4274  &1128  &39F5 
-Saving file 'versions/cassette/3-assembled-output/ELTE.bin'
+Saving file '3-assembled-output/ELTE.bin'
 .KS3
      4274   A5 1B      LDA &1B
      4276   8D 1E 0F   STA &0F1E
@@ -11978,7 +11978,7 @@ Code size is &AA1
 Execute at &1128 
 Reload at &445C 
 S.ELTF &4274  &4D15  &1128  &445C 
-Saving file 'versions/cassette/3-assembled-output/ELTF.bin'
+Saving file '3-assembled-output/ELTF.bin'
 .SHPPT
      4D15   20 7D 4E   JSR &4E7D
      4D18   20 58 3D   JSR &3D58
@@ -13344,7 +13344,7 @@ Code size is &924
 Execute at &1128 
 Reload at &4EFD 
 S.ELTG &4D15  &5639  &1128  &4EFD 
-Saving file 'versions/cassette/3-assembled-output/ELTG.bin'
+Saving file '3-assembled-output/ELTG.bin'
 .checksum0
      5639
 .XX21
@@ -16818,7 +16818,7 @@ Code size is &9C6
 Execute at &1128 
 Reload at &5822 
 S.SHIPS &563A  &6000  &1128  &5822 
-Saving file 'versions/cassette/3-assembled-output/SHIPS.bin'
+Saving file '3-assembled-output/SHIPS.bin'
 .SHIP_PYTHON
      7F00   03
      7F01   40 38
@@ -17174,7 +17174,7 @@ Code size is &100
 Execute at &1128 
 Reload at &1B00 
 S.PYTHON &17F4  &8000  &1128  &1B00 
-Saving file 'versions/cassette/3-assembled-output/PYTHON.bin'
+Saving file '3-assembled-output/PYTHON.bin'
 ELITE game code &FFFFE000  bytes free
 Ends at &8000 
 .ZP
@@ -17226,8 +17226,8 @@ ships = &5822
 .end
 P% = &61E8 
 S.ELTcode 1100 &61E8  &1128 &1128 
-Saving file 'versions/cassette/3-assembled-output/ELTcode.unprot.bin'
-Saving file 'versions/cassette/3-assembled-output/ELThead.bin'
+Saving file '3-assembled-output/ELTcode.unprot.bin'
+Saving file '3-assembled-output/ELThead.bin'
 .TRTB%
      0004
 .ZP
@@ -18217,7 +18217,7 @@ UU% = &2434  Q% = &1934  OSB = &2086
 Memory usage: &B00  - &CFE 
 Stack: 161 
 S. ELITE &1100  &2632  &2000  &1100 
-Saving file 'versions/cassette/3-assembled-output/ELITE.unprot.bin'
+Saving file '3-assembled-output/ELITE.unprot.bin'
 .readme
      0000   0A
      0001   0D
@@ -18246,4 +18246,4 @@ Saving file 'versions/cassette/3-assembled-output/ELITE.unprot.bin'
      00C0   2D 2D 2D ...
      00E7   0A
      00E8   0D
-Saving file 'versions/cassette/3-assembled-output/README.txt'
+Saving file '3-assembled-output/README.txt'
