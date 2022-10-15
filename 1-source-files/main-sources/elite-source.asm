@@ -473,7 +473,7 @@ ORG &0000
                         \
                         \   * &FF = no target
                         \
-                        \   * 1-13 = the slot number of the ship that our
+                        \   * 1-12 = the slot number of the ship that our
                         \            missile is locked onto
 
 .XX1
@@ -12602,13 +12602,13 @@ LOAD_C% = LOAD% +P% - CODE%
  STA INWK+5             \ launched just below our line of sight
 
  LDA MSTG               \ Set A to the missile lock target, shifted left so the
- ASL A                  \ slot number is in bits 1-4
+ ASL A                  \ slot number is in bits 1-5
 
  ORA #%10000000         \ Set bit 7 and store the result in byte #32, the AI
  STA INWK+32            \ flag launched ship for the launched ship. For missiles
                         \ this enables AI (bit 7), makes it friendly towards us
                         \ (bit 6), sets the target to the value of MSTG (bits
-                        \ 1-4), and sets its lock status as launched (bit 0).
+                        \ 1-5), and sets its lock status as launched (bit 0).
                         \ It doesn't matter what it does for our abandoned
                         \ Cobra, as the AI flag gets overwritten once we return
                         \ from the subroutine back to the ESCAPE routine that
@@ -19989,6 +19989,8 @@ ENDIF
 \   Category: Text
 \    Summary: Print a space
 \
+\ ------------------------------------------------------------------------------
+\
 \ Other entry points:
 \
 \   TT162+2             Jump to TT27 to print the text token in A
@@ -24436,7 +24438,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \   * 1 (so we start drawing on the second row of the
                         \     character block)
                         \
-                        \   * Move right one character (8 bytes) for each count
+                        \   * Move left one character (8 bytes) for each count
                         \     of X, so when X = 0 we are drawing the rightmost
                         \     missile, for X = 1 we hop to the left by one
                         \     character, and so on
