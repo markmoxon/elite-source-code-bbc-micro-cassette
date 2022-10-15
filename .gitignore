@@ -18,11 +18,10 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-# =========================
-# Operating System Files
-# =========================
+# IDE files
 .vscode/tasks.json
-compile.txt
-elite-beebasm.code-workspace
+*.code-workspace
 run.bat
+
+# Build files
 elite-header.h.asm

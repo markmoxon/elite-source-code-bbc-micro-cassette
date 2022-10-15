@@ -159,8 +159,6 @@ The encrypted version contains an obfuscated version of the game binary, along w
 
 Builds are supported for both Windows and Mac/Linux systems. In all cases the build process is defined in the `Makefile` provided.
 
-Note that the build ends with a warning that there is no `SAVE` command in the source file. You can ignore this, as the source file contains a `PUTFILE` command instead, but BeebAsm still reports this as a warning.
-
 ### Windows
 
 For Windows users, there is a batch file called `make.bat` to which you can pass one of the build targets above. Before this will work, you should edit the batch file and change the values of the `BEEBASM` and `PYTHON` variables to point to the locations of your `beebasm.exe` and `python.exe` executables. You also need to change directory to the repository folder (i.e. the same folder as `make.bat`).

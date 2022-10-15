@@ -473,7 +473,7 @@ ORG &0000
                         \
                         \   * &FF = no target
                         \
-                        \   * 1-13 = the slot number of the ship that our
+                        \   * 1-12 = the slot number of the ship that our
                         \            missile is locked onto
 
 .XX1
@@ -8608,7 +8608,8 @@ NEXT
 \       Name: FLIP
 \       Type: Subroutine
 \   Category: Stardust
-\    Summary: Reflect the stardust particles in the screen diagonal
+\    Summary: Reflect the stardust particles in the screen diagonal and redraw
+\             the stardust field
 \
 \ ------------------------------------------------------------------------------
 \
@@ -12601,13 +12602,13 @@ LOAD_C% = LOAD% +P% - CODE%
  STA INWK+5             \ launched just below our line of sight
 
  LDA MSTG               \ Set A to the missile lock target, shifted left so the
- ASL A                  \ slot number is in bits 1-4
+ ASL A                  \ slot number is in bits 1-5
 
  ORA #%10000000         \ Set bit 7 and store the result in byte #32, the AI
  STA INWK+32            \ flag launched ship for the launched ship. For missiles
                         \ this enables AI (bit 7), makes it friendly towards us
                         \ (bit 6), sets the target to the value of MSTG (bits
-                        \ 1-4), and sets its lock status as launched (bit 0).
+                        \ 1-5), and sets its lock status as launched (bit 0).
                         \ It doesn't matter what it does for our abandoned
                         \ Cobra, as the AI flag gets overwritten once we return
                         \ from the subroutine back to the ESCAPE routine that
@@ -16052,9 +16053,10 @@ ENDIF
                         \ view)
 
  JSR FLIP               \ Swap the x- and y-coordinates of all the stardust
-                        \ particles
+                        \ particles and redraw the stardust field
 
- JSR WPSHPS             \ Wipe all the ships from the scanner
+ JSR WPSHPS             \ Wipe all the ships from the scanner and mark them all
+                        \ as not being shown on-screen
 
                         \ And fall through into SIGHT to draw the laser
                         \ crosshairs
@@ -19987,6 +19989,8 @@ ENDIF
 \   Category: Text
 \    Summary: Print a space
 \
+\ ------------------------------------------------------------------------------
+\
 \ Other entry points:
 \
 \   TT162+2             Jump to TT27 to print the text token in A
@@ -23070,7 +23074,7 @@ LOAD_E% = LOAD% + P% - CODE%
  LDY #31                \ Clear bits 3, 4 and 6 in the ship's byte #31, which
  LDA (INF),Y            \ stops drawing the ship on-screen (bit 3), hides it
  AND #%10100111         \ from the scanner (bit 4) and stops any lasers firing
- STA (INF),Y            \ at it (bit 6)
+ STA (INF),Y            \ (bit 6)
 
 .WS1
 
@@ -23831,9 +23835,10 @@ LOAD_E% = LOAD% + P% - CODE%
                         \ source. It would set the exploding state and missile
                         \ count to 0
 
- STX FRIN+1             \ Set the sun/space station slot at FRIN+1 to 0, to
-                        \ indicate we should show the space station rather than
-                        \ the sun
+ STX FRIN+1             \ Set the second slot in the FRIN table to 0, so when we
+                        \ fall through into NWSHP below, the new station that
+                        \ gets created will go into slot FRIN+1, as this will be
+                        \ the first empty slot that the routine finds
 
  DEX                    \ Set roll counter to 255 (maximum roll with no
  STX INWK+29            \ damping)
@@ -24433,7 +24438,7 @@ LOAD_E% = LOAD% + P% - CODE%
                         \   * 1 (so we start drawing on the second row of the
                         \     character block)
                         \
-                        \   * Move right one character (8 bytes) for each count
+                        \   * Move left one character (8 bytes) for each count
                         \     of X, so when X = 0 we are drawing the rightmost
                         \     missile, for X = 1 we hop to the left by one
                         \     character, and so on
@@ -34205,7 +34210,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BEQ EE31
 
  LDA XX1+31             \ The ship is exploding, so set bit 3 of the ship's byte
- ORA #8                 \ #31 to denote that we are drawing something on-screen
+ ORA #%00001000         \ #31 to denote that we are drawing something on-screen
  STA XX1+31             \ for this ship
 
  JMP DOEXP              \ Jump to DOEXP to display the explosion cloud,
