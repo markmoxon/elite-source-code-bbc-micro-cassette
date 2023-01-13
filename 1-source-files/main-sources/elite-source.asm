@@ -34,7 +34,7 @@
 \
 \ ******************************************************************************
 
-INCLUDE "1-source-files/main-sources/elite-header.h.asm"
+INCLUDE "1-source-files/main-sources/elite-build-options.asm"
 
 _SOURCE_DISC            = (_VARIANT = 1)
 _TEXT_SOURCES           = (_VARIANT = 2)
@@ -10508,7 +10508,7 @@ NEXT
                         \ instruction as well
 
  CMP #24                \ If the text cursor is on the screen (i.e. YC < 24, so
- BCC RR3                \ we are on rows 1-23), then jump to RR3 to print the
+ BCC RR3                \ we are on rows 0-23), then jump to RR3 to print the
                         \ character
 
  JSR TTX66              \ Otherwise we are off the bottom of the screen, so
@@ -20098,7 +20098,7 @@ ENDIF
  JSR TT66               \ and set the current view type in QQ11 to 16 (Market
                         \ Price screen)
 
- LDA #5                 \ Move the text cursor to column 4
+ LDA #5                 \ Move the text cursor to column 5
  STA XC
 
  LDA #167               \ Print recursive token 7 ("{current system name} MARKET
@@ -21965,7 +21965,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  LDX QQ17               \ Fetch QQ17, which controls letter case, into X
 
- BEQ TT74               \ If QQ17 = 0, then ALL CAPS is set, so jump to TT27
+ BEQ TT74               \ If QQ17 = 0, then ALL CAPS is set, so jump to TT74
                         \ to print this character as is (i.e. as a capital)
 
  BMI TT41               \ If QQ17 has bit 7 set, then we are using Sentence
@@ -25060,13 +25060,17 @@ LOAD_E% = LOAD% + P% - CODE%
 \       Name: PLS22
 \       Type: Subroutine
 \   Category: Drawing planets
-\    Summary: Draw a circle or half-circle
+\    Summary: Draw an ellipse or half-ellipse
 \  Deep dive: The sine, cosine and arctan tables
+\             Drawing meridians and equators
+\             Drawing craters
 \
 \ ------------------------------------------------------------------------------
 \
-\ Draw a circle or half-circle, used for the planet's equator and meridian, or
-\ crater.
+\ Draw an ellipse or half-ellipse, to be used for the planet's equator and
+\ meridian (in which case we draw half an ellipse), or crater (in which case we
+\ draw a full ellipse). The shape that is drawn is a circle that has been
+\ squashed, as if the circle has been tilted at an angle away from the viewer.
 \
 \ This routine is called from parts 2 and 3 of PL9, and does the following:
 \
@@ -25084,11 +25088,11 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \   TGT                 The number of segments to draw:
 \
-\                         * 32 for a half circle (a meridian)
+\                         * 32 for a half ellipse (a meridian)
 \
-\                         * 64 for a half circle (a crater)
+\                         * 64 for a full ellipse (a crater)
 \
-\   CNT2                The starting segment for drawing the half-circle
+\   CNT2                The starting segment for drawing the half-ellipse
 \
 \ ******************************************************************************
 
@@ -25320,7 +25324,7 @@ LOAD_E% = LOAD% + P% - CODE%
  STA LSX                \ be filled up
 
  JSR CHKON              \ Call CHKON to check whether any part of the new sun's
-                        \ circle appears on-screen, and of it does, set P(2 1)
+                        \ circle appears on-screen, and if it does, set P(2 1)
                         \ to the maximum y-coordinate of the new sun on-screen
 
  BCS PLF3-3             \ If CHKON set the C flag then the new sun's circle does
@@ -25715,7 +25719,7 @@ LOAD_E% = LOAD% + P% - CODE%
 .PLF11
 
                         \ If we get here then there is no old sun line on this
-                        \ line, so we can just draw the new sun's line. The new
+                        \ line, so we can just draw the new sun's line
 
  LDX K3                 \ Set YY(1 0) = K3(1 0), the x-coordinate of the centre
  STX YY                 \ of the new sun's line
@@ -26244,7 +26248,7 @@ LOAD_E% = LOAD% + P% - CODE%
 
  LDA #2                 \ The high byte is negative and non-zero, so we went
  STA X1                 \ past the left edge of the screen, so clip X1 to the
-                        \ y-coordinate of the left edge of the screen
+                        \ x-coordinate of the left edge of the screen
 
  CLC                    \ The line does fit on-screen, so clear the C flag to
                         \ indicate success
@@ -28862,7 +28866,7 @@ ENDIF
 \       Name: BR1 (Part 1 of 2)
 \       Type: Subroutine
 \   Category: Start and end
-\    Summary: Start or restart the game
+\    Summary: Show the "Load New Commander (Y/N)?" screen and start the game
 \
 \ ------------------------------------------------------------------------------
 \
@@ -29016,7 +29020,8 @@ ENDIF
 \       Name: BR1 (Part 2 of 2)
 \       Type: Subroutine
 \   Category: Start and end
-\    Summary: Show the "Load New Commander (Y/N)?" screen and start the game
+\    Summary: Show the "Press Fire or Space, Commander" screen and start the
+\             game
 \
 \ ------------------------------------------------------------------------------
 \
@@ -30114,7 +30119,7 @@ ENDIF
 
 .ECMOF
 
- LDA #0                 \ Set ECMA and ECMB to 0 to indicate that no E.C.M. is
+ LDA #0                 \ Set ECMA and ECMP to 0 to indicate that no E.C.M. is
  STA ECMA               \ currently running
  STA ECMP
 

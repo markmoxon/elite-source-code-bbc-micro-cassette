@@ -26,9 +26,9 @@ endif
 
 .PHONY:build
 build:
-	echo _VERSION=1 > 1-source-files/main-sources/elite-header.h.asm
-	echo _VARIANT=$(variant-cassette) >> 1-source-files/main-sources/elite-header.h.asm
-	echo _REMOVE_CHECKSUMS=TRUE >> 1-source-files/main-sources/elite-header.h.asm
+	echo _VERSION=1 > 1-source-files/main-sources/elite-build-options.asm
+	echo _VARIANT=$(variant-cassette) >> 1-source-files/main-sources/elite-build-options.asm
+	echo _REMOVE_CHECKSUMS=TRUE >> 1-source-files/main-sources/elite-build-options.asm
 	$(BEEBASM) -i 1-source-files/main-sources/elite-source.asm -v > 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-bcfs.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-loader.asm -v >> 3-assembled-output/compile.txt
@@ -38,9 +38,9 @@ build:
 
 .PHONY:encrypt
 encrypt:
-	echo _VERSION=1 > 1-source-files/main-sources/elite-header.h.asm
-	echo _VARIANT=$(variant-cassette) >> 1-source-files/main-sources/elite-header.h.asm
-	echo _REMOVE_CHECKSUMS=FALSE >> 1-source-files/main-sources/elite-header.h.asm
+	echo _VERSION=1 > 1-source-files/main-sources/elite-build-options.asm
+	echo _VARIANT=$(variant-cassette) >> 1-source-files/main-sources/elite-build-options.asm
+	echo _REMOVE_CHECKSUMS=FALSE >> 1-source-files/main-sources/elite-build-options.asm
 	$(BEEBASM) -i 1-source-files/main-sources/elite-source.asm -v > 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-bcfs.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-loader.asm -v >> 3-assembled-output/compile.txt

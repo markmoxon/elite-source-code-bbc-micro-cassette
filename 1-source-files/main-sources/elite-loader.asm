@@ -34,7 +34,7 @@
 \
 \ ******************************************************************************
 
-INCLUDE "1-source-files/main-sources/elite-header.h.asm"
+INCLUDE "1-source-files/main-sources/elite-build-options.asm"
 
 _SOURCE_DISC            = (_VARIANT = 1)
 _TEXT_SOURCES           = (_VARIANT = 2)
@@ -1363,12 +1363,12 @@ ENDIF
                         \ So this is the same as plotting at (x, y) where:
                         \
                         \   r1 = random number from 0 to 255
-                        \   r1 = random number from 0 to 255
-                        \   (r1^2 + r1^2) < 128^2
+                        \   r2 = random number from 0 to 255
+                        \   (r1^2 + r2^2) < 128^2
                         \
                         \   y = r2, squished into 64 to 191 by negation
                         \
-                        \   x = SQRT(128^2 - (r1^2 + r1^2)) / 2
+                        \   x = SQRT(128^2 - (r1^2 + r2^2)) / 2
                         \
                         \ which is what we want
 

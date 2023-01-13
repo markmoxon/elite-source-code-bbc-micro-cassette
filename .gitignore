@@ -22,6 +22,3 @@ $RECYCLE.BIN/
 .vscode/tasks.json
 *.code-workspace
 run.bat
-
-# Build files
-elite-header.h.asm
