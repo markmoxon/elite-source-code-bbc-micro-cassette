@@ -34,7 +34,7 @@
 \
 \ ******************************************************************************
 
-INCLUDE "1-source-files/main-sources/elite-header.h.asm"
+INCLUDE "1-source-files/main-sources/elite-build-options.asm"
 
 _SOURCE_DISC            = (_VARIANT = 1)
 _TEXT_SOURCES           = (_VARIANT = 2)
