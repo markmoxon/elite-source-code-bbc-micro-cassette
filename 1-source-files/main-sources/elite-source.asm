@@ -8721,6 +8721,21 @@ NEXT
 \ When a stardust particle rushes past us and falls off the side of the screen,
 \ its memory is recycled as a new particle that's positioned randomly on-screen.
 \
+\ These are the calculations referred to in the commentary:
+\
+\   1. q = 64 * speed / z_hi
+\   2. z = z - speed * 64
+\   3. y = y + |y_hi| * q
+\   4. x = x + |x_hi| * q
+\
+\   5. y = y + alpha * x / 256
+\   6. x = x - alpha * y / 256
+\
+\   7. x = x + 2 * (beta * y / 256) ^ 2
+\   8. y = y - beta * 256
+\
+\ For more information see the deep dive on "Stardust in the front view".
+\
 \ ******************************************************************************
 
 .STARS1
@@ -9062,19 +9077,20 @@ NEXT
 \ the screen and its memory is recycled as a new particle, positioned randomly
 \ along one of the four edges of the screen.
 \
-\ See STARS1 for an explanation of the maths used in this routine. The
-\ calculations are as follows:
+\ These are the calculations referred to in the commentary:
 \
 \   1. q = 64 * speed / z_hi
-\   2. x = x - |x_hi| * q
-\   3. y = y - |y_hi| * q
-\   4. z = z + speed * 64
+\   2. z = z - speed * 64
+\   3. y = y + |y_hi| * q
+\   4. x = x + |x_hi| * q
 \
-\   5. y = y - alpha * x / 256
-\   6. x = x + alpha * y / 256
+\   5. y = y + alpha * x / 256
+\   6. x = x - alpha * y / 256
 \
-\   7. x = x - 2 * (beta * y / 256) ^ 2
-\   8. y = y + beta * 256
+\   7. x = x + 2 * (beta * y / 256) ^ 2
+\   8. y = y - beta * 256
+\
+\ For more information see the deep dive on "Stardust in the front view".
 \
 \ ******************************************************************************
 
@@ -13194,6 +13210,19 @@ LOAD_C% = LOAD% +P% - CODE%
 \ This moves the stardust sideways according to our speed and which side we are
 \ looking out of, and applies our current pitch and roll to each particle of
 \ dust, so the stardust moves correctly when we steer our ship.
+\
+\ These are the calculations referred to in the commentary:
+\
+\   1. delta_x = 8 * 256 * speed / z_hi
+\   2. x = x + delta_x
+\
+\   3. x = x + beta * y
+\   4. y = y - beta * x
+\
+\   5. x = x - alpha * x * y
+\   6. y = y + alpha * y * y + alpha
+\
+\ For more information see the deep dive on "Stardust in the side views".
 \
 \ Arguments:
 \
