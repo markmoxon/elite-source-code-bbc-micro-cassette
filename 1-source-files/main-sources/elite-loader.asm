@@ -1618,16 +1618,17 @@ ENDIF
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (A P) = A * A
+\  Deep dive: Shift-and-add multiplication
 \
 \ ------------------------------------------------------------------------------
 \
-\ Do the following multiplication of unsigned 8-bit numbers:
+\ Do the following multiplication of signed 8-bit numbers:
 \
 \   (A P) = A * A
 \
-\ This uses the same approach as routine SQUA2 in the main game code, which
-\ itself uses the MU11 routine to do the multiplication. See those routines for
-\ more details.
+\ This uses a similar approach to routine SQUA2 in the main game code, which
+\ itself uses the MU11 routine to do the multiplication. However, this version
+\ first ensures that A is positive, so it can support signed numbers.
 \
 \ ******************************************************************************
 
