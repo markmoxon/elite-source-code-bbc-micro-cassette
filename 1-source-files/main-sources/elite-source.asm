@@ -14255,7 +14255,7 @@ NEXT
 
  BCC P%+4
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \ ADC T
 \ ROR A
@@ -31961,7 +31961,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 .SHPPT
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \JSR EE51               \ Call EE51 to remove the ship's wireframe from the
 \                       \ screen, if there is one
@@ -31983,7 +31983,7 @@ LOAD_G% = LOAD% + P% - CODE%
  BCS nono               \ the bottom of the screen, jump to nono as the ship's
                         \ dot is off the bottom of the space view
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \LDY #2                 \ Call Shpt with Y = 2 to set up bytes 1-4 in the ship
 \JSR Shpt               \ lines space, aborting the call to LL9 if the dot is
@@ -32018,7 +32018,7 @@ LOAD_G% = LOAD% + P% - CODE%
  ORA XX1+31             \ have now drawn something on-screen for this ship
  STA XX1+31
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \LDA #8                 \ Set A = 8 so when we call LL18+2 next, byte #0 of the
 \                       \ heap gets set to 8, for the 8 bytes we just stuck on
@@ -32045,7 +32045,7 @@ LOAD_G% = LOAD% + P% - CODE%
  AND XX1+31             \ nothing is being drawn on-screen for this ship
  STA XX1+31
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \RTS                    \ Return from the subroutine
 
@@ -32059,7 +32059,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 .Shpt
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \                       \ This routine sets up four bytes in the ship line heap,
 \                       \ from byte Y-1 to byte Y+2. If the ship's screen point
@@ -32086,7 +32086,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  LDA K3                 \ Set A = screen x-coordinate of the ship dot
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \DEY                    \ Store A in byte Y+1 of the ship line heap
 \STA (XX19),Y
@@ -32578,7 +32578,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ update this value below with the actual ship's
                         \ distance if it turns out to be visible on-screen
 
-                        \ --- Mod: Code added for flicker-free Elite: --------->
+                        \ --- Mod: Code added for flicker-free ships: --------->
 
                         \ We now set things up for smooth ship plotting, by
                         \ setting the following:
@@ -34376,7 +34376,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 .EE31
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \LDA #%00001000         \ If bit 3 of the ship's byte #31 is clear, then there
 \BIT XX1+31             \ is nothing already being shown for this ship, so skip
@@ -34404,7 +34404,7 @@ LOAD_G% = LOAD% + P% - CODE%
  STA XX1+31             \ was no ship already on screen, the bit is clear,
                         \ otherwise it is set
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \LDY #9                 \ Fetch byte #9 of the ship's blueprint, which is the
 \LDA (XX0),Y            \ number of edges, and store it in XX20
@@ -34510,7 +34510,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ screen, so jump to LL170 so we don't store this line
                         \ in the ship line heap
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \LDY U                  \ Fetch the ship line heap pointer, which points to the
 \                       \ next free byte on the heap, into Y
@@ -34580,7 +34580,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ So V(1 0) now points to the start of the edges data
                         \ for this ship
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \LDY #5                 \ Fetch byte #5 of the ship's blueprint, which contains
 \LDA (XX0),Y            \ the maximum heap size for plotting the ship (which is
@@ -34623,7 +34623,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \
                         \     * Bits 4-7 = the number of face 2
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \INY                    \ Increment Y to point to byte #2
 
@@ -34665,7 +34665,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ before storing the resulting line in the ship line
                         \ heap
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \LDA (V),Y              \ Fetch byte #2 for this edge into X, which contains
 \TAX                    \ the number of the vertex at the start of the edge
@@ -34696,7 +34696,7 @@ LOAD_G% = LOAD% + P% - CODE%
  LDA XX3+3,X            \ Fetch the y_hi coordinate of the edge's start vertex
  STA XX15+3             \ from the XX3 heap into XX15+3
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \LDX Q                  \ Set X to the number of the vertex at the end of the
 \                       \ edge, which we stored in Q
@@ -34730,7 +34730,7 @@ LOAD_G% = LOAD% + P% - CODE%
                         \ screen, so jump to LL78 so we don't store this line
                         \ in the ship line heap
 
-                        \ --- Mod: Code added for flicker-free Elite: --------->
+                        \ --- Mod: Code added for flicker-free ships: --------->
 
  JSR LLX30              \ Draw this edge using smooth animation, by first
                         \ drawing the ship's new line and then erasing the
@@ -34758,7 +34758,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \.LL80
 \
@@ -34830,7 +34830,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
 .ll81
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \JMP LL75               \ Loop back to LL75 to process the next edge
 \
@@ -34877,7 +34877,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \.LL155
 \
@@ -34939,7 +34939,7 @@ LOAD_G% = LOAD% + P% - CODE%
 
  INY                    \ Increment the heap pointer
 
-                        \ --- Mod: Original Acornsoft code removed: ----------->
+                        \ --- Mod: Code removed for flicker-free ships: ------->
 
 \CPY XX20               \ If the heap counter is less than the size of the heap,
 \BCC LL27               \ loop back to LL27 to draw the next line from the heap
@@ -35013,7 +35013,7 @@ LOAD_G% = LOAD% + P% - CODE%
 \
 \ ******************************************************************************
 
-                        \ --- Mod: Code added for flicker-free Elite: --------->
+                        \ --- Mod: Code added for flicker-free ships: --------->
 
 .LLX30
 
