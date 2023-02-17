@@ -17,11 +17,11 @@ PYTHON?=python
 ifeq ($(variant), text-sources)
   variant-cassette=2
   folder-cassette=/text-sources
-  suffix-cassette=-from-text-sources
+  suffix-cassette=-flicker-free-from-text-sources
 else
   variant-cassette=1
   folder-cassette=/source-disc
-  suffix-cassette=-from-source-disc
+  suffix-cassette=-flicker-free-from-source-disc
 endif
 
 .PHONY:build
@@ -34,7 +34,7 @@ build:
 	$(BEEBASM) -i 1-source-files/main-sources/elite-loader.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-readme.asm -v >> 3-assembled-output/compile.txt
 	$(PYTHON) 2-build-files/elite-checksum.py -u -rel$(variant-cassette)
-	$(BEEBASM) -i 1-source-files/main-sources/elite-disc.asm -do 5-compiled-game-discs/elite-cassette-flicker-free$(suffix-cassette).ssd -boot ELTdata -title "E L I T E"
+	$(BEEBASM) -i 1-source-files/main-sources/elite-disc.asm -do 5-compiled-game-discs/elite-cassette$(suffix-cassette).ssd -boot ELTdata -title "E L I T E"
 
 .PHONY:encrypt
 encrypt:
@@ -46,8 +46,13 @@ encrypt:
 	$(BEEBASM) -i 1-source-files/main-sources/elite-loader.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-readme.asm -v >> 3-assembled-output/compile.txt
 	$(PYTHON) 2-build-files/elite-checksum.py -rel$(variant-cassette)
-	$(BEEBASM) -i 1-source-files/main-sources/elite-disc.asm -do 5-compiled-game-discs/elite-cassette-flicker-free$(suffix-cassette).ssd -boot ELTdata -title "E L I T E"
+	$(BEEBASM) -i 1-source-files/main-sources/elite-disc.asm -do 5-compiled-game-discs/elite-cassette$(suffix-cassette).ssd -boot ELTdata -title "E L I T E"
 
 .PHONY:verify
 verify:
 	@$(PYTHON) 2-build-files/crc32.py 4-reference-binaries$(folder-cassette) 3-assembled-output
+
+.PHONY:b2
+b2:
+	curl -G "http://localhost:48075/reset/b2"
+	curl -H "Content-Type:application/binary" --upload-file "5-compiled-game-discs/elite-cassette$(suffix-cassette).ssd" "http://localhost:48075/run/b2?name=elite-cassette$(suffix-cassette).ssd"
