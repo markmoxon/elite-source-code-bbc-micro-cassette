@@ -258,6 +258,18 @@ During compilation, details of every step are output in a file called `compile.t
 
 For users of the excellent [b2 emulator](https://github.com/tom-seddon/b2), you can include the build parameter `b2` to automatically load and boot the assembled disc image in b2. The b2 emulator must be running for this to work.
 
+For example, to build, verify and load into b2, you can do this on Windows:
+
+```
+make.bat encrypt verify b2
+```
+
+or this on Mac/Linux:
+
+```
+make encrypt verify b2
+```
+
 Note that you should manually choose the correct platform in b2 (I didn't automate this part to allow for easier testing across multiple platforms).
 
 ## Building different variants of the cassette version of Elite
