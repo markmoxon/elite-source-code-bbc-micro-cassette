@@ -32,6 +32,7 @@ See the [introduction](#introduction) for more information.
   * [Mac and Linux](#mac-and-linux)
   * [Verifying the output](#verifying-the-output)
   * [Log files](#log-files)
+  * [Auto-deploying to the b2 emulator](#auto-deploying-to-the-b2-emulator)
 
 * [Building different variants of the cassette version of Elite](#building-different-variants-of-the-cassette-version-of-elite)
 
@@ -252,6 +253,12 @@ All the compiled binaries match the originals, so we know we are producing the s
 ### Log files
 
 During compilation, details of every step are output in a file called `compile.txt` in the `3-assembled-output` folder. If you have problems, it might come in handy, and it's a great reference if you need to know the addresses of labels and variables for debugging (or just snooping around).
+
+### Auto-deploying to the b2 emulator
+
+For users of the excellent [b2 emulator](https://github.com/tom-seddon/b2), you can include the build parameter `b2` to automatically load and boot the assembled disc image in b2. The b2 emulator must be running for this to work.
+
+Note that you should manually choose the correct platform in b2 (I didn't automate this part to allow for easier testing across multiple platforms).
 
 ## Building different variants of the cassette version of Elite
 

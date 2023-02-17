@@ -51,3 +51,8 @@ encrypt:
 .PHONY:verify
 verify:
 	@$(PYTHON) 2-build-files/crc32.py 4-reference-binaries$(folder-cassette) 3-assembled-output
+
+.PHONY:b2
+b2:
+	curl -G "http://localhost:48075/reset/b2"
+	curl -H "Content-Type:application/binary" --upload-file "5-compiled-game-discs/elite-cassette$(suffix-cassette).ssd" "http://localhost:48075/run/b2?name=elite-cassette$(suffix-cassette).ssd"
