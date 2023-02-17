@@ -24687,12 +24687,12 @@ LOAD_E% = LOAD% + P% - CODE%
  BCS PL2                \ seen, so jump to PL2 to remove it from the screen,
                         \ returning from the subroutine using a tail call
 
- ORA INWK+7             \ Set A to z_sign OR z_hi to get the maximum of the two
+ ORA INWK+7             \ Set A to 0 if both z_sign and z_hi are 0
 
- BEQ PL2                \ If the maximum is 0, then the planet/sun is too close
-                        \ to be shown, so jump to PL2 to remove it from the
-                        \ screen, returning from the subroutine using a tail
-                        \ call
+ BEQ PL2                \ If both z_sign and z_hi are 0, then the planet/sun is
+                        \ too close to be shown, so jump to PL2 to remove it
+                        \ from the screen, returning from the subroutine using a
+                        \ tail call
 
  JSR PROJ               \ Project the planet/sun onto the screen, returning the
                         \ centre's coordinates in K3(1 0) and K4(1 0)
@@ -24722,8 +24722,9 @@ LOAD_E% = LOAD% + P% - CODE%
  LDA K+1                \ If the high byte of the reduced radius is zero, jump
  BEQ PL82               \ to PL82, as K contains the radius on its own
 
- LDA #248               \ Otherwise set K = 248, to use as our one-byte radius
- STA K
+ LDA #248               \ Otherwise set K = 248, to round up the radius in
+ STA K                  \ K(1 0) to the nearest integer (if we consider the low
+                        \ byte to be the fractional part)
 
 .PL82
 
@@ -24941,7 +24942,7 @@ LOAD_E% = LOAD% + P% - CODE%
  STA P                  \ Calculate:
  LDA K4                 \
  SEC                    \   K4(1 0) = K4(1 0) - (Y A)
- SBC P                  \           = 222 * roofv_x / z - y-coordinate of planet
+ SBC P                  \           = 222 * roofv_y / z - y-coordinate of planet
  STA K4                 \             centre
                         \
                         \ starting with the low bytes
@@ -30004,7 +30005,7 @@ ENDIF
 \ ------------------------------------------------------------------------------
 \
 \ We do this by dividing each of the three coordinates by the length of the
-\ vector, which we can calculate using Pythagoras. Once normalised, 96 (&E0) is
+\ vector, which we can calculate using Pythagoras. Once normalised, 96 (&60) is
 \ used to represent a value of 1, and 96 with bit 7 set (&E0) is used to
 \ represent -1. This enables us to represent fractional values of less than 1
 \ using integers.
