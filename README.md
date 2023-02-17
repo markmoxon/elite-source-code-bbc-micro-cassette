@@ -270,7 +270,7 @@ or this on Mac/Linux:
 make encrypt verify b2
 ```
 
-Note that you should manually choose the correct platform in b2 (I didn't automate this part to allow for easier testing across multiple platforms).
+Note that you should manually choose the correct platform in b2 (I intentionally haven't automated this part to make it easier to test across multiple platforms).
 
 ## Building different variants of the cassette version of Elite
 
