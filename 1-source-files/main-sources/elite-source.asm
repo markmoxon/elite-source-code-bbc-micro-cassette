@@ -3300,7 +3300,7 @@ LOAD_A% = LOAD%
                         \ the RL indicator on the dashboard goes to the right).
                         \ This rolls our ship to the right (clockwise), but we
                         \ actually implement this by rolling everything else
-                        \ to the left (anticlockwise), so a positive roll rate
+                        \ to the left (anti-clockwise), so a positive roll rate
                         \ in JSTX translates to a negative roll angle alpha
 
  TXA                    \ Set A and Y to the roll rate but with the sign bit
@@ -19881,7 +19881,7 @@ ENDIF
 
 .TT151
 
- PHA                    \ Store the item number on the stack and in QQ14+4
+ PHA                    \ Store the item number on the stack and in QQ19+4
  STA QQ19+4
 
  ASL A                  \ Store the item number * 4 in QQ19, so this will act as
