@@ -26760,10 +26760,10 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \ and do the following if nosev_z_hi >= 0:
 \
-\   CNT2 = CNT2 + 128
+\   CNT2 = CNT2 + 32
 \
-\ which is the equivalent of adding PI to the result (as the result is an angle
-\ in radians, and 128 equals PI radians, or 180 degrees).
+\ which is the equivalent of adding 180 degrees to the result (or PI radians),
+\ as there are 64 segments in a full circle.
 \
 \ This routine is called with the following arguments when calculating the
 \ equator and meridian for planets:
