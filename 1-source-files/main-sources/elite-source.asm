@@ -24862,7 +24862,9 @@ LOAD_E% = LOAD% + P% - CODE%
                         \   CNT2 = arctan(P / A) / 4
                         \        = arctan(-nosev_z_hi / roofv_z_hi) / 4
                         \
-                        \ and give the result the opposite sign to nosev_z_hi
+                        \ and do the following if nosev_z_hi >= 0:
+                        \
+                        \   CNT2 = CNT2 + PI
 
  LDX #9                 \ Set X to 9 so the call to PLS1 divides nosev_x
 
@@ -24898,7 +24900,9 @@ LOAD_E% = LOAD% + P% - CODE%
                         \   CNT2 = arctan(P / A) / 4
                         \        = arctan(-nosev_z_hi / sidev_z_hi) / 4
                         \
-                        \ and give the result the opposite sign to nosev_z_hi
+                        \ and do the following if nosev_z_hi >= 0:
+                        \
+                        \   CNT2 = CNT2 + PI
 
  LDX #21                \ Set X to 21 so the call to PLS5 divides sidev_x
 
@@ -26754,8 +26758,15 @@ LOAD_E% = LOAD% + P% - CODE%
 \
 \   CNT2 = arctan(P / A) / 4
 \
-\ giving the result the opposite sign to nosev_z_hi. This is called with the
-\ following arguments when calculating the equator and meridian for planets:
+\ and do the following if nosev_z_hi >= 0:
+\
+\   CNT2 = CNT2 + 128
+\
+\ which is the equivalent of adding PI to the result (as the result is an angle
+\ in radians, and 128 equals PI radians, or 180 degrees).
+\
+\ This routine is called with the following arguments when calculating the
+\ equator and meridian for planets:
 \
 \   * A = roofv_z_hi, P = -nosev_z_hi
 \
