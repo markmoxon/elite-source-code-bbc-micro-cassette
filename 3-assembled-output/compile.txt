@@ -18209,11 +18209,16 @@ End macro FNE
      0CFC   07
 .YC
      0CFD   06
-BLOCK offset = &14B0 
-ENDBLOCK offset = &1530 
-MAINSUM offset = &1335 
-TUT offset = &13E1 
-UU% = &2434  Q% = &1934  OSB = &2086 
+Addresses for the scramble routines in elite-checksum.py
+BLOCK_offset = &14B0 
+ENDBLOCK_offset = &1530 
+MAINSUM_offset = &1335 
+TUT_offset = &13E1 
+CHECKbyt_offset = &1334 
+CODE_offset = &F86 
+UU% = &2434 
+Q% = &1934 
+OSB = &2086 
 Memory usage: &B00  - &CFE 
 Stack: 161 
 S. ELITE &1100  &2632  &2000  &1100 

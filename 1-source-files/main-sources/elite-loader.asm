@@ -3221,11 +3221,16 @@ ENDIF
 COPYBLOCK LE%, P%, UU%  \ Copy the block that we assembled at LE% to UU%, which
                         \ is where it will actually run
 
-PRINT "BLOCK offset = ", ~(BLOCK - LE%) + (UU% - CODE%)
-PRINT "ENDBLOCK offset = ",~(ENDBLOCK - LE%) + (UU% - CODE%)
-PRINT "MAINSUM offset = ",~(MAINSUM - LE%) + (UU% - CODE%)
-PRINT "TUT offset = ",~(TUT - LE%) + (UU% - CODE%)
-PRINT "UU% = ",~UU%," Q% = ",~Q%, " OSB = ",~OSB
+PRINT "Addresses for the scramble routines in elite-checksum.py"
+PRINT "BLOCK_offset = ", ~(BLOCK - LE%) + (UU% - CODE%)
+PRINT "ENDBLOCK_offset = ", ~(ENDBLOCK - LE%) + (UU% - CODE%)
+PRINT "MAINSUM_offset = ", ~(MAINSUM - LE%) + (UU% - CODE%)
+PRINT "TUT_offset = ", ~(TUT - LE%) + (UU% - CODE%)
+PRINT "CHECKbyt_offset = ", ~(CHECKbyt - LE%) + (UU% - CODE%)
+PRINT "CODE_offset = ", ~(OSB - CODE%)
+PRINT "UU% = ", ~UU%
+PRINT "Q% = ", ~Q%
+PRINT "OSB = ", ~OSB
 
 PRINT "Memory usage: ", ~LE%, " - ",~P%
 PRINT "Stack: ",LEN + ENDBLOCK - BLOCK
