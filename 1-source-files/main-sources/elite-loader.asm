@@ -1506,17 +1506,21 @@ ENDIF
                         \ In terms of signed 8-bit integers, this is a random
                         \ number from -32 to 31. Let's call it r7
 
- ADC YY                 \ Set X = A + YY
- TAX                    \       = r7 + r6
+ ADC YY                 \ Set A = A + YY
+                        \       = r7 + r6
 
- JSR SQUA2              \ Set (A P) = r7 * r7
+ TAX                    \ Set X = A
+                        \       = r6 + r7
+
+ JSR SQUA2              \ Set (A P) = A * A
+                        \           = (r6 + r7)^2
 
  TAY                    \ Set Y = A
-                        \       = r7 * r7 / 256
+                        \       = (r6 + r7)^2 / 256
 
  ADC ZP+1               \ Set A = A + ZP+1
-                        \       = r7^2 / 256 + (r5^2 + r6^2) / 256
-                        \       = (r5^2 + r6^2 + r7^2) / 256
+                        \       = (r6 + r7)^2 / 256 + (r5^2 + r6^2) / 256
+                        \       = ((r6 + r7)^2 + r5^2 + r6^2) / 256
 
  BCS PLC3               \ If the addition overflowed, jump down to PLC3 to skip
                         \ to the next pixel
@@ -1531,13 +1535,26 @@ ENDIF
  ADC T                  \       = r7^2 / 256 + r6^2 / 256
                         \       = (r6^2 + r7^2) / 256
 
- CMP #16                \ If A > 16, skip to PL1 to plot the pixel
+ CMP #16                \ If A >= 16, skip to PL1 to plot the pixel
  BCS PL1
 
- LDA ZP                 \ If ZP is positive (50% chance), jump down to PLC3 to
+ LDA ZP                 \ If ZP is positive (i.e. r5 < 128), jump down to PLC3 to
  BPL PLC3               \ skip to the next pixel
 
 .PL1
+
+                        \ If we get here then the following is true:
+                        \
+                        \   32 <= ((r6 + r7)^2 + r5^2 + r6^2) / 256 < 80
+                        \
+                        \ and either this is true:
+                        \
+                        \   (r6^2 + r7^2) / 256 >= 16
+                        \
+                        \ or both these are true:
+                        \
+                        \   (r6^2 + r7^2) / 256 < 16
+                        \   r5 >= 128
 
  LDA YY                 \ Set A = YY
                         \       = r6
@@ -1558,8 +1575,12 @@ ENDIF
                         \   x = r5 + r7
                         \   y = r5
                         \
-                        \   32 <= (r5^2 + r6^2 + r7^2) / 256 <= 79
-                        \   Draw 50% fewer pixels when (r6^2 + r7^2) / 256 <= 16
+                        \   32 <= ((r6 + r7)^2 + r5^2 + r6^2) / 256 < 80
+                        \
+                        \   Either: (r6^2 + r7^2) / 256 >= 16
+                        \
+                        \   Or:     (r6^2 + r7^2) / 256 <  16
+                        \           r5 >= 128
                         \
                         \ which is what we want
 
