@@ -1532,8 +1532,8 @@ ENDIF
  BCC PLC3
 
  TYA                    \ Set A = Y + T
- ADC T                  \       = r7^2 / 256 + r6^2 / 256
-                        \       = (r6^2 + r7^2) / 256
+ ADC T                  \       = (r6 + r7)^2 / 256 + r6^2 / 256
+                        \       = ((r6 + r7)^2 + r6^2) / 256
 
  CMP #16                \ If A >= 16, skip to PL1 to plot the pixel
  BCS PL1
@@ -1549,11 +1549,11 @@ ENDIF
                         \
                         \ and either this is true:
                         \
-                        \   (r6^2 + r7^2) / 256 >= 16
+                        \   ((r6 + r7)^2 + r6^2) / 256 >= 16
                         \
                         \ or both these are true:
                         \
-                        \   (r6^2 + r7^2) / 256 < 16
+                        \   ((r6 + r7)^2 + r6^2) / 256 < 16
                         \   r5 >= 128
 
  LDA YY                 \ Set A = YY
@@ -1577,9 +1577,9 @@ ENDIF
                         \
                         \   32 <= ((r6 + r7)^2 + r5^2 + r6^2) / 256 < 80
                         \
-                        \   Either: (r6^2 + r7^2) / 256 >= 16
+                        \   Either: ((r6 + r7)^2 + r6^2) / 256 >= 16
                         \
-                        \   Or:     (r6^2 + r7^2) / 256 <  16
+                        \   Or:     ((r6 + r7)^2 + r6^2) / 256 <  16
                         \           r5 >= 128
                         \
                         \ which is what we want
