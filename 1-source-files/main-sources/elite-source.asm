@@ -20505,7 +20505,7 @@ ENDIF
 \ Thargoids. Using our escape pod will be fatal, and our position on the
 \ galactic chart is in-between systems. It is a scary place...
 \
-\ There is a 1% chance that this routine is called from TT18 instead of doing
+\ There is a 0.78% chance that this routine is called from TT18 instead of doing
 \ a normal hyperspace, or we can manually trigger a mis-jump by holding down
 \ CTRL after first enabling the "author display" configuration option ("X") when
 \ paused.
@@ -20618,8 +20618,8 @@ ENDIF
 
  JSR DORND              \ Set A and X to random numbers
 
- CMP #253               \ If A >= 253 (1% chance) then jump to MJP to trigger a
- BCS MJP                \ mis-jump into witchspace
+ CMP #253               \ If A >= 253 (0.78% chance) then jump to MJP to trigger
+ BCS MJP                \ a mis-jump into witchspace
 
 \JSR TT111              \ This instruction is commented out in the original
                         \ source. It finds the closest system to coordinates
