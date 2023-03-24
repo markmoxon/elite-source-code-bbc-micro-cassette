@@ -37,12 +37,12 @@
 \
 \ ******************************************************************************
 
-INCLUDE "1-source-files/main-sources/elite-build-options.asm"
+ INCLUDE "1-source-files/main-sources/elite-build-options.asm"
 
-_SOURCE_DISC            = (_VARIANT = 1)
-_TEXT_SOURCES           = (_VARIANT = 2)
+ _SOURCE_DISC           = (_VARIANT = 1)
+ _TEXT_SOURCES          = (_VARIANT = 2)
 
-GUARD &8000             \ Guard against assembling over MOS memory
+ GUARD &8000            \ Guard against assembling over MOS memory
 
 \ ******************************************************************************
 \
@@ -50,10 +50,10 @@ GUARD &8000             \ Guard against assembling over MOS memory
 \
 \ ******************************************************************************
 
-CODE% = &0F40           \ CODE% is set to the location that the main game code
+ CODE% = &0F40          \ CODE% is set to the location that the main game code
                         \ gets moved to after it is loaded
 
-LOAD% = &1128           \ LOAD% points to the start of the actual game code,
+ LOAD% = &1128          \ LOAD% points to the start of the actual game code,
                         \ after the &28 bytes of header code that are inserted
                         \ below
 
@@ -67,7 +67,7 @@ LOAD% = &1128           \ LOAD% points to the start of the actual game code,
 \
 \ ******************************************************************************
 
-ORG &0070
+ ORG &0070
 
 .ZP
 
@@ -79,7 +79,7 @@ ORG &0070
 \
 \ ******************************************************************************
 
-ORG &1100               \ The load address of the main game code file ("ELTcode"
+ ORG &1100              \ The load address of the main game code file ("ELTcode"
                         \ for loading from disc, "ELITEcode" for loading from
                         \ tape)
 
@@ -172,50 +172,50 @@ ORG &1100               \ The load address of the main game code file ("ELTcode"
 
 .elitea
 
-PRINT "elitea = ", ~P%
-INCBIN "3-assembled-output/ELTA.bin"
+ PRINT "elitea = ", ~P%
+ INCBIN "3-assembled-output/ELTA.bin"
 
 .eliteb
 
-PRINT "eliteb = ", ~P%
-INCBIN "3-assembled-output/ELTB.bin"
+ PRINT "eliteb = ", ~P%
+ INCBIN "3-assembled-output/ELTB.bin"
 
 .elitec
 
-PRINT "elitec = ", ~P%
-INCBIN "3-assembled-output/ELTC.bin"
+ PRINT "elitec = ", ~P%
+ INCBIN "3-assembled-output/ELTC.bin"
 
 .elited
 
-PRINT "elited = ", ~P%
-INCBIN "3-assembled-output/ELTD.bin"
+ PRINT "elited = ", ~P%
+ INCBIN "3-assembled-output/ELTD.bin"
 
 .elitee
 
-PRINT "elitee = ", ~P%
-INCBIN "3-assembled-output/ELTE.bin"
+ PRINT "elitee = ", ~P%
+ INCBIN "3-assembled-output/ELTE.bin"
 
 .elitef
 
-PRINT "elitef = ", ~P%
-INCBIN "3-assembled-output/ELTF.bin"
+ PRINT "elitef = ", ~P%
+ INCBIN "3-assembled-output/ELTF.bin"
 
 .eliteg
 
-PRINT "eliteg = ", ~P%
-INCBIN "3-assembled-output/ELTG.bin"
+ PRINT "eliteg = ", ~P%
+ INCBIN "3-assembled-output/ELTG.bin"
 
 .checksum0
 
-PRINT "checksum0 = ", ~P%
+ PRINT "checksum0 = ", ~P%
 
  SKIP 1                 \ We skip this byte so we can insert the checksum later
                         \ in elite-checksum.py
 
 .ships
 
-PRINT "ships = ", ~P%
-INCBIN "3-assembled-output/SHIPS.bin"
+ PRINT "ships = ", ~P%
+ INCBIN "3-assembled-output/SHIPS.bin"
 
 .end
 
@@ -225,7 +225,7 @@ INCBIN "3-assembled-output/SHIPS.bin"
 \
 \ ******************************************************************************
 
-PRINT "P% = ", ~P%
-PRINT "S.ELTcode 1100 ", ~(LOAD% + &6000 - CODE%), " ", ~LOAD%, ~LOAD%
-SAVE "3-assembled-output/ELTcode.unprot.bin", &1100, (LOAD% + &6000 - CODE%), LOAD%
-SAVE "3-assembled-output/ELThead.bin", &1100, elitea, &1100
+ PRINT "P% = ", ~P%
+ PRINT "S.ELTcode 1100 ", ~(LOAD% + &6000 - CODE%), " ", ~LOAD%, ~LOAD%
+ SAVE "3-assembled-output/ELTcode.unprot.bin", &1100, (LOAD% + &6000 - CODE%), LOAD%
+ SAVE "3-assembled-output/ELThead.bin", &1100, elitea, &1100
