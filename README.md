@@ -30,6 +30,7 @@ See the [introduction](#introduction) for more information.
   * [Build targets](#build-targets)
   * [Windows](#windows)
   * [Mac and Linux](#mac-and-linux)
+  * [Updating the checksum scripts if you change the code](#updating-the-checksum-scripts-if-you-change-the-code)
   * [Verifying the output](#verifying-the-output)
   * [Log files](#log-files)
   * [Auto-deploying to the b2 emulator](#auto-deploying-to-the-b2-emulator)
@@ -193,6 +194,12 @@ make encrypt
 ```
 
 will produce a file called `elite-cassette-from-source-disc.ssd` in the `5-compiled-game-discs` folder that contains the source disc variant, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
+
+### Updating the checksum scripts if you change the code
+
+If you change the source code in any way, you may break the game; if so, it will typically hang at the loading screen, though in some versions it may hang when launching from the space station.
+
+To fix this, you may need to update some of the hard-coded addresses in the checksum script so that they match the new addresses in your changed version of the code. See the comments in the [elite-checksum.py](2-build-files/elite-checksum.py) script for details.
 
 ### Verifying the output
 
