@@ -34825,7 +34825,8 @@ ENDMACRO
  ADC #4                 \ next edge
  STA V
 
- BCC ll81               \ If the above addition didn't overflow, jump to ll81
+ BCC ll81               \ If the above addition didn't overflow, jump to ll81 to
+                        \ skip the following instruction
 
  INC V+1                \ Otherwise increment the high byte of V(1 0), as we
                         \ just moved the V(1 0) pointer past a page boundary
