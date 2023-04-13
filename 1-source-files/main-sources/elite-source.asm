@@ -15449,7 +15449,8 @@ ENDIF
 .ARCTAN
 
  LDA P                  \ Set T1 = P EOR Q, which will have the sign of P * Q
- EOR Q
+ EOR Q                  \
+\AND #%10000000         \ The AND is commented out in the original source
  STA T1
 
  LDA Q                  \ If Q = 0, jump to AR2 to return a right angle
