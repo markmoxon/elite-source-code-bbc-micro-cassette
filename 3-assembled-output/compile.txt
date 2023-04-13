@@ -171,8 +171,10 @@
      00A7
 .XX20
      00A8
-.XX14
+.LSNUM
      00A9
+.LSNUM2
+     00AA
 .RAT
      00AA
 .RAT2
