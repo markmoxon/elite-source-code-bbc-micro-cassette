@@ -26798,18 +26798,18 @@ ENDIF
  BMI P%+4               \ instruction to leave the angle in A as a positive
                         \ integer in the range 0 to 128 (so when we calculate
                         \ CNT2 below, it will be in the right half of the
-                        \ anti-clockwise that we describe when drawing circles,
-                        \ i.e. from 6 o'clock, through 3 o'clock and on to 12
-                        \ o'clock)
+                        \ anti-clockwise arc that we describe when drawing
+                        \ circles, i.e. from 6 o'clock, through 3 o'clock and
+                        \ on to 12 o'clock)
 
  EOR #%10000000         \ If we get here then nosev_z_hi is positive, so flip
                         \ bit 7 of the angle in A, which is the same as adding
                         \ 128 to give a result in the range 129 to 256 (i.e. 129
                         \ to 0), or 180 to 360 degrees (so when we calculate
                         \ CNT2 below, it will be in the left half of the
-                        \ anti-clockwise that we describe when drawing circles,
-                        \ i.e. from 12 o'clock, through 9 o'clock and on to 6
-                        \ o'clock)
+                        \ anti-clockwise arc that we describe when drawing
+                        \ circles, i.e. from 12 o'clock, through 9 o'clock and
+                        \ on to 6 o'clock)
 
  LSR A                  \ Set CNT2 = A / 4
  LSR A
