@@ -4543,10 +4543,26 @@ ENDMACRO
                         \ first 28 bytes of K% to INWK
 
                         \ We now check the distance from our ship (at the
-                        \ origin) towards the planet's surface, by adding the
-                        \ planet's nosev vector to the planet's centre at
-                        \ (x, y, z) and checking our distance to the end
-                        \ point along the relevant axis
+                        \ origin) towards the point where we will spawn the
+                        \ space station if we are close enough
+                        \
+                        \ This point is calculated by starting at the planet's
+                        \ centre and adding 2 * nosev, which takes us to a point
+                        \ above the planet's surface, at an altitude that
+                        \ matches the planet's radius
+                        \
+                        \ This point pitches and rolls around the planet as the
+                        \ nosev vector rotates with the planet, and if our ship
+                        \ is within a distance of (192 0) from this point in all
+                        \ three axes, then we spawn the space station at this
+                        \ point, with the station's slot facing towards the
+                        \ planet, along the nosev vector
+                        \
+                        \ This works because in the following, we calculate the
+                        \ station's coordinates one axis at a time, and store
+                        \ the results in the INWK block, so by the time we have
+                        \ calculated and checked all three, the ship data block
+                        \ is set up with the correct spawning coordinates
 
  INX                    \ Set X = 0 (as we ended the above loop with X as &FF)
 
