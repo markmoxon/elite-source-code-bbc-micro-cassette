@@ -21988,8 +21988,7 @@ ENDIF
 \ ------------------------------------------------------------------------------
 \
 \ Print a text token (i.e. a character, control code, two-letter token or
-\ recursive token). See variable QQ18 for a discussion of the token system
-\ used in Elite.
+\ recursive token).
 \
 \ Arguments:
 \
@@ -22430,19 +22429,18 @@ ENDIF
 \       Type: Subroutine
 \   Category: Text
 \    Summary: Print a recursive token
+\  Deep dive: Printing text tokens
 \
 \ ------------------------------------------------------------------------------
 \
-\ This routine works its way through the recursive tokens that are stored in
-\ tokenised form in memory at &0400 to &06FF, and when it finds token number A,
+\ This routine works its way through the recursive text tokens that are stored
+\ in tokenised form in the table at QQ18, and when it finds token number A,
 \ it prints it. Tokens are null-terminated in memory and fill three pages,
 \ but there is no lookup table as that would consume too much memory, so the
 \ only way to find the correct token is to start at the beginning and look
 \ through the table byte by byte, counting tokens as we go until we are in the
 \ right place. This approach might not be terribly speed efficient, but it is
 \ certainly memory-efficient.
-\
-\ For details of the tokenisation system, see variable QQ18.
 \
 \ Arguments:
 \
