@@ -1592,8 +1592,8 @@ ENDIF
                         \   r6 = random number from 0 to 255
                         \   r7 = r5, squashed into -32 to 31
                         \
-                        \   x = r5 + r7
-                        \   y = r5
+                        \   x = r6 + r7
+                        \   y = r6
                         \
                         \   32 <= ((r6 + r7)^2 + r5^2 + r6^2) / 256 < 80
                         \
