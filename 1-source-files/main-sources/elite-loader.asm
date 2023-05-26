@@ -1253,10 +1253,10 @@ ENDIF
 
 \ ******************************************************************************
 \
-\       Name: PLL1
+\       Name: PLL1 (Part 1 of 3)
 \       Type: Subroutine
 \   Category: Drawing planets
-\    Summary: Draw Saturn on the loading screen
+\    Summary: Draw Saturn on the loading screen (draw the planet)
 \  Deep dive: Drawing Saturn on the loading screen
 \
 \ ******************************************************************************
@@ -1387,6 +1387,16 @@ ENDIF
                         \ handler (this has nothing to do with drawing Saturn,
                         \ it's all part of the copy protection)
 
+\ ******************************************************************************
+\
+\       Name: PLL1 (Part 2 of 3)
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Draw Saturn on the loading screen (draw the stars)
+\  Deep dive: Drawing Saturn on the loading screen
+\
+\ ******************************************************************************
+
                         \ The following loop iterates CNT2(1 0) times, i.e. &1DD
                         \ or 477 times, and draws the background stars on the
                         \ loading screen
@@ -1453,6 +1463,16 @@ ENDIF
  STX BLN                \ BLN(1 0) = &03C6, which we will use in the IRQ1
                         \ handler (this has nothing to do with drawing Saturn,
                         \ it's all part of the copy protection)
+
+\ ******************************************************************************
+\
+\       Name: PLL1 (Part 3 of 3)
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Draw Saturn on the loading screen (draw the rings)
+\  Deep dive: Drawing Saturn on the loading screen
+\
+\ ******************************************************************************
 
                         \ The following loop iterates CNT3(1 0) times, i.e. &500
                         \ or 1280 times, and draws the rings around the loading
