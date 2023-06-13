@@ -4769,7 +4769,7 @@ ENDMACRO
  BCS MA28               \ If the C flag is set then jump to MA28 to die, as
                         \ our temperature is off the scale
 
- CMP #&E0               \ If the cabin temperature < 224 then jump to MA23 to
+ CMP #224               \ If the cabin temperature < 224 then jump to MA23 to
  BCC MA23               \ to skip fuel scooping, as we aren't close enough
 
  LDA BST                \ If we don't have fuel scoops fitted, jump to BA23 to
@@ -17586,7 +17586,7 @@ ENDIF
                         \ section
 
  LDA #193               \ Print recursive token 33 ("GROSS PRODUCTIVITY"),
- JSR TT68               \ followed by colon
+ JSR TT68               \ followed by a colon
 
  LDX QQ7                \ Fetch the 16-bit productivity value from QQ7 into
  LDY QQ7+1              \ (Y X)
