@@ -155,7 +155,7 @@
                         \ adding up this second page
 
  CMP &0B00              \ Compare the result to the contents of CHECKbyt in the
-                        \ loader code at elite-loader.asm. This values gets set
+                        \ loader code at elite-loader.asm. This value gets set
                         \ by elite-checksum.py
 
  BEQ LBL+2              \ If the checksums match, jump to LBL+2, which contains

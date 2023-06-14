@@ -633,8 +633,8 @@ ENDIF
 \
 \ The following macro is used to define the four sound envelopes used in the
 \ game. It uses OSWORD 8 to create an envelope using the 14 parameters in the
-\ the I%-th block of 14 bytes at location E%. This OSWORD call is the same as
-\ BBC BASIC's ENVELOPE command.
+\ I%-th block of 14 bytes at location E%. This OSWORD call is the same as BBC
+\ BASIC's ENVELOPE command.
 \
 \ See variable E% for more details of the envelopes themselves.
 \
@@ -1119,10 +1119,10 @@ ENDIF
                         \ routine on the stack and returns normally, which might
                         \ happen if crackers manage to unpick the BPUTV
                         \ redirection, then we end up here. We now obfuscate the
-                        \ the first 255 bytes of the location where the main
-                        \ game gets loaded (which is set in C%), just to make
-                        \ things hard, and then we reset the machine... all in
-                        \ a completely twisted manner, of course
+                        \ first 255 bytes of the location where the main game
+                        \ gets loaded (which is set in C%), just to make things
+                        \ hard, and then we reset the machine... all in a
+                        \ completely twisted manner, of course
 
  LDA C%,X               \ Obfuscate the X-th byte of C% by EOR'ing with &A5
  EOR #&A5
