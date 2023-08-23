@@ -8306,10 +8306,10 @@ ENDIF
 
 .PX1
 
- EOR #%10000000         \ Set X = X1 + 127
+ EOR #%10000000         \ Set X = X1 + 128
  TAX                    \
                         \ So X is now the offset converted to an x-coordinate,
-                        \ centred on x-coordinate 127
+                        \ centred on x-coordinate 128
 
  LDA Y1                 \ Fetch the y-coordinate offset into A and clear the
  AND #%01111111         \ sign bit, so A = |Y1|
