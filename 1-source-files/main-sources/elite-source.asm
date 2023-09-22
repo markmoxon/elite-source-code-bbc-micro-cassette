@@ -2657,8 +2657,7 @@ ENDMACRO
                         \ of universe
                         \
                         \ The number of ships of type X in the local bubble is
-                        \ stored at MANY+X, so the number of Sidewinders is at
-                        \ MANY+1, the number of Mambas is at MANY+2, and so on
+                        \ stored at MANY+X
                         \
                         \ See the deep dive on "Ship blueprints" for a list of
                         \ ship types
@@ -14281,7 +14280,7 @@ ENDIF
 \       Name: Unused duplicate of MULTU
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
-\    Summary: Unused duplicate of the MULTU routine
+\    Summary: An unused duplicate of the MULTU routine
 \
 \ ------------------------------------------------------------------------------
 \
@@ -14408,7 +14407,7 @@ ENDIF
 \       Name: MUT3
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
-\    Summary: Unused routine that does the same as MUT2
+\    Summary: An unused routine that does the same as MUT2
 \
 \ ------------------------------------------------------------------------------
 \
@@ -27162,13 +27161,13 @@ ENDIF
 \       Name: KS3
 \       Type: Subroutine
 \   Category: Universe
-\    Summary: Set the SLSP ship heap pointer after shuffling ship slots
+\    Summary: Set the SLSP ship line heap pointer after shuffling ship slots
 \
 \ ------------------------------------------------------------------------------
 \
 \ The final part of the KILLSHP routine, called after we have shuffled the ship
 \ slots and sorted out our missiles. This simply sets SLSP to the new bottom of
-\ the ship heap space.
+\ the ship line heap.
 \
 \ Arguments:
 \
@@ -27181,7 +27180,7 @@ ENDIF
 .KS3
 
  LDA P                  \ After shuffling the ship slots, P(1 0) will point to
- STA SLSP               \ the new bottom of the ship heap, so store this in
+ STA SLSP               \ the new bottom of the ship line heap, so store this in
  LDA P+1                \ SLSP(1 0), which stores the bottom of the heap
  STA SLSP+1
 
@@ -27294,8 +27293,8 @@ ENDIF
  INX                    \ Increment the counter (so it starts at 0 on the first
                         \ iteration)
 
- LDA FRIN,X             \ If slot X is empty, loop round again until it isn't,
- BEQ KS3                \ at which point A contains the ship type in that slot
+ LDA FRIN,X             \ If slot X is empty then we have worked our way through
+ BEQ KS3                \ all the slots, so jump to KS3 to stop looking
 
  CMP #MSL               \ If the slot does not contain a missile, loop back to
  BNE KSL4               \ KSL4 to check the next slot
@@ -27918,7 +27917,7 @@ ENDIF
 
  STA INWK+22            \ Set byte #22 = sidev_x_hi = 96 = 1
 
- ORA #128               \ Flip the sign of A to represent a -1
+ ORA #%10000000         \ Flip the sign of A to represent a -1
 
  STA INWK+14            \ Set byte #14 = nosev_z_hi = -96 = -1
 
