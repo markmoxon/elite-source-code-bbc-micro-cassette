@@ -27669,10 +27669,10 @@ ENDIF
 \
 \   channel/flush, amplitude (or envelope number if 1-4), pitch, duration
 \
-\ For the channel/flush parameter, the top nibble of the low byte is the flush
+\ For the channel/flush parameter, the high nibble of the low byte is the flush
 \ control (where a flush control of 0 queues the sound, and a flush control of
-\ 1 makes the sound instantly), while the bottom nibble of the low byte is the
-\ channel number . When written in hexadecimal, the first figure gives the flush
+\ 1 makes the sound instantly), while the low nibble of the low byte is the
+\ channel number. When written in hexadecimal, the first figure gives the flush
 \ control, while the second is the channel (so &13 indicates flush control = 1
 \ and channel = 3).
 \
@@ -31761,23 +31761,23 @@ ENDMACRO
 
 .QQ23
 
- ITEM 19,  -2, 't',   6, %00000001   \  0 = Food
- ITEM 20,  -1, 't',  10, %00000011   \  1 = Textiles
- ITEM 65,  -3, 't',   2, %00000111   \  2 = Radioactives
- ITEM 40,  -5, 't', 226, %00011111   \  3 = Slaves
- ITEM 83,  -5, 't', 251, %00001111   \  4 = Liquor/Wines
- ITEM 196,  8, 't',  54, %00000011   \  5 = Luxuries
- ITEM 235, 29, 't',   8, %01111000   \  6 = Narcotics
- ITEM 154, 14, 't',  56, %00000011   \  7 = Computers
- ITEM 117,  6, 't',  40, %00000111   \  8 = Machinery
- ITEM 78,   1, 't',  17, %00011111   \  9 = Alloys
- ITEM 124, 13, 't',  29, %00000111   \ 10 = Firearms
- ITEM 176, -9, 't', 220, %00111111   \ 11 = Furs
- ITEM 32,  -1, 't',  53, %00000011   \ 12 = Minerals
- ITEM 97,  -1, 'k',  66, %00000111   \ 13 = Gold
- ITEM 171, -2, 'k',  55, %00011111   \ 14 = Platinum
- ITEM 45,  -1, 'g', 250, %00001111   \ 15 = Gem-Stones
- ITEM 53,  15, 't', 192, %00000111   \ 16 = Alien items
+ ITEM 19,  -2, 't',   6, %00000001  \  0 = Food
+ ITEM 20,  -1, 't',  10, %00000011  \  1 = Textiles
+ ITEM 65,  -3, 't',   2, %00000111  \  2 = Radioactives
+ ITEM 40,  -5, 't', 226, %00011111  \  3 = Slaves
+ ITEM 83,  -5, 't', 251, %00001111  \  4 = Liquor/Wines
+ ITEM 196,  8, 't',  54, %00000011  \  5 = Luxuries
+ ITEM 235, 29, 't',   8, %01111000  \  6 = Narcotics
+ ITEM 154, 14, 't',  56, %00000011  \  7 = Computers
+ ITEM 117,  6, 't',  40, %00000111  \  8 = Machinery
+ ITEM 78,   1, 't',  17, %00011111  \  9 = Alloys
+ ITEM 124, 13, 't',  29, %00000111  \ 10 = Firearms
+ ITEM 176, -9, 't', 220, %00111111  \ 11 = Furs
+ ITEM 32,  -1, 't',  53, %00000011  \ 12 = Minerals
+ ITEM 97,  -1, 'k',  66, %00000111  \ 13 = Gold
+ ITEM 171, -2, 'k',  55, %00011111  \ 14 = Platinum
+ ITEM 45,  -1, 'g', 250, %00001111  \ 15 = Gem-Stones
+ ITEM 53,  15, 't', 192, %00000111  \ 16 = Alien items
 
 \ ******************************************************************************
 \
