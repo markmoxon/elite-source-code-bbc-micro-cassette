@@ -18473,7 +18473,7 @@ ENDIF
 \
 \       Name: TT210
 \       Type: Subroutine
-\   Category: Inventory
+\   Category: Market
 \    Summary: Show a list of current cargo in our hold, optionally to sell
 \
 \ ------------------------------------------------------------------------------
@@ -18613,7 +18613,7 @@ ENDIF
 \
 \       Name: TT213
 \       Type: Subroutine
-\   Category: Inventory
+\   Category: Market
 \    Summary: Show the Inventory screen (red key f9)
 \
 \ ******************************************************************************
@@ -18652,7 +18652,7 @@ ENDIF
 \
 \       Name: TT214
 \       Type: Subroutine
-\   Category: Inventory
+\   Category: Keyboard
 \    Summary: Ask a question with a "Y/N?" prompt and return the response
 \
 \ ------------------------------------------------------------------------------
@@ -28065,7 +28065,7 @@ ENDIF
 \
 \       Name: DORND
 \       Type: Subroutine
-\   Category: Utility routines
+\   Category: Maths (Arithmetic)
 \    Summary: Generate random numbers
 \  Deep dive: Generating random numbers
 \             Fixing ship positions
