@@ -293,7 +293,19 @@ By default the build process builds the source disc variant, but you can build a
 
 ### Building the source disc variant
 
-You can add `variant=source-disc` to produce the `elite-cassette-from-source-disc.ssd` file containing the source disc variant, though that's the default value so it isn't necessary.
+You can add `variant=source-disc` to produce the `elite-cassette-from-source-disc.ssd` file containing the source disc variant, though that's the default value so it isn't necessary. In other words, you can build it like this:
+
+```
+make.bat encrypt verify variant=source-disc
+```
+
+or this on a Mac or Linux:
+
+```
+make encrypt verify variant=source-disc
+```
+
+This will produce a file called `elite-cassette-from-source-disc.NES` in the `5-compiled-game-discs` folder that contains the source disc variant.
 
 The verification checksums for this version are as follows:
 
