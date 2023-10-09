@@ -4,7 +4,7 @@
 
 ![Screenshot of Elite on the BBC Micro](https://www.bbcelite.com/images/github/Elite-BBCMicro.png)
 
-This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained.
+This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained It is literally the original source code, just heavily documented.
 
 It is a companion to the [bbcelite.com website](https://www.bbcelite.com).
 
