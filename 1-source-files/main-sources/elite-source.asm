@@ -11411,12 +11411,12 @@ ENDIF
 \       Type: Subroutine
 \   Category: Screen mode
 \    Summary: The main screen-mode interrupt handler (IRQ1V points here)
-\  Deep dive: The split-screen mode
+\  Deep dive: The split-screen mode in BBC Micro Elite
 \
 \ ------------------------------------------------------------------------------
 \
 \ The main interrupt handler, which implements Elite's split-screen mode (see
-\ the deep dive on "The split-screen mode" for details).
+\ the deep dive on "The split-screen mode in BBC Micro Elite" for details).
 \
 \ IRQ1V is set to point to IRQ1 by the loading process.
 \

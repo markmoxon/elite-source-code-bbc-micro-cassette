@@ -309,7 +309,7 @@ ENDIF
 \       Type: Variable
 \   Category: Screen mode
 \    Summary: VDU commands for setting the square mode 4 screen
-\  Deep dive: The split-screen mode
+\  Deep dive: The split-screen mode in BBC Micro Elite
 \             Drawing monochrome pixels in mode 4
 \
 \ ------------------------------------------------------------------------------
@@ -2735,7 +2735,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Screen mode
 \    Summary: The loader's screen-mode interrupt handler (IRQ1V points here)
-\  Deep dive: The split-screen mode
+\  Deep dive: The split-screen mode in BBC Micro Elite
 \
 \ ------------------------------------------------------------------------------
 \
