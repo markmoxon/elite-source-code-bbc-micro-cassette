@@ -9772,8 +9772,8 @@ ENDIF
 
  LDA #104               \ Set A to token 104 ("BEAM LASER")
 
- JSR plf2               \ Print the text token in A (which contains our legal
-                        \ status) followed by a newline and an indent of 6
+ JSR plf2               \ Print the text token in A (which contains the laser
+                        \ type) followed by a newline and an indent of 6
                         \ characters
 
 .st1
