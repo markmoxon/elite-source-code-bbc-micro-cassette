@@ -663,6 +663,11 @@ ENDMACRO
 \ sound envelopes, pushes 33 bytes onto the stack that will be used later, and
 \ sends us on a wild goose chase, just for kicks.
 \
+\ Other entry points:
+\
+\   Ian1                Re-entry point following the wild goose chase
+\                       obfuscation
+\
 \ ******************************************************************************
 
 .ENTRY
@@ -2957,6 +2962,10 @@ ENDIF
 \ interrupt vectors and calculates various checksums, before finally handing
 \ over to the main game.
 \
+\ Other entry points:
+\
+\   nononono            Reset the machine
+\
 \ ******************************************************************************
 
  LDA VIA+&44            \ Read the 6522 System VIA T1C-L timer 1 low-order
@@ -3095,6 +3104,11 @@ ENDIF
 \ This routine runs checksum checks on the recursive token table and the loader
 \ code at the start of the main game code file, to prevent tampering with these
 \ areas of memory. It also runs a check on the tape loading block count.
+\
+\ Other entry points:
+\
+\   ENDBLOCK            Denotes the end of the encrypted code that starts at
+\                       BLOCK
 \
 \ ******************************************************************************
 
