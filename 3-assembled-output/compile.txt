@@ -13380,6 +13380,7 @@ Saving file '3-assembled-output/ELTG.bin'
      5665   00
      5666   02
      5667   10
+.SHIP_SIDEWINDER_VERTICES
 Macro VERTEX:
      5668   20
      5669   00
@@ -13613,6 +13614,7 @@ End macro FACE
      570D   00
      570E   01
      570F   11
+.SHIP_VIPER_VERTICES
 Macro VERTEX:
      5710   00
      5711   00
@@ -13916,6 +13918,7 @@ End macro FACE
      57E7   01
      57E8   02
      57E9   12
+.SHIP_MAMBA_VERTICES
 Macro VERTEX:
      57EA   00
      57EB   00
@@ -14335,6 +14338,7 @@ End macro FACE
      5915   01
      5916   01
      5917   13
+.SHIP_COBRA_MK_3_VERTICES
 Macro VERTEX:
      5918   20
      5919   00
@@ -14886,6 +14890,7 @@ End macro FACE
      5A9D   00
      5A9E   02
      5A9F   16
+.SHIP_THARGOID_VERTICES
 Macro VERTEX:
      5AA0   20
      5AA1   30
@@ -15283,6 +15288,7 @@ End macro FACE
      5BB9   00
      5BBA   00
      5BBB   06
+.SHIP_CORIOLIS_VERTICES
 Macro VERTEX:
      5BBC   A0
      5BBD   00
@@ -15684,6 +15690,7 @@ End macro FACE
      5CD5   00
      5CD6   02
      5CD7   00
+.SHIP_MISSILE_VERTICES
 Macro VERTEX:
      5CD8   00
      5CD9   00
@@ -16039,6 +16046,7 @@ End macro FACE
      5DD3   00
      5DD4   01
      5DD5   00
+.SHIP_ASTEROID_VERTICES
 Macro VERTEX:
      5DD6   00
      5DD7   50
@@ -16342,6 +16350,7 @@ End macro FACE
      5EA9   00
      5EAA   02
      5EAB   00
+.SHIP_CANISTER_VERTICES
 Macro VERTEX:
      5EAC   18
      5EAD   10
@@ -16575,6 +16584,7 @@ End macro FACE
      5F51   00
      5F52   02
      5F53   10
+.SHIP_THARGON_VERTICES
 Macro VERTEX:
      5F54   09
      5F55   00
@@ -16717,6 +16727,7 @@ End macro FACE
      5FBD   00
      5FBE   03
      5FBF   00
+.SHIP_ESCAPE_POD_VERTICES
 Macro VERTEX:
      5FC0   07
      5FC1   00
@@ -16838,6 +16849,7 @@ Saving file '3-assembled-output/SHIPS.bin'
      7F11   00
      7F12   00
      7F13   1B
+.SHIP_PYTHON_VERTICES
 Macro VERTEX:
      7F14   00
      7F15   00
