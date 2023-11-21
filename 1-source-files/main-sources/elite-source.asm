@@ -11587,7 +11587,7 @@ ENDIF
  STA INWK+27
 
  LDA #194               \ Set the Cobra's byte #30 (pitch counter) to 194, so it
- STA INWK+30            \ pitches as we pull away
+ STA INWK+30            \ pitches up as we pull away
 
  LSR A                  \ Set the Cobra's byte #32 (AI flag) to %01100001, so it
  STA INWK+32            \ has no AI, and we can use this value as a counter to
@@ -12375,7 +12375,7 @@ ENDIF
  STA INWK+30
 
  LDA INWK+29            \ Fetch the roll counter from byte #29 into A and clear
- AND #%01111111         \ the sign bit
+ AND #%01111111         \ the sign bit (to give an endless clockwise roll)
 
  CMP #16                \ If A >= 16 then jump to TA6, as the ship is already
  BCS TA6                \ in the process of rolling
@@ -12388,9 +12388,9 @@ ENDIF
                         \ head in the direction of XX15
 
  EOR INWK+30            \ Set the ship's roll counter to 5, with the sign set to
- AND #%10000000         \ positive if the pitch counter and dot product have
- EOR #%10000101         \ different signs, negative if they have the same sign
- STA INWK+29
+ AND #%10000000         \ positive (clockwise roll) if the pitch counter and dot
+ EOR #%10000101         \ product have different signs, negative (anti-clockwise
+ STA INWK+29            \ roll) if they have the same sign
 
 .TA6
 
@@ -12791,7 +12791,7 @@ ENDIF
  STA (INF),Y
 
  ASL A                  \ Set the ship's byte #30 (pitch counter) to 4, so it
- LDY #30                \ starts pitching
+ LDY #30                \ starts diving
  STA (INF),Y
 
  RTS                    \ Return from the subroutine
@@ -13003,9 +13003,9 @@ ENDIF
  STA INWK+27
 
  LDA #&FF               \ Set the child's byte #29 (roll counter) to a full
- ROR A                  \ roll, so the canister tumbles through space, with
- STA INWK+29            \ damping randomly enabled or disabled, depending on the
-                        \ C flag from above
+ ROR A                  \ roll with no damping (as bits 0 to 6 are set), so the
+ STA INWK+29            \ canister tumbles through space, with the direction in
+                        \ bit 7 set randomly, depending on the C flag from above
 
  LDA #OIL               \ Set A to the ship type of a cargo canister
 
@@ -22975,9 +22975,9 @@ ENDIF
  JSR msblob             \ Reset the dashboard's missile indicators so none of
                         \ them are targeted
 
- LDA #127               \ Set the pitch and roll counters to 127 (no damping
- STA INWK+29            \ so the planet's rotation doesn't slow down)
- STA INWK+30
+ LDA #127               \ Set the pitch and roll counters to 127, so that's a
+ STA INWK+29            \ clockwise roll and a diving pitch with no damping, so
+ STA INWK+30            \ the planet's rotation doesn't slow down
 
  LDA tek                \ Set A = 128 or 130 depending on bit 1 of the system's
  AND #%00000010         \ tech level in tek
@@ -23959,8 +23959,8 @@ ENDIF
                         \ gets created will go into slot FRIN+1, as this will be
                         \ the first empty slot that the routine finds
 
- DEX                    \ Set roll counter to 255 (maximum roll with no
- STX INWK+29            \ damping)
+ DEX                    \ Set the roll counter to 255 (maximum anti-clockwise
+ STX INWK+29            \ roll with no damping)
 
  LDX #10                \ Call NwS1 to flip the sign of nosev_x_hi (byte #10)
  JSR NwS1
@@ -29424,10 +29424,11 @@ ENDIF
                         \ to 96, which is the distance at which the rotating
                         \ ship starts out before coming towards us
 
- LDX #127               \ Set roll counter = 127, so don't dampen the roll
- STX INWK+29
+ LDX #127               \ Set roll counter = 127, so don't dampen the roll and
+ STX INWK+29            \ make the roll direction clockwise
 
- STX INWK+30            \ Set pitch counter = 127, so don't dampen the pitch
+ STX INWK+30            \ Set pitch counter = 127, so don't dampen the pitch and
+                        \ set the pitch direction to dive
 
  INX                    \ Set QQ17 to 128 (so bit 7 is set) to switch to
  STX QQ17               \ Sentence Case, with the next letter printing in upper
