@@ -309,7 +309,7 @@ ENDIF
 \       Type: Variable
 \   Category: Screen mode
 \    Summary: VDU commands for setting the square mode 4 screen
-\  Deep dive: The split-screen mode
+\  Deep dive: The split-screen mode in BBC Micro Elite
 \             Drawing monochrome pixels in mode 4
 \
 \ ------------------------------------------------------------------------------
@@ -633,8 +633,8 @@ ENDIF
 \
 \ The following macro is used to define the four sound envelopes used in the
 \ game. It uses OSWORD 8 to create an envelope using the 14 parameters in the
-\ the I%-th block of 14 bytes at location E%. This OSWORD call is the same as
-\ BBC BASIC's ENVELOPE command.
+\ I%-th block of 14 bytes at location E%. This OSWORD call is the same as BBC
+\ BASIC's ENVELOPE command.
 \
 \ See variable E% for more details of the envelopes themselves.
 \
@@ -662,6 +662,11 @@ ENDMACRO
 \ This part of the loader does a number of calls to OS routines, sets up the
 \ sound envelopes, pushes 33 bytes onto the stack that will be used later, and
 \ sends us on a wild goose chase, just for kicks.
+\
+\ Other entry points:
+\
+\   Ian1                Re-entry point following the wild goose chase
+\                       obfuscation
 \
 \ ******************************************************************************
 
@@ -1119,10 +1124,10 @@ ENDIF
                         \ routine on the stack and returns normally, which might
                         \ happen if crackers manage to unpick the BPUTV
                         \ redirection, then we end up here. We now obfuscate the
-                        \ the first 255 bytes of the location where the main
-                        \ game gets loaded (which is set in C%), just to make
-                        \ things hard, and then we reset the machine... all in
-                        \ a completely twisted manner, of course
+                        \ first 255 bytes of the location where the main game
+                        \ gets loaded (which is set in C%), just to make things
+                        \ hard, and then we reset the machine... all in a
+                        \ completely twisted manner, of course
 
  LDA C%,X               \ Obfuscate the X-th byte of C% by EOR'ing with &A5
  EOR #&A5
@@ -1253,10 +1258,10 @@ ENDIF
 
 \ ******************************************************************************
 \
-\       Name: PLL1
+\       Name: PLL1 (Part 1 of 3)
 \       Type: Subroutine
 \   Category: Drawing planets
-\    Summary: Draw Saturn on the loading screen
+\    Summary: Draw Saturn on the loading screen (draw the planet)
 \  Deep dive: Drawing Saturn on the loading screen
 \
 \ ******************************************************************************
@@ -1387,6 +1392,16 @@ ENDIF
                         \ handler (this has nothing to do with drawing Saturn,
                         \ it's all part of the copy protection)
 
+\ ******************************************************************************
+\
+\       Name: PLL1 (Part 2 of 3)
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Draw Saturn on the loading screen (draw the stars)
+\  Deep dive: Drawing Saturn on the loading screen
+\
+\ ******************************************************************************
+
                         \ The following loop iterates CNT2(1 0) times, i.e. &1DD
                         \ or 477 times, and draws the background stars on the
                         \ loading screen
@@ -1453,6 +1468,16 @@ ENDIF
  STX BLN                \ BLN(1 0) = &03C6, which we will use in the IRQ1
                         \ handler (this has nothing to do with drawing Saturn,
                         \ it's all part of the copy protection)
+
+\ ******************************************************************************
+\
+\       Name: PLL1 (Part 3 of 3)
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Draw Saturn on the loading screen (draw the rings)
+\  Deep dive: Drawing Saturn on the loading screen
+\
+\ ******************************************************************************
 
                         \ The following loop iterates CNT3(1 0) times, i.e. &500
                         \ or 1280 times, and draws the rings around the loading
@@ -1538,8 +1563,8 @@ ENDIF
  CMP #16                \ If A >= 16, skip to PL1 to plot the pixel
  BCS PL1
 
- LDA ZP                 \ If ZP is positive (i.e. r5 < 128), jump down to PLC3 to
- BPL PLC3               \ skip to the next pixel
+ LDA ZP                 \ If ZP is positive (i.e. r5 < 128), jump down to PLC3
+ BPL PLC3               \ to skip to the next pixel
 
 .PL1
 
@@ -1572,8 +1597,8 @@ ENDIF
                         \   r6 = random number from 0 to 255
                         \   r7 = r5, squashed into -32 to 31
                         \
-                        \   x = r5 + r7
-                        \   y = r5
+                        \   x = r6 + r7
+                        \   y = r6
                         \
                         \   32 <= ((r6 + r7)^2 + r5^2 + r6^2) / 256 < 80
                         \
@@ -1598,7 +1623,7 @@ ENDIF
 \
 \       Name: DORND
 \       Type: Subroutine
-\   Category: Utility routines
+\   Category: Maths (Arithmetic)
 \    Summary: Generate random numbers
 \  Deep dive: Generating random numbers
 \             Fixing ship positions
@@ -2715,7 +2740,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Screen mode
 \    Summary: The loader's screen-mode interrupt handler (IRQ1V points here)
-\  Deep dive: The split-screen mode
+\  Deep dive: The split-screen mode in BBC Micro Elite
 \
 \ ------------------------------------------------------------------------------
 \
@@ -2937,6 +2962,10 @@ ENDIF
 \ interrupt vectors and calculates various checksums, before finally handing
 \ over to the main game.
 \
+\ Other entry points:
+\
+\   nononono            Reset the machine
+\
 \ ******************************************************************************
 
  LDA VIA+&44            \ Read the 6522 System VIA T1C-L timer 1 low-order
@@ -3075,6 +3104,11 @@ ENDIF
 \ This routine runs checksum checks on the recursive token table and the loader
 \ code at the start of the main game code file, to prevent tampering with these
 \ areas of memory. It also runs a check on the tape loading block count.
+\
+\ Other entry points:
+\
+\   ENDBLOCK            Denotes the end of the encrypted code that starts at
+\                       BLOCK
 \
 \ ******************************************************************************
 

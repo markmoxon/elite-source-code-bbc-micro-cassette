@@ -1,14 +1,14 @@
 # Fully documented source code for Elite on the BBC Micro
 
-**BBC Micro (cassette)** | [BBC Micro (disc)](https://github.com/markmoxon/disc-elite-beebasm) | [6502 Second Processor](https://github.com/markmoxon/6502sp-elite-beebasm) | [BBC Master](https://github.com/markmoxon/master-elite-beebasm) | [Acorn Electron](https://github.com/markmoxon/electron-elite-beebasm) | [Elite-A](https://github.com/markmoxon/elite-a-beebasm)
+**BBC Micro (cassette)** | [BBC Micro (disc)](https://github.com/markmoxon/disc-elite-beebasm) | [6502 Second Processor](https://github.com/markmoxon/6502sp-elite-beebasm) | [BBC Master](https://github.com/markmoxon/master-elite-beebasm) | [Acorn Electron](https://github.com/markmoxon/electron-elite-beebasm) | [Elite-A](https://github.com/markmoxon/elite-a-beebasm) | [NES](https://github.com/markmoxon/nes-elite-beebasm)
 
 ![Screenshot of Elite on the BBC Micro](https://www.bbcelite.com/images/github/Elite-BBCMicro.png)
 
-This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained.
+This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained It is literally the original source code, just heavily documented.
 
 It is a companion to the [bbcelite.com website](https://www.bbcelite.com).
 
-See the [introduction](#introduction) for more information.
+See the [introduction](#introduction) for more information, or jump straight into the [documented source code](1-source-files/main-sources).
 
 ## Contents
 
@@ -293,7 +293,19 @@ By default the build process builds the source disc variant, but you can build a
 
 ### Building the source disc variant
 
-You can add `variant=source-disc` to produce the `elite-cassette-from-source-disc.ssd` file containing the source disc variant, though that's the default value so it isn't necessary.
+You can add `variant=source-disc` to produce the `elite-cassette-from-source-disc.ssd` file containing the source disc variant, though that's the default value so it isn't necessary. In other words, you can build it like this:
+
+```
+make.bat encrypt verify variant=source-disc
+```
+
+or this on a Mac or Linux:
+
+```
+make encrypt verify variant=source-disc
+```
+
+This will produce a file called `elite-cassette-from-source-disc.NES` in the `5-compiled-game-discs` folder that contains the source disc variant.
 
 The verification checksums for this version are as follows:
 
