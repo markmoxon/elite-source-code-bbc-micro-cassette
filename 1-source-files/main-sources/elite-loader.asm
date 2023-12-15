@@ -307,7 +307,7 @@ ENDIF
 \
 \       Name: B%
 \       Type: Variable
-\   Category: Screen mode
+\   Category: Drawing the screen
 \    Summary: VDU commands for setting the square mode 4 screen
 \  Deep dive: The split-screen mode in BBC Micro Elite
 \             Drawing monochrome pixels in mode 4
@@ -2239,7 +2239,7 @@ ENDIF
 \
 \       Name: block1
 \       Type: Variable
-\   Category: Screen mode
+\   Category: Drawing the screen
 \    Summary: Palette data for the two dashboard colour scheme
 \
 \ ------------------------------------------------------------------------------
@@ -2262,7 +2262,7 @@ ENDIF
 \
 \       Name: block2
 \       Type: Variable
-\   Category: Screen mode
+\   Category: Drawing the screen
 \    Summary: Palette data for the space part of the screen
 \
 \ ------------------------------------------------------------------------------
@@ -2738,7 +2738,7 @@ ENDIF
 \
 \       Name: IRQ1
 \       Type: Subroutine
-\   Category: Screen mode
+\   Category: Drawing the screen
 \    Summary: The loader's screen-mode interrupt handler (IRQ1V points here)
 \  Deep dive: The split-screen mode in BBC Micro Elite
 \
