@@ -27716,16 +27716,16 @@ ENDIF
 
 .SFX
 
- EQUB &12,&01,&00,&10   \ 0  - Lasers fired by us
- EQUB &12,&02,&2C,&08   \ 8  - We're being hit by lasers
- EQUB &11,&03,&F0,&18   \ 16 - We died 1 / We made a hit or kill 2
- EQUB &10,&F1,&07,&1A   \ 24 - We died 2 / We made a hit or kill 1
- EQUB &03,&F1,&BC,&01   \ 32 - Short, high beep
- EQUB &13,&F4,&0C,&08   \ 40 - Long, low beep
- EQUB &10,&F1,&06,&0C   \ 48 - Missile launched / Ship launched from station
- EQUB &10,&02,&60,&10   \ 56 - Hyperspace drive engaged
- EQUB &13,&04,&C2,&FF   \ 64 - E.C.M. on
- EQUB &13,&00,&00,&00   \ 72 - E.C.M. off
+ EQUB &12, &01, &00, &10    \ 0  - Lasers fired by us
+ EQUB &12, &02, &2C, &08    \ 8  - We're being hit by lasers
+ EQUB &11, &03, &F0, &18    \ 16 - We died 1 / We made a hit or kill 2
+ EQUB &10, &F1, &07, &1A    \ 24 - We died 2 / We made a hit or kill 1
+ EQUB &03, &F1, &BC, &01    \ 32 - Short, high beep
+ EQUB &13, &F4, &0C, &08    \ 40 - Long, low beep
+ EQUB &10, &F1, &06, &0C    \ 48 - Missile launched / Ship launched from station
+ EQUB &10, &02, &60, &10    \ 56 - Hyperspace drive engaged
+ EQUB &13, &04, &C2, &FF    \ 64 - E.C.M. on
+ EQUB &13, &00, &00, &00    \ 72 - E.C.M. off
 
 \ ******************************************************************************
 \
