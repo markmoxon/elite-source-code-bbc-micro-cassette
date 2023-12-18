@@ -48,11 +48,11 @@ endif
 ifeq ($(variant), text-sources)
   variant-number=2
   folder=/text-sources
-  suffix=-from-text-sources
+  suffix=-flicker-free-from-text-sources
 else
   variant-number=1
   folder=/source-disc
-  suffix=-from-source-disc
+  suffix=-flicker-free-from-source-disc
 endif
 
 .PHONY:all
