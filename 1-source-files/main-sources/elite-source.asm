@@ -47,9 +47,8 @@
 \
 \ ******************************************************************************
 
- Q% = _REMOVE_CHECKSUMS \ Set Q% to TRUE to max out the default commander, FALSE
-                        \ for the standard default commander (this is set to
-                        \ TRUE if checksums are disabled, just for convenience)
+ Q% = _MAX_COMMANDER    \ Set Q% to TRUE to max out the default commander, FALSE
+                        \ for the standard default commander
 
  NOST = 18              \ The number of stardust particles in normal space (this
                         \ goes down to 3 in witchspace)

@@ -1,58 +1,77 @@
 BEEBASM?=beebasm
 PYTHON?=python
 
-# You can set the variant that gets built by adding 'variant=<rel>' to
-# the make command, where <rel> is one of:
+# A make command with no arguments will build the source disc variant with
+# encrypted binaries, checksums enabled, the standard commander and crc32
+# verification of the game binaries
 #
-#   source-disc
-#   text-sources
+# Optional arguments for the make command are:
+#
+#   variant=<release>   Build the specified variant:
+#
+#                         source-disc (default)
+#                         text-sources
+#
+#   commander=max       Start with a maxed-out commander
+#
+#   encrypt=no          Disable encryption and checksum routines
+#
+#   verify=no           Disable crc32 verification of the game binaries
 #
 # So, for example:
 #
-#   make encrypt verify variant=text-sources
+#   make variant=text-sources commander=max encrypt=no verify=no
 #
-# will build the variant from the text sources on Ian Bell's site. If you
-# omit the variant parameter, it will build the source disc variant.
+# will build an unencrypted text sources variant with a maxed-out commander
+# and no crc32 verification
 
-ifeq ($(variant), text-sources)
-  variant-cassette=2
-  folder-cassette=/text-sources
-  suffix-cassette=-from-text-sources
+ifeq ($(commander), max)
+  max-commander=TRUE
 else
-  variant-cassette=1
-  folder-cassette=/source-disc
-  suffix-cassette=-from-source-disc
+  max-commander=FALSE
 endif
 
-.PHONY:build
-build:
+ifeq ($(encrypt), no)
+  unencrypt=-u
+  remove-checksums=TRUE
+else
+  unencrypt=
+  remove-checksums=FALSE
+endif
+
+ifeq ($(match), no)
+  match-original-binaries=FALSE
+else
+  match-original-binaries=TRUE
+endif
+
+ifeq ($(variant), text-sources)
+  variant-number=2
+  folder=/text-sources
+  suffix=-from-text-sources
+else
+  variant-number=1
+  folder=/source-disc
+  suffix=-from-source-disc
+endif
+
+.PHONY:all
+all:
 	echo _VERSION=1 > 1-source-files/main-sources/elite-build-options.asm
-	echo _VARIANT=$(variant-cassette) >> 1-source-files/main-sources/elite-build-options.asm
-	echo _REMOVE_CHECKSUMS=TRUE >> 1-source-files/main-sources/elite-build-options.asm
+	echo _VARIANT=$(variant-number) >> 1-source-files/main-sources/elite-build-options.asm
+	echo _REMOVE_CHECKSUMS=$(remove-checksums) >> 1-source-files/main-sources/elite-build-options.asm
+	echo _MAX_COMMANDER=$(max-commander) >> 1-source-files/main-sources/elite-build-options.asm
 	$(BEEBASM) -i 1-source-files/main-sources/elite-source.asm -v > 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-bcfs.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-loader.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-readme.asm -v >> 3-assembled-output/compile.txt
-	$(PYTHON) 2-build-files/elite-checksum.py -u -rel$(variant-cassette)
-	$(BEEBASM) -i 1-source-files/main-sources/elite-disc.asm -do 5-compiled-game-discs/elite-cassette$(suffix-cassette).ssd -boot ELTdata -title "E L I T E"
-
-.PHONY:encrypt
-encrypt:
-	echo _VERSION=1 > 1-source-files/main-sources/elite-build-options.asm
-	echo _VARIANT=$(variant-cassette) >> 1-source-files/main-sources/elite-build-options.asm
-	echo _REMOVE_CHECKSUMS=FALSE >> 1-source-files/main-sources/elite-build-options.asm
-	$(BEEBASM) -i 1-source-files/main-sources/elite-source.asm -v > 3-assembled-output/compile.txt
-	$(BEEBASM) -i 1-source-files/main-sources/elite-bcfs.asm -v >> 3-assembled-output/compile.txt
-	$(BEEBASM) -i 1-source-files/main-sources/elite-loader.asm -v >> 3-assembled-output/compile.txt
-	$(BEEBASM) -i 1-source-files/main-sources/elite-readme.asm -v >> 3-assembled-output/compile.txt
-	$(PYTHON) 2-build-files/elite-checksum.py -rel$(variant-cassette)
-	$(BEEBASM) -i 1-source-files/main-sources/elite-disc.asm -do 5-compiled-game-discs/elite-cassette$(suffix-cassette).ssd -boot ELTdata -title "E L I T E"
-
-.PHONY:verify
-verify:
-	@$(PYTHON) 2-build-files/crc32.py 4-reference-binaries$(folder-cassette) 3-assembled-output
+	$(PYTHON) 2-build-files/elite-checksum.py $(unencrypt) -rel$(variant-number)
+	$(BEEBASM) -i 1-source-files/main-sources/elite-disc.asm -do 5-compiled-game-discs/elite-cassette$(suffix).ssd -boot ELTdata -title "E L I T E"
+ifneq ($(verify), no)
+	@$(PYTHON) 2-build-files/crc32.py 4-reference-binaries$(folder) 3-assembled-output
+endif
 
 .PHONY:b2
 b2:
 	curl -G "http://localhost:48075/reset/b2"
-	curl -H "Content-Type:application/binary" --upload-file "5-compiled-game-discs/elite-cassette$(suffix-cassette).ssd" "http://localhost:48075/run/b2?name=elite-cassette$(suffix-cassette).ssd"
+	curl -H "Content-Type:application/binary" --upload-file "5-compiled-game-discs/elite-cassette$(suffix).ssd" "http://localhost:48075/run/b2?name=elite-cassette$(suffix).ssd"
