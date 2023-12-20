@@ -98,6 +98,8 @@
 \ checks the result against the result in the first byte of the LE% block,
 \ CHECKbyt, at address &0B00.
 \
+\ ------------------------------------------------------------------------------
+\
 \ Other entry points:
 \
 \   LBL+2               Contains an RTS
