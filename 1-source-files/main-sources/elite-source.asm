@@ -35101,8 +35101,8 @@ ENDMACRO
                         \
                         \   XX12(1 0) = y-coordinate of the end of the beam
                         \
-                        \ The end of the laser beam will be set positioned to
-                        \ look good, rather than being directly aimed at us, as
+                        \ The end of the laser beam will be positioned to look
+                        \ good, rather than being directly aimed at us, as
                         \ otherwise we would only see a flashing point of light
                         \ as they unleashed their attack
 
