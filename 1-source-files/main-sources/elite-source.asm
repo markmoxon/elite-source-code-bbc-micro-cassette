@@ -24929,15 +24929,15 @@ ENDIF
 \
 \       Name: PROJ
 \       Type: Subroutine
-\   Category: Drawing ships
-\    Summary: Project the current ship onto the screen
+\   Category: Maths (Geometry)
+\    Summary: Project the current ship or planet onto the screen
 \  Deep dive: Extended screen coordinates
 \
 \ ------------------------------------------------------------------------------
 \
-\ Project the current ship's location onto the screen, either returning the
-\ screen coordinates of the projection (if it's on-screen), or returning an
-\ error via the C flag.
+\ Project the current ship's location or the planet onto the screen, either
+\ returning the screen coordinates of the projection (if it's on-screen), or
+\ returning an error via the C flag.
 \
 \ In this context, "on-screen" means that the point is projected into the
 \ following range:
