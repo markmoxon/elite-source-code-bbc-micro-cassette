@@ -145,7 +145,7 @@ You will need the following to build Elite from the source:
 
 * BeebAsm, which can be downloaded from the [BeebAsm repository](https://github.com/stardot/beebasm). Mac and Linux users will have to build their own executable with `make code`, while Windows users can just download the `beebasm.exe` file.
 
-* Python. Both versions 2.7 and 3.x should work.
+* Python. The build process has only been tested on 3.x, but 2.7 should work.
 
 * Mac and Linux users may need to install `make` if it isn't already present (for Windows users, `make.exe` is included in this repository).
 
