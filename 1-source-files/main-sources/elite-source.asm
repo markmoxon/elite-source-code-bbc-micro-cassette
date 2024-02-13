@@ -4707,10 +4707,26 @@ ENDMACRO
                         \ fair distance from the planet, so jump to MA23 as we
                         \ haven't crashed into the planet
 
- SBC #36                \ Subtract 36 from x_hi^2 + y_hi^2 + z_hi^2. The radius
-                        \ of the planet is defined as 6 units and 6^2 = 36, so
-                        \ A now contains the high byte of our altitude above
-                        \ the planet surface, squared
+ SBC #36                \ Subtract 36 from x_hi^2 + y_hi^2 + z_hi^2
+                        \
+                        \ When we do the 3D Pythagoras calculation, we only use
+                        \ the high bytes of the coordinates, so that's x_hi,
+                        \ y_hi and z_hi and
+                        \
+                        \ The planet radius is (0 96 0), as defined in the
+                        \ PLANET routine, so the high byte is 96
+                        \
+                        \ When we square the coordinates above and add them,
+                        \ the result gets divided by 256 (otherwise the result
+                        \ wouldn't fit into one byte), so if we do the same for
+                        \ the planet's radius, we get:
+                        \
+                        \   96 * 96 / 256 = 36
+                        \
+                        \ So for the planet, the equivalent figure to test the
+                        \ sum of the _hi bytes against is 36, so A now contains
+                        \ the high byte of our altitude above the planet
+                        \ surface, squared
 
  BCC MA28               \ If A < 0 then jump to MA28 as we have crashed into
                         \ the planet
