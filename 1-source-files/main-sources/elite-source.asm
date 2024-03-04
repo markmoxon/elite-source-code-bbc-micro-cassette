@@ -59,13 +59,21 @@
  NTY = 13               \ The number of different ship types
 
  COPS = 2               \ Ship type for a Viper
+
  THG = 6                \ Ship type for a Thargoid
+
  CYL = 7                \ Ship type for a Cobra Mk III (trader)
+
  SST = 8                \ Ship type for the space station
+
  MSL = 9                \ Ship type for a missile
+
  AST = 10               \ Ship type for an asteroid
+
  OIL = 11               \ Ship type for a cargo canister
+
  TGL = 12               \ Ship type for a Thargon
+
  ESC = 13               \ Ship type for an escape pod
 
  POW = 15               \ Pulse laser power
@@ -76,17 +84,27 @@
  VSCAN = 57             \ Defines the split position in the split-screen mode
 
  X = 128                \ The centre x-coordinate of the 256 x 192 space view
+
  Y = 96                 \ The centre y-coordinate of the 256 x 192 space view
 
  f0 = &20               \ Internal key number for red key f0 (Launch, Front)
+
  f1 = &71               \ Internal key number for red key f1 (Buy Cargo, Rear)
+
  f2 = &72               \ Internal key number for red key f2 (Sell Cargo, Left)
+
  f3 = &73               \ Internal key number for red key f3 (Equip Ship, Right)
+
  f4 = &14               \ Internal key number for red key f4 (Long-range Chart)
+
  f5 = &74               \ Internal key number for red key f5 (Short-range Chart)
+
  f6 = &75               \ Internal key number for red key f6 (Data on System)
+
  f7 = &16               \ Internal key number for red key f7 (Market Price)
+
  f8 = &76               \ Internal key number for red key f8 (Status Mode)
+
  f9 = &77               \ Internal key number for red key f9 (Inventory)
 
  RE = &23               \ The obfuscation byte used to hide the recursive tokens
