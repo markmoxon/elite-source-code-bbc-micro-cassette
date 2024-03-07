@@ -50,6 +50,26 @@
  DISC = TRUE            \ Set to TRUE to load the code above DFS and relocate
                         \ down, so we can load the cassette version from disc
 
+IF DISC
+
+ CODE% = &1100          \ CODE% is set to the assembly address of the loader
+                        \ code file that we assemble in this file ("ELITE"),
+                        \ which is at the lowest DFS page value of &1100 for the
+                        \ version that loads from disc
+
+ELSE
+
+ CODE% = &0E00          \ CODE% is set to the assembly address of the loader
+                        \ code file that we assemble in this file ("ELITE"),
+                        \ which is at the standard &0E00 address for the version
+                        \ that loads from cassette
+
+ENDIF
+
+ LOAD% = &1100          \ LOAD% is the load address of the main game code file
+                        \ ("ELTcode" for loading from disc, "ELITEcode" for
+                        \ loading from tape)
+
  PROT = FALSE           \ Set to TRUE to enable the tape protection code
 
  LEN1 = 15              \ Size of the BEGIN% routine that gets pushed onto the
@@ -122,7 +142,9 @@ ENDIF
                         \ known as SHEILA)
 
  OSWRCH = &FFEE         \ The address for the OSWRCH routine
+
  OSBYTE = &FFF4         \ The address for the OSBYTE routine
+
  OSWORD = &FFF1         \ The address for the OSWORD routine
 
 \ ******************************************************************************
@@ -212,26 +234,6 @@ ENDIF
 \ ELITE LOADER
 \
 \ ******************************************************************************
-
-IF DISC
-
- CODE% = &1100          \ CODE% is set to the assembly address of the loader
-                        \ code file that we assemble in this file ("ELITE"),
-                        \ which is at the lowest DFS page value of &1100 for the
-                        \ version that loads from disc
-
-ELSE
-
- CODE% = &0E00          \ CODE% is set to the assembly address of the loader
-                        \ code file that we assemble in this file ("ELITE"),
-                        \ which is at the standard &0E00 address for the version
-                        \ that loads from cassette
-
-ENDIF
-
- LOAD% = &1100          \ LOAD% is the load address of the main game code file
-                        \ ("ELTcode" for loading from disc, "ELITEcode" for
-                        \ loading from tape)
 
  ORG CODE%
 
