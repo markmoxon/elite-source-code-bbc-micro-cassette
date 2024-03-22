@@ -290,7 +290,7 @@ or this on a Mac or Linux:
 make variant=source-disc
 ```
 
-This will produce a file called `elite-cassette-from-source-disc.NES` in the `5-compiled-game-discs` folder that contains the source disc variant.
+This will produce a file called `elite-cassette-from-source-disc.ssd` in the `5-compiled-game-discs` folder that contains the source disc variant.
 
 The verification checksums for this version are as follows:
 
