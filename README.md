@@ -1,11 +1,11 @@
-# Fully documented source code for Elite on the BBC Micro
+# Fully documented source code for the cassette version of Elite on the BBC Micro
 
 **BBC Micro cassette Elite** | [BBC Micro disc Elite](https://github.com/markmoxon/disc-elite-beebasm) | [6502 Second Processor Elite](https://github.com/markmoxon/6502sp-elite-beebasm) | [BBC Master Elite](https://github.com/markmoxon/master-elite-beebasm) | [Acorn Electron Elite](https://github.com/markmoxon/electron-elite-beebasm) | [NES Elite](https://github.com/markmoxon/nes-elite-beebasm) | [Elite-A](https://github.com/markmoxon/elite-a-beebasm) | [Teletext Elite](https://github.com/markmoxon/teletext-elite) | [Elite Universe Editor](https://github.com/markmoxon/elite-universe-editor) | [Elite Compendium](https://github.com/markmoxon/elite-compendium) | [Elite over Econet](https://github.com/markmoxon/elite-over-econet) | [Flicker-free Commodore 64 Elite](https://github.com/markmoxon/c64-elite-flicker-free) | [BBC Micro Aviator](https://github.com/markmoxon/aviator-beebasm) | [BBC Micro Revs](https://github.com/markmoxon/revs-beebasm) | [Archimedes Lander](https://github.com/markmoxon/archimedes-lander)
 
 
 ![Screenshot of Elite on the BBC Micro](https://www.bbcelite.com/images/github/Elite-BBCMicro.png)
 
-This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained. It is literally the original source code, just heavily documented.
+This repository contains the original source code for the cassette version of Elite on the BBC Micro, with every single line documented and (for the most part) explained. It is literally the original source code, just heavily documented.
 
 It is a companion to the [bbcelite.com website](https://www.bbcelite.com).
 
@@ -48,7 +48,7 @@ See the [introduction](#introduction) for more information, or jump straight int
 
 ## Introduction
 
-This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained.
+This repository contains the original source code for the cassette version of Elite on the BBC Micro, with every single line documented and (for the most part) explained.
 
 You can build the fully functioning game from this source. [Two variants](#building-different-variants-of-the-cassette-version-of-elite) are currently supported: the version produced by the original source discs from Ian Bell's personal website, and the version built from the text sources from the same site.
 
