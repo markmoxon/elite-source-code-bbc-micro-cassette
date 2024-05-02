@@ -401,11 +401,22 @@ ENDIF
                         \ is 49 for modes 4 and 5, but needs to be adjusted for
                         \ our custom screen's width
 
- EQUB 23, 0, 10, 32     \ Set 6845 register R10 = 32
+ EQUB 23, 0, 10, 32     \ Set 6845 register R10 = %00100000 = 32
  EQUB 0, 0, 0           \
- EQUB 0, 0, 0           \ This is the "cursor start" register, so this sets the
-                        \ cursor start line at 0, effectively disabling the
-                        \ cursor
+ EQUB 0, 0, 0           \ This is the "cursor start" register, and bits 5 and 6
+                        \ can be used to control the appearance of the cursor:
+                        \
+                        \   * Bit 5 = 0 for cursor on  (for steady cursors)
+                        \               for fast blink (for blinking cursors)
+                        \           = 1 for cursor off (for steady cursors)
+                        \               for slow blink (for blinking cursors)
+                        \
+                        \   * Bit 6 = 0 for a steady cursor
+                        \             1 for a blinking cursor
+                        \
+                        \ We can therefore turn off the cursor completely by
+                        \ setting it to a steady cursor (bit 6 is clear) that
+                        \ is turned off (bit 5 is set)
 
 \ ******************************************************************************
 \
