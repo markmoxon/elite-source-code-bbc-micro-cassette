@@ -41,6 +41,7 @@
 
  _SOURCE_DISC           = (_VARIANT = 1)
  _TEXT_SOURCES          = (_VARIANT = 2)
+ _STH_CASSETTE          = (_VARIANT = 3)
 
  GUARD &8000            \ Guard against assembling over MOS memory
 
@@ -211,8 +212,18 @@
 
  PRINT "checksum0 = ", ~P%
 
+IF _SOURCE_DISC OR _TEXT_SOURCES
+
  SKIP 1                 \ We skip this byte so we can insert the checksum later
                         \ in elite-checksum.py
+
+ELIF _STH_CASSETTE
+
+ EQUB &20               \ We skip this byte so we can insert the checksum later
+                        \ in elite-checksum.py; it contains workspace noise in
+                        \ the Stairway to Hell variant
+
+ENDIF
 
 .ships
 

@@ -40,6 +40,7 @@ See the [introduction](#introduction) for more information, or jump straight int
 
   * [Building the source disc variant](#building-the-source-disc-variant)
   * [Building the text sources variant](#building-the-text-sources-variant)
+  * [Building the Stairway to Hell variant](#building-the-stairway-to-hell-variant)
   * [Differences between the variants](#differences-between-the-variants)
 
 * [Notes on the original source files](#notes-on-the-original-source-files)
@@ -50,7 +51,7 @@ See the [introduction](#introduction) for more information, or jump straight int
 
 This repository contains the original source code for the cassette version of Elite on the BBC Micro, with every single line documented and (for the most part) explained.
 
-You can build the fully functioning game from this source. [Two variants](#building-different-variants-of-the-cassette-version-of-elite) are currently supported: the version produced by the original source discs from Ian Bell's personal website, and the version built from the text sources from the same site.
+You can build the fully functioning game from this source. [Three variants](#building-different-variants-of-the-cassette-version-of-elite) are currently supported: the version produced by the original source discs from Ian Bell's personal website, the version built from the text sources from the same site, and the UEF version from the Stairway to Hell archive.
 
 It is a companion to the [bbcelite.com website](https://www.bbcelite.com), which contains all the code from this repository, but laid out in a much more human-friendly fashion. The links at the top of this page will take you to repositories for the other versions of Elite that are covered by this project.
 
@@ -185,6 +186,10 @@ By default the build process will create a typical Elite game disc with a standa
 
   * `variant=source-disc` (default)
   * `variant=text-sources`
+
+* `disc=no` - Build a version to load from cassette rather than disc (the default is to build a version that loads from disc)
+
+* `protect=no` - When building for cassette with `disc=no`, the loader contains block-level tape protection code, which you can disable with this argument (the protection only works if you save the ELITEcode file to tape with corrupted block data, so if you want to copy the results to a UEF without re-implementing the Acornsoft protection system, you should use this argument)
 
 * `commander=max` - Start with a maxed-out commander (specifically, this is the test commander file from the original source, which is almost but not quite maxed-out)
 
@@ -355,6 +360,48 @@ ce0d9ec7   2663  ce0d9ec7   2663   Yes   ELTE.bin
 8f4b6f2b   2502  8f4b6f2b   2502   Yes   SHIPS.bin
 c4547e5e   1023  c4547e5e   1023   Yes   WORDS9.bin
 ```
+
+### Building the Stairway to Hell variant
+
+You can build the Stairway to Hell variant by appending `variant=sth` to the `make` command, like this on Windows:
+
+```
+make.bat variant=sth
+```
+
+or this on a Mac or Linux:
+
+```
+make variant=sth
+```
+
+This will produce a file called `elite-cassette-sth.ssd` in the `5-compiled-game-discs` folder that contains the Stairway to Hell variant.
+
+The verification checksums for this version are as follows:
+
+```
+Results for variant: sth
+[--originals--]  [---output----]
+Checksum   Size  Checksum   Size  Match  Filename
+-----------------------------------------------------------
+a88ca82b   5426  a88ca82b   5426   Yes   ELITE.bin
+f40816ec   5426  f40816ec   5426   Yes   ELITE.unprot.bin
+b17f9589   2228  b17f9589   2228   Yes   ELTA.bin
+82de44f7   2600  82de44f7   2600   Yes   ELTB.bin
+f005a7bf   2732  f005a7bf   2732   Yes   ELTC.bin
+ac3476d9   2887  ac3476d9   2887   Yes   ELTD.bin
+3084f112   2663  3084f112   2663   Yes   ELTE.bin
+e46bac22   2719  e46bac22   2719   Yes   ELTF.bin
+b4ac917d   2340  b4ac917d   2340   Yes   ELTG.bin
+b1bf493e  20712  b1bf493e  20712   Yes   ELTcode.bin
+33de34f5  20712  33de34f5  20712   Yes   ELTcode.unprot.bin
+00d5bb7a     40  00d5bb7a     40   Yes   ELThead.bin
+99529ca8    256  99529ca8    256   Yes   PYTHON.bin
+49ee043c   2502  49ee043c   2502   Yes   SHIPS.bin
+c4547e5e   1023  c4547e5e   1023   Yes   WORDS9.bin
+```
+
+If you add the `disc=no` build parameter, then the build will produce binaries that are designed to be loaded from cassette rather that disc. The verification step will compare the results to the exact binaries from the UEF from the Stairway to Hell archive. These binaries have block-level tape protection enabled by default, which you can override with `protect=no`.
 
 ### Differences between the variants
 

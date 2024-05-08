@@ -38,6 +38,7 @@
 
  _SOURCE_DISC           = (_VARIANT = 1)
  _TEXT_SOURCES          = (_VARIANT = 2)
+ _STH_CASSETTE          = (_VARIANT = 3)
 
  GUARD &6000            \ Guard against assembling over screen memory
 
@@ -15885,7 +15886,7 @@ IF _SOURCE_DISC
  ADC MANY+OIL           \ no way that adding the number of asteroids and the
  TAX                    \ number escape pods will cause a carry
 
-ELIF _TEXT_SOURCES
+ELIF _TEXT_SOURCES OR _STH_CASSETTE
 
  LDA MANY+AST           \ Set X to the total number of asteroids, escape pods
  CLC                    \ and cargo canisters in the vicinity
@@ -15935,7 +15936,7 @@ IF _SOURCE_DISC
  BCC WA1                \ with a low beep, as we are facing the planet and are
                         \ too close to jump in that direction
 
-ELIF _TEXT_SOURCES
+ELIF _TEXT_SOURCES OR _STH_CASSETTE
 
  LSR A                  \ If A < 2 then jump to WA1 to abort the in-system jump
  BEQ WA1                \ with a low beep, as we are facing the planet and are
@@ -15973,7 +15974,7 @@ IF _SOURCE_DISC
  BCC WA1                \ with a low beep, as we are facing the planet and are
                         \ too close to jump in that direction
 
-ELIF _TEXT_SOURCES
+ELIF _TEXT_SOURCES OR _STH_CASSETTE
 
  LSR A                  \ If A < 2 then jump to WA1 to abort the in-system jump
  BEQ WA1                \ with a low beep, as we are facing the planet and are
@@ -16494,7 +16495,7 @@ IF _SOURCE_DISC
  ASL A                  \ Set LASCT to 0, as 128 << 1 = %10000000 << 1 = 0. This
  STA LASCT              \ stops any laser pulsing
 
-ELIF _TEXT_SOURCES
+ELIF _TEXT_SOURCES OR _STH_CASSETTE
 
  ASL A                  \ Set LAS2 to 0, as 128 << 1 = %10000000 << 1 = 0. This
  STA LAS2               \ stops any laser pulsing
@@ -20001,8 +20002,12 @@ ENDIF
  INX                    \ We own a galactic hyperdrive, so X is &FF, so this
                         \ instruction sets X = 0
 
+IF _SOURCE_DISC OR _TEXT_SOURCES
+
  STX QQ8                \ Set the distance to the selected system in QQ8(1 0)
  STX QQ8+1              \ to 0
+
+ENDIF
 
  STX GHYP               \ The galactic hyperdrive is a one-use item, so set GHYP
                         \ to 0 so we no longer have one fitted
@@ -20047,6 +20052,32 @@ ENDIF
  STA QQ10               \ set to the nearest actual system later on)
 
  JSR TT110              \ Call TT110 to show the front space view
+
+IF _STH_CASSETTE
+
+ JSR TT111              \ Call TT111 to set the current system to the nearest
+                        \ system to (QQ9, QQ10), and put the seeds of the
+                        \ nearest system into QQ15 to QQ15+5
+                        \
+                        \ This call fixes a bug in the early cassette versions,
+                        \ where the galactic hyperdrive will take us to
+                        \ coordinates (96, 96) in the new galaxy, even if there
+                        \ isn't actually a system there, so if we jump when we
+                        \ are low on fuel, it is possible to get stuck in the
+                        \ middle of nowhere when changing galaxy
+                        \
+                        \ This call sets the current system correctly, so we
+                        \ always arrive at the nearest system to (96, 96)
+
+ENDIF
+
+IF _STH_CASSETTE
+
+ LDX #0                 \ Set the distance to the selected system in QQ8(1 0)
+ STX QQ8                \ to 0
+ STX QQ8+1
+
+ENDIF
 
  LDA #116               \ Print recursive token 116 (GALACTIC HYPERSPACE ")
  JSR MESS               \ as an in-flight message
@@ -27853,7 +27884,7 @@ IF _SOURCE_DISC
  LDA MSTG               \ Check whether this slot matches the slot number in
  CMP XX4                \ MSTG, which is the target of our missile lock
 
-ELIF _TEXT_SOURCES
+ELIF _TEXT_SOURCES OR _STH_CASSETTE
 
  CPX MSTG               \ Check whether this slot matches the slot number in
                         \ MSTG, which is the target of our missile lock
