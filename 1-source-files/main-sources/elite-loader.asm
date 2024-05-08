@@ -38,6 +38,7 @@
 
  _SOURCE_DISC           = (_VARIANT = 1)
  _TEXT_SOURCES          = (_VARIANT = 2)
+ _STH_CASSETTE          = (_VARIANT = 3)
 
  GUARD &6000            \ Guard against assembling over screen memory
 
@@ -47,8 +48,15 @@
 \
 \ ******************************************************************************
 
- DISC = TRUE            \ Set to TRUE to load the code above DFS and relocate
-                        \ down, so we can load the cassette version from disc
+ DISC = _DISC           \ Set to TRUE to load the code above DFS and relocate
+                        \ down, so we can load the cassette version from disc,
+                        \ or set to FALSE to load the code as if it were from a
+                        \ cassette
+
+ PROT = _PROT           \ Set to TRUE to enable the tape protection code, or set
+                        \ to FALSE to disable the code (for TRUE, the file must
+                        \ be saved to tape with the block data corrupted, so you
+                        \ probably want to leave this as FALSE)
 
 IF DISC
 
@@ -57,6 +65,14 @@ IF DISC
                         \ which is at the lowest DFS page value of &1100 for the
                         \ version that loads from disc
 
+ LOAD% = &1100          \ LOAD% is the load address of the main game code file
+                        \ ("ELTcode" for loading from disc, "ELITEcode" for
+                        \ loading from tape)
+
+ L% = &1128             \ L% points to the start of the actual game code from
+                        \ elite-source.asm, after the &28 bytes of header code
+                        \ that are inserted by elite-bcfs.asm
+
 ELSE
 
  CODE% = &0E00          \ CODE% is set to the assembly address of the loader
@@ -64,13 +80,15 @@ ELSE
                         \ which is at the standard &0E00 address for the version
                         \ that loads from cassette
 
-ENDIF
-
- LOAD% = &1100          \ LOAD% is the load address of the main game code file
+ LOAD% = &0F1F          \ LOAD% is the load address of the main game code file
                         \ ("ELTcode" for loading from disc, "ELITEcode" for
                         \ loading from tape)
 
- PROT = FALSE           \ Set to TRUE to enable the tape protection code
+ L% = &0F47             \ L% points to the start of the actual game code from
+                        \ elite-source.asm, after the &28 bytes of header code
+                        \ that are inserted by elite-bcfs.asm
+
+ENDIF
 
  LEN1 = 15              \ Size of the BEGIN% routine that gets pushed onto the
                         \ stack and executed there
@@ -110,10 +128,6 @@ ENDIF
 
  S% = C%                \ S% points to the entry point for the main game code
 
- L% = &1128             \ L% points to the start of the actual game code from
-                        \ elite-source.asm, after the &28 bytes of header code
-                        \ that are inserted by elite-bcfs.asm
-
 IF _SOURCE_DISC
 
  D% = &563A             \ D% is set to the size of the main game code
@@ -121,6 +135,10 @@ IF _SOURCE_DISC
 ELIF _TEXT_SOURCES
 
  D% = &5638             \ D% is set to the size of the main game code
+
+ELIF _STH_CASSETTE
+
+ D% = &563A             \ D% is set to the size of the main game code
 
 ENDIF
 
@@ -401,11 +419,22 @@ ENDIF
                         \ is 49 for modes 4 and 5, but needs to be adjusted for
                         \ our custom screen's width
 
- EQUB 23, 0, 10, 32     \ Set 6845 register R10 = 32
+ EQUB 23, 0, 10, 32     \ Set 6845 register R10 = %00100000 = 32
  EQUB 0, 0, 0           \
- EQUB 0, 0, 0           \ This is the "cursor start" register, so this sets the
-                        \ cursor start line at 0, effectively disabling the
-                        \ cursor
+ EQUB 0, 0, 0           \ This is the "cursor start" register, and bits 5 and 6
+                        \ can be used to control the appearance of the cursor:
+                        \
+                        \   * Bit 5 = 0 for cursor on  (for steady cursors)
+                        \               for fast blink (for blinking cursors)
+                        \           = 1 for cursor off (for steady cursors)
+                        \               for slow blink (for blinking cursors)
+                        \
+                        \   * Bit 6 = 0 for a steady cursor
+                        \             1 for a blinking cursor
+                        \
+                        \ We can therefore turn off the cursor completely by
+                        \ setting it to a steady cursor (bit 6 is clear) that
+                        \ is turned off (bit 5 is set)
 
 \ ******************************************************************************
 \
@@ -680,7 +709,7 @@ ENDMACRO
 
  CLD                    \ Clear the decimal flag, so we're not in decimal mode
 
-IF DISC = 0
+IF NOT(DISC)
 
  LDA #0                 \ Call OSBYTE with A = 0 and X = 255 to fetch the
  LDX #255               \ operating system version into X
@@ -863,7 +892,7 @@ ENDIF
  LDX #3                 \ the ESCAPE key and clear memory if the BREAK key is
  JSR OSB                \ pressed
 
-IF PROT AND DISC = 0
+IF PROT AND NOT(DISC)
 
  CPX #3                 \ If the previous value of X from the call to OSBYTE 200
  BNE abrk+1             \ was not 3 (ESCAPE disabled, clear memory), jump to
@@ -1051,15 +1080,31 @@ ENDIF
  JSR crunchit           \ Call crunchit to move and decrypt &800 bytes from
                         \ CODE% + &4 to &7800, so this moves P.DIALS and PYTHON
 
- LDX #(3-(DISC AND 1))  \ Set the following:
+IF DISC
+
+ LDX #2                 \ Set the following:
  LDA #HI(UU%)           \
  STA ZP+1               \   P(1 0) = LE%
  LDA #LO(UU%)           \   ZP(1 0) = UU%
- STA ZP                 \   (X Y) = &300 = 768 (if we are building for tape)
- LDA #HI(LE%)           \        or &200 = 512 (if we are building for disc)
+ STA ZP                 \   (X Y) = &200 = 512 (as we are building for disc)
+ LDA #HI(LE%)
  STA P+1
  LDY #0
  STY P
+
+ELSE
+
+ LDX #3                 \ Set the following:
+ LDA #HI(UU%)           \
+ STA ZP+1               \   P(1 0) = LE%
+ LDA #LO(UU%)           \   ZP(1 0) = UU%
+ STA ZP                 \   (X Y) = &300 = 768 (as we are building for tape)
+ LDA #HI(LE%)
+ STA P+1
+ LDY #0
+ STY P
+
+ENDIF
 
  JSR crunchit           \ Call crunchit to move and decrypt either &200 or &300
                         \ bytes from UU% to LE%, leaving X = 0
@@ -2802,7 +2847,7 @@ ENDIF
  TYA                    \ Store Y on the stack
  PHA
 
-IF PROT AND DISC = 0
+IF PROT AND NOT(DISC)
 
                         \ By this point, we have set up the following in
                         \ various places throughout the loader code (such as
@@ -3214,7 +3259,7 @@ ENDIF
                         \ loading code in the IRQ1 routine, which counts the
                         \ number of blocks in the main game code
 
-IF PROT AND DISC = 0
+IF PROT AND NOT(DISC)
 
  LDA BLCNT              \ If the tape protection is enabled and we are loading
  CMP #&4F               \ from tape (as opposed to disc), check that the block

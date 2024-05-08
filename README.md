@@ -1,11 +1,11 @@
-# Fully documented source code for Elite on the BBC Micro
+# Fully documented source code for the cassette version of Elite on the BBC Micro
 
 **BBC Micro cassette Elite** | [BBC Micro disc Elite](https://github.com/markmoxon/disc-elite-beebasm) | [6502 Second Processor Elite](https://github.com/markmoxon/6502sp-elite-beebasm) | [BBC Master Elite](https://github.com/markmoxon/master-elite-beebasm) | [Acorn Electron Elite](https://github.com/markmoxon/electron-elite-beebasm) | [NES Elite](https://github.com/markmoxon/nes-elite-beebasm) | [Elite-A](https://github.com/markmoxon/elite-a-beebasm) | [Teletext Elite](https://github.com/markmoxon/teletext-elite) | [Elite Universe Editor](https://github.com/markmoxon/elite-universe-editor) | [Elite Compendium](https://github.com/markmoxon/elite-compendium) | [Elite over Econet](https://github.com/markmoxon/elite-over-econet) | [Flicker-free Commodore 64 Elite](https://github.com/markmoxon/c64-elite-flicker-free) | [BBC Micro Aviator](https://github.com/markmoxon/aviator-beebasm) | [BBC Micro Revs](https://github.com/markmoxon/revs-beebasm) | [Archimedes Lander](https://github.com/markmoxon/archimedes-lander)
 
 
 ![Screenshot of Elite on the BBC Micro](https://www.bbcelite.com/images/github/Elite-BBCMicro.png)
 
-This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained. It is literally the original source code, just heavily documented.
+This repository contains the original source code for the cassette version of Elite on the BBC Micro, with every single line documented and (for the most part) explained. It is literally the original source code, just heavily documented.
 
 It is a companion to the [bbcelite.com website](https://www.bbcelite.com).
 
@@ -38,6 +38,7 @@ See the [introduction](#introduction) for more information, or jump straight int
 
 * [Building different variants of the cassette version of Elite](#building-different-variants-of-the-cassette-version-of-elite)
 
+  * [Building the Stairway to Hell variant](#building-the-stairway-to-hell-variant)
   * [Building the source disc variant](#building-the-source-disc-variant)
   * [Building the text sources variant](#building-the-text-sources-variant)
   * [Differences between the variants](#differences-between-the-variants)
@@ -48,9 +49,9 @@ See the [introduction](#introduction) for more information, or jump straight int
 
 ## Introduction
 
-This repository contains the original source code for Elite on the BBC Micro, with every single line documented and (for the most part) explained.
+This repository contains the original source code for the cassette version of Elite on the BBC Micro, with every single line documented and (for the most part) explained.
 
-You can build the fully functioning game from this source. [Two variants](#building-different-variants-of-the-cassette-version-of-elite) are currently supported: the version produced by the original source discs from Ian Bell's personal website, and the version built from the text sources from the same site.
+You can build the fully functioning game from this source. [Three variants](#building-different-variants-of-the-cassette-version-of-elite) are currently supported: the tape version from the Stairway to Hell archive, the version produced by the original source discs from Ian Bell's personal website, and the version built from the text sources from the same site.
 
 It is a companion to the [bbcelite.com website](https://www.bbcelite.com), which contains all the code from this repository, but laid out in a much more human-friendly fashion. The links at the top of this page will take you to repositories for the other versions of Elite that are covered by this project.
 
@@ -163,7 +164,7 @@ All being well, entering the following into a command window:
 make.bat
 ```
 
-will produce a file called `elite-cassette-from-source-disc.ssd` in the `5-compiled-game-discs` folder that contains the source disc variant, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
+will produce a file called `elite-cassette-sth.ssd` in the `5-compiled-game-discs` folder that contains the source disc variant, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
 
 ### Mac and Linux
 
@@ -175,7 +176,7 @@ All being well, entering the following into a terminal window:
 make
 ```
 
-will produce a file called `elite-cassette-from-source-disc.ssd` in the `5-compiled-game-discs` folder that contains the source disc variant, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
+will produce a file called `elite-cassette-sth.ssd` in the `5-compiled-game-discs` folder that contains the source disc variant, which you can then load into an emulator, or into a real BBC Micro using a device like a Gotek.
 
 ### Build options
 
@@ -183,8 +184,13 @@ By default the build process will create a typical Elite game disc with a standa
 
 * `variant=<name>` - Build the specified variant:
 
-  * `variant=source-disc` (default)
+  * `variant=sth` (default)
+  * `variant=source-disc`
   * `variant=text-sources`
+
+* `disc=no` - Build a version to load from cassette rather than disc (the default is to build a version that loads from disc)
+
+* `protect=no` - When building for cassette with `disc=no`, the loader contains block-level tape protection code, which you can disable with this argument (the protection only works if you save the ELITEcode file to tape with corrupted block data, so if you want to copy the results to a UEF without re-implementing the Acornsoft protection system, you should use this argument)
 
 * `commander=max` - Start with a maxed-out commander (specifically, this is the test commander file from the original source, which is almost but not quite maxed-out)
 
@@ -217,28 +223,28 @@ The Python script `crc32.py` in the `2-build-files` folder does the actual verif
 The binaries in the `4-reference-binaries` folder were taken straight from the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip), while those in the `3-assembled-output` folder are produced by the build process. For example, if you don't make any changes to the code and build the project with `make`, then this is the output of the verification process:
 
 ```
-Results for variant: source-disc
+Results for variant: sth
 [--originals--]  [---output----]
 Checksum   Size  Checksum   Size  Match  Filename
 -----------------------------------------------------------
 a88ca82b   5426  a88ca82b   5426   Yes   ELITE.bin
 f40816ec   5426  f40816ec   5426   Yes   ELITE.unprot.bin
-0f1ad255   2228  0f1ad255   2228   Yes   ELTA.bin
-e725760a   2600  e725760a   2600   Yes   ELTB.bin
-97e338e8   2735  97e338e8   2735   Yes   ELTC.bin
-322b174c   2882  322b174c   2882   Yes   ELTD.bin
-29f7b8cb   2663  29f7b8cb   2663   Yes   ELTE.bin
-8a4cecc2   2721  8a4cecc2   2721   Yes   ELTF.bin
-7a6a5d1a   2340  7a6a5d1a   2340   Yes   ELTG.bin
-01a00dce  20712  01a00dce  20712   Yes   ELTcode.bin
-1e4466ec  20712  1e4466ec  20712   Yes   ELTcode.unprot.bin
+b17f9589   2228  b17f9589   2228   Yes   ELTA.bin
+82de44f7   2600  82de44f7   2600   Yes   ELTB.bin
+f005a7bf   2732  f005a7bf   2732   Yes   ELTC.bin
+ac3476d9   2887  ac3476d9   2887   Yes   ELTD.bin
+3084f112   2663  3084f112   2663   Yes   ELTE.bin
+e46bac22   2719  e46bac22   2719   Yes   ELTF.bin
+b4ac917d   2340  b4ac917d   2340   Yes   ELTG.bin
+b1bf493e  20712  b1bf493e  20712   Yes   ELTcode.bin
+33de34f5  20712  33de34f5  20712   Yes   ELTcode.unprot.bin
 00d5bb7a     40  00d5bb7a     40   Yes   ELThead.bin
 99529ca8    256  99529ca8    256   Yes   PYTHON.bin
 49ee043c   2502  49ee043c   2502   Yes   SHIPS.bin
 c4547e5e   1023  c4547e5e   1023   Yes   WORDS9.bin
 ```
 
-All the compiled binaries match the originals, so we know we are producing the same final game as the source disc variant.
+All the compiled binaries match the originals, so we know we are producing the same final game as the Stairway to Hell variant.
 
 ### Log files
 
@@ -266,19 +272,61 @@ Note that you should manually choose the correct platform in b2 (I intentionally
 
 ## Building different variants of the cassette version of Elite
 
-This repository contains the source code for two different variants of the cassette version of Elite:
+This repository contains the source code for three different variants of the cassette version of Elite:
+
+* The variant from the Stairway to Hell archive
 
 * The variant produced by the original source discs from Ian Bell's personal website
 
 * The variant built from the text sources from the same site
 
-It turns out that the BASIC source files in the [cassette sources disc image](http://www.elitehomepage.org/archive/a/a4080602.zip) are not identical to the [cassette sources as text files](http://www.elitehomepage.org/archive/a/a4080610.zip), hence the two different variants.
+By default the build process builds the Stairway to Hell variant, but you can build a specified variant using the `variant=` build parameter.
 
-By default the build process builds the source disc variant, but you can build a specified variant using the `variant=` build parameter.
+### Building the Stairway to Hell variant
+
+You can add `variant=source-disc` to produce the `elite-cassette-from-source-disc.ssd` file containing the source disc variant, though that's the default value so it isn't necessary. In other words, you can build it like this:
+
+```
+make.bat variant=sth
+```
+
+or this on a Mac or Linux:
+
+```
+make variant=sth
+```
+
+This will produce a file called `elite-cassette-sth.ssd` in the `5-compiled-game-discs` folder that contains the Stairway to Hell variant.
+
+The verification checksums for this version are as follows:
+
+```
+Results for variant: sth
+[--originals--]  [---output----]
+Checksum   Size  Checksum   Size  Match  Filename
+-----------------------------------------------------------
+a88ca82b   5426  a88ca82b   5426   Yes   ELITE.bin
+f40816ec   5426  f40816ec   5426   Yes   ELITE.unprot.bin
+b17f9589   2228  b17f9589   2228   Yes   ELTA.bin
+82de44f7   2600  82de44f7   2600   Yes   ELTB.bin
+f005a7bf   2732  f005a7bf   2732   Yes   ELTC.bin
+ac3476d9   2887  ac3476d9   2887   Yes   ELTD.bin
+3084f112   2663  3084f112   2663   Yes   ELTE.bin
+e46bac22   2719  e46bac22   2719   Yes   ELTF.bin
+b4ac917d   2340  b4ac917d   2340   Yes   ELTG.bin
+b1bf493e  20712  b1bf493e  20712   Yes   ELTcode.bin
+33de34f5  20712  33de34f5  20712   Yes   ELTcode.unprot.bin
+00d5bb7a     40  00d5bb7a     40   Yes   ELThead.bin
+99529ca8    256  99529ca8    256   Yes   PYTHON.bin
+49ee043c   2502  49ee043c   2502   Yes   SHIPS.bin
+c4547e5e   1023  c4547e5e   1023   Yes   WORDS9.bin
+```
+
+If you add the `disc=no` build parameter, then the build will produce binaries that are designed to be loaded from cassette rather that disc. The verification step will compare the results to the exact binaries from the UEF from the Stairway to Hell archive. These binaries have block-level tape protection enabled by default, which you can override with `protect=no`.
 
 ### Building the source disc variant
 
-You can add `variant=source-disc` to produce the `elite-cassette-from-source-disc.ssd` file containing the source disc variant, though that's the default value so it isn't necessary. In other words, you can build it like this:
+You can build the source disc variant by appending `variant=source-disc` to the `make` command, like this on Windows:
 
 ```
 make.bat variant=source-disc
@@ -290,7 +338,7 @@ or this on a Mac or Linux:
 make variant=source-disc
 ```
 
-This will produce a file called `elite-cassette-from-source-disc.NES` in the `5-compiled-game-discs` folder that contains the source disc variant.
+This will produce a file called `elite-cassette-from-source-disc.ssd` in the `5-compiled-game-discs` folder that contains the source disc variant.
 
 The verification checksums for this version are as follows:
 
@@ -358,17 +406,17 @@ c4547e5e   1023  c4547e5e   1023   Yes   WORDS9.bin
 
 ### Differences between the variants
 
-You can see the differences between the variants by searching the source code for `_SOURCE_DISC` (for features in the source disc variant) or `_TEXT_SOURCES` (for features in the text sources variant). There are only minor differences:
+You can see the differences between the variants by searching the source code for `_STH_CASSETTE` (for features in the Stairway to Hell variant), `_SOURCE_DISC` (for features in the source disc variant) or `_TEXT_SOURCES` (for features in the text sources variant). There are only minor differences:
 
-* The text sources contain an extra call in the galactic hyperspace routine that sets the current system to the nearest system to the crosshairs. This code is present in all other versions of the game (albeit in a different place), but not the original source disc from Ian Bell's personal website
+* The text sources contain an extra call in the galactic hyperspace routine that sets the current system to the nearest system to the crosshairs, in an attempt to fix a bug in the original source disc variant (though it doesn't quite fix it properly).
 
-* In order to fit this extra call in (which takes three extra bytes), the text sources also contain four modifications to create space for the call, which together save five bytes.
+* The Stairway to Hell variant contains the extra call in the galactic hyperspace routine, but in a different place, and it also zeroes the distance to the current system in QQ8. This fixes the galactic hyperspace bug properly, and this full bug fix is present in all other versions of the game.
+
+* In order to fit in this extra call, the text sources and Stairway to Hell variants also contain modifications to create space for the call.
 
 * There is a small change in the TTX66 routine to reset LAS2 to 0 instead of LASCT to stop laser pulsing, as this is slightly more efficient.
 
-All these changes are carried through to all other versions of the game, so it looks like the text sources contain a slightly later version of the game than the source disc.
-
-See the [accompanying website](https://www.bbcelite.com/disc/releases.html) for a comprehensive list of differences between the variants.
+See the [accompanying website](https://www.bbcelite.com/cassette/releases.html) for a comprehensive list of differences between the variants.
 
 ## Notes on the original source files
 

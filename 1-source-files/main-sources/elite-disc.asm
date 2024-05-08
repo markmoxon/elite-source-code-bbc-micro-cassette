@@ -27,8 +27,24 @@
 \
 \ ******************************************************************************
 
+ INCLUDE "1-source-files/main-sources/elite-build-options.asm"
+
+ _SOURCE_DISC           = (_VARIANT = 1)
+ _TEXT_SOURCES          = (_VARIANT = 2)
+ _STH_CASSETTE          = (_VARIANT = 3)
+
+IF _DISC
+
 \PUTFILE "1-source-files/boot-files/$.!BOOT.bin", "!BOOT", &FFFFFF, &FFFFFF
  PUTFILE "1-source-files/basic-programs/$.ELITE.bin", "ELITE", &FF1900, &FF8023
+
+ELSE
+
+\PUTFILE "1-source-files/boot-files/$.!BOOT.bin", "!BOOT", &FFFFFF, &FFFFFF
+ PUTFILE "1-source-files/basic-programs/$.ELITEc.bin", "ELITE", &FF1900, &FF8023
+
+ENDIF
+
  PUTFILE "3-assembled-output/ELITE.bin", "ELTdata", &FF1100, &FF2000
  PUTFILE "3-assembled-output/ELTcode.bin", "ELTcode", &FF1128, &FF1128
  PUTFILE "3-assembled-output/README.txt", "README", &FFFFFF, &FFFFFF

@@ -3,7 +3,7 @@
 Acornsoft Elite (flicker-free version)
 
 Version: BBC Micro cassette
-Variant: Ian Bell's source disc
+Variant: Stairway to Hell cassette
 Product: Acornsoft SBG38 (TBC)
 
 Contains the flicker-free ship drawing
@@ -11,5 +11,7 @@
 backported by Mark Moxon
 
 See www.bbcelite.com for details
+
+Build: 2024-05-08 15:02:53
 ---------------------------------------
 
