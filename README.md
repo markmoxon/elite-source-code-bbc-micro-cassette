@@ -412,11 +412,11 @@ You can see the differences between the variants by searching the source code fo
 
 * The Stairway to Hell variant contains the extra call in the galactic hyperspace routine, but in a different place, and it also zeroes the distance to the current system in QQ8. This fixes the galactic hyperspace bug properly, and this full bug fix is present in all other versions of the game.
 
-* In order to fit in this extra call, the text sources and Stairway to hell variants also contain modifications to create space for the call.
+* In order to fit in this extra call, the text sources and Stairway to Hell variants also contain modifications to create space for the call.
 
 * There is a small change in the TTX66 routine to reset LAS2 to 0 instead of LASCT to stop laser pulsing, as this is slightly more efficient.
 
-See the [accompanying website](https://www.bbcelite.com/disc/releases.html) for a comprehensive list of differences between the variants.
+See the [accompanying website](https://www.bbcelite.com/cassette/releases.html) for a comprehensive list of differences between the variants.
 
 ## Notes on the original source files
 
