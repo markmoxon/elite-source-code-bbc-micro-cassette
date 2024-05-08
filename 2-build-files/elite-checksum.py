@@ -69,23 +69,30 @@ if release == 1 or release == 2:
 
 elif release == 3:
 
-    if prot:
-        # PROT = TRUE
-        BLOCK_offset = 0x14E1
-        ENDBLOCK_offset = 0x1567
-        MAINSUM_offset = 0x134A
-        TUT_offset = 0x13F6
-        CHECKbyt_offset = 0x1349
-        CODE_offset = 0x0F86
-
-    else:
-        # PROT = FALSE
+    if disc:
         BLOCK_offset = 0x14B0
         ENDBLOCK_offset = 0x1530
         MAINSUM_offset = 0x1335
         TUT_offset = 0x13E1
         CHECKbyt_offset = 0x1334
         CODE_offset = 0x0F86
+
+    else:
+        if prot:
+            BLOCK_offset = 0x14E1
+            ENDBLOCK_offset = 0x1567
+            MAINSUM_offset = 0x134A
+            TUT_offset = 0x13F6
+            CHECKbyt_offset = 0x1349
+            CODE_offset = 0x0F86
+
+        else:
+            BLOCK_offset = 0x14BB
+            ENDBLOCK_offset = 0x153B
+            MAINSUM_offset = 0x1346
+            TUT_offset = 0x13F2
+            CHECKbyt_offset = 0x1345
+            CODE_offset = 0x0F86
 
 # Load assembled code files that make up big code file
 
