@@ -273,7 +273,7 @@ Note that you should manually choose the correct platform in b2 (I intentionally
 
 ### Building a UEF tape image
 
-Despite this being the cassette version of BBC Micro Elite, this repository only builds disc images, as that's how BeebAsm works. If you want the authentic experience of loading Elite from cassette, then you can manually build a UEF tape image of the binaries yourself, using a program like (Disc Image Manager)[https://github.com/geraldholdsworth/DiscImageManager].
+Despite this being the cassette version of BBC Micro Elite, this repository only builds disc images, as that's how BeebAsm works. If you want the authentic experience of loading Elite from cassette, then you can manually build a UEF tape image of the binaries yourself, using a program like [Disc Image Manager](https://github.com/geraldholdsworth/DiscImageManager).
 
 To do this, you should add the `disc=no` and `protect=no` arguments to the build. This ensures that the binaries are build to load at the correct address for tape systems, and it also disables the block-level tape protection system, as this only works with specially created tape images, like the ones that Acornsoft originally released.
 
