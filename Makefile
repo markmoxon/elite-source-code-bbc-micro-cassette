@@ -72,7 +72,11 @@ ifeq ($(variant), text-sources)
   variant-number=2
   folder=/text-sources
   suffix=-from-text-sources
-else ifeq ($(variant), sth)
+else ifeq ($(variant), source-disc)
+  variant-number=1
+  folder=/source-disc
+  suffix=-from-source-disc
+else
   variant-number=3
   suffix=-sth
   ifeq ($(disc), no)
@@ -80,10 +84,6 @@ else ifeq ($(variant), sth)
   else
     folder=/sth
   endif
-else
-  variant-number=1
-  folder=/source-disc
-  suffix=-from-source-disc
 endif
 
 .PHONY:all
