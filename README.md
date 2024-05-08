@@ -35,6 +35,7 @@ See the [introduction](#introduction) for more information, or jump straight int
   * [Verifying the output](#verifying-the-output)
   * [Log files](#log-files)
   * [Auto-deploying to the b2 emulator](#auto-deploying-to-the-b2-emulator)
+  * [Building a UEF tape image](#building-a-uef-tape-image)
 
 * [Building different variants of the cassette version of Elite](#building-different-variants-of-the-cassette-version-of-elite)
 
@@ -269,6 +270,22 @@ make all b2
 If you omit the `all` target then b2 will start up with the results of the last successful build.
 
 Note that you should manually choose the correct platform in b2 (I intentionally haven't automated this part to make it easier to test across multiple platforms).
+
+### Building a UEF tape image
+
+Despite this being the cassette version of BBC Micro Elite, this repository only builds disc images, as that's how BeebAsm works. If you want the authentic experience of loading Elite from cassette, then you can manually build a UEF tape image of the binaries yourself, using a program like (Disc Image Manager)[https://github.com/geraldholdsworth/DiscImageManager].
+
+To do this, you should add the `disc=no` and `protect=no` arguments to the build. This ensures that the binaries are build to load at the correct address for tape systems, and it also disables the block-level tape protection system, as this only works with specially created tape images, like the ones that Acornsoft originally released.
+
+Once you have built the project, it will produce an SSD disc image file that contains binaries that are suitable for loading from cassette. You can extract the binaries from this image and add them to a UEF, as follows:
+
+* Add the binaries in the following order: `ELITE`, `ELITEda`, `ELITEco`.
+
+* Rename `ELITEda` to `ELITEdata`.
+
+* Rename `ELITEco` to `ELITEcode`.
+
+You should now be able to load Elite from your UEF on a BBC Micro, by entering `CHAIN "ELITE"`.
 
 ## Building different variants of the cassette version of Elite
 
