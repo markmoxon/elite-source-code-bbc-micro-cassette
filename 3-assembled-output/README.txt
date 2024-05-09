@@ -4,7 +4,7 @@
 
 Version: BBC Micro cassette
 Variant: Stairway to Hell cassette
-Product: Acornsoft SBG38 (TBC)
+Product: Acornsoft SBG38
 
 Contains the flicker-free ship drawing
 routines from the BBC Master version,
@@ -12,6 +12,6 @@
 
 See www.bbcelite.com for details
 
-Build: 2024-05-08 15:02:53
+Build: 2024-05-09 16:11:45
 ---------------------------------------
 

@@ -1155,7 +1155,7 @@ ENDIF
                         \ bytes are actually doing JSR &01F1
                         \
                         \ That address is in the stack, and is the address of
-                        \ the first routine, that we pushed onto the stack in
+                        \ the BEGIN% routine, which we pushed onto the stack in
                         \ the modified PROT1 routine. That routine doesn't
                         \ return with an RTS, but instead it removes the return
                         \ address from the stack and jumps to David5 below after
@@ -1289,9 +1289,13 @@ IF _REMOVE_CHECKSUMS
 ELSE
 
  JSR OSBYTE             \ A was set to 129 above, so this calls OSBYTE with
-                        \ A = 129 and Y = 20, which reads the keyboard with a
-                        \ time limit, in this case 20 centiseconds, or 0.2
-                        \ seconds
+                        \ A = 129 and Y = 20, as well as a value of X = 0,
+                        \ which was set by the call to crunchit at the end of
+                        \ part 3
+                        \
+                        \ This reads the keyboard with a time limit of (Y X)
+                        \ centiseconds, or 20 * 256 = 5120 centiseconds, or
+                        \ 51.2 seconds
 
 ENDIF
 
