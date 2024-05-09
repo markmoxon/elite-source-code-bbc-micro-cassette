@@ -18253,14 +18253,14 @@ Saving file '3-assembled-output/ELITE.unprot.bin'
      007D   0A
      007E   0D
      007F   50 72 6F ...
-     009D   0A
-     009E   0D
-     009F   0A
-     00A0   0D
-     00A1   53 65 65 ...
-     00C1   0A
-     00C2   0D
-     00C3   2D 2D 2D ...
-     00EA   0A
-     00EB   0D
+     0097   0A
+     0098   0D
+     0099   0A
+     009A   0D
+     009B   53 65 65 ...
+     00BB   0A
+     00BC   0D
+     00BD   2D 2D 2D ...
+     00E4   0A
+     00E5   0D
 Saving file '3-assembled-output/README.txt'

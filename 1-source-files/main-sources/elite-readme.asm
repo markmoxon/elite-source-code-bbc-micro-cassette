@@ -46,8 +46,6 @@ IF _SOURCE_DISC
 
  EQUS "Variant: Ian Bell's source disc"
  EQUB 10, 13
- EQUS "Product: Acornsoft SBG38 (TBC)"
- EQUB 10, 13
 
 ELIF _TEXT_SOURCES
 
@@ -58,7 +56,7 @@ ELIF _STH_CASSETTE
 
  EQUS "Variant: Stairway to Hell cassette"
  EQUB 10, 13
- EQUS "Product: Acornsoft SBG38 (TBC)"
+ EQUS "Product: Acornsoft SBG38"
  EQUB 10, 13
 
 ENDIF
