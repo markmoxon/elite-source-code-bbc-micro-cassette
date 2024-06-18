@@ -29,6 +29,40 @@ PYTHON?=python
 #
 # will build an unencrypted text sources variant with a maxed-out commander
 # and no crc32 verification
+#
+# The following variables are written into elite-build-options.asm depending on
+# the above arguments, so they can be passed to BeebAsm:
+#
+# _VERSION
+#   1 = BBC Micro cassette
+#
+# _VARIANT
+#   1 = Source disc
+#   2 = Text sources
+#   3 = Stairway to Hell (default)
+#
+# _MAX_COMMANDER
+#   TRUE  = Maxed-out commander
+#   FALSE = Standard commander
+#
+# _REMOVE_CHECKSUMS
+#   TRUE  = Disable checksum routines
+#   FALSE = Enable checksum routines
+#
+# _MATCH_ORIGINAL_BINARIES
+#   TRUE  = Match binaries to released version (i.e. fill workspaces with noise)
+#   FALSE = Zero-fill workspaces
+#
+# _DISC
+#   TRUE  = Build for loading from disc
+#   FALSE = Build for loading from cassette
+#
+# _PROT
+#   TRUE  = Apply block-level tape protection
+#   FALSE = Do not apply block-level tape protection
+#
+# The encrypt and verify arguments are passed to the elite-checksum.py and
+# crc32.py scripts, rather than BeebAsm
 
 ifeq ($(commander), max)
   max-commander=TRUE
