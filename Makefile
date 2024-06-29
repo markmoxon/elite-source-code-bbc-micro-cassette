@@ -112,7 +112,7 @@ else ifeq ($(variant), source-disc)
   suffix=-flicker-free-from-source-disc
 else
   variant-number=3
-  suffix=-flicker-free-sth
+  suffix=-elite-compendium-sth
   ifeq ($(disc), no)
     folder=/sth-for-tape
   else
