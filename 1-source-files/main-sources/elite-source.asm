@@ -154,11 +154,25 @@
  SKIP 4                 \ Four 8-bit seeds for the random number generation
                         \ system implemented in the DORND routine
 
-.TRTB%
+                        \ --- Mod: Code removed for music: -------------------->
 
- SKIP 2                 \ Contains the address of the keyboard translation
-                        \ table, which is used to translate internal key
-                        \ numbers to ASCII
+\.TRTB%
+\
+\SKIP 2                 \ Contains the address of the keyboard translation
+\                       \ table, which is used to translate internal key
+\                       \ numbers to ASCII
+
+                        \ --- And replaced by: -------------------------------->
+
+.XX4
+
+ SKIP 1                 \ Temporary storage, used in a number of places
+
+.XX20
+
+ SKIP 1                 \ Temporary storage, used in a number of places
+
+                        \ --- End of replacement ------------------------------>
 
 .T1
 
@@ -532,12 +546,16 @@
  SKIP NI% - 33          \ XX19(1 0) shares its location with INWK(34 33), which
                         \ contains the address of the ship line heap
 
-.LSP
+                        \ --- Mod: Code moved for music: ---------------------->
 
- SKIP 1                 \ The ball line heap pointer, which contains the number
-                        \ of the first free byte after the end of the LSX2 and
-                        \ LSY2 heaps (see the deep dive on "The ball line heap"
-                        \ for details)
+\.LSP
+\
+\SKIP 1                 \ The ball line heap pointer, which contains the number
+\                       \ of the first free byte after the end of the LSX2 and
+\                       \ LSY2 heaps (see the deep dive on "The ball line heap"
+\                       \ for details)
+
+                        \ --- End of moved code ------------------------------->
 
 .QQ15
 
@@ -597,6 +615,28 @@
  SKIP 5                 \ Temporary storage, typically used for storing
                         \ coordinates during vector calculations
 
+                        \ --- Mod: Code added for music: ---------------------->
+
+.musicWorkspace
+
+ SKIP 8                 \ Storage for the music player, &0092 to &0099 inclusive
+
+.musicRomNumber
+
+ SKIP 1                 \ The bank number of the sideways ROM slot containing
+                        \ the music player at &009A
+
+.musicStatus
+
+ SKIP 1                 \ A flag to determine whether to play the currently
+                        \ selected music:
+                        \
+                        \   * 0 = do not play the music
+                        \
+                        \   * Non-zero = do play the music
+
+                        \ --- End of added code ------------------------------->
+
 .ALP1
 
  SKIP 1                 \ Magnitude of the roll angle alpha, i.e. |alpha|,
@@ -613,6 +653,27 @@
  SKIP 2                 \ Bit 7 of BET2 = sign of the pitch angle in BETA
                         \
                         \ Bit 7 of BET2+1 = opposite sign to BET2 and BETA
+
+                        \ --- Mod: Code moved for music: ---------------------->
+
+.DL
+
+ SKIP 1                 \ Vertical sync flag
+                        \
+                        \ DL gets set to 30 every time we reach vertical sync on
+                        \ the video system, which happens 50 times a second
+                        \ (50Hz). The WSCAN routine uses this to pause until the
+                        \ vertical sync, by setting DL to 0 and then monitoring
+                        \ its value until it changes to 30
+
+.LSP
+
+ SKIP 1                 \ The ball line heap pointer, which contains the number
+                        \ of the first free byte after the end of the LSX2 and
+                        \ LSY2 heaps (see the deep dive on "The ball line heap"
+                        \ for details)
+
+                        \ --- End of moved code ------------------------------->
 
 .DELTA
 
@@ -697,15 +758,19 @@
                         \ "Scheduling tasks with the main loop counter" for more
                         \ details
 
-.DL
+                        \ --- Mod: Code moved for music: ---------------------->
 
- SKIP 1                 \ Vertical sync flag
-                        \
-                        \ DL gets set to 30 every time we reach vertical sync on
-                        \ the video system, which happens 50 times a second
-                        \ (50Hz). The WSCAN routine uses this to pause until the
-                        \ vertical sync, by setting DL to 0 and then monitoring
-                        \ its value until it changes to 30
+\.DL
+\
+\SKIP 1                 \ Vertical sync flag
+\                       \
+\                       \ DL gets set to 30 every time we reach vertical sync on
+\                       \ the video system, which happens 50 times a second
+\                       \ (50Hz). The WSCAN routine uses this to pause until the
+\                       \ vertical sync, by setting DL to 0 and then monitoring
+\                       \ its value until it changes to 30
+
+                        \ --- End of moved code ------------------------------->
 
 .TYPE
 
@@ -779,61 +844,69 @@
                         \ for counters when drawing explosion clouds and partial
                         \ circles
 
-.SWAP
+                        \ --- Mod: Code removed for music: -------------------->
 
- SKIP 1                 \ Temporary storage, used to store a flag that records
-                        \ whether or not we had to swap a line's start and end
-                        \ coordinates around when clipping the line in routine
-                        \ LL145 (the flag is used in places like BLINE to swap
-                        \ them back)
+\.SWAP
+\
+\SKIP 1                 \ Temporary storage, used to store a flag that records
+\                       \ whether or not we had to swap a line's start and end
+\                       \ coordinates around when clipping the line in routine
+\                       \ LL145 (the flag is used in places like BLINE to swap
+\                       \ them back)
+\
+\.COL
+\
+\SKIP 1                 \ Temporary storage, used to store colour information
+\                       \ when drawing pixels in the dashboard
+\
+\.FLAG
+\
+\SKIP 1                 \ A flag that's used to define whether this is the first
+\                       \ call to the ball line routine in BLINE, so it knows
+\                       \ whether to wait for the second call before storing
+\                       \ segment data in the ball line heap
 
-.COL
-
- SKIP 1                 \ Temporary storage, used to store colour information
-                        \ when drawing pixels in the dashboard
-
-.FLAG
-
- SKIP 1                 \ A flag that's used to define whether this is the first
-                        \ call to the ball line routine in BLINE, so it knows
-                        \ whether to wait for the second call before storing
-                        \ segment data in the ball line heap
+                        \ --- End of removed code ----------------------------->
 
 .CNT
 
  SKIP 1                 \ Temporary storage, typically used for storing the
                         \ number of iterations required when looping
 
-.CNT2
+                        \ --- Mod: Code removed for music: -------------------->
 
- SKIP 1                 \ Temporary storage, used in the planet-drawing routine
-                        \ to store the segment number where the arc of a partial
-                        \ circle should start
+\.CNT2
+\
+\SKIP 1                 \ Temporary storage, used in the planet-drawing routine
+\                       \ to store the segment number where the arc of a partial
+\                       \ circle should start
+\
+\.STP
+\
+\SKIP 1                 \ The step size for drawing circles
+\                       \
+\                       \ Circles in Elite are split up into 64 points, and the
+\                       \ step size determines how many points to skip with each
+\                       \ straight-line segment, so the smaller the step size,
+\                       \ the smoother the circle. The values used are:
+\                       \
+\                       \   * 2 for big planets and the circles on the charts
+\                       \   * 4 for medium planets and the launch tunnel
+\                       \   * 8 for small planets and the hyperspace tunnel
+\                       \
+\                       \ As the step size increases we move from smoother
+\                       \ circles at the top to more polygonal at the bottom.
+\                       \ See the CIRCLE2 routine for more details
+\
+\.XX4
+\
+\SKIP 1                 \ Temporary storage, used in a number of places
+\
+\.XX20
+\
+\SKIP 1                 \ Temporary storage, used in a number of places
 
-.STP
-
- SKIP 1                 \ The step size for drawing circles
-                        \
-                        \ Circles in Elite are split up into 64 points, and the
-                        \ step size determines how many points to skip with each
-                        \ straight-line segment, so the smaller the step size,
-                        \ the smoother the circle. The values used are:
-                        \
-                        \   * 2 for big planets and the circles on the charts
-                        \   * 4 for medium planets and the launch tunnel
-                        \   * 8 for small planets and the hyperspace tunnel
-                        \
-                        \ As the step size increases we move from smoother
-                        \ circles at the top to more polygonal at the bottom.
-                        \ See the CIRCLE2 routine for more details
-
-.XX4
-
- SKIP 1                 \ Temporary storage, used in a number of places
-
-.XX20
-
- SKIP 1                 \ Temporary storage, used in a number of places
+                        \ --- End of removed code ----------------------------->
 
                         \ --- Mod: Code removed for flicker-free ships: ------->
 
@@ -859,6 +932,24 @@
 
                         \ --- End of replacement ------------------------------>
 
+                        \ --- Mod: Code removed for music: -------------------->
+
+\.RAT
+\
+\SKIP 1                 \ Used to store different signs depending on the current
+\                       \ space view, for use in calculating stardust movement
+\
+\.RAT2
+\
+\SKIP 1                 \ Temporary storage, used to store the pitch and roll
+\                       \ signs when moving objects and stardust
+\
+\.K2
+\
+\SKIP 4                 \ Temporary storage, used in a number of places
+
+                        \ --- And replaced by: -------------------------------->
+
 .RAT
 
  SKIP 1                 \ Used to store different signs depending on the current
@@ -869,9 +960,21 @@
  SKIP 1                 \ Temporary storage, used to store the pitch and roll
                         \ signs when moving objects and stardust
 
-.K2
+.CNT2
 
- SKIP 4                 \ Temporary storage, used in a number of places
+ SKIP 1                 \ Temporary storage, used in the planet-drawing routine
+                        \ to store the segment number where the arc of a partial
+                        \ circle should start
+
+.SWAP
+
+ SKIP 1                 \ Temporary storage, used to store a flag that records
+                        \ whether or not we had to swap a line's start and end
+                        \ coordinates around when clipping the line in routine
+                        \ LL145 (the flag is used in places like BLINE to swap
+                        \ them back)
+
+                        \ --- End of replacement ------------------------------>
 
  ORG &00D1
 
@@ -883,10 +986,54 @@
 
  SKIP 0                 \ Temporary storage, used in a number of places
 
+                        \ --- Mod: Code removed for music: -------------------->
+
+\.XX2
+\
+\SKIP 14                \ Temporary storage, used to store the visibility of the
+\                       \ ship's faces during the ship-drawing routine at LL9
+
+                        \ --- And replaced by: -------------------------------->
+
 .XX2
 
- SKIP 14                \ Temporary storage, used to store the visibility of the
+ SKIP 10                \ Temporary storage, used to store the visibility of the
                         \ ship's faces during the ship-drawing routine at LL9
+
+.K2
+
+ SKIP 4                 \ Temporary storage, used in a number of places
+
+.STP
+
+ SKIP 1                 \ The step size for drawing circles
+                        \
+                        \ Circles in Elite are split up into 64 points, and the
+                        \ step size determines how many points to skip with each
+                        \ straight-line segment, so the smaller the step size,
+                        \ the smoother the circle. The values used are:
+                        \
+                        \   * 2 for big planets and the circles on the charts
+                        \   * 4 for medium planets and the launch tunnel
+                        \   * 8 for small planets and the hyperspace tunnel
+                        \
+                        \ As the step size increases we move from smoother
+                        \ circles at the top to more polygonal at the bottom.
+                        \ See the CIRCLE2 routine for more details
+
+.COL
+
+ SKIP 1                 \ Temporary storage, used to store colour information
+                        \ when drawing pixels in the dashboard
+
+.FLAG
+
+ SKIP 1                 \ A flag that's used to define whether this is the first
+                        \ call to the ball line routine in BLINE, so it knows
+                        \ whether to wait for the second call before storing
+                        \ segment data in the ball line heap
+
+                        \ --- End of replacement ------------------------------>
 
 .K4
 
@@ -3026,9 +3173,26 @@ ENDMACRO
                         \ which case SLSP is lowered to provide more heap space,
                         \ assuming there is enough free memory to do so
 
-.XX24
+                        \ --- Mod: Code removed for docking fee: -------------->
 
- SKIP 1                 \ This byte appears to be unused
+\.XX24
+\
+\SKIP 1                 \ This byte appears to be unused
+
+                        \ --- And replaced by: -------------------------------->
+
+.chargeDockingFee
+
+ SKIP 1                 \ Records whether we have been charged a docking fee, so
+                        \ we don't get charged twice:
+                        \
+                        \   * 0 = we have not been charged a docking fee
+                        \
+                        \   * Non-zero = we have been charged a docking fee
+                        \
+                        \ The docking fee is 5.0 credits
+
+                        \ --- End of replacement ------------------------------>
 
 .ALTIT
 
@@ -3281,6 +3445,99 @@ ENDMACRO
                         \
                         \ Toggled by pressing "K" when paused, see the DKS3
                         \ routine for details
+
+\ ******************************************************************************
+\
+\       Name: IRQMusic
+\       Type: Subroutine
+\   Category: Music
+\    Summary: The IRQ handler for playing music
+\
+\ ******************************************************************************
+
+                        \ --- Mod: Code added for music: ---------------------->
+
+.IRQMusic
+
+ STA VIA+&45            \ Re-do the instruction we replaced when inserting this
+                        \ routine into the standard IRQ1 interrupt handler
+
+ LDA musicStatus        \ If the music status flag is zero, then music is
+ BEQ mirq1              \ disabled, so jump to mirq1 to skip playing the
+                        \ currently selected music
+
+ JSR PlayMusic+3        \ Play the currently selected music
+
+.mirq1
+
+ JMP LINSCN+12          \ Jump back to the normal interrupt handler
+
+                        \ --- End of added code ------------------------------->
+
+\ ******************************************************************************
+\
+\       Name: PlayMusic
+\       Type: Subroutine
+\   Category: Music
+\    Summary: Select, play or stop music
+\
+\ ------------------------------------------------------------------------------
+\
+\ Arguments:
+\
+\   A                   The action to perform:
+\
+\                         * 0 = Select the title music
+\
+\                         * 3 = Select the docking music
+\
+\                         * 6 = Play the currently selected music
+\
+\                         * 9 = Stop the currently selected music
+\
+\ Other entry points:
+\
+\   PlayMusic+3         Repeat the last action (typically used to continue
+\                       playing in the interrupt routine)
+\
+\ ******************************************************************************
+
+                        \ --- Mod: Code added for music: ---------------------->
+
+.PlayMusic
+
+ STA play1+1            \ Modify JSR to jump to &8000 + A
+
+ LDA &F4                \ Fetch the RAM copy of the currently selected ROM and
+ PHA                    \ store it on the stack
+
+ LDA musicRomNumber     \ Fetch the number of the music ROM and switch to it
+ STA &F4
+ STA &FE30
+
+ TYA                    \ Store X and Y on the stack
+ PHA
+ TXA
+ PHA
+
+.play1
+
+ JSR &8006              \ Call the relevant routine in the music ROM (this
+                        \ address is set to &80xx, where xx is the value of A
+                        \ that was passed to the routine)
+
+ PLA                    \ Retrieve X and Y from the stack
+ TAX
+ PLA
+ TAY
+
+ PLA                    \ Set the ROM number back to the value that we stored
+ STA &F4                \ above, to switch back to the previous ROM
+ STA &FE30
+
+ RTS                    \ Return from the subroutine
+
+                        \ --- End of added code ------------------------------->
 
 \ ******************************************************************************
 \
@@ -3645,6 +3902,49 @@ ENDMACRO
                         \ down to MA68 to skip the following (so we can't use
                         \ the docking computer to dock at a station that has
                         \ turned against us)
+
+                        \ --- Mod: Code added for docking fee: ---------------->
+
+                        \ We now deduct a docking fee of 5.0 credits for using
+                        \ the docking computer
+
+ LDA chargeDockingFee   \ If we have already been charged a docking fee
+ BNE barb4              \ (chargeDockingFee is non-zero), then jump to barb4 to
+                        \ engage the docking computer without charging a docking
+                        \ fee
+
+                        \ Otherwise we charge the docking fee
+
+ LDY #0                 \ Set (Y X) = 50, so the docking fee is 5.0 credits
+ LDX #50
+
+ JSR LCASH              \ Subtract (Y X) cash from the cash pot, but only if
+                        \ we have enough cash
+
+ BCS barb3              \ If the C flag is set then we did have enough cash for
+                        \ the transaction, so jump to barb3 to skip the
+                        \ following instruction
+
+                        \ If we get here then we don't have enough cash for the
+                        \ docking fee, so make a beep and return from the
+                        \ subroutine without engaging the docking computer
+
+ LDA #40                \ Call the NOISE routine with A = 40 to make a low,
+ JMP NOISE              \ long beep, and return from the subroutine using a tail
+                        \ call
+
+.barb3
+
+ DEC chargeDockingFee   \ Set chargeDockingFee to &FF so we don't charge another
+                        \ docking fee
+
+ LDA #0                 \ Print control code 0 (current amount of cash and
+ JSR MESS               \ newline) as an in-flight message, to show our balance
+                        \ after the docking fee has been paid
+
+.barb4
+
+                        \ --- End of added code ------------------------------->
 
  JMP GOIN               \ The Docking Computer button has been pressed and
                         \ we are allowed to dock at the station, so jump to
@@ -4851,10 +5151,30 @@ ENDMACRO
  BEQ MA23               \ skip fuel scooping, as we can't scoop without fuel
                         \ scoops
 
+                        \ --- Mod: Code removed for moving fuel scoops: ------->
+
+\LDA DELT4+1            \ We are now successfully fuel scooping, so it's time
+\LSR A                  \ to work out how much fuel we're scooping. Fetch the
+\                       \ high byte of DELT4, which contains our current speed
+\                       \ divided by 4, and halve it to get our current speed
+\                       \ divided by 8 (so it's now a value between 1 and 5, as
+\                       \ our speed is normally between 1 and 40). This gives
+\                       \ us the amount of fuel that's being scooped in A, so
+\                       \ the faster we go, the more fuel we scoop, and because
+\                       \ the fuel levels are stored as 10 * the fuel in light
+\                       \ years, that means we just scooped between 0.1 and 0.5
+\                       \ light years of free fuel
+
+                        \ --- And replaced by: -------------------------------->
+
  LDA DELT4+1            \ We are now successfully fuel scooping, so it's time
- LSR A                  \ to work out how much fuel we're scooping. Fetch the
+ BEQ MA23               \ to work out how much fuel we're scooping. Fetch the
                         \ high byte of DELT4, which contains our current speed
-                        \ divided by 4, and halve it to get our current speed
+                        \ divided by 4, and if it is zero, jump to BA23 to skip
+                        \ skip fuel scooping, as we can't scoop fuel if we are
+                        \ not moving
+
+ LSR A                  \ If we are moving, halve A to get our current speed
                         \ divided by 8 (so it's now a value between 1 and 5, as
                         \ our speed is normally between 1 and 40). This gives
                         \ us the amount of fuel that's being scooped in A, so
@@ -4862,6 +5182,8 @@ ENDMACRO
                         \ the fuel levels are stored as 10 * the fuel in light
                         \ years, that means we just scooped between 0.1 and 0.5
                         \ light years of free fuel
+
+                        \ --- End of replacement ------------------------------>
 
  ADC QQ14               \ Set A = A + the current fuel level * 10 (from QQ14)
 
@@ -8649,6 +8971,12 @@ ENDIF
 
 .BL5
 
+                        \ --- Mod: Code added for flicker-free planets: ------->
+
+ JSR DrawPlanetLine     \ Draw the current line from the old planet
+
+                        \ --- End of added code ------------------------------->
+
                         \ The following inserts a &FF marker into the LSY2 line
                         \ heap to indicate that the next call to BLINE should
                         \ store both the (X1, Y1) and (X2, Y2) points. We do
@@ -8733,6 +9061,12 @@ ENDIF
                         \ Byte LSP-1 of LSY2 is &FF, which indicates that we
                         \ need to store (X1, Y1) in the heap
 
+                        \ --- Mod: Code added for flicker-free planets: ------->
+
+ JSR DrawPlanetLine     \ Draw the current line from the old planet
+
+                        \ --- End of added code ------------------------------->
+
  LDA X1                 \ Store X1 in the LSP-th byte of LSX2
  STA LSX2,Y
 
@@ -8742,6 +9076,18 @@ ENDIF
  INY                    \ Increment Y to point to the next byte in LSX2/LSY2
 
 .BL8
+
+                        \ --- Mod: Code added for flicker-free planets: ------->
+
+ LDA #&FF               \ Set bit 7 of K3+8 so we do not draw the current line
+ STA K3+8               \ in the call to DrawPlanetLine, but store the
+                        \ coordinates so we we can check them below
+
+ JSR DrawPlanetLine+4   \ Calculate the current line from the old heap, but do
+                        \ not draw it, but store the coordinates (X1, Y1) and
+                        \ (X2, Y2) in K3+4 to K3+7
+
+                        \ --- End of added code ------------------------------->
 
  LDA X2                 \ Store X2 in the LSP-th byte of LSX2
  STA LSX2,Y
@@ -8753,7 +9099,16 @@ ENDIF
 
  STY LSP                \ Update LSP to point to the same as Y
 
- JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2)
+                        \ --- Mod: Code removed for flicker-free planets: ----->
+
+\JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2)
+
+                        \ --- And replaced by: -------------------------------->
+
+ JSR DrawNewPlanetLine  \ Draw a line from (X1, Y1) to (X2, Y2), but only if it
+                        \ is different to the old line in K3+4 to K3+7
+
+                        \ --- End of replacement ------------------------------>
 
  LDA XX13               \ If XX13 is non-zero, jump up to BL5 to add a &FF
  BNE BL5                \ marker to the end of the line heap. XX13 is non-zero
@@ -8780,6 +9135,238 @@ ENDIF
  STA CNT
 
  RTS                    \ Return from the subroutine
+
+\ ******************************************************************************
+\
+\       Name: EraseRestOfPlanet
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw all remaining lines in the ball line heap to erase the rest
+\             of the old planet
+\
+\ ******************************************************************************
+
+                        \ --- Mod: Code added for flicker-free planets: ------->
+
+.EraseRestOfPlanet
+
+ LDY LSNUM              \ Set Y to the offset in LSNUM, which points to the part
+                        \ of the heap that we are overwriting with new points
+
+ CPY LSNUM2             \ If LSNUM >= LSNUM2, then we have already redrawn all
+ BCS eras1              \ of the lines from the old circle's ball line heap, so
+                        \ skip the following
+
+ JSR DrawPlanetLine     \ Erase the next planet line from the ball line heap
+
+ JMP EraseRestOfPlanet  \ Loop back for the next line in the ball line heap
+
+.eras1
+
+ RTS                    \ Return from the subroutine
+
+                        \ --- End of added code ------------------------------->
+
+\ ******************************************************************************
+\
+\       Name: DrawPlanetLine
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw a segment of the old planet from the ball line heap
+\
+\ ------------------------------------------------------------------------------
+\
+\ Other entry points:
+\
+\   DrawPlanetLine+4    If bit 7 of K3+8 is set, store the line coordinates in
+\                       K3+4 to K3+7 (X1, Y1, X2, Y2) and do not draw the line
+\
+\ ******************************************************************************
+
+                        \ --- Mod: Code added for flicker-free planets: ------->
+
+.DrawPlanetLine
+
+ LDA #0                 \ Clear bit 7 of K3+8 so we draw the current line below
+ STA K3+8
+
+ LDA #0                 \ Clear bit 7 of K3+9 to indicate that there is no line
+ STA K3+9               \ to draw (we may change this below)
+
+ LDA LSNUM              \ If LSNUM = 1, then this is the first point from the
+ CMP #2                 \ heap, so jump to plin3 to set the previous coordinate
+ BCC plin3              \ and return from the subroutine
+
+ LDA X1                 \ Save X1, X2, Y1, Y2 and Y on the stack
+ PHA
+ LDA Y1
+ PHA
+ LDA X2
+ PHA
+ LDA Y2
+ PHA
+ TYA
+ PHA
+
+ LDY LSNUM              \ Set Y to the offset in LSNUM, which points to the part
+                        \ of the heap that we are overwriting with new points
+
+ CPY LSNUM2             \ If LSNUM >= LSNUM2, then we have already redrawn all
+ BCS plin1              \ of the lines from the old circle's ball line heap, so
+                        \ jump to plin1 to return from the subroutine
+
+                        \ Otherwise we need to draw the line from the heap, to
+                        \ erase it from the screen
+
+ LDA K3+2               \ Set X1 = K3+2 = screen x-coordinate of previous point
+ STA X1                 \ from the old heap
+
+ LDA K3+3               \ Set Y1 = K3+3 = screen y-coordinate of previous point
+ STA Y1                 \ from the old heap
+
+ LDA LSX2,Y             \ Set X2 to the y-coordinate from the LSNUM-th point in
+ STA X2                 \ the heap
+
+ STA K3+2               \ Store the x-coordinate of the point we are overwriting
+                        \ in K3+2, so we can use it on the next iteration
+
+ LDA LSY2,Y             \ Set Y2 to the y-coordinate from the LSNUM-th point in
+ STA Y2                 \ the heap
+
+ STA K3+3               \ Store the y-coordinate of the point we are overwriting
+                        \ in K3+3, so we can use it on the next iteration
+
+ INC LSNUM              \ Increment LSNUM to point to the next coordinate, so we
+                        \ work our way through the current heap
+
+ LDA Y1                 \ If Y1 or Y2 = &FF then this indicates a break in the
+ CMP #&FF               \ circle, so jump to plin1 to skip the following and
+ BEQ plin1              \ return from the subroutine, asthere is no line to
+ LDA Y2                 \ erase
+ CMP #&FF
+ BEQ plin1
+
+ DEC K3+9               \ Decrement K3+9 to &FF to indicate that there is a line
+                        \ to draw
+
+ BIT K3+8               \ If bit 7 of K3+8 is set, jump to plin2 to store the
+ BMI plin2              \ line coordinates rather than drawing the line
+
+ JSR LL30               \ The coordinates in (X1, Y1) and (X2, Y2) that we just
+                        \ pulled from the ball line heap point to a line that is
+                        \ still on-screen, so call LL30 to draw this line and
+                        \ erase it from the screen
+
+.plin1
+
+ PLA                    \ Restore Y, X1, X2, Y1 and Y2 from the stack
+ TAY
+ PLA
+ STA Y2
+ PLA
+ STA X2
+ PLA
+ STA Y1
+ PLA
+ STA X1
+
+ RTS                    \ Return from the subroutine
+
+.plin2
+
+ LDA X1                 \ Store X1, Y1, X2, Y2 in K3+4 to K3+7
+ STA K3+4
+ LDA Y1
+ STA K3+5
+ LDA X2
+ STA K3+6
+ LDA Y2
+ STA K3+7
+
+ JMP plin1              \ Jump to plin1 to return from the subroutine
+
+.plin3
+
+ LDA LSX2+1             \ Store the heap's first coordinate in K3+2 and K3+3
+ STA K3+2
+ LDA LSY2+1
+ STA K3+3
+
+ INC LSNUM              \ Increment LSNUM to point to the next coordinate, so we
+                        \ work our way through the current heap
+
+ RTS                    \ Return from the subroutine
+
+                        \ --- End of added code ------------------------------->
+
+\ ******************************************************************************
+\
+\       Name: DrawNewPlanetLine
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Draw a ball line, but only if it is different to the old line
+\
+\ ------------------------------------------------------------------------------
+\
+\ Arguments:
+\
+\   K3+4 to K3+7        The (X1, Y1) and (X2, Y2) coordinates of the old line
+\
+\ ******************************************************************************
+
+                        \ --- Mod: Code added for flicker-free planets: ------->
+
+.DrawNewPlanetLine
+
+ BIT K3+9               \ If bit 7 of K3+9 is clear, then there is no old line
+ BPL nlin2              \ to draw, so jump to nlin2 to draw the new line only
+
+ LDA K3+4               \ If the old line equals the new line, jump to nlin3
+ CMP X1                 \ to skip drawing both lines
+ BNE nlin1
+ LDA K3+5
+ CMP Y1
+ BNE nlin1
+ LDA K3+6
+ CMP X2
+ BNE nlin1
+ LDA K3+7
+ CMP Y2
+ BEQ nlin3
+
+.nlin1
+
+                        \ If we get here then the old line is different to the
+                        \ new line, so we draw them both
+
+ JSR LL30               \ Draw the new line from (X1, Y1) to (X2, Y2)
+
+ LDA K3+4               \ Set up the old line's coordinates
+ STA X1
+ LDA K3+5
+ STA Y1
+ LDA K3+6
+ STA X2
+ LDA K3+7
+ STA Y2
+
+.nlin2
+
+ JSR LL30               \ Draw the old line to erase it
+
+.nlin3
+
+ RTS                    \ Return from the subroutine
+
+\ ******************************************************************************
+\
+\       Name: SwitchToMosRom
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Switch the MOS ROM into memory so we can access the character
+\             definitions at &8900 onwards
+\
+\ ******************************************************************************
 
 \ ******************************************************************************
 \
@@ -14498,31 +15085,29 @@ ENDIF
 \
 \ ******************************************************************************
 
-{
- LDX Q
- BEQ MU1
- DEX
- STX T
- LDA #0
- LDX #8
-\LSR P
-
-.MUL6
-
-\BCC P%+4
-
                         \ --- Mod: Code removed for flicker-free ships: ------->
 
-\ ADC T
-\ ROR A
-\ ROR P
-\ DEX
-\ BNE MUL6
+\{
+\LDX Q
+\BEQ MU1
+\DEX
+\STX T
+\LDA #0
+\LDX #8
+\LSR P
+\
+\.MUL6
+\
+\BCC P%+4
+\ADC T
+\ROR A
+\ROR P
+\DEX
+\BNE MUL6
+\RTS
+\}
 
                         \ --- End of removed code ----------------------------->
-
-\RTS
-}
 
 \ ******************************************************************************
 \
@@ -14635,13 +15220,17 @@ ENDIF
 
 .MUT3
 
- LDX ALP1               \ Set P = ALP1, though this gets overwritten by the
- STX P                  \ following, so this has no effect
+                        \ --- Mod: Code removed for music: -------------------->
 
-                        \ Fall through into MUT2 to do the following:
-                        \
-                        \   (S R) = XX(1 0)
-                        \   (A P) = Q * A
+\LDX ALP1               \ Set P = ALP1, though this gets overwritten by the
+\STX P                  \ following, so this has no effect
+\
+\                       \ Fall through into MUT2 to do the following:
+\                       \
+\                       \   (S R) = XX(1 0)
+\                       \   (A P) = Q * A
+
+                        \ --- End of removed code ----------------------------->
 
 \ ******************************************************************************
 \
@@ -15365,11 +15954,15 @@ ENDIF
  LDA S                  \ Set A = |S|
  AND #%01111111
 
- BMI DV9                \ If bit 7 of A is set, jump down to DV9 to skip the
-                        \ left-shifting of the denominator (though this branch
-                        \ instruction has no effect as bit 7 of the above AND
-                        \ can never be set, which is why this instruction was
-                        \ removed from later versions)
+                        \ --- Mod: Code removed for flicker-free ships: ------->
+
+\BMI DV9                \ If bit 7 of A is set, jump down to DV9 to skip the
+\                       \ left-shifting of the denominator (though this branch
+\                       \ instruction has no effect as bit 7 of the above AND
+\                       \ can never be set, which is why this instruction was
+\                       \ removed from later versions)
+
+                        \ --- End of removed code ----------------------------->
 
 .DVL6
 
@@ -16527,6 +17120,12 @@ ELIF _TEXT_SOURCES OR _STH_CASSETTE
  STA LAS2               \ stops any laser pulsing
 
 ENDIF
+
+                        \ --- Mod: Code added for flicker-free planets: ------->
+
+ STA LSP                \ Reset the ball line heap pointer at LSP
+
+                        \ --- End of added code ------------------------------->
 
  STA DLY                \ Set the delay in DLY to 0, to indicate that we are
                         \ no longer showing an in-flight message, so any new
@@ -18072,6 +18671,19 @@ ENDIF
 
 .TT22
 
+                        \ --- Mod: Code added for Compendium: ----------------->
+
+ CURRENT1% = P%         \ Store the current address
+
+ CLEAR &6000, &6000     \ Clear the guard so we can assemble TT22 and TT23 into
+                        \ sideways ROM
+
+ ORG &B700              \ Assemble TT22 at &B700, at the end of the music ROM
+
+.TT22_ROM
+
+                        \ --- End of added code ------------------------------->
+
  LDA #64                \ Clear the top part of the screen, draw a white border,
  JSR TT66               \ and set the current view type in QQ11 to 32 (Long-
                         \ range Chart)
@@ -18180,7 +18792,15 @@ ENDIF
 \
 \ ******************************************************************************
 
-.TT15
+                        \ --- Mod: Code removed for Compendium: --------------->
+
+\.TT15
+
+                        \ --- And replaced by: -------------------------------->
+
+.TT15_ROM
+
+                        \ --- End of replacement ------------------------------>
 
  LDA #24                \ Set A to 24, which we will use as the minimum
                         \ screen indent for the crosshairs (i.e. the minimum
@@ -18298,6 +18918,70 @@ ENDIF
                         \ draw from the top edge of the crosshairs to the bottom
                         \ edge, through the centre of the crosshairs, returning
                         \ from the subroutine using a tail call
+
+                        \ --- Mod: Code added for Compendium: ----------------->
+
+ END_OF_TT22 = P%
+
+ SAVE "3-assembled-output/rom-extra1.bin", TT22_ROM, P%
+
+ ORG CURRENT1%          \ Start assembling the main code again
+
+ GUARD &6000            \ Put the guard back in place that we removed above
+
+ LDA &F4                \ Fetch the RAM copy of the currently selected ROM and
+ PHA                    \ store it on the stack
+
+ LDA musicRomNumber     \ Fetch the number of the music ROM and switch to it
+ STA &F4
+ STA &FE30
+
+ TYA                    \ Store X and Y on the stack
+ PHA
+ TXA
+ PHA
+
+ JSR TT22_ROM           \ Call the TT22 routine in the music ROM
+
+ PLA                    \ Retrieve X and Y from the stack
+ TAX
+ PLA
+ TAY
+
+ PLA                    \ Set the ROM number back to the value that we stored
+ STA &F4                \ above, to switch back to the previous ROM
+ STA &FE30
+
+ RTS                    \ Return from the subroutine
+
+.TT15
+
+ LDA &F4                \ Fetch the RAM copy of the currently selected ROM and
+ PHA                    \ store it on the stack
+
+ LDA musicRomNumber     \ Fetch the number of the music ROM and switch to it
+ STA &F4
+ STA &FE30
+
+ TYA                    \ Store X and Y on the stack
+ PHA
+ TXA
+ PHA
+
+ JSR TT15_ROM           \ Call the TT15 routine in the music ROM
+
+ PLA                    \ Retrieve X and Y from the stack
+ TAX
+ PLA
+ TAY
+
+ PLA                    \ Set the ROM number back to the value that we stored
+ STA &F4                \ above, to switch back to the previous ROM
+ STA &FE30
+
+ RTS                    \ Return from the subroutine
+
+                        \ --- End of added code ------------------------------->
 
 \ ******************************************************************************
 \
@@ -18791,6 +19475,19 @@ ENDIF
 
 .TT210
 
+                        \ --- Mod: Code added for Compendium: ----------------->
+
+ CURRENT2% = P%         \ Store the current address
+
+ CLEAR &5600, &5600     \ Clear the guard so we can assemble TT23 into sideways
+                        \ ROM
+
+ ORG END_OF_TT22        \ Assemble TT210 after the end of TT22/TT15
+
+.TT210_ROM
+
+                        \ --- End of added code ------------------------------->
+
  LDY #0                 \ We're going to loop through all the available market
                         \ items and check whether we have any in the hold (and,
                         \ if we are in the Sell Cargo screen, whether we want
@@ -18905,6 +19602,43 @@ ENDIF
                         \ screen, as we have finished selling cargo
 
  RTS                    \ Return from the subroutine
+
+                        \ --- Mod: Code added for Compendium: ----------------->
+
+ END_OF_TT210 = P%
+
+ SAVE "3-assembled-output/rom-extra2.bin", TT210_ROM, P%
+
+ ORG CURRENT2%          \ Start assembling the main code again
+
+ GUARD &6000            \ Put the guard back in place that we removed above
+
+ LDA &F4                \ Fetch the RAM copy of the currently selected ROM and
+ PHA                    \ store it on the stack
+
+ LDA musicRomNumber     \ Fetch the number of the music ROM and switch to it
+ STA &F4
+ STA &FE30
+
+ TYA                    \ Store X and Y on the stack
+ PHA
+ TXA
+ PHA
+
+ JSR TT210_ROM          \ Call the TT210 routine in the music ROM
+
+ PLA                    \ Retrieve X and Y from the stack
+ TAX
+ PLA
+ TAY
+
+ PLA                    \ Set the ROM number back to the value that we stored
+ STA &F4                \ above, to switch back to the previous ROM
+ STA &FE30
+
+ RTS                    \ Return from the subroutine
+
+                        \ --- End of added code ------------------------------->
 
 \ ******************************************************************************
 \
@@ -19254,6 +19988,19 @@ ENDIF
 
 .TT23
 
+                        \ --- Mod: Code added for Compendium: ----------------->
+
+ CURRENT3% = P%         \ Store the current address
+
+ CLEAR &5600, &5600     \ Clear the guard so we can assemble TT23 into sideways
+                        \ ROM
+
+ ORG END_OF_TT210       \ Assemble TT23 after the end of TT210
+
+.TT23_ROM
+
+                        \ --- End of added code ------------------------------->
+
  LDA #128               \ Clear the top part of the screen, draw a white border,
  JSR TT66               \ and set the current view type in QQ11 to 128 (Short-
                         \ range Chart)
@@ -19481,11 +20228,58 @@ ENDIF
 
  INC XX20               \ Increment the counter
 
- BEQ TT111-1            \ If X = 0 then we have done all 256 systems, so return
-                        \ from the subroutine (as TT111-1 contains an RTS)
+                        \ --- Mod: Code removed for Compendium: --------------->
+
+\BEQ TT111-1            \ If X = 0 then we have done all 256 systems, so return
+\                       \ from the subroutine (as TT111-1 contains an RTS)
+\
+\JMP TT182              \ Otherwise jump back up to TT182 to process the next
+\                       \ system
+
+                        \ --- And replaced by: -------------------------------->
+
+ BEQ P%+5               \ If X = 0 then we have done all 256 systems, so return
+                        \ from the subroutine
 
  JMP TT182              \ Otherwise jump back up to TT182 to process the next
                         \ system
+
+ RTS                    \ Return from the subroutine
+
+ END_OF_TT23 = P%
+
+ SAVE "3-assembled-output/rom-extra3.bin", TT23_ROM, P%
+
+ ORG CURRENT3%          \ Start assembling the main code again
+
+ GUARD &6000            \ Put the guard back in place that we removed above
+
+ LDA &F4                \ Fetch the RAM copy of the currently selected ROM and
+ PHA                    \ store it on the stack
+
+ LDA musicRomNumber     \ Fetch the number of the music ROM and switch to it
+ STA &F4
+ STA &FE30
+
+ TYA                    \ Store X and Y on the stack
+ PHA
+ TXA
+ PHA
+
+ JSR TT23_ROM           \ Call the TT23 routine in the music ROM
+
+ PLA                    \ Retrieve X and Y from the stack
+ TAX
+ PLA
+ TAY
+
+ PLA                    \ Set the ROM number back to the value that we stored
+ STA &F4                \ above, to switch back to the previous ROM
+ STA &FE30
+
+ RTS                    \ Return from the subroutine
+
+                        \ --- End of replacement ------------------------------>
 
 \ ******************************************************************************
 \
@@ -19562,6 +20356,19 @@ ENDIF
 \ ******************************************************************************
 
 .TT111
+
+                        \ --- Mod: Code added for Compendium: ----------------->
+
+ CURRENT4% = P%         \ Store the current address
+
+ CLEAR &5600, &5600     \ Clear the guard so we can assemble TT111 into sideways
+                        \ ROM
+
+ ORG END_OF_TT23        \ Assemble TT111 after the end of TT23
+
+.TT111_ROM
+
+                        \ --- End of added code ------------------------------->
 
  JSR TT81               \ Set the seeds in QQ15 to those of system 0 in the
                         \ current galaxy (i.e. copy the seeds from QQ21 to QQ15)
@@ -19802,6 +20609,41 @@ ENDIF
                         \ QQ15 and store them in the relevant locations, so our
                         \ new selected system is fully set up, and return from
                         \ the subroutine using a tail call
+
+ END_OF_TT111 = P%
+
+ SAVE "3-assembled-output/rom-extra4.bin", TT111_ROM, P%
+
+ ORG CURRENT4%          \ Start assembling the main code again
+
+ GUARD &6000            \ Put the guard back in place that we removed above
+
+ LDA &F4                \ Fetch the RAM copy of the currently selected ROM and
+ PHA                    \ store it on the stack
+
+ LDA musicRomNumber     \ Fetch the number of the music ROM and switch to it
+ STA &F4
+ STA &FE30
+
+ TYA                    \ Store X and Y on the stack
+ PHA
+ TXA
+ PHA
+
+ JSR TT111_ROM          \ Call the TT111 routine in the music ROM
+
+ PLA                    \ Retrieve X and Y from the stack
+ TAX
+ PLA
+ TAY
+
+ PLA                    \ Set the ROM number back to the value that we stored
+ STA &F4                \ above, to switch back to the previous ROM
+ STA &FE30
+
+ RTS                    \ Return from the subroutine
+
+                        \ --- End of replacement ------------------------------>
 
 \ ******************************************************************************
 \
@@ -25281,13 +26123,26 @@ ENDIF
 
 .PL9
 
- JSR WPLS2              \ Call WPLS2 to remove the planet from the screen
+                        \ --- Mod: Code removed for flicker-free planets: ----->
+
+\JSR WPLS2              \ Call WPLS2 to remove the planet from the screen
+\
+\JSR CIRCLE             \ Call CIRCLE to draw the planet's new circle
+\
+\BCS PL20               \ If the call to CIRCLE returned with the C flag set,
+\                       \ then the circle does not fit on-screen, so jump to
+\                       \ PL20 to call return from the subroutine
+
+                        \ --- And replaced by: -------------------------------->
 
  JSR CIRCLE             \ Call CIRCLE to draw the planet's new circle
 
- BCS PL20               \ If the call to CIRCLE returned with the C flag set,
+ BCS PL20A              \ If the call to CIRCLE returned with the C flag set,
                         \ then the circle does not fit on-screen, so jump to
-                        \ PL20 to return from the subroutine
+                        \ PL20A to remove the planet from the screen and return
+                        \ from the subroutine
+
+                        \ --- End of replacement ------------------------------>
 
  LDA K+1                \ If K+1 is zero, jump to PL25 as K(1 0) < 256, so the
  BEQ PL25               \ planet fits on the screen and we can draw meridians or
@@ -25295,8 +26150,22 @@ ENDIF
 
 .PL20
 
- RTS                    \ The planet doesn't fit on-screen, so return from the
-                        \ subroutine
+                        \ --- Mod: Code removed for flicker-free planets: ----->
+
+\RTS                    \ The planet doesn't fit on-screen, so return from the
+\                       \ subroutine
+
+                        \ --- And replaced by: -------------------------------->
+
+ JMP EraseRestOfPlanet  \ We have drawn the new circle, so now we need to erase
+                        \ any lines that are left in the ball line heap, before
+                        \ returning from the subroutine using a tail call
+
+.PL20A
+
+ JMP WPLS2              \ Call WPLS2 to remove the planet from the screen
+
+                        \ --- End of replacement ------------------------------>
 
 .PL25
 
@@ -25987,7 +26856,17 @@ ENDIF
 
 .PL40
 
- RTS                    \ Return from the subroutine
+                        \ --- Mod: Code removed for flicker-free planets: ----->
+
+\RTS                    \ Return from the subroutine
+
+                        \ --- And replaced by: -------------------------------->
+
+ JMP EraseRestOfPlanet  \ We have drawn the new circle, so now we need to erase
+                        \ any lines that are left in the ball line heap,
+                        \ returning from the subroutine using a tail call
+
+                        \ --- End of replacement ------------------------------>
 
 \ ******************************************************************************
 \
@@ -26649,6 +27528,29 @@ ENDIF
 
 .CIRCLE2
 
+                        \ --- Mod: Code added for flicker-free planets: ------->
+
+                        \ We now set things up for flicker-free circle plotting,
+                        \ by setting the following:
+                        \
+                        \   LSNUM = offset to the first coordinate in the ball
+                        \           line heap
+                        \
+                        \   LSNUM2 = the number of bytes in the heap for the
+                        \            circle that's currently on-screen (or 0 if
+                        \            there is no ship currently on-screen)
+
+ LDX #0                 \ Set LSNUM = 0, to point to the offset before the first
+ STX LSNUM              \ set of circle coordinates in the ball line heap
+
+ LDX LSP                \ Set LSNUM2 to the last byte of the ball line heap
+ STX LSNUM2
+
+ LDX #1                 \ Set LSP = 1 to reset the ball line heap pointer
+ STX LSP
+
+                        \ --- End of added code ------------------------------->
+
  LDX #&FF               \ Set FLAG = &FF to reset the ball line heap in the call
  STX FLAG               \ to the BLINE routine below
 
@@ -26776,56 +27678,75 @@ ENDIF
  BNE WP1                \ heap is empty), jump to WP1 to reset the line heap
                         \ without redrawing the planet
 
-                        \ Otherwise Y is now 0, so we can use it as a counter to
-                        \ loop through the lines in the line heap, redrawing
-                        \ each one to remove the planet from the screen, before
-                        \ resetting the line heap once we are done
+                        \ --- Mod: Code removed for flicker-free planets: ----->
 
-.WPL1
+\                       \ Otherwise Y is now 0, so we can use it as a counter to
+\                       \ loop through the lines in the line heap, redrawing
+\                       \ each one to remove the planet from the screen, before
+\                       \ resetting the line heap once we are done
+\
+\.WPL1
+\
+\CPY LSP                \ If Y >= LSP then we have reached the end of the line
+\BCS WP1                \ heap and have finished redrawing the planet (as LSP
+\                       \ points to the end of the heap), so jump to WP1 to
+\                       \ reset the line heap, returning from the subroutine
+\                       \ using a tail call
+\
+\LDA LSY2,Y             \ Set A to the y-coordinate of the current heap entry
+\
+\CMP #&FF               \ If the y-coordinate is &FF, this indicates that the
+\BEQ WP2                \ next point in the heap denotes the start of a line
+\                       \ segment, so jump to WP2 to put it into (X1, Y1)
+\
+\STA Y2                 \ Set (X2, Y2) to the x- and y-coordinates from the
+\LDA LSX2,Y             \ heap
+\STA X2
+\
+\JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2)
+\
+\INY                    \ Increment the loop counter to point to the next point
+\
+\LDA SWAP               \ If SWAP is non-zero then we swapped the coordinates
+\BNE WPL1               \ when filling the heap in BLINE, so loop back WPL1
+\                       \ for the next point in the heap
+\
+\LDA X2                 \ Swap (X1, Y1) and (X2, Y2), so the next segment will
+\STA X1                 \ be drawn from the current (X2, Y2) to the next point
+\LDA Y2                 \ in the heap
+\STA Y1
+\
+\JMP WPL1               \ Loop back to WPL1 for the next point in the heap
+\
+\.WP2
+\
+\INY                    \ Increment the loop counter to point to the next point
+\
+\LDA LSX2,Y             \ Set (X1, Y1) to the x- and y-coordinates from the
+\STA X1                 \ heap
+\LDA LSY2,Y
+\STA Y1
+\
+\INY                    \ Increment the loop counter to point to the next point
+\
+\JMP WPL1               \ Loop back to WPL1 for the next point in the heap
 
- CPY LSP                \ If Y >= LSP then we have reached the end of the line
- BCS WP1                \ heap and have finished redrawing the planet (as LSP
-                        \ points to the end of the heap), so jump to WP1 to
-                        \ reset the line heap, returning from the subroutine
-                        \ using a tail call
+                        \ --- And replaced by: -------------------------------->
 
- LDA LSY2,Y             \ Set A to the y-coordinate of the current heap entry
+ STY LSNUM              \ Reset LSNUM to the start of the ball line heap (we can
+                        \ set this to 0 rather than 1 to take advantage of the
+                        \ fact that Y is 0 - the effect is the same)
 
- CMP #&FF               \ If the y-coordinate is &FF, this indicates that the
- BEQ WP2                \ next point in the heap denotes the start of a line
-                        \ segment, so jump to WP2 to put it into (X1, Y1)
+ LDA LSP                \ Set LSNUM2 to the end of the ball line heap
+ STA LSNUM2
 
- STA Y2                 \ Set (X2, Y2) to the x- and y-coordinates from the
- LDA LSX2,Y             \ heap
- STA X2
+ JSR EraseRestOfPlanet  \ Draw the contents of the ball line heap to erase the
+                        \ old planet
 
- JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2)
+                        \ Fall through into WP1 to reset the ball line heap and
+                        \ return from the subroutine using a tail call
 
- INY                    \ Increment the loop counter to point to the next point
-
- LDA SWAP               \ If SWAP is non-zero then we swapped the coordinates
- BNE WPL1               \ when filling the heap in BLINE, so loop back WPL1
-                        \ for the next point in the heap
-
- LDA X2                 \ Swap (X1, Y1) and (X2, Y2), so the next segment will
- STA X1                 \ be drawn from the current (X2, Y2) to the next point
- LDA Y2                 \ in the heap
- STA Y1
-
- JMP WPL1               \ Loop back to WPL1 for the next point in the heap
-
-.WP2
-
- INY                    \ Increment the loop counter to point to the next point
-
- LDA LSX2,Y             \ Set (X1, Y1) to the x- and y-coordinates from the
- STA X1                 \ heap
- LDA LSY2,Y
- STA Y1
-
- INY                    \ Increment the loop counter to point to the next point
-
- JMP WPL1               \ Loop back to WPL1 for the next point in the heap
+                        \ --- End of replacement ------------------------------>
 
 \ ******************************************************************************
 \
@@ -28346,6 +29267,13 @@ ENDIF
 
  STA MCNT               \ Reset MCNT (the main loop counter) to 0
 
+                        \ --- Mod: Code added for docking fee: ---------------->
+
+ STA chargeDockingFee   \ Set chargeDockingFee to 0 so the docking fee is marked
+                        \ as being not already paid
+
+                        \ --- End of added code ------------------------------->
+
  LDA #3                 \ Reset DELTA (speed) to 3
  STA DELTA
 
@@ -29715,6 +30643,32 @@ ENDIF
  JSR FX200              \ Disable the ESCAPE key and clear memory if the BREAK
                         \ key is pressed (*FX 200,3)
 
+                        \ --- Mod: Code added for music: ---------------------->
+
+ LDA #0                 \ Select the title music
+ JSR PlayMusic
+
+ LDA #6                 \ Modify the PlayMusic routine so it plays music on the
+ STA play1+1            \ next call
+
+ SEI                    \ Disable interrupts so we can update the interrupt
+                        \ handler
+
+ LDA #&4C               \ Insert JMP IRQMusic into the LINSCN handler, replacing
+ STA LINSCN+9           \ the STA VIA+&45 instruction, so the IRQMusic routine
+ LDA #LO(IRQMusic)      \ gets called on each vertical sync
+ STA LINSCN+10
+ LDA #HI(IRQMusic)
+ STA LINSCN+11
+
+ CLI                    \ Re-enable interrupts
+
+ LDA #&FF               \ Set the status flag to a non-zero value to indicate
+ STA musicStatus        \ we are playing music, so the title music starts
+                        \ playing
+
+                        \ --- End of added code ------------------------------->
+
  LDX #CYL               \ Call TITLE to show a rotating Cobra Mk III (#CYL) and
  LDA #128               \ token 128 ("  LOAD NEW COMMANDER (Y/N)?{crlf}{crlf}"),
  JSR TITLE              \ returning with the internal number of the key pressed
@@ -29869,6 +30823,12 @@ ENDIF
  LDX #3                 \ 147 ("PRESS FIRE OR SPACE,COMMANDER.{crlf}{crlf}"),
  JSR TITLE              \ returning with the internal number of the key pressed
                         \ in A
+
+                        \ --- Mod: Code added for music: ---------------------->
+
+ JSR StopMusic          \ Stop the title music
+
+                        \ --- End of added code ------------------------------->
 
  JSR ping               \ Set the target system coordinates (QQ9, QQ10) to the
                         \ current system coordinates (QQ0, QQ1) we just loaded
@@ -30394,6 +31354,12 @@ ENDIF
 \ ******************************************************************************
 
 .SVE
+
+                        \ --- Mod: Code added for music: ---------------------->
+
+ JSR StopMusic          \ Stop any music that is currently playing
+
+                        \ --- End of added code ------------------------------->
 
  JSR GTNME              \ Clear the screen and ask for the commander filename
                         \ to save, storing the name at INWK
@@ -31877,11 +32843,29 @@ ENDIF
 
 .DK55
 
- CPX #&10               \ If "Q" is not being pressed, skip to DK7
- BNE DK7
+                        \ --- Mod: Code removed for music: -------------------->
 
- STX DNOIZ              \ "Q" is being pressed, so set DNOIZ to X, which is
-                        \ non-zero (&10), so this will turn the sound off
+\CPX #&10               \ If "Q" is not being pressed, skip to DK7
+\BNE DK7
+\
+\STX DNOIZ              \ "Q" is being pressed, so set DNOIZ to X, which is
+\                       \ non-zero (&10), so this will turn the sound off
+
+                        \ --- And replaced by: -------------------------------->
+
+ LDA #12                \ Process the "Q" and music-related options
+ JSR PlayMusic
+
+ BCC DK7                \ If no music-related options were changed, then the C
+                        \ flag will be clear, so jump to DK7 to skip the
+                        \ following
+
+ JSR BELL               \ Make a beep sound so we know something has happened
+
+ JSR DELAY              \ Wait for Y vertical syncs (Y is between 64 and 70, so
+                        \ this is always a bit longer than a second)
+
+                        \ --- End of replacement ------------------------------>
 
 .DK7
 
@@ -31998,10 +32982,41 @@ ENDIF
  TAY                    \ Copy A to Y, so Y contains the internal key number
                         \ of the key pressed
 
- LDA (TRTB%),Y          \ The address in TRTB% points to the MOS key
+                        \ --- Mod: Code removed for music: -------------------->
+
+\TAY                    \ Copy A to Y, so Y contains the internal key number
+\                       \ of the key pressed
+\
+\LDA (TRTB%),Y          \ The address in TRTB% points to the MOS key
+\                       \ translation table, which is used to translate
+\                       \ internal key numbers to ASCII, so this fetches the
+\                       \ key's ASCII code into A
+
+                        \ --- And replaced by: -------------------------------->
+
+ PHA                    \ Store the key pressed in A on the stack
+
+ LDA #172               \ Call OSBYTE 172 to read the address of the MOS
+ LDX #0                 \ keyboard translation table into (Y X)
+ LDY #&FF
+ JSR OSBYTE
+
+ STX trtb+1             \ Store the address of the keyboard translation table in
+ STY trtb+2             \ the LDA &FFFF,Y instruction below
+
+ PLA                    \ Retrieve A from the stack
+
+ TAY                    \ Copy A to Y, so Y contains the internal key number
+                        \ of the key pressed
+
+.trtb
+
+ LDA &FFFF,Y            \ This is modified by the above to point to the MOS key
                         \ translation table, which is used to translate
                         \ internal key numbers to ASCII, so this fetches the
                         \ key's ASCII code into A
+
+                        \ --- End of replacement ------------------------------>
 
  LDY YSAV               \ Restore the original value of Y we stored above
 
@@ -32974,7 +33989,7 @@ ENDMACRO
  STA X2                 \ Store the x-coordinate of the ship dot in X1, as this
                         \ is where the dash starts
 
- JMP LLX30              \ Draw this edge using smooth animation, by first
+ JMP LSPUT              \ Draw this edge using smooth animation, by first
                         \ drawing the ship's new line and then erasing the
                         \ corresponding old line from the screen, and return
                         \ from the subroutine using a tail call
@@ -35414,7 +36429,7 @@ ENDMACRO
 
                         \ --- And replaced by: -------------------------------->
 
- JSR LLX30              \ Draw the laser line using smooth animation, by first
+ JSR LSPUT              \ Draw the laser line using smooth animation, by first
                         \ drawing the new laser line and then erasing the
                         \ corresponding old line from the screen
 
@@ -35607,7 +36622,7 @@ ENDMACRO
 
                         \ --- Mod: Code added for flicker-free ships: --------->
 
- JSR LLX30              \ Draw this edge using smooth animation, by first
+ JSR LSPUT              \ Draw this edge using smooth animation, by first
                         \ drawing the ship's new line and then erasing the
                         \ corresponding old line from the screen
 
@@ -35843,7 +36858,7 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\       Name: LLX30
+\       Name: LSPUT
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a ship line using smooth animation, by drawing the ship's new
@@ -35891,7 +36906,7 @@ ENDMACRO
 
                         \ --- Mod: Code added for flicker-free ships: --------->
 
-.LLX30
+.LSPUT
 
  LDY LSNUM              \ Set Y = LSNUM, to get the offset within the ship line
                         \ heap where we want to insert our new line
@@ -37013,6 +38028,25 @@ ENDMACRO
                         \ fit on-screen
 
  RTS                    \ Return from the subroutine
+
+\ ******************************************************************************
+\
+\       Name: StopMusic
+\       Type: Subroutine
+\   Category: Music
+\    Summary: Stop any music that is currently playing
+\
+\ ******************************************************************************
+
+                        \ --- Mod: Code added for music: ---------------------->
+
+.StopMusic
+
+ LDA #9                 \ Stop any music that is currently playing and select
+ JMP PlayMusic          \ the docking music, returning from the subroutine using
+                        \ a tail call
+
+                        \ --- End of added code ------------------------------->
 
 \ ******************************************************************************
 \
