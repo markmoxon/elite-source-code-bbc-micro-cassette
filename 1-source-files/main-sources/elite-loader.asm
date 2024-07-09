@@ -123,14 +123,23 @@ ENDIF
 
  OSPRNT = &0234         \ The address for the OSPRNT vector
 
- C% = &0F40             \ C% is set to the location that the main game code gets
+                        \ --- Mod: Code removed for saving to disc: ----------->
+
+\C% = &0F40             \ C% is set to the location that the main game code gets
+\                       \ moved to after it is loaded
+
+                        \ --- And replaced by: -------------------------------->
+
+ C% = &1100             \ C% is set to the location that the main game code gets
                         \ moved to after it is loaded
+
+                        \ --- End of replacement ------------------------------>
 
  S% = C%                \ S% points to the entry point for the main game code
 
 IF _SOURCE_DISC
 
- D% = &5597             \ D% is set to the size of the main game code
+ D% = &561F             \ D% is set to the size of the main game code
 
 ELIF _TEXT_SOURCES
 
@@ -138,7 +147,7 @@ ELIF _TEXT_SOURCES
 
 ELIF _STH_CASSETTE
 
- D% = &5597             \ D% is set to the size of the main game code
+ D% = &561F             \ D% is set to the size of the main game code
 
 ENDIF
 
@@ -164,6 +173,12 @@ ENDIF
  OSBYTE = &FFF4         \ The address for the OSBYTE routine
 
  OSWORD = &FFF1         \ The address for the OSWORD routine
+
+                        \ --- Mod: Code added for saving to disc: ------------->
+
+ OSCLI = &FFF7          \ The address for the OSCLI routine
+
+                        \ --- End of added code ------------------------------->
 
 \ ******************************************************************************
 \
@@ -2677,78 +2692,113 @@ ENDIF
                         \ by (Y X) in MESS1, which starts loading the main game
                         \ code
 
- JSR 512-LEN+CHECKER-ENDBLOCK \ Call the CHECKER routine in its new location on
-                              \ the stack, to run a number of checksums on the
-                              \ code (this routine, along with the whole of part
-                              \ 6, was pushed onto the stack in part 4)
+                        \ --- Mod: Code removed for saving to disc: ----------->
 
- JSR AFOOL              \ Another call to the round-the-houses routine to try
-                        \ and distract the crackers, presumably
+\JSR 512-LEN+CHECKER-ENDBLOCK \ Call the CHECKER routine in its new location on
+\                             \ the stack, to run a number of checksums on the
+\                             \ code (this routine, along with the whole of part
+\                             \ 6, was pushed onto the stack in part 4)
+\
+\JSR AFOOL              \ Another call to the round-the-houses routine to try
+\                       \ and distract the crackers, presumably
+\
+\IF DISC
+\
+\LDA #140               \ Call OSBYTE with A = 140 and X = 12 to select the
+\LDX #12                \ tape filing system (i.e. do a *TAPE command)
+\JSR OSBYTE
+\
+\ENDIF
 
-IF DISC
+                        \ --- And replaced by: -------------------------------->
 
- LDA #140               \ Call OSBYTE with A = 140 and X = 12 to select the
- LDX #12                \ tape filing system (i.e. do a *TAPE command)
- JSR OSBYTE
+ LDX #LO(MESS2)         \ Set *DRIVE 0
+ LDY #HI(MESS2)
+ JSR OSCLI
+ NOP
 
-ENDIF
+                        \ --- End of replacement ------------------------------>
 
  LDA #0                 \ Set SVN to 0, as the main game code checks the value
  STA SVN                \ of this location in its IRQ1 routine, so it needs to
                         \ be set to 0 so it can work properly once it takes over
                         \ when the game itself runs
 
+                        \ --- Mod: Code removed for saving to disc: ----------->
+
                         \ We now decrypt and move the main game code from &1128
                         \ to &0F40
 
- LDX #HI(LC%)           \ Set X = high byte of LC%, the maximum size of the main
+\LDX #HI(LC%)           \ Set X = high byte of LC%, the maximum size of the main
                         \ game code, so if we move this number of pages, we will
                         \ have definitely moved all the game code down
+\
+\LDA #LO(L%)            \ Set ZP(1 0) = L% (the start of the game code)
+\STA ZP
+\LDA #HI(L%)
+\STA ZP+1
+\
+\LDA #LO(C%)            \ Set P(1 0) = C% = &0F40
+\STA P
+\LDA #HI(C%)
+\STA P+1
+\
+\LDY #0                 \ Set Y as a counter for working our way through every
+\                       \ byte of the game code. We EOR the counter with the
+\                       \ current byte to decrypt it
+\
+\.ML1
+\
+\TYA                    \ Copy the counter into A
+\
+\IF _REMOVE_CHECKSUMS
+\
+\LDA (ZP),Y             \ If we have disabled checksums, just fetch the byte to
+\                       \ copy from the Y-th block pointed to by ZP(1 0)
+\
+\ELSE
+\
+\EOR (ZP),Y             \ Fetch the byte and EOR it with the counter
+\
+\ENDIF
+\
+\STA (P),Y              \ Store the copied (and decrypted) byte in the Y-th byte
+\                       \ of the block pointed to by P(1 0)
+\
+\INY                    \ Increment the loop counter
+\
+\BNE ML1                \ Loop back for the next byte until we have finished the
+\                       \ first 256 bytes
+\
+\INC ZP+1               \ Increment the high bytes of both ZP(1 0) and P(1 0) to
+\INC P+1                \ point to the next 256 bytes
+\
+\DEX                    \ Decrement the number of pages we need to copy in X
+\
+\BPL ML1                \ Loop back to copy and decrypt the next page of bytes
+\                       \ until we have done them all
 
- LDA #LO(L%)            \ Set ZP(1 0) = L% (the start of the game code)
- STA ZP
- LDA #HI(L%)
- STA ZP+1
+                        \ --- And replaced by: -------------------------------->
 
- LDA #LO(C%)            \ Set P(1 0) = C% = &0F40
- STA P
- LDA #HI(C%)
- STA P+1
+ LDX #LO(MESS3)         \ Set *DIR E
+ LDY #HI(MESS3)
+ JSR OSCLI
 
- LDY #0                 \ Set Y as a counter for working our way through every
-                        \ byte of the game code. We EOR the counter with the
-                        \ current byte to decrypt it
+ NOP:NOP
+ NOP:NOP
+ NOP:NOP
+ NOP:NOP
+ NOP:NOP
+ NOP:NOP
+ NOP
+ NOP:NOP
+ NOP:NOP
+ NOP:NOP
+ NOP
+ NOP:NOP
 
-.ML1
+                        \ --- End of replacement ------------------------------>
 
- TYA                    \ Copy the counter into A
-
-IF _REMOVE_CHECKSUMS
-
- LDA (ZP),Y             \ If we have disabled checksums, just fetch the byte to
-                        \ copy from the Y-th block pointed to by ZP(1 0)
-
-ELSE
-
- EOR (ZP),Y             \ Fetch the byte and EOR it with the counter
-
-ENDIF
-
- STA (P),Y              \ Store the copied (and decrypted) byte in the Y-th byte
-                        \ of the block pointed to by P(1 0)
-
- INY                    \ Increment the loop counter
-
- BNE ML1                \ Loop back for the next byte until we have finished the
-                        \ first 256 bytes
-
- INC ZP+1               \ Increment the high bytes of both ZP(1 0) and P(1 0) to
- INC P+1                \ point to the next 256 bytes
-
- DEX                    \ Decrement the number of pages we need to copy in X
-
- BPL ML1                \ Loop back to copy and decrypt the next page of bytes
-                        \ until we have done them all
 
                         \ S% points to the entry point for the main game code,
                         \ so the following copies the addresses from the start
@@ -2776,6 +2826,20 @@ ENDIF
  JMP (FOOLV)            \ This jumps to the address in FOOLV as part of the
                         \ JSR AFOOL instruction above, which does nothing except
                         \ take us on wild goose chase
+
+                        \ --- Mod: Code added for saving to disc: ------------->
+
+.MESS2
+
+ EQUS "DR.0"
+ EQUB 13
+
+.MESS3
+
+ EQUS "DIR E"
+ EQUB 13
+
+                        \ --- End of added code ------------------------------->
 
 \ ******************************************************************************
 \
@@ -3084,6 +3148,16 @@ ENDIF
                         \ which just adds up every byte and checks it against
                         \ the checksum stored at the end of the main game code
 
+                        \ --- Mod: Code added for saving to disc: ------------->
+
+ JMP (S%)               \ The checksum was correct, so we call the address held
+                        \ in the first two bytes of the main game code, which
+                        \ point to TT170, the entry point for the main game
+                        \ code, so this, finally, is where we hand over to the
+                        \ game itself
+
+                        \ --- End of added code ------------------------------->
+
 .BLAST
 
  LDA #HI(S%)            \ Set ZP(1 0) = S%
@@ -3149,11 +3223,15 @@ ENDIF
 
 .itsOK
 
- JMP (S%)               \ The checksum was correct, so we call the address held
-                        \ in the first two bytes of the main game code, which
-                        \ point to TT170, the entry point for the main game
-                        \ code, so this, finally, is where we hand over to the
-                        \ game itself
+                        \ --- Mod: Code removed for saving to disc: ----------->
+
+\JMP (S%)               \ The checksum was correct, so we call the address held
+\                       \ in the first two bytes of the main game code, which
+\                       \ point to TT170, the entry point for the main game
+\                       \ code, so this, finally, is where we hand over to the
+\                       \ game itself
+
+                        \ --- End of removed code ----------------------------->
 
 \ ******************************************************************************
 \

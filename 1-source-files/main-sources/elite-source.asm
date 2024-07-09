@@ -48,7 +48,15 @@
 \
 \ ******************************************************************************
 
- CODE% = &0F40          \ The address where the code will be run
+                        \ --- Mod: Code removed for saving to disc: ----------->
+
+\CODE% = &0F40          \ The address where the code will be run
+
+                        \ --- And replaced by: -------------------------------->
+
+ CODE% = &1100          \ The address where the code will be run
+
+                        \ --- End of replacement ------------------------------>
 
  LOAD% = &1128          \ The address where the code will be loaded
 
@@ -118,6 +126,12 @@
 
  RE = &23               \ The obfuscation byte used to hide the recursive tokens
                         \ table from crackers viewing the binary code
+
+                        \ --- Mod: Code added for saving to disc: ------------->
+
+ LS% = &0CFF            \ The start of the descending ship line heap
+
+                        \ --- End of added code ------------------------------->
 
  VIA = &FE00            \ Memory-mapped space for accessing internal hardware,
                         \ such as the video ULA, 6845 CRTC and 6522 VIAs (also
@@ -315,6 +329,21 @@
                         \ Only one E.C.M. can be active at any one time, so
                         \ there is only one counter
 
+                        \ --- Mod: Code moved for saving to disc: ------------->
+
+.ALP1
+
+ SKIP 1                 \ Magnitude of the roll angle alpha, i.e. |alpha|,
+                        \ which is a positive value between 0 and 31
+
+.ALP2
+
+ SKIP 2                 \ Bit 7 of ALP2 = sign of the roll angle in ALPHA
+                        \
+                        \ Bit 7 of ALP2+1 = opposite sign to ALP2 and ALPHA
+
+                        \ --- End of moved code ------------------------------->
+
 .XX15
 
  SKIP 0                 \ Temporary storage, typically used for storing screen
@@ -364,140 +393,144 @@
 
  SKIP 4                 \ Temporary storage, used in a number of places
 
-.KL
+                        \ --- Mod: Code moved for music: ---------------------->
 
- SKIP 1                 \ The following bytes implement a key logger that
-                        \ enables Elite to scan for concurrent key presses of
-                        \ the primary flight keys, plus a secondary flight key
-                        \
-                        \ See the deep dive on "The key logger" for more details
-                        \
-                        \ If a key is being pressed that is not in the keyboard
-                        \ table at KYTB, it can be stored here (as seen in
-                        \ routine DK4, for example)
+\.KL
+\
+\SKIP 1                 \ The following bytes implement a key logger that
+\                       \ enables Elite to scan for concurrent key presses of
+\                       \ the primary flight keys, plus a secondary flight key
+\                       \
+\                       \ See the deep dive on "The key logger" for more details
+\                       \
+\                       \ If a key is being pressed that is not in the keyboard
+\                       \ table at KYTB, it can be stored here (as seen in
+\                       \ routine DK4, for example)
+\
+\.KY1
+\
+\SKIP 1                 \ "?" is being pressed
+\                       \
+\                       \   * 0 = no
+\                       \
+\                       \   * Non-zero = yes
+\
+\.KY2
+\
+\SKIP 1                 \ Space is being pressed
+\                       \
+\                       \   * 0 = no
+\                       \
+\                       \   * Non-zero = yes
+\
+\.KY3
+\
+\SKIP 1                 \ "<" is being pressed
+\                       \
+\                       \   * 0 = no
+\                       \
+\                       \   * Non-zero = yes
+\
+\.KY4
+\
+\SKIP 1                 \ ">" is being pressed
+\                       \
+\                       \   * 0 = no
+\                       \
+\                       \   * Non-zero = yes
+\
+\.KY5
+\
+\SKIP 1                 \ "X" is being pressed
+\                       \
+\                       \   * 0 = no
+\                       \
+\                       \   * Non-zero = yes
+\
+\.KY6
+\
+\SKIP 1                 \ "S" is being pressed
+\                       \
+\                       \   * 0 = no
+\                       \
+\                       \   * Non-zero = yes
+\
+\.KY7
+\
+\SKIP 1                 \ "A" is being pressed
+\                       \
+\                       \   * 0 = no
+\                       \
+\                       \   * Non-zero = yes
+\                       \
+\                       \ This is also set when the joystick fire button has
+\                       \ been pressed
+\
+\.KY12
+\
+\SKIP 1                 \ TAB is being pressed
+\                       \
+\                       \   * 0 = no
+\                       \
+\                       \   * Non-zero = yes
+\
+\.KY13
+\
+\SKIP 1                 \ ESCAPE is being pressed
+\                       \
+\                       \   * 0 = no
+\                       \
+\                       \   * Non-zero = yes
+\
+\.KY14
+\
+\SKIP 1                 \ "T" is being pressed
+\                       \
+\                       \   * 0 = no
+\                       \
+\                       \   * Non-zero = yes
+\
+\.KY15
+\
+\SKIP 1                 \ "U" is being pressed
+\                       \
+\                       \   * 0 = no
+\                       \
+\                       \   * Non-zero = yes
+\
+\.KY16
+\
+\SKIP 1                 \ "M" is being pressed
+\                       \
+\                       \   * 0 = no
+\                       \
+\                       \   * Non-zero = yes
+\
+\.KY17
+\
+\SKIP 1                 \ "E" is being pressed
+\                       \
+\                       \   * 0 = no
+\                       \
+\                       \   * Non-zero = yes
+\
+\.KY18
+\
+\SKIP 1                 \ "J" is being pressed
+\                       \
+\                       \   * 0 = no
+\                       \
+\                       \   * Non-zero = yes
+\
+\.KY19
+\
+\SKIP 1                 \ "C" is being pressed
+\                       \
+\                       \   * 0 = no
+\                       \
+\                       \   * Non-zero = yes
 
-.KY1
-
- SKIP 1                 \ "?" is being pressed
-                        \
-                        \   * 0 = no
-                        \
-                        \   * Non-zero = yes
-
-.KY2
-
- SKIP 1                 \ Space is being pressed
-                        \
-                        \   * 0 = no
-                        \
-                        \   * Non-zero = yes
-
-.KY3
-
- SKIP 1                 \ "<" is being pressed
-                        \
-                        \   * 0 = no
-                        \
-                        \   * Non-zero = yes
-
-.KY4
-
- SKIP 1                 \ ">" is being pressed
-                        \
-                        \   * 0 = no
-                        \
-                        \   * Non-zero = yes
-
-.KY5
-
- SKIP 1                 \ "X" is being pressed
-                        \
-                        \   * 0 = no
-                        \
-                        \   * Non-zero = yes
-
-.KY6
-
- SKIP 1                 \ "S" is being pressed
-                        \
-                        \   * 0 = no
-                        \
-                        \   * Non-zero = yes
-
-.KY7
-
- SKIP 1                 \ "A" is being pressed
-                        \
-                        \   * 0 = no
-                        \
-                        \   * Non-zero = yes
-                        \
-                        \ This is also set when the joystick fire button has
-                        \ been pressed
-
-.KY12
-
- SKIP 1                 \ TAB is being pressed
-                        \
-                        \   * 0 = no
-                        \
-                        \   * Non-zero = yes
-
-.KY13
-
- SKIP 1                 \ ESCAPE is being pressed
-                        \
-                        \   * 0 = no
-                        \
-                        \   * Non-zero = yes
-
-.KY14
-
- SKIP 1                 \ "T" is being pressed
-                        \
-                        \   * 0 = no
-                        \
-                        \   * Non-zero = yes
-
-.KY15
-
- SKIP 1                 \ "U" is being pressed
-                        \
-                        \   * 0 = no
-                        \
-                        \   * Non-zero = yes
-
-.KY16
-
- SKIP 1                 \ "M" is being pressed
-                        \
-                        \   * 0 = no
-                        \
-                        \   * Non-zero = yes
-
-.KY17
-
- SKIP 1                 \ "E" is being pressed
-                        \
-                        \   * 0 = no
-                        \
-                        \   * Non-zero = yes
-
-.KY18
-
- SKIP 1                 \ "J" is being pressed
-                        \
-                        \   * 0 = no
-                        \
-                        \   * Non-zero = yes
-
-.KY19
-
- SKIP 1                 \ "C" is being pressed
-                        \
-                        \   * 0 = no
-                        \
-                        \   * Non-zero = yes
+                        \ --- End of moved code ------------------------------->
 
 .LAS
 
@@ -546,16 +579,12 @@
  SKIP NI% - 33          \ XX19(1 0) shares its location with INWK(34 33), which
                         \ contains the address of the ship line heap
 
-                        \ --- Mod: Code moved for music: ---------------------->
+.LSP
 
-\.LSP
-\
-\SKIP 1                 \ The ball line heap pointer, which contains the number
-\                       \ of the first free byte after the end of the LSX2 and
-\                       \ LSY2 heaps (see the deep dive on "The ball line heap"
-\                       \ for details)
-
-                        \ --- End of moved code ------------------------------->
+ SKIP 1                 \ The ball line heap pointer, which contains the number
+                        \ of the first free byte after the end of the LSX2 and
+                        \ LSY2 heaps (see the deep dive on "The ball line heap"
+                        \ for details)
 
 .QQ15
 
@@ -615,65 +644,13 @@
  SKIP 5                 \ Temporary storage, typically used for storing
                         \ coordinates during vector calculations
 
-                        \ --- Mod: Code added for music: ---------------------->
-
-.musicWorkspace
-
- SKIP 8                 \ Storage for the music player, &0092 to &0099 inclusive
-
-.musicRomNumber
-
- SKIP 1                 \ The bank number of the sideways ROM slot containing
-                        \ the music player at &009A
-
-.musicStatus
-
- SKIP 1                 \ A flag to determine whether to play the currently
-                        \ selected music:
-                        \
-                        \   * 0 = do not play the music
-                        \
-                        \   * Non-zero = do play the music
-
-                        \ --- End of added code ------------------------------->
-
-.ALP1
-
- SKIP 1                 \ Magnitude of the roll angle alpha, i.e. |alpha|,
-                        \ which is a positive value between 0 and 31
-
-.ALP2
-
- SKIP 2                 \ Bit 7 of ALP2 = sign of the roll angle in ALPHA
-                        \
-                        \ Bit 7 of ALP2+1 = opposite sign to ALP2 and ALPHA
+                        \ --- Mod: Code moved for music: ---------------------->
 
 .BET2
 
  SKIP 2                 \ Bit 7 of BET2 = sign of the pitch angle in BETA
                         \
                         \ Bit 7 of BET2+1 = opposite sign to BET2 and BETA
-
-                        \ --- Mod: Code moved for music: ---------------------->
-
-.DL
-
- SKIP 1                 \ Vertical sync flag
-                        \
-                        \ DL gets set to 30 every time we reach vertical sync on
-                        \ the video system, which happens 50 times a second
-                        \ (50Hz). The WSCAN routine uses this to pause until the
-                        \ vertical sync, by setting DL to 0 and then monitoring
-                        \ its value until it changes to 30
-
-.LSP
-
- SKIP 1                 \ The ball line heap pointer, which contains the number
-                        \ of the first free byte after the end of the LSX2 and
-                        \ LSY2 heaps (see the deep dive on "The ball line heap"
-                        \ for details)
-
-                        \ --- End of moved code ------------------------------->
 
 .DELTA
 
@@ -716,7 +693,93 @@
 
  SKIP 1                 \ Temporary storage, used in BPRNT to store the number
                         \ of characters to print, and as the edge counter in the
-                        \ main ship-drawing routine
+                        \ main ship-drawing routine                        \ --- End of moved code ------------------------------->
+
+                        \ --- Mod: Code added for music: ---------------------->
+
+.musicWorkspace
+
+ SKIP 8                 \ Storage for the music player, &0092 to &0099 inclusive
+
+.musicRomNumber
+
+ SKIP 1                 \ The bank number of the sideways ROM slot containing
+                        \ the music player at &009A
+
+.musicStatus
+
+ SKIP 1                 \ A flag to determine whether to play the currently
+                        \ selected music:
+                        \
+                        \   * 0 = do not play the music
+                        \
+                        \   * Non-zero = do play the music
+
+                        \ --- End of added code ------------------------------->
+
+                        \ --- Mod: Code moved for saving to disc: ------------->
+
+\.ALP1
+\
+\SKIP 1                 \ Magnitude of the roll angle alpha, i.e. |alpha|,
+\                       \ which is a positive value between 0 and 31
+\
+\.ALP2
+\
+\SKIP 2                 \ Bit 7 of ALP2 = sign of the roll angle in ALPHA
+\                       \
+\                       \ Bit 7 of ALP2+1 = opposite sign to ALP2 and ALPHA
+\
+\.BET2
+\
+\SKIP 2                 \ Bit 7 of BET2 = sign of the pitch angle in BETA
+\                       \
+\                       \ Bit 7 of BET2+1 = opposite sign to BET2 and BETA
+\
+\.DELTA
+\
+\SKIP 1                 \ Our current speed, in the range 1-40
+\
+\.DELT4
+\
+\SKIP 2                 \ Our current speed * 64 as a 16-bit value
+\                       \
+\                       \ This is stored as DELT4(1 0), so the high byte in
+\                       \ DELT4+1 therefore contains our current speed / 4
+\
+\.U
+\
+\SKIP 1                 \ Temporary storage, used in a number of places
+\
+\.Q
+\
+\SKIP 1                 \ Temporary storage, used in a number of places
+\
+\.R
+\
+\SKIP 1                 \ Temporary storage, used in a number of places
+\
+\.S
+\
+\SKIP 1                 \ Temporary storage, used in a number of places
+\
+\.XSAV
+\
+\SKIP 1                 \ Temporary storage for saving the value of the X
+\                       \ register, used in a number of places
+\
+\.YSAV
+\
+\SKIP 1                 \ Temporary storage for saving the value of the Y
+\                       \ register, used in a number of places
+\
+\.XX17
+\
+\SKIP 1                 \ Temporary storage, used in BPRNT to store the number
+\                       \ of characters to print, and as the edge counter in the
+\                       \ main ship-drawing routine
+
+                        \ --- End of moved code ------------------------------->
 
 .QQ11
 
@@ -780,6 +843,20 @@
                         \ we are iterating through the ships in the local bubble
                         \ as part of the main flight loop. See the table at XX21
                         \ for information about ship types
+
+                        \ --- Mod: Code moved for music: ---------------------->
+
+.DL
+
+ SKIP 1                 \ Vertical sync flag
+                        \
+                        \ DL gets set to 30 every time we reach vertical sync on
+                        \ the video system, which happens 50 times a second
+                        \ (50Hz). The WSCAN routine uses this to pause until the
+                        \ vertical sync, by setting DL to 0 and then monitoring
+                        \ its value until it changes to 30
+
+                        \ --- End of moved code ------------------------------->
 
 .JSTX
 
@@ -1083,6 +1160,526 @@
 .T%
 
  SKIP 0                 \ The start of the T% workspace
+
+                        \ --- Mod: Code moved for music: ---------------------->
+
+.KL
+
+ SKIP 1                 \ The following bytes implement a key logger that
+                        \ enables Elite to scan for concurrent key presses of
+                        \ the primary flight keys, plus a secondary flight key
+                        \
+                        \ See the deep dive on "The key logger" for more details
+                        \
+                        \ If a key is being pressed that is not in the keyboard
+                        \ table at KYTB, it can be stored here (as seen in
+                        \ routine DK4, for example)
+
+.KY1
+
+ SKIP 1                 \ "?" is being pressed
+                        \
+                        \   * 0 = no
+                        \
+                        \   * Non-zero = yes
+
+.KY2
+
+ SKIP 1                 \ Space is being pressed
+                        \
+                        \   * 0 = no
+                        \
+                        \   * Non-zero = yes
+
+.KY3
+
+ SKIP 1                 \ "<" is being pressed
+                        \
+                        \   * 0 = no
+                        \
+                        \   * Non-zero = yes
+
+.KY4
+
+ SKIP 1                 \ ">" is being pressed
+                        \
+                        \   * 0 = no
+                        \
+                        \   * Non-zero = yes
+
+.KY5
+
+ SKIP 1                 \ "X" is being pressed
+                        \
+                        \   * 0 = no
+                        \
+                        \   * Non-zero = yes
+
+.KY6
+
+ SKIP 1                 \ "S" is being pressed
+                        \
+                        \   * 0 = no
+                        \
+                        \   * Non-zero = yes
+
+.KY7
+
+ SKIP 1                 \ "A" is being pressed
+                        \
+                        \   * 0 = no
+                        \
+                        \   * Non-zero = yes
+                        \
+                        \ This is also set when the joystick fire button has
+                        \ been pressed
+
+.KY12
+
+ SKIP 1                 \ TAB is being pressed
+                        \
+                        \   * 0 = no
+                        \
+                        \   * Non-zero = yes
+
+.KY13
+
+ SKIP 1                 \ ESCAPE is being pressed
+                        \
+                        \   * 0 = no
+                        \
+                        \   * Non-zero = yes
+
+.KY14
+
+ SKIP 1                 \ "T" is being pressed
+                        \
+                        \   * 0 = no
+                        \
+                        \   * Non-zero = yes
+
+.KY15
+
+ SKIP 1                 \ "U" is being pressed
+                        \
+                        \   * 0 = no
+                        \
+                        \   * Non-zero = yes
+
+.KY16
+
+ SKIP 1                 \ "M" is being pressed
+                        \
+                        \   * 0 = no
+                        \
+                        \   * Non-zero = yes
+
+.KY17
+
+ SKIP 1                 \ "E" is being pressed
+                        \
+                        \   * 0 = no
+                        \
+                        \   * Non-zero = yes
+
+.KY18
+
+ SKIP 1                 \ "J" is being pressed
+                        \
+                        \   * 0 = no
+                        \
+                        \   * Non-zero = yes
+
+.KY19
+
+ SKIP 1                 \ "C" is being pressed
+                        \
+                        \   * 0 = no
+                        \
+                        \   * Non-zero = yes
+
+.FRIN
+
+ SKIP NOSH + 1          \ Slots for the ships in the local bubble of universe
+                        \
+                        \ There are #NOSH + 1 slots, but the ship-spawning
+                        \ routine at NWSHP only populates #NOSH of them, so
+                        \ there are 13 slots but only 12 are used for ships
+                        \ (the last slot is effectively used as a null
+                        \ terminator when shuffling the slots down in the
+                        \ KILLSHP routine)
+                        \
+                        \ See the deep dive on "The local bubble of universe"
+                        \ for details of how Elite stores the local universe in
+                        \ FRIN, UNIV and K%
+
+.CABTMP
+
+ SKIP 0                 \ Cabin temperature
+                        \
+                        \ The ambient cabin temperature in deep space is 30,
+                        \ which is displayed as one notch on the dashboard bar
+                        \
+                        \ We get higher temperatures closer to the sun
+                        \
+                        \ CABTMP shares a location with MANY, but that's OK as
+                        \ MANY+0 would contain the number of ships of type 0,
+                        \ and as there is no ship type 0 (they start at 1), the
+                        \ byte at MANY+0 is not used for storing a ship type
+                        \ and can be used for the cabin temperature instead
+
+.MANY
+
+ SKIP SST               \ The number of ships of each type in the local bubble
+                        \ of universe
+                        \
+                        \ The number of ships of type X in the local bubble is
+                        \ stored at MANY+X
+                        \
+                        \ See the deep dive on "Ship blueprints" for a list of
+                        \ ship types
+
+.SSPR
+
+ SKIP NTY + 1 - SST     \ "Space station present" flag
+                        \
+                        \   * Non-zero if we are inside the space station's safe
+                        \     zone
+                        \
+                        \   * 0 if we aren't (in which case we can show the sun)
+                        \
+                        \ This flag is at MANY+SST, which is no coincidence, as
+                        \ MANY+SST is a count of how many space stations there
+                        \ are in our local bubble, which is the same as saying
+                        \ "space station present"
+
+.ECMP
+
+ SKIP 1                 \ Our E.C.M. status
+                        \
+                        \   * 0 = E.C.M. is off
+                        \
+                        \   * Non-zero = E.C.M. is on
+
+.MJ
+
+ SKIP 1                 \ Are we in witchspace (i.e. have we mis-jumped)?
+                        \
+                        \   * 0 = no, we are in normal space
+                        \
+                        \   * &FF = yes, we are in witchspace
+
+.LAS2
+
+ SKIP 1                 \ Laser power for the current laser
+                        \
+                        \   * Bits 0-6 contain the laser power of the current
+                        \     space view
+                        \
+                        \   * Bit 7 denotes whether or not the laser pulses:
+                        \
+                        \     * 0 = pulsing laser
+                        \
+                        \     * 1 = beam laser (i.e. always on)
+
+.MSAR
+
+ SKIP 1                 \ The targeting state of our leftmost missile
+                        \
+                        \   * 0 = missile is not looking for a target, or it
+                        \     already has a target lock (indicator is not
+                        \     yellow/white)
+                        \
+                        \   * Non-zero = missile is currently looking for a
+                        \     target (indicator is yellow/white)
+
+.VIEW
+
+ SKIP 1                 \ The number of the current space view
+                        \
+                        \   * 0 = front
+                        \   * 1 = rear
+                        \   * 2 = left
+                        \   * 3 = right
+
+.LASCT
+
+ SKIP 1                 \ The laser pulse count for the current laser
+                        \
+                        \ This is a counter that defines the gap between the
+                        \ pulses of a pulse laser. It is set as follows:
+                        \
+                        \   * 0 for a beam laser
+                        \
+                        \   * 10 for a pulse laser
+                        \
+                        \ It gets decremented every vertical sync (in the LINSCN
+                        \ routine, which is called 50 times a second) and is set
+                        \ to a non-zero value for pulse lasers only
+                        \
+                        \ The laser only fires when the value of LASCT hits
+                        \ zero, so for pulse lasers with a value of 10, that
+                        \ means the laser fires once every 10 vertical syncs (or
+                        \ 5 times a second)
+                        \
+                        \ In comparison, beam lasers fire continuously as the
+                        \ value of LASCT is always 0
+
+.GNTMP
+
+ SKIP 1                 \ Laser temperature (or "gun temperature")
+                        \
+                        \ If the laser temperature exceeds 242 then the laser
+                        \ overheats and cannot be fired again until it has
+                        \ cooled down
+
+.HFX
+
+ SKIP 1                 \ A flag that toggles the hyperspace colour effect
+                        \
+                        \   * 0 = no colour effect
+                        \
+                        \   * Non-zero = hyperspace colour effect enabled
+                        \
+                        \ When HFX is set to 1, the mode 4 screen that makes
+                        \ up the top part of the display is temporarily switched
+                        \ to mode 5 (the same screen mode as the dashboard),
+                        \ which has the effect of blurring and colouring the
+                        \ hyperspace rings in the top part of the screen. The
+                        \ code to do this is in the LINSCN routine, which is
+                        \ called as part of the screen mode routine at IRQ1.
+                        \ It's in LINSCN that HFX is checked, and if it is
+                        \ non-zero, the top part of the screen is not switched
+                        \ to mode 4, thus leaving the top part of the screen in
+                        \ the more colourful mode 5
+
+.EV
+
+ SKIP 1                 \ The "extra vessels" spawning counter
+                        \
+                        \ This counter is set to 0 on arrival in a system and
+                        \ following an in-system jump, and is bumped up when we
+                        \ spawn bounty hunters or pirates (i.e. "extra vessels")
+                        \
+                        \ It decreases by 1 each time we consider spawning more
+                        \ "extra vessels" in part 4 of the main game loop, so
+                        \ increasing the value of EV has the effect of delaying
+                        \ the spawning of more vessels
+                        \
+                        \ In other words, this counter stops bounty hunters and
+                        \ pirates from continually appearing, and ensures that
+                        \ there's a delay between spawnings
+
+.DLY
+
+ SKIP 1                 \ In-flight message delay
+                        \
+                        \ This counter is used to keep an in-flight message up
+                        \ for a specified time before it gets removed. The value
+                        \ in DLY is decremented each time we start another
+                        \ iteration of the main game loop at TT100
+
+.de
+
+ SKIP 1                 \ Equipment destruction flag
+                        \
+                        \   * Bit 1 denotes whether or not the in-flight message
+                        \     about to be shown by the MESS routine is about
+                        \     destroyed equipment:
+                        \
+                        \     * 0 = the message is shown normally
+                        \
+                        \     * 1 = the string " DESTROYED" gets added to the
+                        \       end of the message
+
+.XSAV2
+
+ SKIP 1                 \ Temporary storage, used for storing the value of the X
+                        \ register in the TT26 routine
+
+.YSAV2
+
+ SKIP 1                 \ Temporary storage, used for storing the value of the Y
+                        \ register in the TT26 routine
+
+.MCH
+
+ SKIP 1                 \ The text token number of the in-flight message that is
+                        \ currently being shown, and which will be removed by
+                        \ the me2 routine when the counter in DLY reaches zero
+
+.FSH
+
+ SKIP 1                 \ Forward shield status
+                        \
+                        \   * 0 = empty
+                        \
+                        \   * &FF = full
+
+.ASH
+
+ SKIP 1                 \ Aft shield status
+                        \
+                        \   * 0 = empty
+                        \
+                        \   * &FF = full
+
+.ENERGY
+
+ SKIP 1                 \ Energy bank status
+                        \
+                        \   * 0 = empty
+                        \
+                        \   * &FF = full
+
+.COMX
+
+ SKIP 1                 \ The x-coordinate of the compass dot
+
+.COMY
+
+ SKIP 1                 \ The y-coordinate of the compass dot
+
+.QQ24
+
+ SKIP 1                 \ Temporary storage, used to store the current market
+                        \ item's price in routine TT151
+
+.QQ25
+
+ SKIP 1                 \ Temporary storage, used to store the current market
+                        \ item's availability in routine TT151
+
+.QQ28
+
+ SKIP 1                 \ The current system's economy (0-7)
+                        \
+                        \   * 0 = Rich Industrial
+                        \   * 1 = Average Industrial
+                        \   * 2 = Poor Industrial
+                        \   * 3 = Mainly Industrial
+                        \   * 4 = Mainly Agricultural
+                        \   * 5 = Rich Agricultural
+                        \   * 6 = Average Agricultural
+                        \   * 7 = Poor Agricultural
+                        \
+                        \ See the deep dive on "Generating system data" for more
+                        \ information on economies
+
+.QQ29
+
+ SKIP 1                 \ Temporary storage, used in a number of places
+
+.gov
+
+ SKIP 1                 \ The current system's government type (0-7)
+                        \
+                        \ See the deep dive on "Generating system data" for
+                        \ details of the various government types
+
+.tek
+
+ SKIP 1                 \ The current system's tech level (0-14)
+                        \
+                        \ See the deep dive on "Generating system data" for more
+                        \ information on tech levels
+
+.SLSP
+
+ SKIP 2                 \ The address of the bottom of the ship line heap
+                        \
+                        \ The ship line heap is a descending block of memory
+                        \ that starts at WP and descends down to SLSP. It can be
+                        \ extended downwards by the NWSHP routine when adding
+                        \ new ships (and their associated ship line heaps), in
+                        \ which case SLSP is lowered to provide more heap space,
+                        \ assuming there is enough free memory to do so
+
+.QQ2
+
+ SKIP 6                 \ The three 16-bit seeds for the current system, i.e.
+                        \ the one we are currently in
+                        \
+                        \ See the deep dives on "Galaxy and system seeds" and
+                        \ "Twisting the system seeds" for more details
+
+.QQ3
+
+ SKIP 1                 \ The selected system's economy (0-7)
+                        \
+                        \   * 0 = Rich Industrial
+                        \   * 1 = Average Industrial
+                        \   * 2 = Poor Industrial
+                        \   * 3 = Mainly Industrial
+                        \   * 4 = Mainly Agricultural
+                        \   * 5 = Rich Agricultural
+                        \   * 6 = Average Agricultural
+                        \   * 7 = Poor Agricultural
+                        \
+                        \ See the deep dive on "Generating system data" for more
+                        \ information on economies
+
+.QQ4
+
+ SKIP 1                 \ The selected system's government (0-7)
+                        \
+                        \ See the deep dive on "Generating system data" for more
+                        \ details of the various government types
+
+.QQ5
+
+ SKIP 1                 \ The selected system's tech level (0-14)
+                        \
+                        \ See the deep dive on "Generating system data" for more
+                        \ information on tech levels
+
+.QQ6
+
+ SKIP 2                 \ The selected system's population in billions * 10
+                        \ (1-71), so the maximum population is 7.1 billion
+                        \
+                        \ See the deep dive on "Generating system data" for more
+                        \ details on population levels
+
+.QQ7
+
+ SKIP 2                 \ The selected system's productivity in M CR (96-62480)
+                        \
+                        \ See the deep dive on "Generating system data" for more
+                        \ details about productivity levels
+
+.QQ8
+
+ SKIP 2                 \ The distance from the current system to the selected
+                        \ system in light years * 10, stored as a 16-bit number
+                        \
+                        \ The distance will be 0 if the selected system is the
+                        \ current system
+                        \
+                        \ The galaxy chart is 102.4 light years wide and 51.2
+                        \ light years tall (see the intra-system distance
+                        \ calculations in routine TT111 for details), which
+                        \ equates to 1024 x 512 in terms of QQ8
+
+.QQ9
+
+ SKIP 1                 \ The galactic x-coordinate of the crosshairs in the
+                        \ galaxy chart (and, most of the time, the selected
+                        \ system's galactic x-coordinate)
+
+.QQ10
+
+ SKIP 1                 \ The galactic y-coordinate of the crosshairs in the
+                        \ galaxy chart (and, most of the time, the selected
+                        \ system's galactic y-coordinate)
+
+.NOSTM
+
+ SKIP 1                 \ The number of stardust particles shown on screen,
+                        \ which is 18 (#NOST) for normal space, and 3 for
+                        \ witchspace
+
+                        \ --- End of moved code ------------------------------->
 
 .TP
 
@@ -2813,205 +3410,217 @@ ENDMACRO
 \
 \ ******************************************************************************
 
- ORG &0D40
+                        \ --- Mod: Code removed for saving to disc: ----------->
+
+\ORG &0D40
+
+                        \ --- And replaced by: -------------------------------->
+
+ ORG &0E00
+
+                        \ --- End of replacement ------------------------------>
 
 .WP
 
  SKIP 0                 \ The start of the WP workspace
 
-.FRIN
+                        \ --- Mod: Code moved for saving to disc: ------------->
 
- SKIP NOSH + 1          \ Slots for the ships in the local bubble of universe
-                        \
-                        \ There are #NOSH + 1 slots, but the ship-spawning
-                        \ routine at NWSHP only populates #NOSH of them, so
-                        \ there are 13 slots but only 12 are used for ships
-                        \ (the last slot is effectively used as a null
-                        \ terminator when shuffling the slots down in the
-                        \ KILLSHP routine)
-                        \
-                        \ See the deep dive on "The local bubble of universe"
-                        \ for details of how Elite stores the local universe in
-                        \ FRIN, UNIV and K%
+\.FRIN
+\
+\SKIP NOSH + 1          \ Slots for the ships in the local bubble of universe
+\                       \
+\                       \ There are #NOSH + 1 slots, but the ship-spawning
+\                       \ routine at NWSHP only populates #NOSH of them, so
+\                       \ there are 13 slots but only 12 are used for ships
+\                       \ (the last slot is effectively used as a null
+\                       \ terminator when shuffling the slots down in the
+\                       \ KILLSHP routine)
+\                       \
+\                       \ See the deep dive on "The local bubble of universe"
+\                       \ for details of how Elite stores the local universe in
+\                       \ FRIN, UNIV and K%
+\
+\.CABTMP
+\
+\SKIP 0                 \ Cabin temperature
+\                       \
+\                       \ The ambient cabin temperature in deep space is 30,
+\                       \ which is displayed as one notch on the dashboard bar
+\                       \
+\                       \ We get higher temperatures closer to the sun
+\                       \
+\                       \ CABTMP shares a location with MANY, but that's OK as
+\                       \ MANY+0 would contain the number of ships of type 0,
+\                       \ and as there is no ship type 0 (they start at 1), the
+\                       \ byte at MANY+0 is not used for storing a ship type
+\                       \ and can be used for the cabin temperature instead
+\
+\.MANY
+\
+\SKIP SST               \ The number of ships of each type in the local bubble
+\                       \ of universe
+\                       \
+\                       \ The number of ships of type X in the local bubble is
+\                       \ stored at MANY+X
+\                       \
+\                       \ See the deep dive on "Ship blueprints" for a list of
+\                       \ ship types
+\
+\.SSPR
+\
+\SKIP NTY + 1 - SST     \ "Space station present" flag
+\                       \
+\                       \   * Non-zero if we are inside the space station's safe
+\                       \     zone
+\                       \
+\                       \   * 0 if we aren't (in which case we can show the sun)
+\                       \
+\                       \ This flag is at MANY+SST, which is no coincidence, as
+\                       \ MANY+SST is a count of how many space stations there
+\                       \ are in our local bubble, which is the same as saying
+\                       \ "space station present"
+\
+\.ECMP
+\
+\SKIP 1                 \ Our E.C.M. status
+\                       \
+\                       \   * 0 = E.C.M. is off
+\                       \
+\                       \   * Non-zero = E.C.M. is on
+\
+\.MJ
+\
+\SKIP 1                 \ Are we in witchspace (i.e. have we mis-jumped)?
+\                       \
+\                       \   * 0 = no, we are in normal space
+\                       \
+\                       \   * &FF = yes, we are in witchspace
+\
+\.LAS2
+\
+\SKIP 1                 \ Laser power for the current laser
+\                       \
+\                       \   * Bits 0-6 contain the laser power of the current
+\                       \     space view
+\                       \
+\                       \   * Bit 7 denotes whether or not the laser pulses:
+\                       \
+\                       \     * 0 = pulsing laser
+\                       \
+\                       \     * 1 = beam laser (i.e. always on)
+\
+\.MSAR
+\
+\SKIP 1                 \ The targeting state of our leftmost missile
+\                       \
+\                       \   * 0 = missile is not looking for a target, or it
+\                       \     already has a target lock (indicator is not
+\                       \     yellow/white)
+\                       \
+\                       \   * Non-zero = missile is currently looking for a
+\                       \     target (indicator is yellow/white)
+\
+\.VIEW
+\
+\SKIP 1                 \ The number of the current space view
+\                       \
+\                       \   * 0 = front
+\                       \   * 1 = rear
+\                       \   * 2 = left
+\                       \   * 3 = right
+\
+\.LASCT
+\
+\SKIP 1                 \ The laser pulse count for the current laser
+\                       \
+\                       \ This is a counter that defines the gap between the
+\                       \ pulses of a pulse laser. It is set as follows:
+\                       \
+\                       \   * 0 for a beam laser
+\                       \
+\                       \   * 10 for a pulse laser
+\                       \
+\                       \ It gets decremented every vertical sync (in the LINSCN
+\                       \ routine, which is called 50 times a second) and is set
+\                       \ to a non-zero value for pulse lasers only
+\                       \
+\                       \ The laser only fires when the value of LASCT hits
+\                       \ zero, so for pulse lasers with a value of 10, that
+\                       \ means the laser fires once every 10 vertical syncs (or
+\                       \ 5 times a second)
+\                       \
+\                       \ In comparison, beam lasers fire continuously as the
+\                       \ value of LASCT is always 0
+\
+\.GNTMP
+\
+\SKIP 1                 \ Laser temperature (or "gun temperature")
+\                       \
+\                       \ If the laser temperature exceeds 242 then the laser
+\                       \ overheats and cannot be fired again until it has
+\                       \ cooled down
+\
+\.HFX
+\
+\SKIP 1                 \ A flag that toggles the hyperspace colour effect
+\                       \
+\                       \   * 0 = no colour effect
+\                       \
+\                       \   * Non-zero = hyperspace colour effect enabled
+\                       \
+\                       \ When HFX is set to 1, the mode 4 screen that makes
+\                       \ up the top part of the display is temporarily switched
+\                       \ to mode 5 (the same screen mode as the dashboard),
+\                       \ which has the effect of blurring and colouring the
+\                       \ hyperspace rings in the top part of the screen. The
+\                       \ code to do this is in the LINSCN routine, which is
+\                       \ called as part of the screen mode routine at IRQ1.
+\                       \ It's in LINSCN that HFX is checked, and if it is
+\                       \ non-zero, the top part of the screen is not switched
+\                       \ to mode 4, thus leaving the top part of the screen in
+\                       \ the more colourful mode 5
+\
+\.EV
+\
+\SKIP 1                 \ The "extra vessels" spawning counter
+\                       \
+\                       \ This counter is set to 0 on arrival in a system and
+\                       \ following an in-system jump, and is bumped up when we
+\                       \ spawn bounty hunters or pirates (i.e. "extra vessels")
+\                       \
+\                       \ It decreases by 1 each time we consider spawning more
+\                       \ "extra vessels" in part 4 of the main game loop, so
+\                       \ increasing the value of EV has the effect of delaying
+\                       \ the spawning of more vessels
+\                       \
+\                       \ In other words, this counter stops bounty hunters and
+\                       \ pirates from continually appearing, and ensures that
+\                       \ there's a delay between spawnings
+\
+\.DLY
+\
+\SKIP 1                 \ In-flight message delay
+\                       \
+\                       \ This counter is used to keep an in-flight message up
+\                       \ for a specified time before it gets removed. The value
+\                       \ in DLY is decremented each time we start another
+\                       \ iteration of the main game loop at TT100
+\
+\.de
+\
+\SKIP 1                 \ Equipment destruction flag
+\                       \
+\                       \   * Bit 1 denotes whether or not the in-flight message
+\                       \     about to be shown by the MESS routine is about
+\                       \     destroyed equipment:
+\                       \
+\                       \     * 0 = the message is shown normally
+\                       \
+\                       \     * 1 = the string " DESTROYED" gets added to the
+\                       \       end of the message
 
-.CABTMP
-
- SKIP 0                 \ Cabin temperature
-                        \
-                        \ The ambient cabin temperature in deep space is 30,
-                        \ which is displayed as one notch on the dashboard bar
-                        \
-                        \ We get higher temperatures closer to the sun
-                        \
-                        \ CABTMP shares a location with MANY, but that's OK as
-                        \ MANY+0 would contain the number of ships of type 0,
-                        \ and as there is no ship type 0 (they start at 1), the
-                        \ byte at MANY+0 is not used for storing a ship type
-                        \ and can be used for the cabin temperature instead
-
-.MANY
-
- SKIP SST               \ The number of ships of each type in the local bubble
-                        \ of universe
-                        \
-                        \ The number of ships of type X in the local bubble is
-                        \ stored at MANY+X
-                        \
-                        \ See the deep dive on "Ship blueprints" for a list of
-                        \ ship types
-
-.SSPR
-
- SKIP NTY + 1 - SST     \ "Space station present" flag
-                        \
-                        \   * Non-zero if we are inside the space station's safe
-                        \     zone
-                        \
-                        \   * 0 if we aren't (in which case we can show the sun)
-                        \
-                        \ This flag is at MANY+SST, which is no coincidence, as
-                        \ MANY+SST is a count of how many space stations there
-                        \ are in our local bubble, which is the same as saying
-                        \ "space station present"
-
-.ECMP
-
- SKIP 1                 \ Our E.C.M. status
-                        \
-                        \   * 0 = E.C.M. is off
-                        \
-                        \   * Non-zero = E.C.M. is on
-
-.MJ
-
- SKIP 1                 \ Are we in witchspace (i.e. have we mis-jumped)?
-                        \
-                        \   * 0 = no, we are in normal space
-                        \
-                        \   * &FF = yes, we are in witchspace
-
-.LAS2
-
- SKIP 1                 \ Laser power for the current laser
-                        \
-                        \   * Bits 0-6 contain the laser power of the current
-                        \     space view
-                        \
-                        \   * Bit 7 denotes whether or not the laser pulses:
-                        \
-                        \     * 0 = pulsing laser
-                        \
-                        \     * 1 = beam laser (i.e. always on)
-
-.MSAR
-
- SKIP 1                 \ The targeting state of our leftmost missile
-                        \
-                        \   * 0 = missile is not looking for a target, or it
-                        \     already has a target lock (indicator is not
-                        \     yellow/white)
-                        \
-                        \   * Non-zero = missile is currently looking for a
-                        \     target (indicator is yellow/white)
-
-.VIEW
-
- SKIP 1                 \ The number of the current space view
-                        \
-                        \   * 0 = front
-                        \   * 1 = rear
-                        \   * 2 = left
-                        \   * 3 = right
-
-.LASCT
-
- SKIP 1                 \ The laser pulse count for the current laser
-                        \
-                        \ This is a counter that defines the gap between the
-                        \ pulses of a pulse laser. It is set as follows:
-                        \
-                        \   * 0 for a beam laser
-                        \
-                        \   * 10 for a pulse laser
-                        \
-                        \ It gets decremented every vertical sync (in the LINSCN
-                        \ routine, which is called 50 times a second) and is set
-                        \ to a non-zero value for pulse lasers only
-                        \
-                        \ The laser only fires when the value of LASCT hits
-                        \ zero, so for pulse lasers with a value of 10, that
-                        \ means the laser fires once every 10 vertical syncs (or
-                        \ 5 times a second)
-                        \
-                        \ In comparison, beam lasers fire continuously as the
-                        \ value of LASCT is always 0
-
-.GNTMP
-
- SKIP 1                 \ Laser temperature (or "gun temperature")
-                        \
-                        \ If the laser temperature exceeds 242 then the laser
-                        \ overheats and cannot be fired again until it has
-                        \ cooled down
-
-.HFX
-
- SKIP 1                 \ A flag that toggles the hyperspace colour effect
-                        \
-                        \   * 0 = no colour effect
-                        \
-                        \   * Non-zero = hyperspace colour effect enabled
-                        \
-                        \ When HFX is set to 1, the mode 4 screen that makes
-                        \ up the top part of the display is temporarily switched
-                        \ to mode 5 (the same screen mode as the dashboard),
-                        \ which has the effect of blurring and colouring the
-                        \ hyperspace rings in the top part of the screen. The
-                        \ code to do this is in the LINSCN routine, which is
-                        \ called as part of the screen mode routine at IRQ1.
-                        \ It's in LINSCN that HFX is checked, and if it is
-                        \ non-zero, the top part of the screen is not switched
-                        \ to mode 4, thus leaving the top part of the screen in
-                        \ the more colourful mode 5
-
-.EV
-
- SKIP 1                 \ The "extra vessels" spawning counter
-                        \
-                        \ This counter is set to 0 on arrival in a system and
-                        \ following an in-system jump, and is bumped up when we
-                        \ spawn bounty hunters or pirates (i.e. "extra vessels")
-                        \
-                        \ It decreases by 1 each time we consider spawning more
-                        \ "extra vessels" in part 4 of the main game loop, so
-                        \ increasing the value of EV has the effect of delaying
-                        \ the spawning of more vessels
-                        \
-                        \ In other words, this counter stops bounty hunters and
-                        \ pirates from continually appearing, and ensures that
-                        \ there's a delay between spawnings
-
-.DLY
-
- SKIP 1                 \ In-flight message delay
-                        \
-                        \ This counter is used to keep an in-flight message up
-                        \ for a specified time before it gets removed. The value
-                        \ in DLY is decremented each time we start another
-                        \ iteration of the main game loop at TT100
-
-.de
-
- SKIP 1                 \ Equipment destruction flag
-                        \
-                        \   * Bit 1 denotes whether or not the in-flight message
-                        \     about to be shown by the MESS routine is about
-                        \     destroyed equipment:
-                        \
-                        \     * 0 = the message is shown normally
-                        \
-                        \     * 1 = the string " DESTROYED" gets added to the
-                        \       end of the message
+                        \ --- End of moved code ------------------------------->
 
 .LSX
 
@@ -3062,45 +3671,49 @@ ENDMACRO
  SKIP NOST + 1          \ This is where we store the z_lo coordinates for all
                         \ the stardust particles
 
-.XSAV2
+                        \ --- Mod: Code moved for saving to disc: ------------->
 
- SKIP 1                 \ Temporary storage, used for storing the value of the X
-                        \ register in the TT26 routine
+\.XSAV2
+\
+\SKIP 1                 \ Temporary storage, used for storing the value of the X
+\                       \ register in the TT26 routine
+\
+\.YSAV2
+\
+\SKIP 1                 \ Temporary storage, used for storing the value of the Y
+\                       \ register in the TT26 routine
+\
+\.MCH
+\
+\SKIP 1                 \ The text token number of the in-flight message that is
+\                       \ currently being shown, and which will be removed by
+\                       \ the me2 routine when the counter in DLY reaches zero
+\
+\.FSH
+\
+\SKIP 1                 \ Forward shield status
+\                       \
+\                       \   * 0 = empty
+\                       \
+\                       \   * &FF = full
+\
+\.ASH
+\
+\SKIP 1                 \ Aft shield status
+\                       \
+\                       \   * 0 = empty
+\                       \
+\                       \   * &FF = full
+\
+\.ENERGY
+\
+\SKIP 1                 \ Energy bank status
+\                       \
+\                       \   * 0 = empty
+\                       \
+\                       \   * &FF = full
 
-.YSAV2
-
- SKIP 1                 \ Temporary storage, used for storing the value of the Y
-                        \ register in the TT26 routine
-
-.MCH
-
- SKIP 1                 \ The text token number of the in-flight message that is
-                        \ currently being shown, and which will be removed by
-                        \ the me2 routine when the counter in DLY reaches zero
-
-.FSH
-
- SKIP 1                 \ Forward shield status
-                        \
-                        \   * 0 = empty
-                        \
-                        \   * &FF = full
-
-.ASH
-
- SKIP 1                 \ Aft shield status
-                        \
-                        \   * 0 = empty
-                        \
-                        \   * &FF = full
-
-.ENERGY
-
- SKIP 1                 \ Energy bank status
-                        \
-                        \   * 0 = empty
-                        \
-                        \   * &FF = full
+                        \ --- End of moved code ------------------------------->
 
 .LASX
 
@@ -3110,68 +3723,72 @@ ENDMACRO
 
  SKIP 1                 \ The y-coordinate of the tip of the laser line
 
-.COMX
+                        \ --- Mod: Code moved for saving to disc: ------------->
 
- SKIP 1                 \ The x-coordinate of the compass dot
+\.COMX
+\
+\SKIP 1                 \ The x-coordinate of the compass dot
+\
+\.COMY
+\
+\SKIP 1                 \ The y-coordinate of the compass dot
+\
+\.QQ24
+\
+\SKIP 1                 \ Temporary storage, used to store the current market
+\                       \ item's price in routine TT151
+\
+\.QQ25
+\
+\SKIP 1                 \ Temporary storage, used to store the current market
+\                       \ item's availability in routine TT151
+\
+\.QQ28
+\
+\SKIP 1                 \ The current system's economy (0-7)
+\                       \
+\                       \   * 0 = Rich Industrial
+\                       \   * 1 = Average Industrial
+\                       \   * 2 = Poor Industrial
+\                       \   * 3 = Mainly Industrial
+\                       \   * 4 = Mainly Agricultural
+\                       \   * 5 = Rich Agricultural
+\                       \   * 6 = Average Agricultural
+\                       \   * 7 = Poor Agricultural
+\                       \
+\                       \ See the deep dive on "Generating system data" for more
+\                       \ information on economies
+\
+\.QQ29
+\
+\SKIP 1                 \ Temporary storage, used in a number of places
+\
+\.gov
+\
+\SKIP 1                 \ The current system's government type (0-7)
+\                       \
+\                       \ See the deep dive on "Generating system data" for
+\                       \ details of the various government types
+\
+\.tek
+\
+\SKIP 1                 \ The current system's tech level (0-14)
+\                       \
+\                       \ See the deep dive on "Generating system data" for more
+\                       \ information on tech levels
+\
+\.SLSP
+\
+\SKIP 2                 \ The address of the bottom of the ship line heap
+\                       \
+\                       \ The ship line heap is a descending block of memory
+\                       \ that starts at WP and descends down to SLSP. It can be
+\                       \ extended downwards by the NWSHP routine when adding
+\                       \ new ships (and their associated ship line heaps), in
+\                       \ which case SLSP is lowered to provide more heap space,
+\                       \ assuming there is enough free memory to do so
 
-.COMY
-
- SKIP 1                 \ The y-coordinate of the compass dot
-
-.QQ24
-
- SKIP 1                 \ Temporary storage, used to store the current market
-                        \ item's price in routine TT151
-
-.QQ25
-
- SKIP 1                 \ Temporary storage, used to store the current market
-                        \ item's availability in routine TT151
-
-.QQ28
-
- SKIP 1                 \ The current system's economy (0-7)
-                        \
-                        \   * 0 = Rich Industrial
-                        \   * 1 = Average Industrial
-                        \   * 2 = Poor Industrial
-                        \   * 3 = Mainly Industrial
-                        \   * 4 = Mainly Agricultural
-                        \   * 5 = Rich Agricultural
-                        \   * 6 = Average Agricultural
-                        \   * 7 = Poor Agricultural
-                        \
-                        \ See the deep dive on "Generating system data" for more
-                        \ information on economies
-
-.QQ29
-
- SKIP 1                 \ Temporary storage, used in a number of places
-
-.gov
-
- SKIP 1                 \ The current system's government type (0-7)
-                        \
-                        \ See the deep dive on "Generating system data" for
-                        \ details of the various government types
-
-.tek
-
- SKIP 1                 \ The current system's tech level (0-14)
-                        \
-                        \ See the deep dive on "Generating system data" for more
-                        \ information on tech levels
-
-.SLSP
-
- SKIP 2                 \ The address of the bottom of the ship line heap
-                        \
-                        \ The ship line heap is a descending block of memory
-                        \ that starts at WP and descends down to SLSP. It can be
-                        \ extended downwards by the NWSHP routine when adding
-                        \ new ships (and their associated ship line heaps), in
-                        \ which case SLSP is lowered to provide more heap space,
-                        \ assuming there is enough free memory to do so
+                        \ --- End of moved code ------------------------------->
 
                         \ --- Mod: Code removed for docking fee: -------------->
 
@@ -3210,89 +3827,93 @@ ENDMACRO
                         \
                         \   * 0 = we have crashed into the surface
 
-.QQ2
+                        \ --- Mod: Code moved for saving to disc: ------------->
 
- SKIP 6                 \ The three 16-bit seeds for the current system, i.e.
-                        \ the one we are currently in
-                        \
-                        \ See the deep dives on "Galaxy and system seeds" and
-                        \ "Twisting the system seeds" for more details
+\.QQ2
+\
+\SKIP 6                 \ The three 16-bit seeds for the current system, i.e.
+\                       \ the one we are currently in
+\                       \
+\                       \ See the deep dives on "Galaxy and system seeds" and
+\                       \ "Twisting the system seeds" for more details
+\
+\.QQ3
+\
+\SKIP 1                 \ The selected system's economy (0-7)
+\                       \
+\                       \   * 0 = Rich Industrial
+\                       \   * 1 = Average Industrial
+\                       \   * 2 = Poor Industrial
+\                       \   * 3 = Mainly Industrial
+\                       \   * 4 = Mainly Agricultural
+\                       \   * 5 = Rich Agricultural
+\                       \   * 6 = Average Agricultural
+\                       \   * 7 = Poor Agricultural
+\                       \
+\                       \ See the deep dive on "Generating system data" for more
+\                       \ information on economies
+\
+\.QQ4
+\
+\SKIP 1                 \ The selected system's government (0-7)
+\                       \
+\                       \ See the deep dive on "Generating system data" for more
+\                       \ details of the various government types
+\
+\.QQ5
+\
+\SKIP 1                 \ The selected system's tech level (0-14)
+\                       \
+\                       \ See the deep dive on "Generating system data" for more
+\                       \ information on tech levels
+\
+\.QQ6
+\
+\SKIP 2                 \ The selected system's population in billions * 10
+\                       \ (1-71), so the maximum population is 7.1 billion
+\                       \
+\                       \ See the deep dive on "Generating system data" for more
+\                       \ details on population levels
+\
+\.QQ7
+\
+\SKIP 2                 \ The selected system's productivity in M CR (96-62480)
+\                       \
+\                       \ See the deep dive on "Generating system data" for more
+\                       \ details about productivity levels
+\
+\.QQ8
+\
+\SKIP 2                 \ The distance from the current system to the selected
+\                       \ system in light years * 10, stored as a 16-bit number
+\                       \
+\                       \ The distance will be 0 if the selected system is the
+\                       \ current system
+\                       \
+\                       \ The galaxy chart is 102.4 light years wide and 51.2
+\                       \ light years tall (see the intra-system distance
+\                       \ calculations in routine TT111 for details), which
+\                       \ equates to 1024 x 512 in terms of QQ8
+\
+\.QQ9
+\
+\SKIP 1                 \ The galactic x-coordinate of the crosshairs in the
+\                       \ galaxy chart (and, most of the time, the selected
+\                       \ system's galactic x-coordinate)
+\
+\.QQ10
+\
+\SKIP 1                 \ The galactic y-coordinate of the crosshairs in the
+\                       \ galaxy chart (and, most of the time, the selected
+\                       \ system's galactic y-coordinate)
+\
+\.NOSTM
+\
+\SKIP 1                 \ The number of stardust particles shown on screen,
+\                       \ which is 18 (#NOST) for normal space, and 3 for
+\                       \ witchspace
 
-.QQ3
-
- SKIP 1                 \ The selected system's economy (0-7)
-                        \
-                        \   * 0 = Rich Industrial
-                        \   * 1 = Average Industrial
-                        \   * 2 = Poor Industrial
-                        \   * 3 = Mainly Industrial
-                        \   * 4 = Mainly Agricultural
-                        \   * 5 = Rich Agricultural
-                        \   * 6 = Average Agricultural
-                        \   * 7 = Poor Agricultural
-                        \
-                        \ See the deep dive on "Generating system data" for more
-                        \ information on economies
-
-.QQ4
-
- SKIP 1                 \ The selected system's government (0-7)
-                        \
-                        \ See the deep dive on "Generating system data" for more
-                        \ details of the various government types
-
-.QQ5
-
- SKIP 1                 \ The selected system's tech level (0-14)
-                        \
-                        \ See the deep dive on "Generating system data" for more
-                        \ information on tech levels
-
-.QQ6
-
- SKIP 2                 \ The selected system's population in billions * 10
-                        \ (1-71), so the maximum population is 7.1 billion
-                        \
-                        \ See the deep dive on "Generating system data" for more
-                        \ details on population levels
-
-.QQ7
-
- SKIP 2                 \ The selected system's productivity in M CR (96-62480)
-                        \
-                        \ See the deep dive on "Generating system data" for more
-                        \ details about productivity levels
-
-.QQ8
-
- SKIP 2                 \ The distance from the current system to the selected
-                        \ system in light years * 10, stored as a 16-bit number
-                        \
-                        \ The distance will be 0 if the selected system is the
-                        \ current system
-                        \
-                        \ The galaxy chart is 102.4 light years wide and 51.2
-                        \ light years tall (see the intra-system distance
-                        \ calculations in routine TT111 for details), which
-                        \ equates to 1024 x 512 in terms of QQ8
-
-.QQ9
-
- SKIP 1                 \ The galactic x-coordinate of the crosshairs in the
-                        \ galaxy chart (and, most of the time, the selected
-                        \ system's galactic x-coordinate)
-
-.QQ10
-
- SKIP 1                 \ The galactic y-coordinate of the crosshairs in the
-                        \ galaxy chart (and, most of the time, the selected
-                        \ system's galactic y-coordinate)
-
-.NOSTM
-
- SKIP 1                 \ The number of stardust particles shown on screen,
-                        \ which is 18 (#NOST) for normal space, and 3 for
-                        \ witchspace
+                        \ --- End of moved code ------------------------------->
 
  PRINT "WP workspace from  ", ~WP," to ", ~P%
 
@@ -18921,7 +19542,7 @@ ENDIF
 
                         \ --- Mod: Code added for Compendium: ----------------->
 
- END_OF_TT22 = P%
+ END_OF_1% = P%
 
  SAVE "3-assembled-output/rom-extra1.bin", TT22_ROM, P%
 
@@ -19479,10 +20100,10 @@ ENDIF
 
  CURRENT2% = P%         \ Store the current address
 
- CLEAR &5600, &5600     \ Clear the guard so we can assemble TT23 into sideways
+ CLEAR &6000, &6000     \ Clear the guard so we can assemble TT23 into sideways
                         \ ROM
 
- ORG END_OF_TT22        \ Assemble TT210 after the end of TT22/TT15
+ ORG END_OF_1%          \ Assemble TT210 after the end of block 1
 
 .TT210_ROM
 
@@ -19605,7 +20226,7 @@ ENDIF
 
                         \ --- Mod: Code added for Compendium: ----------------->
 
- END_OF_TT210 = P%
+ END_OF_2% = P%
 
  SAVE "3-assembled-output/rom-extra2.bin", TT210_ROM, P%
 
@@ -19992,10 +20613,10 @@ ENDIF
 
  CURRENT3% = P%         \ Store the current address
 
- CLEAR &5600, &5600     \ Clear the guard so we can assemble TT23 into sideways
+ CLEAR &6000, &6000     \ Clear the guard so we can assemble TT23 into sideways
                         \ ROM
 
- ORG END_OF_TT210       \ Assemble TT23 after the end of TT210
+ ORG END_OF_2%          \ Assemble TT23 after the end of block 2
 
 .TT23_ROM
 
@@ -20246,7 +20867,7 @@ ENDIF
 
  RTS                    \ Return from the subroutine
 
- END_OF_TT23 = P%
+ END_OF_3% = P%
 
  SAVE "3-assembled-output/rom-extra3.bin", TT23_ROM, P%
 
@@ -20361,10 +20982,10 @@ ENDIF
 
  CURRENT4% = P%         \ Store the current address
 
- CLEAR &5600, &5600     \ Clear the guard so we can assemble TT111 into sideways
+ CLEAR &6000, &6000     \ Clear the guard so we can assemble TT111 into sideways
                         \ ROM
 
- ORG END_OF_TT23        \ Assemble TT111 after the end of TT23
+ ORG END_OF_3%          \ Assemble TT111 after the end of block 3
 
 .TT111_ROM
 
@@ -20610,7 +21231,9 @@ ENDIF
                         \ new selected system is fully set up, and return from
                         \ the subroutine using a tail call
 
- END_OF_TT111 = P%
+                        \ --- Mod: Code added for Compendium: ----------------->
+
+ END_OF_4% = P%
 
  SAVE "3-assembled-output/rom-extra4.bin", TT111_ROM, P%
 
@@ -22178,12 +22801,34 @@ ENDIF
 \
 \ ******************************************************************************
 
+                        \ --- Mod: Code removed for Compendium: --------------->
+
+\.bay
+\
+\JMP BAY                \ Go to the docking bay (i.e. show the Status Mode
+\                       \ screen)
+\
+\.EQSHP
+
+                        \ --- And replaced by: -------------------------------->
+
+.EQSHP
+
+ CURRENT5% = P%         \ Store the current address
+
+ CLEAR &6000, &6000     \ Clear the guard so we can assemble EQSHP into sideways
+                        \ ROM
+
+ ORG END_OF_4%          \ Assemble EQSHP after the end of block 4
+
 .bay
 
  JMP BAY                \ Go to the docking bay (i.e. show the Status Mode
                         \ screen)
 
-.EQSHP
+.EQSHP_ROM
+
+                        \ --- End of replacement ------------------------------>
 
  JSR DIALS              \ Call DIALS to update the dashboard
 
@@ -22596,6 +23241,43 @@ ENDIF
  JMP EQSHP              \ Jump back up to EQSHP to show the Equip Ship screen
                         \ again and see if we can't track down another bargain
 
+                        \ --- Mod: Code added for Compendium: ----------------->
+
+ END_OF_5% = P%
+
+ SAVE "3-assembled-output/rom-extra5.bin", bay, P%
+
+ ORG CURRENT5%          \ Start assembling the main code again
+
+ GUARD &6000            \ Put the guard back in place that we removed above
+
+ LDA &F4                \ Fetch the RAM copy of the currently selected ROM and
+ PHA                    \ store it on the stack
+
+ LDA musicRomNumber     \ Fetch the number of the music ROM and switch to it
+ STA &F4
+ STA &FE30
+
+ TYA                    \ Store X and Y on the stack
+ PHA
+ TXA
+ PHA
+
+ JSR EQSHP_ROM          \ Call the EQSHP routine in the music ROM
+
+ PLA                    \ Retrieve X and Y from the stack
+ TAX
+ PLA
+ TAY
+
+ PLA                    \ Set the ROM number back to the value that we stored
+ STA &F4                \ above, to switch back to the previous ROM
+ STA &FE30
+
+ RTS                    \ Return from the subroutine
+
+                        \ --- End of replacement ------------------------------>
+
 \ ******************************************************************************
 \
 \       Name: dn
@@ -22854,24 +23536,28 @@ ENDIF
 \
 \ ******************************************************************************
 
- EQUB '(' EOR 164
- EQUB 'C' EOR 164
- EQUB ')' EOR 164
- EQUB 'B' EOR 164
- EQUB 'e' EOR 164
- EQUB 'l' EOR 164
- EQUB 'l' EOR 164
- EQUB '/' EOR 164
- EQUB 'B' EOR 164
- EQUB 'r' EOR 164
- EQUB 'a' EOR 164
- EQUB 'b' EOR 164
- EQUB 'e' EOR 164
- EQUB 'n' EOR 164
- EQUB '1' EOR 164
- EQUB '9' EOR 164
- EQUB '8' EOR 164
- EQUB '4' EOR 164
+                        \ --- Mod: Code removed for Compendium: --------------->
+
+\EQUB '(' EOR 164
+\EQUB 'C' EOR 164
+\EQUB ')' EOR 164
+\EQUB 'B' EOR 164
+\EQUB 'e' EOR 164
+\EQUB 'l' EOR 164
+\EQUB 'l' EOR 164
+\EQUB '/' EOR 164
+\EQUB 'B' EOR 164
+\EQUB 'r' EOR 164
+\EQUB 'a' EOR 164
+\EQUB 'b' EOR 164
+\EQUB 'e' EOR 164
+\EQUB 'n' EOR 164
+\EQUB '1' EOR 164
+\EQUB '9' EOR 164
+\EQUB '8' EOR 164
+\EQUB '4' EOR 164
+
+                        \ --- End of removed code ----------------------------->
 
 \ ******************************************************************************
 \
@@ -22890,6 +23576,19 @@ ENDIF
 \ ******************************************************************************
 
 .cpl
+
+                        \ --- Mod: Code added for Compendium: ----------------->
+
+ CURRENT6% = P%         \ Store the current address
+
+ CLEAR &6000, &6000     \ Clear the guard so we can assemble TT111 into sideways
+                        \ ROM
+
+ ORG END_OF_5%          \ Assemble cpl after the end of block 5
+
+.cpl_ROM
+
+                        \ --- End of added code ------------------------------->
 
  LDX #5                 \ First we need to back up the seeds in QQ15, so set up
                         \ a counter in X to cover three 16-bit seeds (i.e.
@@ -22955,6 +23654,43 @@ ENDIF
 
  RTS                    \ Once all the seeds are restored, return from the
                         \ subroutine
+
+                        \ --- Mod: Code added for Compendium: ----------------->
+
+ END_OF_6% = P%
+
+ SAVE "3-assembled-output/rom-extra6.bin", cpl_ROM, P%
+
+ ORG CURRENT6%          \ Start assembling the main code again
+
+ GUARD &6000            \ Put the guard back in place that we removed above
+
+ LDA &F4                \ Fetch the RAM copy of the currently selected ROM and
+ PHA                    \ store it on the stack
+
+ LDA musicRomNumber     \ Fetch the number of the music ROM and switch to it
+ STA &F4
+ STA &FE30
+
+ TYA                    \ Store X and Y on the stack
+ PHA
+ TXA
+ PHA
+
+ JSR cpl_ROM            \ Call the cpl routine in the music ROM
+
+ PLA                    \ Retrieve X and Y from the stack
+ TAX
+ PLA
+ TAY
+
+ PLA                    \ Set the ROM number back to the value that we stored
+ STA &F4                \ above, to switch back to the previous ROM
+ STA &FE30
+
+ RTS                    \ Return from the subroutine
+
+                        \ --- End of replacement ------------------------------>
 
 \ ******************************************************************************
 \
@@ -29300,10 +30036,21 @@ ENDIF
                         \ slots for the local bubble of universe, and various
                         \ flight and ship status variables
 
- LDA #LO(WP-1)          \ We have reset the ship line heap, so we now point
- STA SLSP               \ SLSP to the byte before the WP workspace to indicate
- LDA #HI(WP-1)          \ that the heap is empty
+                        \ --- Mod: Code removed for saving to disc: ----------->
+
+\LDA #LO(WP-1)          \ We have reset the ship line heap, so we now point
+\STA SLSP               \ SLSP to the byte before the WP workspace to indicate
+\LDA #HI(WP-1)          \ that the heap is empty
+\STA SLSP+1
+
+                        \ --- And replaced by: -------------------------------->
+
+ LDA #LO(LS%)           \ We have reset the ship line heap, so we now point
+ STA SLSP               \ SLSP to LS% (the byte below the ship blueprints at D%)
+ LDA #HI(LS%)           \ to indicate that the heap is empty
  STA SLSP+1
+
+                        \ --- End of replacement ------------------------------>
 
  JSR DIALS              \ Update the dashboard
 
@@ -30690,6 +31437,12 @@ ENDIF
                         \ BRKV points, so when this is uncommented, pressing
                         \ the BREAK key should jump straight to the load screen
 
+                        \ --- Mod: Code added for music: ---------------------->
+
+ JSR StopMusic          \ Stop the title music
+
+                        \ --- End of added code ------------------------------->
+
  JSR GTNME              \ We want to load a new commander, so we need to get
                         \ the commander name to load
 
@@ -31254,7 +32007,30 @@ ENDIF
 
 .ZERO
 
- LDX #&D                \ Point X to page &D
+                        \ --- Mod: Code removed for saving to disc: ----------->
+
+\LDX #&D                \ Point X to page &D
+
+                        \ --- And replaced by: -------------------------------->
+
+ LDX #(de-FRIN)         \ We're going to zero the UP workspace variables from
+                        \ FRIN to de, so set a counter in X for the correct
+                        \ number of bytes
+
+ LDA #0                 \ Set A = 0 so we can zero the variables
+
+.ZEL2
+
+ STA FRIN,X             \ Zero the X-th byte of FRIN to de
+
+ DEX                    \ Decrement the loop counter
+
+ BPL ZEL2               \ Loop back to zero the next variable until we have done
+                        \ them all
+
+ LDX #&C                \ Point X to page &C
+
+                        \ --- End of replacement ------------------------------>
 
 .ZEL
 
@@ -31504,6 +32280,20 @@ ENDIF
 
 .QUS1
 
+                        \ --- Mod: Code added for saving to disc: ------------->
+
+ PHA
+ TYA
+ PHA
+
+ JSR CATD               \ Call CATD to reload the disc catalogue
+
+ PLA
+ TAY
+ PLA
+
+                        \ --- End of added code ------------------------------->
+
  LDX #INWK              \ Store a pointer to INWK at the start of the block at
  STX &0C00              \ &0C00, storing #INWK in the low byte because INWK is
                         \ in zero page
@@ -31616,6 +32406,47 @@ ENDIF
 
  RTS                    \ This instruction has no effect, as we already returned
                         \ from the subroutine
+
+\ ******************************************************************************
+\
+\       Name: CATD
+\       Type: Subroutine
+\   Category: Save and load
+\    Summary: Load disc sectors 0 and 1 to &0E00 and &0F00 respectively
+\
+\ ******************************************************************************
+
+                        \ --- Mod: Code added for saving to disc: ------------->
+
+.CATD
+
+ DEC CATBLOCK+8         \ Decrement sector number from 1 to 0
+ DEC CATBLOCK+2         \ Decrement load address from &0F00 to &0E00
+
+ JSR CATL               \ Call CATL to load disc sector 1 to &0E00
+
+ INC CATBLOCK+8         \ Increment sector number back to 1
+ INC CATBLOCK+2         \ Increment load address back to &0F00
+
+.CATL
+
+ LDA #127               \ Call OSWORD with A = 127 and (Y X) = CATBLOCK to
+ LDX #LO(CATBLOCK)      \ load disc sector 1 to &0F00
+ LDY #HI(CATBLOCK)
+ JMP OSWORD
+
+.CATBLOCK
+
+ EQUB 0                 \ 0 = Drive = 0
+ EQUD &00000F00         \ 1 = Data address = &0F00
+ EQUB 3                 \ 5 = Number of parameters = 3
+ EQUB &53               \ 6 = Command = &53 (read data)
+ EQUB 0                 \ 7 = Track = 0
+ EQUB 1                 \ 8 = Sector = 1
+ EQUB %00100001         \ 9 = Load 1 sector of 256 bytes
+ EQUB 0                 \ 10 = The result of the OSWORD call is returned here
+
+                        \ --- End of added code ------------------------------->
 
 \ ******************************************************************************
 \
@@ -32343,8 +33174,17 @@ ENDIF
  BPL DKS2-1             \ The key is not being pressed, so return from the
                         \ subroutine (as DKS2-1 contains an RTS)
 
- LDX #&FF               \ Store &FF in the Y-th byte of the key logger at KL
- STX KL,Y
+                        \ --- Mod: Code removed for saving to disc: ----------->
+
+\LDX #&FF               \ Store &FF in the Y-th byte of the key logger at KL
+\STX KL,Y
+
+                        \ --- And replaced by: -------------------------------->
+
+ LDA #&FF               \ Store &FF in the Y-th byte of the key logger at KL
+ STA KL,Y
+
+                        \ --- End of replacement ------------------------------>
 
  RTS                    \ Return from the subroutine
 

@@ -156,9 +156,9 @@ if Encrypt:
 
 # Encrypt data block
 
-if Encrypt:
-    for n in range(0x0, len(data_block) - 0x28):
-        data_block[n + 0x28] ^= (n % 256)
+#if Encrypt:
+#    for n in range(0x0, len(data_block) - 0x28):
+#        data_block[n + 0x28] ^= (n % 256)
 
 # Calculate checksum1
 
