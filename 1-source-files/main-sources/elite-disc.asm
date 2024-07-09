@@ -36,7 +36,7 @@
 IF _DISC
 
  PUTFILE "1-source-files/boot-files/$.!BOOT.bin", "!BOOT", &FFFFFF, &FFFFFF
- PUTFILE "1-source-files/basic-programs/$.ELITE.bin", "ELITEC", &FF1900, &FF8023
+ PUTFILE "1-source-files/basic-programs/$.ELITE.bin", "ELITE2C", &FF1900, &FF8023
  PUTFILE "3-assembled-output/ELITE.bin", "ELTdata", &FF1100, &FF2000
  PUTFILE "3-assembled-output/ELTcode.bin", "ELTcode", &FF1128, &FF1128
 
@@ -54,4 +54,4 @@ ENDIF
  PUTFILE "1-source-files/other-files/E.MAX.bin", "E.MAX", &000000, &000000
  PUTFILE "3-assembled-output/README.txt", "README", &FFFFFF, &FFFFFF
  PUTBASIC "1-source-files/music/load-music.bas", "ELITEM"
- PUTFILE "3-assembled-output/elite-music.rom", "MUSIC", &008000, &008000
+ PUTFILE "3-assembled-output/elite-music.rom", "MUSICC", &008000, &008000
