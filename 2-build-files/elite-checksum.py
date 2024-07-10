@@ -156,7 +156,7 @@ if Encrypt:
 
 # Encrypt data block
 
-#if Encrypt:
+# if Encrypt:
 #    for n in range(0x0, len(data_block) - 0x28):
 #        data_block[n + 0x28] ^= (n % 256)
 
