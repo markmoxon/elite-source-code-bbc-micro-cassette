@@ -127,4 +127,5 @@ PRINT'"Loading music into RAM bank ";?romNumber;"...";
 PRINT CHR$130;"OK"
 PRINT'"Press any key to play Elite";
 A$=GET$
-CHAIN"ELITE2C"
+*FX138,0,32
+*RUN ELTdata
