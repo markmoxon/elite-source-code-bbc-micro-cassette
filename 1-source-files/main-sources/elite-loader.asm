@@ -462,8 +462,7 @@ ENDIF
 \   * Envelope 2 is the sound of lasers hitting us, or hyperspace
 \
 \   * Envelope 3 is the first sound in the two-part sound of us dying, or the
-\     second sound in the two-part sound of us making hitting or killing an
-\     enemy ship
+\     second sound in the two-part sound of us hitting or killing an enemy ship
 \
 \   * Envelope 4 is the sound of E.C.M. firing
 \
