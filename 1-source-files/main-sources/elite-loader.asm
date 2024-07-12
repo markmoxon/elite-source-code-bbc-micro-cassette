@@ -139,15 +139,18 @@ ENDIF
 
 IF _SOURCE_DISC
 
- D% = &5630             \ D% is set to the size of the main game code
+ D% = &563A             \ D% is set to the address of the byte after the end of
+                        \ the code, i.e. the byte after checksum0 at XX21
 
 ELIF _TEXT_SOURCES
 
- D% = &5638             \ D% is set to the size of the main game code
+ D% = &5638             \ D% is set to the address of the byte after the end of
+                        \ the code, i.e. the byte after checksum0 at XX21
 
 ELIF _STH_CASSETTE
 
- D% = &5630             \ D% is set to the size of the main game code
+ D% = &5630             \ D% is set to the address of the byte after the end of
+                        \ the code, i.e. the byte after checksum0 at XX21
 
 ENDIF
 
@@ -474,8 +477,7 @@ ENDIF
 \   * Envelope 2 is the sound of lasers hitting us, or hyperspace
 \
 \   * Envelope 3 is the first sound in the two-part sound of us dying, or the
-\     second sound in the two-part sound of us making hitting or killing an
-\     enemy ship
+\     second sound in the two-part sound of us hitting or killing an enemy ship
 \
 \   * Envelope 4 is the sound of E.C.M. firing
 \
@@ -3197,9 +3199,9 @@ IF _REMOVE_CHECKSUMS
 
 ELSE
 
- CMP D%-1               \ D% is set to the size of the main game code, so this
-                        \ compares the result to the last byte in the main game
-                        \ code, at location checksum0
+ CMP D%-1               \ D% is set to the address of the byte after the end of
+                        \ the code, so this compares the result to the last byte
+                        \ in the main game code at location checksum0
 
 ENDIF
 

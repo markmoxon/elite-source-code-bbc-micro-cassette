@@ -9981,16 +9981,6 @@ ENDIF
 
 \ ******************************************************************************
 \
-\       Name: SwitchToMosRom
-\       Type: Subroutine
-\   Category: Text
-\    Summary: Switch the MOS ROM into memory so we can access the character
-\             definitions at &8900 onwards
-\
-\ ******************************************************************************
-
-\ ******************************************************************************
-\
 \       Name: FLIP
 \       Type: Subroutine
 \   Category: Stardust
