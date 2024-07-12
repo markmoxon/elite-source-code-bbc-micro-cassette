@@ -25774,7 +25774,24 @@ ENDIF
 
 .OOPS
 
- STA T                  \ Store the amount of damage in T
+                        \ --- Mod: Code added for Compendium: ----------------->
+
+ CURRENT7% = P%         \ Store the current address
+
+ CLEAR &6000, &6000     \ Clear the guard so we can assemble TT111 into sideways
+                        \ ROM
+
+ ORG END_OF_6%          \ Assemble cpl after the end of block 5
+
+.OOPS_ROM
+
+                        \ --- End of added code ------------------------------->
+
+                        \ --- Mod: Code removed for music: -------------------->
+
+\STA T                  \ Store the amount of damage in T
+
+                        \ --- End of removed code ----------------------------->
 
  LDY #8                 \ Fetch byte #8 (z_sign) for the ship attacking us, and
  LDX #0                 \ set X = 0
@@ -25854,6 +25871,46 @@ ENDIF
 
  JMP OUCH               \ And jump to OUCH to take damage and return from the
                         \ subroutine using a tail call
+
+                        \ --- Mod: Code added for Compendium: ----------------->
+
+ END_OF_7% = P%
+
+ SAVE "3-assembled-output/rom-extra7.bin", OOPS_ROM, P%
+
+ ORG CURRENT7%          \ Start assembling the main code again
+
+ GUARD &6000            \ Put the guard back in place that we removed above
+
+ STA T                  \ Store the amount of damage in T, to pass it to the
+                        \ routine in ROM
+
+ LDA &F4                \ Fetch the RAM copy of the currently selected ROM and
+ PHA                    \ store it on the stack
+
+ LDA musicRomNumber     \ Fetch the number of the music ROM and switch to it
+ STA &F4
+ STA &FE30
+
+ TYA                    \ Store X and Y on the stack
+ PHA
+ TXA
+ PHA
+
+ JSR OOPS_ROM           \ Call the OOPS routine in the music ROM
+
+ PLA                    \ Retrieve X and Y from the stack
+ TAX
+ PLA
+ TAY
+
+ PLA                    \ Set the ROM number back to the value that we stored
+ STA &F4                \ above, to switch back to the previous ROM
+ STA &FE30
+
+ RTS                    \ Return from the subroutine
+
+                        \ --- End of replacement ------------------------------>
 
 \ ******************************************************************************
 \
@@ -32927,6 +32984,27 @@ ENDIF
 
  STX T                  \ Store the distance in T
 
+                        \ --- Mod: Code added for music: ---------------------->
+
+ LDA &F4                \ Fetch the RAM copy of the currently selected ROM and
+ PHA                    \ store it on the stack
+
+ LDA musicRomNumber     \ Fetch the number of the music ROM and switch to it
+ STA &F4
+ STA &FE30
+
+ LDA &8021              \ Set U to the current volume level from the music ROM
+ SEC                    \ at location localVOL (which is at &8021), with the
+ ASL A                  \ low nibble inverted and the whole thing doubled plus
+ EOR #%00001111         \ 1, it's now in the range 14 to 1 rather than 0 to 7
+ STA U
+
+ PLA                    \ Set the ROM number back to the value that we stored
+ STA &F4                \ above, to switch back to the previous ROM
+ STA &FE30
+
+                        \ --- End of added code ------------------------------->
+
  LDA #24                \ Set A = 24 to denote the sound of us making a hit or
  JSR NOS1               \ kill (part 1 of the explosion), and call NOS1 to set
                         \ up the sound block in XX16
@@ -32944,6 +33022,14 @@ ENDIF
                         \ 7 = %0111 or 15 = %1111, so AND'ing with 15 will
                         \ not affect A, while AND'ing with 7 will clear bit
                         \ 3, reducing the maximum value in A to 7
+
+                        \ --- Mod: Code added for music: ---------------------->
+
+ ORA U                  \ Reduce the volume according to the volume setting (U
+                        \ will be higher for low volumes, so this makes A higher
+                        \ for low volumes, which is what we want)
+
+                        \ --- End of added code ------------------------------->
 
  ORA #%11110001         \ The SOUND statement's amplitude ranges from 0 (for no
                         \ sound) to -15 (full volume), so we can set bits 0 and
@@ -33022,8 +33108,17 @@ ENDIF
 
  LDX DNOIZ              \ Set X to the DNOIZ configuration setting
 
- BNE NO1                \ If DNOIZ is non-zero, then sound is disabled, so
-                        \ return from the subroutine (as NO1 contains an RTS)
+                        \ --- Mod: Code removed for music: -------------------->
+
+\BNE NO1                \ If DNOIZ is non-zero, then sound is disabled, so
+\                       \ return from the subroutine (as NO1 contains an RTS)
+
+                        \ --- And replaced by: -------------------------------->
+
+ BNE KYTB               \ If DNOIZ is non-zero, then sound is disabled, so
+                        \ return from the subroutine (as KYTB contains an RTS)
+
+                        \ --- End of replacement ------------------------------>
 
  LDX #LO(XX16)          \ Otherwise set (Y X) to point to the sound block in
  LDY #HI(XX16)          \ XX16

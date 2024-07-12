@@ -139,7 +139,7 @@ ENDIF
 
 IF _SOURCE_DISC
 
- D% = &561F             \ D% is set to the size of the main game code
+ D% = &5630             \ D% is set to the size of the main game code
 
 ELIF _TEXT_SOURCES
 
@@ -147,7 +147,7 @@ ELIF _TEXT_SOURCES
 
 ELIF _STH_CASSETTE
 
- D% = &561F             \ D% is set to the size of the main game code
+ D% = &5630             \ D% is set to the size of the main game code
 
 ENDIF
 

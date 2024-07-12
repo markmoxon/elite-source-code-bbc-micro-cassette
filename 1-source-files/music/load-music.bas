@@ -122,7 +122,7 @@ PRINT'"Loading music into RAM bank ";?romNumber;"...";
 *LOAD MUSICC 4000
 ?&4010=&09:?&4011=&11:REM Update DNOIZ at &8010 to &1109 for Compendium
 ?&4012=&30:?&4013=&11:REM Update play1+1 at &8012 to &112F+1 for Compendium
-?&4016=&D9:?&4017=&42:REM Update SFX at &8016 to &42D9 for Compendium
+?&4016=&BC:?&4017=&42:REM Update SFX at &8016 to &42BC for Compendium
 !&80=&4000 : CALL SRLOAD : REM Load ROM image into the correct bank
 PRINT CHR$130;"OK"
 PRINT'"Press any key to play Elite";
