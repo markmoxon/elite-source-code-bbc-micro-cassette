@@ -32806,6 +32806,9 @@ ENDMACRO
 
  LDA K4                 \ Set A = y-coordinate of dot + 1 (so this is the second
  ADC #1                 \ row of the two-pixel-high dot)
+                        \
+                        \ The addition works as the Shpt routine clears the C
+                        \ flag
 
  JSR Shpt               \ Call Shpt with Y = 6 to set up bytes 5-8 in the ship
                         \ lines space, aborting the call to LL9 if the dot is
@@ -32845,15 +32848,15 @@ ENDMACRO
                         \ bytes define a horizontal 4-pixel dash, for either the
                         \ top or the bottom of the ship's dot
 
- STA (XX19),Y           \ Store A in byte Y of the ship line heap
+ STA (XX19),Y           \ Store A in byte Y of the ship line heap (i.e. Y1)
 
- INY                    \ Store A in byte Y+2 of the ship line heap
+ INY                    \ Store A in byte Y+2 of the ship line heap (i.e. Y2)
  INY
  STA (XX19),Y
 
  LDA K3                 \ Set A = screen x-coordinate of the ship dot
 
- DEY                    \ Store A in byte Y+1 of the ship line heap
+ DEY                    \ Store A in byte Y+1 of the ship line heap (i.e. X2)
  STA (XX19),Y
 
  ADC #3                 \ Set A = screen x-coordinate of the ship dot + 3
@@ -32869,7 +32872,7 @@ ENDMACRO
                         \ nono will actually return us from the original call
                         \ to LL9, thus aborting the entire drawing process
 
- DEY                    \ Store A in byte Y-1 of the ship line heap
+ DEY                    \ Store A in byte Y-1 of the ship line heap (i.e. X1)
  DEY
  STA (XX19),Y
 
@@ -36209,10 +36212,10 @@ ENDMACRO
 .LL146
 
                         \ If we get here then we have clipped our line to the
-                        \ (if we had to clip it at all), so we move the low
-                        \ bytes from (x1, y1) and (x2, y2) into (X1, Y1) and
-                        \ (X2, Y2), remembering that they share locations with
-                        \ XX15:
+                        \ screen edge (if we had to clip it at all), so we move
+                        \ the low bytes from (x1, y1) and (x2, y2) into (X1, Y1)
+                        \ and (X2, Y2), remembering that they share locations
+                        \ with XX15:
                         \
                         \   X1 = XX15
                         \   Y1 = XX15+1
