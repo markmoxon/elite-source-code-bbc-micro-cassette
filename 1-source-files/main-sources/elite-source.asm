@@ -16039,10 +16039,9 @@ ENDIF
 
  STA K%+NI%+8           \ Set the planet's z_sign to the high byte of the result
 
- LDA #1                 \ These instructions have no effect, as the call to
- STA QQ11               \ LOOK1 below starts by setting QQ11 to 0; instead they
-                        \ just set the current view type in QQ11 to 1 for the
-                        \ duration of the next three instructions
+ LDA #1                 \ Temporarily set the view type to a non-zero value, so
+ STA QQ11               \ the call to LOOK1 below clears the screen before
+                        \ switching to the space view
 
  STA MCNT               \ Set the main loop counter to 1, so the next iteration
                         \ through the main loop will potentially spawn ships
