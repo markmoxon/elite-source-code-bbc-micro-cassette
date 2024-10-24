@@ -17237,7 +17237,7 @@ checksum0 = &5821
 ships = &5822 
 .end
 P% = &61E8 
-S.ELTcode 1100 &61E8  &1128 &1128 
+S.ELTcode 1100 &61E8  &1128  &1128 
 Saving file '3-assembled-output/ELTcode.unprot.bin'
 Saving file '3-assembled-output/ELThead.bin'
 .TRTB%

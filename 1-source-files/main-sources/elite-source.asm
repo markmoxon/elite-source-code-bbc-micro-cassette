@@ -2601,7 +2601,7 @@ ENDMACRO
  PRINT "Execute at ", ~LOAD_WORDS%
  PRINT "Reload at ", ~LOAD_WORDS%
 
- PRINT "S.WORDS9 ",~CODE_WORDS%," ",~P%," ",~LOAD_WORDS%," ",~LOAD_WORDS%
+ PRINT "S.WORDS9 ", ~CODE_WORDS%, " ", ~P%, " ", ~LOAD_WORDS%, " ", ~LOAD_WORDS%
  SAVE "3-assembled-output/WORDS9.bin", CODE_WORDS%, P%, LOAD_WORDS%
 
 \ ******************************************************************************
