@@ -285,7 +285,7 @@ Note that you should manually choose the correct platform in b2 (I intentionally
 
 Despite this being the cassette version of BBC Micro Elite, this repository only builds disc images, as that's how BeebAsm works. If you want the authentic experience of loading Elite from cassette, then you can manually build a UEF tape image of the binaries yourself, using a program like [Disc Image Manager](https://github.com/geraldholdsworth/DiscImageManager).
 
-To do this, you should add the `disc=no` and `protect=no` arguments to the build. This ensures that the binaries are build to load at the correct address for tape systems, and it also disables the block-level tape protection system, as this only works with specially created tape images, like the ones that Acornsoft originally released.
+To do this, you should add the `disc=no` and `protect=no` arguments to the build. This ensures that the binaries are built to load at the correct address for tape systems, and it also disables the block-level tape protection system, as this only works with specially created tape images, like the ones that Acornsoft originally released.
 
 Once you have built the project, it will produce an SSD disc image file that contains binaries that are suitable for loading from cassette. You can extract the binaries from this image and add them to a UEF, as follows:
 
@@ -349,7 +349,7 @@ b1bf493e  20712  b1bf493e  20712   Yes   ELTcode.bin
 c4547e5e   1023  c4547e5e   1023   Yes   WORDS9.bin
 ```
 
-If you add the `disc=no` build parameter, then the build will produce binaries that are designed to be loaded from cassette rather that disc. The verification step will compare the results to the exact binaries from the UEF from the Stairway to Hell archive. These binaries have block-level tape protection enabled by default, which you can override with `protect=no`.
+Note that if you add the `disc=no` build parameter, then the build will produce binaries that are designed to be loaded from cassette rather than disc. The verification step will compare the results to the exact binaries from the UEF from the Stairway to Hell archive. These binaries have block-level tape protection enabled by default, so they will not match. You can override the block-level protection with `protect=no`.
 
 ### Building the source disc variant
 
