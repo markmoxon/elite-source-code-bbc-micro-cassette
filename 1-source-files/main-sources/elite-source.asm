@@ -31266,7 +31266,8 @@ ENDIF
 
  BPL NOL1               \ Loop back for the next source byte
 
- RTS                    \ Return from the subroutine
+                        \ Fall through into KYTB to return from the subroutine,
+                        \ as the first byte of KYTB is an RTS
 
 \ ******************************************************************************
 \
@@ -31286,9 +31287,21 @@ ENDIF
 \ control keys) have bit 7 set, so they have 128 added to their internal
 \ values. This doesn't appear to be used anywhere.
 \
+\ Note that KYTB actually points to the byte before the start of the table, so
+\ the offset of the first key value is 1 (i.e. KYTB+1), not 0.
+\
+\ ------------------------------------------------------------------------------
+\
+\ Other entry points:
+\
+\   KYTB                Contains an RTS
+\
 \ ******************************************************************************
 
- KYTB = P% - 1          \ Point KYTB to the byte before the start of the table
+.KYTB
+
+ RTS                    \ Return from the subroutine (used as an entry point and
+                        \ a fall-through from above)
 
                         \ These are the primary flight controls (pitch, roll,
                         \ speed and lasers):

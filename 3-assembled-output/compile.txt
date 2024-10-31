@@ -11462,6 +11462,7 @@ Saving file '3-assembled-output/ELTE.bin'
      49EE   88         DEY
      49EF   CA         DEX
      49F0   10 F2      BPL &49E4
+.KYTB
      49F2   60         RTS
      49F3   E8
      49F4   E2
