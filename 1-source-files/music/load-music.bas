@@ -6,18 +6,18 @@ RomSel = &FE30
 romNumber = &8E : REM Set to address of .musicRomNumber
 fromAddr = &80  : REM We can reuse unique block by this point
 
-PRINT"Acornsoft Elite... with music!"
-PRINT"=============================="
-PRINT'"For the BBC Micro with 16K sideways RAM"
+PRINT"BBC Micro Elite (Compendium version)"
+PRINT"===================================="
 PRINT'"Based on the Acornsoft SBG38 release"
 PRINT"of Elite by Ian Bell and David Braben"
 PRINT"Copyright (c) Acornsoft 1984"
+PRINT'"Flicker-free routines, bug fixes and"
+PRINT"music integration by Mark Moxon"
 PRINT'"Sound routines by Kieran Connell and"
 PRINT"Simon Morris"
 PRINT'"Original music by Aidan Bell and Julie"
 PRINT"Dunn (c) D. Braben and I. Bell 1985,"
 PRINT"ported from the C64 by Negative Charge"
-PRINT'"Elite integration by Mark Moxon"
 PRINT'"Sideways RAM detection and loading"
 PRINT"routines by Tricky and J.G.Harston"
 
@@ -119,11 +119,11 @@ IF N% > 1 THEN PRINT "s";
 REM IF N% > 0 THEN FOR X% = ?&90 TO 15 : PRINT;" ";X%?&90; : NEXT
 ?romNumber=?(&90+?&90):REM STORE RAM BANK USED SOMEWHERE IN ZERO PAGE
 PRINT'"Loading music into RAM bank ";?romNumber;"...";
-*LOAD MUSICC 3000
-?&3010=&09:?&3011=&11:REM Update DNOIZ at &8010 to &1109 for Compendium
-?&3012=&31:?&3013=&11:REM Update play1+1 at &8012 to &1130+1 for Compendium
-?&3016=&BD:?&3017=&42:REM Update SFX at &8016 to &42BD for Compendium
-!&80=&3000 : CALL SRLOAD : REM Load ROM image into the correct bank
+*LOAD MUSICC 3F00
+?&3F10=&09:?&3F11=&11:REM Update DNOIZ at &8010 to &1109 for Compendium
+?&3F12=&31:?&3F13=&11:REM Update play1+1 at &8012 to &1130+1 for Compendium
+?&3F16=&BD:?&3F17=&42:REM Update SFX at &8016 to &42BD for Compendium
+!&80=&3F00 : CALL SRLOAD : REM Load ROM image into the correct bank
 PRINT CHR$130;"OK"
 PRINT'"Press any key to play Elite";
 A$=GET$
