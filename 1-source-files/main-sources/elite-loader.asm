@@ -3143,12 +3143,16 @@ ENDIF
  LDX #3                 \ pressed
  JSR OSBYTE
 
-                        \ The rest of the routine calculates various checksums
-                        \ and makes sure they are correct before proceeding, to
-                        \ prevent code tampering. We start by calculating the
-                        \ checksum for the main game code from &0F40 to &5540,
-                        \ which just adds up every byte and checks it against
-                        \ the checksum stored at the end of the main game code
+                        \ --- Mod: Code added for Delta 14B: ------------------>
+
+ LDA #%11110000         \ Set the Data Direction Register (DDR) of port B of the
+ STA VIA+&62            \ user port so we can read the buttons on the Delta 14B
+                        \ joystick, using PB4 to PB7 as output (so we can write
+                        \ to the button columns to select the column we are
+                        \ interested in) and PB0 to PB3 as input (so we can read
+                        \ from the button rows)
+
+                        \ --- End of added code ------------------------------->
 
                         \ --- Mod: Code added for saving to disc: ------------->
 
@@ -3159,6 +3163,13 @@ ENDIF
                         \ game itself
 
                         \ --- End of added code ------------------------------->
+
+                        \ The rest of the routine calculates various checksums
+                        \ and makes sure they are correct before proceeding, to
+                        \ prevent code tampering. We start by calculating the
+                        \ checksum for the main game code from &0F40 to &5540,
+                        \ which just adds up every byte and checks it against
+                        \ the checksum stored at the end of the main game code
 
 .BLAST
 
@@ -3217,9 +3228,13 @@ ENDIF
                         \ point for the main game (so this hides this address
                         \ from prying eyes)
 
- LDA #%01111111         \ Set 6522 System VIA interrupt enable register IER
- STA &FE4E              \ (SHEILA &4E) bits 0-6 (i.e. disable all hardware
-                        \ interrupts from the System VIA)
+                        \ --- Mod: Code removed for Delta 14B: ---------------->
+
+\LDA #%01111111         \ Set 6522 System VIA interrupt enable register IER
+\STA &FE4E              \ (SHEILA &4E) bits 0-6 (i.e. disable all hardware
+\                       \ interrupts from the System VIA)
+
+                        \ --- End of removed code ----------------------------->
 
  JMP (&FFFC)            \ Jump to the address in &FFFC to reset the machine
 

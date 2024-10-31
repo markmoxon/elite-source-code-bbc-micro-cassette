@@ -119,11 +119,11 @@ IF N% > 1 THEN PRINT "s";
 REM IF N% > 0 THEN FOR X% = ?&90 TO 15 : PRINT;" ";X%?&90; : NEXT
 ?romNumber=?(&90+?&90):REM STORE RAM BANK USED SOMEWHERE IN ZERO PAGE
 PRINT'"Loading music into RAM bank ";?romNumber;"...";
-*LOAD MUSICC 4000
-?&4010=&09:?&4011=&11:REM Update DNOIZ at &8010 to &1109 for Compendium
-?&4012=&30:?&4013=&11:REM Update play1+1 at &8012 to &112F+1 for Compendium
-?&4016=&BC:?&4017=&42:REM Update SFX at &8016 to &42BC for Compendium
-!&80=&4000 : CALL SRLOAD : REM Load ROM image into the correct bank
+*LOAD MUSICC 3000
+?&3010=&09:?&3011=&11:REM Update DNOIZ at &8010 to &1109 for Compendium
+?&3012=&31:?&3013=&11:REM Update play1+1 at &8012 to &1130+1 for Compendium
+?&3016=&BD:?&3017=&42:REM Update SFX at &8016 to &42BD for Compendium
+!&80=&3000 : CALL SRLOAD : REM Load ROM image into the correct bank
 PRINT CHR$130;"OK"
 PRINT'"Press any key to play Elite";
 A$=GET$
