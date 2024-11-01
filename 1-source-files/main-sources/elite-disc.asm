@@ -19,9 +19,12 @@
 \
 \ ------------------------------------------------------------------------------
 \
-\ This source file produces the following SSD disc image:
+\ This source file produces one of the following SSD disc images, depending on
+\ which release is being built:
 \
+\   * elite-cassette-sth.ssd
 \   * elite-cassette-from-source-disc.ssd
+\   * elite-cassette-from-text-sources.ssd
 \
 \ This can be loaded into an emulator or a real BBC Micro.
 \

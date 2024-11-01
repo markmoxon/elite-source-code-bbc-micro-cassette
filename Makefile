@@ -104,19 +104,19 @@ endif
 
 ifeq ($(variant), text-sources)
   variant-number=2
-  folder=/text-sources
+  folder=text-sources
   suffix=-flicker-free-from-text-sources
 else ifeq ($(variant), source-disc)
   variant-number=1
-  folder=/source-disc
+  folder=source-disc
   suffix=-flicker-free-from-source-disc
 else
   variant-number=3
   suffix=-elite-compendium-sth
   ifeq ($(disc), no)
-    folder=/sth-for-tape
+    folder=sth-for-tape
   else
-    folder=/sth
+    folder=sth
   endif
 endif
 
@@ -136,7 +136,7 @@ all:
 	$(PYTHON) 2-build-files/elite-checksum.py $(unencrypt) $(tape-or-disc) $(protect-tape) -rel$(variant-number)
 	$(BEEBASM) -i 1-source-files/main-sources/elite-disc.asm -do 5-compiled-game-discs/elite-cassette$(suffix).ssd -opt 3 -title "E L I T E"
 ifneq ($(verify), no)
-	@$(PYTHON) 2-build-files/crc32.py 4-reference-binaries$(folder) 3-assembled-output
+	@$(PYTHON) 2-build-files/crc32.py 4-reference-binaries/$(folder) 3-assembled-output
 endif
 
 .PHONY:b2

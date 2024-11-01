@@ -11802,6 +11802,7 @@ Saving file '3-assembled-output/ELTE.bin'
      49B9   88         DEY
      49BA   CA         DEX
      49BB   10 F2      BPL &49AF
+.KYTB
      49BD   60         RTS
      49BE   E8
      49BF   E2
@@ -17678,7 +17679,7 @@ checksum0 = &55EE
 ships = &55EF 
 .end
 P% = &5FB5 
-S.ELTcode 1100 &61E8  &1128 &1128 
+S.ELTcode 1100 &61E8  &1128  &1128 
 Saving file '3-assembled-output/ELTcode.unprot.bin'
 Saving file '3-assembled-output/ELThead.bin'
 .TRTB%
