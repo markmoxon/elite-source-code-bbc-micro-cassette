@@ -19550,7 +19550,7 @@ ENDIF
 
  END_OF_1% = P%
 
- SAVE "3-assembled-output/rom-extra1.bin", ROM_EXTRA%, P%
+ SAVE "3-assembled-output/rom-extra1.bin", ROM_EXTRA%, END_OF_1%
 
  ORG CURRENT1%          \ Start assembling the main code again
 
@@ -20234,7 +20234,7 @@ ENDIF
 
  END_OF_2% = P%
 
- SAVE "3-assembled-output/rom-extra2.bin", END_OF_1%, P%
+ SAVE "3-assembled-output/rom-extra2.bin", END_OF_1%, END_OF_2%
 
  ORG CURRENT2%          \ Start assembling the main code again
 
@@ -20875,7 +20875,7 @@ ENDIF
 
  END_OF_3% = P%
 
- SAVE "3-assembled-output/rom-extra3.bin", END_OF_2%, P%
+ SAVE "3-assembled-output/rom-extra3.bin", END_OF_2%, END_OF_3%
 
  ORG CURRENT3%          \ Start assembling the main code again
 
@@ -21241,7 +21241,7 @@ ENDIF
 
  END_OF_4% = P%
 
- SAVE "3-assembled-output/rom-extra4.bin", END_OF_3%, P%
+ SAVE "3-assembled-output/rom-extra4.bin", END_OF_3%, END_OF_4%
 
  ORG CURRENT4%          \ Start assembling the main code again
 
@@ -23251,7 +23251,7 @@ ENDIF
 
  END_OF_5% = P%
 
- SAVE "3-assembled-output/rom-extra5.bin", END_OF_4%, P%
+ SAVE "3-assembled-output/rom-extra5.bin", END_OF_4%, END_OF_5%
 
  ORG CURRENT5%          \ Start assembling the main code again
 
@@ -23665,7 +23665,7 @@ ENDIF
 
  END_OF_6% = P%
 
- SAVE "3-assembled-output/rom-extra6.bin", END_OF_5%, P%
+ SAVE "3-assembled-output/rom-extra6.bin", END_OF_5%, END_OF_6%
 
  ORG CURRENT6%          \ Start assembling the main code again
 
@@ -25784,10 +25784,10 @@ ENDIF
 
  CURRENT7% = P%         \ Store the current address
 
- CLEAR &6000, &6000     \ Clear the guard so we can assemble TT111 into sideways
-                        \ ROM
+ CLEAR &6000, &6000     \ Clear the guard so we can assemble block 7 into
+                        \ sideways ROM
 
- ORG END_OF_6%          \ Assemble cpl after the end of block 5
+ ORG END_OF_6%          \ Assemble block 7 after block 6
 
 .OOPS_ROM
 
@@ -25882,7 +25882,7 @@ ENDIF
 
  END_OF_7% = P%
 
- SAVE "3-assembled-output/rom-extra7.bin", END_OF_6%, P%
+ SAVE "3-assembled-output/rom-extra7.bin", END_OF_6%, END_OF_7%
 
  ORG CURRENT7%          \ Start assembling the main code again
 
@@ -33305,10 +33305,10 @@ ENDIF
 
  CURRENT8% = P%         \ Store the current address
 
- CLEAR &6000, &6000     \ Clear the guard so we can assemble b_14 into sideways
-                        \ ROM
+ CLEAR &6000, &6000     \ Clear the guard so we can assemble block 8 into
+                        \ sideways ROM
 
- ORG END_OF_7%          \ Assemble b_14 after the end of block 7
+ ORG END_OF_7%          \ Assemble block 8 after block 7
 
 .b_13
 
@@ -33524,7 +33524,7 @@ ENDIF
 
  END_OF_8% = P%
 
- SAVE "3-assembled-output/rom-extra8.bin", b_13, P%
+ SAVE "3-assembled-output/rom-extra8.bin", END_OF_7%, END_OF_8%
 
  ORG CURRENT8%          \ Start assembling the main code again
 
@@ -34750,10 +34750,10 @@ ENDMACRO
 
  CURRENT9% = P%         \ Store the current address
 
- CLEAR &6000, &6000     \ Clear the guard so we can assemble TIDY into sideways
-                        \ ROM
+ CLEAR &6000, &6000     \ Clear the guard so we can assemble block 9 into
+                        \ sideways ROM
 
- ORG END_OF_8%          \ Assemble TIDY after the end of block 8
+ ORG END_OF_8%          \ Assemble block 9 after block 8
 
                         \ --- End of added code ------------------------------->
 
