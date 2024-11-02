@@ -33292,7 +33292,6 @@ ENDIF
 \ the same as the top button in the middle row):
 \
 \   Fire laser                                    Fire laser
-\
 \   Slow down              Fire laser             Speed up
 \   Unarm missile          Fire missile           Target missile
 \   Front view             E.C.M.                 Rear view
@@ -33343,7 +33342,6 @@ ENDIF
 \ are treated the same as the top button in the middle row):
 \
 \   Fire laser                                    Fire laser
-\
 \   Slow down              Fire laser             Speed up
 \   Unarm missile          Fire missile           Target missile
 \   Front view             E.C.M.                 Rear view
