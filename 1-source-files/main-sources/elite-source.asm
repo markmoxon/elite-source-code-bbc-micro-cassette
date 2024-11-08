@@ -872,7 +872,7 @@
 
  SKIP 2                 \ Temporary storage, used in a number of places
 
- PRINT "Zero page variables from ", ~ZP, " to ", ~P%
+ PRINT "ZP workspace from ", ~ZP, "to ", ~P%-1, "inclusive"
 
 \ ******************************************************************************
 \
@@ -900,7 +900,7 @@
 \
 \       Name: T%
 \       Type: Workspace
-\    Address: &0300 to &035F
+\    Address: &0300 to &0371
 \   Category: Workspaces
 \    Summary: Current commander data and stardust data blocks
 \
@@ -1206,7 +1206,7 @@
  SKIP NOST + 1          \ This is where we store the x_lo coordinates for all
                         \ the stardust particles
 
- PRINT "T% workspace from  ", ~T%, " to ", ~P%
+ PRINT "T% workspace from ", ~T%, "to ", ~P%-1, "inclusive"
 
 \ ******************************************************************************
 \
@@ -2636,6 +2636,8 @@ ENDMACRO
 
  SKIP NOSH * NI%        \ Ship data blocks and ship line heap
 
+ PRINT "K% workspace from ", ~K%, "to ", ~P%-1, "inclusive"
+
 \ ******************************************************************************
 \
 \       Name: WP
@@ -3110,7 +3112,7 @@ ENDMACRO
                         \ which is 18 (#NOST) for normal space, and 3 for
                         \ witchspace
 
- PRINT "WP workspace from  ", ~WP," to ", ~P%
+ PRINT "WP workspace from ", ~WP, "to ", ~P%-1, "inclusive"
 
 \ ******************************************************************************
 \
@@ -3261,6 +3263,8 @@ ENDMACRO
                         \
                         \ Toggled by pressing "K" when paused, see the DKS3
                         \ routine for details
+
+ PRINT "S% workspace from ", ~S%, "to ", ~P%-1, "inclusive"
 
 \ ******************************************************************************
 \
