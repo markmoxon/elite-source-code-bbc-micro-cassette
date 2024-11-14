@@ -9114,10 +9114,10 @@ ENDIF
                         \ which is result 7 above
 
  LDA YY                 \ Set (S R) = YY(1 0) = y
- STA R
- LDA YY+1
-\JSR MAD                \ These instructions are commented out in the original
-\STA S                  \ source
+ STA R                  \
+ LDA YY+1               \ The call to MAD and the two store instructions are
+\JSR MAD                \ commented out in the original source
+\STA S
 \STX R
  STA S
 
