@@ -76,6 +76,8 @@ The commentary is copyright &copy; Mark Moxon. Any misunderstandings or mistakes
 
 Huge thanks are due to the original authors for not only creating such an important piece of my childhood, but also for releasing the source code for us to play with; to Paul Brink for his annotated disassembly; and to Kieran Connell for his [BeebAsm version](https://github.com/kieranhj/elite-beebasm), which I forked as the original basis for this project. You can find more information about this project in the [accompanying website's project page](https://elite.bbcelite.com/about_site/about_this_project.html).
 
+Thank you to Diminished for the UEF scripts, which are part of the [Quadbike 2](https://stardot.org.uk/forums/viewtopic.php?t=26669) tape transcriber.
+
 The following archives from Ian Bell's personal website form the basis for this project:
 
 * [BBC Micro cassette Elite sources as a disc image](http://www.elitehomepage.org/archive/a/a4080602.zip)
