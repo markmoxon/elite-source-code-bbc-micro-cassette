@@ -46,7 +46,7 @@ IF _DISC
 ELSE
 
  PUTFILE "1-source-files/boot-files/$.!BOOT.bin", "!BOOT", &FFFFFF, &FFFFFF
- PUTFILE "1-source-files/basic-programs/$.ELITEc.bin", "ELITE", &FF1900, &FF8023
+ PUTFILE "1-source-files/basic-programs/$.ELITE-cassette.bin", "ELITE", &FF1900, &FF8023
 \PUTFILE "3-assembled-output/ELITE.bin", "ELITEdata", &FF0E00, &FF1D00
 \PUTFILE "3-assembled-output/ELTcode.bin", "ELITEcode", &000E00, &000132
  PUTFILE "3-assembled-output/ELITE.bin", "ELITEda", &FF0E00, &FF1D00

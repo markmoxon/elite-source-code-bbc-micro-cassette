@@ -201,7 +201,7 @@ By default the build process will create a typical Elite game disc with a standa
 
 * `disc=no` - Build a version to load from cassette rather than disc (the default is to build a version that loads from disc)
 
-* `protect=no` - When building for cassette with `disc=no`, the loader contains block-level tape protection code, which you can disable with this argument (the protection only works if you save the ELITEcode file to tape with corrupted block data, so if you want to copy the results to a UEF without re-implementing the Acornsoft protection system, you should use this argument)
+* `protect=no` - When building for cassette with `disc=no`, the loader contains block-level tape protection code, which you can disable with this argument (the protection only works if you save the ELITEcode file to tape with corrupted block data, so if you want to create a UEF without re-implementing the Acornsoft protection system, you should use this argument)
 
 * `commander=max` - Start with a maxed-out commander (specifically, this is the test commander file from the original source, which is almost but not quite maxed-out)
 
@@ -283,19 +283,23 @@ Note that you should manually choose the correct platform in b2 (I intentionally
 
 ### Building a UEF tape image
 
-Despite this being the cassette version of BBC Micro Elite, this repository only builds disc images, as that's how BeebAsm works. If you want the authentic experience of loading Elite from cassette, then you can manually build a UEF tape image of the binaries yourself, using a program like [Disc Image Manager](https://github.com/geraldholdsworth/DiscImageManager).
+Despite this being the cassette version of BBC Micro Elite, this repository only builds disc images by default, as that's how BeebAsm works. If you want the authentic experience of loading Elite from cassette, then you can build a UEF with the following command on Windows:
 
-To do this, you should add the `disc=no` and `protect=no` arguments to the build. This ensures that the binaries are built to load at the correct address for tape systems, and it also disables the block-level tape protection system, as this only works with specially created tape images, like the ones that Acornsoft originally released.
+```
+make.bat uef disc=no protect=no
+```
 
-Once you have built the project, it will produce an SSD disc image file that contains binaries that are suitable for loading from cassette. You can extract the binaries from this image and add them to a UEF, as follows:
+or this on Mac/Linux:
 
-* Add the binaries in the following order: `ELITE`, `ELITEda`, `ELITEco`.
+```
+make uef disc=no protect=no
+```
 
-* Rename `ELITEda` to `ELITEdata`.
+You should now be able to load Elite from your UEF on a BBC Micro, by entering `CHAIN "ELITE"`. These UEF tape images will work with emulators and the TZXDuino (though you may need to unzip them before they will work with the latter).
 
-* Rename `ELITEco` to `ELITEcode`.
+For this to work, you will need PHP installed, and you should edit the `Makefile` (and `make.bat` on Windows) to point to PHP (specifically, you'll need to point the `PHP` variable to point to the locations of your `php` or `php.exe` binary).
 
-You should now be able to load Elite from your UEF on a BBC Micro, by entering `CHAIN "ELITE"`.
+Note that in order for your UEF to work, you need to include the `disc=no` and `protect=no` arguments to the build (as above). This ensures that the binaries are built to load at the correct address for tape systems, and it also disables the block-level tape protection system, as this only works with specially created tape images, like the ones that Acornsoft originally released.
 
 ## Building different variants of the cassette version of Elite
 

@@ -6,6 +6,8 @@ This folder contains support scripts for building the BBC Micro cassette version
 
 * [elite-checksum.py](elite-checksum.py) adds checksums and encryption to the assembled output
 
+* mktibet.php and tibetuef.php are used to create UEFs from files.
+
 It also contains the `make.exe` executable for Windows, plus the required DLL files.
 
 ---

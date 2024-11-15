@@ -1,5 +1,6 @@
 BEEBASM?=beebasm
 PYTHON?=python
+PHP?=php
 
 # A make command with no arguments will build the source disc variant with
 # encrypted binaries, checksums enabled, the standard commander and crc32
@@ -142,3 +143,9 @@ endif
 b2:
 	curl -G "http://localhost:48075/reset/b2"
 	curl -H "Content-Type:application/binary" --upload-file "5-compiled-game-discs/elite-cassette$(suffix).ssd" "http://localhost:48075/run/b2?name=elite-cassette$(suffix).ssd"
+
+.PHONY:uef
+uef: cassette
+	$(PHP) 2-build-files/mktibet-0.3.php +t temp.tbt +n ELITE +d FFFF0E00 +x FFFF8023 1-source-files/basic-programs/$$.ELITE-cassette.bin +n ELITEdata +d FFFF0E00 +x FFFF1D00 3-assembled-output/ELITE.bin +n ELITEcode +d 00000E00 +x 00000132 3-assembled-output/ELTcode.bin +n README +d FFFFFFFF +x FFFFFFFF 3-assembled-output/README.txt
+	php 2-build-files/tibetuef-0.8.php temp.tbt 5-compiled-game-discs/elite-cassette$(suffix).uef
+	rm temp.tbt
