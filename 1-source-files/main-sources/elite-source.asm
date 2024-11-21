@@ -28587,7 +28587,7 @@ ENDIF
  LDA RAND               \ Calculate the next two values f2 and f3 in the feeder
  ROL A                  \ sequence:
  TAX                    \
- ADC RAND+2             \   * f2 = (f1 << 1) MOD 256 + C flag on entry
+ ADC RAND+2             \   * f2 = (f1 << 1) mod 256 + C flag on entry
  STA RAND               \   * f3 = f0 + f2 + (1 if bit 7 of f1 is set)
  STX RAND+2             \   * C flag is set according to the f3 calculation
 
