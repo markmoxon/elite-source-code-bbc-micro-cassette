@@ -8601,11 +8601,11 @@ ENDIF
  STA SC
 
  TYA                    \ Set Y = Y mod 8, which is the pixel row within the
- AND #7                 \ character block at which we want to draw the start of
- TAY                    \ our line (as each character block has 8 rows)
+ AND #7                 \ character block at which we want to draw our pixel
+ TAY                    \ (as each character block has 8 rows)
 
  TXA                    \ Set X = X mod 8, which is the horizontal pixel number
- AND #7                 \ within the character block where the line starts (as
+ AND #7                 \ within the character block where the pixel lies (as
  TAX                    \ each pixel line in the character block is 8 pixels
                         \ wide)
 
