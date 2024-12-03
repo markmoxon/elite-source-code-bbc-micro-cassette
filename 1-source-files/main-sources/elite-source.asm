@@ -21850,8 +21850,8 @@ ENDIF
 
  JSR BEEP               \ Call the BEEP subroutine to make a short, high beep
 
- LDY #50                \ Delay for 50 vertical syncs (50/50 = 1 second) and
- JMP DELAY              \ return from the subroutine using a tail call
+ LDY #50                \ Wait for 50/50 of a second (1 second) and return
+ JMP DELAY              \ from the subroutine using a tail call
 
 \ ******************************************************************************
 \
@@ -29151,8 +29151,8 @@ ENDIF
  LSR A                  \ and bit 0 of QQ11 is 1 (the current view is type 1),
  BCS P%+5               \ then skip the following instruction
 
- JSR DELAY-5            \ Delay for 8 vertical syncs (8/50 = 0.16 seconds), to
-                        \ slow the main loop down a bit
+ JSR DELAY-5            \ Wait for 8/50 of a second (0.16 seconds), to slow the
+                        \ main loop down a bit
 
  JSR TT17               \ Scan the keyboard for the cursor keys or joystick,
                         \ returning the cursor's delta values in X and Y and
@@ -30041,7 +30041,7 @@ ENDIF
  LDY #6                 \ Move the text cursor to column 6
  STY XC
 
- JSR DELAY              \ Delay for 6 vertical syncs (6/50 = 0.12 seconds)
+ JSR DELAY              \ Wait for 6/50 of a second (0.12 seconds)
 
  LDA #30                \ Print recursive token 144 ("---- E L I T E ----")
  JSR plf                \ followed by a newline
@@ -31677,8 +31677,8 @@ ENDIF
 
  JSR BELL               \ Make a beep sound so we know something has happened
 
- JSR DELAY              \ Wait for Y vertical syncs (Y is between 64 and 70, so
-                        \ this is always a bit longer than a second)
+ JSR DELAY              \ Wait for Y/50 seconds (Y is between 64 and 70, so this
+                        \ is always a bit longer than a second)
 
  LDY T                  \ Restore the configuration key argument into Y
 
@@ -32046,8 +32046,9 @@ ENDIF
 
 .t
 
- JSR DELAY-5            \ Delay for 8 vertical syncs (8/50 = 0.16 seconds) so we
-                        \ don't take up too much CPU time while looping round
+ JSR DELAY-5            \ Wait for 8/50 of a second (0.16 seconds) to implement
+                        \ a simple keyboard debounce and prevent multiple key
+                        \ presses being recorded
 
  JSR RDKEY              \ Scan the keyboard for a key press and return the
                         \ internal key number in A and X (or 0 for no key press)
