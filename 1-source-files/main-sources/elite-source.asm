@@ -7254,11 +7254,11 @@ ENDIF
 
  SKIP 0                 \ LL30 is a synonym for LOIN
                         \
-                        \ In the cassette and disc versions of Elite, LL30 and
-                        \ LOIN are synonyms for the same routine, presumably
-                        \ because the two developers each had their own line
-                        \ routines to start with, and then chose one of them for
-                        \ the final game
+                        \ In the BBC Micro cassette and disc versions of Elite,
+                        \ LL30 and LOIN are synonyms for the same routine,
+                        \ presumably because the two developers each had their
+                        \ own line routines to start with, and then chose one of
+                        \ them for the final game
 
 .LOIN
 
