@@ -19,6 +19,11 @@
 \
 \ ------------------------------------------------------------------------------
 \
+\ This source file contains the game loader for BBC Micro cassette Elite. It
+\ also contains the game text and Python ship blueprint.
+\
+\ ------------------------------------------------------------------------------
+\
 \ This source file produces the following binary file:
 \
 \   * ELITE.unprot.bin

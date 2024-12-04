@@ -19,6 +19,11 @@
 \
 \ ------------------------------------------------------------------------------
 \
+\ This source file contains the main game code for BBC Micro cassette Elite. It
+\ also contains the ship blueprints and game text.
+\
+\ ------------------------------------------------------------------------------
+\
 \ This source file produces the following binary files:
 \
 \   * ELTA.bin
