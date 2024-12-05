@@ -5,7 +5,7 @@
 \ BBC Micro cassette Elite was written by Ian Bell and David Braben and is
 \ copyright Acornsoft 1984
 \
-\ The code on this site is identical to the source discs released on Ian Bell's
+\ The code in this file is identical to the source discs released on Ian Bell's
 \ personal website at http://www.elitehomepage.org/ (it's just been reformatted
 \ to be more readable)
 \
