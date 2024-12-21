@@ -220,9 +220,7 @@ ENDIF
                         \ Elite draws on-screen by poking bytes directly into
                         \ screen memory, and SC(1 0) is typically set to the
                         \ address of the character block containing the pixel
-                        \ we want to draw (see the deep dives on "Drawing
-                        \ monochrome pixels in mode 4" and "Drawing colour
-                        \ pixels in mode 5" for more details)
+                        \ we want to draw
 
 .SCH
 
@@ -338,7 +336,7 @@ ENDIF
 \   Category: Drawing the screen
 \    Summary: VDU commands for setting the square mode 4 screen
 \  Deep dive: The split-screen mode in BBC Micro Elite
-\             Drawing monochrome pixels in mode 4
+\             Drawing monochrome pixels on the BBC Micro
 \
 \ ------------------------------------------------------------------------------
 \
@@ -367,13 +365,11 @@ ENDIF
 \
 \ This almost-square mode 4 variant makes life a lot easier when drawing to the
 \ screen, as there are 256 pixels on each row (or, to put it in screen memory
-\ terms, there's one page of memory per row of pixels). For more details of the
-\ screen mode, see the deep dive on "Drawing monochrome pixels in mode 4".
+\ terms, there's one page of memory per row of pixels).
 \
 \ There is also an interrupt-driven routine that switches the bytes-per-pixel
 \ setting from that of mode 4 to that of mode 5, when the raster reaches the
-\ split between the space view and the dashboard. See the deep dive on "The
-\ split-screen mode" for details.
+\ split between the space view and the dashboard.
 \
 \ ******************************************************************************
 
