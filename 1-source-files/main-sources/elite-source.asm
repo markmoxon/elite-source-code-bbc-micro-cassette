@@ -11264,7 +11264,7 @@ ENDIF
  BCC DL2                \ indicator, which is less than a full character's
                         \ width, so jump down to DL2 to do this
 
- SBC #4                 \ Otherwise we can draw a 4-pixel wide block, so
+ SBC #4                 \ Otherwise we can draw a four-pixel wide block, so
  STA Q                  \ subtract 4 from Q so it contains the amount of the
                         \ indicator that's left to draw after this character
 
@@ -16599,9 +16599,9 @@ ENDIF
                         \   (255, 0) to (255, 191)
                         \   (254, 0) to (254, 191)
                         \
-                        \ So that's a 2-pixel wide vertical border along the
+                        \ So that's a two-pixel wide vertical border along the
                         \ left edge of the upper part of the screen, and a
-                        \ 2-pixel wide vertical border along the right edge
+                        \ two-pixel wide vertical border along the right edge
 
 .BOS2
 
@@ -24982,8 +24982,8 @@ ENDIF
  STA SCH                \ that contains the missile indicators (i.e. the bottom
                         \ row of the screen)
 
- TYA                    \ Set A to the correct colour, which is a 3-pixel wide
-                        \ mode 5 character row in the correct colour (for
+ TYA                    \ Set A to the correct colour, which is a three-pixel
+                        \ wide mode 5 character row in the correct colour (for
                         \ example, a green block has Y = &EE, or %11101110, so
                         \ the missile blocks are 3 pixels wide, with the
                         \ fourth pixel on the character row being empty)
@@ -32811,7 +32811,7 @@ ENDMACRO
  LDY #6                 \ Set Y to 6 for the next call to Shpt
 
  LDA K4                 \ Set A = y-coordinate of dot + 1 (so this is the second
- ADC #1                 \ row of the two-pixel-high dot)
+ ADC #1                 \ row of the two-pixel high dot)
                         \
                         \ The addition works as the Shpt routine clears the C
                         \ flag
