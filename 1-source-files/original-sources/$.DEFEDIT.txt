@@ -1,0 +1,31 @@
+   10 REM DEFSHIP EDITOR
+   20 MODE7:@%=3
+   30 PROCPR("        DEFSHIP  EDITOR",3,1)
+   40 INPUT''"ÉInput filename of DEFSHIPS",A$:IFA$<>"" DF$=A$
+   50 PRINTTAB(0,22):PROCPR("Ä  EDITING  "+DF$+"  DEFSHIPS",4,6)
+   60 VDU28,0,22,39,2,10,10:FORN%=&7C50TO&7F80STEP40:?N%=130:NEXT
+   70 MEM=&6000:HIMEM=MEM:OSCLI("L."+DF$+" "+STR$~MEM)
+   80 nodes=MEM+27:lines=MEM+?(MEM+3)+?(MEM+16)*256:norms=MEM+?(MEM+4)+?(MEM+17)*256
+   90 Nnodes=?(MEM+8)/8:Nlines=?(MEM+9):Nnorms=?(MEM+12)/4
+  100 REM PRINT NODES
+  110 PROCPR("        Node Definitions",7,2)
+  115 PRINT
+  120 FORN=0TONnodes-1
+  130 loc=N*8+nodes:x=?loc:y=loc?1:z=loc?2:b=loc?3:PROCSG
+  160@%=2:PRINTN;:@%=4:PRINT".ÉPV="x y z;:@%=3:PRINT"ÜPr"b AND31"ÖFs"loc?4 loc?5 loc?6 loc?7;
+  170A=GET:NEXT
+  180 PROCPR("       Node Walk - i.e. lines",7,4):PRINT
+  190FORN=0TONlines-1
+  200loc=N*5+lines:@%=3:PRINTN,".ÜPr"?loc,"ÖFaces"loc?1,loc?2"ÇFrom"loc?3/4" to"loc?4/4
+  210A=GET:NEXT
+  220PROCPR("        Face Normals",5,7):PRINT
+  225@%=4
+  230FORN=0TONnorms-1
+  240loc=N*4+norms:b=?loc:x=loc?1:y=loc?2:z=loc?3:PROCSG:PRINTN,".ÜPr"b AND31,"ÉVector"x,y,z
+  250A=GET:NEXT:GOTO80
+  999END
+ 1000DEFPROCPR(A$,for,bck):VDU128+bck,157,128+for,141:PRINTA$:VDU128+bck,157,128+for,141:PRINTA$;:ENDPROC
+ 2000DEFPROCSG:IFb AND128x=-x
+ 2010IFb AND64y=-y
+ 2020IFb AND32z=-z
+ 2030ENDPROC

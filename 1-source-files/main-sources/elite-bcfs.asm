@@ -1,10 +1,11 @@
 \ ******************************************************************************
 \
-\ ELITE BIG CODE FILE SOURCE
+\ BBC MICRO CASSETTE ELITE BIG CODE FILE SOURCE
 \
-\ Elite was written by Ian Bell and David Braben and is copyright Acornsoft 1984
+\ BBC Micro cassette Elite was written by Ian Bell and David Braben and is
+\ copyright Acornsoft 1984
 \
-\ The code on this site is identical to the source discs released on Ian Bell's
+\ The code in this file is identical to the source discs released on Ian Bell's
 \ personal website at http://www.elitehomepage.org/ (it's just been reformatted
 \ to be more readable)
 \
@@ -16,6 +17,12 @@
 \
 \ The deep dive articles referred to in this commentary can be found at
 \ https://elite.bbcelite.com/deep_dives
+\
+\ ------------------------------------------------------------------------------
+\
+\ This source file contains code to produce the Big Code File for BBC Micro
+\ cassette Elite. The Big Code File comprises the game code and the ship
+\ blueprints.
 \
 \ ------------------------------------------------------------------------------
 \

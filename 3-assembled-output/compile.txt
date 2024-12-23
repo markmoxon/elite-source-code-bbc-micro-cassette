@@ -189,7 +189,7 @@
      00D2
 .K4
      00E0
-Zero page variables from &0  to &E2 
+ZP workspace from &0 to &E1 inclusive
 .XX3
      0100
 .T%
@@ -249,7 +249,7 @@ Zero page variables from &0  to &E2
      034C
 .SXL
      035F
-T% workspace from  &300  to &372 
+T% workspace from &300 to &371 inclusive
 .QQ18
 Macro RTOK:
      0400   4C
@@ -3032,6 +3032,7 @@ S.WORDS9 &400  &7FF  &1100  &1100
 Saving file '3-assembled-output/WORDS9.bin'
 .K%
      0900
+K% workspace from &900 to &AAF inclusive
 .WP
      0D40
 .FRIN
@@ -3138,7 +3139,7 @@ Saving file '3-assembled-output/WORDS9.bin'
      0F32
 .NOSTM
      0F33
-WP workspace from  &D40  to &F34 
+WP workspace from &D40 to &F33 inclusive
 .S%
      0F40   ED 46
      0F42   81 1F
@@ -3162,6 +3163,7 @@ WP workspace from  &D40  to &F34
      0F4F
 .JSTK
      0F50
+S% workspace from &F40 to &F50 inclusive
 .M%
      0F51   AD 00 09   LDA &0900
      0F54   85 00      STA &00

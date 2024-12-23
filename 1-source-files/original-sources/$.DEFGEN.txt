@@ -1,0 +1,40 @@
+>LIST
+   10 REM DEFSHIP EDITOR
+   20 MODE7:@%=3:*OPT1,2
+   30 PROCPR("      DEFSHIP  GENERATOR",3,1)
+   40 INPUT''"ÉInput filename of DEFSHIPS",A$:IFA$<>"" DF$=A$
+   50 PRINTTAB(0,22):PROCPR("Ä  CREATING  "+DF$+"  DEFSHIPS",4,6)
+   60 VDU28,0,22,39,2,10,10:FORN%=&7C50TO&7F80STEP40:?N%=130:NEXT
+   70 MEM=&6000:FORN=MEM TOMEM+&400STEP4:!N=0:NEXT
+   75 INPUT"ÅNumber of nodes",Nnodes
+   76 INPUT"ÜNumber of lines",Nlines
+   77 INPUT"ÇNumber of faces",Nnorms
+   80 nodes=MEM+27:lines=nodes+Nnodes*8:norms=lines+Nlines*5:end=norms+Nnorms*4
+   90 MEM?3=(lines-MEM)MOD256:MEM?16=(lines-MEM)DIV256:MEM?4=(norms-MEM)MOD256:MEM?17=(norms-MEM)DIV256:MEM?8=Nnodes*8:MEM?9=Nlines:MEM?12=Nnorms*4
+  100 REM PRINT NODES
+  110 PROCPR("        Node Definitions",7,2)
+  115 PRINT
+  120 FORN=0TONnodes-1
+  130 loc=N*8+nodes:@%=2:PRINTN;:@%=4:INPUT".ÉPV="x,y,z,"ÜPr"b,"ÖFs"loc?4,loc?5,loc?6,loc?7
+  160PROCS:?loc=x:loc?1=y:loc?2=z:loc?3=b
+  170NEXT
+  175OSCLI("SAVE C."+DF$+"1 "+STR$~MEM+" "+STR$~end)
+  180 PROCPR("       Node Walk - i.e. lines",7,4):PRINT
+  190FORN=0TONlines-1
+  200loc=N*5+lines:@%=3:PRINTN;:INPUT".ÜPr"?loc,"ÖFaces"loc?1,loc?2,"ÇFrom"a," to"b:loc?3=a*4:loc?4=b*4
+  210NEXT
+  215OSCLI("SAVE C."+DF$+"2 "+STR$~MEM+" "+STR$~end)
+  220PROCPR("         Face Normals",5,7):PRINT
+  225@%=4
+  230FORN=0TONnorms-1
+  240loc=N*4+norms:PRINTN;:INPUT".ÜPr"b,"ÉVector"x,y,z:PROCS:?loc=b:loc?1=x:loc?2=y:loc?3=z
+  250NEXT
+  260OSCLI("SAVE C."+DF$+"3 "+STR$~MEM+" "+STR$~end)
+  999END
+ 1000DEFPROCPR(A$,for,bck):VDU128+bck,157,128+for,141:PRINTA$:VDU128+bck,157,128+for,141:PRINTA$;:ENDPROC
+ 2000DEFPROCS:IFx<0 x=-x:b=b OR128
+ 2010IFy<0 y=-y:b=b OR64
+ 2020IFz<0 z=-z:b=b OR32
+ 2030ENDPROC
+>*SPOOL
+
