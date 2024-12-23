@@ -851,8 +851,11 @@ ENDIF
 \LDY #255               \ source, along with the comment "Damn 0.1", so
 \LDX #1                 \ presumably MOS version 0.1 was a bit of a pain to
 \JSR OSBYTE             \ support - which is probably why Elite doesn't bother
-\TXA                    \ and only supports 1.0 and 1.2
+\                       \ and only supports 1.0 and 1.2
+\TXA
+\
 \BPL OS01
+\
 \Damn 0.1
 
  LDA #190               \ Call OSBYTE with A = 190, X = 8 and Y = 0 to set the
@@ -3071,9 +3074,11 @@ ENDIF
 \LDY #&FF               \ source. They call OSBYTE with A = 129, X = 1 and
 \LDX #1                 \ Y = &FF, which returns the machine type in X, so
 \JSR OSBYTE             \ this code would detect the MOS version
+\
 \TXA
 \EOR #&FF
 \STA MOS
+\
 \BMI BLAST
 
  LDY #0                 \ Call OSBYTE with A = 200, X = 3 and Y = 0 to disable

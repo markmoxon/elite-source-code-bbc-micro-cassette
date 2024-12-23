@@ -10541,12 +10541,12 @@ ENDIF
 \INX                    \ source, but they call OSWORD 10, which reads the
 \STX P+1                \ character bitmap for the character number in K3 and
 \DEX                    \ stores it in the block at K3+1, while also setting
-\LDY #HI(K3)            \ P+1 to point to the character definition. This is
-\STY P+2                \ exactly what the following uncommented code does,
-\LDA #10                \ just without calling OSWORD. Presumably the code
-\JSR OSWORD             \ below is faster than using the system call, as this
-                        \ version takes up 15 bytes, while the version below
-                        \ (which ends with STA P+1 and SYX P+2) is 17 bytes.
+\                       \ P+1 to point to the character definition. This is
+\LDY #HI(K3)            \ exactly what the following uncommented code does,
+\STY P+2                \ just without calling OSWORD. Presumably the code
+\                       \ below is faster than using the system call, as this
+\LDA #10                \ version takes up 15 bytes, while the version below
+\JSR OSWORD             \ (which ends with STA P+1 and SYX P+2) is 17 bytes.
                         \ Every efficiency saving helps, especially as this
                         \ routine is run each time the game prints a character
                         \
@@ -16872,7 +16872,9 @@ ENDIF
 
 \CMP #AST               \ These instructions are commented out in the original
 \BCC P%+4               \ source. See above for an explanation of what they do
+\
 \LDX #&0F
+\
 \.SC49
 
  STX COL                \ Store X, the colour of this ship on the scanner, in
@@ -19926,8 +19928,8 @@ ENDIF
                         \ subroutine using a tail call
 
 \.hy5                   \ This instruction and the hy5 label are commented out
-\RTS                    \ in the original - they can actually be found at the
-                        \ end of the jmp routine below, so perhaps this is where
+\                       \ in the original - they can actually be found at the
+\RTS                    \ end of the jmp routine below, so perhaps this is where
                         \ they were originally, but the authors realised they
                         \ could save a byte by using a tail call instead of an
                         \ RTS?
@@ -29694,18 +29696,22 @@ ENDIF
  CMP #&44               \ Did we press "Y"? If not, jump to QU5, otherwise
  BNE QU5                \ continue on to load a new commander
 
-\BR1                    \ These instructions are commented out in the original
+\.BR1                   \ These instructions are commented out in the original
+\
 \LDX #3                 \ source. This block starts with the same *FX call as
 \STX XC                 \ above, then clears the screen, calls a routine to
-\JSR FX200              \ flush the keyboard buffer (FLKB) that isn't present
-\LDA #1                 \ in the cassette version but is in other versions,
-\JSR TT66               \ and then it displays "LOAD NEW COMMANDER (Y/N)?" and
-\JSR FLKB               \ lists the current cargo, before falling straight into
-\LDA #14                \ the load routine below, whether or not we have
-\JSR TT214              \ pressed "Y". This may be a bit of testing code, as the
-\BCC QU5                \ first line is a commented label, BR1, which is where
-                        \ BRKV points, so when this is uncommented, pressing
-                        \ the BREAK key should jump straight to the load screen
+\                       \ flush the keyboard buffer (FLKB) that isn't present
+\JSR FX200              \ in the cassette version but is in other versions,
+\                       \ and then it displays "LOAD NEW COMMANDER (Y/N)?" and
+\LDA #1                 \ lists the current cargo, before falling straight into
+\JSR TT66               \ the load routine below, whether or not we have
+\                       \ pressed "Y". This may be a bit of testing code, as the
+\JSR FLKB               \ first line is a commented label, BR1, which is where
+\                       \ BRKV points, so when this is uncommented, any BRK
+\LDA #14                \ instructions will jump straight to the load screen
+\JSR TT214
+\
+\BCC QU5
 
  JSR GTNME              \ We want to load a new commander, so we need to get
                         \ the commander name to load
