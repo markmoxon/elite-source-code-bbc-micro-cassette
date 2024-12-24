@@ -1475,6 +1475,14 @@ ENDMACRO
 \    Summary: The recursive token table for tokens 0-148
 \  Deep dive: Printing text tokens
 \
+\ ------------------------------------------------------------------------------
+\
+\ The encodings shown for each recursive text token use the following notation:
+\
+\   {n}           Control code              n = 0 to 13
+\   <n>           Two-letter token          n = 128 to 159
+\   [n]           Recursive token           n = 0 to 148
+\
 \ ******************************************************************************
 
 .QQ18
