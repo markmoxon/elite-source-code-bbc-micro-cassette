@@ -1495,6 +1495,14 @@ ENDMACRO
 \    Summary: The recursive token table for tokens 0-148
 \  Deep dive: Printing text tokens
 \
+\ ------------------------------------------------------------------------------
+\
+\ The encodings shown for each recursive text token use the following notation:
+\
+\   {n}           Control code              n = 0 to 13
+\   <n>           Two-letter token          n = 128 to 159
+\   [n]           Recursive token           n = 0 to 148
+\
 \ ******************************************************************************
 
 .QQ18
@@ -35558,6 +35566,11 @@ ENDMACRO
 \
 \LDA (V),Y              \ Fetch byte #3 for this edge into Q, which contains
 \STA Q                  \ the number of the vertex at the end of the edge
+\                       \
+\                       \ Byte #3 contains the vertex number multiplied by 4,
+\                       \ so we can use it as an index into the heap at XX3 to
+\                       \ fetch the vertex's screen coordinates, which are
+\                       \ stored as four bytes containing two 16-bit numbers
 
                         \ --- And replaced by: -------------------------------->
 
@@ -35565,6 +35578,11 @@ ENDMACRO
 
  LDA (V),Y              \ Fetch byte #2 for this edge into X, which contains
  TAX                    \ the number of the vertex at the start of the edge
+                        \
+                        \ Byte #2 contains the vertex number multiplied by 4,
+                        \ so we can use it as an index into the heap at XX3 to
+                        \ fetch the vertex's screen coordinates, which are
+                        \ stored as four bytes containing two 16-bit numbers
 
                         \ --- End of replacement ------------------------------>
 
@@ -37179,6 +37197,11 @@ ENDMACRO
 \
 \   EDGE vertex1, vertex2, face1, face2, visibility
 \
+\ When stored in memory, bytes #2 and #3 contain the vertex numbers multiplied
+\ by 4, so we can use them as indices into the heap at XX3 to fetch the screen
+\ coordinates for each vertex, as they are stored as four bytes containing two
+\ 16-bit numbers (see part 10 of the LL9 routine for details).
+\
 \ ------------------------------------------------------------------------------
 \
 \ Arguments:
@@ -37269,6 +37292,7 @@ ENDMACRO
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Sidewinder
 \  Deep dive: Ship blueprints
+\             Comparing ship specifications
 \
 \ ******************************************************************************
 
@@ -37349,6 +37373,7 @@ ENDMACRO
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Viper
 \  Deep dive: Ship blueprints
+\             Comparing ship specifications
 \
 \ ******************************************************************************
 
@@ -37439,6 +37464,7 @@ ENDMACRO
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Mamba
 \  Deep dive: Ship blueprints
+\             Comparing ship specifications
 \
 \ ******************************************************************************
 
@@ -37545,6 +37571,7 @@ ENDMACRO
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Cobra Mk III
 \  Deep dive: Ship blueprints
+\             Comparing ship specifications
 \
 \ ******************************************************************************
 
@@ -37672,6 +37699,7 @@ ENDMACRO
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Thargoid mothership
 \  Deep dive: Ship blueprints
+\             Comparing ship specifications
 \
 \ ******************************************************************************
 
@@ -37776,6 +37804,7 @@ ENDMACRO
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Coriolis space station
 \  Deep dive: Ship blueprints
+\             Comparing ship specifications
 \
 \ ******************************************************************************
 
@@ -37882,6 +37911,7 @@ ENDMACRO
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a missile
 \  Deep dive: Ship blueprints
+\             Comparing ship specifications
 \
 \ ******************************************************************************
 
@@ -37980,6 +38010,7 @@ ENDMACRO
 \   Category: Drawing ships
 \    Summary: Ship blueprint for an asteroid
 \  Deep dive: Ship blueprints
+\             Comparing ship specifications
 \
 \ ******************************************************************************
 
@@ -38072,6 +38103,7 @@ ENDMACRO
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a cargo canister
 \  Deep dive: Ship blueprints
+\             Comparing ship specifications
 \
 \ ******************************************************************************
 
@@ -38152,6 +38184,7 @@ ENDMACRO
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Thargon
 \  Deep dive: Ship blueprints
+\             Comparing ship specifications
 \
 \ ------------------------------------------------------------------------------
 \
@@ -38218,6 +38251,7 @@ ENDMACRO
 \   Category: Drawing ships
 \    Summary: Ship blueprint for an escape pod
 \  Deep dive: Ship blueprints
+\             Comparing ship specifications
 \
 \ ******************************************************************************
 
@@ -38311,6 +38345,7 @@ ENDMACRO
 \   Category: Drawing ships
 \    Summary: Ship blueprint for a Python
 \  Deep dive: Ship blueprints
+\             Comparing ship specifications
 \
 \ ******************************************************************************
 
