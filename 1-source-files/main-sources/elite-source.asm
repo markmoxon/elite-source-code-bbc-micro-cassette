@@ -35376,11 +35376,21 @@ ENDMACRO
 
  LDA (V),Y              \ Fetch byte #2 for this edge into X, which contains
  TAX                    \ the number of the vertex at the start of the edge
+                        \
+                        \ Byte #2 contains the vertex number multiplied by 4,
+                        \ so we can use it as an index into the heap at XX3 to
+                        \ fetch the vertex's screen coordinates, which are
+                        \ stored as four bytes containing two 16-bit numbers
 
  INY                    \ Increment Y to point to byte #3
 
  LDA (V),Y              \ Fetch byte #3 for this edge into Q, which contains
  STA Q                  \ the number of the vertex at the end of the edge
+                        \
+                        \ Byte #3 contains the vertex number multiplied by 4,
+                        \ so we can use it as an index into the heap at XX3 to
+                        \ fetch the vertex's screen coordinates, which are
+                        \ stored as four bytes containing two 16-bit numbers
 
  LDA XX3+1,X            \ Fetch the x_hi coordinate of the edge's start vertex
  STA XX15+1             \ from the XX3 heap into XX15+1
@@ -36774,6 +36784,11 @@ ENDMACRO
 \ The following macro is used to build the ship blueprints:
 \
 \   EDGE vertex1, vertex2, face1, face2, visibility
+\
+\ When stored in memory, bytes #2 and #3 contain the vertex numbers multiplied
+\ by 4, so we can use them as indices into the heap at XX3 to fetch the screen
+\ coordinates for each vertex, as they are stored as four bytes containing two
+\ 16-bit numbers (see part 10 of the LL9 routine for details).
 \
 \ ------------------------------------------------------------------------------
 \
