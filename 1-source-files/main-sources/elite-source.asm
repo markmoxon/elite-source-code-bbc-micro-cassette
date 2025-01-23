@@ -7634,7 +7634,7 @@ ENDIF
  LSR A                  \       = y div 8
  LSR A                  \
                         \ So A now contains the number of the character row
-                        \ that will contain the the (X1, Y1) pixel
+                        \ that will contain the (X1, Y1) pixel
 
  ORA #&60               \ As A < 32, this effectively adds &60 to A, which gives
                         \ us the screen address of the character row (as each
