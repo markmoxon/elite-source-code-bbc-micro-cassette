@@ -1139,24 +1139,24 @@
                         \ Harmless, Poor, Average Above Average or Competent,
                         \ according to the value of the low byte in TALLY:
                         \
-                        \   Harmless        = %00000000 to %00000111 = 0 to 7
-                        \   Mostly Harmless = %00001000 to %00001111 = 8 to 15
-                        \   Poor            = %00010000 to %00011111 = 16 to 31
-                        \   Average         = %00100000 to %00111111 = 32 to 63
-                        \   Above Average   = %01000000 to %01111111 = 64 to 127
-                        \   Competent       = %10000000 to %11111111 = 128 to 255
+                        \   Harmless         %00000000 to %00000111 = 0 to 7
+                        \   Mostly Harmless  %00001000 to %00001111 = 8 to 15
+                        \   Poor             %00010000 to %00011111 = 16 to 31
+                        \   Average          %00100000 to %00111111 = 32 to 63
+                        \   Above Average    %01000000 to %01111111 = 64 to 127
+                        \   Competent        %10000000 to %11111111 = 128 to 255
                         \
                         \ Note that the Competent range also covers kill counts
-                        \ from 256 to 511, as we are about to find out
+                        \ from 256 to 511, as follows
                         \
                         \ If the high byte in TALLY+1 is non-zero then we are
                         \ Competent, Dangerous, Deadly or Elite, according to
-                        \ the high byte in TALLY+1:
+                        \ the value of TALLY(1 0):
                         \
-                        \   Competent       = 1           = 256 to 511 kills
-                        \   Dangerous       = 2 to 9      = 512 to 2559 kills
-                        \   Deadly          = 10 to 24    = 2560 to 6399 kills
-                        \   Elite           = 25 and up   = 6400 kills and up
+                        \   Competent   (1 0) to (1 255)   = 256 to 511 kills
+                        \   Dangerous   (2 0) to (9 255)   = 512 to 2559 kills
+                        \   Deadly      (10 0) to (24 255) = 2560 to 6399 kills
+                        \   Elite       (25 0) and up      = 6400 kills and up
                         \
                         \ You can see the rating calculation in the STATUS
                         \ subroutine
@@ -9686,10 +9686,10 @@ ENDIF
                         \ The high bytes of the top tier ratings are as follows,
                         \ so this a relatively simple calculation:
                         \
-                        \   Competent       = 1 to 2
-                        \   Dangerous       = 2 to 9
-                        \   Deadly          = 10 to 24
-                        \   Elite           = 25 and up
+                        \   Competent = 1
+                        \   Dangerous = 2 to 9
+                        \   Deadly    = 10 to 24
+                        \   Elite     = 25 and up
 
  LDX #9                 \ Set X to 9 for an Elite rating
 
