@@ -6633,7 +6633,7 @@ Saving file '3-assembled-output/ELTB.bin'
      27C8   A9 00      LDA #&00
      27CA   A2 08      LDX #&08
      27CC   46 1B      LSR &1B
-.MUL6
+.MUL6K
      27CE   90 02      BCC &27D2
      27D0   65 D1      ADC &D1
      27D2   6A         ROR A
