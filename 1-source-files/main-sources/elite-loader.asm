@@ -453,8 +453,8 @@ ENDIF
 \
 \ This table contains the sound envelope data, which is passed to OSWORD by the
 \ FNE macro to create the four sound envelopes used in-game. Refer to chapter 30
-\ of the BBC Micro User Guide for details of sound envelopes and what all the
-\ parameters mean.
+\ of the "BBC Microcomputer User Guide" by John Coll for details of sound
+\ envelopes and what all the parameters mean.
 \
 \ The envelopes are as follows:
 \
