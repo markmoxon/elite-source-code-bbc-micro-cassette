@@ -4522,8 +4522,8 @@ ENDMACRO
  STA VIA+&21            \ colour 0 to physical colour 7 (white), but with only
                         \ one mapping (rather than the 7 mappings required to
                         \ do the mapping properly). This makes the space screen
-                        \ flash with black and white stripes. See p.382 of the
-                        \ "Advanced User Guide for the BBC Micro" by Bray,
+                        \ flash with black and white stripes. See page 382 of
+                        \ the "Advanced User Guide for the BBC Micro" by Bray,
                         \ Dickens and Holmes for details of why this single
                         \ palette change creates a special effect
 
@@ -11549,17 +11549,18 @@ ENDIF
 \
 \ Palette data is given as a set of bytes, with each byte mapping a logical
 \ colour to a physical one. In each byte, the logical colour is given in bits
-\ 4-7 and the physical colour in bits 0-3. See p.379 of the "Advanced User Guide
-\ for the BBC Micro" by Bray, Dickens and Holmes for details of how palette
-\ mapping works, as in modes 4 and 5 we have to do multiple palette commands to
-\ change the colours correctly, and the physical colour value is EOR'd with 7,
-\ just to make things even more confusing.
+\ 4-7 and the physical colour in bits 0-3. See page 379 of the "Advanced User
+\ Guide for the BBC Micro" by Bray, Dickens and Holmes for details of how
+\ palette mapping works, as in modes 4 and 5 we have to do multiple palette
+\ commands to change the colours correctly, and the physical colour value is
+\ EOR'd with 7, just to make things even more confusing.
 \
 \ Similarly, the palette at TVT1+16 is for the monochrome space view, where
 \ logical colour 1 is mapped to physical colour 0 EOR 7 = 7 (white), and
 \ logical colour 0 is mapped to physical colour 7 EOR 7 = 0 (black). Each of
-\ these mappings requires six calls to SHEILA &21 - see p.379 of the "Advanced
-\ User Guide for the BBC Micro" by Bray, Dickens and Holmes for an explanation.
+\ these mappings requires six calls to SHEILA &21 - see page 379 of the
+\ "Advanced User Guide for the BBC Micro" by Bray, Dickens and Holmes for an
+\ explanation.
 \
 \ The mode 5 palette table has two blocks which overlap. The block used depends
 \ on whether or not we have an escape pod fitted. The block at TVT1 is used for
@@ -29209,8 +29210,8 @@ ENDIF
 \
 \ Arguments:
 \
-\   A                   The internal key number of the key pressed (see p.142 of
-\                       the "Advanced User Guide for the BBC Micro" by Bray,
+\   A                   The internal key number of the key pressed (see page 142
+\                       of the "Advanced User Guide for the BBC Micro" by Bray,
 \                       Dickens and Holmes for a list of internal key numbers)
 \
 \   X                   The amount to move the crosshairs in the x-axis
@@ -30959,9 +30960,9 @@ ENDIF
 \ ------------------------------------------------------------------------------
 \
 \ Scan the keyboard, starting with internal key number 16 ("Q") and working
-\ through the set of internal key numbers (see p.142 of the "Advanced User Guide
-\ for the BBC Micro" by Bray, Dickens and Holmes for a list of internal key
-\ numbers).
+\ through the set of internal key numbers (see page 142 of the "Advanced User
+\ Guide for the BBC Micro" by Bray, Dickens and Holmes for a list of internal
+\ key numbers).
 \
 \ This routine is effectively the same as OSBYTE 122, though the OSBYTE call
 \ preserves A, unlike this routine.
@@ -31352,8 +31353,8 @@ ENDIF
 \ ------------------------------------------------------------------------------
 \
 \ Keyboard table for in-flight controls. This table contains the internal key
-\ codes for the flight keys (see p.142 of the "Advanced User Guide for the BBC
-\ Micro" by Bray, Dickens and Holmes for a list of internal key numbers).
+\ codes for the flight keys (see page 142 of the "Advanced User Guide for the
+\ BBC Micro" by Bray, Dickens and Holmes for a list of internal key numbers).
 \
 \ The pitch, roll, speed and laser keys (i.e. the seven primary flight
 \ control keys) have bit 7 set, so they have 128 added to their internal
@@ -31474,7 +31475,7 @@ ENDIF
 \
 \ Arguments:
 \
-\   X                   The internal number of the key to check (see p.142 of
+\   X                   The internal number of the key to check (see page 142 of
 \                       the "Advanced User Guide for the BBC Micro" by Bray,
 \                       Dickens and Holmes for a list of internal key numbers)
 \
@@ -31611,7 +31612,7 @@ ENDIF
 \   * J toggles reverse both joystick channels (&45)
 \   * K toggles keyboard and joystick (&46)
 \
-\ The numbers in brackets are the internal key numbers (see p.142 of the
+\ The numbers in brackets are the internal key numbers (see page 142 of the
 \ "Advanced User Guide for the BBC Micro" by Bray, Dickens and Holmes for a list
 \ of internal key numbers). We pass the key that has been pressed in X, and the
 \ configuration option to check it against in Y, so this routine is typically
