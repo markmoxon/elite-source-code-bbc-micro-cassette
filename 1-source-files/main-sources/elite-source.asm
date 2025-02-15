@@ -31014,13 +31014,8 @@ ENDIF
 \
 \       Name: ECMOF
 \       Type: Subroutine
-\   Category: Sound
-\    Summary: Switch off the E.C.M.
-\
-\ ------------------------------------------------------------------------------
-\
-\ Switch the E.C.M. off, turn off the dashboard bulb and make the sound of the
-\ E.C.M. switching off).
+\   Category: Dashboard
+\    Summary: Switch off the E.C.M. and turn off the dashboard bulb
 \
 \ ******************************************************************************
 
