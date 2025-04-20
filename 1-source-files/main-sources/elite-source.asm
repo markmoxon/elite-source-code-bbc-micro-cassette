@@ -10098,8 +10098,8 @@ ENDIF
                         \ number (0 0 Y X)
 
                         \ Finally we fall through into BPRNT to print out the
-                        \ number in K to K+3, which now contains (Y X), to 3
-                        \ digits (as U = 3), using the same C flag as when pr2
+                        \ number in K to K+3, which now contains (Y X), to A
+                        \ digits (as U = A), using the same C flag as when pr2
                         \ was called to control the decimal point
 
 \ ******************************************************************************
