@@ -19,6 +19,6 @@ $RECYCLE.BIN/
 *.lnk
 
 # IDE files
-.vscode/tasks.json
+.vscode/
 *.code-workspace
 run.bat

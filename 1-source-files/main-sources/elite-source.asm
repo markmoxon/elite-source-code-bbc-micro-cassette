@@ -3190,11 +3190,14 @@ ENDMACRO
                         \ JMP (S%) instruction, which jumps to the main entry
                         \ point at TT170 via this location
 
- EQUW TT26              \ WRCHV is set to point here by elite-loader.asm
+ EQUW TT26              \ WRCHV is set to the address in these two bytes by
+                        \ elite-loader.asm, so WRCHV points to TT26
 
- EQUW IRQ1              \ IRQ1V is set to point here by elite-loader.asm
+ EQUW IRQ1              \ IRQ1V is set to the address in these two bytes by
+                        \ elite-loader.asm, so IRQ1V points to IRQ1
 
- EQUW BR1               \ BRKV is set to point here by elite-loader.asm
+ EQUW BR1               \ BRKV is set to the address in these two bytes by
+                        \ elite-loader.asm, so BRKV points to BR1
 
 .COMC
 
