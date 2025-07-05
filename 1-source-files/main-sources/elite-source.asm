@@ -8906,8 +8906,8 @@ ENDIF
                         \   2 = left
                         \   3 = right
 
- BEQ STARS1             \ If this 0, jump to STARS1 to process the stardust for
-                        \ the front view
+ BEQ STARS1             \ If this is view 0, jump to STARS1 to process the
+                        \ stardust for the front view
 
  DEX                    \ If this is view 2 or 3, jump to STARS2 (via ST11) to
  BNE ST11               \ process the stardust for the left or right views
@@ -27766,7 +27766,7 @@ ENDIF
 
 .KS1
 
- LDX XSAV               \ Store the current ship's slot number in XSAV
+ LDX XSAV               \ Fetch the current ship's slot number from XSAV
 
  JSR KILLSHP            \ Call KILLSHP to remove the ship in slot X from our
                         \ local bubble of universe
@@ -36138,7 +36138,7 @@ ENDMACRO
 \   (S R) = |S R|
 \
 \ This sets up the variables required above to calculate (S R) / XX12+2 and give
-\ the result the opposite sign to XX13+3.
+\ the result the opposite sign to XX12+3.
 \
 \ ******************************************************************************
 
