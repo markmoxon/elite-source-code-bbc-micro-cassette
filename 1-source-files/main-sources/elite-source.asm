@@ -149,7 +149,7 @@
 \
 \ ******************************************************************************
 
- ORG &0000
+ ORG &0000              \ Set the assembly address to &0000
 
 .ZP
 
@@ -846,7 +846,7 @@
 
  SKIP 4                 \ Temporary storage, used in a number of places
 
- ORG &00D1
+ ORG &00D1              \ Set the assembly address to &00D1
 
 .T
 
@@ -882,7 +882,7 @@
 \
 \ ******************************************************************************
 
- ORG &0100
+ ORG &0100              \ Set the assembly address to &0100
 
 .XX3
 
@@ -904,7 +904,7 @@
 \
 \ ******************************************************************************
 
- ORG &0300
+ ORG &0300              \ Set the assembly address to &0300
 
 .T%
 
@@ -1206,7 +1206,7 @@
 \
 \ ******************************************************************************
 
- ORG CODE_WORDS%
+ ORG CODE_WORDS%        \ Set the assembly address to CODE_WORDS%
 
 \ ******************************************************************************
 \
@@ -2704,7 +2704,7 @@ ENDMACRO
 \
 \ ******************************************************************************
 
- ORG &0900
+ ORG &0900              \ Set the assembly address to &0900
 
 .K%
 
@@ -2722,7 +2722,7 @@ ENDMACRO
 \
 \ ******************************************************************************
 
- ORG &0D40
+ ORG &0D40              \ Set the assembly address to &0D40
 
 .WP
 
@@ -3163,7 +3163,7 @@ ENDMACRO
 \
 \ ******************************************************************************
 
- ORG CODE%
+ ORG CODE%              \ Set the assembly address to CODE%
 
  LOAD_A% = LOAD%
 
@@ -37983,7 +37983,7 @@ ENDMACRO
  CODE_PYTHON% = &7F00
  LOAD_PYTHON% = &1B00
 
- ORG CODE_PYTHON%
+ ORG CODE_PYTHON%       \ Set the assembly address to CODE_PYTHON%
 
 \ ******************************************************************************
 \
