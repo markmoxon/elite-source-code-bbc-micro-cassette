@@ -4356,7 +4356,7 @@ ENDMACRO
 
  LDX #OIL               \ Call SFS1 to spawn a cargo canister from the now
  LDA #0                 \ deceased parent ship, giving the spawned canister an
- JSR SFS1               \ AI flag of 0 (no AI, no E.C.M., non-hostile)
+ JSR SFS1               \ AI flag of 0 (no AI, zero aggression, no E.C.M.)
 
  DEC CNT                \ Decrease the loop counter
 
@@ -4373,8 +4373,11 @@ ENDMACRO
 
  STA INWK+35            \ Store the hit ship's updated energy in ship byte #35
 
- LDA TYPE               \ Call ANGRY to make this ship hostile, now that we
- JSR ANGRY              \ have hit it
+ LDA TYPE               \ Call ANGRY to make this ship angry; if this is the
+ JSR ANGRY              \ space station this will make it hostile, or if this is
+                        \ a ship it will wake up its AI and give it a kick of
+                        \ speed (later calls to TACTICS may make the ship start
+                        \ to attack us if it has a high enough aggression level)
 
 \ ******************************************************************************
 \
@@ -12149,7 +12152,7 @@ ENDIF
  LDX #COPS              \ Set X to the ship type for a cop
 
  LDA #%11110001         \ Set the AI flag to give the ship E.C.M., enable AI and
-                        \ make it very aggressive (60 out of 63)
+                        \ make it very aggressive (56 out of 63)
 
  JMP SFS1               \ Jump to SFS1 to spawn the ship, returning from the
                         \ subroutine using a tail call
@@ -12183,7 +12186,7 @@ ENDIF
 
  LDA INWK+32            \ This is a pirate or bounty hunter, but we are inside
  AND #%10000001         \ the space station's safe zone, so clear bits 1-6 of
- STA INWK+32            \ the AI flag to stop it being hostile, because even
+ STA INWK+32            \ the AI flag to set it to zero aggression, because even
                         \ pirates aren't crazy enough to breach the station's
                         \ no-fire zone
 
@@ -12323,8 +12326,9 @@ ENDIF
                         \ By this point, the ship has run out of both energy and
                         \ luck, so it's time to bail
 
- LDA #0                 \ Set the AI flag to 0 to disable AI, hostility and
- STA INWK+32            \ E.C.M., so the ship's a sitting duck
+ LDA #0                 \ Set the AI flag to 0 to disable AI, set aggression to
+ STA INWK+32            \ zero and disable any E.C.M., so the ship's a sitting
+                        \ duck
 
  JMP SESCP              \ Jump to SESCP to spawn an escape pod from the ship,
                         \ returning from the subroutine using a tail call
@@ -12533,18 +12537,33 @@ ENDIF
  CMP INWK+32            \ If A >= byte #32 (the ship's AI flag) then jump down
  BCS TA15               \ to TA15 so it heads away from us
 
-                        \ We get here if A < byte #32, and the chances of this
-                        \ being true are greater with high values of byte #32,
-                        \ as long as they are at least 128
+                        \ We get here if byte #32 > A, where byte #32 is
+                        \ composed of the following:
                         \
-                        \ In other words, higher byte #32 values increase the
+                        \   * Bit 7 set = AI is enabled
+                        \
+                        \   * Bits 1-6 = aggression level (0 to 63)
+                        \
+                        \   * Bit 0 set = ship has E.C.M.
+                        \
+                        \ We set bit 7 of A above, so if we get here we know the
+                        \ ship has AI enabled, and the comparison then boils
+                        \ down to the following:
+                        \
+                        \   Aggression level * 2 + E.C.M. > random number 0-127
+                        \
+                        \ In other words, higher aggression levels increase the
                         \ chances of a ship changing direction to head towards
                         \ us - or, to put it another way, ships with higher
-                        \ byte #32 values of 128 or more are spoiling for a
-                        \ fight
+                        \ aggression levels are spoiling for a fight, with
+                        \ E.C.M. making them even more aggressive
                         \
-                        \ Thargoids have byte #32 set to 255, which explains
-                        \ an awful lot
+                        \ Thargoids and missiles both have an aggression level
+                        \ of 63 out of 63, which explains an awful lot
+                        \
+                        \ Interestingly, escape pods also have a maximum
+                        \ agression level, but in this case it makes them fly
+                        \ towards the planet rather than towards us
 
 .TA20
 
@@ -12970,7 +12989,10 @@ ENDIF
 
  LDA FRIN,X             \ Fetch the ship type of the missile's target into A
 
- JSR ANGRY              \ Call ANGRY to make the target ship hostile
+ JSR ANGRY              \ Call ANGRY to make the target ship angry; if it is the
+                        \ space station this will make it hostile, or if this is
+                        \ a ship it will wake up its AI and give it a kick of
+                        \ speed
 
  LDY #0                 \ We have just launched a missile, so we need to remove
  JSR ABORT              \ missile lock and hide the leftmost indicator on the
@@ -12987,13 +13009,15 @@ ENDIF
 \       Name: ANGRY
 \       Type: Subroutine
 \   Category: Tactics
-\    Summary: Make a ship hostile
+\    Summary: If this is a space station then make it hostile, or if this is a
+\             ship then enable the ship's AI and give it a kick of speed
 \
 \ ------------------------------------------------------------------------------
 \
-\ All this routine does is set the ship's hostile flag, start it turning and
-\ give it a kick of acceleration - later calls to TACTICS will make the ship
-\ start to attack us.
+\ This routine makes a ship angry. For the space station this means setting the
+\ hostile flag, while for other ships it means enabling the ship's AI and giving
+\ it a kick of turning acceleration. Later calls to TACTICS may make the ship
+\ start to attack us if it has a high enough aggression level.
 \
 \ ------------------------------------------------------------------------------
 \
@@ -13013,8 +13037,8 @@ ENDIF
 
  BCS HI1                \ If A >= #SST then this is a missile, asteroid, cargo
                         \ canister, Thargon or escape pod, and they can't get
-                        \ hostile, so return from the subroutine (as HI1
-                        \ contains an RTS)
+                        \ angry, so return from the subroutine (as HI1 contains
+                        \ an RTS)
 
  CMP #CYL               \ If this is not a Cobra Mk III trader, skip the
  BNE P%+5               \ following instruction
@@ -13025,11 +13049,12 @@ ENDIF
  LDA (INF),Y
 
  BEQ HI1                \ If the AI flag is zero then this ship has no AI and
-                        \ it can't get hostile, so return from the subroutine
-                        \ (as HI1 contains an RTS)
+                        \ zero aggression, so return from the subroutine (as
+                        \ HI1 contains an RTS)
 
  ORA #%10000000         \ Otherwise set bit 7 (AI enabled) to ensure AI is
- STA (INF),Y            \ definitely enabled
+ STA (INF),Y            \ definitely enabled, so the ship can start acting
+                        \ according to its aggression level
 
  LDY #28                \ Set the ship's byte #28 (acceleration) to 2, so it
  LDA #2                 \ speeds up
@@ -13098,10 +13123,22 @@ ENDIF
 
  LDX #ESC               \ Set X to the ship type for an escape pod
 
- LDA #%11111110         \ Set A to an AI flag that has AI enabled, is hostile,
-                        \ but has no E.C.M.
+ LDA #%11111110         \ Set A to use as an AI flag that has AI enabled, an
+                        \ aggression level of 63 out of 63, and no E.C.M.
+                        \
+                        \ When spawning an escape pod, this high agression level
+                        \ makes the pod turn towards the planet rather than
+                        \ towards us
+                        \
+                        \ This instruction is also used as an entry point to
+                        \ spawn missile (when calling via the SFS1-2 entry
+                        \ point), in which case the missile has AI (bit 7 set),
+                        \ is hostile (bit 6 set) and has been launched (bit 0
+                        \ clear); the target slot number is set to 31, but this
+                        \ is ignored as the hostile flag means we are the target
 
-                        \ Fall through into SFS1 to spawn the escape pod
+                        \ Fall through into SFS1 to spawn the escape pod or
+                        \ missile
 
 \ ******************************************************************************
 \
@@ -13147,8 +13184,11 @@ ENDIF
 \
 \ Other entry points:
 \
-\   SFS1-2              Add a missile to the local bubble that has AI enabled,
-\                       is hostile, but has no E.C.M.
+\   SFS1-2              Used to add a missile to the local bubble that that has
+\                       AI (bit 7 set), is hostile (bit 6 set) and has been
+\                       launched (bit 0 clear); the target slot number is set to
+\                       31, but this is ignored as the hostile flags means we
+\                       are the target
 \
 \ ******************************************************************************
 
@@ -20937,7 +20977,8 @@ ENDIF
 
 .GTHG
 
- JSR Ze                 \ Call Ze to initialise INWK
+ JSR Ze                 \ Call Ze to initialise INWK to a fairly aggressive
+                        \ ship (though we increase this below)
                         \
                         \ Note that because Ze uses the value of X returned by
                         \ DORND, and X contains the value of A returned by the
@@ -20945,7 +20986,7 @@ ENDIF
                         \ to a totally random location
 
  LDA #%11111111         \ Set the AI flag in byte #32 so that the ship has AI,
- STA INWK+32            \ is extremely and aggressively hostile, and has E.C.M.
+ STA INWK+32            \ an aggression level of 63 out of 63, and E.C.M.
 
  LDA #THG               \ Call NWSHP to add a new Thargoid ship to our local
  JSR NWSHP              \ bubble of universe
@@ -20964,7 +21005,7 @@ ENDIF
 \ ------------------------------------------------------------------------------
 \
 \ Process a mis-jump into witchspace (which happens very rarely). Witchspace has
-\ a strange, almost dust-free aspect to it, and it is populated by hostile
+\ a strange, almost dust-free aspect to it, and it is populated by aggressive
 \ Thargoids. Using our escape pod will be fatal, and our position on the
 \ galactic chart is in-between systems. It is a scary place...
 \
@@ -24433,8 +24474,8 @@ ENDIF
 
  JSR SPBLB              \ Light up the space station bulb on the dashboard
 
- LDX #%00000001         \ Set the AI flag in byte #32 to %00000001 (friendly, no
- STX INWK+32            \ AI, has an E.C.M.)
+ LDX #%00000001         \ Set the AI flag in byte #32 to %00000001 (friendly,
+ STX INWK+32            \ has an E.C.M.)
 
  DEX                    \ Set pitch counter to 0 (no pitch, roll only)
  STX INWK+30
@@ -28586,7 +28627,7 @@ ENDIF
 \       Name: Ze
 \       Type: Subroutine
 \   Category: Universe
-\    Summary: Initialise the INWK workspace to a hostile ship
+\    Summary: Initialise the INWK workspace to a fairly aggressive ship
 \  Deep dive: Fixing ship positions
 \
 \ ------------------------------------------------------------------------------
@@ -28600,7 +28641,7 @@ ENDIF
 \
 \   * Give the ship a 4% chance of having E.C.M.
 \
-\   * Set the ship to hostile, with AI enabled
+\   * Set the ship's aggression level to at least 32 out of 63, with AI enabled
 \
 \ This routine also sets A, X, T1 and the C flag to random values.
 \
@@ -28636,8 +28677,8 @@ ENDIF
  ROL A                  \ Set bit 0 of A to the C flag (i.e. there's a 4%
                         \ chance of this ship having E.C.M.)
 
- ORA #%11000000         \ Set bits 6 and 7 of A, so the ship is hostile (bit 6
-                        \ and has AI (bit 7)
+ ORA #%11000000         \ Set bits 6 and 7 of A, so the ship has AI (bit 7) and
+                        \ an aggression level of at least 32 out of 63
 
  STA INWK+32            \ Store A in the AI flag of this ship
 
@@ -28713,9 +28754,9 @@ ENDIF
 \
 \ This section covers the following:
 \
-\   * Spawn a trader, i.e. a Cobra Mk III that isn't hostile, with a 50% chance
+\   * Spawn a trader, i.e. a Cobra Mk III with AI disabled, with a 50% chance
 \     of it having a missile, a 50% chance of it having an E.C.M., a speed
-\     between 16 and 31, and a gentle clockwise roll
+\     between 16 and 31, a random aggression level and a gentle clockwise roll
 \
 \ We call this from within the main loop, with A set to a random number.
 \
@@ -28952,7 +28993,7 @@ ENDIF
 
  STA T                  \ Store our badness level in T
 
- JSR Ze                 \ Call Ze to initialise INWK to a potentially hostile
+ JSR Ze                 \ Call Ze to initialise INWK to a fairly aggressive
                         \ ship, and set A and X to random values
                         \
                         \ Note that because Ze uses the value of X returned by
@@ -29025,7 +29066,7 @@ ENDIF
                         \ Now to spawn a lone bounty hunter, a Thargoid or a
                         \ group of pirates
 
- JSR Ze                 \ Call Ze to initialise INWK to a potentially hostile
+ JSR Ze                 \ Call Ze to initialise INWK to a fairly aggressive
                         \ ship, and set A and X to random values
                         \
                         \ Note that because Ze uses the value of X returned by
@@ -29053,8 +29094,8 @@ ENDIF
  ROL A                  \ Set bit 0 of A to the C flag (i.e. there's a 22%
                         \ chance of this ship having E.C.M.)
 
- ORA #%11000000         \ Set bits 6 and 7 of A, so the ship is hostile (bit 6)
-                        \ and has AI (bit 7)
+ ORA #%11000000         \ Set bits 6 and 7 of A, so the ship has AI (bit 7) and
+                        \ an aggression level of at least 32 out of 63
 
  CPY #6                 \ If Y = 6 (i.e. a Thargoid), jump down to the tha
  BEQ tha                \ routine in part 6 to decide whether or not to spawn it
@@ -29632,7 +29673,7 @@ ENDIF
 
 .D1
 
- JSR Ze                 \ Call Ze to initialise INWK to a potentially hostile
+ JSR Ze                 \ Call Ze to initialise INWK to a fairly aggressive
                         \ ship, and set A and X to random values
 
  LSR A                  \ Set A = A / 4, so A is now between 0 and 63, and
@@ -29641,7 +29682,7 @@ ENDIF
 
  LDY #0                 \ Set the following to 0: the current view in QQ11
  STY QQ11               \ (space view), x_hi, y_hi, z_hi and the AI flag (no AI
- STY INWK+1             \ or E.C.M. and not hostile)
+ STY INWK+1             \ or E.C.M. and zero aggression)
  STY INWK+4
  STY INWK+7
  STY INWK+32
@@ -31106,8 +31147,11 @@ ENDIF
 .SFRMIS
 
  LDX #MSL               \ Set X to the ship type of a missile, and call SFS1-2
- JSR SFS1-2             \ to add the missile to our universe with an AI flag
-                        \ of %11111110 (AI enabled, hostile, no E.C.M.)
+ JSR SFS1-2             \ to add a missile to our universe that has AI (bit 7
+                        \ set), is hostile (bit 6 set) and has been launched
+                        \ (bit 0 clear); the target slot number is set to 31,
+                        \ but this is ignored as the hostile flags means we
+                        \ are the target
 
  BCC NO1                \ The C flag will be set if the call to SFS1-2 was a
                         \ success, so if it's clear, jump to NO1 to return from
