@@ -12535,7 +12535,9 @@ ENDIF
 
  JSR DORND              \ Set A and X to random numbers
 
- ORA #%10000000         \ Set bit 7 of A, so A is at least 128
+ ORA #%10000000         \ Set bit 7 of A, so the following comparison ignores
+                        \ the AI flag in bit 7 (as we already know bit 7 is set
+                        \ in byte #32)
 
  CMP INWK+32            \ If A >= byte #32 (the ship's AI flag) then jump down
  BCS TA15               \ to TA15 so it heads away from us
