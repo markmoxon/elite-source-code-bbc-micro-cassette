@@ -28794,15 +28794,15 @@ ENDIF
                         \ C flag is not used, so this instruction actually has
                         \ no effect
                         \
-                        \ Interestingly,the original source code for the NWSPS
+                        \ Interestingly, the original source code for the NWSPS
                         \ routine also has an instruction that sets INWK+31 and
                         \ which gets overwritten when it falls through into
-                        \ NWSHP, but in this casethe instruction is commented
+                        \ NWSHP, but in this case the instruction is commented
                         \ out in the source. Perhaps the original version of
                         \ NWSHP didn't set the missile count and instead relied
                         \ on the calling code to set it, and when the authors
                         \ changed it, they commented out the INWK+31 instruction
-                        \ in NWSPS but and forgot this one. Who knows?
+                        \ in NWSPS and forgot about this one. Who knows?
 
  AND #31                \ Set the ship speed to our random number, set to a
  ORA #16                \ minimum of 16 and a maximum of 31
