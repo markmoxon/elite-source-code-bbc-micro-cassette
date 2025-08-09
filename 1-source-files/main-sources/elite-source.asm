@@ -3738,7 +3738,7 @@ ENDMACRO
  AND #%11111010         \ LASCT will be set to 0 for beam lasers, and to the
  STA LASCT              \ laser power AND %11111010 for pulse lasers, which
                         \ comes to 10 (as pulse lasers have a power of 15). See
-                        \ MA23 below for more on laser pulsing and LASCT
+                        \ MA23 in part 16 for more on laser pulsing and LASCT
 
 \ ******************************************************************************
 \
@@ -28793,6 +28793,16 @@ ENDIF
                         \ missiles from the ship blueprint, and the value of the
                         \ C flag is not used, so this instruction actually has
                         \ no effect
+                        \
+                        \ Interestingly,the original source code for the NWSPS
+                        \ routine also has an instruction that sets INWK+31 and
+                        \ which gets overwritten when it falls through into
+                        \ NWSHP, but in this casethe instruction is commented
+                        \ out in the source. Perhaps the original version of
+                        \ NWSHP didn't set the missile count and instead relied
+                        \ on the calling code to set it, and when the authors
+                        \ changed it, they commented out the INWK+31 instruction
+                        \ in NWSPS but and forgot this one. Who knows?
 
  AND #31                \ Set the ship speed to our random number, set to a
  ORA #16                \ minimum of 16 and a maximum of 31
