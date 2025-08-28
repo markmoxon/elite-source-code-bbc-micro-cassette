@@ -1,0 +1,3 @@
+[submodule "elite-music"]
+	path = elite-music
+	url = https://github.com/markmoxon/elite-music.git
