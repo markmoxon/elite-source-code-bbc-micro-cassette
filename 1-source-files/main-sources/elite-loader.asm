@@ -30,12 +30,12 @@
 \
 \ after reading in the following files:
 \
-\   * DIALS.bin
-\   * P.ELITE.bin
 \   * P.A-SOFT.bin
 \   * P.(C)ASFT.bin
-\   * WORDS9.bin
+\   * DIALS.bin
+\   * P.ELITE.bin
 \   * PYTHON.bin
+\   * WORDS9.bin
 \
 \ ******************************************************************************
 
