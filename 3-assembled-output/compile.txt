@@ -17221,23 +17221,31 @@ Ends at &8000
      1125   6C FC FF   JMP (&FFFC)
 .elitea
 elitea = &1128 
+     1128   F5 46 81 ... INCBIN "versions/cassette/3-assembled-output/ELTA.bin"
 .eliteb
 eliteb = &19DC 
+     19DC   4A 41 4D ... INCBIN "versions/cassette/3-assembled-output/ELTB.bin"
 .elitec
 elitec = &2404 
+     2404   A9 00 20 ... INCBIN "versions/cassette/3-assembled-output/ELTC.bin"
 .elited
 elited = &2EB0 
+     2EB0   48 A2 0C ... INCBIN "versions/cassette/3-assembled-output/ELTD.bin"
 .elitee
 elitee = &39F7 
+     39F7   8C E7 8D ... INCBIN "versions/cassette/3-assembled-output/ELTE.bin"
 .elitef
 elitef = &445E 
+     445E   A5 1B 8D ... INCBIN "versions/cassette/3-assembled-output/ELTF.bin"
 .eliteg
 eliteg = &4EFD 
+     4EFD   20 7D 4E ... INCBIN "versions/cassette/3-assembled-output/ELTG.bin"
 .checksum0
 checksum0 = &5821 
      5821   20
 .ships
 ships = &5822 
+     5822   54 56 FC ... INCBIN "versions/cassette/3-assembled-output/SHIPS.bin"
 .end
 P% = &61E8 
 S.ELTcode 1100 &61E8  &1128  &1128 
@@ -17273,11 +17281,17 @@ Saving file '3-assembled-output/ELThead.bin'
 .EXCN
      0085
 WORDS9 = &1100 
+     1100   4C 32 24 ... INCBIN "versions/cassette/3-assembled-output/WORDS9.bin"
 P.DIALS = &1500 
+     1500   F0 80 87 ... INCBIN "versions/cassette/1-source-files/images/P.DIALS.bin"
 PYTHON = &1C00 
+     1C00   03 40 38 ... INCBIN "versions/cassette/3-assembled-output/PYTHON.bin"
 P.ELITE = &1D00 
+     1D00   00 00 00 ... INCBIN "versions/cassette/1-source-files/images/P.ELITE.bin"
 P.A-SOFT = &1E00 
+     1E00   00 00 00 ... INCBIN "versions/cassette/1-source-files/images/P.A-SOFT.bin"
 P.(C)ASFT = &1F00 
+     1F00   00 00 00 ... INCBIN "versions/cassette/1-source-files/images/P.(C)ASFT.bin"
 .run
      2000   4C C9 20   JMP &20C9
 .B%
