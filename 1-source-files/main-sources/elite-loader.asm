@@ -1405,36 +1405,27 @@ ENDIF
  CMP #128               \ If YY >= 128, set the C flag (so the C flag is now set
                         \ to bit 7 of A)
 
- ROR A                  \ Rotate A and set the sign bit to the C flag, so bits
-                        \ 6 and 7 are now the same, i.e. A is a random number in
-                        \ one of these ranges:
+ ROR A                  \ Rotate A and set the sign bit to the C flag, so A is
+                        \ halved while retaining its sign
                         \
-                        \   %00000000 - %00111111  = 0 to 63    (r2 = 0 - 127)
-                        \   %11000000 - %11111111  = 192 to 255 (r2 = 128 - 255)
-                        \
-                        \ The PIX routine flips bit 7 of A before drawing, and
-                        \ that makes -A in these ranges:
-                        \
-                        \   %10000000 - %10111111  = 128-191
-                        \   %01000000 - %01111111  = 64-127
-                        \
-                        \ so that's in the range 64 to 191
+                        \ A is still a signed number from -128 to 127
 
- JSR PIX                \ Draw a pixel at screen coordinate (X, -A), i.e. at
+ JSR PIX                \ Draw a pixel at screen coordinate (X + 128, A + 128),
+                        \ so that's at:
                         \
-                        \   (ZP / 2, -A)
+                        \   ((ZP / 2) + 128, A + 128)
                         \
                         \ where ZP = SQRT(128^2 - (r1^2 + r2^2))
                         \
                         \ So this is the same as plotting at (x, y) where:
                         \
-                        \   r1 = random number from 0 to 255
-                        \   r2 = random number from 0 to 255
+                        \   r1 = random number from -128 to 127
+                        \   r2 = random number from -128 to 127
                         \   (r1^2 + r2^2) < 128^2
                         \
-                        \   y = r2, squished into 64 to 191 by negation
+                        \   y = (r2 / 2) + 128
                         \
-                        \   x = SQRT(128^2 - (r1^2 + r2^2)) / 2
+                        \   x = (SQRT(128^2 - (r1^2 + r2^2)) / 2) + 128
                         \
                         \ which is what we want
 
@@ -1469,7 +1460,8 @@ ENDIF
 
 .PLL2
 
- JSR DORND              \ Set A and X to random numbers, say A = r3
+ JSR DORND              \ Set A and X to signed random numbers between -128 and
+                        \ 127, say A = r3
 
  TAX                    \ Set X = A
                         \       = r3
@@ -1480,7 +1472,8 @@ ENDIF
  STA ZP+1               \ Set ZP+1 = A
                         \          = r3^2 / 256
 
- JSR DORND              \ Set A and X to random numbers, say A = r4
+ JSR DORND              \ Set A and X to signed random numbers between -128 and
+                        \ 127, say A = r4
 
  STA YY                 \ Set YY = r4
 
@@ -1496,18 +1489,14 @@ ENDIF
 
  LDA YY                 \ Set A = r4
 
- JSR PIX                \ Draw a pixel at screen coordinate (X, -A), i.e. at
-                        \ (r3, -r4), where (r3^2 + r4^2) / 256 >= 17
+ JSR PIX                \ Draw a pixel at screen coordinate (X + 128, A + 128),
+                        \ so that's at:
                         \
-                        \ Negating a random number from 0 to 255 still gives a
-                        \ random number from 0 to 255, so this is the same as
-                        \ plotting at (x, y) where:
+                        \   (r3 + 128, r4 + 128)
                         \
-                        \   x = random number from 0 to 255
-                        \   y = random number from 0 to 255
-                        \   HI(x^2 + y^2) >= 17
+                        \ where:
                         \
-                        \ which is what we want
+                        \   (r3^2 + r4^2) / 256 >= 17
 
 .PLC2
 
@@ -1793,11 +1782,10 @@ ENDIF
 \
 \ ------------------------------------------------------------------------------
 \
-\ Draw a pixel at screen coordinate (X, -A). The sign bit of A gets flipped
-\ before drawing, and then the routine uses the same approach as the PIXEL
-\ routine in the main game code, except it plots a single pixel from TWOS
-\ instead of a two pixel dash from TWOS2. This applies to the top part of the
-\ screen (the monochrome mode 4 space view).
+\ Draw a pixel at screen coordinate (X + 128, A + 128). The routine uses the
+\ same approach as the PIXEL routine in the main game code, except it plots a
+\ single pixel from TWOS instead of a two pixel dash from TWOS2. This applies
+\ to the top part of the screen (the monochrome mode 4 space view).
 \
 \ See the PIXEL routine in the main game code for more details.
 \
@@ -1805,9 +1793,13 @@ ENDIF
 \
 \ Arguments:
 \
-\   X                   The screen x-coordinate of the pixel to draw
+\   X                   The signed screen x-coordinate of the pixel to draw,
+\                       from -128 to 127, to be plotted relative to the origin
+\                       at (128, 128)
 \
-\   A                   The screen y-coordinate of the pixel to draw, negated
+\   A                   The signed screen y-coordinate of the pixel to draw,
+\                       from -128 to 127, to be plotted relative to the origin
+\                       at (128, 128)
 \
 \ ******************************************************************************
 
@@ -1815,7 +1807,8 @@ ENDIF
 
  TAY                    \ Copy A into Y, for use later
 
- EOR #%10000000         \ Flip the sign of A
+ EOR #%10000000         \ Add 128 to A and treat this as an unsigned number from
+                        \ now on
 
  LSR A                  \ Set ZP+1 = &60 + A >> 3
  LSR A
@@ -1823,9 +1816,10 @@ ENDIF
  ORA #&60
  STA ZP+1
 
- TXA                    \ Set ZP = (X >> 3) * 8
- EOR #%10000000
- AND #%11111000
+ TXA                    \ Set A = X + 128 and treat this as an unsigned number
+ EOR #%10000000         \ from now on
+
+ AND #%11111000         \ Set ZP = (A >> 3) * 8
  STA ZP
 
  TYA                    \ Set Y = Y mod 8, which is the pixel row within the

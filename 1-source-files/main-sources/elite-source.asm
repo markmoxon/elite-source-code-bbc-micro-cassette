@@ -6482,7 +6482,7 @@ ENDMACRO
  LDX Q                  \ Restore the value of X from before the call to ADD
 
  LDA K                  \ Set roofv_x = K(1 0)
- STA INWK,X             \              = (1-1/512) * roofv_x +/- nosev_x / 16
+ STA INWK,X             \             = (1-1/512) * roofv_x +/- nosev_x / 16
  LDA K+1
  STA INWK+1,X
 
