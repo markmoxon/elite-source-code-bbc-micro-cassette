@@ -1413,21 +1413,21 @@ ENDIF
                         \ A is still a signed number from -128 to 127
 
  JSR PIX                \ Draw a pixel at screen coordinate (X + 128, A + 128),
-                        \ so that's at:
+                        \ where:
                         \
-                        \   ((ZP / 2) + 128, A + 128)
-                        \
-                        \ where ZP = SQRT(128^2 - (r1^2 + r2^2))
+                        \   X = ZP / 2
+                        \   A = r2 / 2
+                        \   ZP = SQRT(128^2 - (r1^2 + r2^2))
                         \
                         \ So this is the same as plotting at (x, y) where:
                         \
                         \   r1 = random number from -128 to 127
                         \   r2 = random number from -128 to 127
+                        \
                         \   (r1^2 + r2^2) < 128^2
                         \
-                        \   y = (r2 / 2) + 128
-                        \
                         \   x = (SQRT(128^2 - (r1^2 + r2^2)) / 2) + 128
+                        \   y = (r2 / 2) + 128
                         \
                         \ which is what we want
 
@@ -1492,13 +1492,22 @@ ENDIF
  LDA YY                 \ Set A = r4
 
  JSR PIX                \ Draw a pixel at screen coordinate (X + 128, A + 128),
-                        \ so that's at:
-                        \
-                        \   (r3 + 128, r4 + 128)
-                        \
                         \ where:
                         \
+                        \   X = r3
+                        \   A = r4
+                        \
+                        \ So this is the same as plotting at (x, y) where:
+                        \
+                        \   r3 = random number from -128 to 127
+                        \   r4 = random number from -128 to 127
+                        \
                         \   (r3^2 + r4^2) / 256 >= 17
+                        \
+                        \   x = r3
+                        \   y = r4
+                        \
+                        \ which is what we want
 
 .PLC2
 
@@ -1638,21 +1647,17 @@ ENDIF
  LDA YY                 \ Set A = YY
                         \       = r6
 
- JSR PIX                \ Draw a pixel at screen coordinate (X, -A), where:
+ JSR PIX                \ Draw a pixel at screen coordinate (X + 128, A + 128),
+                        \ where:
                         \
                         \   X = (random -32 to 31) + r6
                         \   A = r6
                         \
-                        \ Negating a random number from 0 to 255 still gives a
-                        \ random number from 0 to 255, so this is the same as
-                        \ plotting at (x, y) where:
+                        \ So this is the same as plotting at (x, y) where:
                         \
-                        \   r5 = random number from 0 to 255
-                        \   r6 = random number from 0 to 255
+                        \   r5 = random number from -128 to 127
+                        \   r6 = random number from -128 to 127
                         \   r7 = r5, squashed into -32 to 31
-                        \
-                        \   x = r6 + r7
-                        \   y = r6
                         \
                         \   32 <= ((r6 + r7)^2 + r5^2 + r6^2) / 256 < 80
                         \
@@ -1660,6 +1665,9 @@ ENDIF
                         \
                         \   Or:     ((r6 + r7)^2 + r6^2) / 256 <  16
                         \           r5 >= 128
+                        \
+                        \   x = r6 + r7 + 128
+                        \   y = r6 + 128
                         \
                         \ which is what we want
 
