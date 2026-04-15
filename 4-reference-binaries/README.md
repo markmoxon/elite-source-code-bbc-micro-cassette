@@ -6,6 +6,8 @@ This folder contains the binaries from the original sources for the BBC Micro ca
 
 * [sth](sth) contains the binaries from the Stairway to Hell version
 
+* [sth-for-tape](sth-for-tape) contains the binaries from the Stairway to Hell version when built for tape (i.e. with disc=no)
+
 * [text-sources](text-sources) contains the binaries from the text version of the source code on Ian Bell's personal website
 
 ---

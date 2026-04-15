@@ -48,7 +48,36 @@ for arg in argv[1:]:
         release = 3
         folder = "sth"
 
-# Configuration variables for ELTcode
+# Configuration variables
+
+if release == 1 or release == 2:
+
+    BLOCK_offset = 0x14B0
+    ENDBLOCK_offset = 0x1530
+    MAINSUM_offset = 0x1335
+    TUT_offset = 0x13E1
+    CHECKbyt_offset = 0x1334
+    CODE_offset = 0x0F86
+    checksum0_offset = 0x4721
+
+elif release == 3:
+
+    BLOCK_offset = 0x14B0
+    ENDBLOCK_offset = 0x1530
+    MAINSUM_offset = 0x1335
+    TUT_offset = 0x13E1
+    CHECKbyt_offset = 0x1334
+    CODE_offset = 0x0F86
+
+if release == 1:
+
+    checksum0_offset = 0x4721
+
+elif release == 2:
+
+    checksum0_offset = 0x471F
+
+# Decrypt ELTcode
 
 data_block = bytearray()
 
@@ -66,13 +95,86 @@ print("[ Read    ] 4-reference-binaries/" + folder + "/ELTcode.bin")
 for n in range(0x0, len(data_block) - 0x28):
     data_block[n + 0x28] ^= (n % 256)
 
+if release == 1 or release == 2:
+    data_block[checksum0_offset] = 0
+
+if release == 2:
+    data_block.append(0)
+    data_block.append(0)
+
 print("[ Decrypt ] 4-reference-binaries/" + folder + "/ELTcode.bin")
 
-# Write output file for D.CODE.decrypt
+# Write output file for ELTcode.decrypt
 
 output_file = open("4-reference-binaries/" + folder + "/ELTcode.decrypt.bin", "wb")
 output_file.write(data_block)
 output_file.close()
 
 print("[ Save    ] 4-reference-binaries/" + folder + "/ELTcode.decrypt.bin")
+
+# Configuration variables for ELITE
+
+loader_block = bytearray()
+
+# Load assembled code file
+
+elite_file = open("4-reference-binaries/" + folder + "/ELITE.bin", "rb")
+loader_block.extend(elite_file.read())
+elite_file.close()
+
+print()
+print("[ Read    ] 4-reference-binaries/" + folder + "/ELITE.bin")
+
+# Do decryption
+
+# EOR 15 pages of data at beginning of loader
+
+for i in range(0xe, -1, -1):
+    for j in range(255, -1, -1):
+        loader_block[j + i * 256] ^= loader_block[j + CODE_offset]
+
+# EOR checksum code from CHECKbyt to end of loader
+# See Elite loader (Part 3 of 6) for decryption routine where we
+# EOR 2 pages for Ian Bell's variants, and 3 pages for STH variant
+
+if release == 1 or release == 2:
+
+    for i in range(2, -1, -1):
+        for j in range(255, -1, -1):
+            if (j + i * 256 + CHECKbyt_offset) < len(loader_block):
+                loader_block[j + i * 256 + CHECKbyt_offset] ^= loader_block[j + CODE_offset]
+
+elif release == 3:
+
+    for i in range(2, -1, -1):
+        for j in range(255, -1, -1):
+            if (j + i * 256 + CHECKbyt_offset) < len(loader_block):
+                loader_block[j + i * 256 + CHECKbyt_offset] ^= loader_block[j + CODE_offset]
+
+#  EOR code in BLOCK to ENDBLOCK
+
+for i in range(ENDBLOCK_offset - BLOCK_offset - 1, -1, -1):
+    loader_block[TUT_offset + i] ^= loader_block[BLOCK_offset + i]
+
+# Reverse bytes between BLOCK and ENDBLOCK
+
+for i in range(0, int((ENDBLOCK_offset - BLOCK_offset) / 2)):
+    temp = loader_block[BLOCK_offset + i]
+    loader_block[BLOCK_offset + i] = loader_block[ENDBLOCK_offset - i - 1]
+    loader_block[ENDBLOCK_offset - i - 1] = temp
+
+# Zero two checksum bytes to match assembled code
+
+loader_block[CHECKbyt_offset] = 0
+loader_block[MAINSUM_offset + 1] = 0
+
+print("[ Decrypt ] 4-reference-binaries/" + folder + "/ELITE.bin")
+
+# Write output file for ELITE.decrypt
+
+output_file = open("4-reference-binaries/" + folder + "/ELITE.decrypt.bin", "wb")
+output_file.write(loader_block)
+output_file.close()
+
+print("[ Save    ] 4-reference-binaries/" + folder + "/ELITE.decrypt.bin")
 print()
