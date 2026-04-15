@@ -139,7 +139,7 @@ for i in range(0xe, -1, -1):
 
 if release == 1 or release == 2:
 
-    for i in range(2, -1, -1):
+    for i in range(1, -1, -1):
         for j in range(255, -1, -1):
             if (j + i * 256 + CHECKbyt_offset) < len(loader_block):
                 loader_block[j + i * 256 + CHECKbyt_offset] ^= loader_block[j + CODE_offset]
