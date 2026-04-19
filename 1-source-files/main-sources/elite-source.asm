@@ -31860,12 +31860,12 @@ ENDIF
  DEY                    \ Decrement the counter
 
  BNE DKL3               \ And loop back for the next key, until we have just
-                        \ KL+1. We don't want to clear the first key logger
-                        \ location at KL, as the keyboard table at KYTB starts
-                        \ with offset 1, not 0, so KL is not technically part of
-                        \ the key logger (it's actually used for logging keys
-                        \ that don't appear in the keyboard table, and which
-                        \ therefore don't use the key logger)
+                        \ cleared KL+1. We don't want to clear the first key
+                        \ logger location at KL, as the keyboard table at KYTB
+                        \ starts with offset 1, not 0, so KL is not technically
+                        \ part of the key logger (it's actually used for logging
+                        \ keys that don't appear in the keyboard table, and
+                        \ which therefore don't use the key logger)
 
  RTS                    \ Return from the subroutine
 
