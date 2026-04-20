@@ -4871,7 +4871,6 @@ ENDMACRO
  ADC #30                \ Add the minimum cabin temperature of 30, plus the C
                         \ flag, so we get one of the following:
                         \
-                        \
                         \   * If the MAS3 calculation overflowed then we are a
                         \     long way from the sun, A will be zero and the C
                         \     flag will be set, so this addition sets A = 31
