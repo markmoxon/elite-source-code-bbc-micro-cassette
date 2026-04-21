@@ -15785,8 +15785,8 @@ ENDIF
                         \ If we get here, then we need to apply auto-recentre,
                         \ if it is configured
 
- LDA DJD                \ If keyboard auto-recentre is disabled, then
- BNE RE2+2              \ jump to RE2+2 to restore A and return
+ LDA DJD                \ If keyboard auto-recentre is disabled, then jump to
+ BNE RE2+2              \ RE2+2 to restore A and return
 
  LDX #128               \ If we get here then keyboard auto-recentre is enabled,
  BMI RE2+2              \ so set X to 128 (the middle of our range) and jump to
@@ -21483,9 +21483,9 @@ ENDIF
  LDA #12
 
  STA Q                  \ Set QQ25 = A (so QQ25 is in the range 3-12 and
- STA QQ25               \ represents number of the most advanced item available
- INC Q                  \ in this system, which we can pass to gnum below when
-                        \ asking which item we want to buy)
+ STA QQ25               \ represents the number of the most advanced item
+ INC Q                  \ available in this system, which we can pass to gnum
+                        \ below when asking which item we want to buy)
                         \
                         \ Set Q = A + 1 (so Q is in the range 4-13 and contains
                         \ QQ25 + 1, i.e. the highest item number on sale + 1)
