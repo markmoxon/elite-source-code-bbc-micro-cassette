@@ -31749,6 +31749,17 @@ ENDIF
  STX QQ17               \ Sentence Case, with the next letter printing in upper
                         \ case
 
+                        \ --- Mod: Code added for bug fixes: ------------------>
+
+ JSR COMPAS             \ Initialise the ship data to fix the random dot that
+ INC INWK+8             \ otherwise corrupts the top-right corner of the compass
+ LDA #128
+ JSR NWSHP
+ DEC INWK+8
+ JSR COMPAS
+
+                        \ --- End of added code ------------------------------->
+
  LDA TYPE               \ Set up a new ship, using the ship type in TYPE
  JSR NWSHP
 
