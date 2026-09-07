@@ -78,6 +78,18 @@ P%=CODE%
 
 .mloop
 
+ LDX #&02           \ Set A to ROM table entry for this ROM
+ LDA #&A1           \ from &2A1 + bank
+ CLC
+ ADC bank
+ TAY
+ JSR GetByteXY
+
+ CMP #4             \ If ROM table entry is >= 4 then move
+ BCS nextBank       \ on to the next bank
+
+ LDA bank           \ Set A to the bank we are checking
+
  JSR PageBankA      \ Page in bank A
 
  LDX #&80           \ Set A = ?&8007 (copyright offset)
