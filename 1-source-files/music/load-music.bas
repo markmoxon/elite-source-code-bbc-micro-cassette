@@ -207,7 +207,13 @@ P%=CODE%
 
 .PageBankA
 
- PHA                \ Set ?&00F4 = A
+ PHA                \ Set ?&00FC = A
+ LDX #&00
+ LDY #&FC
+ JSR SetByteXY
+
+ PLA                \ Set ?&00F4 = A
+ PHA
  LDX #&00
  LDY #&F4
  JSR SetByteXY
