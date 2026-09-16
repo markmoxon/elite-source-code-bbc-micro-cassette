@@ -6635,7 +6635,7 @@ Saving file '3-assembled-output/ELTB.bin'
      27C8   A9 00      LDA #&00
      27CA   A2 08      LDX #&08
      27CC   46 1B      LSR &1B
-.MUL6
+.MUL6K
      27CE   90 02      BCC &27D2
      27D0   60         RTS
      27D1   86 90      STX &90
@@ -17220,23 +17220,31 @@ Ends at &8000
      1125   6C FC FF   JMP (&FFFC)
 .elitea
 elitea = &1128 
+     1128   ED 46 81 ... INCBIN "3-assembled-output/ELTA.bin"
 .eliteb
 eliteb = &19DC 
+     19DC   4A 41 4D ... INCBIN "3-assembled-output/ELTB.bin"
 .elitec
 elitec = &2404 
+     2404   A9 00 20 ... INCBIN "3-assembled-output/ELTC.bin"
 .elited
 elited = &2EA8 
+     2EA8   48 A2 0C ... INCBIN "3-assembled-output/ELTD.bin"
 .elitee
 elitee = &39EF 
+     39EF   8C E7 8D ... INCBIN "3-assembled-output/ELTE.bin"
 .elitef
 elitef = &4456 
+     4456   A5 1B 8D ... INCBIN "3-assembled-output/ELTF.bin"
 .eliteg
 eliteg = &4EF5 
+     4EF5   20 52 3D ... INCBIN "3-assembled-output/ELTG.bin"
 .checksum0
 checksum0 = &5821 
      5821   20
 .ships
 ships = &5822 
+     5822   54 56 FC ... INCBIN "3-assembled-output/SHIPS.bin"
 .end
 P% = &61E8 
 S.ELTcode 1100 &61E8  &1128  &1128 
@@ -17272,11 +17280,17 @@ Saving file '3-assembled-output/ELThead.bin'
 .EXCN
      0085
 WORDS9 = &1100 
+     1100   4C 32 24 ... INCBIN "3-assembled-output/WORDS9.bin"
 P.DIALS = &1500 
+     1500   F0 80 87 ... INCBIN "1-source-files/images/P.DIALS.bin"
 PYTHON = &1C00 
+     1C00   03 40 38 ... INCBIN "3-assembled-output/PYTHON.bin"
 P.ELITE = &1D00 
+     1D00   00 00 00 ... INCBIN "1-source-files/images/P.ELITE.bin"
 P.A-SOFT = &1E00 
+     1E00   00 00 00 ... INCBIN "1-source-files/images/P.A-SOFT.bin"
 P.(C)ASFT = &1F00 
+     1F00   00 00 00 ... INCBIN "1-source-files/images/P.(C)ASFT.bin"
 .run
      2000   4C C9 20   JMP &20C9
 .B%

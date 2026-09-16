@@ -2,7 +2,7 @@
 
 /*
  *  Quadbike 2
- *  Copyright (C) 2024 'Diminished'
+ *  Copyright (C) 2026 'Diminished'
 
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,14 +17,32 @@
  *  You should have received a copy of the GNU General Public License along
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/
+ */
+
+  // in 0.11:
+  // - fix from regregex for spurious "late start bit" warnings during 7E1, 7O1, 8N1 with chunk 104 (thanks)
+  // - support for spaces in data sections, per TIBET 0.5 spec
+  // - work to support Quadbike Web
+  // - fixed exception on blank input
+
+  // in 0.12:
+  // - fixed bug
+
+  // TODO: make this decode form fields directly, instead of needing temporary file
+  // and the "feeder" PHP script
 
   // PHP >=7, reduce stupidity
   declare (strict_types=1);
   
+  // set to 1 for Quadbike Web deployment ...
+  define ("QUADBIKE_WEB", 0);
+  
+  define ("TBT_STATE_VERSION", 0);
+  define ("TBT_STATE_IDLE",    1);
+  define ("TBT_STATE_CYCLES",  2);
+  
   define ("APPNAME",                  "tibetuef.php");
-  define ("TIBETUEF_VERSION",         "0.8");
-  //define ("TIBET_VERSION_STG",        "0.4");
+  define ("TIBETUEF_VERSION",         "0.12");
   define ("TIBET_MAJOR_VERSION",      "0");
 
   define ("TBT_E_OK",                 0);
@@ -53,10 +71,9 @@
   define ("TBT_E_ZL_CHUNK",           22);
   // 0.8: major version mismatch
   define ("TBT_E_INCOMPATIBLE",       23);
- 
-  define ("STATE_VERSION", 0);
-  define ("STATE_IDLE",    1);
-  define ("STATE_CYCLES",  2);
+  // 0.11: TIBET is empty; from web version work
+  define ("TBT_E_EMPTY",              24);
+
   
   class Span {
     var $linenum;
@@ -131,17 +148,20 @@
     var $pre_leader_cycs;
     var $post_leader_cycs;
     var $byte_value;
+    var $value;
   }
   
-  $e = tbt_main ($_SERVER['argc'], $_SERVER['argv']);
-  if (TBT_E_USAGE == $e) { usage($_SERVER['argv'][0]); }
-  return $e;
-  
-  die();
+  // run as standalone script, rather than being chained by web app?
+  if ( isset($_SERVER['argc']) && ! QUADBIKE_WEB ) { // 0.11
+    $e = tbt_main ($_SERVER['argc'], $_SERVER['argv']);
+    if (TBT_E_USAGE == $e) { usage($_SERVER['argv'][0]); }
+    return $e;
+    die();
+  }
   
   function tbt_main ($argc, $argv) : int {
   
-    print "\ntibetuef.php ".TIBETUEF_VERSION."\n\n";
+    print "\ntibetuef.php ".TIBETUEF_VERSION.", by 'Diminished'\n\n";
     
     $insert_timestamps = 0;
     
@@ -217,6 +237,11 @@
     $ipfn = $argv[$argc - 2];
     $opfn = $argv[$argc - 1];
     
+    if ($ipfn == "") {
+      print "E: Input filename was blank.\n\n";
+      return TBT_E_BUG;
+    }
+    
     print "Input file:  $ipfn\n";
     print "Output file: $opfn\n";
     if ($insert_timestamps) {
@@ -260,6 +285,8 @@
       return TBT_E_IPFN_MATCHES_OPFN;
     }
     
+//copy($ipfn,"/tmp/copy1");
+    
     if (FALSE === ($ip = file_get_contents($ipfn))) {
       print "E: Could not load file: $ipfn\n";
       return TBT_E_LOAD;
@@ -269,13 +296,18 @@
     
     print "Loaded $len bytes.\n";
     
-    // try gzdecode
-    $ip_unz = @gzdecode($ip);
-    if (FALSE === $ip_unz) {
-      print "Input TIBET was uncompressed.\n";
-    } else {
-      print "Decompressed input TIBET: ".strlen($ip)." -> ".strlen($ip_unz)." bytes.\n";
-      $ip = $ip_unz;
+    // try gzdecode...
+    // Web version doesn't use TIBETZ, so we
+    // probably don't want this trying to unzip
+    // anything that it's fed by the scary internet
+    if ( ! QUADBIKE_WEB ) { // 0.11
+      $ip_unz = @gzdecode($ip);
+      if (FALSE === $ip_unz) {
+        print "Input TIBET was uncompressed.\n";
+      } else {
+        print "Decompressed input TIBET: ".strlen($ip)." -> ".strlen($ip_unz)." bytes.\n";
+        $ip = $ip_unz;
+      }
     }
     
     $tbt = new ParsedTibet;
@@ -773,9 +805,14 @@
     // dummies, we'll just set them to NULL.
     foreach ($dummies as $k=>$span_ix) {
       $tdb = new DummyByte;
-      
       $tdb->linenum          = $tbt->spans[$span_ix]->linenum;
-      $tdb->pre_leader_cycs  = $tbt->spans[$span_ix-1]->cycles;
+      if ( ! isset($tbt->spans[$span_ix-1]) ) { // 0.12: bugfix? sanity check?
+        print "W: span $span_ix is not set?\n";
+        // return TBT_E_BUG;
+        $tdb->pre_leader_cycs = 0;
+      } else {
+        $tdb->pre_leader_cycs  = $tbt->spans[$span_ix-1]->cycles;
+      }
       $tdb->post_leader_cycs = $tbt->spans[$span_ix+1]->cycles;
       $tdb->value            = 0xAA;
       
@@ -944,7 +981,10 @@
         $uef .= wrap_chunk (0x120, $chunkbuf, $msg);
       } else if ("DummyByte" == $type) {
         $dummy_byte="";
-        build_dummy_byte($span, $dummy_byte); // dummy_byte populated
+        $e = build_dummy_byte($span, $dummy_byte); // dummy_byte populated
+        if (TBT_E_OK != $e) {
+          return $e;
+        }
         $uef .= wrap_chunk (0x111, $dummy_byte, $msg);
       } else {
         print "B: Bad span class: \"$type\"\n";
@@ -955,6 +995,14 @@
   }
   
   function build_dummy_byte (DummyByte $db, string &$chunkbuf) : int {
+    if ( ! isset($db->pre_leader_cycs) ) {
+      print "E: pre_leader_cycs is NULL\n";
+      return TBT_E_BUG;
+    }
+    if ( ! isset($db->post_leader_cycs) ) {
+      print "E: post_leader_cycs is NULL\n";
+      return TBT_E_BUG;
+    }
     $chunkbuf = le16($db->pre_leader_cycs).le16($db->post_leader_cycs);
     return TBT_E_OK;
   }
@@ -1288,9 +1336,9 @@
       stop bits to which an extra short wave should be added.
     */
     
-    $frame7 = ($tbd->framing->framelen == 7) ? 1 : 0;
-    $stops1 = ($tbd->framing->stops == 1)    ? 1 : 0;
-    $parity = ($tbd->framing->parity != "N") ? 1 : 0;
+    $frame7 = ($tbd->framing->framelen ==   7) ? 1 : 0;
+    $stops1 = ($tbd->framing->stops    ==   1) ? 1 : 0;
+    $parity = ($tbd->framing->parity   != "N") ? 1 : 0;
 
 //print_r($tbd->framing->stops); print "\n";
 //print "stops = $tbd->framing->stops \n";
@@ -1374,7 +1422,8 @@
             print "W: build_uef_data_104: line $b->linenum, span #$b->span_ix, bit $i: Bad stop bit\n";
           }
           // if 7E1, 7O1, 8N1, byte is now over
-          if ($frame7 && $parity) {
+          // 0.11: fix for "late start bit" warning; thanks regregex
+          if ($frame7 && $parity && $stops1) {
             // 7E1, 7O1
             $bitnum = -2;
           } else if (! $frame7 && ! $parity && $stops1) {
@@ -1512,7 +1561,7 @@
   }
   
   
-  /*
+  
   function my_hexdump (array $mem, bool $include_offset)  {
     $s="";
     //$start_of_line = 1;
@@ -1553,7 +1602,7 @@
     }
     return $s;
   }
-  */
+  
   
   
   function check_parity (int $word, int $parity_bit, string $parity_mode) : bool {
@@ -1687,14 +1736,14 @@
     $w0 = $words[0];
     
     // the default state at the start of a parse is STATE_VERSION ...
-    if (STATE_VERSION == $state) {
+    if (TBT_STATE_VERSION == $state) {
       // version line must be the first non-comment, non-blank
       // line in the file.
       // any subsequent version lines will simply be ignored.
       // (this is deliberate and makes concatenating files easy)
       $e = parse_version ($words, $ln, $tbt->version, $line);
-      $state = STATE_IDLE;
-    } else if (STATE_IDLE == $state) {
+      $state = TBT_STATE_IDLE;
+    } else if (TBT_STATE_IDLE == $state) {
       // this is a whitelist; we could ignore unknown keywords
       // instead, but we'll leave it like this for now
       if ($w0 == "tibet") {
@@ -1763,7 +1812,7 @@
         $data->span_ix = $span_ix;
         $data->squawk = ($w0 == "squawk");
         $span_ix++;
-        $state = STATE_CYCLES;
+        $state = TBT_STATE_CYCLES;
         $tbt->spans[] = $data;
       } else if ($w0 == "/phase") {
         // don't care; it's partially a function of playback,
@@ -1809,10 +1858,23 @@
         print "E: line $ln, span $span_ix: Unrecognised: $line\n";
         return TBT_E_PARSE_BAD_LINE;
       }
-    } else if (STATE_CYCLES == $state) {
+    } else if (TBT_STATE_CYCLES == $state) {
       if ($w0 == "end") {
-        $state = STATE_IDLE;
+        $state = TBT_STATE_IDLE;
       } else {
+//print_r($words);die();
+
+        // 0.11: support spaces in data sections,
+              // in accordance with TIBET 0.5. Concatenate
+        // all words.
+        $nw = count($words);
+        for ($i=1; $i < $nw; $i++) {
+          $words[0] .= $words[$i];
+        }
+        for ($i=1; $i < $nw; $i++) {
+          array_pop($words);
+        }
+
         $len = strlen($words[0]);
         for ($i=0; $i < $len; $i++) {
           $span_ix = count($tbt->spans) - 1;
@@ -1940,16 +2002,24 @@
   
   
   function tbt_process (string $ip, bool $insert_timestamps, ParsedTibet &$tbt) : int {
-    $state = STATE_VERSION;
+    $state = TBT_STATE_VERSION;
     $lines = explode ("\n", $ip);
     $span_ix = 0;
-    print count($lines)." lines.\n";
+//print $ip."\n";die();
+//my_hexdump($ip);die();
+//for ($i=0;$i<strlen($ip);$i++) { if (ctype_alnum($ip[$i])) { print $ip[$i]; } else { printf("\\x%02x",ord($ip[$i])); } }
+//die();
+//print count($lines)." lines.\n";die();
     foreach ($lines as $ln=>$v) {
       $ln++; // linenum; 1-indexed
       $e = process_line ($ln, $v, $state, $span_ix, $insert_timestamps, $tbt); // state, tbt, span_ix modified
       if (TBT_E_OK != $e) { return $e; }
     }
-    if ((STATE_IDLE != $state) && (STATE_DATA != $state)) {
+//print $state; die();
+    if (TBT_STATE_VERSION == $state) {
+      print "E: Nothing done -- empty input file!\n";
+      return TBT_E_EMPTY;
+    } else if ((TBT_STATE_IDLE != $state) && (TBT_STATE_DATA != $state)) {
       print "W: Finished in unexpected state $state\n";
     }
     print "TIBET version: $tbt->version\n";
@@ -1963,8 +2033,8 @@
     print "where [options] may be:\n\n";
     //print "    +f activates automatic framing detection\n";
     //print "      (overrides all framing lines in input)\n\n";
-    print "  +t       use \"/time\" hints in TIBET file to insert &120 label chunks into UEF\n";
-    print "           (currently breaks beebjit)\n\n";
+    print "  +t       use \"/time\" hints in TIBET file to insert &120 label chunks into UEF\n\n";
+    //print "           (currently breaks beebjit)\n\n";
     print "  +102     use chunk &102 for data\n";
     //print "  +102b                            (interpretation B)\n";
     print "  +104     use chunk &104 for data\n";
