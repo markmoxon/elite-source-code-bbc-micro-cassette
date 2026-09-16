@@ -1,0 +1,42 @@
+>LIST
+   10 REM DEFSHIP EDITOR
+   20 MODE7:@%=3
+   30 PROCPR("        DEFSHIP  EDITOR",3,1)
+   40 INPUT''"ÉInput filename of DEFSHIPS",A$:IFA$<>"" DF$=A$
+   50 PRINTTAB(0,22):PROCPR("Ä  EDITING  "+DF$+"  DEFSHIPS",4,6)
+   60 VDU28,0,22,39,2,10,10:FORN%=&7C50TO&7F80STEP40:?N%=130:NEXT
+   70 MEM=&6000:HIMEM=MEM:OSCLI("L."+DF$+" "+STR$~MEM)
+   80 nodes=MEM+27:lines=MEM+?(MEM+3)+?(MEM+16)*256:norms=MEM+?(MEM+4)+?(MEM+17)*256
+   90 Nnodes=?(MEM+8)/8:Nlines=?(MEM+9):Nnorms=?(MEM+12)/4
+   92 REM Zlines=lines-7:Znorms=norms-
+   95 NWS=OPENOUT(":2.S."+DF$):PTR#NWS=20
+  100 REM PRINT NODES
+  110 PROCPR("        Node Definitions",7,2)
+  120 PRINT
+  130 FORN=0TONnodes-1
+  140 loc=N*8+nodes:x=?loc:y=loc?1:z=loc?2:b=loc?3:PROCSG
+  150@%=2:PRINTN;:@%=4:PRINT".ÉPV="x y z;:@%=3:PRINT"ÜPr"b AND31"ÖFs"loc?4 loc?5 loc?6 loc?7;
+  155 BPUT#NWS,?loc:BPUT#NWS,loc?1:BPUT#NWS,loc?2:BPUT#NWS,loc?3:BPUT#NWS,(loc?4 OR (loc?5*16)):BPUT#NWS,(loc?6 OR (loc?7*16))
+  160NEXT
+  165 T%=PTR#NWS:PTR#NWS=3:BPUT#NWS,(T%MOD256):PTR#NWS=16:BPUT#NWS,(T%DIV256):PTR#NWS=T%
+  170 PROCPR("       Node Walk - i.e. lines",7,4):PRINT
+  180FORN=0TONlines-1
+  190loc=N*5+lines:@%=3:PRINTN,".ÜPr"?loc,"ÖFaces"loc?1,loc?2"ÇFrom"loc?3/4" to"loc?4/4
+  195BPUT#NWS,?loc:BPUT#NWS,(loc?1 OR (loc?2 *16)):BPUT#NWS,loc?3:BPUT#NWS,loc?4
+  200NEXT
+  205 T%=PTR#NWS:PTR#NWS=4:BPUT#NWS,(T%MOD256):PTR#NWS=17:BPUT#NWS,(T%DIV256):PTR#NWS=T%
+  210PROCPR("        Face Normals",5,7):PRINT
+  220@%=4
+  230FORN=0TONnorms-1
+  240loc=N*4+norms:b=?loc:x=loc?1:y=loc?2:z=loc?3:PROCSG:PRINTN,".ÜPr"b AND31,"ÉVector"x,y,z
+  245BPUT#NWS,?loc:BPUT#NWS,loc?1:BPUT#NWS,loc?2:BPUT#NWS,loc?3
+  250NEXT
+  255PTR#NWS=6:BPUT#NWS,MEM?6:PTR#NWS=8:BPUT#NWS,MEM?8:BPUT#NWS,MEM?9:PTR#NWS=12:BPUT#NWS,MEM?12
+  260CLOSE#NWS:END
+  270DEFPROCPR(A$,for,bck):VDU128+bck,157,128+for,141:PRINTA$:VDU128+bck,157,128+for,141:PRINTA$;:ENDPROC
+  280DEFPROCSG:IFb AND128x=-x
+  290IFb AND64y=-y
+  300IFb AND32z=-z
+  310ENDPROC
+>*SPOOL
+

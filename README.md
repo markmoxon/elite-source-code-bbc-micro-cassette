@@ -1,11 +1,26 @@
 # Fully documented source code for the cassette version of Elite on the BBC Micro
 
-**BBC Micro cassette Elite** | [BBC Micro disc Elite](https://github.com/markmoxon/elite-source-code-bbc-micro-disc) | [6502 Second Processor Elite](https://github.com/markmoxon/elite-source-code-6502-second-processor) | [BBC Master Elite](https://github.com/markmoxon/elite-source-code-bbc-master) | [Acorn Electron Elite](https://github.com/markmoxon/elite-source-code-acorn-electron) | [Commodore 64 Elite](https://github.com/markmoxon/elite-source-code-commodore-64) | [Apple II Elite](https://github.com/markmoxon/elite-source-code-apple-ii) | [NES Elite](https://github.com/markmoxon/elite-source-code-nes) | [Elite-A](https://github.com/markmoxon/elite-a-source-code-bbc-micro) | [Teletext Elite](https://github.com/markmoxon/teletext-elite) | [Elite Universe Editor](https://github.com/markmoxon/elite-universe-editor) | [Elite Compendium (BBC Master)](https://github.com/markmoxon/elite-compendium-bbc-master) | [Elite Compendium (BBC Micro)](https://github.com/markmoxon/elite-compendium-bbc-micro) | [Elite over Econet](https://github.com/markmoxon/elite-over-econet) | [Flicker-free Commodore 64 Elite](https://github.com/markmoxon/c64-elite-flicker-free) | [BBC Micro Aviator](https://github.com/markmoxon/aviator-source-code-bbc-micro) | [BBC Micro Revs](https://github.com/markmoxon/revs-source-code-bbc-micro) | [Archimedes Lander](https://github.com/markmoxon/lander-source-code-acorn-archimedes)
+<details>
+<summary>Links to my other software archaeology repositories</summary>
+<hr>
 
+**Elite sources:** [BBC Micro (cassette)](https://github.com/markmoxon/elite-source-code-bbc-micro-cassette) | [BBC Micro (disc)](https://github.com/markmoxon/elite-source-code-bbc-micro-disc) | [Elite Demonstration Disc](https://github.com/markmoxon/elite-demo-source-code-bbc-micro) | [Acorn Electron](https://github.com/markmoxon/elite-source-code-acorn-electron) | [6502 Second Processor](https://github.com/markmoxon/elite-source-code-6502-second-processor) | [Commodore 64](https://github.com/markmoxon/elite-source-code-commodore-64) | [Apple II](https://github.com/markmoxon/elite-source-code-apple-ii) | [BBC Master](https://github.com/markmoxon/elite-source-code-bbc-master) | [NES](https://github.com/markmoxon/elite-source-code-nes)
+
+**Elite hacks:** [Elite-A](https://github.com/markmoxon/elite-a-source-code-bbc-micro) | [Two-player Elite](https://github.com/markmoxon/elite-two-player-6502-second-processor) | [Teletext Elite](https://github.com/markmoxon/teletext-elite) | [Elite 3D](https://github.com/markmoxon/elite-3d) | [Elite Universe Editor](https://github.com/markmoxon/elite-universe-editor) | [Flicker-free Commodore 64 Elite](https://github.com/markmoxon/c64-elite-flicker-free) | [Elite over Econet](https://github.com/markmoxon/elite-over-econet) | [!EliteNet](https://github.com/markmoxon/elite-over-econet-acorn-archimedes)
+
+**Elite Compendium:** [BBC Master](https://github.com/markmoxon/elite-compendium-bbc-master) | [BBC Micro](https://github.com/markmoxon/elite-compendium-bbc-micro) | [BBC Micro B+](https://github.com/markmoxon/elite-compendium-bbc-micro-b-plus) | [Acorn Electron](https://github.com/markmoxon/elite-compendium-acorn-electron)
+
+**Other sources:** [Aviator (BBC Micro)](https://github.com/markmoxon/aviator-source-code-bbc-micro) | [Revs (BBC Micro)](https://github.com/markmoxon/revs-source-code-bbc-micro) | [The Sentinel (BBC Micro)](https://github.com/markmoxon/the-sentinel-source-code-bbc-micro) | [Lander (Acorn Archimedes)](https://github.com/markmoxon/lander-source-code-acorn-archimedes)
+
+**Other repositories:** [Scripts for generating bbcelite.com](https://github.com/markmoxon/bbcelite-scripts) | [Static content for bbcelite.com](https://github.com/markmoxon/bbcelite-websites) | [Elite source code library](https://github.com/markmoxon/elite-source-code-library) | [Elite Universe Editor library](https://github.com/markmoxon/elite-universe-editor-library) | [Elite over Econet fileserver menu](https://github.com/markmoxon/elite-over-econet-fileserver-menu)
+
+See [my profile](https://github.com/markmoxon) for more repositories to explore.
+<hr>
+</details>
 
 ![Screenshot of Elite on the BBC Micro](https://elite.bbcelite.com/images/github/Elite-BBCMicro.png)
 
-This repository contains the original source code for the cassette version of Elite on the BBC Micro, with every single line documented and (for the most part) explained. It is literally the original source code, just heavily documented.
+This repository contains the original source code for the cassette version of Ian Bell and David Braben's classic game Elite on the BBC Micro, with every single line documented and (for the most part) explained. It is literally the original source code, just heavily commented.
 
 It is a companion to the [elite.bbcelite.com website](https://elite.bbcelite.com).
 
@@ -56,11 +71,11 @@ This repository contains the original source code for the cassette version of El
 
 You can build the fully functioning game from this source. [Three variants](#building-different-variants-of-the-cassette-version-of-elite) are currently supported: the tape version from the Stairway to Hell archive, the version produced by the original source discs from Ian Bell's personal website, and the version built from the text sources from the same site.
 
-It is a companion to the [elite.bbcelite.com website](https://elite.bbcelite.com), which contains all the code from this repository, but laid out in a much more human-friendly fashion. The links at the top of this page will take you to repositories for the other versions of Elite that are covered by this project.
+This repository is a companion to the [elite.bbcelite.com website](https://elite.bbcelite.com), which contains all the code from this repository, but laid out in a much more human-friendly fashion. The links at the top of this page will take you to repositories for the other versions of Elite that are covered by this project.
 
-* If you want to browse the source and read about how Elite works under the hood, you will probably find [the website](https://elite.bbcelite.com) is a better place to start than this repository.
+* If you want to browse the source and read about how Elite works under the hood, you will probably find [the website](https://elite.bbcelite.com) a better place to start than this repository.
 
-* If you would rather explore the source code in your favourite IDE, then the [annotated source](1-source-files/main-sources/elite-source.asm) is what you're looking for. It contains the exact same content as the website, so you won't be missing out (the website is generated from the source files, so they are guaranteed to be identical). You might also like to read the section on [browsing the source in an IDE](#browsing-the-source-in-an-ide) for some tips.
+* If you would rather explore the source code in your favourite IDE, then the [annotated source](1-source-files/main-sources) is what you're looking for. It contains the exact same content as the website, so you won't be missing out (the website is generated from the source files, so they are guaranteed to be identical). You might also like to read the section on [browsing the source in an IDE](#browsing-the-source-in-an-ide) for some tips.
 
 * If you want to build BBC Micro cassette Elite from the source on a modern computer, to produce a working game disc that can be loaded into a BBC Micro or an emulator, then you want the section on [building BBC Micro cassette Elite from the source](#building-bbc-micro-cassette-elite-from-the-source).
 
@@ -68,13 +83,15 @@ My hope is that this repository and the [accompanying website](https://elite.bbc
 
 ## Acknowledgements
 
-Elite was written by Ian Bell and David Braben and is copyright &copy; Acornsoft 1984.
+BBC Micro Elite was written by Ian Bell and David Braben and is copyright &copy; Acornsoft 1984.
 
 The code on this site is identical to the source discs released on [Ian Bell's personal website](http://www.elitehomepage.org/) (it's just been reformatted to be more readable).
 
 The commentary is copyright &copy; Mark Moxon. Any misunderstandings or mistakes in the documentation are entirely my fault.
 
 Huge thanks are due to the original authors for not only creating such an important piece of my childhood, but also for releasing the source code for us to play with; to Paul Brink for his annotated disassembly; and to Kieran Connell for his [BeebAsm version](https://github.com/kieranhj/elite-beebasm), which I forked as the original basis for this project. You can find more information about this project in the [accompanying website's project page](https://elite.bbcelite.com/about_site/about_this_project.html).
+
+Thank you to Diminished for the UEF scripts, which are part of the [Quadbike 2](https://stardot.org.uk/forums/viewtopic.php?t=26669) tape transcriber.
 
 The following archives from Ian Bell's personal website form the basis for this project:
 
@@ -87,7 +104,7 @@ This repository is _not_ provided with a licence, and there is intentionally no 
 
 According to [GitHub's licensing documentation](https://docs.github.com/en/free-pro-team@latest/github/creating-cloning-and-archiving-repositories/licensing-a-repository), this means that "the default copyright laws apply, meaning that you retain all rights to your source code and no one may reproduce, distribute, or create derivative works from your work".
 
-The reason for this is that my commentary is intertwined with the original Elite source code, and the original source code is copyright. The whole site is therefore covered by default copyright law, to ensure that this copyright is respected.
+The reason for this is that my commentary is intertwined with the original source code for Elite, and the original source code is copyright. The whole site is therefore covered by default copyright law, to ensure that this copyright is respected.
 
 Under GitHub's rules, you have the right to read and fork this repository... but that's it. No other use is permitted, I'm afraid.
 
@@ -137,7 +154,7 @@ This repository also includes a flicker-free version, which incorporates the bac
 
 The annotated source files in the `flicker-free` branch contain both the original Acornsoft code and all of the modifications for flicker-free Elite, so you can look through the source to see exactly what's changed. Any code that I've removed from the original version is commented out in the source files, so when they are assembled they produce the flicker-free binaries, while still containing details of all the modifications. You can find all the diffs by searching the sources for `Mod:`.
 
-For more information on flicker-free Elite, see the [hacks section of the accompanying website](https://elite.bbcelite.com/hacks/flicker-free_elite.html).
+For more information on flicker-free Elite, see the [hacks section of the accompanying website](https://elite.bbcelite.com/hacks/flicker-free_elite/).
 
 ## Elite Compendium
 
@@ -145,7 +162,7 @@ This repository also includes a version of BBC Micro cassette Elite for the Elit
 
 The annotated source files in the `elite-compendium` branch contain both the original Acornsoft code and all of the modifications for the Elite Compendium, so you can look through the source to see exactly what's changed. Any code that I've removed from the original version is commented out in the source files, so when they are assembled they produce the Compendium binaries, while still containing details of all the modifications. You can find all the diffs by searching the sources for `Mod:`.
 
-For more information on the Elite Compendium, see the [hacks section of the accompanying website](https://elite.bbcelite.com/hacks/elite_compendium.html).
+For more information on the Elite Compendium, see the [hacks section of the accompanying website](https://elite.bbcelite.com/hacks/elite_compendium/).
 
 ## Building BBC Micro cassette Elite from the source
 
@@ -201,11 +218,15 @@ By default the build process will create a typical Elite game disc with a standa
 
 * `disc=no` - Build a version to load from cassette rather than disc (the default is to build a version that loads from disc)
 
-* `protect=no` - When building for cassette with `disc=no`, the loader contains block-level tape protection code, which you can disable with this argument (the protection only works if you save the ELITEcode file to tape with corrupted block data, so if you want to copy the results to a UEF without re-implementing the Acornsoft protection system, you should use this argument)
+* `protect=no` - When building for cassette with `disc=no`, the loader contains block-level tape protection code, which you can disable with this argument (the protection only works if you save the ELITEcode file to tape with corrupted block data, so if you want to create a UEF without re-implementing the Acornsoft protection system, you should use this argument)
 
 * `commander=max` - Start with a maxed-out commander (specifically, this is the test commander file from the original source, which is almost but not quite maxed-out)
 
 * `encrypt=no` - Disable encryption and checksum routines
+
+* `match=no` - Do not attempt to match the original game binaries (i.e. omit workspace noise)
+
+* `fix-interlace=yes` - By default the game forces interlace to be on, which can cause issues with some monitors and video scalers; this option uses the interlace setting from when the game is run, so you can switch interlace off before running the game with a `*TV 0,1` command, or you can enable it with `*TV 0,0`
 
 * `verify=no` - Disable crc32 verification of the game binaries
 
@@ -283,19 +304,23 @@ Note that you should manually choose the correct platform in b2 (I intentionally
 
 ### Building a UEF tape image
 
-Despite this being the cassette version of BBC Micro Elite, this repository only builds disc images, as that's how BeebAsm works. If you want the authentic experience of loading Elite from cassette, then you can manually build a UEF tape image of the binaries yourself, using a program like [Disc Image Manager](https://github.com/geraldholdsworth/DiscImageManager).
+Despite this being the cassette version of BBC Micro Elite, this repository only builds disc images by default, as that's how BeebAsm works. If you want the authentic experience of loading Elite from cassette, then you can build a UEF with the following command on Windows:
 
-To do this, you should add the `disc=no` and `protect=no` arguments to the build. This ensures that the binaries are built to load at the correct address for tape systems, and it also disables the block-level tape protection system, as this only works with specially created tape images, like the ones that Acornsoft originally released.
+```
+make.bat uef disc=no protect=no
+```
 
-Once you have built the project, it will produce an SSD disc image file that contains binaries that are suitable for loading from cassette. You can extract the binaries from this image and add them to a UEF, as follows:
+or this on Mac/Linux:
 
-* Add the binaries in the following order: `ELITE`, `ELITEda`, `ELITEco`.
+```
+make uef disc=no protect=no
+```
 
-* Rename `ELITEda` to `ELITEdata`.
+You should now be able to load Elite from your UEF on a BBC Micro, by entering `CHAIN "ELITE"`. These UEF tape images will work with emulators and the TZXDuino (though you may need to unzip them before they will work with the latter).
 
-* Rename `ELITEco` to `ELITEcode`.
+For this to work, you will need PHP installed, and you should edit the `Makefile` (and `make.bat` on Windows) to point to PHP (specifically, you'll need to point the `PHP` variable to point to the locations of your `php` or `php.exe` binary).
 
-You should now be able to load Elite from your UEF on a BBC Micro, by entering `CHAIN "ELITE"`.
+Note that in order for your UEF to work, you need to include the `disc=no` and `protect=no` arguments to the build (as above). This ensures that the binaries are built to load at the correct address for tape systems, and it also disables the block-level tape protection system, as this only works with specially created tape images, like the ones that Acornsoft originally released.
 
 ## Building different variants of the cassette version of Elite
 

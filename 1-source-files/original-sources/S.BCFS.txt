@@ -1,0 +1,23 @@
+   10REM    Prepare the Big Code File
+   20 
+   25REM          ELTcode
+   30 
+   35REM   (a provisional name, ahem)
+   40 
+   50MODE7
+  100C%=&F40:L%=&1128:D%=&563A:ZP=&70
+  110IF PAGE<>&6800:PAGE=&6800:CHAIN"S.BCFS"
+  120P%=&1100:[ .LBL EQUB&6C:LDX#&60:LDA#&B:STAZP+1:LDY#0:STYZP:TYA:INY:.CHK3 CLC:ADC(ZP),Y:INY:BNECHK3:INCZP+1:.CHK4 CLC:ADC(ZP),Y:INY:BPLCHK4:CMP&B00:BEQLBL+2:LDA#&7F:STA&FE4E:JMP(&FFFC) :]
+  320*L.ELTA
+  330*L.ELTB
+  340*L.ELTC
+  350*L.ELTD
+  360*L.ELTE
+  370*L.ELTF
+  380*L.ELTG
+  385OSCLI("L.SHIPS "+STR$~(D%+L%-C%))
+  390A%=0:FORN%=L%TOL%+&45FF:A%=A%+?N%:NEXT:?(D%+L%-C%-1)=A%
+  395FORN%=0TO&6000-C%:L%?N%=(L%?N%)EOR(N%MOD256):NEXT
+  397A%=0:FORN%=&1100TO&1127:A%=A%+?N%:NEXT:PRINT"Checksum 1=";A%
+  450INPUT"Place Disk in default drive and"'"  Press Return"A$
+  500OSCLI("S.ELTcode 1100 "+STR$~(L%+&6000-C%)+" "+STR$~L%+" "+STR$~L%)

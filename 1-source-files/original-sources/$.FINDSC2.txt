@@ -1,0 +1,22 @@
+   10 REM FIND SOURCE
+   20 R=&76:S=&77:T=&78:J=&79:Q=&7A:FL=&7B
+   40 ctl=&70:add=&74:OSARGS=&FFDA:page=24:OSWRCH=&FFEE
+   43 FORZ=0TO2STEP2
+   45 P%=&C00
+   50[OPTZ
+   70.ENTRY ldapage:staadd+1:ldy#0:styFL:styadd:lda#1:ldx#ctl:jsrOSARGS:ldy#0:.fn2 lda(ctl),Y:cmp#13:bnefn1
+   75brk:brk:EQUS"DJB Vs1.1":.err brk:brk:EQUS("Can't Find."+CHR$0)
+   80.fn1 lda(add),Y:cmp#13:bnesrch:iny:lda(add),Y:bmiend:stactl+2:iny:lda(add),Y:stactl+3:ldaadd:clc:adc#4:staadd:lda#0:tay:adcadd+1:staadd+1
+   90.srch lda(ctl),Y:cmp#13:beqprt:cmp#ASC"@":beqfn6:cmp(add),Y:bnenxt:.fn6 iny:bnesrch:.end ldaFL:beqerr:jmp&FFE7:.nxt ldy#0:incadd:bnefn1:incadd+1:bnefn1
+  500.prt lda#ASC",":ldxFL:beqfn4:jsrOSWRCH:.fn4 staFL:ldactl+3:staQ:ldactl+2:staR:ldx#8:stxT:lda#5:staJ:ldx#0:stxS:BEQTT36
+  515.nxt2 bminxt
+  520.TT35 LDAQ:ASLA:TAX:STAQ:LDAR:ROLA:TAY:STAR:LDAS:ROLA:PHA
+  530ASLQ:ROLR:ROLA:ASLQ:ROLR:ROLA:STAS:TXA:ADCQ:STAQ:TYA:ADCR
+  540STAR:PLA:ADCS:STAS:LDX#0:.TT36 LDAQ:CMP#&A0:LDAR:SBC#&86
+  542LDAS:SBC#1:BCCTT37:LDAQ:SBC#&A0:STAQ:LDAR:SBC#&86:STAR
+  543LDAS:SBC#1:STAS:INX:BNETT36:.TT37 TXA
+  545BNETT32:LDAT:BNETT34
+  550.TT32 LDY#0:STYT:CLC:ADC#&30:.TT33 JSROSWRCH
+  560.TT34 ASLT:DECJ:BPLTT35:bminxt2
+  999]NEXT
+10000OSCLI("SAVE FIND C00 "+STR$~P%)

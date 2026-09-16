@@ -1,0 +1,23 @@
+   10 REM  Unpack an ELITE security number
+   20 REM  This works for either disc or tape copies
+   30 REM  This program is the property of D.Braben & I.Bell
+   40 REM  and MUST NOT BE GIVEN AWAY UNDER ANY CIRCUMSTANCES
+   50 
+   60 INPUT"ELITE security number ",A$
+   70 B1%=(EVAL(RIGHT$(A$,8)))AND255
+   80 N%=INT((EVALA$)/256)
+   90 B2%=N%AND255:B3%=(N%AND&FF00)/256:B4%=(N%AND&FF0000)/65536
+  100 B%=B4%EOR B2%:IFB%AND128 PRINTCHR$7+'"  <<< THIS FILE HAS BEEN TAMPERED WITH >>>"':END
+  110 PRINT'"File has been used on version(s) for ";
+  120 IFB%AND2 PRINT"BBC cassette, ";
+  130 IFB%AND4 PRINT"BBC disc, ";
+  140 IFB%AND8 PRINT"Electron, ";
+  145 IFB%AND&70 PRINT"Something else??";
+  150 PRINT"only."
+  160 B%=B2%EOR B3%
+  170 INPUT"What CASH does this file have",C:C%=C*10:IF B%=(C%AND&FF00)/256 PRINT"Tallies." ELSE PRINTCHR$7+'"MISMATCH."'
+  180 B%=B3% EOR B1% EOR&5A:PRINT"Commander was ";:IFB%>24 PRINT"One of the ... ELITE.":RUN
+  190 IFB%>10 PRINT"Deadly.":RUN
+  200 IFB%>2 PRINT"Dangerous.":RUN
+  210 IFB% PRINT"Competant.":RUN
+  220 PRINT"Competant at most.":RUN

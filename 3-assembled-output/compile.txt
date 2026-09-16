@@ -333,7 +333,7 @@ Zero page variables from &0  to &E5
      03A4
 .SXL
      03B7
-T% workspace from  &300  to &3CA 
+T% workspace from &300 to &3C9 inclusive
 .QQ18
 Macro RTOK:
      0400   4C
@@ -3116,6 +3116,7 @@ S.WORDS9 &400  &7FF  &1100  &1100
 Saving file '3-assembled-output/WORDS9.bin'
 .K%
      0900
+K% workspace from &900 to &AAF inclusive
 .WP
      0E00
 .LSX
@@ -3142,7 +3143,7 @@ Saving file '3-assembled-output/WORDS9.bin'
      0FAA
 .ALTIT
      0FAB
-WP workspace from  &E00  to &FAC 
+WP workspace from &E00 to &FAB inclusive
 .S%
      1100   42 46
      1102   61 22

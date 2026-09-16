@@ -1,10 +1,11 @@
 \ ******************************************************************************
 \
-\ ELITE DISC IMAGE SCRIPT
+\ BBC MICRO CASSETTE ELITE DISC IMAGE SCRIPT
 \
-\ Elite was written by Ian Bell and David Braben and is copyright Acornsoft 1984
+\ BBC Micro cassette Elite was written by Ian Bell and David Braben and is
+\ copyright Acornsoft 1984
 \
-\ The code on this site is identical to the source discs released on Ian Bell's
+\ The code in this file is identical to the source discs released on Ian Bell's
 \ personal website at http://www.elitehomepage.org/ (it's just been reformatted
 \ to be more readable)
 \
@@ -16,6 +17,10 @@
 \
 \ The deep dive articles referred to in this commentary can be found at
 \ https://elite.bbcelite.com/deep_dives
+\
+\ ------------------------------------------------------------------------------
+\
+\ This source file produces an SSD disc image for BBC Micro cassette Elite.
 \
 \ ------------------------------------------------------------------------------
 \
@@ -46,7 +51,7 @@ IF _DISC
 ELSE
 
  PUTFILE "1-source-files/boot-files/$.!BOOT.bin", "!BOOT", &FFFFFF, &FFFFFF
- PUTFILE "1-source-files/basic-programs/$.ELITEc.bin", "ELITE", &FF1900, &FF8023
+ PUTFILE "1-source-files/basic-programs/$.ELITE-cassette.bin", "ELITE", &FF1900, &FF8023
 \PUTFILE "3-assembled-output/ELITE.bin", "ELITEdata", &FF0E00, &FF1D00
 \PUTFILE "3-assembled-output/ELTcode.bin", "ELITEcode", &000E00, &000132
  PUTFILE "3-assembled-output/ELITE.bin", "ELITEda", &FF0E00, &FF1D00

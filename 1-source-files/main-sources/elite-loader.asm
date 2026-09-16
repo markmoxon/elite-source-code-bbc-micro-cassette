@@ -1,10 +1,11 @@
 \ ******************************************************************************
 \
-\ ELITE LOADER SOURCE
+\ BBC MICRO CASSETTE ELITE GAME LOADER SOURCE
 \
-\ Elite was written by Ian Bell and David Braben and is copyright Acornsoft 1984
+\ BBC Micro cassette Elite was written by Ian Bell and David Braben and is
+\ copyright Acornsoft 1984
 \
-\ The code on this site is identical to the source discs released on Ian Bell's
+\ The code in this file is identical to the source discs released on Ian Bell's
 \ personal website at http://www.elitehomepage.org/ (it's just been reformatted
 \ to be more readable)
 \
@@ -19,18 +20,22 @@
 \
 \ ------------------------------------------------------------------------------
 \
+\ This source file contains the game loader for BBC Micro cassette Elite.
+\
+\ ------------------------------------------------------------------------------
+\
 \ This source file produces the following binary file:
 \
 \   * ELITE.unprot.bin
 \
 \ after reading in the following files:
 \
-\   * DIALS.bin
-\   * P.ELITE.bin
 \   * P.A-SOFT.bin
 \   * P.(C)ASFT.bin
-\   * WORDS9.bin
+\   * DIALS.bin
+\   * P.ELITE.bin
 \   * PYTHON.bin
+\   * WORDS9.bin
 \
 \ ******************************************************************************
 
@@ -193,7 +198,7 @@ ENDIF
 \
 \ ******************************************************************************
 
- ORG &0004
+ ORG &0004              \ Set the assembly address to &0004
 
 .TRTB%
 
@@ -201,7 +206,7 @@ ENDIF
                         \ table, which is used to translate internal key
                         \ numbers to ASCII
 
- ORG &0070
+ ORG &0070              \ Set the assembly address to &0070
 
 .ZP
 
@@ -230,9 +235,7 @@ ENDIF
                         \ Elite draws on-screen by poking bytes directly into
                         \ screen memory, and SC(1 0) is typically set to the
                         \ address of the character block containing the pixel
-                        \ we want to draw (see the deep dives on "Drawing
-                        \ monochrome pixels in mode 4" and "Drawing colour
-                        \ pixels in mode 5" for more details)
+                        \ we want to draw
 
 .SCH
 
@@ -271,7 +274,7 @@ ENDIF
 \
 \ ******************************************************************************
 
- ORG CODE%
+ ORG CODE%              \ Set the assembly address to CODE%
 
 \ ******************************************************************************
 \
@@ -348,7 +351,7 @@ ENDIF
 \   Category: Drawing the screen
 \    Summary: VDU commands for setting the square mode 4 screen
 \  Deep dive: The split-screen mode in BBC Micro Elite
-\             Drawing monochrome pixels in mode 4
+\             Drawing monochrome pixels on the BBC Micro
 \
 \ ------------------------------------------------------------------------------
 \
@@ -377,13 +380,11 @@ ENDIF
 \
 \ This almost-square mode 4 variant makes life a lot easier when drawing to the
 \ screen, as there are 256 pixels on each row (or, to put it in screen memory
-\ terms, there's one page of memory per row of pixels). For more details of the
-\ screen mode, see the deep dive on "Drawing monochrome pixels in mode 4".
+\ terms, there's one page of memory per row of pixels).
 \
 \ There is also an interrupt-driven routine that switches the bytes-per-pixel
 \ setting from that of mode 4 to that of mode 5, when the raster reaches the
-\ split between the space view and the dashboard. See the deep dive on "The
-\ split-screen mode" for details.
+\ split between the space view and the dashboard.
 \
 \ ******************************************************************************
 
@@ -467,8 +468,8 @@ ENDIF
 \
 \ This table contains the sound envelope data, which is passed to OSWORD by the
 \ FNE macro to create the four sound envelopes used in-game. Refer to chapter 30
-\ of the BBC Micro User Guide for details of sound envelopes and what all the
-\ parameters mean.
+\ of the "BBC Microcomputer User Guide" by John Coll for details of sound
+\ envelopes and what all the parameters mean.
 \
 \ The envelopes are as follows:
 \
@@ -854,8 +855,19 @@ ENDIF
  LDA #&48               \ routine and set up another couple of variables
  JSR doPROT1
 
+IF _INTERLACE_FIX
+
+ LDA #144               \ Call OSBYTE with A = 144, X = 255 and Y set to the
+ LDY &0291              \ current interlace setting (which the MOS stores at
+ JSR OSBYTE             \ &0291), so this moves the screen down one line but
+                        \ without changing the interlace
+
+ELSE
+
  LDA #144               \ Call OSBYTE with A = 144, X = 255 and Y = 0 to move
  JSR OSB                \ the screen down one line and turn screen interlace on
+
+ENDIF
 
  LDA #247               \ Call OSBYTE with A = 247 and X = Y = 0 to disable the
  LDX #0                 \ BREAK intercept code by poking 0 into the first value
@@ -865,8 +877,11 @@ ENDIF
 \LDY #255               \ source, along with the comment "Damn 0.1", so
 \LDX #1                 \ presumably MOS version 0.1 was a bit of a pain to
 \JSR OSBYTE             \ support - which is probably why Elite doesn't bother
-\TXA                    \ and only supports 1.0 and 1.2
+\                       \ and only supports 1.0 and 1.2
+\TXA
+\
 \BPL OS01
+\
 \Damn 0.1
 
  LDA #190               \ Call OSBYTE with A = 190, X = 8 and Y = 0 to set the
@@ -1351,7 +1366,8 @@ ENDIF
                         \ main game code's random seeds in RAND (so this seeds
                         \ the random number generator)
 
- JSR DORND              \ Set A and X to random numbers, say A = r1
+ JSR DORND              \ Set A and X to signed random numbers between -128 and
+                        \ 127, so let's say A = r1
 
  JSR SQUA2              \ Set (A P) = A * A
                         \           = r1^2
@@ -1360,7 +1376,8 @@ ENDIF
  LDA P                  \             = r1^2
  STA ZP
 
- JSR DORND              \ Set A and X to random numbers, say A = r2
+ JSR DORND              \ Set A and X to signed random numbers between -128 and
+                        \ 127, so let's say A = r2
 
  STA YY                 \ Set YY = A
                         \        = r2
@@ -1416,36 +1433,27 @@ ENDIF
  CMP #128               \ If YY >= 128, set the C flag (so the C flag is now set
                         \ to bit 7 of A)
 
- ROR A                  \ Rotate A and set the sign bit to the C flag, so bits
-                        \ 6 and 7 are now the same, i.e. A is a random number in
-                        \ one of these ranges:
+ ROR A                  \ Rotate A and set the sign bit to the C flag, so A is
+                        \ halved while retaining its sign
                         \
-                        \   %00000000 - %00111111  = 0 to 63    (r2 = 0 - 127)
-                        \   %11000000 - %11111111  = 192 to 255 (r2 = 128 - 255)
-                        \
-                        \ The PIX routine flips bit 7 of A before drawing, and
-                        \ that makes -A in these ranges:
-                        \
-                        \   %10000000 - %10111111  = 128-191
-                        \   %01000000 - %01111111  = 64-127
-                        \
-                        \ so that's in the range 64 to 191
+                        \ A is still a signed number from -128 to 127
 
- JSR PIX                \ Draw a pixel at screen coordinate (X, -A), i.e. at
+ JSR PIX                \ Draw a pixel at screen coordinate (X + 128, A + 128),
+                        \ where:
                         \
-                        \   (ZP / 2, -A)
-                        \
-                        \ where ZP = SQRT(128^2 - (r1^2 + r2^2))
+                        \   X = ZP / 2
+                        \   A = r2 / 2
+                        \   ZP = SQRT(128^2 - (r1^2 + r2^2))
                         \
                         \ So this is the same as plotting at (x, y) where:
                         \
-                        \   r1 = random number from 0 to 255
-                        \   r2 = random number from 0 to 255
+                        \   r1 = random number from -128 to 127
+                        \   r2 = random number from -128 to 127
+                        \
                         \   (r1^2 + r2^2) < 128^2
                         \
-                        \   y = r2, squished into 64 to 191 by negation
-                        \
-                        \   x = SQRT(128^2 - (r1^2 + r2^2)) / 2
+                        \   x = (SQRT(128^2 - (r1^2 + r2^2)) / 2) + 128
+                        \   y = (r2 / 2) + 128
                         \
                         \ which is what we want
 
@@ -1480,7 +1488,8 @@ ENDIF
 
 .PLL2
 
- JSR DORND              \ Set A and X to random numbers, say A = r3
+ JSR DORND              \ Set A and X to signed random numbers between -128 and
+                        \ 127, so let's say A = r3
 
  TAX                    \ Set X = A
                         \       = r3
@@ -1491,7 +1500,8 @@ ENDIF
  STA ZP+1               \ Set ZP+1 = A
                         \          = r3^2 / 256
 
- JSR DORND              \ Set A and X to random numbers, say A = r4
+ JSR DORND              \ Set A and X to signed random numbers between -128 and
+                        \ 127, so let's say A = r4
 
  STA YY                 \ Set YY = r4
 
@@ -1507,16 +1517,21 @@ ENDIF
 
  LDA YY                 \ Set A = r4
 
- JSR PIX                \ Draw a pixel at screen coordinate (X, -A), i.e. at
-                        \ (r3, -r4), where (r3^2 + r4^2) / 256 >= 17
+ JSR PIX                \ Draw a pixel at screen coordinate (X + 128, A + 128),
+                        \ where:
                         \
-                        \ Negating a random number from 0 to 255 still gives a
-                        \ random number from 0 to 255, so this is the same as
-                        \ plotting at (x, y) where:
+                        \   X = r3
+                        \   A = r4
                         \
-                        \   x = random number from 0 to 255
-                        \   y = random number from 0 to 255
-                        \   (x^2 + y^2) div 256 >= 17
+                        \ So this is the same as plotting at (x, y) where:
+                        \
+                        \   r3 = random number from -128 to 127
+                        \   r4 = random number from -128 to 127
+                        \
+                        \   (r3^2 + r4^2) / 256 >= 17
+                        \
+                        \   x = r3
+                        \   y = r4
                         \
                         \ which is what we want
 
@@ -1557,7 +1572,8 @@ ENDIF
 
 .PLL3
 
- JSR DORND              \ Set A and X to random numbers, say A = r5
+ JSR DORND              \ Set A and X to signed random numbers between -128 and
+                        \ 127, so let's say A = r5
 
  STA ZP                 \ Set ZP = r5
 
@@ -1567,7 +1583,8 @@ ENDIF
  STA ZP+1               \ Set ZP+1 = A
                         \          = r5^2 / 256
 
- JSR DORND              \ Set A and X to random numbers, say A = r6
+ JSR DORND              \ Set A and X to signed random numbers between -128 and
+                        \ 127, so let's say A = r6
 
  STA YY                 \ Set YY = r6
 
@@ -1656,21 +1673,17 @@ ENDIF
  LDA YY                 \ Set A = YY
                         \       = r6
 
- JSR PIX                \ Draw a pixel at screen coordinate (X, -A), where:
+ JSR PIX                \ Draw a pixel at screen coordinate (X + 128, A + 128),
+                        \ where:
                         \
                         \   X = (random -32 to 31) + r6
                         \   A = r6
                         \
-                        \ Negating a random number from 0 to 255 still gives a
-                        \ random number from 0 to 255, so this is the same as
-                        \ plotting at (x, y) where:
+                        \ So this is the same as plotting at (x, y) where:
                         \
-                        \   r5 = random number from 0 to 255
-                        \   r6 = random number from 0 to 255
+                        \   r5 = random number from -128 to 127
+                        \   r6 = random number from -128 to 127
                         \   r7 = r5, squashed into -32 to 31
-                        \
-                        \   x = r6 + r7
-                        \   y = r6
                         \
                         \   32 <= ((r6 + r7)^2 + r5^2 + r6^2) / 256 < 80
                         \
@@ -1678,6 +1691,9 @@ ENDIF
                         \
                         \   Or:     ((r6 + r7)^2 + r6^2) / 256 <  16
                         \           r5 >= 128
+                        \
+                        \   x = r6 + r7 + 128
+                        \   y = r6 + 128
                         \
                         \ which is what we want
 
@@ -1804,11 +1820,10 @@ ENDIF
 \
 \ ------------------------------------------------------------------------------
 \
-\ Draw a pixel at screen coordinate (X, -A). The sign bit of A gets flipped
-\ before drawing, and then the routine uses the same approach as the PIXEL
-\ routine in the main game code, except it plots a single pixel from TWOS
-\ instead of a two pixel dash from TWOS2. This applies to the top part of the
-\ screen (the monochrome mode 4 space view).
+\ Draw a pixel at screen coordinate (X + 128, A + 128). The routine uses the
+\ same approach as the PIXEL routine in the main game code, except it plots a
+\ single pixel from TWOS instead of a two pixel dash from TWOS2. This applies
+\ to the top part of the screen (the monochrome mode 4 space view).
 \
 \ See the PIXEL routine in the main game code for more details.
 \
@@ -1816,9 +1831,13 @@ ENDIF
 \
 \ Arguments:
 \
-\   X                   The screen x-coordinate of the pixel to draw
+\   X                   The signed screen x-coordinate of the pixel to draw,
+\                       from -128 to 127, to be plotted relative to the origin
+\                       at (128, 128)
 \
-\   A                   The screen y-coordinate of the pixel to draw, negated
+\   A                   The signed screen y-coordinate of the pixel to draw,
+\                       from -128 to 127, to be plotted relative to the origin
+\                       at (128, 128)
 \
 \ ******************************************************************************
 
@@ -1826,7 +1845,8 @@ ENDIF
 
  TAY                    \ Copy A into Y, for use later
 
- EOR #%10000000         \ Flip the sign of A
+ EOR #%10000000         \ Add 128 to A and treat this as an unsigned number from
+                        \ now on
 
  LSR A                  \ Set ZP+1 = &60 + A >> 3
  LSR A
@@ -1834,18 +1854,20 @@ ENDIF
  ORA #&60
  STA ZP+1
 
- TXA                    \ Set ZP = (X >> 3) * 8
- EOR #%10000000
- AND #%11111000
+ TXA                    \ Set A = X + 128 and treat this as an unsigned number
+ EOR #%10000000         \ from now on
+
+ AND #%11111000         \ Set ZP = (A >> 3) * 8
  STA ZP
 
- TYA                    \ Set Y = Y AND %111
- AND #%00000111
- TAY
+ TYA                    \ Set Y = Y mod 8, which is the pixel row within the
+ AND #7                 \ character block at which we want to draw our pixel
+ TAY                    \ (as each character block has 8 rows)
 
- TXA                    \ Set X = X AND %111
- AND #%00000111
- TAX
+ TXA                    \ Set X = X mod 8, which is the horizontal pixel number
+ AND #7                 \ within the character block where the pixel lies (as
+ TAX                    \ each pixel line in the character block is 8 pixels
+                        \ wide)
 
  LDA TWOS,X             \ Fetch a pixel from TWOS and OR it into ZP+Y
  ORA (ZP),Y
@@ -2223,7 +2245,7 @@ ENDIF
 
  Q% = P% - LE%
 
- ORG LE%
+ ORG LE%                \ Set the assembly address to LE%
 
 \ ******************************************************************************
 \
@@ -3104,6 +3126,33 @@ ENDIF
                         \ main game code's random seeds (so this seeds the
                         \ random number generator for the main game)
 
+IF _INTERLACE_FIX
+
+ LDA &0291              \ If interlace is on then the MOS will have set &0291 to
+ BEQ lace1              \ zero, so jump to lace1 to skip the following
+
+                        \ If we get here then interlace is off, so we modify the
+                        \ split-screen interrupt timer from (57 30) to (56 222)
+                        \ to ensure a clean transition between the space view
+                        \ and dashboard, using figures derived by Patrick Moore
+
+                        \ In the following, we modify LINSCN in the interrupt
+                        \ routine in the main game code that we just loaded,
+                        \ i.e. at &2172 (and not at the LINSCN in the loader)
+
+ LDA #222               \ Modify the LDA #30 instruction in LINSCN to LDA #222
+ STA &2172+1            \ to change the low-order T1 count to 222
+
+ LDA #56                \ Modify the LDA #VSCAN instruction in LINSCN to LDA #56
+ STA &2172+8            \ to change the high-order T1 count to 56
+
+ STA lace2+1            \ Modify the LDA #VSCAN instruction at lace2 to LDA #56
+                        \ to change the high-order T1 count to 56
+
+.lace1
+
+ENDIF
+
  SEI                    \ Disable all interrupts
 
  LDA #%00111001         \ Set 6522 System VIA interrupt enable register IER
@@ -3122,6 +3171,12 @@ ENDIF
  LDA S%+5               \ routine from the start of the main code into IRQ1V
  STA IRQ1V+1
 
+IF _INTERLACE_FIX
+
+.lace2
+
+ENDIF
+
  LDA #VSCAN             \ Set 6522 System VIA T1C-L timer 1 high-order counter
  STA VIA+&45            \ (SHEILA &45) to VSCAN (56) to start the T1 counter
                         \ counting down from 14080 at a rate of 1 MHz (this is
@@ -3133,9 +3188,11 @@ ENDIF
 \LDY #&FF               \ source. They call OSBYTE with A = 129, X = 1 and
 \LDX #1                 \ Y = &FF, which returns the machine type in X, so
 \JSR OSBYTE             \ this code would detect the MOS version
+\
 \TXA
 \EOR #&FF
 \STA MOS
+\
 \BMI BLAST
 
  LDY #0                 \ Call OSBYTE with A = 200, X = 3 and Y = 0 to disable
