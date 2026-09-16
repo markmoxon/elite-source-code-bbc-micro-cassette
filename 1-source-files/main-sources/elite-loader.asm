@@ -840,8 +840,19 @@ ENDIF
  LDA #&48               \ routine and set up another couple of variables
  JSR doPROT1
 
+IF _INTERLACE_FIX
+
+ LDA #144               \ Call OSBYTE with A = 144, X = 255 and Y set to the
+ LDY &0291              \ current interlace setting (which the MOS stores at
+ JSR OSBYTE             \ &0291), so this moves the screen down one line but
+                        \ without changing the interlace
+
+ELSE
+
  LDA #144               \ Call OSBYTE with A = 144, X = 255 and Y = 0 to move
  JSR OSB                \ the screen down one line and turn screen interlace on
+
+ENDIF
 
  LDA #247               \ Call OSBYTE with A = 247 and X = Y = 0 to disable the
  LDX #0                 \ BREAK intercept code by poking 0 into the first value
@@ -3051,6 +3062,33 @@ ENDIF
                         \ main game code's random seeds (so this seeds the
                         \ random number generator for the main game)
 
+IF _INTERLACE_FIX
+
+ LDA &0291              \ If interlace is on then the MOS will have set &0291 to
+ BEQ lace1              \ zero, so jump to lace1 to skip the following
+
+                        \ If we get here then interlace is off, so we modify the
+                        \ split-screen interrupt timer from (57 30) to (56 222)
+                        \ to ensure a clean transition between the space view
+                        \ and dashboard, using figures derived by Patrick Moore
+
+                        \ In the following, we modify LINSCN in the interrupt
+                        \ routine in the main game code that we just loaded,
+                        \ i.e. at &2172 (and not at the LINSCN in the loader)
+
+ LDA #222               \ Modify the LDA #30 instruction in LINSCN to LDA #222
+ STA &2172+1            \ to change the low-order T1 count to 222
+
+ LDA #56                \ Modify the LDA #VSCAN instruction in LINSCN to LDA #56
+ STA &2172+8            \ to change the high-order T1 count to 56
+
+ STA lace2+1            \ Modify the LDA #VSCAN instruction at lace2 to LDA #56
+                        \ to change the high-order T1 count to 56
+
+.lace1
+
+ENDIF
+
  SEI                    \ Disable all interrupts
 
  LDA #%00111001         \ Set 6522 System VIA interrupt enable register IER
@@ -3068,6 +3106,12 @@ ENDIF
  STA IRQ1V              \ so this copies the address of the main game's IRQ1
  LDA S%+5               \ routine from the start of the main code into IRQ1V
  STA IRQ1V+1
+
+IF _INTERLACE_FIX
+
+.lace2
+
+ENDIF
 
  LDA #VSCAN             \ Set 6522 System VIA T1C-L timer 1 high-order counter
  STA VIA+&45            \ (SHEILA &45) to VSCAN (56) to start the T1 counter
@@ -3091,6 +3135,22 @@ ENDIF
  LDA #200               \ the ESCAPE key and clear memory if the BREAK key is
  LDX #3                 \ pressed
  JSR OSBYTE
+
+IF _INTERLACE_FIX
+
+.nononono
+
+ JMP (S%)               \ Skip the checksum (as we have modified the game code)
+                        \ and call the address held in the first two bytes of
+                        \ the main game code, which point to TT170, the entry
+                        \ point for the main game code, so this, finally, is
+                        \ where we hand over to the game itself
+
+ SKIPTO &0CD1           \ Pad out the rest of the routine so it's the same size
+                        \ as in the original loader, so we don't have to change
+                        \ this part of the encryption in elite-checksum.py
+
+ELSE
 
                         \ The rest of the routine calculates various checksums
                         \ and makes sure they are correct before proceeding, to
@@ -3169,6 +3229,8 @@ ENDIF
                         \ point to TT170, the entry point for the main game
                         \ code, so this, finally, is where we hand over to the
                         \ game itself
+
+ENDIF
 
 \ ******************************************************************************
 \

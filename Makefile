@@ -22,6 +22,12 @@ PHP?=php
 #
 #   encrypt=no          Disable encryption and checksum routines
 #
+#   match=no            Do not attempt to match the original game binaries
+#                       (i.e. omit workspace noise)
+#
+#   fix-interlace=yes   By default the game forces interlace to be on; this
+#                       uses the interlace setting from when the game is run
+#
 #   verify=no           Disable crc32 verification of the game binaries
 #
 # So, for example:
@@ -85,6 +91,14 @@ else
   match-original-binaries=TRUE
 endif
 
+ifeq ($(fix-interlace), yes)
+  interlace=-i
+  interlace-fix=TRUE
+else
+  interlace=
+  interlace-fix=FALSE
+endif
+
 ifeq ($(protect), no)
   protect-tape=
   prot=FALSE
@@ -127,13 +141,14 @@ all:
 	echo _VARIANT=$(variant-number) >> 1-source-files/main-sources/elite-build-options.asm
 	echo _REMOVE_CHECKSUMS=$(remove-checksums) >> 1-source-files/main-sources/elite-build-options.asm
 	echo _MAX_COMMANDER=$(max-commander) >> 1-source-files/main-sources/elite-build-options.asm
+	echo _INTERLACE_FIX=$(interlace-fix) >> 1-source-files/main-sources/elite-build-options.asm
 	echo _DISC=$(build-for-disc) >> 1-source-files/main-sources/elite-build-options.asm
 	echo _PROT=$(prot) >> 1-source-files/main-sources/elite-build-options.asm
 	$(BEEBASM) -i 1-source-files/main-sources/elite-source.asm -v > 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-bcfs.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-loader.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-readme.asm -v >> 3-assembled-output/compile.txt
-	$(PYTHON) 2-build-files/elite-checksum.py $(unencrypt) $(tape-or-disc) $(protect-tape) -rel$(variant-number)
+	$(PYTHON) 2-build-files/elite-checksum.py $(unencrypt) $(interlace) $(tape-or-disc) $(protect-tape) -rel$(variant-number)
 	$(BEEBASM) -i 1-source-files/main-sources/elite-disc.asm -do 5-compiled-game-discs/elite-cassette$(suffix).ssd -opt 3 -title "E L I T E"
 ifneq ($(verify), no)
 	@$(PYTHON) 2-build-files/crc32.py 4-reference-binaries/$(folder) 3-assembled-output
