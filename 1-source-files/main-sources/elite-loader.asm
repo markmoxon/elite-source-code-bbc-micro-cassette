@@ -3138,13 +3138,13 @@ IF _INTERLACE_FIX
 
                         \ In the following, we modify LINSCN in the interrupt
                         \ routine in the main game code that we just loaded,
-                        \ i.e. at &2172 (and not at the LINSCN in the loader)
+                        \ i.e. at &2452 (and not at the LINSCN in the loader)
 
  LDA #222               \ Modify the LDA #30 instruction in LINSCN to LDA #222
- STA &2172+1            \ to change the low-order T1 count to 222
+ STA &2452+1            \ to change the low-order T1 count to 222
 
  LDA #56                \ Modify the LDA #VSCAN instruction in LINSCN to LDA #56
- STA &2172+8            \ to change the high-order T1 count to 56
+ STA &2452+8            \ to change the high-order T1 count to 56
 
  STA lace2+1            \ Modify the LDA #VSCAN instruction at lace2 to LDA #56
                         \ to change the high-order T1 count to 56
@@ -3211,15 +3211,21 @@ ENDIF
 
                         \ --- End of added code ------------------------------->
 
-                        \ --- Mod: Code added for saving to disc: ------------->
+IF _INTERLACE_FIX
 
- JMP (S%)               \ The checksum was correct, so we call the address held
-                        \ in the first two bytes of the main game code, which
-                        \ point to TT170, the entry point for the main game
-                        \ code, so this, finally, is where we hand over to the
-                        \ game itself
+.nononono
 
-                        \ --- End of added code ------------------------------->
+ JMP (S%)               \ Skip the checksum (as we have modified the game code)
+                        \ and call the address held in the first two bytes of
+                        \ the main game code, which point to TT170, the entry
+                        \ point for the main game code, so this, finally, is
+                        \ where we hand over to the game itself
+
+ SKIPTO &0CD1           \ Pad out the rest of the routine so it's the same size
+                        \ as in the original loader, so we don't have to change
+                        \ this part of the encryption in elite-checksum.py
+
+ELSE
 
                         \ The rest of the routine calculates various checksums
                         \ and makes sure they are correct before proceeding, to
@@ -3285,27 +3291,21 @@ ENDIF
                         \ point for the main game (so this hides this address
                         \ from prying eyes)
 
-                        \ --- Mod: Code removed for Delta 14B: ---------------->
-
-\LDA #%01111111         \ Set 6522 System VIA interrupt enable register IER
-\STA &FE4E              \ (SHEILA &4E) bits 0-6 (i.e. disable all hardware
-\                       \ interrupts from the System VIA)
-
-                        \ --- End of removed code ----------------------------->
+ LDA #%01111111         \ Set 6522 System VIA interrupt enable register IER
+ STA &FE4E              \ (SHEILA &4E) bits 0-6 (i.e. disable all hardware
+                        \ interrupts from the System VIA)
 
  JMP (&FFFC)            \ Jump to the address in &FFFC to reset the machine
 
 .itsOK
 
-                        \ --- Mod: Code removed for saving to disc: ----------->
+ JMP (S%)               \ The checksum was correct, so we call the address held
+                        \ in the first two bytes of the main game code, which
+                        \ point to TT170, the entry point for the main game
+                        \ code, so this, finally, is where we hand over to the
+                        \ game itself
 
-\JMP (S%)               \ The checksum was correct, so we call the address held
-\                       \ in the first two bytes of the main game code, which
-\                       \ point to TT170, the entry point for the main game
-\                       \ code, so this, finally, is where we hand over to the
-\                       \ game itself
-
-                        \ --- End of removed code ----------------------------->
+ENDIF
 
 \ ******************************************************************************
 \
