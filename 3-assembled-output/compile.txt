@@ -18607,7 +18607,7 @@ End macro FNE
      0C83   85 01      STA &01
      0C85   AD 91 02   LDA &0291
      0C88   F0 0D      BEQ &0C97
-     0C8A   A9 DE      LDA #&DE
+     0C8A   A9 EE      LDA #&EE
      0C8C   8D 53 24   STA &2453
      0C8F   A9 38      LDA #&38
      0C91   8D 5A 24   STA &245A
