@@ -3068,7 +3068,7 @@ IF _INTERLACE_FIX
  BEQ lace1              \ zero, so jump to lace1 to skip the following
 
                         \ If we get here then interlace is off, so we modify the
-                        \ split-screen interrupt timer from (57 30) to (56 222)
+                        \ split-screen interrupt timer from (57 30) to (56 238)
                         \ to ensure a clean transition between the space view
                         \ and dashboard, using figures derived by Patrick Moore
 
@@ -3076,8 +3076,8 @@ IF _INTERLACE_FIX
                         \ routine in the main game code that we just loaded,
                         \ i.e. at &2172 (and not at the LINSCN in the loader)
 
- LDA #222               \ Modify the LDA #30 instruction in LINSCN to LDA #222
- STA &2172+1            \ to change the low-order T1 count to 222
+ LDA #238               \ Modify the LDA #30 instruction in LINSCN to LDA #238
+ STA &2172+1            \ to change the low-order T1 count to 238
 
  LDA #56                \ Modify the LDA #VSCAN instruction in LINSCN to LDA #56
  STA &2172+8            \ to change the high-order T1 count to 56
