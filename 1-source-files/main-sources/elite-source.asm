@@ -6961,7 +6961,15 @@ ENDIF
 
  EQUB POW+(128 AND Q%)  \ LASER = Front laser, #16
 
+IF _STH_CASSETTE OR _TEXT_SOURCES
+
  EQUB (POW+128) AND Q%  \ LASER+1 = Rear laser, #17
+
+ELIF _SOURCE_DISC
+
+ EQUB POW               \ LASER+1 = Rear laser, #17
+
+ENDIF
 
  EQUB 0                 \ LASER+2 = Left laser, #18
 
@@ -7057,9 +7065,19 @@ ENDIF
 
 .CHK2
 
+IF _STH_CASSETTE OR _TEXT_SOURCES
+
  EQUB &03 EOR &A9       \ The checksum value for the default commander, EOR'd
                         \ with &A9 to make it harder to tamper with the checksum
                         \ byte, #74
+
+ELIF _SOURCE_DISC
+
+ EQUB &92 EOR &A9       \ The checksum value for the default commander from the
+                        \ source disc, EOR'd with &A9 to make it harder to
+                        \ tamper with the checksum byte, #74
+
+ENDIF
 
 \ ******************************************************************************
 \
@@ -7082,7 +7100,16 @@ ENDIF
 
 .CHK
 
+IF _STH_CASSETTE OR _TEXT_SOURCES
+
  EQUB &03               \ The checksum value for the default commander, #75
+
+ELIF _SOURCE_DISC
+
+ EQUB &92               \ The checksum value for the default commander from the
+                        \ source disc, #75
+
+ENDIF
 
 \ ******************************************************************************
 \
