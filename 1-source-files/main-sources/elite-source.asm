@@ -7744,7 +7744,7 @@ ENDIF
                         \   P = P / Q
                         \     = |delta_x| / |delta_y|
                         \
-                        \ using the same shift-and-subtract algorithm
+                        \ using the same shift-and-subtract algorithm that's
                         \ documented in TIS2
 
  LDA P                  \ Set A = |delta_x|
