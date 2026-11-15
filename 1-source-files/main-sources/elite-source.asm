@@ -21394,11 +21394,28 @@ ENDIF
  PLA                    \ Restore the high byte of the y-axis value from the
                         \ stack into A again
 
- ADC K+1                \ Set R = A + K+1, which adds the high bytes of the two
- STA R                  \ calculated values, so we now have:
+                        \ --- Mod: Code removed for wraparound bug: ----------->
+
+\ADC K+1                \ Set R = A + K+1, which adds the high bytes of the two
+\STA R                  \ calculated values, so we now have:
+\                       \
+\                       \   (R Q) = K(1 0) + (A P)
+\                       \         = (x_delta ^ 2) + (y_delta ^ 2)
+
+                        \ --- And replaced by: -------------------------------->
+
+ ADC K+1                \ Set A = A + K+1, which adds the high bytes of the two
+                        \ calculated values
+
+ BCC P%+4               \ If the above addition overflowed, set A = 255
+ LDA #255
+
+ STA R                  \ Store A in R, so we now have R = A + K+1, and:
                         \
                         \   (R Q) = K(1 0) + (A P)
                         \         = (x_delta ^ 2) + (y_delta ^ 2)
+
+                        \ --- End of replacement ------------------------------>
 
  JSR LL5                \ Set Q = SQRT(R Q), so Q now contains the distance
                         \ between the two systems, in terms of coordinates

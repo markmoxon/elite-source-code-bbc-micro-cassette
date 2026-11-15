@@ -8480,17 +8480,19 @@ Saving file '3-assembled-output/rom-extra3.bin'
      B941   85 80      STA &80
      B943   68         PLA
      B944   65 41      ADC &41
-     B946   85 81      STA &81
-     B948   20 38 4D   JSR &4D38
-     B94B   A5 80      LDA &80
-     B94D   0A         ASL A
-     B94E   A2 00      LDX #&00
-     B950   8E 54 03   STX &0354
-     B953   2E 54 03   ROL &0354
-     B956   0A         ASL A
+     B946   90 02      BCC &B94A
+     B948   A9 FF      LDA #&FF
+     B94A   85 81      STA &81
+     B94C   20 38 4D   JSR &4D38
+     B94F   A5 80      LDA &80
+     B951   0A         ASL A
+     B952   A2 00      LDX #&00
+     B954   8E 54 03   STX &0354
      B957   2E 54 03   ROL &0354
-     B95A   8D 53 03   STA &0353
-     B95D   4C 11 31   JMP &3111
+     B95A   0A         ASL A
+     B95B   2E 54 03   ROL &0354
+     B95E   8D 53 03   STA &0353
+     B961   4C 11 31   JMP &3111
 Saving file '3-assembled-output/rom-extra4.bin'
      3415   A5 F4      LDA &F4
      3417   48         PHA
@@ -8900,187 +8902,187 @@ Saving file '3-assembled-output/rom-extra4.bin'
      3736   60         RTS
 .EQSHP
 .bay
-     B960   4C BF 46   JMP &46BF
+     B964   4C BF 46   JMP &46BF
 .EQSHP_ROM
-     B963   20 D8 22   JSR &22D8
-     B966   A9 20      LDA #&20
-     B968   20 3D 2E   JSR &2E3D
-     B96B   A9 0C      LDA #&0C
-     B96D   85 2C      STA &2C
-     B96F   A9 CF      LDA #&CF
-     B971   20 08 30   JSR &3008
-     B974   A9 B9      LDA #&B9
-     B976   20 09 1C   JSR &1C09
-     B979   A9 80      LDA #&80
-     B97B   85 71      STA &71
-     B97D   E6 2D      INC &2D
-     B97F   AD 43 03   LDA &0343
-     B982   18         CLC
-     B983   69 03      ADC #&03
-     B985   C9 0C      CMP #&0C
-     B987   90 02      BCC &B98B
-     B989   A9 0C      LDA #&0C
-     B98B   85 80      STA &80
-     B98D   8D 3F 03   STA &033F
-     B990   E6 80      INC &80
-     B992   A9 46      LDA #&46
-     B994   38         SEC
-     B995   ED 65 03   SBC &0365
-     B998   0A         ASL A
-     B999   8D AD 20   STA &20AD
-     B99C   A2 01      LDX #&01
+     B967   20 D8 22   JSR &22D8
+     B96A   A9 20      LDA #&20
+     B96C   20 3D 2E   JSR &2E3D
+     B96F   A9 0C      LDA #&0C
+     B971   85 2C      STA &2C
+     B973   A9 CF      LDA #&CF
+     B975   20 08 30   JSR &3008
+     B978   A9 B9      LDA #&B9
+     B97A   20 09 1C   JSR &1C09
+     B97D   A9 80      LDA #&80
+     B97F   85 71      STA &71
+     B981   E6 2D      INC &2D
+     B983   AD 43 03   LDA &0343
+     B986   18         CLC
+     B987   69 03      ADC #&03
+     B989   C9 0C      CMP #&0C
+     B98B   90 02      BCC &B98F
+     B98D   A9 0C      LDA #&0C
+     B98F   85 80      STA &80
+     B991   8D 3F 03   STA &033F
+     B994   E6 80      INC &80
+     B996   A9 46      LDA #&46
+     B998   38         SEC
+     B999   ED 65 03   SBC &0365
+     B99C   0A         ASL A
+     B99D   8D AD 20   STA &20AD
+     B9A0   A2 01      LDX #&01
 .EQL1
-     B99E   86 92      STX &92
-     B9A0   20 FB 2F   JSR &2FFB
-     B9A3   A6 92      LDX &92
-     B9A5   18         CLC
-     B9A6   20 9D 21   JSR &219D
-     B9A9   20 61 35   JSR &3561
-     B9AC   A5 92      LDA &92
-     B9AE   18         CLC
-     B9AF   69 68      ADC #&68
-     B9B1   20 36 38   JSR &3836
-     B9B4   A5 92      LDA &92
-     B9B6   20 73 37   JSR &3773
-     B9B9   38         SEC
-     B9BA   A9 19      LDA #&19
-     B9BC   85 2C      STA &2C
-     B9BE   A9 06      LDA #&06
-     B9C0   20 A1 21   JSR &21A1
-     B9C3   A6 92      LDX &92
-     B9C5   E8         INX
-     B9C6   E4 80      CPX &80
-     B9C8   90 D4      BCC &B99E
-     B9CA   20 BE 2E   JSR &2EBE
-     B9CD   A9 7F      LDA #&7F
-     B9CF   20 E0 34   JSR &34E0
-     B9D2   20 B6 32   JSR &32B6
-     B9D5   F0 89      BEQ &B960
-     B9D7   B0 87      BCS &B960
-     B9D9   E9 00      SBC #&00
-     B9DB   A2 02      LDX #&02
-     B9DD   86 2C      STX &2C
-     B9DF   E6 2D      INC &2D
-     B9E1   48         PHA
-     B9E2   20 63 37   JSR &3763
-     B9E5   68         PLA
-     B9E6   D0 07      BNE &B9EF
-     B9E8   85 93      STA &93
-     B9EA   A2 46      LDX #&46
-     B9EC   8E 65 03   STX &0365
+     B9A2   86 92      STX &92
+     B9A4   20 FB 2F   JSR &2FFB
+     B9A7   A6 92      LDX &92
+     B9A9   18         CLC
+     B9AA   20 9D 21   JSR &219D
+     B9AD   20 61 35   JSR &3561
+     B9B0   A5 92      LDA &92
+     B9B2   18         CLC
+     B9B3   69 68      ADC #&68
+     B9B5   20 36 38   JSR &3836
+     B9B8   A5 92      LDA &92
+     B9BA   20 73 37   JSR &3773
+     B9BD   38         SEC
+     B9BE   A9 19      LDA #&19
+     B9C0   85 2C      STA &2C
+     B9C2   A9 06      LDA #&06
+     B9C4   20 A1 21   JSR &21A1
+     B9C7   A6 92      LDX &92
+     B9C9   E8         INX
+     B9CA   E4 80      CPX &80
+     B9CC   90 D4      BCC &B9A2
+     B9CE   20 BE 2E   JSR &2EBE
+     B9D1   A9 7F      LDA #&7F
+     B9D3   20 E0 34   JSR &34E0
+     B9D6   20 B6 32   JSR &32B6
+     B9D9   F0 89      BEQ &B964
+     B9DB   B0 87      BCS &B964
+     B9DD   E9 00      SBC #&00
+     B9DF   A2 02      LDX #&02
+     B9E1   86 2C      STX &2C
+     B9E3   E6 2D      INC &2D
+     B9E5   48         PHA
+     B9E6   20 63 37   JSR &3763
+     B9E9   68         PLA
+     B9EA   D0 07      BNE &B9F3
+     B9EC   85 93      STA &93
+     B9EE   A2 46      LDX #&46
+     B9F0   8E 65 03   STX &0365
 .et0
-     B9EF   C9 01      CMP #&01
-     B9F1   D0 10      BNE &BA03
-     B9F3   AE 8B 03   LDX &038B
-     B9F6   E8         INX
-     B9F7   A0 75      LDY #&75
-     B9F9   E0 05      CPX #&05
-     B9FB   B0 68      BCS &BA65
-     B9FD   8E 8B 03   STX &038B
-     BA00   20 5B 43   JSR &435B
+     B9F3   C9 01      CMP #&01
+     B9F5   D0 10      BNE &BA07
+     B9F7   AE 8B 03   LDX &038B
+     B9FA   E8         INX
+     B9FB   A0 75      LDY #&75
+     B9FD   E0 05      CPX #&05
+     B9FF   B0 68      BCS &BA69
+     BA01   8E 8B 03   STX &038B
+     BA04   20 5B 43   JSR &435B
 .et1
-     BA03   A0 6B      LDY #&6B
-     BA05   C9 02      CMP #&02
-     BA07   D0 0A      BNE &BA13
-     BA09   A2 25      LDX #&25
-     BA0B   EC 6E 03   CPX &036E
-     BA0E   F0 55      BEQ &BA65
-     BA10   8E 6E 03   STX &036E
+     BA07   A0 6B      LDY #&6B
+     BA09   C9 02      CMP #&02
+     BA0B   D0 0A      BNE &BA17
+     BA0D   A2 25      LDX #&25
+     BA0F   EC 6E 03   CPX &036E
+     BA12   F0 55      BEQ &BA69
+     BA14   8E 6E 03   STX &036E
 .et2
-     BA13   C9 03      CMP #&03
-     BA15   D0 09      BNE &BA20
-     BA17   C8         INY
-     BA18   AE 80 03   LDX &0380
-     BA1B   D0 48      BNE &BA65
-     BA1D   CE 80 03   DEC &0380
+     BA17   C9 03      CMP #&03
+     BA19   D0 09      BNE &BA24
+     BA1B   C8         INY
+     BA1C   AE 80 03   LDX &0380
+     BA1F   D0 48      BNE &BA69
+     BA21   CE 80 03   DEC &0380
 .et3
-     BA20   C9 04      CMP #&04
-     BA22   D0 15      BNE &BA39
-     BA24   20 80 37   JSR &3780
-     BA27   A9 04      LDA #&04
-     BA29   BC 68 03   LDY &0368,X
-     BA2C   F0 04      BEQ &BA32
+     BA24   C9 04      CMP #&04
+     BA26   D0 15      BNE &BA3D
+     BA28   20 80 37   JSR &3780
+     BA2B   A9 04      LDA #&04
+     BA2D   BC 68 03   LDY &0368,X
+     BA30   F0 04      BEQ &BA36
 .ed7
-     BA2E   A0 BB      LDY #&BB
-     BA30   D0 33      BNE &BA65
+     BA32   A0 BB      LDY #&BB
+     BA34   D0 33      BNE &BA69
 .ed4
-     BA32   A9 0F      LDA #&0F
-     BA34   9D 68 03   STA &0368,X
-     BA37   A9 04      LDA #&04
+     BA36   A9 0F      LDA #&0F
+     BA38   9D 68 03   STA &0368,X
+     BA3B   A9 04      LDA #&04
 .et4
-     BA39   C9 05      CMP #&05
-     BA3B   D0 1D      BNE &BA5A
-     BA3D   20 80 37   JSR &3780
-     BA40   86 06      STX &06
-     BA42   A9 05      LDA #&05
-     BA44   BC 68 03   LDY &0368,X
-     BA47   F0 0A      BEQ &BA53
-     BA49   30 E3      BMI &BA2E
-     BA4B   A9 04      LDA #&04
-     BA4D   20 76 37   JSR &3776
-     BA50   20 09 37   JSR &3709
+     BA3D   C9 05      CMP #&05
+     BA3F   D0 1D      BNE &BA5E
+     BA41   20 80 37   JSR &3780
+     BA44   86 06      STX &06
+     BA46   A9 05      LDA #&05
+     BA48   BC 68 03   LDY &0368,X
+     BA4B   F0 0A      BEQ &BA57
+     BA4D   30 E3      BMI &BA32
+     BA4F   A9 04      LDA #&04
+     BA51   20 76 37   JSR &3776
+     BA54   20 09 37   JSR &3709
 .ed5
-     BA53   A9 8F      LDA #&8F
-     BA55   A6 06      LDX &06
-     BA57   9D 68 03   STA &0368,X
+     BA57   A9 8F      LDA #&8F
+     BA59   A6 06      LDX &06
+     BA5B   9D 68 03   STA &0368,X
 .et5
-     BA5A   A0 6F      LDY #&6F
-     BA5C   C9 06      CMP #&06
-     BA5E   D0 20      BNE &BA80
-     BA60   AE 81 03   LDX &0381
-     BA63   F0 18      BEQ &BA7D
+     BA5E   A0 6F      LDY #&6F
+     BA60   C9 06      CMP #&06
+     BA62   D0 20      BNE &BA84
+     BA64   AE 81 03   LDX &0381
+     BA67   F0 18      BEQ &BA81
 .pres
-     BA65   84 40      STY &40
-     BA67   20 76 37   JSR &3776
-     BA6A   20 09 37   JSR &3709
-     BA6D   A5 40      LDA &40
-     BA6F   20 08 30   JSR &3008
-     BA72   A9 1F      LDA #&1F
-     BA74   20 36 38   JSR &3836
+     BA69   84 40      STY &40
+     BA6B   20 76 37   JSR &3776
+     BA6E   20 09 37   JSR &3709
+     BA71   A5 40      LDA &40
+     BA73   20 08 30   JSR &3008
+     BA76   A9 1F      LDA #&1F
+     BA78   20 36 38   JSR &3836
 .err
-     BA77   20 5B 37   JSR &375B
-     BA7A   4C BF 46   JMP &46BF
+     BA7B   20 5B 37   JSR &375B
+     BA7E   4C BF 46   JMP &46BF
 .ed9
-     BA7D   CE 81 03   DEC &0381
+     BA81   CE 81 03   DEC &0381
 .et6
-     BA80   C8         INY
-     BA81   C9 07      CMP #&07
-     BA83   D0 08      BNE &BA8D
-     BA85   AE 86 03   LDX &0386
-     BA88   D0 DB      BNE &BA65
-     BA8A   CE 86 03   DEC &0386
+     BA84   C8         INY
+     BA85   C9 07      CMP #&07
+     BA87   D0 08      BNE &BA91
+     BA89   AE 86 03   LDX &0386
+     BA8C   D0 DB      BNE &BA69
+     BA8E   CE 86 03   DEC &0386
 .et7
-     BA8D   C8         INY
-     BA8E   C9 08      CMP #&08
-     BA90   D0 0A      BNE &BA9C
-     BA92   AE 82 03   LDX &0382
-     BA95   D0 CE      BNE &BA65
-     BA97   A2 7F      LDX #&7F
-     BA99   8E 82 03   STX &0382
+     BA91   C8         INY
+     BA92   C9 08      CMP #&08
+     BA94   D0 0A      BNE &BAA0
+     BA96   AE 82 03   LDX &0382
+     BA99   D0 CE      BNE &BA69
+     BA9B   A2 7F      LDX #&7F
+     BA9D   8E 82 03   STX &0382
 .et8
-     BA9C   C8         INY
-     BA9D   C9 09      CMP #&09
-     BA9F   D0 08      BNE &BAA9
-     BAA1   AE 83 03   LDX &0383
-     BAA4   D0 BF      BNE &BA65
-     BAA6   EE 83 03   INC &0383
+     BAA0   C8         INY
+     BAA1   C9 09      CMP #&09
+     BAA3   D0 08      BNE &BAAD
+     BAA5   AE 83 03   LDX &0383
+     BAA8   D0 BF      BNE &BA69
+     BAAA   EE 83 03   INC &0383
 .etA
-     BAA9   C8         INY
-     BAAA   C9 0A      CMP #&0A
-     BAAC   D0 08      BNE &BAB6
-     BAAE   AE 84 03   LDX &0384
-     BAB1   D0 B2      BNE &BA65
-     BAB3   CE 84 03   DEC &0384
+     BAAD   C8         INY
+     BAAE   C9 0A      CMP #&0A
+     BAB0   D0 08      BNE &BABA
+     BAB2   AE 84 03   LDX &0384
+     BAB5   D0 B2      BNE &BA69
+     BAB7   CE 84 03   DEC &0384
 .etB
-     BAB6   C8         INY
-     BAB7   C9 0B      CMP #&0B
-     BAB9   D0 08      BNE &BAC3
-     BABB   AE 85 03   LDX &0385
-     BABE   D0 A5      BNE &BA65
-     BAC0   CE 85 03   DEC &0385
+     BABA   C8         INY
+     BABB   C9 0B      CMP #&0B
+     BABD   D0 08      BNE &BAC7
+     BABF   AE 85 03   LDX &0385
+     BAC2   D0 A5      BNE &BA69
+     BAC4   CE 85 03   DEC &0385
 .et9
-     BAC3   20 53 37   JSR &3753
-     BAC6   4C 37 37   JMP &3737
+     BAC7   20 53 37   JSR &3753
+     BACA   4C 37 37   JMP &3737
 Saving file '3-assembled-output/rom-extra5.bin'
      3737   A5 F4      LDA &F4
      3739   48         PHA
@@ -9091,7 +9093,7 @@ Saving file '3-assembled-output/rom-extra5.bin'
      3742   48         PHA
      3743   8A         TXA
      3744   48         PHA
-     3745   20 63 B9   JSR &B963
+     3745   20 67 B9   JSR &B967
      3748   68         PLA
      3749   AA         TAX
      374A   68         PLA
@@ -9114,7 +9116,7 @@ Saving file '3-assembled-output/rom-extra5.bin'
      3769   B0 14      BCS &377F
      376B   A9 C5      LDA #&C5
      376D   20 E0 34   JSR &34E0
-     3770   4C 77 BA   JMP &BA77
+     3770   4C 7B BA   JMP &BA7B
      3773   38         SEC
      3774   E9 01      SBC #&01
 .prx
@@ -9165,33 +9167,33 @@ S.ELTD &2F8C  &37B3  &1128  &2FB4
 Saving file '3-assembled-output/ELTD.bin'
 .cpl
 .cpl_ROM
-     BAC9   A2 05      LDX #&05
+     BACD   A2 05      LDX #&05
 .TT53
-     BACB   B5 6B      LDA &6B,X
-     BACD   95 72      STA &72,X
-     BACF   CA         DEX
-     BAD0   10 F9      BPL &BACB
-     BAD2   A0 03      LDY #&03
-     BAD4   24 6B      BIT &6B
-     BAD6   70 01      BVS &BAD9
-     BAD8   88         DEY
-     BAD9   84 D1      STY &D1
+     BACF   B5 6B      LDA &6B,X
+     BAD1   95 72      STA &72,X
+     BAD3   CA         DEX
+     BAD4   10 F9      BPL &BACF
+     BAD6   A0 03      LDY #&03
+     BAD8   24 6B      BIT &6B
+     BADA   70 01      BVS &BADD
+     BADC   88         DEY
+     BADD   84 D1      STY &D1
 .TT55
-     BADB   A5 70      LDA &70
-     BADD   29 1F      AND #&1F
-     BADF   F0 05      BEQ &BAE6
-     BAE1   09 80      ORA #&80
-     BAE3   20 36 38   JSR &3836
-     BAE6   20 AF 2F   JSR &2FAF
-     BAE9   C6 D1      DEC &D1
-     BAEB   10 EE      BPL &BADB
-     BAED   A2 05      LDX #&05
+     BADF   A5 70      LDA &70
+     BAE1   29 1F      AND #&1F
+     BAE3   F0 05      BEQ &BAEA
+     BAE5   09 80      ORA #&80
+     BAE7   20 36 38   JSR &3836
+     BAEA   20 AF 2F   JSR &2FAF
+     BAED   C6 D1      DEC &D1
+     BAEF   10 EE      BPL &BADF
+     BAF1   A2 05      LDX #&05
 .TT56
-     BAEF   B5 72      LDA &72,X
-     BAF1   95 6B      STA &6B,X
-     BAF3   CA         DEX
-     BAF4   10 F9      BPL &BAEF
-     BAF6   60         RTS
+     BAF3   B5 72      LDA &72,X
+     BAF5   95 6B      STA &6B,X
+     BAF7   CA         DEX
+     BAF8   10 F9      BPL &BAF3
+     BAFA   60         RTS
 Saving file '3-assembled-output/rom-extra6.bin'
      37B3   A5 F4      LDA &F4
      37B5   48         PHA
@@ -9202,7 +9204,7 @@ Saving file '3-assembled-output/rom-extra6.bin'
      37BE   48         PHA
      37BF   8A         TXA
      37C0   48         PHA
-     37C1   20 C9 BA   JSR &BAC9
+     37C1   20 CD BA   JSR &BACD
      37C4   68         PLA
      37C5   AA         TAX
      37C6   68         PLA
@@ -9767,34 +9769,34 @@ Saving file '3-assembled-output/rom-extra6.bin'
      3B80   60         RTS
 .OOPS
 .OOPS_ROM
-     BAF7   A0 08      LDY #&08
-     BAF9   A2 00      LDX #&00
-     BAFB   B1 20      LDA (&20),Y
-     BAFD   30 10      BMI &BB0F
-     BAFF   AD 39 03   LDA &0339
-     BB02   E5 D1      SBC &D1
-     BB04   90 04      BCC &BB0A
-     BB06   8D 39 03   STA &0339
-     BB09   60         RTS
+     BAFB   A0 08      LDY #&08
+     BAFD   A2 00      LDX #&00
+     BAFF   B1 20      LDA (&20),Y
+     BB01   30 10      BMI &BB13
+     BB03   AD 39 03   LDA &0339
+     BB06   E5 D1      SBC &D1
+     BB08   90 04      BCC &BB0E
+     BB0A   8D 39 03   STA &0339
+     BB0D   60         RTS
 .OO2
-     BB0A   8E 39 03   STX &0339
-     BB0D   90 0E      BCC &BB1D
+     BB0E   8E 39 03   STX &0339
+     BB11   90 0E      BCC &BB21
 .OO1
-     BB0F   AD 3A 03   LDA &033A
-     BB12   E5 D1      SBC &D1
-     BB14   90 04      BCC &BB1A
-     BB16   8D 3A 03   STA &033A
-     BB19   60         RTS
+     BB13   AD 3A 03   LDA &033A
+     BB16   E5 D1      SBC &D1
+     BB18   90 04      BCC &BB1E
+     BB1A   8D 3A 03   STA &033A
+     BB1D   60         RTS
 .OO5
-     BB1A   8E 3A 03   STX &033A
+     BB1E   8E 3A 03   STX &033A
 .OO3
-     BB1D   6D 3B 03   ADC &033B
-     BB20   8D 3B 03   STA &033B
-     BB23   F0 02      BEQ &BB27
-     BB25   B0 03      BCS &BB2A
-     BB27   4C CC 45   JMP &45CC
-     BB2A   20 4B 49   JSR &494B
-     BB2D   4C B8 4B   JMP &4BB8
+     BB21   6D 3B 03   ADC &033B
+     BB24   8D 3B 03   STA &033B
+     BB27   F0 02      BEQ &BB2B
+     BB29   B0 03      BCS &BB2E
+     BB2B   4C CC 45   JMP &45CC
+     BB2E   20 4B 49   JSR &494B
+     BB31   4C B8 4B   JMP &4BB8
 Saving file '3-assembled-output/rom-extra7.bin'
      3B81   85 D1      STA &D1
      3B83   A5 F4      LDA &F4
@@ -9806,7 +9808,7 @@ Saving file '3-assembled-output/rom-extra7.bin'
      3B8E   48         PHA
      3B8F   8A         TXA
      3B90   48         PHA
-     3B91   20 F7 BA   JSR &BAF7
+     3B91   20 FB BA   JSR &BAFB
      3B94   68         PLA
      3B95   AA         TAX
      3B96   68         PLA
@@ -12252,87 +12254,87 @@ Macro ITEM:
 End macro ITEM
 .TIDY
 .TI2
-     BB30   98         TYA
-     BB31   A0 02      LDY #&02
-     BB33   20 B4 4C   JSR &4CB4
-     BB36   85 5A      STA &5A
-     BB38   4C 78 BB   JMP &BB78
+     BB34   98         TYA
+     BB35   A0 02      LDY #&02
+     BB37   20 B4 4C   JSR &4CB4
+     BB3A   85 5A      STA &5A
+     BB3C   4C 7C BB   JMP &BB7C
 .TI1
-     BB3B   AA         TAX
-     BB3C   A5 35      LDA &35
-     BB3E   29 60      AND #&60
-     BB40   F0 EE      BEQ &BB30
-     BB42   A9 02      LDA #&02
-     BB44   20 B4 4C   JSR &4CB4
-     BB47   85 58      STA &58
-     BB49   4C 78 BB   JMP &BB78
+     BB3F   AA         TAX
+     BB40   A5 35      LDA &35
+     BB42   29 60      AND #&60
+     BB44   F0 EE      BEQ &BB34
+     BB46   A9 02      LDA #&02
+     BB48   20 B4 4C   JSR &4CB4
+     BB4B   85 58      STA &58
+     BB4D   4C 7C BB   JMP &BB7C
 .TIDY_ROM
-     BB4C   A5 50      LDA &50
-     BB4E   85 34      STA &34
-     BB50   A5 52      LDA &52
-     BB52   85 35      STA &35
-     BB54   A5 54      LDA &54
-     BB56   85 36      STA &36
-     BB58   20 E4 48   JSR &48E4
-     BB5B   A5 34      LDA &34
-     BB5D   85 50      STA &50
-     BB5F   A5 35      LDA &35
-     BB61   85 52      STA &52
-     BB63   A5 36      LDA &36
-     BB65   85 54      STA &54
-     BB67   A0 04      LDY #&04
-     BB69   A5 34      LDA &34
-     BB6B   29 60      AND #&60
-     BB6D   F0 CC      BEQ &BB3B
-     BB6F   A2 02      LDX #&02
-     BB71   A9 00      LDA #&00
-     BB73   20 B4 4C   JSR &4CB4
-     BB76   85 56      STA &56
+     BB50   A5 50      LDA &50
+     BB52   85 34      STA &34
+     BB54   A5 52      LDA &52
+     BB56   85 35      STA &35
+     BB58   A5 54      LDA &54
+     BB5A   85 36      STA &36
+     BB5C   20 E4 48   JSR &48E4
+     BB5F   A5 34      LDA &34
+     BB61   85 50      STA &50
+     BB63   A5 35      LDA &35
+     BB65   85 52      STA &52
+     BB67   A5 36      LDA &36
+     BB69   85 54      STA &54
+     BB6B   A0 04      LDY #&04
+     BB6D   A5 34      LDA &34
+     BB6F   29 60      AND #&60
+     BB71   F0 CC      BEQ &BB3F
+     BB73   A2 02      LDX #&02
+     BB75   A9 00      LDA #&00
+     BB77   20 B4 4C   JSR &4CB4
+     BB7A   85 56      STA &56
 .TI3
-     BB78   A5 56      LDA &56
-     BB7A   85 34      STA &34
-     BB7C   A5 58      LDA &58
-     BB7E   85 35      STA &35
-     BB80   A5 5A      LDA &5A
-     BB82   85 36      STA &36
-     BB84   20 E4 48   JSR &48E4
-     BB87   A5 34      LDA &34
-     BB89   85 56      STA &56
-     BB8B   A5 35      LDA &35
-     BB8D   85 58      STA &58
-     BB8F   A5 36      LDA &36
-     BB91   85 5A      STA &5A
-     BB93   A5 52      LDA &52
-     BB95   85 80      STA &80
-     BB97   A5 5A      LDA &5A
-     BB99   20 FA 2A   JSR &2AFA
-     BB9C   A6 54      LDX &54
-     BB9E   A5 58      LDA &58
-     BBA0   20 5F 2B   JSR &2B5F
-     BBA3   49 80      EOR #&80
-     BBA5   85 5C      STA &5C
-     BBA7   A5 56      LDA &56
-     BBA9   20 FA 2A   JSR &2AFA
-     BBAC   A6 50      LDX &50
-     BBAE   A5 5A      LDA &5A
-     BBB0   20 5F 2B   JSR &2B5F
-     BBB3   49 80      EOR #&80
-     BBB5   85 5E      STA &5E
-     BBB7   A5 58      LDA &58
-     BBB9   20 FA 2A   JSR &2AFA
-     BBBC   A6 52      LDX &52
-     BBBE   A5 56      LDA &56
-     BBC0   20 5F 2B   JSR &2B5F
-     BBC3   49 80      EOR #&80
-     BBC5   85 60      STA &60
-     BBC7   A9 00      LDA #&00
-     BBC9   A2 0E      LDX #&0E
+     BB7C   A5 56      LDA &56
+     BB7E   85 34      STA &34
+     BB80   A5 58      LDA &58
+     BB82   85 35      STA &35
+     BB84   A5 5A      LDA &5A
+     BB86   85 36      STA &36
+     BB88   20 E4 48   JSR &48E4
+     BB8B   A5 34      LDA &34
+     BB8D   85 56      STA &56
+     BB8F   A5 35      LDA &35
+     BB91   85 58      STA &58
+     BB93   A5 36      LDA &36
+     BB95   85 5A      STA &5A
+     BB97   A5 52      LDA &52
+     BB99   85 80      STA &80
+     BB9B   A5 5A      LDA &5A
+     BB9D   20 FA 2A   JSR &2AFA
+     BBA0   A6 54      LDX &54
+     BBA2   A5 58      LDA &58
+     BBA4   20 5F 2B   JSR &2B5F
+     BBA7   49 80      EOR #&80
+     BBA9   85 5C      STA &5C
+     BBAB   A5 56      LDA &56
+     BBAD   20 FA 2A   JSR &2AFA
+     BBB0   A6 50      LDX &50
+     BBB2   A5 5A      LDA &5A
+     BBB4   20 5F 2B   JSR &2B5F
+     BBB7   49 80      EOR #&80
+     BBB9   85 5E      STA &5E
+     BBBB   A5 58      LDA &58
+     BBBD   20 FA 2A   JSR &2AFA
+     BBC0   A6 52      LDX &52
+     BBC2   A5 56      LDA &56
+     BBC4   20 5F 2B   JSR &2B5F
+     BBC7   49 80      EOR #&80
+     BBC9   85 60      STA &60
+     BBCB   A9 00      LDA #&00
+     BBCD   A2 0E      LDX #&0E
 .TIL1
-     BBCB   95 4F      STA &4F,X
-     BBCD   CA         DEX
-     BBCE   CA         DEX
-     BBCF   10 FA      BPL &BBCB
-     BBD1   60         RTS
+     BBCF   95 4F      STA &4F,X
+     BBD1   CA         DEX
+     BBD2   CA         DEX
+     BBD3   10 FA      BPL &BBCF
+     BBD5   60         RTS
 Saving file '3-assembled-output/rom-extra8.bin'
      4C6B   A5 F4      LDA &F4
      4C6D   48         PHA
@@ -12343,7 +12345,7 @@ Saving file '3-assembled-output/rom-extra8.bin'
      4C76   48         PHA
      4C77   8A         TXA
      4C78   48         PHA
-     4C79   20 4C BB   JSR &BB4C
+     4C79   20 50 BB   JSR &BB50
      4C7C   68         PLA
      4C7D   AA         TAX
      4C7E   68         PLA
