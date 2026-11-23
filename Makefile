@@ -10,9 +10,9 @@ PHP?=php
 #
 #   variant=<release>   Build the specified variant:
 #
-#                         source-disc (default)
+#                         sth (default)
+#                         source-disc
 #                         text-sources
-#                         sth
 #
 #   disc=no             Build a version to load from cassette rather than disc
 #
